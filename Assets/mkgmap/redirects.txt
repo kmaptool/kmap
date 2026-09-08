@@ -1,0 +1,132 @@
+# One thing on the ground should be one icon on the screen.
+#
+# mkgmap's default style often splits a single real-world kind across several Garmin
+# type codes to capture a detail (has a shop, takes truck diesel, is a platform as well
+# as a stop). Under a TYP that styles those codes differently — or does not style one of
+# them at all, in which case the device draws its own marker — the result is the same
+# kind of object wearing two or three different icons.
+#
+# This file redirects those variants onto the one code kmap styles. Applied to
+# mkgmap's own style at build time, so it stays in step with the installed mkgmap.
+#
+# The '-' lines are mkgmap's own, from its default style, and are GPL v2 like the rest
+# of it. They are here because a substitution has to name the line it replaces
+# exactly. See NOTICE.md.
+#
+# Format: '@@ <style file>', then one
+# '-' old line followed by one or more '+' replacement lines. A '-' line that no longer
+# matches the installed mkgmap is reported in the build log rather than silently skipped.
+
+@@ points
+- amenity=fuel & fuel:HGV_diesel=yes [0x2f16 resolution 23]
++ amenity=fuel & fuel:HGV_diesel=yes [0x2f01 resolution 23]  # kmap: 0x2f16 is unstyled, so it drew the device fallback next to real fuel icons
+
+# Deliberately NOT redirected: amenity=fuel & shop=convenience [0x2e06].
+# In this style 0x2e06 is emitted by that one rule and nothing else, so the code does not
+# mean "convenience store" here — it means "filling station that has a shop". It keeps its
+# own code and gets its own icon, drawn as a sibling of 0x2f01 rather than as a shop.
+
+
+# ============================================================================
+# Sweep of mkgmap's default points file for the same defect, 2026-08-17.
+#
+# Method: every rule was grouped by the type code it emits (133 codes, 300-odd
+# rules) and each group compared against what the reference TYP draws for it.  A
+# family was flagged where one real-world kind reaches the screen as more than
+# one icon.  Three outcomes were possible -- redirect (below), sibling icons (a
+# TYP edit), or leave alone.
+# ============================================================================
+
+@@ points
+
+# --- the motor trade.  Six codes for what is, on foot, one thing: a garage.
+# car_wrecker is a car_repair with worse stock; car_club is car_sharing under
+# another name.  Neither distinction survives a 20x20 icon, and neither code
+# had an icon at all, so both were drawing the device fallback.
+- shop=car_wrecker [0x2f0a resolution 24]
++ shop=car_wrecker [0x2f03 resolution 24]  # kmap: same spanner as car_repair
+- amenity=car_club [0x2f0d resolution 24]
++ amenity=car_club [0x2f02 resolution 24]  # kmap: same key as car_rental/car_sharing
+
+# --- a concert hall is a theatre with different programming.  0x2c09 was
+# unstyled, 0x2d01 has Garmin's comedy mask.
+- amenity=concert_hall [0x2c09 resolution 24]
++ amenity=concert_hall [0x2d01 resolution 24]  # kmap: label anchor -- the mask lied about the place
+- amenity=conference_centre [0x2c09 resolution 24]
++ amenity=conference_centre [0x661a resolution 24]  # kmap: label anchor -- the mask lied about the place
+- amenity=convention_center [0x2c09 resolution 24]
++ amenity=convention_center [0x661a resolution 24]  # kmap: label anchor -- the mask lied about the place
+
+# --- a resort is a hotel.  0x2b04 was unstyled, 0x2b01 has Garmin's bed.
+- tourism=resort [0x2b04 resolution 24]
++ tourism=resort [0x2b01 resolution 24]  # kmap: same bed as hotel/motel
+
+# --- sport=airport stripped, nothing added back: the audit's verdict.  0x2d0b is
+# unstyled and such places still draw through their aeroway tags; a `-` with no
+# `+` deletes the stock rule.
+- sport=airport [0x2d0b resolution 24]
+
+# --- prison and public_building shared 0x3007, which nothing styles, while the
+# neighbouring civic codes (townhall, courthouse) are drawn.  A public building
+# is a civic building.
+- amenity=prison [0x3007 resolution 24 default_name 'Prison']
++ amenity=prison [0x661a resolution 24 default_name 'Prison']  # kmap: label anchor -- the town hall badge lied
+- amenity=public_building [0x3007 resolution 24]
++ amenity=public_building [0x3003 resolution 24]  # kmap: label anchor -- the town hall badge lied
+
+# --- resupply.  shop=general is the village store: on foot it is a place to buy
+# food, which is exactly what 0x2e02 (supermarket / convenience / bakery, drawn
+# with the trolley) already means.  0x2e03 gave it a generic shopfront
+# indistinguishable from 0x2e0c, the "any named shop" mop-up, so a walker
+# scanning for supplies could not pick it out.  This is the one redirect made
+# for usefulness rather than to kill a duplicate.
+- shop=general [0x2e03 resolution 24]
++ shop=general [0x2e02 resolution 24]  # kmap: village store is a food shop -- group it with the trolley
+
+# --- resupply, continued.  An organic shop is a food shop.  0x2e0a had no icon
+# at all, so it drew the device fallback; grouping it with the trolley puts it
+# where a walker looking for food will already be looking.
+- shop=organic [0x2e0a resolution 24]
++ shop=organic [0x2e02 resolution 24]  # kmap: 0x2e0a unstyled; a food shop belongs with the trolley
+
+# --- a camp site was painted twice, one icon exactly on top of the other. mkgmap emits
+# two type codes for it on purpose — its own comment says "different devices use
+# different codes for camp/caravan_site, have both!" — which is a sensible hedge for a
+# style that must suit every receiver, and wrong for one aimed at a known device with a
+# TYP that draws both codes. 0x2b05 stays reserved for tourism=lean_to, which is what it
+# depicts.
+- tourism=camp_site [0x2b03 resolution 24] [0x2b05 resolution 24]
++ tourism=camp_site [0x2b03 resolution 24]  # kmap: 0x2b05 dropped, it drew a second icon
+- tourism=caravan_site [0x2b03 resolution 24] [0x2b05 resolution 24]
++ tourism=caravan_site [0x2b03 resolution 24]  # kmap: 0x2b05 dropped, as for camp_site
+
+@@ lines
+# --- a via ferrata was deleted from the map outright. mkgmap's reasoning is sound for a
+# general-purpose style — it must not appear as something a router will send you along —
+# but the result is that the one line you must not wander onto is drawn as nothing at all.
+# 0x2b is the tick line this style already uses for cliffs: not a road type, so routing
+# never touches it, while the way itself becomes visible. The label added by the trail
+# warning rules says what it is.
+- highway=via_ferrata {delete highway}  # this shouldn't show as routable on default map: path only for specialists
++ highway=via_ferrata [0x2b resolution 22]  # kmap: was deleted outright; 0x2b is unroutable, so it shows without being offered as a route
+
+@@ points
+# --- the stock basic_hut rule sits above kmap's shelter rules and so wins, naming the
+# object 'Shelter' in English on a Cyrillic map. kmap's own rules cover every shelter
+# kind including this one, so the stock line is retired rather than fought with.
+- amenity=shelter & shelter_type=basic_hut [0x2b06 resolution 24 default_name 'Shelter']
++ # kmap: superseded by the terrain POI rules below, which name it in the map's language
+
+# Caves move to the code Garmin itself uses for them. In the vendor icon sets 0x6601 is
+# an ARCH and 0x6619 is the cave, so the cave was drawn on the wrong symbol's number --
+# harmless until an icon is borrowed from such a file.
+#
+# Resolution 24 and not 22: this matches mkgmap's own line, and the POI zoom
+# shift runs later. Written against the shifted text it silently missed.
+- natural=cave_entrance [0x6601 resolution 24]
++ natural=cave_entrance [0x6619 resolution 24]  # kmap: 0x6601 is Garmin's arch, 0x6619 its cave
+
+# A playground is not a park. mkgmap sends both to 0x2c06, so every playground
+# drew the park's tree; 0x2c0f is unused and now carries Garmin's own swing.
+- leisure=playground [0x2c06 resolution 24 default_name 'Playground']
++ leisure=playground [0x2c0f resolution 24 default_name 'Playground']  # kmap: own code, own icon

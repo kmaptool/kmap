@@ -1,0 +1,10 @@
+// zlib, as a module Swift can import.
+//
+// The header is the system's own — macOS ships it in the SDK, every Linux
+// distribution in libz-dev — so nothing is vendored here. `link "z"` is what
+// puts -lz on the link line without a Package.swift flag per platform.
+module CZlib [system] {
+    header "shim.h"
+    link "z"
+    export *
+}

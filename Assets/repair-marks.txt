@@ -1,0 +1,106 @@
+;  kmap's repair marks, added to whatever TYP a build uses.
+;
+;  The road-repair pass links road ends that OSM leaves apart, and where something stands
+;  between them -- a kerb, a bank, an open channel, a drop -- it says so: the link is drawn
+;  as a red dashed band with a mark standing in the middle of it. Both types are kmap's own
+;  invention, so no TYP written for anything else draws them, and a type nothing draws falls
+;  back to whatever the device feels like. A borrowed look would show the repairs as random
+;  device defaults, or not at all.
+;
+;  So these two sections are added to the TYP a build compiles, and only where it does not
+;  define them already -- a style that draws its own repair marks keeps them. Nothing is
+;  written back to the file the user owns.
+;
+;  Both drawings are kmap's own work, and the comments they carry are the record of how each
+;  was arrived at, including what had to change after the first one proved invisible on a
+;  GPSMAP 67.
+
+[_line]
+Type=0x0d
+; kmap: a link this build put in across something that stands in the way -- a kerb, a
+; bank, an open channel, a drop. Deliberately frail: 1 px, short dots, wide gaps, so it
+; never reads as a path somebody has walked.
+;
+; The colour is kmap's own; there was nothing to copy, because no vendor style has such a line and
+; no reason to. Red, and no other red on this map: roads are orange, water blue, tracks
+; and paths grey, boundaries violet. Nothing else can be mistaken for it.
+;
+; It started a dull rose at 1 px and was invisible on the device -- checked on a GPSMAP
+; 67 at Simeiz, where the link simply could not be found on screen. Two pixels and a
+; plain strong red is what it takes to read against the landcover at walking zoom. Still
+; the shortest dashes on the map, so it never reads as a route somebody walked.
+UseOrientation=Y
+Xpm="32 2 4 1"
+"! c #D40000"
+". c none"
+"3 c #FF6B6B"
+"4 c none"
+"!!!!....!!!!....!!!!....!!!!...."
+"!!!!....!!!!....!!!!....!!!!...."
+String=0x00,Repaired link
+String=0x19,Перемычка (достроена)
+FontStyle=SmallFont
+DayCustomColor=#B00000
+NightCustomColor=#FF8080
+[end]
+
+[_point]
+Type=0x660b
+; kmap: the mark on a repair link -- the one place this map shows a line that no
+; surveyor drew. A warning triangle, because that is what it is: the route goes
+; through, and something stands there.
+;
+; The badge is not invented whole. The frame is the same #F0F8F8 every 20x20 sign
+; in this file wears, the field is #C07020 read out of 0x2b05..0x2c0f, and every
+; tone smoothing the slopes is picked from 0x2c01's own rust-to-white ramp. Only
+; the shape is ours, and only because no triangle existed to copy.
+;
+; The slopes are supersampled 8x8 and quantised back onto that ramp. A TYP bitmap
+; has one transparent colour and no alpha, so the outer silhouette cannot fade --
+; what the smoothing buys is the white frame following the true edge a pixel at a
+; time instead of stepping in 2x2 blocks, and a soft inner transition. The bar and
+; the dot stay flat and hard on purpose: this file already notes that flat high
+; contrast survives sunlight on a transflective screen better than antialiasing.
+DayXpm="20 20 19 1"
+". c none"
+"a c #F0F8F8"
+"b c #E0C4A8"
+"c c #F0DCC8"
+"d c #C07020"
+"e c #D09458"
+"f c #E8D0B8"
+"g c #C88440"
+"h c #D8B488"
+"i c #F8FCF8"
+"j c #C88038"
+"k c #D8B890"
+"l c #F8F4F0"
+"m c #C07830"
+"n c #D8AC80"
+"o c #F0E4D0"
+"p c #C07428"
+"q c #D0A470"
+"r c #F0E0D0"
+"...................."
+"...................."
+".........a.........."
+"........aaa........."
+"........aba........."
+".......acdca........"
+".......aedea........"
+"......afdddfa......."
+"......aghihga......."
+".....abdhihdba......"
+".....ajdhihdja......"
+"....akddhihddka....."
+"....lmddhihddml....."
+"...andddhihdddna...."
+"...opdddddddddpo...."
+"..aqddddhihddddqa..."
+"..rdddddhihdddddr..."
+".aedddddddddddddea.."
+".aaaaaaaaaaaaaaaaa.."
+"...................."
+String=0x00,Repaired link
+String=0x19,Перемычка (достроена)
+[end]

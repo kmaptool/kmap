@@ -1,0 +1,57 @@
+; Line patterns for the CyclOSM shipped style.
+; Their paths, tracks and footways are dashed hairlines, not solid strokes: at
+; z13 a track is one pixel and a footway a fifth of one, drawn broken over a
+; pale halo. A flat colour in the table cannot say that, so these five sections
+; carry the dash. Colours are the style's own (`road-colors.mss`, BSD-3-Clause);
+; the dash lengths are the thinnest a Garmin line can hold.
+; Appended verbatim to the generated TYP, replacing the table's flat line.
+
+[_line]
+Type=0x0e
+String=0x00,Path
+FontStyle=NoLabel
+Xpm="32 1 2 1"
+"  c none"
+"# c #007360"
+"###   ###   ###   ###   ###   ##"
+[end]
+
+[_line]
+Type=0x0a
+String=0x00,Track
+FontStyle=NoLabel
+Xpm="32 1 2 1"
+"  c none"
+"# c #114021"
+"#####  #####  #####  #####  ####"
+[end]
+
+[_line]
+Type=0x07
+String=0x00,Bridleway
+FontStyle=NoLabel
+Xpm="32 1 2 1"
+"  c none"
+"# c #741e18"
+"####    ####    ####    ####    "
+[end]
+
+[_line]
+Type=0x16
+String=0x00,Footway
+FontStyle=NoLabel
+Xpm="32 1 2 1"
+"  c none"
+"# c #7a5b36"
+"##  ##  ##  ##  ##  ##  ##  ##  "
+[end]
+
+[_line]
+Type=0x2b
+String=0x00,Via ferrata
+FontStyle=NoLabel
+Xpm="32 1 2 1"
+"  c none"
+"# c #741e18"
+"#  #  #  #  #  #  #  #  #  #  # "
+[end]

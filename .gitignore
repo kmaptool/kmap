@@ -1,0 +1,10 @@
+.build/
+# Per-platform scratch directories: Windows builds into .build-windows-<arch> so a
+# checkout shared with a Mac is not two toolchains in one .build.
+.build-*/
+.DS_Store
+Tools/
+*.pyc
+kmap-linux-arm64
+/build/
+.swiftpm/

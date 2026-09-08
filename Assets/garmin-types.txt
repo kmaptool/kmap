@@ -1,0 +1,293 @@
+# The conventional Garmin type vocabulary, kind|hex|ru|en — what receivers and the
+# classic maps expect a code to stand for. Shown for codes the rules do not name:
+# a free slot is picked with its convention in view, not blind. From the public
+# cGPSmapper/MapTk references; a TYP may repurpose any of them.
+A|01|Город (крупный)|Large city
+A|02|Город|City
+A|03|Посёлок|Town
+A|04|Военная зона|Military
+A|05|Парковка|Parking
+A|06|Гараж/паркинг|Parking garage
+A|07|Аэропорт|Airport
+A|08|Торговый центр|Shopping center
+A|09|Пристань|Marina
+A|0a|Университет|University
+A|0b|Больница|Hospital
+A|0c|Промзона|Industrial
+A|0d|Резервация|Reservation
+A|0e|Взлётная полоса|Airport runway
+A|13|Здание|Building
+A|14|Военный объект|Military
+A|15|Городской парк|City park
+A|16|Национальный парк|National park
+A|17|Парк/сквер|Park
+A|18|Поле для гольфа|Golf course
+A|19|Спортплощадка|Sports complex
+A|1a|Кладбище|Cemetery
+A|1e|Заповедник/гос. парк|State park
+A|1f|Гос. парк|State park
+A|20|Гос. парк|State park
+A|25|Площадь/платформа|Plaza
+A|28|Океан|Ocean
+A|29|Водоём|Blue (water)
+A|32|Море|Sea
+A|3b|Водохранилище|Blue-unknown water
+A|3c|Озеро (огромное)|Major lake
+A|3d|Озеро (большое)|Large lake
+A|3e|Озеро (среднее)|Medium lake
+A|3f|Озеро|Small lake
+A|40|Озеро (малое)|Small lake
+A|41|Озерцо|Small lake
+A|42|Озеро (крупное)|Major lake
+A|43|Озеро (среднее)|Medium lake
+A|44|Озеро (малое)|Small lake
+A|45|Водоём|Blue-unknown
+A|46|Река (широкая)|Major river
+A|47|Река|Large river
+A|48|Река (средняя)|Medium river
+A|49|Река (узкая)|Small river
+A|4a|Опред. область|Definition area
+A|4b|Фон карты|Background
+A|4c|Приливная зона|Intermittent water
+A|4d|Ледник|Glacier
+A|4e|Сад/плантация|Orchard or plantation
+A|4f|Кустарник|Scrub
+A|50|Лес|Forest
+A|51|Болото|Wetland
+A|52|Тундра|Tundra
+A|53|Отмель/песок|Flat area or sand
+A|59|Аэропорт|Airport
+L|01|Автомагистраль|Major highway
+L|02|Шоссе|Principal highway
+L|03|Дорога|Other highway
+L|04|Второстепенная дорога|Arterial road
+L|05|Улица|Collector road
+L|06|Просёлок|Residential street
+L|07|Переулок|Alley
+L|08|Съезд|Low-speed ramp
+L|09|Развязка|High-speed ramp
+L|0a|Грунтовка|Unpaved road
+L|0b|Соединение трасс|Major highway connector
+L|0c|Кольцевая развязка|Roundabout
+L|14|Железная дорога|Railroad
+L|15|Береговая линия|Shoreline
+L|16|Тропа|Trail
+L|18|Ручей|Stream
+L|19|Часовой пояс|Time zone
+L|1a|Паром|Ferry
+L|1b|Паром|Ferry
+L|1c|Граница области|State boundary
+L|1d|Граница округа|County boundary
+L|1e|Государственная граница|International boundary
+L|1f|Река|River
+L|20|Горизонталь (тонкая)|Minor contour
+L|21|Горизонталь (средняя)|Intermediate contour
+L|22|Горизонталь (жирная)|Major contour
+L|23|Горизонталь глубин (тонкая)|Minor depth contour
+L|24|Горизонталь глубин (средняя)|Intermediate depth contour
+L|25|Горизонталь глубин (жирная)|Major depth contour
+L|26|Пересыхающий водоток|Intermittent river
+L|27|Трубопровод|Pipeline
+L|28|ЛЭП|Power line
+L|29|Морской маршрут|Marine boundary
+L|2a|Маршрут (пунктир)|Marine hazard
+P|1c|Морской знак|Marine aid
+P|1d|Плавучий знак|Buoy
+P|20|Съезд с сервисами|Exit with services
+P|21|Съезд к отдыху|Exit, rest area
+P|22|Съезд|Exit
+P|2a|Еда и напитки|Food & drink
+P|2b|Ночлег|Lodging
+P|2c|Достопримечательности|Attraction
+P|2d|Развлечения|Entertainment
+P|2e|Магазины|Shopping
+P|2f|Услуги|Services
+P|30|Госучреждения|Community
+P|40|Морские объекты|Marine points
+P|43|Стоянка судов|Anchorage
+P|46|Бар|Marine bar
+P|4a|Пикник|Picnic area
+P|4c|Информация|Information
+P|4d|Парковка|Parking
+P|50|Питьевая вода|Drinking water
+P|51|Телефон|Phone
+P|59|Аэропорт|Airport
+P|64|Рукотворные объекты|Man-made places
+P|65|Гидрография|Water features
+P|66|Рельеф и суша|Land features
+
+# From kmap's own house TYP: the universal vocabulary every style's
+# list falls back to when its own TYP carries no label for a code. Point keys
+# carry their subtype (P|0100); the two-digit families above stay as the coarser
+# fallback.
+L|10801|Круговое движение|Roundabout
+L|10802|Круговое движение|Roundabout
+L|10803|Круговое движение|Roundabout
+L|10804|Круговое движение|Roundabout
+L|0d|Перемычка (достроена)|Repaired link
+L|11|Велодорожка|Cycleway
+L|30|Грунтовая дорога|Track
+L|17|Ограждение|Barrier
+A|27|Суша|Land
+A|1c|Луг|Grassland
+A|26|Сельхозугодья|Farm
+A|10|Жилая зона|Residential
+A|0f|Деловой район|Commercial
+A|12|Торговая зона|Retail
+A|11|Опасная зона|Danger Area
+A|1d|Общественная территория|Common
+A|21|Туристический объект|Tourism
+A|22|Историческое место|Historic
+A|23|Общественный объект|Amenity
+A|24|Сооружение|Structure
+P|2a00|Ресторан|Restaurant
+P|2a01|Ресторан (американский)|Restaurant (American)
+P|2a02|Ресторан (азиатский)|Restaurant (Asian)
+P|2a03|Ресторан (барбекю)|Restaurant (Barbecue)
+P|2a04|Ресторан (китайский)|Restaurant (Chinese)
+P|2a05|Ресторан (деликатесы)|Restaurant (Deli)
+P|2a06|Ресторан (международный)|Restaurant (International)
+P|2a07|Фастфуд|Fast food
+P|2a08|Ресторан (итальянский)|Restaurant (Italian)
+P|2a09|Ресторан (мексиканский)|Restaurant (Mexican)
+P|2a0a|Пиццерия|Restaurant (Pizza)
+P|2a0b|Ресторан (морепродукты)|Restaurant (Seafood)
+P|2a0d|Ресторан (вегетарианский)|Restaurant (Vegetarian)
+P|2a0e|Кафе|Cafe
+P|2a0f|Ресторан (французский)|Restaurant (French)
+P|2a10|Ресторан (немецкий)|Restaurant (German)
+P|2a11|Ресторан (британский)|Restaurant (British)
+P|2b01|Отель|Hotel
+P|2c01|Парк развлечений|Theme park
+P|2c02|Музей|Museum
+P|2c03|Библиотека|Library
+P|2c05|Школа|School
+P|2c07|Зоопарк|Zoo
+P|2c08|Спортивная площадка|Sports ground
+P|2c0b|Культовое сооружение|Place of worship
+P|2c0d|Достопримечательность|Tourist site
+P|2d01|Театр|Theatre
+P|2d02|Бар / паб|Bar / pub
+P|2d03|Кинотеатр|Cinema
+P|2d04|Казино|Casino
+P|2d05|Поле для гольфа|Golf course
+P|2d06|Горнолыжная зона|Skiing
+P|2d07|Боулинг|Bowling
+P|2d08|Каток|Ice rink
+P|2d09|Бассейн|Swimming
+P|2d0a|Спортивный комплекс|Sports centre
+P|2e01|Универмаг|Department store
+P|2e02|Супермаркет|Supermarket
+P|2e03|Универсальный магазин|General store
+P|2e04|Торговый центр|Shopping mall
+P|2e05|Аптека|Pharmacy
+P|2e06|АЗС с магазином|Fuel with shop
+P|2e07|Магазин одежды|Clothes shop
+P|2e08|Магазин: сад и туризм|Outdoor / garden shop
+P|2e09|Хозяйственный магазин|Hardware shop
+P|2e0b|Компьютерный магазин|Computer shop
+P|2f01|АЗС|Fuel
+P|2f04|Аэропорт|Airport
+P|2f05|Почта|Post office
+P|2f06|Банк / банкомат|Bank / ATM
+P|2f08|Вокзал / станция|Station
+P|2f0b|Парковка|Parking
+P|2f14|Дом престарелых|Nursing home
+P|3001|Полиция|Police
+P|3002|Больница|Hospital
+P|3003|Ратуша / посольство|Town hall / embassy
+P|3004|Суд|Courthouse
+P|3005|Дом культуры|Community centre
+P|3006|Пограничный переход|Border crossing
+P|3008|Пожарная часть|Fire station
+P|4a00|Место для пикника|Picnic site
+P|650a|Ледник|Glacier
+P|6604|Пляж|Beach
+P|6614|Скала|Rock
+P|6616|Вершина|Peak
+P|4c00|Информация|Information
+P|2f17|Автобусная остановка|Bus stop
+P|2e0c|Магазин|Shop
+P|2b02|Гостевой дом / горная хижина|Guest house / alpine hut
+P|2b03|Кемпинг|Campsite
+P|2b05|Навес|Lean-to
+P|2b06|Укрытие|Shelter
+P|2f0c|Туалет|WC
+P|2f12|Вай-фай|Wi-Fi
+P|6601|Вход в пещеру|Cave entrance
+P|6605|Скамейка|Bench
+P|6411|Башня / мачта|Tower / mast
+P|5000|Питьевая вода|Drinking water
+P|2c04|Смотровая площадка|Viewpoint
+P|6511|Родник|Spring
+P|6515|Родник (сезонный)|Spring (seasonal)
+P|6516|Родник (пересыхающий)|Spring (intermittent)
+P|6517|Родник (непитьевой)|Spring (non-potable)
+P|6508|Водопад|Waterfall
+P|2b07|Изба|Wilderness hut
+P|0100|Город (более 1 000 000)|City (over 1 000 000)
+P|0200|Город (более 800 000)|City (over 800 000)
+P|0300|Город (более 400 000)|City (over 400 000)
+P|0400|Город (более 300 000)|City (over 300 000)
+P|0500|Город (более 200 000)|City (over 200 000)
+P|0600|Город (более 100 000)|City (over 100 000)
+P|0700|Город (более 50 000)|City (over 50 000)
+P|0800|Город|Town
+P|0900|Село|Village
+P|0a00|Район города|Suburb
+P|0b00|Деревня|Hamlet
+L|2b|Обрыв|Cliff
+P|6607|Обрыв|Cliff
+P|2f10|Парикмахерская|Hairdresser
+P|2f03|Автосервис|Car repair
+P|2f07|Автосалон|Car dealer
+P|2f0e|Автомойка|Car wash
+P|2f15|Почтовый ящик|Post box
+P|2f13|Веломагазин|Bicycle shop
+P|2f02|Прокат автомобилей|Car rental
+P|2f09|Пристань|Marina
+P|5904|Вертолётная площадка|Helipad
+P|230f|Зона дорожного сервиса|Services
+P|2c0a|Винный погреб|Wine cellar
+P|2a13|Фуд-корт|Food court
+P|2a12|Ресторан|Restaurant
+P|2a0c|Ресторан|Restaurant
+P|3200|Препятствие|Barrier
+P|2c06|Парк|Park
+P|2f16|Экстренный телефон|Emergency phone
+P|2f18|Телефон|Telephone
+P|2c12|Памятник|Memorial
+P|2f19|Такси|Taxi
+P|2f1a|Зарядная станция|Charging station
+P|2f1b|Станция канатной дороги|Lift station
+P|661a|Объект|Facility
+P|2c0e|Скалолазание|Rock climbing
+P|2c0c|Вулкан|Volcano
+P|6503|Залив|Bay
+P|6606|Мыс|Cape
+P|6603|Водоём|Water
+P|6505|Канал|Canal
+P|650c|Остров|Island
+P|650d|Озеро|Lake
+P|650f|Водохранилище|Reservoir
+P|6512|Ручей|Stream
+P|6618|Лес|Forest
+P|660b|Перемычка (достроена)|Repaired link
+P|6612|Заповедник|Nature reserve
+P|6403|Кладбище|Cemetery
+P|640b|Военная территория|Military area
+P|6513|Болото|Wetland
+P|2000|Съезд|Junction
+P|6514|Брод|Ford
+P|6613|Перевал|Mountain pass
+P|6414|Колодец|Well
+P|6619|Пещера|Cave
+P|2c0f|Детская площадка|Playground
+P|6509|Гейзер|Geyser
+A|54|Осыпь|Scree
+A|55|Луг, яйла|Grassland
+A|56|Скалы|Bare rock
+L|12|Край плато|Plateau rim
+L|2d|Военная зона|Military area
+A|57|Хвойный лес|Coniferous forest
+A|58|Лиственный лес|Broadleaved forest

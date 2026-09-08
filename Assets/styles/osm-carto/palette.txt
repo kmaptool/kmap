@@ -1,0 +1,128 @@
+# The look of openstreetmap.org, on the type codes kmap's rules emit.
+#
+# Colours are openstreetmap-carto's own, read from its files (CC0). The codes
+# are kmap's, read out of the materialized rule set. One line per code:
+#
+#   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
+#   line <code> <width> <day> [casing] <name>
+#
+# A missing night colour means the day one is used at night too: carto has no
+# night design, and inventing one here would be kmap's guess wearing carto's
+# name. Use the theme setting to pack day only.
+
+name    OpenStreetMap
+summary the look of openstreetmap.org — carto's own colours
+
+# --- polygons, bottom of the stack upward ------------------------------------
+# The device's own background, on a level below everything: a fenix
+# draws it where the land polygon has not arrived yet, and shows black
+# without it. The ground colour the style paints land with.
+poly 0x4b 1 #f2efe9  Background
+poly 0x32 2 #aad3df  Sea
+poly 0x27 3 #f2efe9  Land
+poly 0x1c 5 #eef0d5  Farmland
+poly 0x29 5 #eef0d5  Greenhouses
+poly 0x26 5 #eef0d5  Farm
+poly 0x4e 5 #aedfa3  Orchard
+poly 0x1b 5 #aedfa3  Vineyard
+poly 0x5a 5 #c9e1bf  Allotments
+poly 0x1f 5 #cdebb0  Fell  # filled, not theirs
+poly 0x55 5 #cdebb0  Grassland
+poly 0x15 5 #cdebb0  Village green
+poly 0x1d 5 #cdebb0  Common
+poly 0x4f 5 #c8d7ab  Scrub
+poly 0x1e 5 #d6d99f  Heath
+poly 0x50 5 #add19e  Forest
+poly 0x57 5 #add19e  Coniferous forest
+poly 0x58 5 #add19e  Broadleaved forest
+poly 0x59 5 #add19e  Wood
+poly 0x53 5 #fff1ba  Beach
+poly 0x54 5 #eee5dc  Scree
+poly 0x56 5 #eee5dc  Bare rock
+poly 0x52 5 #d6d99f  Tundra
+poly 0x4d 5 #ddecec  Glacier
+poly 0x02 6 #dddddd  Suburb
+poly 0x03 6 #dddddd  Village
+poly 0x10 6 #e0dfdf  Residential
+poly 0x0f 6 #f2dad9  Commercial
+poly 0x0c 6 #c7c7b4  Construction
+poly 0x0d 6 #c5c3c3  Quarry
+poly 0x07 6 #e9e7e2  Airport ground
+poly 0x0e 6 #bbbbc8  Runway
+poly 0x05 6 #eeeeee  Parking
+poly 0x06 6 #eeeeee  Covered parking
+poly 0x1a 6 #aacbaf  Cemetery
+poly 0x25 6 #dddde8  Square
+poly 0x08 6 #ffd6d1  Food and drink
+poly 0x0a 6 #ffffe5  Kindergarten
+poly 0x0b 6 #ffffe5  Hospital
+poly 0x04 6 #f2efe9  Prison
+poly 0x12 6 #e9e7e2  Services
+poly 0x21 6 #f2efe9  Tourism
+poly 0x22 6 #f2efe9  Historic
+poly 0x23 6 #f2efe9  Amenity
+poly 0x24 6 #f2efe9  Man-made
+poly 0x17 7 #c8facc  Park
+poly 0x20 7 #c8facc  Garden
+poly 0x18 7 #b5e3b5  Golf course
+poly 0x19 7 #ddecec  Ice rink
+poly 0x09 7 #c8facc  Water park
+poly 0x3c 8 #aad3df  Water
+poly 0x41 8 #aad3df  Small water
+poly 0x46 8 #aad3df  Riverbank
+poly 0x48 8 #aad3df  Canal
+poly 0x3d 8 #aad3df  Bay
+poly 0x3b 8 #aad3df  Waterway area
+poly 0x28 8 #aad3df  Salt pond
+poly 0x3f 8 #aad3df  Basin
+poly 0x4c 8 #aad3df  Dock
+poly 0x47 8 #aad3df  Waterfall
+poly 0x51 9 #cdebb0  Marsh
+poly 0x16 4 #c8facc  Nature reserve
+poly 0x11 9 #ff5555  Military
+poly 0x13 10 #d9d0c9  Building
+
+# --- lines --------------------------------------------------------------------
+line 0x01 5 #e892a2 #dc2a67  Motorway
+line 0x09 4 #e892a2 #dc2a67  Motorway link
+line 0x0b 4 #e892a2 #dc2a67  Motorway exit
+line 0x02 5 #f9b29c #c84e2f  Trunk
+line 0x03 5 #fcd6a4 #a06b00  Primary
+line 0x08 4 #fcd6a4 #a06b00  Primary link
+line 0x04 4 #f7fabf #707d05  Secondary
+line 0x05 4 #ffffff #8f8f8f  Tertiary
+line 0x06 3 #ffffff #bbbbbb  Minor road
+line 0x0c 4 #ffffff #bbbbbb  Roundabout
+line 0x30 3 #ffffff #bbbbbb  Track loop
+line 0x16 3 #aaaaaa           Construction
+line 0x0a 2 #996600           Track
+line 0x0e 1 #ffffff #ababab    Path  # carto dashes it; a TYP cannot
+line 0x10 2 #ededed #bbbbbb    Living street
+line 0x07 2 #aaddaa           Bridleway
+line 0x11 2 #9999ff           Cycleway
+line 0x2b 2 #cc6666           Via ferrata
+line 0x18 2 #aad3df           Stream
+line 0x1f 3 #aad3df           River
+line 0x33 2 #aad3df           Canal
+line 0x34 1 #aad3df           Drain
+line 0x35 1 #aad3df           Ditch
+line 0x26 2 #aad3df           Intermittent river
+line 0x1a 2 #6699ff           Ferry
+line 0x1b 2 #6699ff           Foot ferry
+line 0x17 2 #bbbbbb           Breakwater
+line 0x31 1 #aacea3           Tree row  # filled, not theirs
+line 0x32 2 #b0aca2           City wall  # filled, not theirs
+line 0x27 4 #bbbbc8           Runway
+line 0x29 1 #888888           Power line
+line 0x25 2 #888888           Cableway
+line 0x28 1 #888888           Pipeline
+line 0x23 1 #a0a060           Cutline
+line 0x24 1 #46673b           Valley
+line 0x12 1 #b0a090           Fell edge
+line 0x19 2 #4c9a4c           National park boundary
+line 0x1c 1 #ac46ac           Boundary
+line 0x1d 2 #ac46ac           Region boundary
+line 0x1e 2 #ac46ac           Country boundary
+line 0x2d 2 #ff5555           Military boundary
+# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
+# a flat colour here would replace kmap's red dashes with a plain stripe.

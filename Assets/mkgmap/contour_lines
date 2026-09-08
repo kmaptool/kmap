@@ -1,0 +1,48 @@
+# Contours take their name from the elevation setting.
+#
+# The label is in FEET, and that is not an imperial leftover -- it is what the
+# receiver requires.  Garmin's contour line types 0x20/0x21/0x22 carry their
+# elevation in feet by convention, and the device converts to whatever unit the
+# user has chosen before drawing the label.  Hand it metres and a GPSMAP 67 set
+# to metric divides them by 3.28 a second time: a 20 m interval renders as 6 m
+# steps.  Measured on the device, every value matching to the metre:
+#
+#   1300 m written as "1300"  ->  read as 1300 ft  ->  drawn as "396 M"
+#   1400 m                    ->                       "427 M"
+#   1420 / 1440 / 1460 / 1480 ->            "433 / 439 / 445 / 451 M"
+#
+# So `conv:m=>ft` is what makes a metric map come out metric.  mkgmap's own
+# default file has this right; this copy exists only to change the resolutions.
+#
+# Resolutions are tuned for a fine source interval, where pyhgtmap tags:
+#   contour_ext=elevation_minor   every  1x the chosen interval
+#   contour_ext=elevation_medium  every  5x
+#   contour_ext=elevation_major   every 10x
+#
+# A resolution here means "this detail and finer", and it only bites at a
+# resolution the map has a level for.  kmap's ladder is
+#   0:24  1:22  2:21  3:19  4:18  5:17  6:16  7:15
+# so a type can only start at a scale one of those rungs stands on.  Measured
+# on a GPSMAP 67: rung 24 shows from the 300 m scale, 23 from about 600 m, 22
+# from 1.2 km, 21 from 3 km.  Rung 23 exists for these lines: at 24 the full
+# interval stopped at 300 m, at 22 it ran all the way out to 1.2 km, and
+# neither is where a 20 m interval belongs.  Contours are for reading ground,
+# not for the overview, so nothing is drawn at rung 19 or beyond:
+#   0x20 minor  -> from 600 m   (the full interval)
+#   0x21 medium -> from 1.2 km  (every 5th line, drawn heavier)
+#   0x22 major  -> from 3 km    (every 10th line, the last to go)
+
+contour=elevation & contour_ext=elevation_minor
+	{ name '${ele|conv:m=>ft}'; }
+	[0x20 resolution 23]
+contour=elevation & contour_ext=elevation_medium
+	{ name '${ele|conv:m=>ft}'; }
+	[0x21 resolution 22]
+contour=elevation & contour_ext=elevation_major
+	{ name '${ele|conv:m=>ft}'; }
+	[0x22 resolution 20]
+# Fallback for sources that only tag contour=elevation with no _ext:
+# treat as medium so an untagged fine dataset does not flood the overview.
+contour=elevation | contour_ext=elevation
+	{ name '${ele|conv:m=>ft}'; }
+	[0x21 resolution 22]

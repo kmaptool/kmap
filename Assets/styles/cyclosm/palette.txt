@@ -1,0 +1,141 @@
+# The CyclOSM look, on the type codes kmap's rules emit.
+#
+# Colours are CyclOSM's own, read from its files: `palette.mss` for the ground —
+# those come from the Hydda style, Apache License 2.0 — and `road-colors.mss`
+# for the roads, BSD-3-Clause like the rest of that style. Nothing is invented:
+# `# worked out` marks a colour computed from a CartoCSS expression such as
+# `@land * 1.05`, and `# filled, not theirs` one CyclOSM draws with a pattern or
+# does not draw at all, taken from its nearest neighbour in this table.
+# A colour their palette defines but never uses is not a colour of theirs:
+# @nature_reserve is such a one, and a reserve is a pale wash over the ground in
+# that style, with the boundary band in @wooded. See PROVENANCE.md and
+# LICENSE.md beside this file.
+#
+#   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
+#   line <code> <width> <day> [casing] <name>
+#
+# CyclOSM has no night design, as carto has none: the day colour serves both,
+# and the theme setting packs day only for a receiver that draws night badly.
+
+name    CyclOSM
+summary the CyclOSM look — an outdoor palette, warmer and quieter than carto's
+
+# --- polygons, bottom of the stack upward ------------------------------------
+# The device's own background, on a level below everything: a fenix
+# draws it where the land polygon has not arrived yet, and shows black
+# without it. The ground colour the style paints land with.
+poly 0x4b 1 #eee5dc  Background
+poly 0x32 2 #8ecbeb  Sea
+poly 0x27 3 #eee5dc  Land
+poly 0x1c 5 #fbf0e3  Farmland
+poly 0x29 5 #fbf0e3  Greenhouses  # filled, not theirs
+poly 0x26 5 #fbf0e3  Farm
+poly 0x4e 5 #e2eecb  Orchard
+poly 0x1b 5 #e2eecb  Vineyard
+poly 0x5a 5 #c2debd  Allotments
+poly 0x1f 5 #b2c068  Fell  # filled, not theirs
+poly 0x55 5 #c2debd  Grassland
+poly 0x15 5 #c2debd  Village green
+poly 0x1d 5 #c2debd  Common  # filled, not theirs
+poly 0x4f 5 #c8d7ab  Scrub
+poly 0x1e 5 #b2c068  Heath
+poly 0x50 5 #95bd84  Forest
+poly 0x57 5 #95bd84  Coniferous forest
+poly 0x58 5 #95bd84  Broadleaved forest
+poly 0x59 5 #95bd84  Wood
+poly 0x53 5 #f5e9c6  Beach
+poly 0x54 5 #eee5dc  Scree
+poly 0x56 5 #eee5dc  Bare rock
+poly 0x52 5 #b2c068  Tundra  # filled, not theirs
+poly 0x4d 5 #ddecec  Glacier
+poly 0x02 6 #faf0e7  Suburb  # worked out
+poly 0x03 6 #faf0e7  Village  # worked out
+poly 0x10 6 #faf0e7  Residential  # worked out
+poly 0x0f 6 #ded8dd  Commercial
+poly 0x0c 6 #e4dcd3  Construction  # worked out
+poly 0x0d 6 #c5c3c3  Quarry
+poly 0x07 6 #e4dcd3  Airport ground  # filled, not theirs
+poly 0x0e 6 #d4d4d4  Runway  # filled, not theirs
+poly 0x05 6 #eeeeee  Parking
+poly 0x06 6 #eeeeee  Covered parking
+poly 0x1a 6 #d6ded2  Cemetery
+poly 0x25 6 #dce3e0  Square
+poly 0x08 6 #e0e0e0  Food and drink  # filled, not theirs
+poly 0x0a 6 #e0e0e0  Kindergarten
+poly 0x0b 6 #e0e0e0  Hospital
+poly 0x04 6 #eee5dc  Prison  # ground: theirs draws the edge, not the field
+poly 0x12 6 #ded8dd  Services  # filled, not theirs
+poly 0x21 6 #eee5dc  Tourism  # filled, not theirs
+poly 0x22 6 #eee5dc  Historic  # filled, not theirs
+poly 0x23 6 #eee5dc  Amenity  # filled, not theirs
+poly 0x24 6 #eee5dc  Man-made  # filled, not theirs
+poly 0x17 7 #c2debd  Park
+poly 0x20 7 #c2debd  Garden
+poly 0x18 7 #c2debd  Golf course  # filled, not theirs
+poly 0x19 7 #e0e0e0  Ice rink
+poly 0x09 7 #c2debd  Water park  # filled, not theirs
+poly 0x3c 8 #8ecbeb  Water
+poly 0x41 8 #8ecbeb  Small water
+poly 0x46 8 #8ecbeb  Riverbank
+poly 0x48 8 #8ecbeb  Canal
+poly 0x3d 8 #8ecbeb  Bay
+poly 0x3b 8 #8ecbeb  Waterway area
+poly 0x28 8 #8ecbeb  Salt pond
+poly 0x3f 8 #8ecbeb  Basin
+poly 0x4c 8 #8ecbeb  Dock
+poly 0x47 8 #8ecbeb  Waterfall
+poly 0x51 9 #c2debd  Marsh
+poly 0x16 4 #d8d6c5  Nature reserve  # worked out: their wash, 15% of a darkened @wooded over the ground
+poly 0x11 9 #eee5dc  Military  # ground: theirs draws the edge, not the field
+poly 0x13 10 #e4dfdb  Building
+# --- lines --------------------------------------------------------------------
+line 0x01 5 #d4d4d4 #f6f6f6    Motorway
+line 0x09 4 #d4d4d4 #f6f6f6    Motorway link
+line 0x0b 4 #d4d4d4 #f6f6f6    Motorway exit
+line 0x02 5 #d4d4d4 #f6f6f6    Trunk  # theirs pinks a trunk a bicycle may use and
+#                                     greys a motorroad; this number carries both,
+#                                     and the false invitation is the worse error
+line 0x03 5 #f4dfc3 #d8b267    Primary
+line 0x08 4 #f4dfc3 #d8b267    Primary link
+line 0x04 4 #f6f8d2 #b1bb5d    Secondary
+line 0x05 4 #f6f6f6 #777777    Tertiary
+line 0x06 3 #f6f6f6 #888888    Minor road
+line 0x0c 4 #f6f6f6 #888888    Roundabout
+line 0x30 3 #f6f6f6 #888888    Track loop  # filled, not theirs
+line 0x16 3 #d4d4d4            Construction  # filled, not theirs
+line 0x0a 2 #114021            Track
+line 0x0e 1 #007360            Path
+line 0x10 2 #ddffba #bbbbbb    Living street
+line 0x07 2 #741e18            Bridleway
+line 0x11 2 #0000ce            Cycleway
+line 0x2b 2 #741e18            Via ferrata  # filled, not theirs
+line 0x18 2 #8ecbeb            Stream
+line 0x1f 3 #8ecbeb            River
+line 0x33 2 #8ecbeb            Canal
+line 0x34 1 #8ecbeb            Drain
+line 0x35 1 #8ecbeb            Ditch
+line 0x26 2 #8ecbeb            Intermittent river
+line 0x1a 2 #8ecbeb            Ferry  # filled, not theirs
+line 0x1b 2 #8ecbeb            Foot ferry  # filled, not theirs
+line 0x17 2 #add19e            Breakwater
+line 0x31 1 #add19e            Tree row
+line 0x32 2 #888888            City wall  # filled, not theirs
+line 0x27 4 #d4d4d4            Runway  # filled, not theirs
+line 0x29 1 #888888            Power line
+line 0x25 2 #888888            Cableway  # filled, not theirs
+line 0x28 1 #888888            Pipeline  # filled, not theirs
+line 0x23 1 #95bd84            Cutline  # filled, not theirs
+line 0x24 1 #95bd84            Valley  # filled, not theirs
+line 0x12 1 #b2c068            Fell edge  # filled, not theirs
+line 0x19 2 #95bd84            National park boundary
+line 0x1c 1 #888888            Boundary
+line 0x1d 2 #888888            Region boundary
+line 0x1e 2 #333333            Country boundary
+line 0x2d 2 #f55555            Military boundary
+# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
+# a flat colour here would replace kmap's red dashes with a plain stripe.
+
+# --- contour lines, in the burnt orange the style draws them with -------------
+line 0x21 2 #c45700            Contour, index
+line 0x20 1 #c45700            Contour
+line 0x22 1 #c45700            Contour, minor

@@ -1,0 +1,23 @@
+# Russian for the labels mkgmap invents itself: its stock rules caption an
+# unnamed object with an English default_name ("Toilets", "Playground"), and
+# OSM has no name to translate — the words are mkgmap's own. Applied only on
+# a Cyrillic build, by exact default_name text.
+#
+# <mkgmap default_name>|<russian>
+
+Toilets|Туалет
+Playground|Детская площадка
+Water|Питьевая вода
+Telephone|Телефон
+Post box|Почтовый ящик
+Recycling|Приём вторсырья
+Breakwater|Волнорез
+Car charging|Зарядная станция
+Emergency Phone|Экстренный телефон
+Embassy|Посольство
+Prison|Тюрьма
+Lock|Шлюз
+Rec.|Зона отдыха
+Services|Придорожный комплекс
+lean-to|Навес
+wilderness hut|Изба

@@ -1,0 +1,136 @@
+# The OSM Liberty Topo look, on the type codes kmap's rules emit.
+#
+# Colours are read from the style's own `style.json` (nst-guide/osm-liberty-topo,
+# gh-pages), fetched 2026-09-08. It is a minimal look by design: its data schema
+# (OpenMapTiles) knows nine kinds of ground — wood, grass, ice, sand, park,
+# residential, cemetery, hospital, school — and everything else renders as the
+# background. A `# ground` note below marks a number this style does not paint,
+# which therefore takes the background colour, exactly as the original does.
+# `# worked out` marks a colour computed from an HSL or a zoom stop.
+# See PROVENANCE.md, LICENSE.md and LICENSE-osm-bright.txt beside this file.
+#
+#   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
+#   line <code> <width> <day> [casing] <name>
+#
+# The night theme is kmap's, snapped to the steps a MIP watch screen can show.
+
+name    OSM Liberty Topo
+summary a minimal topographic look — quiet ground, orange roads, contour browns
+
+# --- polygons, bottom of the stack upward ------------------------------------
+# The device's own background, on a level below everything: a fenix
+# draws it where the land polygon has not arrived yet, and shows black
+# without it. The ground colour the style paints land with.
+poly 0x4b 1 #efefef  Background
+poly 0x32 2 #9ebdff  Sea
+poly 0x27 3 #efefef  Land
+poly 0x1c 5 #efefef  Farmland  # ground
+poly 0x29 5 #efefef  Greenhouses  # ground
+poly 0x26 5 #efefef  Farm  # ground
+poly 0x4e 5 #efefef  Orchard  # ground
+poly 0x1b 5 #efefef  Vineyard  # ground
+poly 0x5a 5 #efefef  Allotments  # ground
+poly 0x1f 5 #efefef  Fell  # ground
+poly 0x55 5 #b0d59a  Grassland
+poly 0x15 5 #b0d59a  Village green
+poly 0x1d 5 #b0d59a  Common
+poly 0x4f 5 #efefef  Scrub  # ground
+poly 0x1e 5 #efefef  Heath  # ground
+poly 0x50 5 #ace38c  Forest
+poly 0x57 5 #ace38c  Coniferous forest
+poly 0x58 5 #ace38c  Broadleaved forest
+poly 0x59 5 #ace38c  Wood
+poly 0x53 5 #f7efc3  Beach
+poly 0x54 5 #efefef  Scree  # ground
+poly 0x56 5 #efefef  Bare rock  # ground
+poly 0x52 5 #efefef  Tundra  # ground
+poly 0x4d 5 #e0ecec  Glacier
+poly 0x02 6 #f2e3cf  Suburb  # worked out
+poly 0x03 6 #f2e3cf  Village  # worked out
+poly 0x10 6 #f2e3cf  Residential  # worked out
+poly 0x0f 6 #efefef  Commercial  # ground
+poly 0x0c 6 #efefef  Construction  # ground
+poly 0x0d 6 #efefef  Quarry  # ground
+poly 0x07 6 #e5e4e0  Airport ground
+poly 0x0e 6 #f0ede9  Runway
+poly 0x05 6 #efefef  Parking  # ground
+poly 0x06 6 #efefef  Covered parking  # ground
+poly 0x1a 6 #d8e0bd  Cemetery  # worked out
+poly 0x25 6 #efefef  Square  # ground
+poly 0x08 6 #efefef  Food and drink  # ground
+poly 0x0a 6 #eceecc  Kindergarten
+poly 0x0b 6 #ffddee  Hospital
+poly 0x04 6 #efefef  Prison  # ground
+poly 0x12 6 #efefef  Services  # ground
+poly 0x21 6 #efefef  Tourism  # ground
+poly 0x22 6 #efefef  Historic  # ground
+poly 0x23 6 #efefef  Amenity  # ground
+poly 0x24 6 #efefef  Man-made  # ground
+poly 0x17 7 #d8e8c8  Park
+poly 0x20 7 #d8e8c8  Garden
+poly 0x18 7 #d8e8c8  Golf course
+poly 0x19 7 #efefef  Ice rink  # ground
+poly 0x09 7 #d8e8c8  Water park
+poly 0x3c 8 #9ebdff  Water
+poly 0x41 8 #9ebdff  Small water
+poly 0x46 8 #9ebdff  Riverbank
+poly 0x48 8 #9ebdff  Canal
+poly 0x3d 8 #9ebdff  Bay
+poly 0x3b 8 #9ebdff  Waterway area
+poly 0x28 8 #9ebdff  Salt pond
+poly 0x3f 8 #9ebdff  Basin
+poly 0x4c 8 #9ebdff  Dock
+poly 0x47 8 #9ebdff  Waterfall
+poly 0x51 9 #b0d59a  Marsh  # ground
+poly 0x16 4 #d8e8c8  Nature reserve  # ground
+poly 0x11 9 #efefef  Military  # ground
+poly 0x13 10 #dcd9d6  Building
+# --- lines --------------------------------------------------------------------
+line 0x01 5 #ffcc88 #e9ac77    Motorway
+line 0x09 4 #ffcc88 #e9ac77    Motorway link
+line 0x0b 4 #ffcc88 #e9ac77    Motorway exit
+line 0x02 5 #ffeeaa #e9ac77    Trunk
+line 0x03 5 #ffeeaa #e9ac77    Primary
+line 0x08 4 #ffeeaa #e9ac77    Primary link
+line 0x04 4 #ffeeaa #e9ac77    Secondary
+line 0x05 4 #ffeeaa #e9ac77    Tertiary
+line 0x06 3 #ffffff #cfcdca    Minor road
+line 0x0c 4 #ffffff #cfcdca    Roundabout
+line 0x30 3 #ffffff #cfcdca    Track loop
+line 0x16 3 #ffffff #cfcdca    Construction
+line 0x0a 2 #ffffff #cfcdca    Track
+line 0x0e 1 #ffffff #ceac34    Path
+line 0x10 2 #ffffff #cfcdca    Living street
+line 0x07 2 #ffffff #ceac34    Bridleway
+line 0x11 2 #ffffff #ceac34    Cycleway
+line 0x2b 2 #ffffff #ceac34    Via ferrata  # ground
+line 0x18 2 #a0c8f0            Stream
+line 0x1f 3 #a0c8f0            River
+line 0x33 2 #a0c8f0            Canal
+line 0x34 1 #a0c8f0            Drain
+line 0x35 1 #a0c8f0            Ditch
+line 0x26 2 #a0c8f0            Intermittent river
+line 0x1a 2 #a0c8f0            Ferry  # ground
+line 0x1b 2 #a0c8f0            Foot ferry  # ground
+line 0x17 2 #cdcac6            Breakwater  # ground
+line 0x31 1 #ace38c            Tree row  # ground
+line 0x32 2 #cdcac6            City wall  # ground
+line 0x27 4 #f0ede9            Runway
+line 0x29 1 #bbbbbb            Power line  # ground
+line 0x25 2 #bbbbbb            Cableway  # ground
+line 0x28 1 #bbbbbb            Pipeline  # ground
+line 0x23 1 #cdcac6            Cutline  # ground
+line 0x24 1 #cdcac6            Valley  # ground
+line 0x12 1 #cdcac6            Fell edge  # ground
+line 0x19 2 #9e9cab            National park boundary  # ground
+line 0x1c 1 #9e9cab            Boundary
+line 0x1d 2 #9e9cab            Region boundary
+line 0x1e 2 #68686a            Country boundary
+line 0x2d 2 #9e9cab            Military boundary  # ground
+# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
+# a flat colour here would replace kmap's red dashes with a plain stripe.
+
+# --- contour lines, which this style is built around ---------------------------
+line 0x21 1 #a67442            Contour, index
+line 0x20 1 #b38659            Contour
+line 0x22 1 #b38659            Contour, minor

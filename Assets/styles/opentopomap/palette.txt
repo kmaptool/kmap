@@ -1,0 +1,132 @@
+# The OpenTopoMap look, on the type codes kmap's rules emit.
+#
+# Colours were read out of OpenTopoMap's own Garmin TYP source
+# (der-stefan/OpenTopoMap, garmin/style/typ/opentopomap.txt, CC-BY-SA;
+# fetched 2026-08-31) for every code whose meaning both maps share, by
+# chaining kmap rule -> tag -> OpenTopoMap rule -> its TYP colour. Codes
+# their style does not cover are filled in the same palette's spirit and
+# say so in their comment. Attribution: (c) OpenTopoMap (CC-BY-SA).
+
+name OpenTopoMap
+summary the OpenTopoMap look — its own Garmin colours where the maps share a meaning
+
+# The device's own background, on a level below everything: a fenix
+# draws it where the land polygon has not arrived yet, and shows black
+# without it. Their own background, 0x4b in their TYP.
+poly 0x4b 1 #ffffff  Background
+poly 0x32 2 #72ceff  Sea
+poly 0x27 3 #ffffff  Land  # the ground, in their own background colour
+poly 0x1c 5 #eef0d5  Farmland  # filled, not theirs
+poly 0x29 5 #eef0d5  Greenhouses  # filled, not theirs
+poly 0x26 5 #eef0d5  Farm  # filled, not theirs
+poly 0x4e 5 #00c000  Orchard
+poly 0x1b 5 #00c000  Vineyard
+poly 0x5a 5 #dfefc9  Allotments  # filled, not theirs
+poly 0x55 5 #cdebb0  Grassland  # filled, not theirs
+poly 0x15 5 #cdebb0  Village green  # filled, not theirs
+poly 0x1d 5 #cdebb0  Common  # filled, not theirs
+poly 0x4f 5 #00c000  Scrub
+poly 0x1e 5 #c8d7ab  Heath  # filled, not theirs
+poly 0x50 5 #77cc77  Forest
+poly 0x57 5 #77cc77  Coniferous forest
+poly 0x58 5 #77cc77  Broadleaved forest
+poly 0x59 5 #77cc77  Wood
+poly 0x53 5 #f5f500  Beach
+poly 0x54 5 #e5e3e0  Scree  # filled, not theirs
+poly 0x1f 5 #e8e6e0  Fell  # filled, not theirs
+poly 0x56 5 #d8d6d2  Bare rock  # filled, not theirs
+poly 0x52 5 #ddecd8  Tundra  # filled, not theirs
+poly 0x4d 5 #fafaff  Glacier  # filled, not theirs
+poly 0x02 6 #ffffff  Suburb  # ground: their style draws nothing here, and their own background is white
+poly 0x03 6 #ffffff  Village  # ground: their style draws nothing here, and their own background is white
+poly 0x10 6 #ebebeb  Residential
+poly 0x0f 6 #ebebeb  Commercial
+poly 0x0c 6 #ffffff  Construction  # ground: their style draws nothing here, and their own background is white
+poly 0x0d 6 #d8d6d2  Quarry  # filled, not theirs
+poly 0x07 6 #ffffff  Airport ground  # ground: their style draws nothing here, and their own background is white
+poly 0x0e 6 #ffffff  Runway  # ground: their style draws nothing here, and their own background is white
+poly 0x05 6 #ffffff  Parking  # ground: their style draws nothing here, and their own background is white
+poly 0x06 6 #ffffff  Covered parking  # ground: their style draws nothing here, and their own background is white
+poly 0x1a 6 #000000  Cemetery
+poly 0x25 6 #ffffff  Square  # ground: their style draws nothing here, and their own background is white
+poly 0x08 6 #ffffff  Food and drink  # ground: their style draws nothing here, and their own background is white
+poly 0x0a 6 #ffffff  Kindergarten  # ground: their style draws nothing here, and their own background is white
+poly 0x0b 6 #ffffff  Hospital  # ground: their style draws nothing here, and their own background is white
+poly 0x04 6 #ff4040  Prison
+poly 0x12 6 #ffffff  Services  # ground: their style draws nothing here, and their own background is white
+poly 0x21 6 #ffffff  Tourism  # ground: their style draws nothing here, and their own background is white
+poly 0x22 6 #ffffff  Historic  # ground: their style draws nothing here, and their own background is white
+poly 0x23 6 #ffffff  Amenity  # ground: their style draws nothing here, and their own background is white
+poly 0x24 6 #ffffff  Man-made  # ground: their style draws nothing here, and their own background is white
+poly 0x17 7 #00c000  Park
+poly 0x20 7 #00c000  Garden
+poly 0x18 7 #ffffff  Golf course  # ground: their style draws nothing here, and their own background is white
+poly 0x19 7 #beffba  Ice rink
+poly 0x09 7 #ffffff  Water park  # ground: their style draws nothing here, and their own background is white
+poly 0x28 8 #72ceff  Salt pond  # filled, not theirs
+poly 0x3c 8 #72ceff  Water
+poly 0x41 8 #72ceff  Small water
+poly 0x46 8 #72ceff  Riverbank
+poly 0x48 8 #72ceff  Canal
+poly 0x3d 8 #72ceff  Bay  # their water: their rules make a bay water
+poly 0x3b 8 #72ceff  Waterway area  # their water: a waterway area is their riverbank
+poly 0x3f 8 #72ceff  Basin  # their water: a basin and a reservoir are water in their rules
+poly 0x4c 8 #72ceff  Dock  # their water: a lock is water in their rules
+poly 0x47 8 #72ceff  Waterfall
+poly 0x51 9 #ffffff  Marsh  # their number for it, but their TYP draws it nowhere
+poly 0x16 4 #ffffff  Nature reserve  # not drawn: their style has no reserve section at all, so this is the ground
+poly 0x11 9 #ffffff  Military  # ground: their style draws nothing here, and their own background is white
+poly 0x13 10 #a5a5a5  Building  # filled, not theirs
+line 0x01 3 #fdb548 #000000  Motorway
+line 0x09 3 #fdb548 #000000  Motorway link
+line 0x0b 3 #ffffff #000000  Motorway exit
+line 0x02 4 #fdb548 #000000  Trunk
+line 0x03 4 #fdb548 #000000  Primary
+line 0x08 4 #fdfd4f #000000  Primary link
+line 0x04 4 #fdfd4f #000000  Secondary
+line 0x05 4 #ffffff #000000  Tertiary
+line 0x06 3 #ffffff #000000  Minor road
+line 0x0c 4 #ffffff #000000  Roundabout
+line 0x30 3 #ffffff #000000  Track loop  # filled, not theirs
+line 0x16 2 #000000  Construction
+line 0x0a 2 #000000  Track
+line 0x0e 2 #000000  Path
+line 0x10 3 #ffffff #000000  Living street  # filled, not theirs
+line 0x07 2 #000000  Bridleway
+line 0x11 2 #000000  Cycleway
+line 0x2b 2 #ffffff #000000  Via ferrata  # filled, not theirs
+# Two the palette names only so the map can say what they are: their own drawing
+# replaces the colour, and their own word for it is German. (Their rail tunnel and
+# bridge sections ride along too, on numbers kmap's rules do not reach.)
+line 0x0f 1 #000000  Steps
+line 0x14 2 #ffffff #000000  Railway
+line 0x18 2 #1d4dff  Stream
+line 0x1f 2 #1d4dff  River
+line 0x33 2 #1d4dff  Canal
+line 0x34 1 #1d4dff  Drain  # filled, not theirs
+line 0x35 1 #1d4dff  Ditch  # filled, not theirs
+line 0x26 2 #1d4dff  Intermittent river
+line 0x1a 2 #0000ff  Ferry
+line 0x1b 2 #0000ff  Foot ferry
+line 0x17 2 #ffffff #000000  Breakwater  # filled, not theirs
+line 0x31 1 #4eb539  Tree row
+line 0x32 2 #a5a5a5  City wall  # filled, not theirs
+line 0x27 2 #a0a0a0  Runway
+line 0x29 2 #000000  Power line
+line 0x25 2 #ffffff #000000  Cableway  # filled, not theirs
+line 0x28 1 #ffffff #000000  Pipeline  # filled, not theirs
+line 0x23 1 #ffffff #000000  Cutline  # filled, not theirs
+line 0x24 1 #ffffff #000000  Valley  # filled, not theirs
+line 0x12 1 #ffffff #000000  Fell edge  # filled, not theirs
+line 0x19 2 #4eb539  National park boundary  # their forest-edge green; the band is kmap's, they draw none
+# Contour lines, from their own contour TYP (garmin/style/typ/contours.txt): one
+# brown for all three, a pixel wide, and the same three numbers kmap draws them with.
+line 0x21 1 #c08040  Contour, index
+line 0x20 1 #c08040  Contour
+line 0x22 1 #c08040  Contour, minor
+line 0x1c 2 #ff80ff  Boundary
+line 0x1d 2 #ff80ff  Region boundary
+line 0x1e 2 #ff80ff  Country boundary
+line 0x2d 2 #ffffff #000000  Military boundary  # filled, not theirs
+# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
+# a flat colour here would replace kmap's red dashes with a plain stripe.

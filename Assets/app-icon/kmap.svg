@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="35" y1="10" x2="480" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2F8BB8"/>
+      <stop offset="1" stop-color="#1D668E"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="100" y1="100" x2="430" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset=".55" stop-color="#EAF2F5"/>
+      <stop offset="1" stop-color="#B7C8D0"/>
+    </linearGradient>
+    <linearGradient id="route" x1="105" y1="315" x2="405" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD34D"/>
+      <stop offset=".52" stop-color="#FFD95B"/>
+      <stop offset="1" stop-color="#FFC62D"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4"/>
+    </filter>
+    <clipPath id="round">
+      <rect x="0" y="0" width="512" height="512" rx="92"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#round)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+
+    <!-- topographic contour lines -->
+    <g fill="none" stroke="#83C8E5" stroke-width="1.2" opacity=".27">
+      <path d="M-30 33 C8 3 29 44 65 22 S118 8 145 30 S195 49 225 24 S279 5 311 27 S365 50 396 25 S450 6 545 36"/>
+      <path d="M-25 54 C15 24 37 65 73 43 S126 29 153 51 S203 70 233 45 S287 26 319 48 S373 71 404 46 S458 27 540 57"/>
+      <path d="M-35 87 C5 57 26 98 62 76 S115 62 142 84 S192 103 222 78 S276 59 308 81 S362 104 393 79 S447 60 545 90"/>
+      <path d="M-22 112 C18 82 40 123 76 101 S129 87 156 109 S206 128 236 103 S290 84 322 106 S376 129 407 104 S461 85 538 115"/>
+      <path d="M-34 151 C6 121 28 162 64 140 S117 126 144 148 S194 167 224 142 S278 123 310 145 S364 168 395 143 S449 124 544 154"/>
+      <path d="M-20 177 C20 147 42 188 78 166 S131 152 158 174 S208 193 238 168 S292 149 324 171 S378 194 409 169 S463 150 540 180"/>
+      <path d="M-32 211 C8 181 30 222 66 200 S119 186 146 208 S196 227 226 202 S280 183 312 205 S366 228 397 203 S451 184 544 214"/>
+      <path d="M-18 239 C22 209 44 250 80 228 S133 214 160 236 S210 255 240 230 S294 211 326 233 S380 256 411 231 S465 212 540 242"/>
+      <path d="M-30 280 C10 250 32 291 68 269 S121 255 148 277 S198 296 228 271 S282 252 314 274 S368 297 399 272 S453 253 544 283"/>
+      <path d="M-18 307 C22 277 44 318 80 296 S133 282 160 304 S210 323 240 298 S294 279 326 301 S380 324 411 299 S465 280 540 310"/>
+      <path d="M-30 345 C10 315 32 356 68 334 S121 320 148 342 S198 361 228 336 S282 317 314 339 S368 362 399 337 S453 318 544 348"/>
+      <path d="M-18 373 C22 343 44 384 80 362 S133 348 160 370 S210 389 240 364 S294 345 326 367 S380 390 411 365 S465 346 540 376"/>
+      <path d="M-30 411 C10 381 32 422 68 400 S121 386 148 408 S198 427 228 402 S282 383 314 405 S368 428 399 403 S453 384 544 414"/>
+      <path d="M-18 439 C22 409 44 450 80 428 S133 414 160 436 S210 455 240 430 S294 411 326 433 S380 456 411 431 S465 412 540 442"/>
+      <path d="M-30 477 C10 447 32 488 68 466 S121 452 148 474 S198 493 228 468 S282 449 314 471 S368 494 399 469 S453 450 544 480"/>
+    </g>
+
+    <!-- folded map shadow -->
+    <path d="M94 139 L214 82 L332 139 L425 82 L425 389 L332 439 L214 383 L94 444 Z"
+          fill="none" stroke="#0B4D6C" stroke-width="12" opacity=".25" filter="url(#softShadow)"/>
+
+    <!-- map body, single folded outline -->
+    <path d="M94 139 L214 82 L332 139 L425 82 L425 389 L332 439 L214 383 L94 444 Z"
+          fill="none" stroke="url(#paper)" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
+
+    <!-- fold seams -->
+    <path d="M214 82 L214 383 M332 139 L332 439"
+          fill="none" stroke="#D4E3E9" stroke-width="15" stroke-linecap="round"/>
+    <path d="M214 82 L214 383 M332 139 L332 439"
+          fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity=".65"/>
+
+    <!-- route shadow -->
+    <path d="M120 309 C153 259 183 213 224 208 C267 202 284 241 323 213 C349 195 368 191 385 188"
+          fill="none" stroke="#8B6512" stroke-width="33" stroke-linecap="round" stroke-linejoin="round" opacity=".25" filter="url(#softShadow)"/>
+
+    <!-- route -->
+    <path d="M120 309 C153 259 183 213 224 208 C267 202 284 241 323 213 C349 195 368 191 385 188"
+          fill="none" stroke="url(#route)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- route start -->
+    <circle cx="120" cy="309" r="19" fill="#FFD24C"/>
+
+    <!-- pin dropped at route end -->
+    <path d="M385 188 C385 188 341 142 341 112 A44 44 0 1 1 429 112 C429 142 385 188 385 188 Z"
+          fill="#8B2A12" opacity=".3" transform="translate(2 6)" filter="url(#softShadow)"/>
+    <path d="M385 188 C385 188 341 142 341 112 A44 44 0 1 1 429 112 C429 142 385 188 385 188 Z"
+          fill="#F4573B"/>
+    <circle cx="385" cy="112" r="17" fill="#FFFFFF"/>
+  </g>
+</svg>

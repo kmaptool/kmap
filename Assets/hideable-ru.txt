@@ -1,0 +1,200 @@
+# Russian names for the hide catalogue, keyed by entry id: the English names are
+# generated from mkgmap values, so keying by them would silently fall back on a
+# rename. An entry with no Russian here shows its English name.
+#
+# category|<english>|<russian>   for the section headings
+# <feature-id>|<russian>         for the entries
+
+category|Barriers and gates|Преграды и ворота
+category|Amenities|Объекты и услуги
+category|Shops|Магазины
+category|Tourism|Туризм
+category|Leisure and sport|Отдых и спорт
+category|Road features|Дорожные объекты
+category|Railway|Железная дорога
+category|Natural features|Природные объекты
+category|Man-made|Сооружения
+category|Historic|Историческое
+category|Emergency|Экстренные службы
+category|Military|Военное
+category|Power|Энергетика
+category|Aviation|Авиация
+category|Waterways|Водные пути
+category|Offices|Офисы
+category|Craft|Ремёсла
+category|Land use|Землепользование
+
+barriers-fence|Калитки в заборах участков
+barriers-minor|Ворота на подъездах
+barriers-path|Преграды на тропах
+barriers-other|Прочие преграды
+amenity-arts_centre|Дом культуры
+amenity-atm|Банкомат
+amenity-bank|Банк
+amenity-bar|Бар
+amenity-bench|Скамейка
+amenity-biergarten|Пивная под открытым небом
+amenity-border_control|Пограничный контроль
+amenity-bus_station|Автовокзал
+amenity-cafe|Кафе
+amenity-car_club|Автоклуб
+amenity-car_rental|Прокат автомобилей
+amenity-car_sharing|Каршеринг
+amenity-car_wash|Автомойка
+amenity-casino|Казино
+amenity-charging_station|Зарядная станция
+amenity-cinema|Кинотеатр
+amenity-college|Колледж
+amenity-community_center|Общественный центр
+amenity-community_centre|Общественный центр
+amenity-concert_hall|Концертный зал
+amenity-conference_centre|Конференц-центр
+amenity-convention_center|Конгресс-центр
+amenity-courthouse|Суд
+amenity-drinking_water|Питьевая вода
+amenity-embassy|Посольство
+amenity-emergency_phone|Телефон экстренной связи
+amenity-fast_food|Быстрое питание
+amenity-ferry_terminal|Паромный причал
+amenity-fire_station|Пожарная часть
+amenity-food_court|Фуд-корт
+amenity-fuel|АЗС
+amenity-grave_yard|Кладбище при церкви
+amenity-kindergarten|Детский сад
+amenity-library|Библиотека
+amenity-nightclub|Ночной клуб
+amenity-nursing_home|Дом престарелых
+amenity-pharmacy|Аптека
+amenity-place_of_worship|Храм
+amenity-police|Полиция
+amenity-post_box|Почтовый ящик
+amenity-post_office|Почта
+amenity-prison|Тюрьма
+amenity-pub|Паб
+amenity-public_building|Общественное здание
+amenity-recycling|Приём вторсырья
+amenity-school|Школа
+amenity-shelter|Укрытие
+amenity-supermarket|Супермаркет
+amenity-taxi|Такси
+amenity-telephone|Телефон
+amenity-theatre|Театр
+amenity-toilets|Туалет
+amenity-townhall|Администрация
+amenity-university|Университет
+amenity-zoo|Зоопарк
+shop-bakers|Пекарня
+shop-bakery|Булочная
+shop-beauty|Салон красоты
+shop-bicycle|Велосипеды
+shop-boat|Лодки
+shop-butcher|Мясная лавка
+shop-car|Автосалон
+shop-car_dealer|Автодилер
+shop-car_parts|Автозапчасти
+shop-car_rental|Прокат автомобилей
+shop-car_repair|Автосервис
+shop-car_wrecker|Авторазбор
+shop-chemist|Бытовая химия
+shop-clothes|Одежда
+shop-computer|Компьютеры
+shop-convenience|Продукты
+shop-department_store|Универмаг
+shop-doityourself|Товары для дома и ремонта
+shop-fashion|Модная одежда
+shop-furniture|Мебель
+shop-garden_center|Садовый центр
+shop-garden_centre|Садовый центр
+shop-general|Сельский магазин
+shop-hairdresser|Парикмахерская
+shop-hardware|Хозяйственный
+shop-mall|Торговый центр
+shop-organic|Фермерские продукты
+shop-outdoor|Товары для туризма
+shop-shoes|Обувь
+shop-supermarket|Супермаркет
+shop-tires|Шины
+shop-tyres|Шины
+tourism-alpine_hut|Горный приют
+tourism-aquarium|Океанариум
+tourism-artwork|Арт-объект
+tourism-attraction|Достопримечательность
+tourism-bed_and_breakfast|Мини-гостиница
+tourism-camp_site|Кемпинг
+tourism-caravan_site|Автокемпинг
+tourism-chalet|Шале
+tourism-guest_house|Гостевой дом
+tourism-hostel|Хостел
+tourism-information|Информация
+tourism-lean_to|Навес
+tourism-museum|Музей
+tourism-picnic_site|Место для пикника
+tourism-resort|Курорт
+tourism-theme_park|Парк развлечений
+tourism-viewpoint|Смотровая точка
+tourism-wilderness_hut|Лесная изба
+tourism-wine_cellar|Винный погреб
+tourism-zoo|Зоопарк
+leisure-common|Общественная земля
+leisure-garden|Сад
+leisure-golf_course|Поле для гольфа
+leisure-ice_rink|Каток
+leisure-marina|Яхтенная марина
+leisure-nature_reserve|Заповедник
+leisure-park|Парк
+leisure-pitch|Спортплощадка
+leisure-playground|Детская площадка
+leisure-recreation_ground|Зона отдыха
+leisure-sports_center|Спорткомплекс
+leisure-stadium|Стадион
+leisure-track|Беговая дорожка
+leisure-water_park|Аквапарк
+highway-bus_stop|Остановка
+highway-motorway_junction|Развязка
+highway-rest_area|Площадка отдыха
+highway-services|Зона обслуживания
+railway-halt|Платформа
+railway-station|Железнодорожная станция
+natural-bay|Залив
+natural-beach|Пляж
+natural-cape|Мыс
+natural-cave_entrance|Вход в пещеру
+natural-cliff|Обрыв
+natural-geyser|Гейзер
+natural-glacier|Ледник
+natural-peak|Вершина
+natural-rock|Скала
+natural-spring|Родник
+natural-stone|Камень
+natural-stream|Ручей
+natural-volcano|Вулкан
+natural-water|Водоём
+natural-waterfall|Водопад
+natural-wetland|Болото
+man_made-tower|Башня
+man_made-mast|Мачта
+power-tower|Опоры ЛЭП
+power-generator|Генераторы и ветряки
+man_made-water_tower|Водонапорные башни
+man_made-lighthouse|Маяки
+man_made-survey_point|Геодезические пункты
+man_made-beacon|Навигационные знаки
+highway-milestone|Километровые столбы
+office-government|Госучреждения
+leisure-slipway|Спуски для лодок
+leisure-fishing|Места рыбалки
+military-bunker|Бункеры
+man_made-water_well|Колодец
+historic-archaeological_site|Археологический памятник
+historic-memorial|Мемориал
+historic-museum|Музей
+emergency-phone|Телефон экстренной связи
+aeroway-aerodrome|Аэродром
+aeroway-airport|Аэропорт
+aeroway-helipad|Вертолётная площадка
+aeroway-terminal|Терминал
+landuse-basin|Водосборный бассейн
+landuse-cemetery|Кладбище
+landuse-military|Военная территория
+landuse-reservoir|Водохранилище
+landuse-village_green|Сельский выгон

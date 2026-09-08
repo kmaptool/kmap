@@ -1,0 +1,111 @@
+# The words kmap itself writes onto the map: labels for objects OSM leaves unnamed,
+# and the notes appended to named ones. OSM's own translations cover only names that
+# exist — these are the words for everything that has none.
+#
+# One entry per line: <key>|<english>|<russian>. The rules quote entries by key
+# through StyleWords; a build labelled in Cyrillic takes the third column.
+
+# Trail warnings, written along the way itself.
+trail.lost|path disappears|тропа теряется
+trail.faint|faint path|тропа плохо видна
+trail.alpine|alpine terrain|альпинистский участок
+trail.hard|demanding, T3|сложная тропа, T3
+trail.ferrata|via ferrata, gear required|виа феррата, нужна страховка
+trail.ford|ford|брод
+trail.ford-stones|ford, stepping stones|брод по камням
+
+# Barriers, named so the gate on a track reads as one.
+barrier.gate|Gate|Ворота
+barrier.lift_gate|Lift gate|Шлагбаум
+barrier.swing_gate|Swing gate|Поворотные ворота
+barrier.kissing_gate|Kissing gate|Калитка
+barrier.bollard|Bollard|Столбик
+barrier.block|Block|Блок
+barrier.cycle_barrier|Cycle barrier|Велобарьер
+barrier.stile|Stile|Перелаз
+barrier.chain|Chain|Цепь
+barrier.bus_trap|Bus trap|Отбойник
+barrier.locked|locked|заперто
+barrier.no-entry|no entry|прохода нет
+barrier.private|private|частная
+
+# Aerialways, one family of lifts.
+aerialway.cable-car|Cable car|Канатная дорога
+aerialway.chairlift|Chairlift|Кресельный подъёмник
+aerialway.drag-lift|Drag lift|Бугельный подъёмник
+aerialway.zip-line|Zip line|Троллей
+aerialway.station|Lift station|Станция канатной дороги
+
+# Parking and the roadside.
+parking.services|Services|Придорожный комплекс
+parking.parking|Parking|Парковка
+parking.entrance|Parking entrance|Въезд на парковку
+parking.customers|customers only|для клиентов
+parking.permit|permit needed|по пропуску
+parking.fee|paid|платная
+parking.layby|Rest area|Площадка для отдыха
+
+# Forest by leaf type: the suffix a named stand gains, the label an unnamed one takes.
+forest.coniferous-suffix|coniferous|хвойный
+forest.coniferous|Coniferous forest|Хвойный лес
+forest.broadleaved-suffix|broadleaved|лиственный
+forest.broadleaved|Broadleaved forest|Лиственный лес
+forest.mixed-suffix|mixed|смешанный
+forest.mixed|Mixed forest|Смешанный лес
+
+# Water a walker drinks, or decides not to.
+water.well-suffix|well|колодец
+water.well|Well|Колодец
+water.tap-suffix|tap|водопровод
+water.tap|Water tap|Водоразборная колонка
+water.geyser|Geyser|Гейзер
+spring.name|Spring|Родник
+spring.undrinkable|not drinkable|непитьевой
+spring.boil|boil first|кипятить
+spring.intermittent|intermittent|пересыхающий
+spring.seasonal|seasonal|сезонный
+
+# Terrain POIs the stock rules never type.
+terrain.ford|Ford|Брод
+terrain.stones|stepping stones|камни
+terrain.pass|Pass|Перевал
+terrain.shelter|Shelter|Укрытие
+terrain.hut|Hut|Хижина
+terrain.rock-shelter|rock shelter|скальный навес
+terrain.lean-to|lean-to|навес
+terrain.gazebo|Gazebo|Беседка
+terrain.picnic-shelter|Picnic shelter|Навес для пикника
+terrain.sun-shelter|Sun shelter|Навес от солнца
+
+# The climber's badge.
+climbing.gym|Climbing gym|Скалодром
+climbing.climbing|Climbing|Скалолазание
+climbing.crags|Crags|Скалы
+climbing.route|Climbing route|Скальный маршрут
+
+# The emergency phone wears mkgmap's own English wording, so the default-name
+# translation recognises it either way.
+sos.phone|Emergency Phone|Экстренный телефон
+
+# What a repaired road-end crossed — the words on the link and its warning mark.
+repair.obstacle|Obstacle|Преграда
+repair.kerb|Kerb|Бордюр
+repair.retaining_wall|Retaining wall|Подпорная стенка
+repair.guard_rail|Guard rail|Отбойник
+repair.ditch|Ditch|Канава
+repair.chain|Chain|Цепь
+repair.bollard|Bollards|Столбики
+repair.block|Blocks|Блоки
+repair.handrail|Handrail|Поручень
+repair.jersey_barrier|Blocks|Блоки
+repair.gate|Gate|Ворота
+repair.cliff|Cliff|Обрыв
+repair.ravine|Ravine|Овраг
+repair.water|Watercourse|Водоток
+repair.river|River|Река
+repair.canal|Canal|Канал
+repair.embankment|Embankment|Насыпь
+repair.pier|Pier|Причал
+repair.breakwater|Breakwater|Волнолом
+repair.drop|Drop in the ground|Провал по рельефу
+repair.face|Steep face|Крутой склон
