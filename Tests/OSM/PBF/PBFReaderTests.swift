@@ -194,6 +194,36 @@ final class PBFReaderTests: XCTestCase {
         XCTAssertNil(try PBFReader(url: url).headerBBox())
     }
 
+    /// A header without a box is not the end of it: the nodes carry the same answer.
+    func testTheBoxIsMeasuredFromTheNodesWhereTheHeaderCarriesNone() throws {
+        let url = path("measured.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        writer.nodes([
+            PBFWriter.Node(id: 1, lat: 44.5, lon: 33.5, tags: []),
+            PBFWriter.Node(id: 2, lat: 44.7, lon: 33.9, tags: []),
+            PBFWriter.Node(id: 3, lat: 44.6, lon: 33.1, tags: []),
+        ])
+        // A way names nodes it does not carry: its place comes from them.
+        writer.ways([PBFWriter.Way(id: 10, refs: [1, 2, 3], tags: [("highway", "track")])])
+        try writer.finish()
+
+        let box = try XCTUnwrap(try PBFReader(url: url).nodeBounds())
+        XCTAssertEqual(box.minLat, 44.5, accuracy: 1e-6)
+        XCTAssertEqual(box.maxLat, 44.7, accuracy: 1e-6)
+        XCTAssertEqual(box.minLon, 33.1, accuracy: 1e-6)
+        XCTAssertEqual(box.maxLon, 33.9, accuracy: 1e-6)
+    }
+
+    /// An extract with no node covers no ground, which is not the same as an unknown one.
+    func testAFileWithNoNodesMeasuresNoBox() throws {
+        let url = path("nonodes.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        try writer.finish()
+        XCTAssertNil(try PBFReader(url: url).nodeBounds())
+    }
+
     // MARK: Files that are wrong
 
     func testAnEmptyFileReadsAsEmpty() throws {

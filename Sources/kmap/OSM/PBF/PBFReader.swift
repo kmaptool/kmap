@@ -195,6 +195,31 @@ struct PBFReader {
         }
     }
 
+    /// The box this file's nodes fall in, for one whose header carries none; nil where it
+    /// holds no node at all. Nodes only: ways and relations are placed by the nodes they
+    /// name, so every coordinate is here.
+    func nodeBounds() throws -> BBox? {
+        var scan = BoundsSink()
+        try read(into: &scan)
+        return scan.box.isValid ? scan.box : nil
+    }
+
+    private struct BoundsSink: OSMSink {
+        var box = BBox.empty
+        let wantedParts: OSMParts = .nodes
+        mutating func node(id: Int64, lat: Double, lon: Double,
+                           tags: ArraySlice<Int32>, block: OSMBlock) {
+            box.extend(lon: lon, lat: lat)
+        }
+        mutating func way(id: Int64, refs: ArraySlice<Int64>,
+                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
+                          block: OSMBlock) {}
+        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
+                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
+                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
+                               block: OSMBlock) {}
+    }
+
     /// Walks the whole file, handing every node and way to the sink. Blocks are inflated
     /// a batch at a time across every core, then decoded on this thread in file order.
     func read<Sink: OSMSink>(into sink: inout Sink) throws {
