@@ -6,7 +6,8 @@ import Foundation
 extension BuildPipeline {
 
     enum StageID: String, CaseIterable {
-        case preflight, download, elevation, elevationBuild, split, compile, collect
+        case preflight, dataUpdate, download, elevation, elevationBuild, split,
+             compile, collect
 
         /// Whether this stage runs concurrently with the others rather than before them.
         /// The elevation stages start once the extracts are down and run beside the split.
@@ -20,6 +21,7 @@ extension BuildPipeline {
         var title: String {
             switch self {
             case .preflight: return t("Check tools and disk")
+            case .dataUpdate: return t("Update tools")
             case .download: return t("Download OSM extract")
             case .elevation: return t("Download elevation")
             case .elevationBuild: return t("Contours and DEM")
@@ -29,6 +31,10 @@ extension BuildPipeline {
             }
         }
     }
+
+    /// How often a running download repaints its stage line. Fast enough to look live,
+    /// slow enough not to fight the render loop.
+    static let progressTick: UInt64 = 200_000_000
 
     enum StageStatus: String {
         case pending, running, done, skipped, failed
@@ -78,8 +84,8 @@ extension BuildPipeline {
             let weights: [StageID: Double] = [
                 // Weights per stage; elevation is split in two because fetching a degree
                 // cell costs far more than tracing it.
-                .preflight: 0.01, .download: 0.24, .elevation: 0.20, .elevationBuild: 0.10,
-                .split: 0.15, .compile: 0.28, .collect: 0.02
+                .preflight: 0.01, .dataUpdate: 0.01, .download: 0.23, .elevation: 0.20,
+                .elevationBuild: 0.10, .split: 0.15, .compile: 0.28, .collect: 0.02
             ]
             var total = 0.0
             for stage in stages {

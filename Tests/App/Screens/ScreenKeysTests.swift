@@ -207,7 +207,7 @@ final class ScreenKeysTests: XCTestCase {
 
     func testEnterOpensATypeThatHasASection() async throws {
         let document = StyleDocument.load(style)
-        try XCTUnwrap(document.rows(.polygon).first { $0.isStyled },
+        _ = try XCTUnwrap(document.rows(.polygon).first { $0.isStyled },
                       "the fixture must style at least one polygon")
 
         // Walked with the screen's own keys rather than by row index: the screen folds
@@ -387,13 +387,76 @@ final class ScreenKeysTests: XCTestCase {
         _ = screen.handle(.esc, ctx: ctx)
 
         // Streams, heap and nodes-per-tile all offer a list.
-        for field in [SettingsScreen.Field.connections, .heap, .maxNodes, .keepWork] {
+        for field in [SettingsScreen.Field.connections, .toolchainUpdates, .heap,
+                      .maxNodes, .keepWork] {
             XCTAssertNotNil(SettingsScreen().dropdownForTesting(field, ctx),
                             "\(field) should offer a list")
         }
         // A folder is typed, not chosen from one.
         XCTAssertNil(SettingsScreen().dropdownForTesting(.output, ctx))
         XCTAssertNil(SettingsScreen().dropdownForTesting(.mkgmapJar, ctx))
+    }
+
+    // MARK: Updating a data pack by hand
+
+    /// A coastline pack in this run's own root, so the list has a row to press keys on.
+    /// The real one lives under the real ~/.kmap and is never touched by a test.
+    private func installFakeSeaPack() throws {
+        Paths.ensure(Paths.tools)
+        try Data(repeating: 0, count: 2_000_000).write(to: Paths.seaData)
+        addTeardownBlock { FileTools.removeIfPresent(Paths.seaData) }
+    }
+
+    /// The toolchain list is probed off the render loop; these tests need it settled.
+    private func settledToolchain(_ screen: ToolchainScreen) async -> Bool {
+        screen.tick(ctx)
+        for _ in 0..<200 where !ctx.toolsProbed {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        return ctx.toolsProbed
+    }
+
+    /// `u` is for the two packs that go out of date while installed. Everything else in
+    /// the list is a program with a version, and kmap does not chase those.
+    func testUpdatingSomethingThatIsNotADataPackSaysSo() async {
+        let screen = ToolchainScreen()
+        guard await settledToolchain(screen) else { return XCTFail("the list never settled") }
+        ctx.useForTesting(packNews: [:])
+        guard let mkgmap = ctx.tools.firstIndex(where: { $0.id == "mkgmap" }) else {
+            return XCTFail("the toolchain list always names mkgmap")
+        }
+        select(screen, steps: mkgmap)
+        _ = screen.handle(.char("u"), ctx: ctx)
+        XCTAssertEqual(screen.messageForTesting, t("%@ is not something kmap updates", "mkgmap"))
+    }
+
+    /// A pack the mirror still publishes as it is: nothing is fetched, and the screen says
+    /// why rather than going quiet.
+    func testUpdatingAPackWithNoNewsFetchesNothing() async throws {
+        try installFakeSeaPack()
+        let screen = ToolchainScreen()
+        _ = await settledToolchain(screen)
+        ctx.useForTesting(packNews: [:])
+        let row = try XCTUnwrap(ctx.tools.firstIndex { $0.id == "sea" })
+        select(screen, steps: row)
+        _ = screen.handle(.char("u"), ctx: ctx)
+        XCTAssertNil(screen.installingForTesting, "nothing to fetch")
+        XCTAssertEqual(screen.messageForTesting,
+                       t("%@ is already the published one",
+                         ctx.tools[row].name))
+    }
+
+    /// And one the mirror has moved on from: the fetch starts.
+    func testUpdatingAPackWithNewsStartsTheFetch() async throws {
+        try installFakeSeaPack()
+        let screen = ToolchainScreen()
+        _ = await settledToolchain(screen)
+        ctx.useForTesting(packNews: ["sea": DataPack.News(size: 343_858_019,
+                                                          lastModified: nil,
+                                                          published: Date())])
+        let row = try XCTUnwrap(ctx.tools.firstIndex { $0.id == "sea" })
+        // The decision, not the download: pressing the key here would fetch 344 MB.
+        XCTAssertEqual(screen.updateAction(for: ctx.tools[row], ctx), .fetch)
     }
 
     /// Choosing from the list writes the value, and the list shows where it already is.
@@ -408,6 +471,15 @@ final class ScreenKeysTests: XCTestCase {
                        "the list opens on the value in force")
         screen.chooseForTesting(.maxNodes, at: 3, ctx)
         XCTAssertEqual(ctx.settings.settings.maxNodesPerTile, SettingsScreen.nodeChoices[3])
+
+        // The toolchain cadence is a list of six, and choosing writes the one chosen.
+        settings.update { $0.toolchainUpdates = .monthly }
+        XCTAssertEqual(screen.dropdownForTesting(.toolchainUpdates, ctx)?.labels.count, 6)
+        XCTAssertEqual(screen.dropdownForTesting(.toolchainUpdates, ctx)?.at,
+                       ToolchainUpdates.allCases.firstIndex(of: .monthly))
+        screen.chooseForTesting(.toolchainUpdates,
+                                at: ToolchainUpdates.allCases.firstIndex(of: .never)!, ctx)
+        XCTAssertEqual(ctx.settings.settings.toolchainUpdates, .never)
 
         settings.update { $0.javaHeapGB = 0 }
         XCTAssertEqual(screen.dropdownForTesting(.heap, ctx)?.at, 0)

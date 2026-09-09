@@ -7,7 +7,7 @@ import FoundationNetworking
 /// Finds the external programs kmap needs, and installs the ones it can.
 final class Toolchain {
 
-    private let settings: SettingsStore
+    let settings: SettingsStore
     init(settings: SettingsStore) { self.settings = settings }
 
     // MARK: Probe cache
@@ -270,15 +270,13 @@ final class Toolchain {
             out.append(patchStatus(of: mkgmap.url, canCompile: findJavaKit() != nil))
         }
         out.append(dataStatus(
-            id: "sea", name: t("coastline data"),
+            DataPack.sea, name: t("coastline data"),
             detail: t("correct sea and shorelines (optional, 344 MB)"),
-            at: Paths.seaData,
             missingNote: t("without it, coastlines are derived from the extract and can flood"
                          + " inland at low zoom")))
         out.append(dataStatus(
-            id: "bounds", name: t("boundary data"),
+            DataPack.bounds, name: t("boundary data"),
             detail: t("city/region for address search (optional, 2.5 GB)"),
-            at: Paths.boundsData,
             missingNote: t("without it, the city and region on an address are a best guess")))
         if includeContours {
             out.append(pyhgtmapStatus(installs: installs))
@@ -339,11 +337,12 @@ final class Toolchain {
     }
 
     /// A downloadable data set: installed when the file is there and plausibly whole.
-    private func dataStatus(id: String, name: String, detail: String, at file: URL,
+    private func dataStatus(_ pack: DataPack, name: String, detail: String,
                             missingNote: String) -> ToolStatus {
-        let installed = FileTools.exists(file) && FileTools.size(of: file) > 1_000_000
+        let file = pack.file
+        let installed = pack.isInstalled
         return ToolStatus(
-            id: id,
+            id: pack.id,
             name: name,
             detail: detail,
             state: installed ? .ready : .missing,
@@ -425,7 +424,7 @@ final class Toolchain {
 
     /// Every tool id `install` accepts. Listed rather than derived from `status()`, which
     /// reports only what is missing on this machine and so cannot validate a name.
-    static let installableIDs = ["mkgmap", "mkgmap-patch", "pyhgtmap",
-                                 "sea", "bounds", "java", "python", "unzip"]
+    static let installableIDs = ["mkgmap", "mkgmap-patch", "pyhgtmap"]
+        + DataPack.all.map(\.id) + ["java", "python", "unzip"]
 
 }

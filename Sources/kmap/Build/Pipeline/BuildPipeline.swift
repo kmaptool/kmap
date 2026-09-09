@@ -83,6 +83,36 @@ final class BuildPipeline {
         task?.cancel()
     }
 
+    /// Whether cancel() has been called. Read under the lock.
+    var isCancelled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return wasCancelled
+    }
+
+    /// Throws where the build has been cancelled. A stage can end early for its own
+    /// reasons — a killed tool, a dropped download — and the next must not start.
+    func stopIfCancelled() throws {
+        if isCancelled || Task.isCancelled { throw CancellationError() }
+    }
+
+    /// A tool killed by `cancel()`, rather than one that failed.
+    private func isRunnerCancellation(_ error: Error) -> Bool {
+        if case ProcessRunner.RunError.cancelled = error { return true }
+        return false
+    }
+
+    /// Re-throws the cancellation itself. Stages go on without what they could not get —
+    /// contours, summit heights, annotation — but not without the build.
+    func rethrowIfCancelled(_ error: Error) throws {
+        if error is CancellationError
+            || isRunnerCancellation(error)
+            || (error as? URLError)?.code == .cancelled
+            || isCancelled || Task.isCancelled {
+            throw CancellationError()
+        }
+    }
+
     /// Synchronous, so async callers do not touch the lock directly.
     func publish(_ written: [Output]) {
         lock.lock()
@@ -139,8 +169,12 @@ final class BuildPipeline {
 
     func run() async {
         do {
-            try preflight()
+            try await preflight()
+            try stopIfCancelled()
+            try await updateDataPacks()
+            try stopIfCancelled()
             let extracts = try await downloadExtracts()
+            try stopIfCancelled()
             // Elevation runs beside the split; only the first region's write waits on it,
             // where the contours are folded in. A retried split awaits the same task.
             let elevationTask = Task { [self] in
@@ -158,6 +192,7 @@ final class BuildPipeline {
                 let tiles = try await splitIntoTiles(extracts: extracts,
                                                      contours: elevationTask,
                                                      maxNodes: cap, areas: areas)
+                try stopIfCancelled()
                 do {
                     try await compile(tiles: tiles)
                     break
@@ -185,6 +220,7 @@ final class BuildPipeline {
                     areas = nil
                 }
             }
+            try stopIfCancelled()
             try await collect()
             finish(error: nil)
         } catch {
@@ -194,7 +230,7 @@ final class BuildPipeline {
 
     // MARK: 1 — preflight
 
-    func preflight() throws {
+    func preflight() async throws {
         set(.preflight, .running, t("checking tools"))
         log.step("preparing")
 
@@ -239,13 +275,21 @@ final class BuildPipeline {
         log.append("levels:  \(recipe.levels.name) — \(recipe.levels.levels)")
         log.append("work:    \(Paths.display(workDirectory))")
         log.append("output:  \(recipe.splitMode.label) → \(Paths.display(recipe.destinationDirectory))")
-        // Unfinished downloads leave partial files behind; nothing else removes them.
+        // Unfinished downloads leave parts behind; nothing else removes them. The tools
+        // folder too: a half-fetched data pack is the largest of them.
         let freed = Downloader.sweepAbandonedParts(in: Paths.cache)
+            + Downloader.sweepAbandonedParts(in: Paths.tools)
         if freed > 0 {
             log.append("cleared \(Fmt.bytes(freed)) left by downloads that were never finished")
         }
+        // The packs this build reads sit in the toolchain for months; one HEAD request
+        // each says whether the mirror has moved on. Fetching is the next stage's work.
+        await checkDataPacks()
         set(.preflight, .done, t("ready"))
     }
 
     var workDirectory: URL { recipe.workDirectory }
+
+    /// What preflight found the mirrors offering, for the stage that fetches it.
+    var pendingPackUpdates: [(pack: DataPack, news: DataPack.News)] = []
 }

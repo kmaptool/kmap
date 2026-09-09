@@ -102,6 +102,42 @@ final class AppContext {
         }
     }
 
+    /// What the mirrors offer for the data packs, by id. Empty until the toolchain
+    /// screen asks.
+    private(set) var packNews: [String: DataPack.News] = [:]
+    private(set) var packsChecked = false
+    private var askingPacks = false
+
+    /// Asks the mirrors about the installed packs, off the render loop. Not on the
+    /// build's schedule, which can be `never`: opening the screen is the asking.
+    func refreshPackNews(force: Bool = false) {
+        guard !askingPacks else { return }
+        if packsChecked && !force { return }
+        askingPacks = true
+        Task.detached(priority: .utility) { [weak self] in
+            let found = await withTaskGroup(of: (String, DataPack.News?).self) { group in
+                for pack in DataPack.all where pack.isInstalled {
+                    group.addTask { (pack.id, await pack.newer()) }
+                }
+                var out: [String: DataPack.News] = [:]
+                for await (id, news) in group { out[id] = news }
+                return out.compactMapValues { $0 }
+            }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.packNews = found
+                self.packsChecked = true
+                self.askingPacks = false
+            }
+        }
+    }
+
+    /// What a check found, without making one: the screen is testable with no network.
+    func useForTesting(packNews: [String: DataPack.News]) {
+        self.packNews = packNews
+        packsChecked = true
+    }
+
     /// Samples CPU and memory for the header, about once a second: a CPU rate needs a gap
     /// between readings.
     func refreshLoad() {

@@ -52,10 +52,10 @@ final class BuildPipelineTests: XCTestCase {
         for id in BuildPipeline.StageID.allCases {
             XCTAssertFalse(id.title.isEmpty, id.rawValue)
         }
-        XCTAssertEqual(BuildPipeline.StageID.allCases.count, 7)
+        XCTAssertEqual(BuildPipeline.StageID.allCases.count, 8)
         // The order is the order the build runs in, which is the order they are drawn.
         XCTAssertEqual(BuildPipeline.StageID.allCases.map(\.rawValue),
-                       ["preflight", "download", "elevation", "elevationBuild",
+                       ["preflight", "dataUpdate", "download", "elevation", "elevationBuild",
                         "split", "compile", "collect"])
     }
 
@@ -110,14 +110,15 @@ final class BuildPipelineTests: XCTestCase {
         // stage contributes its own share.
         var stages = BuildPipeline.StageID.allCases.map { stage($0) }
         stages[0] = stage(.preflight, .done)
-        stages[1] = stage(.download, .done)
-        stages[2] = stage(.elevation, .running, fraction: 0.5)
-        stages[3] = stage(.elevationBuild, .running, fraction: 0.25)
+        stages[1] = stage(.dataUpdate, .done)
+        stages[2] = stage(.download, .done)
+        stages[3] = stage(.elevation, .running, fraction: 0.5)
+        stages[4] = stage(.elevationBuild, .running, fraction: 0.25)
         let both = snapshot(stages).overall
-        XCTAssertEqual(both, 0.01 + 0.24 + 0.20 * 0.5 + 0.10 * 0.25, accuracy: 1e-9)
+        XCTAssertEqual(both, 0.01 + 0.01 + 0.23 + 0.20 * 0.5 + 0.10 * 0.25, accuracy: 1e-9)
 
         // And finishing one while the other runs only ever moves it forwards.
-        stages[2] = stage(.elevation, .done)
+        stages[3] = stage(.elevation, .done)
         XCTAssertGreaterThan(snapshot(stages).overall, both)
     }
 

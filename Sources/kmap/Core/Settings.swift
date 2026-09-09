@@ -23,6 +23,14 @@ struct Settings: Codable {
     var maxNodesPerTile: Int = 1_200_000
     var keepWorkFiles: Bool = false
 
+    /// How often a build asks whether the data packs have moved on. Monthly by default:
+    /// the boundaries are 2.5 GB and are republished weekly, which is more traffic than a
+    /// current map needs.
+    var toolchainUpdates: ToolchainUpdates = .monthly
+    /// When each pack was last asked about. Here rather than beside the file: this is
+    /// when kmap asked, not what the server holds.
+    var dataChecked: [String: Date] = [:]
+
     /// The interface language, empty until the first run has asked the system; see
     /// `L10n.bootstrap`. Map labels are decided by a profile's `labelLanguageID` and
     /// `codePage` instead.

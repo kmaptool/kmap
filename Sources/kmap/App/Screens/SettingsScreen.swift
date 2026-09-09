@@ -35,7 +35,7 @@ final class SettingsScreen: Screen {
 
     enum Field: Int, CaseIterable {
         case uiLanguage
-        case output, work, connections, heap, maxNodes, keepWork
+        case output, work, connections, toolchainUpdates, heap, maxNodes, keepWork
         case usgsUser, usgsPassword, jaxaUser, jaxaPassword
         case mkgmapJar, javaBinary, clearCache, clearElevation
 
@@ -49,6 +49,7 @@ final class SettingsScreen: Screen {
             case .jaxaUser: return t("JAXA login")
             case .jaxaPassword: return t("JAXA password")
             case .connections: return t("Download streams")
+            case .toolchainUpdates: return t("Data updates")
             case .heap: return t("Java heap")
             case .maxNodes: return t("Nodes per tile")
             case .keepWork: return t("Keep work files")
@@ -89,6 +90,9 @@ final class SettingsScreen: Screen {
             case .jaxaPassword:
                 return t("same file, same permissions")
             case .connections: return t("parallel byte-range connections per download")
+            case .toolchainUpdates:
+                return t("how often a build asks whether the coastline and boundary"
+                       + " packs have been republished")
             case .heap: return t("memory handed to mkgmap; 0 means auto")
             case .maxNodes: return t("upper limit on one map tile; the default suits most machines")
             case .keepWork: return t("keep intermediate tiles and contours after a build")
@@ -289,6 +293,9 @@ final class SettingsScreen: Screen {
         case .connections:
             return ((1...16).map { "\($0)" },
                     max(0, min(15, settings.downloadConnections - 1)))
+        case .toolchainUpdates:
+            return (ToolchainUpdates.allCases.map(\.title),
+                    ToolchainUpdates.allCases.firstIndex(of: settings.toolchainUpdates) ?? 0)
         case .heap:
             let labels = Self.heapChoices.map {
                 $0 == 0 ? t("auto (%d GB)", settings.resolvedHeapGB) : "\($0) GB"
@@ -318,6 +325,8 @@ final class SettingsScreen: Screen {
         ctx.settings.update { s in
             switch field {
             case .connections: s.downloadConnections = max(1, min(16, index + 1))
+            case .toolchainUpdates:
+                s.toolchainUpdates = ToolchainUpdates.allCases[safe: index] ?? .monthly
             case .heap: s.javaHeapGB = Self.heapChoices[safe: index] ?? 0
             case .maxNodes: s.maxNodesPerTile = Self.nodeChoices[safe: index] ?? 1_600_000
             case .keepWork: s.keepWorkFiles = index == 1
@@ -351,6 +360,10 @@ final class SettingsScreen: Screen {
         ctx.settings.update { s in
             switch field {
             case .connections: s.downloadConnections = max(1, min(16, s.downloadConnections + delta))
+            case .toolchainUpdates:
+                let all = ToolchainUpdates.allCases
+                let index = all.firstIndex(of: s.toolchainUpdates) ?? 0
+                s.toolchainUpdates = all[max(0, min(all.count - 1, index + delta))]
             case .heap:
                 let index = Self.heapChoices.firstIndex(of: s.javaHeapGB) ?? 0
                 s.javaHeapGB = Self.heapChoices[
@@ -420,6 +433,8 @@ final class SettingsScreen: Screen {
                        : String(repeating: "•", count: min(12, stored.count)))
             case .connections:
                 value = "\(settings.downloadConnections)"
+            case .toolchainUpdates:
+                value = settings.toolchainUpdates.title
             case .heap:
                 value = settings.javaHeapGB == 0
                     ? t("auto (%d GB)", settings.resolvedHeapGB)

@@ -20,6 +20,8 @@ extension BuildPipeline {
         var out: [URL] = []
         var fetched = 0
         for (index, region) in recipe.regions.enumerated() {
+            // A cached region needs no network and would otherwise run past a cancel.
+            try stopIfCancelled()
             if recipe.regions.count > 1 {
                 log.step("region \(index + 1) of \(recipe.regions.count): \(region.name)")
             }
@@ -149,7 +151,7 @@ extension BuildPipeline {
                     + (p.eta.isFinite ? "  ·  \(Fmt.duration(p.eta)) left" : "")
                 self.detail(.download, text, fraction: Self.overallFraction(
                     region: index, of: total, at: p.fraction))
-                try? await Task.sleep(nanoseconds: 200_000_000)
+                try? await Task.sleep(nanoseconds: BuildPipeline.progressTick)
             }
         }
         defer { monitor.cancel() }

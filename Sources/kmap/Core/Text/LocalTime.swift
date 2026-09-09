@@ -12,6 +12,11 @@ import ucrt
 /// `TimeZone.current` is UTC on Windows, where Foundation has no zone database; the C
 /// runtime's offset is used there instead, as a fixed-offset zone. Displayed times need
 /// no historical rules, so no named zone is required.
+extension TimeInterval {
+    /// A day in seconds, for the intervals kmap counts in days.
+    static let day: TimeInterval = 24 * 3600
+}
+
 enum LocalTime {
 
     /// The zone to show times in: `TimeZone.current` everywhere but Windows.

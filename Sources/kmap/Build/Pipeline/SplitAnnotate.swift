@@ -133,6 +133,7 @@ extension BuildPipeline {
                 }
             }
         } catch {
+            try rethrowIfCancelled(error)
             log.warn("annotation failed (\(error)) — building without it")
             let fallback = try await contoursReady?() ?? contours
             return [extract.path] + fallback.map(\.path)

@@ -71,16 +71,13 @@ extension Toolchain {
 
 
         case "sea":
-            try await installDataPack(
-                name: t("precompiled coastline polygons (~344 MB)"),
-                from: "https://www.thkukuk.de/osm/data/sea-latest.zip",
-                to: Paths.seaData, log: log, progress: progress)
+            try await installDataPack(.sea, log: log, progress: progress,
+                                      name: t("precompiled coastline polygons (~344 MB)"))
 
         case "bounds":
             try await installDataPack(
-                name: t("administrative boundaries (~2.5 GB — this one takes a while)"),
-                from: "https://www.thkukuk.de/osm/data/bounds-latest.zip",
-                to: Paths.boundsData, log: log, progress: progress)
+                .bounds, log: log, progress: progress,
+                name: t("administrative boundaries (~2.5 GB)"))
 
         case "java":
             // The machine's own package manager first, where it can do it without a
@@ -209,18 +206,20 @@ extension Toolchain {
         log.ok(t("%@ installed", what.spokenName))
     }
 
-    private func installDataPack(name: String, from urlString: String,
-                                 to destination: URL, log: Log,
-                                 progress: InstallProgress? = nil) async throws {
-        guard let url = URL(string: urlString) else {
-            throw InstallError.failed("bad URL: \(urlString)")
-        }
+    /// Stamped with what the server said, so a build can later ask whether the mirror has
+    /// moved on without fetching a gigabyte to find out.
+    private func installDataPack(_ pack: DataPack, log: Log,
+                                 progress: InstallProgress? = nil,
+                                 name: String) async throws {
         log.step("downloading \(name)")
         Paths.ensure(Paths.tools)
         let downloader = Downloader(log: log)
         progress?.downloading(t("downloading %@", name), downloader.progress)
-        try await downloader.download(url: url, to: destination, connections: 4)
-        log.ok("\(destination.lastPathComponent) ready — \(Fmt.bytes(FileTools.size(of: destination)))")
+        // The count a build uses: parts are laid out per count, so a differing one would
+        // start the download again instead of resuming it.
+        try await pack.fetch(using: downloader,
+                             connections: settings.settings.downloadConnections)
+        log.ok("\(pack.file.lastPathComponent) ready — \(Fmt.bytes(FileTools.size(of: pack.file)))")
     }
 
     /// Downloads a mkgmap.org.uk zip, finds the jar inside it, and installs it plus its lib/.

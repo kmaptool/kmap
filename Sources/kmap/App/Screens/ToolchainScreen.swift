@@ -10,6 +10,7 @@ final class ToolchainScreen: Screen {
         }
         return [Hint(key: "↑↓", label: t("move")),
                 Hint(key: Glyph.enter, label: t("install")),
+                Hint(key: "u", label: t("update")),
                 Hint(key: "a", label: t("install all missing")),
                 Hint(key: "x", label: t("remove")),
                 Hint(key: "r", label: t("re-check")),
@@ -33,6 +34,9 @@ final class ToolchainScreen: Screen {
         } else {
             ctx.refreshTools()
         }
+        // The data packs are the only things here that go out of date while installed,
+        // so the screen asks about them whatever the build's own schedule says.
+        ctx.refreshPackNews()
     }
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
@@ -49,7 +53,13 @@ final class ToolchainScreen: Screen {
         switch key.command {
         case .up, .char("k"): awaitingRoot = nil; list.move(-1, count: tools.count)
         case .down, .char("j"): awaitingRoot = nil; list.move(1, count: tools.count)
-        case .char("r"): ctx.refreshTools(force: true); message = t("re-checking…")
+        case .char("r"):
+            ctx.refreshTools(force: true)
+            ctx.refreshPackNews(force: true)
+            message = t("re-checking…")
+        case .char("u"):
+            guard let tool = tools[safe: list.selected] else { return .none }
+            update(tool, ctx)
         case .esc: return .pop
         case .ctrl("c"): return .quit
         case .enter:
@@ -76,6 +86,43 @@ final class ToolchainScreen: Screen {
         }
         return .none
     }
+
+    /// What pressing `u` would do. Only the data packs go out of date while installed;
+    /// the rest of this list is programs, whose versions kmap does not chase.
+    enum UpdateAction: Equatable {
+        /// Fetch the published pack over the one that is here.
+        case fetch
+        /// Not installed at all, so this is an install like any other.
+        case install
+        /// Nothing to do, and what to say about it.
+        case nothing(String)
+    }
+
+    func updateAction(for tool: ToolStatus, _ ctx: AppContext) -> UpdateAction {
+        guard DataPack.named(tool.id) != nil else {
+            return .nothing(t("%@ is not something kmap updates", tool.name))
+        }
+        guard tool.isReady else { return .install }
+        guard ctx.packNews[tool.id] != nil else {
+            return .nothing(ctx.packsChecked ? t("%@ is already the published one", tool.name)
+                                             : t("still checking…"))
+        }
+        return .fetch
+    }
+
+    /// Fetches a pack again by hand: the install path already replaces and stamps it, and
+    /// this is how a pack that is merely out of date can be asked for at all.
+    private func update(_ tool: ToolStatus, _ ctx: AppContext) {
+        switch updateAction(for: tool, ctx) {
+        case .nothing(let said): message = said
+        case .install: install(tool, ctx)
+        case .fetch: start(tool, ctx, force: true)
+        }
+    }
+
+    /// What the screen is saying and what it is doing, for the tests that press the keys.
+    var messageForTesting: String? { message }
+    var installingForTesting: String? { installing }
 
     private func remove(_ tool: ToolStatus, _ ctx: AppContext) {
         guard tool.removable else {
@@ -110,8 +157,8 @@ final class ToolchainScreen: Screen {
         start(tool, ctx)
     }
 
-    private func start(_ tool: ToolStatus, _ ctx: AppContext) {
-        guard !tool.isFinished else {
+    private func start(_ tool: ToolStatus, _ ctx: AppContext, force: Bool = false) {
+        guard force || !tool.isFinished else {
             message = t("%@ is already installed", tool.name)
             return
         }
@@ -139,6 +186,7 @@ final class ToolchainScreen: Screen {
             await MainActor.run {
                 self.installing = nil
                 ctx.refreshTools(force: true)
+                ctx.refreshPackNews(force: true)
             }
         }
     }
@@ -193,8 +241,15 @@ final class ToolchainScreen: Screen {
                 : (tool.isReady ? (tool.version ?? t("ready")) : t("not installed"))
             let after = s.text(rect.x + 4, y + 1, truncate(statusText, to: rect.w - 6),
                                Style(fg: tool.isReady ? theme.dim : theme.warn, bg: bg))
-            // A ready tool shows its path below, so what it cannot do goes here instead.
-            if tool.isReady, let note = tool.note {
+            // A pack the mirror has moved on from, said where the note would go.
+            if installing != tool.id, let news = ctx.packNews[tool.id] {
+                let room = rect.maxX - after - 4
+                let said = t("newer one published %@ — press u", news.describedShortly)
+                if room > 8 {
+                    s.text(after + 1, y + 1, truncate("\(Glyph.dot) \(said)", to: room),
+                           Style(fg: theme.accent, bg: bg))
+                }
+            } else if tool.isReady, let note = tool.note {
                 let room = rect.maxX - after - 4
                 if room > 8 {
                     s.text(after + 1, y + 1, truncate("\(Glyph.dot) \(note)", to: room),

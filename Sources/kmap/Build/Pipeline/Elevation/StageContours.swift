@@ -129,6 +129,7 @@ extension BuildPipeline {
             log.append("\(prefix): \(counts.ways) contour(s), \(counts.nodes) node(s)"
                        + " from \(tile.lastPathComponent)")
         } catch {
+            try rethrowIfCancelled(error)
             log.warn("\(prefix): \(error)")
         }
     }
@@ -200,6 +201,8 @@ extension BuildPipeline {
         do {
             peaks = try BurnPeaks.peaks(in: extract)
         } catch {
+            // Cancelled rather than unreadable: nothing to say about it.
+            guard !isCancelled, !Task.isCancelled else { return }
             log.warn("summit heights left out: \(error)")
             return
         }
@@ -213,6 +216,7 @@ extension BuildPipeline {
                            + " \(report.written.count) tile(s) of \(source.lastPathComponent),"
                            + " \(report.rejected.count) rejected as bad OSM")
             } catch {
+                guard !isCancelled, !Task.isCancelled else { return }
                 log.warn("summit heights left out of \(source.lastPathComponent): \(error)")
                 continue
             }
