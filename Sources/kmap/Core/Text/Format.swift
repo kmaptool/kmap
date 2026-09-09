@@ -46,18 +46,27 @@ enum Fmt {
         return String(format: "%.2f°%@", abs(value), suffix)
     }
 
-    static func timestamp(_ date: Date) -> String {
+    /// A formatter for a fixed pattern. The locale is pinned: a machine set to a
+    /// non-Gregorian calendar — Thai, Japanese — writes another year into `yyyy`.
+    private static func fixed(_ pattern: String) -> DateFormatter {
         let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd HH:mm"
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.dateFormat = pattern
         df.timeZone = LocalTime.zone
-        return df.string(from: date)
+        return df
+    }
+
+    /// The day alone, for something dated rather than timed.
+    static func day(_ date: Date) -> String {
+        fixed("yyyy-MM-dd").string(from: date)
+    }
+
+    static func timestamp(_ date: Date) -> String {
+        fixed("yyyy-MM-dd HH:mm").string(from: date)
     }
 
     static func clock(_ date: Date = Date()) -> String {
-        let df = DateFormatter()
-        df.dateFormat = "HH:mm:ss"
-        df.timeZone = LocalTime.zone
-        return df.string(from: date)
+        fixed("HH:mm:ss").string(from: date)
     }
 }
 

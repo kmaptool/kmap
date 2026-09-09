@@ -144,11 +144,7 @@ struct LevelsProfile: Equatable {
 
 extension BuildRecipe {
     /// The day this build started, as it appears in every name it writes.
-    var dateStamp: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: startedOn)
-    }
+    var dateStamp: String { Fmt.day(startedOn) }
 
     /// How much of a part's name survives into a file name. The rest of the basename is
     /// fixed, keeping the whole around fifty characters. Cut at a hyphen.
