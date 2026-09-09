@@ -143,9 +143,8 @@ final class TypAugmentTests: XCTestCase {
                        TypAugment.repairLabel, "the mark is drawn where it moved")
     }
 
-    /// The number the link moves to has to be free twice over: the borrowed style must not
-    /// draw it, and kmap's own rules must not emit it, or every footway sharing it would
-    /// be drawn as a repair link.
+    /// The number has to be free twice over: unused by the borrowed style, and unused by
+    /// kmap's rules — or every footway on it would wear the link's dashes.
     func testTheLinkMovesPastTheNumbersOurOwnRulesEmit() throws {
         let theirs = TypFixture.source + """
 

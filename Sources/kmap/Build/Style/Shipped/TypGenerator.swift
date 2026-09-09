@@ -101,9 +101,9 @@ enum TypGenerator {
         return out.joined(separator: "\n")
     }
 
-    /// A borrowed section carries the label its own style wrote, in its own language.
-    /// The table's name is added beside it where the section names nothing kmap's own
-    /// build would read, so a device does not offer a German word for a Russian map.
+    /// A borrowed section carries its own style's label, in its own language. The table's
+    /// name goes in first where there is none of kmap's own, so a device does not offer a
+    /// German word for a Russian map.
     private static func named(_ section: String, _ name: String) -> String {
         guard !section.contains("String=0x00,") else { return section }
         var lines = section.components(separatedBy: "\n")
