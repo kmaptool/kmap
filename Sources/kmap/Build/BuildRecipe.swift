@@ -108,7 +108,9 @@ struct BuildRecipe {
     var healRoadEnds: Bool = false
 
     /// How far to look for the line a dangling end was meant to join, in metres.
-    var healRadius: Double = 5.0
+    var healRadius: Double = BuildRecipe.defaultHealRadius
+    /// Metres. Named because the help screen quotes it where no build is in hand.
+    static let defaultHealRadius: Double = 5.0
 
     /// Feature ids from `HideableFeature.all` to leave off the map. Suppressed at build
     /// time, so a rebuild without the id brings the feature back.

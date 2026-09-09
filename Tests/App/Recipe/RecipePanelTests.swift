@@ -53,14 +53,14 @@ final class RecipePanelTests: XCTestCase {
         // Walk to the road-repair row and read its explanation.
         var found = false
         for _ in 0..<40 {
-            if drawn(screen).contains("no route crosses it") { found = true; break }
+            if drawn(screen).contains("that is a dead end") { found = true; break }
             _ = screen.handle(.down, ctx: ctx)
         }
         XCTAssertTrue(found, "the road-repair row should explain itself")
 
         // And it goes away again when the cursor does.
         _ = screen.handle(.up, ctx: ctx)
-        XCTAssertFalse(drawn(screen).contains("no route crosses it"),
+        XCTAssertFalse(drawn(screen).contains("that is a dead end"),
                        "an explanation for a row nobody is on is a screen nobody reads")
     }
 

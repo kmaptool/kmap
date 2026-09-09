@@ -1,8 +1,8 @@
 import XCTest
 @testable import kmap
 
-/// Where a borrowed style already draws 0x0d, the repair link moves — and it has to go on
-/// routing, because a link the receiver will not drive through is the one thing it is for.
+/// Where a borrowed style draws 0x0d, the link moves — and has to go on routing, which is
+/// the one thing it is for.
 final class RepairMoveTests: XCTestCase {
 
     private static let rule =

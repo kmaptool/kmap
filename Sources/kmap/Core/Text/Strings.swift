@@ -123,6 +123,10 @@ enum Strings {
         "Casing": "Обводка",
         "Changing a field afterwards changes that map only, and says so on the profile row. Nothing else on the build screen is written down — a profile is rewritten from the profile screen and nowhere else, which is what makes it safe to build from.": "Если после этого поменять поле на экране сборки, изменится только эта карта — и строка профиля прямо об этом скажет. Сам профиль с экрана сборки не переписывается никогда: править его можно только на экране профилей. Поэтому на него можно положиться.",
         "Check tools and disk": "Проверка инструментов",
+        "Two roads can meet on screen without sharing a point — to the router that is a dead end. kmap joins forgotten road ends closer than %d m, and only where there is no way round at all.":
+            "Две дороги могут визуально сходиться на экране, но не иметь общей точки — для роутера это тупик. kmap соединяет забытые концы дорог ближе %d м друг от друга и только там, где объехать этот участок нельзя.",
+        "It never joins through a building, a fence or a hedge: whether a plot can be crossed is OSM's to say. Where the gap crosses a kerb or a step, kmap adds a thin dotted line, and the map shows that the gap was mended for you.":
+            "Никогда не соединяет сквозь здание, забор или изгородь: можно ли пройти через участок, определяет OSM. Если разрыв идёт через бордюр или ступеньку, kmap добавляет тонкий пунктир на карту, это означает, что разрыв исправлен автоматически.",
         "Coastlines": "Береговые линии",
         "Code page": "Кодовая страница",
         "Colour": "Цвет",

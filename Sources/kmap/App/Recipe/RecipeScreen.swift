@@ -473,17 +473,14 @@ final class RecipeScreen: Screen {
             return out
         case .healRoads:
             return [
-                (t("In OSM two roads can touch on screen yet share no point — for the "
-                 + "router that is a dead end, and no route crosses it. This joins ends "
-                 + "closer than %d m, and only where there is no way through at all: an "
-                 + "existing route is never changed, however long the detour.",
+                (t("Two roads can meet on screen without sharing a point — to the router "
+                 + "that is a dead end. kmap joins forgotten road ends closer than %d m, "
+                 + "and only where there is no way round at all.",
                  Int(recipe.healRadius)), theme.faint),
-                (t("Never through a building, a fence, a wall or a hedge — whether a plot "
-                 + "can be crossed is OSM's to say — and never a footway onto the road it "
-                 + "runs beside."), theme.dim),
-                (t("A kerb, a bank or a step between the two ends is crossed by a separate "
-                 + "short link, drawn as a thin dotted line, so the map shows what it "
-                 + "steps over."), theme.dim),
+                (t("It never joins through a building, a fence or a hedge: whether a plot "
+                 + "can be crossed is OSM's to say. Where the gap crosses a kerb or a "
+                 + "step, kmap adds a thin dotted line, and the map shows that the gap "
+                 + "was mended for you."), theme.dim),
             ]
         case .customPOIs:
             return [

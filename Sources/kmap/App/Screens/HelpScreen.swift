@@ -85,14 +85,14 @@ final class HelpScreen: Screen {
                            + " to rather than a list written down somewhere else."))
             ]),
             (t("repaired road ends"), [
-                .paragraph(t("In OSM two roads can touch on screen yet share no point;"
-                           + " for the router that gap is a wall. kmap joins ends a few"
-                           + " metres apart, and only where no route gets through at all —"
-                           + " an existing way round is never touched.")),
-                .paragraph(t("Never through a building, a fence or a hedge — whether a plot"
-                           + " can be crossed is OSM's to say. A kerb or a step between the"
-                           + " ends is crossed by a separate link drawn as a thin dotted"
-                           + " line, so the map shows what it steps over."))
+                .paragraph(t("Two roads can meet on screen without sharing a point — to"
+                           + " the router that is a dead end. kmap joins forgotten road"
+                           + " ends closer than %d m, and only where there is no way round"
+                           + " at all.", Int(BuildRecipe.defaultHealRadius))),
+                .paragraph(t("It never joins through a building, a fence or a hedge:"
+                           + " whether a plot can be crossed is OSM's to say. Where the gap"
+                           + " crosses a kerb or a step, kmap adds a thin dotted line, and"
+                           + " the map shows that the gap was mended for you."))
             ]),
             (t("seams between tiles"), [
                 .paragraph(t("A map is many tiles, and a receiver draws each one clipped to"
