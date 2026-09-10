@@ -205,7 +205,7 @@ final class JavaUnpackTests: XCTestCase {
         tar.executableURL = try tarProgram()
         tar.arguments = ["-czf", tarball.path, "-C", tree.path, layout]
         try tar.run()
-        tar.waitUntilExit()
+        waitForExit(tar)
         try XCTSkipUnless(tar.terminationStatus == 0, "tar could not pack the fixture")
         return tarball
         #endif
@@ -228,7 +228,7 @@ final class JavaUnpackTests: XCTestCase {
         process.executableURL = URL(fileURLWithPath: command.executable)
         process.arguments = command.arguments
         try process.run()
-        process.waitUntilExit()
+        waitForExit(process)
         XCTAssertEqual(process.terminationStatus, 0, "unpacking failed")
         return into
     }
@@ -258,7 +258,7 @@ final class JavaUnpackTests: XCTestCase {
         tar.executableURL = try tarProgram()
         tar.arguments = ["-czf", tarball.path, "-C", tree.path, "docs"]
         try tar.run()
-        tar.waitUntilExit()
+        waitForExit(tar)
         let root = try unpack(tarball)
         XCTAssertNil(JavaDownload.javaBinary(under: root, on: .linux))
     }

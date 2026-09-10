@@ -254,7 +254,7 @@ final class ToolchainTests: XCTestCase {
         zip.standardOutput = FileHandle.nullDevice
         zip.standardError = FileHandle.nullDevice
         try zip.run()
-        zip.waitUntilExit()
+        waitForExit(zip)
         try FileManager.default.removeItem(at: staging)
     }
 }

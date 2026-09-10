@@ -61,7 +61,7 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
                           "-F", out.path]
         task.standardError = Pipe()
         try task.run()
-        task.waitUntilExit()
+        waitForExit(task)
         XCTAssertEqual(task.terminationStatus, 0, "gpsbabel refused the fixture")
 
         var made = try Data(contentsOf: out)
