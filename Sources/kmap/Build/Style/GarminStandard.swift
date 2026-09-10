@@ -7,6 +7,11 @@ import Foundation
 /// these, which is exactly what the list then shows instead.
 enum GarminStandard {
 
+    /// The settlement points, 0x0100 to 0x1100: a receiver draws these with glyphs and
+    /// sizes of its own, and no TYP paints them. A style that leaves them unpainted
+    /// leaves them to the receiver, as every style does.
+    static let cityTypes: Set<Int> = Set((0x01...0x11).map { $0 << 8 })
+
     private static let table: [String: (ru: String, en: String)] = {
         var out: [String: (ru: String, en: String)] = [:]
         for line in StyleAssets.garminTypes.split(whereSeparator: \.isNewline) {

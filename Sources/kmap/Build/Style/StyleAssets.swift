@@ -210,6 +210,24 @@ how the map looks on the device.
 - leisure=playground [0x2c06 resolution 24 default_name 'Playground']
 + leisure=playground [0x2c0f resolution 24 default_name 'Playground']  # kmap: own code, own icon
 
+@@ polygons
+# --- fields and lawns shared one number. Every style that draws both draws them apart:
+# carto's farmland is straw and its grass is green, and a borrowed style keeps a code
+# for each. On one number the lawns took the field's picture, or the fields the lawn's,
+# whichever was seen more. 0x55 is grassland already, and grass and meadow are its kin.
+- landuse=meadow | landuse=grass [0x1c resolution 19]
++ landuse=meadow | landuse=grass [0x55 resolution 19]  # kmap: grass with the grassland, not the fields
+
+@@ points
+# --- a viewpoint, an attraction and an artwork shared 0x2c04, which is the viewpoint's
+# number in Garmin's vocabulary and in every icon set kmap ships. On one number the
+# attractions, being many, took the picture, and the lookout lost its binoculars.
+# 0x2c0d is the tourist site, where kmap's own tourism=* fallback already lands.
+- tourism=attraction [0x2c04 resolution 24]
++ tourism=attraction [0x2c0d resolution 24]  # kmap: the tourist site's number, so the viewpoint keeps 0x2c04 to itself
+- tourism=artwork [0x2c04 resolution 24]
++ tourism=artwork [0x2c0d resolution 24]  # kmap: with the attractions, off the viewpoint's number
+
 """#####
 
     /// The openstreetmap.org look as a palette table: openstreetmap-carto's colours
@@ -498,9 +516,9 @@ line 0x2d 2 #ffffff #000000  Military boundary  # filled, not theirs
 ; garmin/style/typ/opentopomap.txt in der-stefan/OpenTopoMap, (c) OpenTopoMap,
 ; CC-BY-SA -- for every point code kmap's rules also emit. Appended as-is to the
 ; generated TYP; day drawings only, as their file has them.
-; Three of their drawings sit on another number, marked where they do: kmap draws
-; a tower, a barrier and a wood's name on numbers their rules never reach.
-; Their file covers 45 of the 143 point codes kmap's rules emit. The rest carry
+; Five of their drawings sit on another number, marked where they do: kmap draws
+; a tower, a wood's name and a barrier on three numbers where their rules never
+; reach. Their file covers 48 of the 146 point codes kmap's rules emit. The rest carry
 ; openstreetmap-carto's symbols (CC0), the same set the carto style here ships and
 ; CyclOSM already borrows -- otherwise a third of what the map knows would have no
 ; mark at all. Each of those says so in its own comment.
@@ -4397,6 +4415,83 @@ NightXpm="16 16 2 1"
 "!..!!!!!!!!!!..!"
 "!!!!!!!!!!!!!!!!"
 String=0x00,Prison
+[end]
+[_point]
+Type=0x6415
+; Lighthouse - openstreetmap-carto symbol (CC0), 16 px
+DayXpm="16 16 2 1"
+"! c #666666"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"..!.!......!.!.."
+"....!......!...."
+"....!......!...."
+"..!.!......!.!.."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"..!.!......!.!.."
+"....!......!...."
+"....!......!...."
+"..!.!......!.!.."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+String=0x00,Lighthouse
+[end]
+[_point]
+; kmap: their barrier drawing, this number.
+Type=0x3201
+String=0x02,Pfosten/Barriere
+String=0x04,barrier
+DayXpm="7 7 3 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"   .   "
+"  .+.  "
+" .+++. "
+".++.++."
+" .+++. "
+"  .+.  "
+"   .   "
+[end]
+[_point]
+; kmap: their barrier drawing, this number.
+Type=0x3202
+String=0x02,Pfosten/Barriere
+String=0x04,barrier
+DayXpm="7 7 3 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"   .   "
+"  .+.  "
+" .+++. "
+".++.++."
+" .+++. "
+"  .+.  "
+"   .   "
 [end]
 
 """#####
@@ -8855,6 +8950,52 @@ NightXpm="16 16 3 1"
 String=0x00,Cliff
 [end]
 
+[_point]
+Type=0x6415
+; Lighthouse - Maki lighthouse (CC0), 16 px
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----!!----!.."
+".!---!!!!!!---!."
+".--!---!!---!--."
+"!------!!------!"
+"!------!!------!"
+"------!!!!------"
+"------!!!!------"
+"!----!!!!!!----!"
+"!----!!!!!!----!"
+".----!!!!!!----."
+".!---!!!!!!---!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----!!----!.."
+".!---!!!!!!---!."
+".--!---!!---!--."
+"!------!!------!"
+"!------!!------!"
+"------!!!!------"
+"------!!!!------"
+"!----!!!!!!----!"
+"!----!!!!!!----!"
+".----!!!!!!----."
+".!---!!!!!!---!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+String=0x00,Lighthouse
+[end]
+
 """#####
 
     /// POI icon sections for the carto style: openstreetmap-carto's symbols (CC0)
@@ -12300,6 +12441,50 @@ NightXpm="16 16 2 1"
 String=0x00,Prison
 [end]
 
+[_point]
+Type=0x6415
+; Lighthouse - openstreetmap-carto symbol (CC0), 16 px
+DayXpm="16 16 2 1"
+"! c #666666"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"..!.!......!.!.."
+"....!......!...."
+"....!......!...."
+"..!.!......!.!.."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"..!.!......!.!.."
+"....!......!...."
+"....!......!...."
+"..!.!......!.!.."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+String=0x00,Lighthouse
+[end]
+
 """#####
 
     /// Catalogue of features the user can leave off the map, generated from mkgmap's own
@@ -12608,11 +12793,11 @@ tag: tourism=aquarium
 points: tourism=aquarium [0x2c07 resolution 24]
 [tourism-artwork] Artwork
 tag: tourism=artwork
-points: tourism=artwork [0x2c04 resolution 24]
+points: tourism=artwork [0x2c0d resolution 24]  # kmap: with the attractions, off the viewpoint's number
 [tourism-attraction] Attraction
 tag: tourism=attraction
 points: tourism=attraction & historic=* [0x2c02 resolution 24]
-points: tourism=attraction [0x2c04 resolution 24]
+points: tourism=attraction [0x2c0d resolution 24]  # kmap: the tourist site's number, so the viewpoint keeps 0x2c04 to itself
 [tourism-bed_and_breakfast] Bed and breakfast
 tag: tourism=bed_and_breakfast
 points: tourism=bed_and_breakfast [0x2b02 resolution 24]
@@ -12807,7 +12992,7 @@ tag: man_made=beacon
 points: man_made=beacon [0x6411 resolution 24]
 [man_made-lighthouse] Lighthouse
 tag: man_made=lighthouse
-points: man_made=lighthouse [0x6411 resolution 24]
+points: man_made=lighthouse [0x6415 resolution 24]
 [man_made-mast] Mast
 tag: man_made=mast
 points: man_made=mast | landmark=chimney [0x6411 resolution 24]
@@ -13798,6 +13983,7 @@ P|2f12|Вай-фай|Wi-Fi
 P|6601|Вход в пещеру|Cave entrance
 P|6605|Скамейка|Bench
 P|6411|Башня / мачта|Tower / mast
+P|6415|Маяк|Lighthouse
 P|5000|Питьевая вода|Drinking water
 P|2c04|Смотровая площадка|Viewpoint
 P|6511|Родник|Spring
@@ -13834,6 +14020,8 @@ P|2a13|Фуд-корт|Food court
 P|2a12|Ресторан|Restaurant
 P|2a0c|Ресторан|Restaurant
 P|3200|Препятствие|Barrier
+P|3201|Шлагбаум|Lift gate
+P|3202|Столбик, блок|Bollard
 P|2c06|Парк|Park
 P|2f16|Экстренный телефон|Emergency phone
 P|2f18|Телефон|Telephone

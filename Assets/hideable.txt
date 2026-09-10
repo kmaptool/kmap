@@ -300,11 +300,11 @@ tag: tourism=aquarium
 points: tourism=aquarium [0x2c07 resolution 24]
 [tourism-artwork] Artwork
 tag: tourism=artwork
-points: tourism=artwork [0x2c04 resolution 24]
+points: tourism=artwork [0x2c0d resolution 24]  # kmap: with the attractions, off the viewpoint's number
 [tourism-attraction] Attraction
 tag: tourism=attraction
 points: tourism=attraction & historic=* [0x2c02 resolution 24]
-points: tourism=attraction [0x2c04 resolution 24]
+points: tourism=attraction [0x2c0d resolution 24]  # kmap: the tourist site's number, so the viewpoint keeps 0x2c04 to itself
 [tourism-bed_and_breakfast] Bed and breakfast
 tag: tourism=bed_and_breakfast
 points: tourism=bed_and_breakfast [0x2b02 resolution 24]
@@ -499,7 +499,7 @@ tag: man_made=beacon
 points: man_made=beacon [0x6411 resolution 24]
 [man_made-lighthouse] Lighthouse
 tag: man_made=lighthouse
-points: man_made=lighthouse [0x6411 resolution 24]
+points: man_made=lighthouse [0x6415 resolution 24]
 [man_made-mast] Mast
 tag: man_made=mast
 points: man_made=mast | landmark=chimney [0x6411 resolution 24]

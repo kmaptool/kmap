@@ -299,6 +299,12 @@ final class StyleCatalogTests: XCTestCase {
         // These rules come from redirects.txt and are applied after the repair pass, so the
         // corrected code has to be written at their source.
         XCTAssertTrue(StyleAssets.iconRedirects.contains("+ amenity=prison [0x661a "))
+        // Grass and meadow leave the fields' number for the grassland's.
+        XCTAssertTrue(StyleAssets.iconRedirects.contains(
+            "+ landuse=meadow | landuse=grass [0x55 "))
+        // Attractions leave the viewpoint's number for the tourist site's.
+        XCTAssertTrue(StyleAssets.iconRedirects.contains("+ tourism=attraction [0x2c0d "))
+        XCTAssertTrue(StyleAssets.iconRedirects.contains("+ tourism=artwork [0x2c0d "))
         XCTAssertTrue(StyleAssets.iconRedirects.contains("+ amenity=conference_centre [0x661a "))
         XCTAssertTrue(StyleAssets.iconRedirects.contains("+ amenity=convention_center [0x661a "))
     }

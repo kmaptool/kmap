@@ -20,9 +20,10 @@ on. Read it before selling anything built with this style.
   `# filled, not theirs` in the table. The table is a measurement, and the flat
   sections kmap compiles from it are kmap's own text.
 
-- `points.txt` — their `[_point]` icon sections, VERBATIM, for 45 of the 143
-  point codes kmap's rules emit. Three of them sit on a number of kmap's, marked
-  where they do: a tower, a barrier and the name of a wood. Their file draws
+- `points.txt` — their `[_point]` icon sections, VERBATIM, for 48 of the 146
+  point codes kmap's rules emit. Five of them sit on a number of kmap's, marked
+  where they do: a tower, the name of a wood, and their one barrier drawing on
+  the three numbers kmap tells barriers apart with. Their file draws
   nothing for the rest, so those carry openstreetmap-carto's symbols (CC0) — the
   set the carto style here already ships and the one CyclOSM borrows too. Each
   such section says so in its own comment. Without them a third of what the map

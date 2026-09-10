@@ -21,6 +21,19 @@ enum StylePort {
         /// number of ours drawn at every zoom wears the far rung's width and the near
         /// rung's paint, and no road is wider than one above it in the hierarchy.
         let width: Int?
+        /// What settles a number two meanings share: the ground covered for a fill,
+        /// the sightings for anything else.
+        var weight: Double = 0
+        /// The other looks that wanted this number and lost: one number of ours for
+        /// several things of theirs, which is where a look goes wrong.
+        var rivals: [Rival] = []
+    }
+
+    /// A look that lost a number of ours to another meaning.
+    struct Rival {
+        let theirs: Int
+        let meaning: String
+        let witnesses: Int
     }
 
     /// Their code for every one of our codes the evidence can speak for. Where both
@@ -31,19 +44,20 @@ enum StylePort {
     ///   - codesByTag: what their map was seen drawing each meaning with.
     ///   - rules: kmap's own rule set, which says what our numbers mean.
     ///   - theirZooms: the zooms each of their codes was seen drawn at.
+    ///   - theirAreas: the ground each meaning covers under each of their codes. A
+    ///     number of ours shared by two meanings wears the picture of the one covering
+    ///     more: fields are few and wide, lawns many and small.
     static func map(codesByTag: [String: [String: Int]],
                     rules: RuleSetIndex,
                     theirZooms: [String: [Int: Int]] = [:],
-                    theirTyp: TypSource? = nil) -> [Ported] {
+                    theirTyp: TypSource? = nil,
+                    theirAreas: [String: [String: Double]] = [:]) -> [Ported] {
         // Our side: meaning -> the numbers kmap draws it with, and the closest zoom each
         // of them is drawn at, so our own ladder can be read the same way as theirs.
-        var ourCodes: [MapElementKind: [String: Set<Int>]] = [:]
+        let ourCodes = ourNumbers(in: rules)
         var ourFinest: [MapElementKind: [Int: Int]] = [:]
         for kind in MapElementKind.allCases {
             for meaning in rules.byKind[kind]?.values ?? [:].values {
-                for tag in meaning.tags {
-                    ourCodes[kind, default: [:]][tag, default: []].insert(meaning.code)
-                }
                 // A rule with no band draws at every zoom and is the closest picture
                 // of the meaning; a rung is pinned to a band and belongs further out.
                 // Ranked so the bandless comes first, then by how close its band is.
@@ -54,31 +68,40 @@ enum StylePort {
                 // be emitted by several meanings, and a dictionary hands them over in a
                 // different order in every process.
                 ourFinest[kind, default: [:]][meaning.code] =
-                    max(held, (reach?.banded == false) ? 100 : (reach?.finest ?? 24))
+                    max(held, (reach?.banded == false) ? everyZoom
+                              : (reach?.finest ?? GarminGrid.fullResolution))
             }
         }
 
         // Their side: meaning -> every number that drew it, with how much and at which
         // zooms, so a ladder can be told from a single picture. A rule of ours written
-        // for a whole key — `building=*` — is answered by everything their map drew for
-        // that key, since the evidence speaks in concrete values.
+        // for a whole key, `building=*`, is answered by what their map drew for the
+        // values of that key no rule of ours names: a hotel never reaches the
+        // `tourism=*` fallback, so their hotel is no answer for it.
 
-        var theirs: [MapElementKind: [String: [(code: Int, count: Int, finest: Int)]]] = [:]
+        var theirs: [MapElementKind: [String: [(code: Int, count: Int, finest: Int,
+                                               area: Double)]]] = [:]
         for (tag, drawn) in codesByTag {
             let family = tag.split(separator: "=").first.map { $0 + "=*" }
             for (key, count) in drawn where count >= fewestToPort {
                 guard let (kind, code) = read(key) else { continue }
                 // A number their style leaves blank carries no look: it must not take a
-                // rung of the ladder and leave the picture below it homeless.
-                if let theirTyp, !draws(theirTyp.section(kind, code)) { continue }
-                let finest = theirZooms[key]?.keys.max() ?? 24
-                theirs[kind, default: [:]][tag, default: []].append((code, count, finest))
-                if let family {
+                // rung of the ladder and leave the picture below it homeless. A point
+                // is no rung, and a blank icon is a look of its own: the name alone.
+                if let theirTyp {
+                    let section = theirTyp.section(kind, code)
+                    if section == nil || (kind != .point && !draws(section)) { continue }
+                }
+                let finest = theirZooms[key]?.keys.max() ?? GarminGrid.fullResolution
+                let area = theirAreas[tag]?[key] ?? 0
+                theirs[kind, default: [:]][tag, default: []].append((code, count, finest, area))
+                if let family, ourCodes[kind]?[tag] == nil {
                     var held = theirs[kind, default: [:]][String(family), default: []]
                     if let at = held.firstIndex(where: { $0.code == code }) {
                         held[at].count += count
+                        held[at].area += area
                     } else {
-                        held.append((code, count, finest))
+                        held.append((code, count, finest, area))
                     }
                     theirs[kind, default: [:]][String(family)] = held
                 }
@@ -122,7 +145,8 @@ enum StylePort {
                 // Ours from the closest zoom outward; between two that draw at every
                 // zoom the lower number is the meaning's own, the higher a companion.
                 let mine = (ourCodes[kind]?[tag] ?? []).sorted {
-                    let a = ourFinest[kind]?[$0] ?? 24, b = ourFinest[kind]?[$1] ?? 24
+                    let a = ourFinest[kind]?[$0] ?? GarminGrid.fullResolution
+                    let b = ourFinest[kind]?[$1] ?? GarminGrid.fullResolution
                     return a == b ? $0 < $1 : a > b
                 }
                 guard !mine.isEmpty else { continue }
@@ -133,22 +157,40 @@ enum StylePort {
                     // A line pinned to no band is drawn at every zoom the rule reaches:
                     // the near rung's picture, the far rung's width.
                     let far = ladder.last
-                    let spread = kind == .line && ourFinest[kind]?[ours] == 100
+                    let spread = kind == .line && ourFinest[kind]?[ours] == everyZoom
                     let width = spread
                         ? [theirTyp?.section(kind, picture.code)?.lineWidth,
                            far.flatMap { theirTyp?.section(kind, $0.code)?.lineWidth }]
                             .compactMap { $0 }.min()
                         : nil
+                    // Two meanings on one number of ours: where their code for one of
+                    // them IS our number, the two vocabularies agree and that settles
+                    // it; then the fill covering more ground, and elsewhere the one
+                    // seen more often.
                     let held = claimed[kind, default: [:]][ours]
-                    let mineNow = (stray(picture.code, kind, picture.count) ? 0 : 1,
-                                   picture.count)
+                    let weight = kind == .polygon && picture.area > 0
+                        ? picture.area : Double(picture.count)
+                    let mineNow = (picture.code == ours ? 1 : 0,
+                                   stray(picture.code, kind, picture.count) ? 0 : 1, weight)
                     let theirsNow = held.map {
-                        (stray($0.theirs, kind, $0.witnesses) ? 0 : 1, $0.witnesses)
+                        ($0.theirs == ours ? 1 : 0,
+                         stray($0.theirs, kind, $0.witnesses) ? 0 : 1, $0.weight)
                     }
+                    // The same look under another tag is no rival: one rule, two names.
+                    if let held, held.theirs == picture.code { continue }
                     if theirsNow == nil || mineNow > theirsNow! {
+                        var rivals = held?.rivals ?? []
+                        if let held {
+                            rivals.append(Rival(theirs: held.theirs, meaning: held.meaning,
+                                                witnesses: held.witnesses))
+                        }
                         claimed[kind, default: [:]][ours] = Ported(
                             ours: ours, theirs: picture.code, kind: kind,
-                            meaning: tag, witnesses: picture.count, width: width)
+                            meaning: tag, witnesses: picture.count, width: width,
+                            weight: weight, rivals: rivals)
+                    } else {
+                        claimed[kind]?[ours]?.rivals.append(
+                            Rival(theirs: picture.code, meaning: tag, witnesses: picture.count))
                     }
                 }
             }
@@ -157,6 +199,42 @@ enum StylePort {
             ($0.kind.rawValue, $0.ours) < ($1.kind.rawValue, $1.ours)
         }
         return ordered(ported, ranks: LineDrawOrder.ranks(in: rules), theirs: theirTyp)
+    }
+
+    /// Meaning -> the numbers kmap draws it with, per kind.
+    private static func ourNumbers(in rules: RuleSetIndex) -> [MapElementKind: [String: Set<Int>]] {
+        var out: [MapElementKind: [String: Set<Int>]] = [:]
+        for kind in MapElementKind.allCases {
+            for meaning in rules.byKind[kind]?.values ?? [:].values {
+                for tag in meaning.tags {
+                    out[kind, default: [:]][tag, default: []].insert(meaning.code)
+                }
+            }
+        }
+        return out
+    }
+
+    /// Our numbers for the meanings their map leaves to the receiver: drawn with a
+    /// number their TYP has no section for at all, so the receiver's own glyph is what
+    /// their map shows. A bay's name, a town. Declared in the ported TYP, so the build
+    /// does not silence the rule for want of a picture.
+    static func leftToTheDevice(codesByTag: [String: [String: Int]], rules: RuleSetIndex,
+                                theirTyp: TypSource, ported: [Ported])
+        -> [MapElementKind: Set<Int>] {
+        let ourCodes = ourNumbers(in: rules)
+        var painted: [MapElementKind: Set<Int>] = [:]
+        for port in ported { painted[port.kind, default: []].insert(port.ours) }
+        var out: [MapElementKind: Set<Int>] = [:]
+        for (tag, drawn) in codesByTag {
+            for (key, count) in drawn where count >= fewestToPort {
+                guard let (kind, code) = read(key), theirTyp.section(kind, code) == nil,
+                      let ours = ourCodes[kind]?[tag] else { continue }
+                for number in ours where painted[kind]?.contains(number) != true {
+                    out[kind, default: []].insert(number)
+                }
+            }
+        }
+        return out
     }
 
     /// The road hierarchy kept in the widths: a motorway drawn at every zoom takes a
@@ -246,9 +324,57 @@ enum StylePort {
     /// the map is printed on — their background.
     static let generatedTypes: [(kind: MapElementKind, ours: Int, theirs: Int)] = [
         (.line, 0x20, 0x20), (.line, 0x21, 0x21), (.line, 0x22, 0x22),
-        (.polygon, 0x32, 0x32), (.polygon, 0x4a, 0x4a), (.polygon, 0x4b, 0x4b),
-        (.polygon, 0x27, 0x4b),
+        (.polygon, seaCode, seaCode), (.polygon, 0x4a, 0x4a),
+        (.polygon, backgroundCode, backgroundCode),
+        (.polygon, 0x27, backgroundCode),
     ]
+
+    /// The sea and the background, the two grounds with a level of their own.
+    static let seaCode = 0x32
+    static let backgroundCode = 0x4b
+
+    /// A rule with no band, in the ladder's own units: further in than any zoom.
+    private static let everyZoom = 100
+
+    /// The ground where their style paints none: kmap's own paper and sea, so the land
+    /// is drawn at all. A polygon missing from the draw order is not drawn, and on a
+    /// fenix an undrawn land goes black. The night pair is the one topoactive settled
+    /// on a fenix: a grey that is unmistakably not water.
+    static let paper = "#F4F4F0"
+    static let paperAtNight = "#40403D"
+    static let seaBlue = "#50A8F8"
+    static let seaBlueAtNight = "#004C90"
+
+    /// Whether their style is drawn for night too: most of its painted lines and
+    /// polygons carry night colours. The ground supplied for it then carries them as
+    /// well, and a day-only style gets a day-only ground, or the two would clash.
+    static func paintsNight(_ typ: TypSource) -> Bool {
+        let painted = typ.sections.filter { $0.kind != .point && $0.xpm != nil }
+        guard !painted.isEmpty else { return false }
+        return painted.filter { !$0.colourSlots.night.isEmpty }.count * 2 > painted.count
+    }
+
+    /// Below this brightness a fill is dark: mid-grey.
+    static let darkBelow = 0.5
+
+    /// Whether their day is dark: a TYP has no night-only mode, so a style made for
+    /// the dark carries its dark colours in the day slot, and a paper ground under it
+    /// would show as light holes. Most of the polygon fills darker than mid-grey.
+    static func drawsDark(_ typ: TypSource) -> Bool {
+        let fills = typ.sections.filter { $0.kind == .polygon }
+            .compactMap { $0.xpm?.dominantColour ?? $0.xpm?.colours.first ?? nil }
+        guard !fills.isEmpty else { return false }
+        return fills.filter { brightness(of: $0) < darkBelow }.count * 2 > fills.count
+    }
+
+    /// Perceived brightness of `#RRGGBB`, 0 black to 1 white; 1 for anything unreadable.
+    static func brightness(of colour: String) -> Double {
+        let hex = colour.hasPrefix("#") ? String(colour.dropFirst()) : colour
+        guard hex.count == 6, let value = Int(hex, radix: 16) else { return 1 }
+        let r = Double((value >> 16) & 0xff), g = Double((value >> 8) & 0xff)
+        let b = Double(value & 0xff)
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    }
 
     /// The line a ported palette carries to say it was written for kmap's numbers, and
     /// that what it does not paint is meant to stay undrawn.
@@ -275,9 +401,11 @@ enum StylePort {
     /// bare `resolution 22` the rule itself, drawn at every zoom from there in.
     private static func rung(of tail: String) -> (banded: Bool, finest: Int) {
         guard let found = tail.range(of: "resolution [0-9]+(-[0-9]+)?",
-                                     options: .regularExpression) else { return (false, 24) }
+                                     options: .regularExpression)
+        else { return (false, GarminGrid.fullResolution) }
         let numbers = tail[found].split(separator: " ")[1].split(separator: "-")
-        guard numbers.count == 2, let high = Int(numbers[1]) else { return (false, 24) }
+        guard numbers.count == 2, let high = Int(numbers[1])
+        else { return (false, GarminGrid.fullResolution) }
         return (true, high)
     }
 
@@ -305,7 +433,8 @@ enum StylePort {
     /// The TYP source that carries their drawings on our numbers: each section is
     /// their block verbatim, with the type line rewritten to ours.
     static func typ(from theirs: TypSource, ported: [Ported],
-                    familyID: Int?, productID: Int?, codePage: Int?) -> String {
+                    familyID: Int?, productID: Int?, codePage: Int?,
+                    unstyled: [MapElementKind: Set<Int>] = [:]) -> String {
         var out: [String] = []
         // First, or the compiler reads the file in the platform's charset and gives up
         // on the first Cyrillic label.
@@ -320,6 +449,15 @@ enum StylePort {
         if let codePage { out.append("CodePage=\(codePage)") }
         out.append("[end]")
         out.append("")
+        // What their map leaves to the receiver stays a rule of ours, unpainted on
+        // purpose: the receiver draws it, as it does on theirs.
+        for kind in MapElementKind.allCases {
+            guard let codes = unstyled[kind], !codes.isEmpty else { continue }
+            let listed = codes.sorted().map { String(format: "0x%02x", $0) }.joined(separator: " ")
+            out.append("; kmap:unstyled \(kind.rawValue)s \(listed) - their map leaves these"
+                       + " to the receiver, which draws them itself")
+        }
+        if !unstyled.isEmpty { out.append("") }
 
         var drawOrder: [(code: Int, level: Int)] = []
         let theirOrder = Dictionary(theirs.drawOrder.map { ($0.code, $0.level) },
@@ -328,18 +466,36 @@ enum StylePort {
         // The ground the map stands on. No OSM way is its source, so no evidence pairs
         // it; both sides get it from mkgmap, and the number is the shared name.
         for (kind, ours, theirsCode) in Self.generatedTypes {
-            guard let section = theirs.section(kind, theirsCode) else { continue }
-            out.append("; the build's own \(kind.rawValue) 0x\(String(ours, radix: 16))"
-                       + " — drawn as their 0x\(String(theirsCode, radix: 16))")
-            out.append(contentsOf: renumbered(theirs.lines[section.lines], to: ours,
-                                              kind: kind))
+            if let section = theirs.section(kind, theirsCode) {
+                out.append("; the build's own \(kind.rawValue) 0x\(String(ours, radix: 16))"
+                           + " — drawn as their 0x\(String(theirsCode, radix: 16))")
+                out.append(contentsOf: renumbered(theirs.lines[section.lines], to: ours,
+                                                  kind: kind))
+            } else if kind == .polygon {
+                // Their style leaves the ground to the device; ours must not.
+                let sea = ours == Self.seaCode
+                let night = Self.paintsNight(theirs)
+                let dark = Self.drawsDark(theirs)
+                let byDay = sea ? (dark ? Self.seaBlueAtNight : Self.seaBlue)
+                    : (dark ? Self.paperAtNight : Self.paper)
+                out.append("; the build's own polygon 0x\(String(ours, radix: 16))"
+                           + " - their style paints none, so kmap's own ground")
+                out.append("[_polygon]")
+                out.append(String(format: "Type=0x%02x", ours))
+                out.append(night ? "Xpm=\"0 0 2 0\"" : "Xpm=\"0 0 1 0\"")
+                out.append("\"1 c \(byDay)\"")
+                if night { out.append("\"2 c \(sea ? Self.seaBlueAtNight : Self.paperAtNight)\"") }
+                out.append("[end]")
+            } else {
+                continue
+            }
             out.append("")
             // The order kmap's own palettes keep. Sharing a level is no order at all:
             // mkgmap writes shapes by descending area, and on a fenix the land loses to
             // the background and the map goes black.
             if kind == .polygon {
                 // 0 the background alone, 1 the land and the overview's land, 2 the sea.
-                let level = ours == 0x4b ? 0 : (ours == 0x32 ? 2 : 1)
+                let level = ours == Self.backgroundCode ? 0 : (ours == Self.seaCode ? 2 : 1)
                 drawOrder.append((ours, level))
             }
         }

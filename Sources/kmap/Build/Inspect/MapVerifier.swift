@@ -51,7 +51,37 @@ enum MapVerifier {
         report.findings.append(demFinding(tiles, extensions: extensions))
         report.findings.append(indexFinding(directory))
         report.findings.append(typFinding(of: url, tiles: tiles))
+        if let settlements = settlementFinding(of: url) { report.findings.append(settlements) }
         return report
+    }
+
+    /// Whether any settlement is drawn at all. A style pass once silenced every place
+    /// rule, and the map came out without a single town or village on it. Nil where
+    /// the tiles cannot be read as elements: their structure is the tile check's.
+    private static func settlementFinding(of url: URL) -> Finding? {
+        struct Found: Error {}
+        let world = [ImgElements.Ground(BBox(minLon: -180, minLat: -90, maxLon: 180, maxLat: 90))]
+        var found = false
+        for coarser in [false, true] where !found {
+            do {
+                // The first one is enough: the walk is stopped through its own tick.
+                try ImgElements.read(img: url, grounds: world, extendedAreasAndPoints: false,
+                                     coarserLevels: coarser,
+                                     tick: { if found { throw Found() } }) { kind, type, _ in
+                    if kind == .point, GarminStandard.cityTypes.contains(type) { found = true }
+                }
+            } catch is Found {
+                break
+            } catch {
+                return nil
+            }
+        }
+        return Finding(
+            level: found ? .ok : .warn,
+            label: "settlements",
+            detail: found ? "towns and villages are drawn"
+                : "none at any zoom — no city, town or village label; the style silenced"
+                  + " the place rules")
     }
 
     /// A spot inside the map's own box that belongs to no tile draws as blank paper:

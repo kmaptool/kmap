@@ -14,10 +14,11 @@ extension StyleCatalog {
 
     /// Numbers kmap manufactures rather than draws from OSM: contours, sea, background
     /// and the land beneath. They are the ground the map stands on and answer to the
-    /// build, not to a palette.
+    /// build, not to a palette. And the settlements, which the receiver draws itself.
     private static let paletteExempt: [MapElementKind: Set<Int>] = [
         .line: [0x20, 0x21, 0x22],
         .polygon: [0x27, 0x32, 0x4a, 0x4b],
+        .point: GarminStandard.cityTypes,
     ]
 
     /// Silences every rule the palette cannot paint, and says how many. Rules, not
@@ -55,9 +56,12 @@ extension StyleCatalog {
                 }
                 let rule = pending + [line]
                 pending.removeAll()
+                // The repair mark is painted by the build, whatever the palette: its
+                // section is added to the TYP after this pass.
                 if painted.contains(code) || paletteExempt[kind]?.contains(code) == true
                     || chosen[kind]?.contains(code) == true
-                    || rule.contains(where: { $0.contains("road_class=") }) {
+                    || rule.contains(where: { $0.contains("road_class=") })
+                    || rule.contains(where: { $0.contains(TypAugment.repairTag) }) {
                     out.append(contentsOf: rule)
                     continue
                 }

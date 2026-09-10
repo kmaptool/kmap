@@ -217,6 +217,7 @@ P|2f12|Вай-фай|Wi-Fi
 P|6601|Вход в пещеру|Cave entrance
 P|6605|Скамейка|Bench
 P|6411|Башня / мачта|Tower / mast
+P|6415|Маяк|Lighthouse
 P|5000|Питьевая вода|Drinking water
 P|2c04|Смотровая площадка|Viewpoint
 P|6511|Родник|Spring
@@ -253,6 +254,8 @@ P|2a13|Фуд-корт|Food court
 P|2a12|Ресторан|Restaurant
 P|2a0c|Ресторан|Restaurant
 P|3200|Препятствие|Barrier
+P|3201|Шлагбаум|Lift gate
+P|3202|Столбик, блок|Bollard
 P|2c06|Парк|Park
 P|2f16|Экстренный телефон|Emergency phone
 P|2f18|Телефон|Telephone

@@ -3,9 +3,9 @@
 ; garmin/style/typ/opentopomap.txt in der-stefan/OpenTopoMap, (c) OpenTopoMap,
 ; CC-BY-SA -- for every point code kmap's rules also emit. Appended as-is to the
 ; generated TYP; day drawings only, as their file has them.
-; Three of their drawings sit on another number, marked where they do: kmap draws
-; a tower, a barrier and a wood's name on numbers their rules never reach.
-; Their file covers 45 of the 143 point codes kmap's rules emit. The rest carry
+; Five of their drawings sit on another number, marked where they do: kmap draws
+; a tower, a wood's name and a barrier on three numbers where their rules never
+; reach. Their file covers 48 of the 146 point codes kmap's rules emit. The rest carry
 ; openstreetmap-carto's symbols (CC0), the same set the carto style here ships and
 ; CyclOSM already borrows -- otherwise a third of what the map knows would have no
 ; mark at all. Each of those says so in its own comment.
@@ -3902,4 +3902,81 @@ NightXpm="16 16 2 1"
 "!..!!!!!!!!!!..!"
 "!!!!!!!!!!!!!!!!"
 String=0x00,Prison
+[end]
+[_point]
+Type=0x6415
+; Lighthouse - openstreetmap-carto symbol (CC0), 16 px
+DayXpm="16 16 2 1"
+"! c #666666"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"..!.!......!.!.."
+"....!......!...."
+"....!......!...."
+"..!.!......!.!.."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"..!.!......!.!.."
+"....!......!...."
+"....!......!...."
+"..!.!......!.!.."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+String=0x00,Lighthouse
+[end]
+[_point]
+; kmap: their barrier drawing, this number.
+Type=0x3201
+String=0x02,Pfosten/Barriere
+String=0x04,barrier
+DayXpm="7 7 3 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"   .   "
+"  .+.  "
+" .+++. "
+".++.++."
+" .+++. "
+"  .+.  "
+"   .   "
+[end]
+[_point]
+; kmap: their barrier drawing, this number.
+Type=0x3202
+String=0x02,Pfosten/Barriere
+String=0x04,barrier
+DayXpm="7 7 3 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"   .   "
+"  .+.  "
+" .+++. "
+".++.++."
+" .+++. "
+"  .+.  "
+"   .   "
 [end]

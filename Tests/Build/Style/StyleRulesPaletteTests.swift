@@ -64,6 +64,53 @@ final class StyleRulesPaletteTests: XCTestCase {
         XCTAssertTrue(out.contains("landuse=forest [0x50 resolution 20]"))
     }
 
+    /// The mark on a repair link is drawn by every build: its section is added to the
+    /// TYP after this pass, so the rule must survive a palette that paints no 0x660b.
+    func testTheRepairMarkIsNeverSilenced() throws {
+        let dir = try directory(points: """
+            kmap:repair=* [0x660b resolution 22]
+            amenity=bench [0x6605 resolution 24]
+            """)
+        // A palette that paints one point, so the points file is looked at.
+        let palette = TypSource.parse("""
+            ; -*- coding: UTF-8 -*-
+            [_point]
+            Type=0x2c04
+            DayXpm="1 1 1 1"
+            "! c #000000"
+            "!"
+            [end]
+            """)
+        _ = try StyleCatalog.keepOnlyWhatThePaletteDraws(in: dir, palette: palette,
+                                                         log: Log())
+        let out = try read(dir, "points")
+        XCTAssertTrue(out.contains("kmap:repair=* [0x660b resolution 22]"))
+        XCTAssertTrue(out.contains("amenity=bench {delete amenity}"), "the bench still goes")
+    }
+
+    /// A town is drawn by the receiver itself, whatever the palette paints: silencing
+    /// the place rules took every settlement label off a map.
+    func testASettlementIsNeverSilenced() throws {
+        let dir = try directory(points: """
+            place=village & name=* [0x0c00 resolution 24]
+            amenity=bench [0x6605 resolution 24]
+            """)
+        let palette = TypSource.parse("""
+            ; -*- coding: UTF-8 -*-
+            [_point]
+            Type=0x2c04
+            DayXpm="1 1 1 1"
+            "! c #000000"
+            "!"
+            [end]
+            """)
+        _ = try StyleCatalog.keepOnlyWhatThePaletteDraws(in: dir, palette: palette,
+                                                         log: Log())
+        let out = try read(dir, "points")
+        XCTAssertTrue(out.contains("place=village & name=* [0x0c00 resolution 24]"))
+        XCTAssertTrue(out.contains("amenity=bench {delete amenity}"))
+    }
+
     /// Silencing a road would take its routing, so `road_class` is left alone.
     func testARoutableRuleIsNeverSilenced() throws {
         let dir = try directory(lines: """

@@ -17,6 +17,15 @@ final class RecoveryTests: XCTestCase {
                           GarminGrid.cell(lat: 44 + step, lon: 34))
     }
 
+    func testTheAreaOfARingIsWhatItEncloses() {
+        // A 10 by 20 unit rectangle, closed, either way round.
+        let ring = [(0, 0), (10, 0), (10, 20), (0, 20), (0, 0)]
+            .map { GarminGrid.pack(latUnit: Int32($0.0), lonUnit: Int32($0.1)) }
+        XCTAssertEqual(GarminGrid.area(of: ring), 200)
+        XCTAssertEqual(GarminGrid.area(of: Array(ring.reversed())), 200)
+        XCTAssertEqual(GarminGrid.area(of: Array(ring.prefix(2))), 0, "an edge covers nothing")
+    }
+
     func testGramsNeedThreeVertices() {
         XCTAssertTrue(GarminGrid.grams(of: [1, 2]).isEmpty)
         XCTAssertEqual(GarminGrid.grams(of: [1, 2, 3, 4]).count, 2)

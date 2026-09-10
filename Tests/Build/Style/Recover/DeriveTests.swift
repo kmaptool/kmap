@@ -481,6 +481,87 @@ final class DeriveTests: XCTestCase {
         XCTAssertTrue(report.sheet.contains("+ highway=residential [0x0f"))
     }
 
+    /// A zoomed-out stroke is measured against nobody, so a handful of sightings at a
+    /// coarse zoom would otherwise become the code's ladder and be painted over every
+    /// rule closing on it.
+    func testAHandfulAtACoarseZoomIsNotAStroke() {
+        var seed: Int64 = 0
+        var trunk = forCode(.line, 0x02, seed: &seed, [(["highway": "trunk"], 50)])
+        for id in trunk.sources.keys { trunk.sourceZoom[id] = 24 }
+        trunk.resolutions = [24: 50]
+        var brushed = forCode(.line, 0x0f, seed: &seed, [(["highway": "trunk"], 4)])
+        for id in brushed.sources.keys { brushed.sourceZoom[id] = 20 }
+        brushed.resolutions = [20: 4]
+        let report = derive(["L2": trunk, "Lf": brushed])
+        XCTAssertFalse(report.sheet.contains("0x0f"), report.sheet)
+    }
+
+    /// A substation building and a substation yard share a tag. Their map draws the
+    /// buildings as buildings and the yards their own way: the yard code is no stray
+    /// of the building code, and its rule leaves the buildings to the building rule.
+    func testAYardIsNotAStrayOfTheBuildingsStandingInIt() {
+        var seed: Int64 = 0
+        let report = derive([
+            "A13": forCode(.area, 0x13, seed: &seed,
+                           [(["building": "yes"], 300),
+                            (["building": "yes", "power": "substation"], 60)]),
+            "A25": forCode(.area, 0x25, seed: &seed, [(["power": "substation"], 10)]),
+        ])
+        XCTAssertEqual(report.outcomes["A25"]?.status, .resolved)
+        XCTAssertTrue(report.sheet.contains("+ power=substation & building!=* [0x25"),
+                      report.sheet)
+    }
+
+    /// A rule of ours that buildings match too is not re-aimed by open ground: the
+    /// churchyard gets its own narrowed rule, and the church stays a building.
+    func testOpenGroundDoesNotTakeTheBuildingsWithIt() {
+        var seed: Int64 = 0
+        let report = derive([
+            "A13": forCode(.area, 0x13, seed: &seed,
+                           [(["building": "yes"], 300),
+                            (["building": "yes", "landuse": "military"], 30)]),
+            "A36": forCode(.area, 0x36, seed: &seed, [(["landuse": "military"], 15)]),
+        ])
+        XCTAssertTrue(report.sheet.contains("+ landuse=military & building!=* [0x36"),
+                      report.sheet)
+        XCTAssertTrue(report.sheet.contains("+ landuse=military & building!=* [0x04"),
+                      "our rule keeps the yards, the buildings fall through: " + report.sheet)
+        XCTAssertFalse(report.sheet.contains("[0x13 resolution 20]"), report.sheet)
+    }
+
+    /// Three mistagged houses do not make the woods a built thing.
+    func testAHandfulOfMistaggedBuildingsDoesNotSplitTheWoods() {
+        var seed: Int64 = 0
+        let report = derive([
+            "A13": forCode(.area, 0x13, seed: &seed,
+                           [(["building": "yes"], 300),
+                            (["building": "yes", "landuse": "forest"], 3)]),
+            "A52": forCode(.area, 0x52, seed: &seed, [(["landuse": "forest"], 200)]),
+        ])
+        XCTAssertTrue(report.sheet.contains("+ landuse=forest [0x52"), report.sheet)
+        XCTAssertFalse(report.sheet.contains("building!=*"), report.sheet)
+    }
+
+    func testAYardNobodyBuildsOnKeepsAPlainRule() {
+        var seed: Int64 = 0
+        let report = derive([
+            "A25": forCode(.area, 0x25, seed: &seed, [(["power": "substation"], 10)]),
+        ])
+        XCTAssertTrue(report.sheet.contains("+ power=substation [0x25"), report.sheet)
+    }
+
+    /// One sighting at a coarse zoom does not stretch the band down to it.
+    func testAZoomSeenOnceIsNotABand() {
+        var seed: Int64 = 0
+        var yard = forCode(.area, 0x25, seed: &seed, [(["power": "substation"], 10)])
+        for (n, id) in yard.sources.keys.sorted().enumerated() {
+            yard.sourceZoom[id] = n == 0 ? 18 : 24
+        }
+        yard.resolutions = [18: 1, 24: 9]
+        let report = derive(["A25": yard])
+        XCTAssertTrue(report.sheet.contains("[0x25 resolution 24-24]"), report.sheet)
+    }
+
     func testACodeTheRulesAlreadyEmitIsNotForeign() {
         var seed: Int64 = 0
         let report = derive(["L2": forCode(.line, 0x02, seed: &seed,

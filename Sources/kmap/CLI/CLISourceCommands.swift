@@ -356,7 +356,14 @@ extension CLI {
                 let total = codes.values.reduce(0, +)
                 // A code carrying under a tenth of the tag is a stray, not a mapping.
                 return codes.sorted { ($0.value, $1.key) > ($1.value, $0.key) }
-                    .filter { $0.value * 10 >= total }
+                    .filter { $0.value * strayBelow >= total }
+            }
+            // A recovered style puts their pictures on our numbers, so where both maps
+            // carry a TYP the tags are compared by picture, not by number.
+            let theirTyp = typSource(of: Paths.expand(flags.positionals[0]))
+            let ourTyp = typSource(of: Paths.expand(flags.positionals[1]))
+            func pictures(_ codes: [(String, Int)], in typ: TypSource) -> [XpmBlock] {
+                codes.compactMap { picture(of: $0.0, in: typ) }
             }
 
             var same = 0
@@ -364,26 +371,52 @@ extension CLI {
             var missing: [(tag: String, theirs: String, count: Int)] = []
             for (tag, theirCodes) in original.codesByTag.sorted(by: { $0.key < $1.key }) {
                 let witnesses = theirCodes.values.reduce(0, +)
-                guard witnesses >= 6 else { continue }
+                guard witnesses >= fewestCompared else { continue }
                 let theirTop = top(theirCodes)
                 let ourCodes = rebuilt.codesByTag[tag] ?? [:]
                 guard !ourCodes.isEmpty else {
                     // An omission is only an omission where the rebuilt map's ground
                     // carries the tag at all: two maps over two grounds share styles,
                     // not dachas.
-                    if rebuilt.groundTags[tag] ?? 0 >= 6 {
+                    if rebuilt.groundTags[tag] ?? 0 >= fewestCompared {
                         missing.append((tag, theirTop.map(\.0).joined(separator: ","),
                                         witnesses))
                     }
                     continue
                 }
                 let ourTop = top(ourCodes)
+                let theirs = theirTop.map(\.0).joined(separator: ",")
+                let ours = ourTop.map(\.0).joined(separator: ",")
+                // A settlement is drawn by the receiver itself on both maps, whatever
+                // number each gives it.
+                if theirTop.contains(where: { isCity($0.0) }),
+                   ourTop.contains(where: { isCity($0.0) }) {
+                    same += 1
+                    continue
+                }
+                if let theirTyp, let ourTyp {
+                    let wanted = pictures(theirTop, in: theirTyp)
+                    let got = pictures(ourTop, in: ourTyp)
+                    // Nothing painted on either side: the numbers say what agrees.
+                    if wanted.isEmpty, got.isEmpty {
+                        if ourTop.contains(where: { mine in theirTop.contains { $0.0 == mine.0 } }) {
+                            same += 1
+                        } else {
+                            different.append((tag, theirs, ours))
+                        }
+                    } else if got.contains(where: { wanted.contains($0) }) {
+                        same += 1
+                    } else {
+                        different.append((tag, theirs + (wanted.isEmpty ? " (unpainted)" : ""),
+                                          ours + (got.isEmpty ? " (unpainted)" : "")))
+                    }
+                    continue
+                }
                 // Agreement: our commonest code for the tag is one the original uses.
                 if ourTop.contains(where: { mine in theirTop.contains { $0.0 == mine.0 } }) {
                     same += 1
                 } else {
-                    different.append((tag, theirTop.map(\.0).joined(separator: ","),
-                                      ourTop.map(\.0).joined(separator: ",")))
+                    different.append((tag, theirs, ours))
                 }
             }
 
@@ -414,6 +447,36 @@ extension CLI {
         } catch {
             return CLIOutput.failure("recover-check: \(error.localizedDescription)")
         }
+    }
+
+    /// A tag is compared once this many of its objects were identified, and a code
+    /// carrying under one part in this many of the tag is a stray, not a mapping.
+    private static let fewestCompared = 6
+    private static let strayBelow = 10
+
+    /// The TYP a map carries, as source, or nil where it carries none.
+    private static func typSource(of img: URL) -> TypSource? {
+        let scratch = FileManager.default.temporaryDirectory
+            .appendingPathComponent("check-\(UUID().uuidString).typ")
+        defer { FileTools.removeIfPresent(scratch) }
+        guard ImgContainer.extractTYP(from: img, to: scratch),
+              let binary = try? TypBinary.read(scratch) else { return nil }
+        return TypSource.parse(TypDecompiler.source(binary))
+    }
+
+    /// Whether an evidence key names a settlement point, `P600` and its kin.
+    private static func isCity(_ key: String) -> Bool {
+        guard key.first == ElementDumper.Kind.point.rawValue,
+              let code = Int(key.dropFirst(), radix: 16) else { return false }
+        return GarminStandard.cityTypes.contains(code)
+    }
+
+    /// What a code draws in a TYP, keyed as the evidence keys codes: `A50`, `L11f14`.
+    private static func picture(of key: String, in typ: TypSource) -> XpmBlock? {
+        guard let first = key.first, let kind = ElementDumper.Kind(rawValue: first),
+              let code = Int(key.dropFirst(), radix: 16) else { return nil }
+        // The drawing itself, a plain fill included: `picture` leaves solid ones out.
+        return typ.section(kind.styleKind, code).flatMap { $0.dayXpm ?? $0.xpm }
     }
 
     /// What the elevation for a region will cost to download, per source, before any
@@ -601,6 +664,21 @@ extension CLI {
         if adopt, let refusal = updateLibraryStyle(report, mapPath: mapPath) {
             return refusal
         }
+        // One number of ours that several looks of theirs wanted: where a rule of
+        // ours lumps together what their style tells apart.
+        if !report.contested.isEmpty {
+            CLILog.line("")
+            CLILog.line("one number of ours, several looks of theirs (the winner first):")
+            for port in report.contested {
+                let kind = port.kind.rawValue.padding(toLength: 8, withPad: " ", startingAt: 0)
+                let rivals = port.rivals.map {
+                    "\($0.meaning) <- 0x\(String($0.theirs, radix: 16)) (\($0.witnesses))"
+                }.joined(separator: ", ")
+                CLILog.line("  \(kind) 0x\(String(port.ours, radix: 16))"
+                            + "  \(port.meaning) <- 0x\(String(port.theirs, radix: 16))"
+                            + " (\(port.witnesses))  over  \(rivals)")
+            }
+        }
         // What their style draws and kmap has no number for: the list that says where
         // the rule base wants widening.
         guard !report.uncovered.isEmpty else { return nil }
@@ -661,9 +739,20 @@ extension CLI {
                  "status": .string(outcome.status.rawValue),
                  "witnesses": .int(outcome.witnesses),
                  "elements": .int(outcome.elements),
+                 "unmatched": .int(outcome.unmatched),
+                 "ambiguous": .int(outcome.ambiguous),
                  "meaning": .string(outcome.meaning)]
             }),
             "sheet": .string(report.sheet),
+            "contested": .array(report.contested.map { port in
+                ["kind": .string(port.kind.rawValue), "ours": .int(port.ours),
+                 "theirs": .int(port.theirs), "meaning": .string(port.meaning),
+                 "witnesses": .int(port.witnesses),
+                 "rivals": .array(port.rivals.map {
+                     ["theirs": .int($0.theirs), "meaning": .string($0.meaning),
+                      "witnesses": .int($0.witnesses)]
+                 })]
+            }),
             // The whole list, where the printed one stops at forty.
             "uncovered": .array(report.uncovered.map { entry in
                 ["kind": .string(entry.kind.rawValue),

@@ -83,6 +83,31 @@ final class HideableFeaturesTests: XCTestCase {
         }
     }
 
+    /// The hide names the lines the split writes: three groups per context, byte for byte.
+    func testTheBarrierHidesNameTheLinesTheSplitWrites() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("barriers-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
+        try """
+        barrier=bollard | barrier=bus_trap | barrier=gate | barrier=block | barrier=cycle_barrier |
+            barrier=stile | barrier=kissing_gate | barrier=lift_gate | barrier=swing_gate
+            {add name='${barrier|subst:"_=> "}'} [0x3200 resolution 24]
+        """.write(to: dir.appendingPathComponent("points"), atomically: true, encoding: .utf8)
+        let settings = SettingsStore()
+        let catalog = StyleCatalog(settings: settings, toolchain: Toolchain(settings: settings))
+        try catalog.splitBarrierRule(in: dir, log: Log())
+        let points = try String(contentsOf: dir.appendingPathComponent("points"), encoding: .utf8)
+        for feature in HideableFeature.all where feature.id.hasPrefix("barriers-") {
+            XCTAssertEqual(feature.substitutions.count, StyleCatalog.barrierGroups.count, feature.id)
+            for substitution in feature.substitutions {
+                XCTAssertTrue(points.contains(substitution.old), "\(feature.id): \(substitution.old)")
+            }
+        }
+        XCTAssertTrue(points.contains("[0x3201 resolution 24]"), "the boom's own number")
+        XCTAssertTrue(points.contains("[0x3202 resolution 24]"), "the bollard's own number")
+    }
+
     func testHidingABarrierAlsoTakesItOutOfTheCustomPOIFile() {
         // The .gpi carries no barrier context, so any barrier choice drops barriers from it
         // wholesale.

@@ -19,6 +19,15 @@ enum ElementDumper {
             }
         }
 
+        /// The same kind as the style side names it.
+        var styleKind: MapElementKind {
+            switch self {
+            case .point: return .point
+            case .line: return .line
+            case .area: return .polygon
+            }
+        }
+
         /// From the byte written for it in a dump.
         init?(byte: UInt8) {
             switch byte {

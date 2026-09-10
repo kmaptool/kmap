@@ -21,12 +21,16 @@ enum StyleRecovery {
         var uncovered: [StylePort.Ported] = []
         /// How many of our numbers took a picture, by kind, for the report.
         var ported: [MapElementKind: Int] = [:]
+        /// Our numbers several looks of theirs wanted: the winner with its rivals.
+        var contested: [StylePort.Ported] = []
         /// The reassignment list. Nothing needs it to build; it is for the style
         /// editor, and for a style still kept on the map's own numbers.
         var sheet = ""
         /// What the map draws each meaning with: tag -> code key -> identified sources.
         /// The raw material of `recover-check`, which compares two maps tag by tag.
         var codesByTag: [String: [String: Int]] = [:]
+        /// The ground each meaning covers under each code, in map units squared.
+        var areaByTag: [String: [String: Double]] = [:]
         /// How many objects of each meaning the searched ground holds at all — so a tag
         /// the ground never carries is not reported as a map's omission.
         var groundTags: [String: Int] = [:]
@@ -63,6 +67,11 @@ enum StyleRecovery {
     /// site. Land is drawn only where their vocabulary leaves the number alone, which
     /// is the same rule everything else follows.
     static let generated: Set<String> = ["L20", "L21", "L22", "A32", "A4A", "A4B"]
+
+    /// The most cores the matching is spread over, and how many elements go by
+    /// between two looks at the progress and the cancellation.
+    static let mostCores = 16
+    static let progressStride = 4096
 
     enum Status: String {
         /// Two or more agreeing identifications, and a rule line found: in the sheet.
@@ -143,6 +152,11 @@ enum StyleRecovery {
                                           progress: progress)
         report.elements = dump.count
         log.append("\(dump.count) element(s) at the detail level, over the ground searched")
+        if let finest = dump.resolutions.max(), finest < GarminGrid.fullResolution {
+            log.warn("the detail level is drawn at resolution \(finest), not"
+                   + " \(GarminGrid.fullResolution): its vertices are rounded off the grid,"
+                   + " and few will match")
+        }
 
         // One byte per element, shared by every extract: the best match any of them
         // managed. A raw buffer, not an array: cores write disjoint index ranges at once.
@@ -155,18 +169,21 @@ enum StyleRecovery {
                                               coarserLevels: true)) ?? ElementDumper.Dump()
 
         var evidence = Evidence()
+        // Extracts overlap where one lies inside another; an object is counted once.
+        var countedWays = Set<Int64>(), countedNodes = Set<Int64>()
         for extract in extracts {
             try Task.checkCancellation()
             log.step("matching against \(extract.lastPathComponent)")
             progress?.move(to: .indexing(extract.lastPathComponent))
             let index = try GroundIndex(extract: extract, frame: frame)
             log.append("\(index.ways.count) tagged way(s), \(index.nodes.count) tagged node(s) in frame")
-            for way in index.ways {
+            let several = extracts.count > 1
+            for way in index.ways where !several || countedWays.insert(way.id).inserted {
                 if let tag = DefaultRuleBook.meaning(of: way.tags) {
                     report.groundTags[tag, default: 0] += 1
                 }
             }
-            for node in index.nodes {
+            for node in index.nodes where !several || countedNodes.insert(node.id).inserted {
                 if let tag = DefaultRuleBook.meaning(of: node.tags) {
                     report.groundTags[tag, default: 0] += 1
                 }
@@ -175,7 +192,7 @@ enum StyleRecovery {
             progress?.count(0, of: dump.count)
             evidence.merge(try await matched(dump, against: index, matches: matches,
                                              progress: progress))
-            // What geometry could not name is asked of the place — its own stage, or
+            // What geometry could not name is asked of the place. Its own stage, or
             // the bar sits on a finished 100% while this works.
             progress?.move(to: .placing(extract.lastPathComponent))
             CoarseEvidence.match(coarse, index: index, into: &evidence)
@@ -186,9 +203,12 @@ enum StyleRecovery {
 
         // Per-meaning ledger: which codes this map was seen drawing each tag with.
         for (key, code) in evidence.codes {
-            for (_, tags) in code.sources {
+            for (id, tags) in code.sources {
                 guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
                 report.codesByTag[tag, default: [:]][key, default: 0] += 1
+                if let area = code.extent[id] {
+                    report.areaByTag[tag, default: [:]][key, default: 0] += area
+                }
             }
         }
 
@@ -209,14 +229,17 @@ enum StyleRecovery {
         let rules = rulesDirectory.map { DefaultRuleBook.load(from: $0) } ?? DefaultRuleBook.load()
         derive(evidence, into: &report, rules: rules, typDefined: typDefined,
                ground: report.groundTags)
-        recoverStyle(from: img, into: &report, log: log)
+        recoverStyle(from: img, into: &report, log: log, rulesDirectory: rulesDirectory)
         return report
     }
 
     /// Their look on kmap's numbers, as a TYP source. The pictures come from the TYP
     /// the map carries; which lands on which of our numbers is the evidence's to say.
     /// Silent where there is nothing to recover, or no rules of ours to put it on.
-    private static func recoverStyle(from img: URL, into report: inout Report, log: Log) {
+    /// Our numbers are read from the neutral rules where given: the last build's own
+    /// set carries its hides, and a hidden number would come out unpainted.
+    private static func recoverStyle(from img: URL, into report: inout Report, log: Log,
+                                     rulesDirectory: URL?) {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("recovered-\(UUID().uuidString).typ")
         defer { FileTools.removeIfPresent(scratch) }
@@ -226,7 +249,8 @@ enum StyleRecovery {
             return
         }
         let theirs = TypSource.parse(TypDecompiler.source(binary))
-        guard let rules = RuleSetIndex.read(styleDirectory: StyleCatalog.baseStyleDirectory)
+        guard let rules = RuleSetIndex.read(
+            styleDirectory: rulesDirectory ?? StyleCatalog.baseStyleDirectory)
         else {
             log.warn("kmap's own rules are not materialized yet — build once, then recover")
             return
@@ -235,11 +259,15 @@ enum StyleRecovery {
         var zooms: [String: [Int: Int]] = [:]
         for (key, outcome) in report.outcomes { zooms[key] = outcome.resolutions }
         let ported = StylePort.map(codesByTag: report.codesByTag, rules: rules,
-                                   theirZooms: zooms, theirTyp: theirs)
-        report.style = StylePort.typ(from: theirs, ported: ported,
-                                     familyID: theirs.familyID,
-                                     productID: theirs.productID, codePage: theirs.codePage)
+                                   theirZooms: zooms, theirTyp: theirs,
+                                   theirAreas: report.areaByTag)
+        report.style = StylePort.typ(
+            from: theirs, ported: ported, familyID: theirs.familyID,
+            productID: theirs.productID, codePage: theirs.codePage,
+            unstyled: StylePort.leftToTheDevice(codesByTag: report.codesByTag, rules: rules,
+                                                theirTyp: theirs, ported: ported))
         report.ported = Dictionary(grouping: ported, by: \.kind).mapValues(\.count)
+        report.contested = ported.filter { !$0.rivals.isEmpty }
         report.uncovered = StylePort.uncovered(codesByTag: report.codesByTag, rules: rules,
                                                theirs: theirs, ported: ported)
         let counted = report.ported.map { "\($0.value) \($0.key.plural)" }.sorted()
@@ -252,7 +280,7 @@ enum StyleRecovery {
     private static func matched(_ dump: ElementDumper.Dump, against index: GroundIndex,
                                 matches: UnsafeMutableBufferPointer<UInt8>,
                                 progress: RecoverProgress?) async throws -> Evidence {
-        let cores = max(1, min(ProcessInfo.processInfo.activeProcessorCount, 16))
+        let cores = max(1, min(ProcessInfo.processInfo.activeProcessorCount, mostCores))
         let span = (dump.count + cores - 1) / cores
         guard span > 0 else { return Evidence() }
         var out = Evidence()
@@ -264,9 +292,9 @@ enum StyleRecovery {
                 group.addTask {
                     var mine = Evidence()
                     for at in from..<upTo {
-                        if at % 4096 == 0 {
+                        if at % progressStride == 0 {
                             try Task.checkCancellation()
-                            progress?.advance(4096)
+                            progress?.advance(progressStride)
                         }
                         // The best any extract managed: a match stands whatever a
                         // later extract says, an ambiguity outranks a plain miss.

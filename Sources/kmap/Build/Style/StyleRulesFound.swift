@@ -18,14 +18,16 @@ extension StyleCatalog {
         # meaning here came back as "their style draws this, ours has no rule for it".
         # The codes are ones this style already emits, so any imported TYP draws them.
 
-        # 0x6411 is the style's mast and tower. A pylon, a wind turbine, a water tower, a
-        # lighthouse and a trig point are all a vertical thing standing in the open, and
-        # on the detail zoom only: there are 240 000 pylons in western Russia alone.
+        # 0x6411 is the style's mast and tower. A pylon, a wind turbine, a water tower
+        # and a trig point are all a vertical thing standing in the open, and on the
+        # detail zoom only: there are 240 000 pylons in western Russia alone.
         power=tower [0x6411 resolution 24]
         power=generator [0x6411 resolution 24]
         man_made=water_tower [0x6411 resolution 24]
-        man_made=lighthouse [0x6411 resolution 24]
         man_made=survey_point [0x6411 resolution 24]
+        # A lighthouse is a landmark on a coast, not a pylon: its own number, drawn with
+        # its own picture by the palettes and by every borrowed style that has one.
+        man_made=lighthouse [0x6415 resolution 24]
         man_made=beacon [0x6411 resolution 24]
         highway=milestone [0x6411 resolution 24]
 

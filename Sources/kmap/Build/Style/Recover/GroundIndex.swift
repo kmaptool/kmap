@@ -15,6 +15,8 @@ struct GroundIndex {
     /// Tagged nodes by grid cell, for point elements.
     private(set) var nodesByCell: [UInt64: [Int32]] = [:]
     private(set) var nodes: [IndexedNode] = []
+    /// Ways that are an inner ring of some multipolygon: holes, not things.
+    private var inner: Set<Int64> = []
 
     struct IndexedWay {
         let id: Int64
@@ -30,19 +32,27 @@ struct GroundIndex {
 
     static let tooCommonGram = 16
 
+    /// The relations whose outer ways are lifted, and the member roles that matter.
+    static let multipolygonType = "multipolygon"
+    static let boundaryType = "boundary"
+    static let outerRole = "outer"
+    static let innerRole = "inner"
+
     init(extract: URL, frame: BBox) throws {
         var sink = Builder(frame: frame)
         try PBFReader(url: extract).read(into: &sink)
-        // The relation lift: a bare outer way in exactly one multipolygon is indexed under
-        // that relation's tags. Walked in id order, so the slots are the same every run.
+        // The relation lift: a bare outer way is indexed under its relation's tags.
+        // Shared by several relations, as a border between two districts or two
+        // woods is, it is lifted only where they all mean one thing, with the tags of
+        // the widest one. Walked in id order, so the slots are the same every run.
         for wayID in sink.bareOuterOf.keys.sorted() {
-            guard let seen = sink.bareOuterOf[wayID], seen.count == 1,
-                  let only = seen.first, var tags = sink.relationTags[only],
-                  let cells = sink.bareCells[wayID] else { continue }
-            // The relation's kind is how it was assembled, not what it means.
-            tags["type"] = nil
+            guard let seen = sink.bareOuterOf[wayID],
+                  let cells = sink.bareCells[wayID],
+                  var tags = Self.lifted(from: seen, in: sink.relationTags) else { continue }
+            tags[DefaultRuleBook.relationTypeKey] = nil
             sink.appendWay(id: wayID, cells: cells, tags: tags)
         }
+        inner = sink.inner
         ways = sink.ways
         nodes = sink.nodes
         nodesByCell = sink.nodesByCell
@@ -64,9 +74,25 @@ struct GroundIndex {
         return gramPairs[low..<end]
     }
 
-    /// Tags of a way — its own, or the relation's where the lift gave it those.
+    /// Tags of a way: its own, or the relation's where the lift gave it those.
     func tags(ofWay slot: Int32) -> [String: String] {
         ways[Int(slot)].tags
+    }
+
+    func isInner(_ slot: Int32) -> Bool { inner.contains(ways[Int(slot)].id) }
+
+    /// The tags a bare outer way inherits from its relations, or nil where they
+    /// disagree on what it means. The lowest admin level wins: mkgmap draws a border
+    /// as the widest boundary it belongs to.
+    static func lifted(from relations: Set<Int64>,
+                       in tags: [Int64: [String: String]]) -> [String: String]? {
+        let held = relations.sorted().compactMap { tags[$0] }
+        guard !held.isEmpty,
+              Set(held.map { DefaultRuleBook.meaning(of: $0) }).count == 1 else { return nil }
+        let key = DefaultRuleBook.adminLevelKey
+        return held.min { a, b in
+            (Int(a[key] ?? "") ?? Int.max) < (Int(b[key] ?? "") ?? Int.max)
+        }
     }
 
     fileprivate struct Builder: OSMSink {
@@ -74,9 +100,11 @@ struct GroundIndex {
         var wantedParts: OSMParts { .all }
 
         // Node ids arrive ascending in a PBF, so parallel arrays + binary search
-        // replace a five-million-entry dictionary.
+        // replace a five-million-entry dictionary. A file that breaks the order is
+        // sorted once, before the first way asks.
         var coordIDs: [Int64] = []
         var coordCells: [UInt64] = []
+        var ascending = true
         var nodes: [IndexedNode] = []
         var nodesByCell: [UInt64: [Int32]] = [:]
         var ways: [IndexedWay] = []
@@ -86,6 +114,7 @@ struct GroundIndex {
         var bareOuterOf: [Int64: Set<Int64>] = [:]
         /// The cells of every bare way in frame, until the relations have been read.
         var bareCells: [Int64: [UInt64]] = [:]
+        var inner: Set<Int64> = []
 
         init(frame: BBox) { self.frame = frame }
 
@@ -103,6 +132,7 @@ struct GroundIndex {
                            tags: ArraySlice<Int32>, block: OSMBlock) {
             guard frame.contains(lat: lat, lon: lon) else { return }
             let cell = GarminGrid.cell(lat: lat, lon: lon)
+            if let last = coordIDs.last, id <= last { ascending = false }
             coordIDs.append(id)
             coordCells.append(cell)
             guard !tags.isEmpty else { return }
@@ -114,6 +144,7 @@ struct GroundIndex {
         mutating func way(id: Int64, refs: ArraySlice<Int64>,
                           keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
                           block: OSMBlock) {
+            if !ascending { sortCoords() }
             var cells: [UInt64] = []
             cells.reserveCapacity(refs.count)
             for ref in refs {
@@ -135,16 +166,26 @@ struct GroundIndex {
                                keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
                                block: OSMBlock) {
             let tags = decode(keys: keys, values: values, block)
-            guard tags["type"] == "multipolygon" || tags["type"] == "boundary" else { return }
+            let kind = tags[DefaultRuleBook.relationTypeKey]
+            guard kind == GroundIndex.multipolygonType || kind == GroundIndex.boundaryType
+            else { return }
             relationTags[id] = tags
             let kinds = Array(memberKinds), ids = Array(memberIDs), roles = Array(memberRoles)
             for i in 0..<kinds.count where kinds[i] == 1 {
                 let role = block.text(Int(roles[i]))
-                guard role.isEmpty || role == "outer" else { continue }
+                if role == GroundIndex.innerRole { inner.insert(ids[i]); continue }
+                guard role.isEmpty || role == GroundIndex.outerRole else { continue }
                 if bareCells[ids[i]] != nil {
                     bareOuterOf[ids[i], default: []].insert(id)
                 }
             }
+        }
+
+        private mutating func sortCoords() {
+            let order = coordIDs.indices.sorted { coordIDs[$0] < coordIDs[$1] }
+            coordIDs = order.map { coordIDs[$0] }
+            coordCells = order.map { coordCells[$0] }
+            ascending = true
         }
 
         mutating func appendWay(id: Int64, cells: [UInt64], tags: [String: String]) {
@@ -153,6 +194,7 @@ struct GroundIndex {
             for gram in GarminGrid.grams(of: cells) {
                 gramPairs.append((gram, slot))
             }
+            if cells.count == 2 { gramPairs.append((GarminGrid.edge(cells[0], cells[1]), slot)) }
         }
 
         private func decode(pairs: ArraySlice<Int32>, _ block: OSMBlock) -> [String: String] {

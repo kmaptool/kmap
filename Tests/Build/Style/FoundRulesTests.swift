@@ -30,7 +30,7 @@ final class FoundRulesTests: XCTestCase {
     /// the style already emits is one that TYP already draws.
     func testEveryCodeIsOneTheStyleAlreadyDrawsSomethingWith() {
         let kin: [Int: String] = [
-            0x6411: "mast and tower", 0x0b00: "hamlet", 0x3003: "town hall",
+            0x6411: "mast and tower", 0x6415: "lighthouse", 0x0b00: "hamlet", 0x3003: "town hall",
             0x2f09: "marina and ferry pier", 0x2c08: "sports pitch", 0x2c02: "ruin and dig",
             0x18: "stream and drain", 0x17: "fence, wall, hedge, breakwater, park",
             0x25: "pedestrian area", 0x0e: "runway", 0x0c: "quarry and industry",

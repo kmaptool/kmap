@@ -6,6 +6,13 @@ import Foundation
 enum GarminGrid {
     static let unitsPerDegree = Double(1 << 24) / 360.0
 
+    /// The finest resolution, where a vertex sits exactly on the grid.
+    static let fullResolution = 24
+
+    /// A way of two vertices is one edge; a ring is a triangle and its closing vertex.
+    static let edgeVertices = 2
+    static let ringVertices = 4
+
     static func unit(_ degrees: Double) -> Int32 {
         Int32((degrees * unitsPerDegree).rounded())
     }
@@ -31,9 +38,42 @@ enum GarminGrid {
         return h
     }
 
-    /// All grams of a vertex chain, in order. Empty below three vertices: a point is matched
-    /// by its cell, and two cells are a junction and its neighbour, shared by every way
-    /// through it.
+    /// The area a closed chain of cells encloses, in map units squared: what a fill
+    /// covers, as the eye weighs it. Sign dropped, so the winding does not matter.
+    static func area<Chain: RandomAccessCollection>(of cells: Chain) -> Double
+    where Chain.Element == UInt64, Chain.Index == Int {
+        guard cells.count >= ringVertices else { return 0 }
+        var twice = 0.0
+        var previous = cells[cells.startIndex + cells.count - 1]
+        for cell in cells {
+            let (lat, lon) = unpack(cell), (lastLat, lastLon) = unpack(previous)
+            twice += lastLon * lat - lon * lastLat
+            previous = cell
+        }
+        return abs(twice) / 2
+    }
+
+    private static func unpack(_ cell: UInt64) -> (lat: Double, lon: Double) {
+        (Double(Int32(bitPattern: UInt32(cell >> 32))),
+         Double(Int32(bitPattern: UInt32(cell & 0xFFFF_FFFF))))
+    }
+
+    /// The cell as a zoomed-out level stores it: each coordinate rounded to the
+    /// level's lattice, 2^shift units wide. mkgmap rounds, and its subdivisions sit
+    /// on the lattice, so a node of the ground lands exactly where the map put it.
+    static func onLattice(_ cell: UInt64, shift: Int) -> UInt64 {
+        guard shift > 0 else { return cell }
+        let half = Int32(1 << (shift - 1))
+        func snap(_ v: Int32) -> Int32 { ((v &+ half) >> shift) << shift }
+        return pack(latUnit: snap(Int32(bitPattern: UInt32(cell >> 32))),
+                    lonUnit: snap(Int32(bitPattern: UInt32(cell & 0xFFFF_FFFF))))
+    }
+
+    /// The one edge of a two-vertex way, hashed apart from the triples.
+    static func edge(_ a: UInt64, _ b: UInt64) -> UInt64 { gram(a, b, .max) }
+
+    /// All grams of a vertex chain, in order. Empty below three vertices: a point is
+    /// matched by its cell, a two-vertex way by its `edge`.
     static func grams<Chain: RandomAccessCollection>(of cells: Chain) -> [UInt64]
     where Chain.Element == UInt64, Chain.Index == Int {
         guard cells.count >= 3 else { return [] }

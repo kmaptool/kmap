@@ -34,3 +34,8 @@ religion #000000, landform #D08F55, water-text #576DDF). Night ink is the day
 ink lifted two thirds towards white and snapped to the 0/85/170/255 steps a
 MIP display can show. The type codes are the ones kmap's base rules emit,
 read from the materialized rule set.
+
+The lighthouse (`symbols/man_made/lighthouse.svg`) came later, on 2026-09-10,
+when kmap gave lighthouses a number of their own: same repository, same recipe,
+the mast's ink. Barriers keep no symbol here, as they never had one, though the
+repository has drawings for them.

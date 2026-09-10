@@ -34,9 +34,10 @@ The POI icons are the style's own: the Maki set it draws with (CC0), the `_15`
 markers in `svgs/svgs_iconset`, rendered at 16 px with rsvg-convert on
 2026-09-08 and read back three ways — the marker's ring and glyph are the ink,
 its disc is white, the rest transparent. Night turns the marker over: a light
-glyph on a dark disc. Seventy-one of kmap's point codes have one; where Maki
+glyph on a dark disc. Seventy-two of kmap's point codes have one; where Maki
 has no symbol for a thing kmap draws, the receiver keeps its own, as it does
-for every code no palette paints.
+for every code no palette paints. The lighthouse was rendered the same way on
+2026-09-10, when kmap gave lighthouses a number of their own.
 
 Attribution, as the licences ask: © OSM Liberty Topo and OSM Liberty
 contributors, BSD-3-Clause; look and feel after Mapbox OSM Bright, CC-BY 3.0;

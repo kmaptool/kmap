@@ -171,8 +171,36 @@ extension StyleCatalog {
         }
     }
 
-    /// Separates gates from the rest of the barrier family, which mkgmap draws from one
-    /// rule, so each group can be hidden on its own. Same type, drawing and actions.
+    /// The barrier family in three groups, each on a number of its own: a borrowed
+    /// style draws a boom and a bollard apart from a gate, and one number can carry
+    /// only one of the three looks. Together they are mkgmap's own list, entire.
+    static let barrierGroups: [(barriers: String, code: Int)] = [
+        ("barrier=gate | barrier=swing_gate | barrier=kissing_gate | barrier=stile"
+         + " | barrier=cycle_barrier", 0x3200),
+        ("barrier=lift_gate", 0x3201),
+        ("barrier=bollard | barrier=block | barrier=bus_trap", 0x3202),
+    ]
+
+    /// The kinds of way a barrier stands on, and nil for the rest. `kmap:on` is added
+    /// by the annotate pass before the build: a node cannot otherwise know.
+    static let barrierContexts: [String?] = ["path", "minor", "fence", nil]
+
+    /// One barrier rule's condition line. The contexts stay mutually exclusive: a rule
+    /// stripped of its type keeps its actions and continues, so an overlap would
+    /// re-draw what a hide removed.
+    static func barrierCondition(_ barriers: String, context: String?) -> String {
+        context.map { "(\(barriers)) & kmap:on=\($0)" }
+            ?? "(\(barriers)) & kmap:on!=path & kmap:on!=minor & kmap:on!=fence"
+    }
+
+    /// The action line under it: the barrier's kind as its name, and the number.
+    static func barrierAction(code: Int) -> String {
+        "    {add name='${barrier|subst:\"_=> \"}'} [0x\(String(code, radix: 16)) resolution 24]"
+    }
+
+    /// Splits mkgmap's one barrier rule by context, so each can be hidden on its own,
+    /// and by group, so each wears its own number. The hide catalogue names these
+    /// lines byte for byte, from the same definitions.
     func splitBarrierRule(in directory: URL, log: Log) throws {
         let points = directory.appendingPathComponent("points")
         guard var text = try? String(contentsOf: points, encoding: .utf8) else { return }
@@ -184,30 +212,17 @@ extension StyleCatalog {
         """
         guard text.contains(original) else { return }
 
-        // `kmap:on` is added by the annotate pass before the build: a node cannot
-        // otherwise know what kind of way it stands on.
-        let barriers = "barrier=bollard | barrier=bus_trap | barrier=gate | barrier=block | "
-                     + "barrier=cycle_barrier | barrier=stile | barrier=kissing_gate | "
-                     + "barrier=lift_gate | barrier=swing_gate"
-        let action = "    {add name='${barrier|subst:\"_=> \"}'} [0x3200 resolution 24]"
-
-        // The three conditions must stay mutually exclusive: a rule stripped of its type
-        // keeps its actions and continues, so an overlap would re-draw what a hide removed.
-        let split = """
-        # kmap: one rule per context, so each can be hidden on its own.
-        (\(barriers)) & kmap:on=path
-        \(action)
-        (\(barriers)) & kmap:on=minor
-        \(action)
-        (\(barriers)) & kmap:on=fence
-        \(action)
-        (\(barriers)) & kmap:on!=path & kmap:on!=minor & kmap:on!=fence
-        \(action)
-        """
-
-        text = text.replacingOccurrences(of: original, with: split)
+        var split = ["# kmap: one rule per context, so each can be hidden on its own,"
+                     + " and one per group, so each wears its own number."]
+        for context in Self.barrierContexts {
+            for group in Self.barrierGroups {
+                split.append(Self.barrierCondition(group.barriers, context: context))
+                split.append(Self.barrierAction(code: group.code))
+            }
+        }
+        text = text.replacingOccurrences(of: original, with: split.joined(separator: "\n"))
         try text.write(to: points, atomically: true, encoding: .utf8)
-        log.append("barrier rule split into gates and other barriers")
+        log.append("barrier rule split by context and into gates, booms and bollards")
     }
 
     /// Makes a parking legible: its own name, in the map's language, and whether a car may

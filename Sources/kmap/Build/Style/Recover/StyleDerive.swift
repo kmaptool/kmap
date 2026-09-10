@@ -43,6 +43,19 @@ extension StyleRecovery {
     /// before a meaning counts as a claim.
     static let fewestWitnesses = 3
 
+    /// A zoomed-out stroke needs this many: it is measured against nobody, since far
+    /// fewer elements survive a coarse zoom, so the bar is its own.
+    static let fewestStroke = fewestWitnesses * 4
+
+    /// To lead a tag outright, or earn a rule below the floor, a meaning needs this many.
+    static let fewestOutright = fewestWitnesses * 2
+
+    /// The mop-up verdict needs this many led meanings; fewer is a coincidence.
+    static let fewestLed = 5
+
+    /// This many members of one key on one code become one family rule.
+    static let fewestFamily = 3
+
     /// One meaning, as the default rules see it, and the witnesses a foreign code
     /// gave it. Keyed per rule rather than per tag: two tags that open one rule are
     /// one meaning. A meaning with no rule keeps its tag as its own key.
@@ -56,6 +69,10 @@ extension StyleRecovery {
         /// one drawing rather than two kinds.
         var ids: Set<Int64> = []
         var count: Int { ids.count }
+        /// How many of them carry `building=*`: a substation building and a
+        /// substation yard share a tag, and a style may draw them apart.
+        var built = 0
+        var isBuilt: Bool { built * 2 > count }
         /// The commonest tag in it: what the report shows, and what a rule written
         /// for it is written from.
         var name: String {
@@ -100,6 +117,9 @@ extension StyleRecovery {
         /// The zooms the code was seen drawn at, so a rule written for it draws
         /// where its author drew it rather than at every zoom below.
         var resolutions: [Int: Int] = [:]
+        /// Written with `& building!=*`: their map draws the buildings carrying this
+        /// tag as buildings, and only the open ground this way.
+        var openOnly = false
     }
 
     /// Internal rather than private, so the tests can feed it hand-built evidence.
@@ -125,21 +145,45 @@ extension StyleRecovery {
         // The finest zoom each meaning is drawn at, over every code: a stroke that
         // stops short of it is the same meaning at another zoom, not a stray.
         var bucketFinest: [String: Int] = [:]
+        // And per class, buildings apart from open ground: a yard is no stray of the
+        // buildings standing in it.
+        var classLeader: [String: Int] = [:]
+        var builtMost: [String: Int] = [:], openMost: [String: Int] = [:]
         for entry in read {
             for (bucket, meaning) in entry.buckets {
                 leader[bucket] = max(leader[bucket] ?? 0, meaning.count)
+                let classed = classKey(bucket, meaning)
+                classLeader[classed] = max(classLeader[classed] ?? 0, meaning.count)
                 if let finest = entry.code.resolutions.keys.max() {
                     bucketFinest[bucket] = max(bucketFinest[bucket] ?? 0, finest)
                 }
                 for (tag, count) in meaning.tags {
                     tagLeader["\(entry.code.kind.rawValue)@\(tag)"]
                         = max(tagLeader["\(entry.code.kind.rawValue)@\(tag)"] ?? 0, count)
+                    guard entry.code.kind == .area else { continue }
+                    let key = "\(entry.code.kind.rawValue)@\(tag)"
+                    if meaning.isBuilt {
+                        builtMost[key] = max(builtMost[key] ?? 0, count)
+                    } else {
+                        openMost[key] = max(openMost[key] ?? 0, count)
+                    }
                 }
             }
         }
+        // A tag is drawn on buildings, or on open ground, only where that class is
+        // a real share of it: three mistagged houses do not make the woods built.
+        func real(_ mine: Int?, against other: Int?) -> Bool {
+            let mine = mine ?? 0
+            return mine >= fewestStroke && Double(mine) >= stray * Double(other ?? 0)
+        }
+        let builtTags = Set(builtMost.keys.filter { real(builtMost[$0], against: openMost[$0]) })
+        let openTags = Set(openMost.keys.filter { real(openMost[$0], against: builtMost[$0]) })
 
         var claimed: [String: ClaimedRule] = [:]
         var additions: [ElementDumper.Kind: [RuleAddition]] = [:]
+        // Rules their map draws on buildings as buildings, and on open ground its
+        // own way: narrowed to the ground, so the buildings fall through.
+        var narrowed: [String: DefaultRuleBook.Line] = [:]
 
         // A default code claims the lines it already emits: a foreign code painted over
         // the same elements then becomes a layer above it, not a replacement or a stray.
@@ -165,9 +209,11 @@ extension StyleRecovery {
 
         var verdicts: [String: CodeVerdict] = [:]
         for entry in read {
-            var outcome = resolve(entry, leader: leader, tagLeader: tagLeader,
+            var outcome = resolve(entry, leader: leader, classLeader: classLeader,
+                                  tagLeader: tagLeader, builtTags: builtTags,
+                                  openTags: openTags,
                                   bucketFinest: bucketFinest, ground: ground,
-                                  claimed: &claimed,
+                                  claimed: &claimed, narrowed: &narrowed,
                                   additions: &additions, readByCode: readByCode,
                                   verdicts: &verdicts)
             if !entry.foreign {
@@ -196,6 +242,15 @@ extension StyleRecovery {
         _ = claimedRuleSheet(claimed, ladders: &ladders)
         let learned = ladders
         var sheet = claimedRuleSheet(claimed, ladders: &ladders, known: learned)
+        for (slot, line) in narrowed.sorted(by: { $0.key < $1.key })
+        where claimed[slot] == nil {
+            guard let open = line.narrowedToOpenGround() else { continue }
+            sheet.append("@@ \(line.file)")
+            sheet.append("- \(line.text)")
+            if let second = line.continuation { sheet.append("- \(second)") }
+            sheet.append(contentsOf: open.map { "+ " + $0 })
+            claimed[slot] = ClaimedRule(lines: [line])
+        }
         sheet.append(contentsOf: additionSheet(additions, claimed: claimed, rules: rules))
         sheet.append(contentsOf: silencedRuleSheet(verdicts: verdicts,
                                                    witnessedSlots: witnessedSlots,
@@ -219,6 +274,18 @@ extension StyleRecovery {
 
     private static func codeKey(_ kind: ElementDumper.Kind, _ type: Int) -> String {
         "\(kind.rawValue):\(String(type, radix: 16))"
+    }
+
+    /// A bucket's key within its class: buildings and open ground compete apart.
+    private static func classKey(_ bucket: String, _ meaning: MeaningBucket) -> String {
+        bucket + (meaning.isBuilt ? "#built" : "#open")
+    }
+
+    /// A zoom seen fewer than `fewestWitnesses` times is not a zoom the code draws
+    /// at; the most seen one stays, so a band never comes out empty.
+    private static func steadyZooms(_ resolutions: [Int: Int]) -> [Int: Int] {
+        guard let most = resolutions.values.max() else { return resolutions }
+        return resolutions.filter { $0.value >= fewestWitnesses || $0.value == most }
     }
 
     /// Rules the foreign style would repaint into a lie are silenced — barracks over
@@ -283,7 +350,9 @@ extension StyleRecovery {
     private static func readCodes(_ evidence: Evidence, into report: inout Report,
                                   rules: DefaultRuleBook) -> [CodeReading] {
         var read: [CodeReading] = []
-        for (key, code) in evidence.codes {
+        // In key order: what follows breaks ties by who came first, and a dictionary
+        // hands its keys over differently in every process.
+        for (key, code) in evidence.codes.sorted(by: { $0.key < $1.key }) {
             var outcome = Outcome(kind: code.kind, type: code.type,
                                   witnesses: code.sources.count, elements: code.elements,
                                   unmatched: code.unmatched, ambiguous: code.ambiguous,
@@ -320,6 +389,11 @@ extension StyleRecovery {
                     ?? "\(code.kind.rawValue)=\(tag)"
                 buckets[bucket, default: MeaningBucket(lines: lines ?? [])].tags[tag, default: 0] += 1
                 buckets[bucket]?.ids.insert(id)
+                // Areas only: a point planted for a building carries its tags too.
+                if code.kind == .area, let built = tags[DefaultRuleBook.buildingKey],
+                   built != DefaultRuleBook.noBuilding {
+                    buckets[bucket]?.built += 1
+                }
                 if let zoom = code.sourceZoom[id] {
                     buckets[bucket]?.resolutions[Int(zoom), default: 0] += 1
                 }
@@ -334,10 +408,13 @@ extension StyleRecovery {
     /// rules that already draw them, or additions where no rule exists; what could not
     /// be chosen is recorded in the outcome and nothing else happens.
     private static func resolve(_ entry: CodeReading, leader: [String: Int],
-                                tagLeader: [String: Int],
+                                classLeader: [String: Int],
+                                tagLeader: [String: Int], builtTags: Set<String>,
+                                openTags: Set<String>,
                                 bucketFinest: [String: Int],
                                 ground: [String: Int],
                                 claimed: inout [String: ClaimedRule],
+                                narrowed: inout [String: DefaultRuleBook.Line],
                                 additions: inout [ElementDumper.Kind: [RuleAddition]],
                                 readByCode: [String: CodeReading],
                                 verdicts: inout [String: CodeVerdict])
@@ -379,6 +456,11 @@ extension StyleRecovery {
         let mine = chosen.filter { pair in
             if Double(pair.value.count)
                 >= stray * Double(leader[pair.key] ?? pair.value.count) { return true }
+            // Measured within its class: the yards of a thing are not a stray of
+            // the buildings of it.
+            let classed = classKey(pair.key, pair.value)
+            if Double(pair.value.count)
+                >= stray * Double(classLeader[classed] ?? pair.value.count) { return true }
             // A zoomed-out stroke draws the same meaning where the busy code does not,
             // so it is measured against nobody: far fewer elements survive a coarse
             // zoom, and that is the point of the stroke, not a sign of a stray. It has
@@ -386,7 +468,7 @@ extension StyleRecovery {
             // brushes the woods inside it, and that overlap is not a stroke for woods.
             if let finest = entry.code.resolutions.keys.max(),
                let drawn = bucketFinest[pair.key], finest < drawn,
-               pair.value.count >= fewestWitnesses * 4,
+               pair.value.count >= fewestStroke,
                Double(pair.value.count) >= stray * Double(entry.meant) { return true }
             // A stray on the chain may still own one of its tags outright: the code
             // drawing most of the map's bollards is no stray under the gates.
@@ -397,19 +479,37 @@ extension StyleRecovery {
         }
         if mine.isEmpty { outcome.meaning += " — another code draws these" }
         for (bucket, meaning) in mine {
+            // Open ground whose tag their map also draws on buildings, as buildings:
+            // re-aiming the rule would take the buildings along, so the code gets a
+            // rule of its own that leaves them to the building rule.
+            let openOnly = !meaning.isBuilt && meaning.tags.keys.contains {
+                builtTags.contains("\(code.kind.rawValue)@\($0)")
+            }
+            let reAims = meaning.lines.contains { !$0.emits(code.type) }
             // No rule emits this meaning, so the code cannot be re-aimed at one: it
             // gets a rule of its own, written from what the witnesses agree it draws.
-            guard !meaning.lines.isEmpty else {
+            guard !meaning.lines.isEmpty, !(openOnly && reAims) else {
                 for (tag, witnesses) in meaning.tags.sorted(by: { $0.key < $1.key })
                 where witnesses >= entry.floor
-                    || (witnesses >= fewestWitnesses * 2
+                    || (witnesses >= fewestOutright
                         && witnesses >= tagLeader[
                             "\(code.kind.rawValue)@\(tag)"] ?? witnesses) {
                     additions[code.kind, default: []].append(
                         RuleAddition(tag: tag, key: String(tag.split(separator: "=")[0]),
                                      type: code.type, witnesses: witnesses,
                                      ids: meaning.ids,
-                                     resolutions: meaning.resolutions))
+                                     resolutions: meaning.resolutions,
+                                     openOnly: openOnly))
+                }
+                continue
+            }
+            // Buildings their map draws as buildings, on a rule open ground matches
+            // too: the rule is narrowed to the ground rather than re-aimed whole.
+            if meaning.isBuilt, meaning.tags.keys.contains(where: {
+                openTags.contains("\(code.kind.rawValue)@\($0)")
+            }) {
+                for line in meaning.lines where !line.emits(code.type) {
+                    narrowed[line.file + ":" + line.text] = line
                 }
                 continue
             }
@@ -456,7 +556,7 @@ extension StyleRecovery {
         let floor = entry.floor
         func leads(_ bucket: MeaningBucket) -> Bool {
             bucket.tags.contains { tag, count in
-                count >= fewestWitnesses * 2
+                count >= fewestOutright
                     && count >= tagLeader["\(entry.code.kind.rawValue)@\(tag)"] ?? count
                     // Leading a tag nobody else claims is worth nothing where the tag
                     // is everywhere and the claim is a handful: a style that draws a
@@ -479,7 +579,7 @@ extension StyleRecovery {
         // A family's long tail rides in with the family: their map that draws every
         // power tower also draws its poles, however few of them the floor would pass.
         for pair in ranked
-        where pair.value.count < floor && pair.value.count >= fewestWitnesses * 2
+        where pair.value.count < floor && pair.value.count >= fewestOutright
             && families.contains(Self.key(of: pair.value.name)) && leads(pair.value) {
             above.append(pair)
         }
@@ -509,8 +609,8 @@ extension StyleRecovery {
         let keyed = Dictionary(grouping: ranked) { Self.key(of: $0.value.name) }
         let family = keyed.filter { !$0.key.isEmpty }
             .max { a, b in
-                a.value.reduce(0) { $0 + $1.value.count }
-                    < b.value.reduce(0) { $0 + $1.value.count }
+                (a.value.reduce(0) { $0 + $1.value.count }, b.key)
+                    < (b.value.reduce(0) { $0 + $1.value.count }, a.key)
             }
         let held = family?.value.reduce(0) { $0 + $1.value.count } ?? 0
         guard entry.meant >= scarce, let family,
@@ -545,11 +645,11 @@ extension StyleRecovery {
         -> [(key: String, value: MeaningBucket)]? {
         let led = ranked.filter { pair in
             pair.value.tags.contains { tag, count in
-                count >= fewestWitnesses * 2
+                count >= fewestOutright
                     && count >= tagLeader["\(entry.code.kind.rawValue)@\(tag)"] ?? count
             }
         }
-        guard led.count >= 5 else { return nil }
+        guard led.count >= fewestLed else { return nil }
         outcome.meaning += " — a mop-up mark, honoured where it leads"
         return led
     }
@@ -578,6 +678,10 @@ extension StyleRecovery {
                     byType[claim.type] = claim
                 }
             }
+            for (type, held) in byType {
+                byType[type] = (held.type, held.weight, held.ids, held.tags,
+                                steadyZooms(held.resolutions))
+            }
             guard let line = entry.lines.first else { continue }
             // One meaning, one stroke per zoom: at each resolution the code their map
             // mostly draws this meaning with owns that zoom, and the rest keep quiet
@@ -591,12 +695,19 @@ extension StyleRecovery {
             // finest zoom the rule is drawn at — and is written as a line of its own
             // over the range it belongs to, rather than stacked everywhere.
             let finest = byType.values.compactMap { $0.resolutions.keys.max() }.max()
-            let overview = byType.values.filter { claim in
+            func zoomedOut(_ claim: (type: Int, weight: Int, ids: Set<Int64>,
+                                     tags: [String: Int], resolutions: [Int: Int])) -> Bool {
                 guard let finest, let highest = claim.resolutions.keys.max() else {
                     return false
                 }
                 return highest < finest
-            }.sorted { ($0.weight, $0.type) > ($1.weight, $1.type) }
+            }
+            // A stroke seen on a handful of elements is the matcher brushing past, not
+            // a zoomed-out look: kept, it would be learned as the code's ladder and
+            // painted over every rule closing on that code.
+            byType = byType.filter { !zoomedOut($0.value) || $0.value.weight >= fewestStroke }
+            let overview = byType.values.filter(zoomedOut)
+                .sorted { ($0.weight, $0.type) > ($1.weight, $1.type) }
             let overviewTypes = Set(overview.map(\.type))
             let ranked = byType.values.filter { !overviewTypes.contains($0.type) }
                 .sorted { ($0.weight, $0.type) > ($1.weight, $1.type) }
@@ -694,8 +805,8 @@ extension StyleRecovery {
     private static func routable(_ type: Int) -> Bool { type >= 0x01 && type <= 0x16 }
 
     /// Notes how a code came out painted, so the rules this pass never saw can be
-    /// painted the same way. The strongest reading wins where two rules disagree: the
-    /// one whose strokes were seen on the most elements.
+    /// painted the same way. The fullest reading wins where two rules disagree: the
+    /// one that saw the most strokes.
     private static func remember(
         _ ladders: inout [String: [(type: Int, resolutions: [Int: Int])]],
         _ file: String, _ code: String,
@@ -777,7 +888,8 @@ extension StyleRecovery {
                 let members = ordered.filter {
                     $0.key + "@" + String($0.type) == familyKey
                 }
-                if members.count >= 3, !rules.hasRules(key: addition.key, kind: kind) {
+                if members.count >= fewestFamily,
+                   !rules.hasRules(key: addition.key, kind: kind) {
                     if taken.insert(familyKey).inserted {
                         collapsed.append(RuleAddition(
                             tag: addition.key + "=*", key: addition.key,
@@ -788,7 +900,8 @@ extension StyleRecovery {
                             },
                             resolutions: members.reduce(into: [Int: Int]()) {
                                 $0.merge($1.resolutions, uniquingKeysWith: +)
-                            }))
+                            },
+                            openOnly: members.filter(\.openOnly).count * 2 > members.count))
                     }
                 } else {
                     collapsed.append(addition)
@@ -813,14 +926,18 @@ extension StyleRecovery {
                 // resolution means that zoom and every finer one, which would paint
                 // an outline over the zooms another stroke of the same thing owns.
                 let band: String
-                if let low = addition.resolutions.keys.min(),
-                   let high = addition.resolutions.keys.max() {
+                let zooms = steadyZooms(addition.resolutions)
+                if let low = zooms.keys.min(), let high = zooms.keys.max() {
                     band = "\(low)-\(high)"
                 } else {
                     band = "\(resolution)"
                 }
+                // Buildings carrying the tag fall through to the building rule, as
+                // their map draws them.
+                let condition = addition.tag
+                    + (addition.openOnly ? " & " + DefaultRuleBook.openGroundOnly : "")
                 sheet.append(String(format: "+ %@ [0x%02x resolution %@%@]",
-                                    addition.tag, addition.type, band,
+                                    condition, addition.type, band,
                                     layered || overAnArea ? " continue" : ""))
             }
             sheet.append("+ \(anchor)")
@@ -891,7 +1008,7 @@ extension StyleRecovery {
         for claim in ranked.dropFirst() {
             // The tags this code owns outright within the family's claims.
             for (tag, count) in claim.tags.sorted(by: { $0.key < $1.key })
-            where count >= fewestWitnesses * 2
+            where count >= fewestOutright
                 && !ranked.contains(where: { $0.type != claim.type
                     && ($0.tags[tag] ?? 0) > count }) {
                 dedicated.append((tag, claim.type))
@@ -925,7 +1042,8 @@ extension StyleRecovery {
         guard byType.count > 1 else { return byType }
         var owner: [Int: Int] = [:]      // zoom -> code
         var best: [Int: Int] = [:]       // zoom -> that code's count there
-        for claim in byType.values {
+        // By type, so a tie goes the same way every run.
+        for claim in byType.values.sorted(by: { $0.type < $1.type }) {
             for (zoom, count) in claim.resolutions where count > (best[zoom] ?? 0) {
                 best[zoom] = count
                 owner[zoom] = claim.type

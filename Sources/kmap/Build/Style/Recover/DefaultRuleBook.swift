@@ -88,7 +88,21 @@ struct DefaultRuleBook {
             return (pairs, span)
         }
 
-        /// The head of a family condition — the `shop=*` of `shop=* & name=*` — or nil.
+        /// The rule with `& building!=*` added to its condition, so buildings fall
+        /// through to the building rule. nil where alternatives are not bracketed:
+        /// `a=b | c=d & building!=*` would narrow only the second.
+        func narrowedToOpenGround() -> [String]? {
+            let cut = text.firstIndex(of: "{") ?? text.firstIndex(of: "[") ?? text.endIndex
+            let condition = text[..<cut].trimmingCharacters(in: .whitespaces)
+            guard !condition.isEmpty, !condition.contains(DefaultRuleBook.buildingKey),
+                  !condition.contains("|") || leadingGroup() != nil else { return nil }
+            let rest = text[cut...]
+            let narrowed = condition + " & " + DefaultRuleBook.openGroundOnly
+                + (rest.isEmpty ? "" : " " + rest)
+            return continuation.map { [narrowed, $0] } ?? [narrowed]
+        }
+
+        /// The head of a family condition, the `shop=*` of `shop=* & name=*`, or nil.
         func wildcardHead() -> String? {
             let head = text.prefix(while: { $0 != " " && $0 != "{" && $0 != "[" })
             return head.hasSuffix("=*") ? String(head) : nil
@@ -151,6 +165,15 @@ struct DefaultRuleBook {
     /// Every code the default rules emit, per file. A code found here is not foreign: the
     /// sheet must never rewrite a rule onto a code the set already uses.
     private var emitted: Set<String> = []
+
+    /// The building tag, its value that says there is none, and the condition that
+    /// keeps a rule off buildings.
+    static let buildingKey = "building"
+    static let noBuilding = "no"
+    static let openGroundOnly = "building!=*"
+    static let adminLevelKey = "admin_level"
+    /// A relation's `type`: how it was assembled, not what it means.
+    static let relationTypeKey = "type"
 
     /// The keys that carry meaning in OSM, the most telling first; bookkeeping keys carry
     /// none. A source usually carries several at once, so the fixed order picks the

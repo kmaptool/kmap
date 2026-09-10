@@ -22,6 +22,9 @@ struct Evidence: Sendable {
         /// zoom rather than per code: one code may draw two meanings, and one meaning
         /// may be drawn by a different code at every zoom.
         var sourceZoom: [Int64: Int16] = [:]
+        /// The ground each identified area covers, in map units squared: a number of
+        /// ours shared by two meanings wears the picture of the one covering more.
+        var extent: [Int64: Double] = [:]
     }
 
     /// Keyed by `slot`, a packed integer rather than a string: the key is built once per
@@ -66,6 +69,7 @@ struct Evidence: Sendable {
             mine.unmatched += part.unmatched
             mine.ambiguous += part.ambiguous
             for (id, tags) in part.sources { mine.sources[id] = tags }
+            for (id, area) in part.extent { mine.extent[id, default: 0] += area }
             for (id, zoom) in part.sourceZoom {
                 // The coarsest sighting: what a stroke is for shows at the far end.
                 mine.sourceZoom[id] = min(mine.sourceZoom[id] ?? zoom, zoom)
@@ -75,12 +79,13 @@ struct Evidence: Sendable {
         }
     }
 
-    /// What one extract said about one element.
+    /// What one extract said about one element, ranked: the best answer any extract
+    /// gave stands, and a name beats a doubt.
     enum Match: UInt8 {
         case unmatched = 0
-        case matched = 1
         /// More than one candidate left standing.
-        case ambiguous = 2
+        case ambiguous = 1
+        case matched = 2
     }
 
     /// Reads one element against one extract and returns the outcome. The element,
@@ -115,6 +120,9 @@ struct Evidence: Sendable {
             let way = index.ways[Int(slot)]
             table[key, default: ForCode(kind: element.kind, type: element.type)]
                 .sources[way.id] = index.tags(ofWay: slot)
+            if element.kind == .area {
+                table[key]?.extent[way.id, default: 0] += GarminGrid.area(of: chain)
+            }
             if let resolution {
                 table[key]?.resolutions[resolution, default: 0] += 1
                 let held = table[key]?.sourceZoom[way.id]

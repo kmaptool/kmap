@@ -130,3 +130,21 @@
 # drew the park's tree; 0x2c0f is unused and now carries Garmin's own swing.
 - leisure=playground [0x2c06 resolution 24 default_name 'Playground']
 + leisure=playground [0x2c0f resolution 24 default_name 'Playground']  # kmap: own code, own icon
+
+@@ polygons
+# --- fields and lawns shared one number. Every style that draws both draws them apart:
+# carto's farmland is straw and its grass is green, and a borrowed style keeps a code
+# for each. On one number the lawns took the field's picture, or the fields the lawn's,
+# whichever was seen more. 0x55 is grassland already, and grass and meadow are its kin.
+- landuse=meadow | landuse=grass [0x1c resolution 19]
++ landuse=meadow | landuse=grass [0x55 resolution 19]  # kmap: grass with the grassland, not the fields
+
+@@ points
+# --- a viewpoint, an attraction and an artwork shared 0x2c04, which is the viewpoint's
+# number in Garmin's vocabulary and in every icon set kmap ships. On one number the
+# attractions, being many, took the picture, and the lookout lost its binoculars.
+# 0x2c0d is the tourist site, where kmap's own tourism=* fallback already lands.
+- tourism=attraction [0x2c04 resolution 24]
++ tourism=attraction [0x2c0d resolution 24]  # kmap: the tourist site's number, so the viewpoint keeps 0x2c04 to itself
+- tourism=artwork [0x2c04 resolution 24]
++ tourism=artwork [0x2c0d resolution 24]  # kmap: with the attractions, off the viewpoint's number

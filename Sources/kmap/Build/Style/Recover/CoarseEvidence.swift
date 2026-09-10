@@ -21,8 +21,10 @@ enum CoarseEvidence {
     /// A cell more ways pass through than this says nothing about any of them.
     static let tooBusyCell = 32
 
-    /// The least element corners a candidate must hold to qualify.
+    /// The least element corners a candidate must hold to qualify, and the fraction
+    /// of them it must hold on a large element.
     static let fewestShared = 6
+    static let cornerShare = 3
 
     static func quantize(_ cell: UInt64, shift: UInt64 = latticeShift) -> UInt64 {
         (((cell >> 32) >> shift) << 32) | ((cell & 0xFFFF_FFFF) >> shift)
@@ -50,7 +52,8 @@ enum CoarseEvidence {
                     let q = quantize(cell, shift: shift)
                     if seen.insert(q).inserted { cells.append(q) }
                 }
-                let ring = way.cells.count > 3 && way.cells.first == way.cells.last
+                let ring = way.cells.count >= GarminGrid.ringVertices
+                    && way.cells.first == way.cells.last
                 closed.append(ring)
                 wayCells.append(cells)
                 guard !ringsOnly || ring else { continue }
@@ -61,16 +64,54 @@ enum CoarseEvidence {
         }
     }
 
-    /// Reads every coarse-level area against one extract, adding witnesses for what
-    /// qualifies. Elements the detailed pass already answers for are left alone — the
-    /// evidence dedupes witnesses by way, so a second sighting costs nothing.
+    /// The tagged nodes of one extract on a zoomed-out level's lattice, for the points
+    /// a style draws only there: a village that is a label at every zoom but the
+    /// closest.
+    struct PointLattice {
+        let shift: Int
+        var byCell: [UInt64: [Int32]] = [:]
+
+        init(_ index: GroundIndex, shift: Int) {
+            self.shift = shift
+            for (slot, node) in index.nodes.enumerated() {
+                byCell[GarminGrid.onLattice(node.cell, shift: shift), default: []]
+                    .append(Int32(slot))
+            }
+        }
+    }
+
+    /// Reads every coarse-level element against one extract, adding witnesses for
+    /// what qualifies. Elements the detailed pass already answers for are left alone:
+    /// the evidence dedupes witnesses by source, so a second sighting costs nothing.
     static func match(_ dump: ElementDumper.Dump, index: GroundIndex,
                       into evidence: inout Evidence) {
         guard !dump.elements.isEmpty else { return }
         let lattice = Lattice(index)
+        var points: [Int: PointLattice] = [:]
         for at in 0..<dump.count {
             let element = dump.elements[at]
-            guard element.kind != .point else { continue }
+            if element.kind == .point {
+                // A point sits on its level's lattice; the nodes standing in that
+                // cell name it when they all mean one thing.
+                guard let resolution = dump.resolution(at),
+                      let cell = dump.chain(at).first else { continue }
+                let shift = GarminGrid.fullResolution - resolution
+                if points[shift] == nil { points[shift] = PointLattice(index, shift: shift) }
+                guard let slots = points[shift]?.byCell[cell], !slots.isEmpty else { continue }
+                var meaning: String?
+                var winner: Int32 = -1
+                for slot in slots {
+                    guard let tag = DefaultRuleBook.meaning(of: index.nodes[Int(slot)].tags)
+                    else { continue }
+                    if meaning == nil { meaning = tag; winner = slot }
+                    else if meaning != tag { winner = -1; break }
+                }
+                guard winner >= 0 else { continue }
+                let node = index.nodes[Int(winner)]
+                evidence.witness(kind: .point, type: element.type, way: node.id,
+                                 tags: node.tags, resolution: resolution)
+                continue
+            }
             var seen = Set<UInt64>()
             var corners: [UInt64] = []
             for cell in dump.chain(at) {
@@ -83,7 +124,7 @@ enum CoarseEvidence {
             for corner in corners {
                 for slot in lattice.byCell[corner] ?? [] { held[slot, default: 0] += 1 }
             }
-            let wanted = max(fewestShared, corners.count / 3)
+            let wanted = max(fewestShared, corners.count / cornerShare)
             // A shape and a line are answered differently. A fill covers ground, so
             // everything under it must agree or it names nothing. A zoomed-out line
             // runs the length of one way and brushes past dozens — every road it
@@ -92,25 +133,20 @@ enum CoarseEvidence {
             // by a clear margin over the next meaning.
             var winner: Int32 = -1
             if element.kind == .area {
-                var meaning: String?
-                var agreed = true
                 // Ordered, as the line branch is: which way of the several agreeing
                 // ones is recorded decides an id in the ledger, and a dictionary's own
                 // order is not the same from one run to the next.
-                for (slot, count) in held.sorted(by: { ($0.value, $0.key)
-                                                       > ($1.value, $1.key) })
-                where count >= wanted {
-                    let tags = index.tags(ofWay: slot)
-                    guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
-                    if meaning == nil {
-                        meaning = tag
-                        winner = slot
-                    } else if meaning != tag {
-                        agreed = false
-                        break
-                    }
+                let ranked = held.sorted { ($0.value, $0.key) > ($1.value, $1.key) }
+                    .filter { $0.value >= wanted }
+                // The holes are asked last: a fill cut through a lake traces the lake's
+                // ring too, and the lake is not what the fill means.
+                if let one = unanimous(ranked, in: index) {
+                    winner = one
+                } else if let one = unanimous(ranked.filter { !index.isInner($0.key) },
+                                              in: index) {
+                    winner = one
                 }
-                guard agreed, winner >= 0 else { continue }
+                guard winner >= 0 else { continue }
             } else {
                 var best = (slot: Int32(-1), count: 0, tag: "")
                 var runnerUp = 0
@@ -134,6 +170,23 @@ enum CoarseEvidence {
                              tags: index.tags(ofWay: winner),
                              resolution: dump.resolution(at))
         }
+    }
+
+    /// The first of the candidates when all of them mean one thing, else nil.
+    private static func unanimous(_ ranked: [(key: Int32, value: Int)],
+                                  in index: GroundIndex) -> Int32? {
+        var meaning: String?
+        var winner: Int32 = -1
+        for (slot, _) in ranked {
+            guard let tag = DefaultRuleBook.meaning(of: index.tags(ofWay: slot)) else { continue }
+            if meaning == nil {
+                meaning = tag
+                winner = slot
+            } else if meaning != tag {
+                return nil
+            }
+        }
+        return winner >= 0 ? winner : nil
     }
 
     /// The rescue lattice for points: about 38 m, one step finer than the polygon one.
@@ -164,7 +217,8 @@ enum CoarseEvidence {
         // road it stands on, and the whole style would learn that roads are bus stops.
         let lattice = Lattice(index, shift: rescueShift, ringsOnly: true)
 
-        let cores = max(1, min(ProcessInfo.processInfo.activeProcessorCount, 16))
+        let cores = max(1, min(ProcessInfo.processInfo.activeProcessorCount,
+                               StyleRecovery.mostCores))
         let span = (wanted.count + cores - 1) / cores
         let all = wanted
         await withTaskGroup(of: (Evidence, [Int]).self) { group in
@@ -178,7 +232,9 @@ enum CoarseEvidence {
                     var stepped = 0
                     for at in all[from..<upTo] {
                         stepped += 1
-                        if stepped % 8192 == 0 { progress?.advance(8192) }
+                        if stepped % StyleRecovery.progressStride == 0 {
+                            progress?.advance(StyleRecovery.progressStride)
+                        }
                         let element = dump.elements[at]
                         guard let cell = dump.chain(at).first,
                               let (slot, tags) = place(of: cell, lattice: lattice,

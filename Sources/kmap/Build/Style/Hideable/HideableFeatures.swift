@@ -50,16 +50,11 @@ struct HideableFeature: Equatable {
                    context: nil)
     ]
 
-    /// Barriers split by the kind of way they stand on. The rule text has to match the
-    /// three-way split `StyleCatalog.splitBarrierRule` writes, byte for byte.
+    /// Barriers split by the kind of way they stand on: one substitution per group,
+    /// each naming the line `StyleCatalog.splitBarrierRule` writes, byte for byte,
+    /// from the same definitions.
     private static func contextual(id: String, name: String, note: String,
                                    context: String?) -> HideableFeature {
-        let barriers = "barrier=bollard | barrier=bus_trap | barrier=gate | barrier=block | "
-                     + "barrier=cycle_barrier | barrier=stile | barrier=kissing_gate | "
-                     + "barrier=lift_gate | barrier=swing_gate"
-        let condition = context.map { "(\(barriers)) & kmap:on=\($0)" }
-            ?? "(\(barriers)) & kmap:on!=path & kmap:on!=minor & kmap:on!=fence"
-        let action = "    {add name='${barrier|subst:\"_=> \"}'} [0x3200 resolution 24]"
         let hiddenAction = "    {add name='${barrier|subst:\"_=> \"}'}"
                          + "  # kmap: hidden — actions kept, type dropped"
         return HideableFeature(
@@ -67,9 +62,12 @@ struct HideableFeature: Equatable {
             // The .gpi carries no notion of which way a barrier stands on, so any barrier
             // choice drops barriers from it wholesale.
             tag: "barrier=*",
-            substitutions: [(file: "points",
-                             old: condition + "\n" + action,
-                             new: condition + "\n" + hiddenAction)])
+            substitutions: StyleCatalog.barrierGroups.map { group in
+                let condition = StyleCatalog.barrierCondition(group.barriers, context: context)
+                return (file: "points",
+                        old: condition + "\n" + StyleCatalog.barrierAction(code: group.code),
+                        new: condition + "\n" + hiddenAction)
+            })
     }
 
     /// The curated entries plus the generated catalogue. Parsed once and cached, and
