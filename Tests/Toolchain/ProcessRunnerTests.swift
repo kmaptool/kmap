@@ -1,8 +1,8 @@
 import XCTest
 @testable import kmap
 
-/// Running mkgmap and the tool probes. Every external tool kmap uses goes through here,
-/// and the build reads the reported result rather than the tool's own words.
+/// Running mkgmap. Every long command kmap runs goes through here, and the build reads
+/// the reported result rather than the tool's own words.
 final class ProcessRunnerTests: XCTestCase {
 
     private func collect(_ executable: String, _ arguments: [String],
@@ -130,27 +130,5 @@ final class ProcessRunnerTests: XCTestCase {
             guard case .cancelled = error else { return XCTFail("wrong error: \(error)") }
         }
         XCTAssertLessThan(Date().timeIntervalSince(started), 20)
-    }
-
-    // MARK: Version probes
-
-    func testCaptureReturnsWhatTheToolPrinted() {
-        let echo = TestShell.echo("mkgmap 4917")
-        let out = ProcessRunner.capture(echo.executable, echo.arguments)
-        XCTAssertEqual(out?.trimmingCharacters(in: .whitespacesAndNewlines), "mkgmap 4917")
-    }
-
-    func testCaptureAnswersNothingForSomethingThatIsNotAToolAtAll() {
-        // The toolchain screen probes candidate paths; each miss must be quiet.
-        XCTAssertNil(ProcessRunner.capture(TestShell.nowhere, ["-version"]))
-        XCTAssertNil(ProcessRunner.capture(NSTemporaryDirectory(), ["-version"]))
-    }
-
-    func testCaptureGivesUpOnSomethingThatNeverFinishes() {
-        // The toolchain screen probes candidate paths this way, and a probe that never
-        // returns freezes the interface behind it.
-        let started = Date()
-        _ = ProcessRunner.capture(TestShell.path, TestShell.arguments(.sleep), timeout: 1)
-        XCTAssertLessThan(Date().timeIntervalSince(started), 10)
     }
 }

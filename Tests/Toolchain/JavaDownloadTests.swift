@@ -238,7 +238,7 @@ final class JavaUnpackTests: XCTestCase {
         let java = try XCTUnwrap(JavaDownload.javaBinary(under: root, on: .linux))
         XCTAssertEqual(java.lastPathComponent, "java")
         // Found by the same test the toolchain probe makes: it has to actually run.
-        let output = try XCTUnwrap(ProcessRunner.capture(java.path, ["-version"]))
+        let output = try XCTUnwrap(ProcessProbe.capture(java.path, ["-version"]))
         XCTAssertTrue(output.lowercased().contains("version"), output)
     }
 

@@ -160,7 +160,7 @@ enum Privilege: Equatable {
     /// check cannot become the prompt it tests for.
     static func sudoIsPasswordless(
         runner: (String, [String]) -> Int32? = { executable, arguments in
-            ProcessRunner.exitCode(executable, arguments, timeout: 5)
+            ProcessProbe.exitCode(executable, arguments, timeout: 5)
         }
     ) -> Bool {
         guard let sudo = Platform.which("sudo") else { return false }

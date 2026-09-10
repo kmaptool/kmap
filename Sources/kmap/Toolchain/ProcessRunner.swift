@@ -3,16 +3,10 @@ import Foundation
 /// Runs an external command, streaming its output line by line, and can be cancelled.
 final class ProcessRunner {
 
-    /// Lines of output kept for an error report, and how many of them it shows.
-    private static let tailLength = 40
+    /// Lines of the tail an error report shows.
     private static let reportedTail = 6
-    /// How long a probe may run, and how long a process is given to die once told to.
-    private static let probeTimeout: TimeInterval = 20
-    private static let exitGrace: TimeInterval = 2
     /// A cancelled command's time to exit cleanly before SIGKILL.
     private static let cancelGrace: TimeInterval = 3
-    /// Between two looks at `isRunning`.
-    private static let pollInterval: TimeInterval = 0.02
 
     struct Result {
         let exitCode: Int32
@@ -33,82 +27,6 @@ final class ProcessRunner {
                 return t("%1$@ exited with code %2$d", command, code)
                     + (detail.isEmpty ? "" : "\n  \(detail)")
             }
-        }
-    }
-
-    /// Accumulates output arriving on the pipe's background queue. All state is behind a
-    /// lock because `readabilityHandler` is called off whatever thread has the data.
-    private final class LineCollector {
-        private let lock = NSLock()
-        private var pending = ""
-        private var tail: [String] = []
-        private let onLine: (String) -> Void
-        /// Set by `finish()`. Removing the readability handler does not wait for a call
-        /// already running, so a chunk taken after the last flush flushes itself.
-        private var finishing = false
-
-        init(onLine: @escaping (String) -> Void) {
-            self.onLine = onLine
-        }
-
-        /// Takes a chunk as it arrives and calls `onLine` for every complete line in it.
-        /// Splits on unicode scalars, not Characters: Swift counts `\r\n` as one grapheme
-        /// cluster, so a Character search never finds the end of a CRLF line.
-        func ingest(_ chunk: String) {
-            var complete: [String] = []
-            lock.lock()
-            pending += chunk
-            while let newline = pending.unicodeScalars.firstIndex(of: "\n") {
-                let scalars = pending.unicodeScalars
-                let line = String(scalars[scalars.startIndex..<newline])
-                pending = String(scalars[scalars.index(after: newline)...])
-                let cleaned = stripControlSequences(line)
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "\r"))
-                guard !cleaned.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
-                remember(cleaned)
-                complete.append(cleaned)
-            }
-            let late = finishing
-            lock.unlock()
-            for line in complete { onLine(line) }
-            if late { flush() }
-        }
-
-        /// No more chunks are expected; a late one flushes itself.
-        func finish() {
-            lock.lock()
-            finishing = true
-            lock.unlock()
-            flush()
-        }
-
-        /// Emits whatever is left without a trailing newline.
-        func flush() {
-            lock.lock()
-            let rest = pending
-            pending = ""
-            lock.unlock()
-            guard !rest.isEmpty else { return }
-            // `Lines.of` splits on scalars and handles all three kinds of line ending.
-            for line in Lines.of(rest) where !line.isEmpty {
-                let cleaned = stripControlSequences(line)
-                guard !cleaned.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
-                lock.lock(); remember(cleaned); lock.unlock()
-                onLine(cleaned)
-            }
-        }
-
-        /// Keeps the last `tailLength` lines. Called with the lock held.
-        private func remember(_ line: String) {
-            tail.append(line)
-            let over = tail.count - ProcessRunner.tailLength
-            if over > 0 { tail.removeFirst(over) }
-        }
-
-        var snapshot: [String] {
-            lock.lock()
-            defer { lock.unlock() }
-            return tail
         }
     }
 
@@ -277,95 +195,5 @@ final class ProcessRunner {
     /// platform-specific part is in `ChildProcess`.
     private func drainWithoutWaiting(_ handle: FileHandle, into collector: LineCollector) {
         ChildProcess.readWhatIsWaiting(handle) { collector.ingest($0) }
-    }
-
-    /// Runs a command for its exit code alone, discarding its output. Returns nil if the
-    /// executable is missing or the command had to be killed at `timeout`.
-    static func exitCode(_ executable: String, _ arguments: [String],
-                         timeout: TimeInterval = probeTimeout) -> Int32? {
-        guard FileTools.isExecutable(executable) else { return nil }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        process.standardOutput = ChildProcess.discardedOutput
-        process.standardError = ChildProcess.discardedOutput
-        // Never the terminal: the point of the call is to learn whether the tool prompts.
-        process.standardInput = ChildProcess.emptyInput
-        do { try process.run() } catch { return nil }
-        guard waitForExit(process, within: timeout) else {
-            stop(process)
-            return nil
-        }
-        return process.terminationStatus
-    }
-
-    /// Polls for the exit instead of `waitUntilExit()`, which deadlocks on the main thread
-    /// on Linux: Foundation there delivers the exit through the main queue, and the
-    /// interface and `doctor` probe from the main thread. True once the process has exited.
-    @discardableResult
-    static func waitForExit(_ process: Process, within: TimeInterval) -> Bool {
-        let deadline = Date().addingTimeInterval(within)
-        while process.isRunning && Date() < deadline {
-            Thread.sleep(forTimeInterval: pollInterval)
-        }
-        return !process.isRunning
-    }
-
-    /// Asks the process to stop and gives it `exitGrace`; then insists, and waits again.
-    private static func stop(_ process: Process) {
-        process.terminate()
-        if !waitForExit(process, within: exitGrace) {
-            ChildProcess.insist(on: process)
-            waitForExit(process, within: exitGrace)
-        }
-    }
-
-    /// Runs a command to capture its combined output, for version probes. Returns nil if the
-    /// executable is missing or the output is not UTF-8.
-    static func capture(_ executable: String, _ arguments: [String],
-                        timeout: TimeInterval = probeTimeout) -> String? {
-        guard FileTools.isExecutable(executable) else { return nil }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        // Never the terminal, as in `run`: a prompting probe would swallow keystrokes.
-        process.standardInput = ChildProcess.emptyInput
-
-        // Read as it arrives, so a talkative probe cannot fill the pipe and block on it.
-        // The read is under the lock: once `draining` is set nothing more is taken here,
-        // and a chunk in flight has landed before the drain below reads the rest.
-        let lock = NSLock()
-        nonisolated(unsafe) var data = Data()
-        nonisolated(unsafe) var draining = false
-        let reading = pipe.fileHandleForReading
-        reading.readabilityHandler = { handle in
-            lock.lock()
-            defer { lock.unlock() }
-            guard !draining else { return }
-            let chunk = handle.availableData
-            // Empty is end of file, where a handler left in place is called without end.
-            if chunk.isEmpty { handle.readabilityHandler = nil } else { data.append(chunk) }
-        }
-        do { try process.run() } catch {
-            reading.readabilityHandler = nil
-            try? reading.close()
-            return nil
-        }
-
-        // The wait is for the process, not for the end of the pipe: the handler is not
-        // called at end of file on every platform.
-        if !waitForExit(process, within: timeout) { stop(process) }
-        lock.lock()
-        draining = true
-        lock.unlock()
-        reading.readabilityHandler = nil
-        // What the child wrote last is still in the pipe, read without waiting: a
-        // grandchild may hold the writing end open.
-        ChildProcess.readWhatIsWaiting(reading) { data.append(Data($0.utf8)) }
-        try? reading.close()
-        return String(data: data, encoding: .utf8)
     }
 }

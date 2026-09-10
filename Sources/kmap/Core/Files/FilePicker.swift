@@ -73,7 +73,7 @@ enum FilePicker {
         return chosen.map { URL(fileURLWithPath: $0) }
         #else
         guard let helper = helper() else { return nil }
-        let output = ProcessRunner.capture(helper.path,
+        let output = ProcessProbe.capture(helper.path,
                                            arguments(for: helper.kind, wanted: wanted,
                                                      startingAt: start, prompt: prompt),
                                            timeout: 600)

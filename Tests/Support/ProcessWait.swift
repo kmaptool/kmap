@@ -6,5 +6,5 @@ private let fixtureToolTimeout: TimeInterval = 60
 
 /// XCTest runs on the main thread, where `waitUntilExit()` deadlocks on Linux.
 func waitForExit(_ process: Process) {
-    ProcessRunner.waitForExit(process, within: fixtureToolTimeout)
+    ChildProcess.waitForExit(process, within: fixtureToolTimeout)
 }

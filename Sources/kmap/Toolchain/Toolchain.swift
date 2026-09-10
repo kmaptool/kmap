@@ -93,7 +93,7 @@ final class Toolchain {
                 continue
             }
             for options in Toolchain.javaRescueOptions {
-                guard let output = ProcessRunner.capture(candidate, options + ["-version"])
+                guard let output = ProcessProbe.capture(candidate, options + ["-version"])
                 else { continue }
                 // A version string is the only output that means the JVM ran: both a stub
                 // launcher and a JVM that failed to initialize exit with a message instead.
@@ -175,10 +175,10 @@ final class Toolchain {
     static func patchVersion(of jar: URL) -> Int {
         guard FileTools.exists(jar), let archive = Archive.current else { return 0 }
         let list = archive.listing(of: jar)
-        guard let listing = ProcessRunner.capture(list.executable, list.arguments),
+        guard let listing = ProcessProbe.capture(list.executable, list.arguments),
               listing.contains(patchMarker) else { return 0 }
         let read = archive.read(patchMarker, from: jar)
-        guard let body = ProcessRunner.capture(read.executable, read.arguments),
+        guard let body = ProcessProbe.capture(read.executable, read.arguments),
               let line = body.split(separator: "\n").first(where: { $0.hasPrefix("patch-version:") }),
               let version = Int(line.dropFirst("patch-version:".count)
                                     .trimmingCharacters(in: .whitespaces)) else { return 1 }
@@ -210,7 +210,7 @@ final class Toolchain {
     private func probeMkgmap() -> (url: URL, version: String)? {
         guard let java = findJava() else { return nil }
         for candidate in mkgmapCandidates() where FileTools.exists(candidate) {
-            let output = ProcessRunner.capture(java.path,
+            let output = ProcessProbe.capture(java.path,
                                                java.command(["-jar", candidate.path, "--version"])) ?? ""
             let version = output.split(separator: "\n")
                 .first { $0.lowercased().contains("mkgmap") }
@@ -229,7 +229,7 @@ final class Toolchain {
     private func probePyhgtmap() -> (url: URL, version: String)? {
         let binary = pyhgtmapBinary
         guard FileTools.isExecutable(binary.path) else { return nil }
-        let output = (ProcessRunner.capture(binary.path, ["--version"]) ?? "")
+        let output = (ProcessProbe.capture(binary.path, ["--version"]) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let firstLine = output.split(separator: "\n").first.map(String.init)
         return (binary, firstLine ?? "installed")

@@ -11,7 +11,7 @@ extension Platform {
     /// configurable in `wsl.conf`; `defaultWindowsPath` covers its absence.
     static func windowsPath(for url: URL,
                             on platform: Platform = Platform.current,
-                            runner: (String, [String]) -> String? = { ProcessRunner.capture($0, $1, timeout: 5) })
+                            runner: (String, [String]) -> String? = { ProcessProbe.capture($0, $1, timeout: 5) })
         -> String? {
         // A native build has nothing to translate, and `wslpath` would reject the path.
         if platform.usesWindowsPaths { return url.nativePath }

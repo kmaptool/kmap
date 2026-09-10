@@ -436,7 +436,7 @@ extension Toolchain {
     /// The revision the jar was built from, read from its own version file.
     private func mkgmapRevision(of stock: URL, archive: Archive) throws -> String {
         let version = archive.read("mkgmap-version.properties", from: stock)
-        guard let listing = ProcessRunner.capture(version.executable, version.arguments),
+        guard let listing = ProcessProbe.capture(version.executable, version.arguments),
               let revision = listing.allMatches("svn.version: ([0-9]+)").first?
                 .allMatches("[0-9]+").first else {
             throw InstallError.failed("could not read the mkgmap revision from \(stock.lastPathComponent)")

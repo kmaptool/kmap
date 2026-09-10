@@ -202,7 +202,7 @@ enum ToolLocations {
 
     /// The JDK home reported by the macOS `java_home` shim, or nil where it reports none.
     private static func macJavaHome() -> String? {
-        guard let home = ProcessRunner.capture("/usr/libexec/java_home", [])?
+        guard let home = ProcessProbe.capture("/usr/libexec/java_home", [])?
             .trimmingCharacters(in: .whitespacesAndNewlines),
               !home.isEmpty, !home.lowercased().contains("unable to") else { return nil }
         return home

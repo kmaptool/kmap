@@ -8,10 +8,34 @@ import WinSDK
 import ucrt
 #endif
 
-/// The two things about running a child that Foundation does not answer the same way on
-/// every platform: how to insist that it stop, and how to read what is waiting in a pipe
-/// without blocking for more. The rest of `Process` is portable.
+/// What Foundation does not answer the same way on every platform about running a child:
+/// how to wait for it, how to insist that it stop, and how to read what is waiting in a
+/// pipe without blocking for more. The rest of `Process` is portable.
 enum ChildProcess {
+
+    /// Grace after `terminate()`, and the poll step.
+    static let exitGrace: TimeInterval = 2
+    private static let pollInterval: TimeInterval = 0.02
+
+    /// Polls instead of `waitUntilExit()`, which deadlocks on the main thread on Linux.
+    /// True once the process has exited.
+    @discardableResult
+    static func waitForExit(_ process: Process, within: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(within)
+        while process.isRunning && Date() < deadline {
+            Thread.sleep(forTimeInterval: pollInterval)
+        }
+        return !process.isRunning
+    }
+
+    /// Terminate, `exitGrace`, then SIGKILL.
+    static func stop(_ process: Process) {
+        process.terminate()
+        if !waitForExit(process, within: exitGrace) {
+            insist(on: process)
+            waitForExit(process, within: exitGrace)
+        }
+    }
 
     /// Stop it, having already asked politely.
     ///
