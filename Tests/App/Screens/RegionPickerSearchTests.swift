@@ -33,7 +33,7 @@ final class RegionPickerSearchTests: XCTestCase {
 
     private func labels(_ screen: Screen) -> [String] { screen.page.keys.map(\.label) }
 
-    func testAKeptSearchCanBeMarkedAndAnotherSearchedFor() throws {
+    func testAKeptSearchCanBeMarkedAndAnotherSearchedFor() async throws {
         let ctx = try context()
         let screen = RegionPickerScreen()
 
@@ -65,7 +65,7 @@ final class RegionPickerSearchTests: XCTestCase {
         XCTAssertTrue(next is RecipeScreen)
     }
 
-    func testEscapeClearsAKeptQueryBeforeItLeavesTheScreen() throws {
+    func testEscapeClearsAKeptQueryBeforeItLeavesTheScreen() async throws {
         let ctx = try context()
         let screen = RegionPickerScreen()
         _ = screen.handle(.char("/"), ctx: ctx)
@@ -77,7 +77,7 @@ final class RegionPickerSearchTests: XCTestCase {
         guard case .pop = screen.handle(.esc, ctx: ctx) else { return XCTFail("did not leave") }
     }
 
-    func testOpeningAFoundRegionDropsTheQuery() throws {
+    func testOpeningAFoundRegionDropsTheQuery() async throws {
         let ctx = try context()
         let screen = RegionPickerScreen()
         _ = screen.handle(.char("/"), ctx: ctx)
