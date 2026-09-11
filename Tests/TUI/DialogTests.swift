@@ -66,9 +66,9 @@ final class DialogTests: XCTestCase {
 
     func testTheFooterSaysWhatEnterWillDo() {
         var dialog = rights()
-        XCTAssertEqual(dialog.footerHints.first { $0.key == "⏎" }?.label, "cancel")
+        XCTAssertEqual(dialog.footerHints.first { $0.key == Glyph.enter }?.label, "cancel")
         _ = dialog.handle(.right)
-        XCTAssertEqual(dialog.footerHints.first { $0.key == "⏎" }?.label, "I confirm")
+        XCTAssertEqual(dialog.footerHints.first { $0.key == Glyph.enter }?.label, "I confirm")
     }
 
     // MARK: Drawing it

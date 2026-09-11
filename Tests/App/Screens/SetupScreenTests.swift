@@ -43,7 +43,7 @@ final class SetupScreenTests: XCTestCase {
         let ctx = AppContext()
         let screen = SetupScreen(missing: [tool("java", ready: false)]) { _ in .pop }
         // Cancelling leaves the screen without having touched the machine.
-        XCTAssertEqual(screen.page.keys.map(\.key), ["←→", "⏎"])
+        XCTAssertEqual(screen.page.keys.map(\.key), ["←→", Glyph.enter])
         let route = screen.handle(.esc, ctx: ctx)
         if case .pop = route {} else { XCTFail("cancelling should leave the screen") }
     }
