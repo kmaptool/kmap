@@ -196,7 +196,6 @@ final class RecipeForm {
                      style: styleChoices.first { $0.id == profile.choices.styleID },
                      regionCodePage: regionCodePage)
         // Follows the profile, not the choices: editing a field afterwards leaves the name.
-        recipe.profileName = profile.name
         message = nil
     }
 

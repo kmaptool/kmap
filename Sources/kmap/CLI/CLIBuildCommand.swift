@@ -317,15 +317,6 @@ extension CLI {
         recipe.theme = drawn.theme
         recipe.shapeOverlap = wantedOverlap
         recipe.landOverlap = wantedLand
-        // The profile's own spelling of its name: the match is case-insensitive.
-        recipe.profileName = flags.value("profile").flatMap { wanted in
-            store.profiles.first {
-                $0.name.compare(wanted, options: .caseInsensitive) == .orderedSame
-            }?.name
-        } ?? ""
-        // The number of terminal extracts covered, walked from the index: a parent
-        // region counts its leaves, a leaf counts itself.
-        recipe.leafRegionCount = index.leafRegionCount(of: chosen.map(\.id))
 
         // Said before any work starts, and naming the one command that fixes it: a build
         // that fails ten minutes in because there is no Java helps nobody.

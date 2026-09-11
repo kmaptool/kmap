@@ -161,16 +161,15 @@ struct BuildRecipe {
     var shapeOverlap: Int = Int(TileSplitter.shapeClipOverlap)
     var landOverlap: Int = Int(TileSplitter.landClipOverlap)
 
-    /// The profile this build was filled in from, used for the file name only. Not itself
-    /// a choice, so it is not in BuildChoices; empty means the file names no profile.
-    var profileName: String = ""
-
     var heapGB: Int = 8
     var downloadConnections: Int = 4
 
     /// The map's series name. Receivers display it only when it is short, so the device
     /// title stands in; the region names stay in `mapName` and the Map Info block.
     var seriesName: String { deviceTitle }
+
+    /// What a receiver lists the map as: the title again.
+    var familyName: String { headerDescription }
 
     /// Garmin's own limit on the description field in an `.img` header.
     static let headerDescriptionLimit = 50
@@ -182,14 +181,30 @@ struct BuildRecipe {
         Self.fitted(deviceTitle, to: Self.headerDescriptionLimit)
     }
 
-    /// The bold line on the receiver: how much ground, and when built. The count is leaf
-    /// extracts rather than chosen entries, since one entry may cover any amount of ground.
-    var deviceTitle: String { "kmap \(regionsCovered) regions \(dateStamp)" }
+    /// The bold line on the receiver: the tool, the month, and the region ids, which are
+    /// ASCII whatever the code page.
+    var deviceTitle: String {
+        let head = "kmap \(dateStamp.prefix(7)), "
+        return Self.fittedIDs(regions.map(\.id), limit: Self.headerDescriptionLimit) { named, rest in
+            head + named.joined(separator: rest > 0 ? ", " : " and ")
+                + (rest > 0 ? " and \(rest) more" : "")
+        }
+    }
 
-    /// Leaf regions covered, filled from the RegionIndex where the recipe is made. Zero
-    /// means the index was not at hand and the chosen regions stand in.
-    var leafRegionCount: Int = 0
-    var regionsCovered: Int { max(leafRegionCount, regions.count) }
+    /// Up to two of `ids` within `limit`, the rest counted: `spell` renders the named ids
+    /// and the count. One id where two do not fit; that id cut at a hyphen as the last
+    /// resort. The count always survives.
+    static func fittedIDs(_ ids: [String], limit: Int,
+                          spell: ([String], Int) -> String) -> String {
+        for named in [2, 1] where ids.count >= named {
+            let text = spell(Array(ids.prefix(named)), ids.count - named)
+            if text.count <= limit { return text }
+        }
+        guard let first = ids.first else { return spell([], 0) }
+        let overhead = spell([""], ids.count - 1).count
+        let cut = fitted(first, to: max(1, limit - overhead), breakingOn: "-")
+        return spell([cut], ids.count - 1)
+    }
 
     static func fitted(_ text: String, to limit: Int,
                        breakingOn separator: Character = " ") -> String {
@@ -204,18 +219,21 @@ struct BuildRecipe {
         return cut
     }
 
-    /// The family name, which a receiver shows in small print under the map's title.
-    var familyName: String { "built using kmap" }
-
     /// What the map is called: one region's name, or the set spelled out. Not translated,
     /// since the text is written into the map itself.
-    var mapName: String {
-        guard !extraRegions.isEmpty else { return region.name }
-        if regions.count == 2 { return "\(region.name) and \(extraRegions[0].name)" }
-        if regions.count == 3 {
-            return "\(region.name), \(extraRegions[0].name) and \(extraRegions[1].name)"
+    var mapName: String { Self.spelledOut(regions.map(\.name), upTo: 3) }
+
+    /// Up to `upTo` items spelled out; past that, the first `upTo` and a count.
+    static func spelledOut(_ items: [String], upTo: Int) -> String {
+        if items.count > upTo {
+            return items.prefix(upTo).joined(separator: ", ") + " and \(items.count - upTo) more"
         }
-        return "\(region.name) and \(extraRegions.count) more"
+        switch items.count {
+        case 0: return ""
+        case 1: return items[0]
+        case 2: return "\(items[0]) and \(items[1])"
+        default: return items.dropLast().joined(separator: ", ") + " and \(items[items.count - 1])"
+        }
     }
 
     /// A file-safe id for the map: the region's id, or the first two ids and a count.

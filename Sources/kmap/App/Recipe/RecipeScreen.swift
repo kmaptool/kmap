@@ -65,12 +65,6 @@ final class RecipeScreen: Screen {
             heapGB: settings.resolvedHeapGB,
             downloadConnections: settings.downloadConnections)
         recipe.apply(profile.choices, style: nil, regionCodePage: regionCodePage)
-        recipe.profileName = profile.name
-        // Count of terminal extracts covered. Without the index the chosen regions stand
-        // in, which is correct whenever they are leaves.
-        if let index {
-            recipe.leafRegionCount = index.leafRegionCount(of: regions.map(\.id))
-        }
 
         self.form = RecipeForm(mode: .build, recipe: recipe,
                                regionCodePage: regionCodePage,

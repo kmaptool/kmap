@@ -33,7 +33,7 @@ final class BuildRecipeTests: XCTestCase {
         let c = region("c", "Region C"), d = region("d", "Region D")
         XCTAssertEqual(recipe([a, b]).mapName, "Region A and Region B")
         XCTAssertEqual(recipe([a, b, c]).mapName, "Region A, Region B and Region C")
-        XCTAssertEqual(recipe([a, b, c, d]).mapName, "Region A and 3 more")
+        XCTAssertEqual(recipe([a, b, c, d]).mapName, "Region A, Region B, Region C and 1 more")
     }
 
     func testTheSlugOfASetNamesTwoAndCountsTheRest() {
@@ -206,37 +206,35 @@ final class BuildRecipeTests: XCTestCase {
         return out
     }
 
-    func testAFinishedFileSaysStyleCountAndDateInThatOrder() {
+    func testAFinishedFileNamesTheRegionsThenTheDate() {
         // The date sits immediately before the extension, so builds from one card stay
-        // distinguishable.
+        // distinguishable. The style and the profile are the folder's business.
         let made = dated(recipe([region("small-region", "Small Region")]))
-        XCTAssertEqual(made.fileName(), "kmap-borrowed-1-regions-2026-08-21.img")
+        XCTAssertEqual(made.fileName(), "kmap-small-region-2026-08-21.img")
         XCTAssertEqual(made.dateStamp, "2026-08-21")
+        XCTAssertEqual(dated(recipe([region("region-a", "A"), region("region-b", "B")])).fileName(),
+                       "kmap-region-a+region-b-2026-08-21.img")
     }
 
-    func testTheCountIsLeafRegionsWhenTheIndexSuppliedOne() {
-        // One chosen entry covers every leaf extract beneath it; the name carries that
-        // number, not the count of entries picked.
-        var made = dated(recipe([region("continent/large-region", "Large Region")]))
-        made.leafRegionCount = 16
-        XCTAssertEqual(made.fileName(), "kmap-borrowed-16-regions-2026-08-21.img")
-    }
-
-    func testWithoutTheIndexTheChosenRegionsStandIn() {
+    func testASetNamesTwoRegionsAndCountsTheRest() {
         let made = dated(recipe([region("a", "A"), region("b", "B"), region("c", "C")]))
-        XCTAssertEqual(made.regionsCovered, 3)
-        XCTAssertEqual(made.fileName(), "kmap-borrowed-3-regions-2026-08-21.img")
+        XCTAssertEqual(made.fileName(), "kmap-a+b+1-more-2026-08-21.img")
+        // Two ids that do not fit leave one, and the count grows to match.
+        let three = dated(recipe([region("crimean-fed-district", "Crimea"),
+                                  region("north-caucasus-fed-district", "Caucasus"),
+                                  region("south-fed-district", "South")]))
+        XCTAssertEqual(three.fileName(), "kmap-crimean-fed-district+2-more-2026-08-21.img")
     }
 
     func testEveryPieceOfASplitMapNamesItsPlaceBeforeTheDate() {
         let made = dated(recipe([region("continent/large-region", "Large Region")]))
         XCTAssertEqual(made.fileName(ordinal: 1, of: 3),
-                       "kmap-borrowed-1-regions-p1-2026-08-21.img")
+                       "kmap-continent-large-region-p1-2026-08-21.img")
         XCTAssertEqual(made.fileName(ordinal: 3, of: 3),
-                       "kmap-borrowed-1-regions-p3-2026-08-21.img")
+                       "kmap-continent-large-region-p3-2026-08-21.img")
         // A single file carries no part marker at all.
         XCTAssertEqual(made.fileName(ordinal: 1, of: 1),
-                       "kmap-borrowed-1-regions-2026-08-21.img")
+                       "kmap-continent-large-region-2026-08-21.img")
     }
 
     // MARK: What the map says about itself
@@ -287,34 +285,68 @@ final class BuildRecipeTests: XCTestCase {
         XCTAssertLessThanOrEqual(made.headerDescription.count,
                                  BuildRecipe.headerDescriptionLimit)
 
-        // And for a name of any length at all.
-        made = dated(recipe([region("x", String(repeating: "Very Long Region ", count: 20))]))
+        // And for an id of any length at all.
+        made = dated(recipe([region(String(repeating: "very-long-region-", count: 20), "X")]))
         XCTAssertLessThanOrEqual(made.headerDescription.count,
                                  BuildRecipe.headerDescriptionLimit)
     }
 
-    func testTheHeaderDescriptionCarriesNoRegionNames() {
-        // The header slot is bounded; the region names live on in `mapName`.
+    func testTheHeaderDescriptionCarriesTheRegionIdsNotTheirNames() {
+        // An id is ASCII whatever the code page; the names live on in `mapName`.
         let made = dated(recipe([region("neighbour-region", "Neighbour Region"),
                                  region("small-region", "Small Region")]))
+        XCTAssertEqual(made.headerDescription, "kmap 2026-08, neighbour-region and small-region")
         XCTAssertFalse(made.headerDescription.contains("Neighbour"), made.headerDescription)
-        XCTAssertFalse(made.headerDescription.contains("Small"), made.headerDescription)
-        XCTAssertTrue(made.headerDescription.contains("kmap"), made.headerDescription)
-        XCTAssertTrue(made.headerDescription.contains("2026-08-21"), made.headerDescription)
     }
 
-    func testTheDeviceCardReadsTitleThenAttribution() {
-        // A receiver's map card shows the img description as its first line and the family
-        // name as its second.
-        var made = dated(recipe([region("a", "A"), region("b", "B")]))
-        made.leafRegionCount = 12
-        XCTAssertEqual(made.deviceTitle, "kmap 12 regions 2026-08-21")
-        XCTAssertEqual(made.headerDescription, "kmap 12 regions 2026-08-21")
-        XCTAssertEqual(made.familyName, "built using kmap")
+    func testTheDeviceCardReadsTheRegionsEverywhere() {
+        // A receiver lists the map by its family name and leads its card with the img
+        // description: the same words, so the map is recognisable in either place.
+        let made = dated(recipe([region("a", "A"), region("b", "B")]))
+        XCTAssertEqual(made.deviceTitle, "kmap 2026-08, a and b")
+        XCTAssertEqual(made.headerDescription, "kmap 2026-08, a and b")
+        XCTAssertEqual(made.familyName, "kmap 2026-08, a and b")
         // The series name repeats the device title, since a receiver displays it only when
         // short; the region names stay in `mapName` for the interface.
         XCTAssertEqual(made.seriesName, made.deviceTitle)
         XCTAssertEqual(made.mapName, "A and B")
+    }
+
+    func testTheFamilyNameIsASCIIAndShortWhateverTheRegions() {
+        // A name outside the map's code page would reach the receiver as question marks;
+        // the ids never leave ASCII. Fitted, so a set of long ids does not run on.
+        let french = dated(recipe([region("polynesie-francaise", "Polynésie française (French Polynesia)")]))
+        XCTAssertEqual(french.familyName, "kmap 2026-08, polynesie-francaise")
+        let many = dated(recipe([region("saint-helena-ascension-and-tristan-da-cunha", "Saint Helena"),
+                                 region("ireland-and-northern-ireland", "Ireland"),
+                                 region("north-caucasus-fed-district", "North Caucasus")]))
+        XCTAssertLessThanOrEqual(many.familyName.count, BuildRecipe.headerDescriptionLimit)
+        XCTAssertTrue(many.familyName.hasPrefix("kmap 2026-08, saint-helena"), many.familyName)
+        XCTAssertTrue(many.familyName.allSatisfy(\.isASCII))
+    }
+
+    func testATitleKeepsTheMonthAndTheCountAndCutsAnIdOnlyAtAHyphen() {
+        // The one id past 36 characters in the Geofabrik index, alone and with company.
+        let long = "saint-helena-ascension-and-tristan-da-cunha"
+        let alone = dated(recipe([region(long, "A")]))
+        XCTAssertEqual(alone.deviceTitle, "kmap 2026-08, saint-helena-ascension-and-tristan")
+        let three = dated(recipe([region(long, "A"), region("b", "B"), region("c", "C")]))
+        XCTAssertEqual(three.deviceTitle, "kmap 2026-08, saint-helena-ascension and 2 more")
+        XCTAssertLessThanOrEqual(three.deviceTitle.count, BuildRecipe.headerDescriptionLimit)
+    }
+
+    func testATitleThatDoesNotFitNamesOneRegionAndCountsTheRest() {
+        // Two ids where they fit, else one and a count, rather than a cut through a word.
+        let three = dated(recipe([region("crimean-fed-district", "Crimea"),
+                                  region("south-fed-district", "South"),
+                                  region("north-caucasus-fed-district", "Caucasus")]))
+        XCTAssertEqual(three.deviceTitle, "kmap 2026-08, crimean-fed-district and 2 more")
+        // Two long ids do not fit either; two short ones do.
+        let twoLong = dated(recipe([region("crimean-fed-district", "Crimea"),
+                                    region("south-fed-district", "South")]))
+        XCTAssertEqual(twoLong.deviceTitle, "kmap 2026-08, crimean-fed-district and 1 more")
+        let two = dated(recipe([region("crimean-fed-district", "Crimea"), region("kuban", "Kuban")]))
+        XCTAssertEqual(two.deviceTitle, "kmap 2026-08, crimean-fed-district and kuban")
     }
 
     func testFittingCutsAtAWordWhereThatLeavesSomethingToRead() {
@@ -334,12 +366,16 @@ final class BuildRecipeTests: XCTestCase {
     // MARK: The file name is bounded too
 
     func testAFileNameStopsGrowingWithTheRegionsInIt() {
-        // The name counts regions rather than listing them, so it is bounded for any number.
-        var made = dated(recipe([region("region-a", "Region A"),
-                                 region("region-b", "Region B")]))
-        made.leafRegionCount = 9999
-        XCTAssertEqual(made.fileName(), "kmap-borrowed-9999-regions-2026-08-21.img")
+        // Past the limit the slug is cut at a region boundary, so a name stays a name.
+        let made = dated(recipe([region("saint-helena-ascension-and-tristan-da-cunha", "A"),
+                                 region("ireland-and-northern-ireland", "B")]))
+        XCTAssertEqual(made.fileName(),
+                       "kmap-saint-helena-ascension-and-tristan-da+1-more-2026-08-21.img")
         XCTAssertLessThanOrEqual(made.fileName().count, 5 + BuildRecipe.fileNamePartLimit + 11 + 4)
+        // One id past the limit on its own is cut at a hyphen instead.
+        let long = dated(recipe([region(String(repeating: "very-long-region-", count: 5), "C")]))
+        XCTAssertTrue(long.fileName().hasPrefix("kmap-very-long-region-very-long-region-"), long.fileName())
+        XCTAssertLessThanOrEqual(long.fileName().count, 5 + BuildRecipe.fileNamePartLimit + 11 + 4)
     }
 
     // MARK: Two builds must not come out as one file

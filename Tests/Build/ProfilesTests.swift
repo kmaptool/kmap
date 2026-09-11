@@ -74,11 +74,9 @@ final class ProfilesTests: XCTestCase {
         // other on the device.
         var map = recipe()
         map.familyID = 6377
-        map.leafRegionCount = 9
         map.apply(BuildChoices(), style: style, regionCodePage: 1252)
 
         XCTAssertEqual(map.familyID, 6377)
-        XCTAssertEqual(map.leafRegionCount, 9)
         XCTAssertEqual(map.region.id, "continent/inland-region")
         XCTAssertEqual(map.outputDirectory.path, "/maps")
     }

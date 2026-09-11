@@ -146,33 +146,23 @@ extension BuildRecipe {
     /// The day this build started, as it appears in every name it writes.
     var dateStamp: String { Fmt.day(startedOn) }
 
-    /// How much of a part's name survives into a file name. The rest of the basename is
-    /// fixed, keeping the whole around fifty characters. Cut at a hyphen.
-    static let fileNamePartLimit = 32
+    /// How much of the slug a file name carries.
+    static let fileNamePartLimit = 48
 
-    /// How much of a profile's name a file name carries.
-    private static let profileNamePartLimit = 16
-
-    /// The name of one finished file: which profile built it, in what style, how much
-    /// ground and when, with the date always last so builds sort apart on a card.
-    ///
-    /// - Parameters:
-    ///   - ordinal: this file's place when one build comes out as several files.
-    ///   - of: how many files the build produced; 1 carries no part marker.
-    ///   - copy: which same-named build of the day this is; 2 and up go into the name,
-    ///     so two builds that would collide on a card get "-2", "-3" instead. The name
-    ///     does not carry the region — that is deliberate, it counts ground instead —
-    ///     which is exactly how Monaco and Andorra in the same style on the same day
-    ///     came out as one identical file name, and the second copied to a device
-    ///     silently replaced the first.
+    /// One finished file: the regions, its part of `total` if several, the date last so
+    /// builds sort apart on a card, and the copy number from 2 up.
     func fileName(ordinal: Int = 1, of total: Int = 1, copy: Int = 1) -> String {
         let part = total > 1 ? "p\(ordinal)-" : ""
-        var parts = ["kmap"]
-        if let profile = profileFileToken { parts.append(profile) }
-        parts.append(styleFileToken)
-        parts.append("\(regionsCovered)-regions")
         let bump = copy > 1 ? "-\(copy)" : ""
-        return parts.joined(separator: "-") + "-\(part)\(dateStamp)\(bump).img"
+        return "kmap-\(regionsFileToken)-\(part)\(dateStamp)\(bump).img"
+    }
+
+    /// The ids as a file name says them: "a+b", "a+b+N-more", fitted like the title.
+    private var regionsFileToken: String {
+        Self.fittedIDs(regions.map { FileTools.slugify($0.id) }, limit: Self.fileNamePartLimit) {
+            named, rest in
+            named.joined(separator: "+") + (rest > 0 ? "+\(rest)-more" : "")
+        }
     }
 
     /// The lowest copy number whose file names are all still free.
@@ -198,21 +188,6 @@ extension BuildRecipe {
         return copy
     }
 
-    /// The style as a file name says it, without the `typ:` prefix that marks a style
-    /// carrying a TYP. The prefix namespaces the id and is not part of the style's name.
-    private var styleFileToken: String {
-        let bare = style.id.hasPrefix("typ:") ? String(style.id.dropFirst(4)) : style.id
-        return FileTools.slugify(bare.replacingOccurrences(of: ":", with: "-"))
-    }
-
-    /// The profile as a file name says it, or nil where there is none. ASCII only, so a
-    /// receiver or card reader can show it; a name with no ASCII leaves the slot out.
-    private var profileFileToken: String? {
-        let ascii = String(String.UnicodeScalarView(profileName.unicodeScalars.filter(\.isASCII)))
-        let slug = String(FileTools.slugify(ascii).prefix(BuildRecipe.profileNamePartLimit))
-            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        return slug.isEmpty ? nil : slug
-    }
 
     /// The lines shown under Map Info; mkgmap shows the first in BaseCamp only.
     /// Plain ASCII, no punctuation past a comma: Garmin's six-bit label alphabet drops a

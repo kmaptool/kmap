@@ -277,24 +277,6 @@ final class RegionIndex {
         return ids.compactMap { regions[$0] }
     }
 
-    /// How many terminal regions a selection covers: a leaf counts itself, anything larger
-    /// counts the leaves beneath it. Visited ids are shared across the walk, so a region
-    /// selected together with one of its own descendants counts that descendant once.
-    func leafRegionCount(of ids: [String]) -> Int {
-        var visited = Set<String>()
-        var leaves = 0
-        var queue = ids
-        while let id = queue.popLast() {
-            guard visited.insert(id).inserted, let region = regions[id] else { continue }
-            if region.hasChildren {
-                queue.append(contentsOf: region.childIDs)
-            } else {
-                leaves += 1
-            }
-        }
-        return leaves
-    }
-
     /// Human-readable path from the root down to the region, arrow-separated.
     func breadcrumb(_ id: String?) -> String {
         guard let id else { return "World" }

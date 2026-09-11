@@ -52,12 +52,10 @@ extension BuildPipeline {
         let parts = groups
             .filter { FileTools.exists($0.appendingPathComponent("gmapsupp.img")) }
 
-        // The file name counts ground rather than naming the region, so two different
-        // maps in one style on one day would come out identical — and the second one
-        // copied onto a device would silently replace the first. So the neighbouring
-        // build folders are asked first, and a name already used by another build gets
-        // "-2", "-3" and so on. This build's own folder is left out of the asking:
-        // rebuilding the same map replaces its own files, as it always has.
+        // The name carries the regions and the day only, so a second build of the same
+        // ground that day would replace the first on a card: a name another build folder
+        // already uses gets "-2", "-3". This build's own folder is left out, so a rebuild
+        // replaces its own files.
         let names = Self.imgNames(under: destinationDir.deletingLastPathComponent(),
                                   excluding: destinationDir)
         let copy = recipe.freeCopy(of: parts.count) { names.contains($0) }
