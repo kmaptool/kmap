@@ -1,0 +1,10 @@
+# Checked out with LF everywhere, whatever the machine's git is set to. Git for Windows
+# installs with core.autocrlf=true, which rewrites the working tree to CRLF; the tests that
+# read this repository's own files then fail, since a style table parses to nothing and the
+# embedded assets stop matching what is committed.
+* text=auto eol=lf
+
+# Left byte for byte as they are.
+*.png  binary
+*.ico  binary
+*.icns binary
