@@ -5,12 +5,10 @@ import Foundation
 /// A profile fills the build form in; a field changed there applies to that map only, and
 /// a profile is rewritten only from this screen. `/` opens search, leaving letters as keys.
 final class ProfilesScreen: Screen {
-    var page: Page { Page(t("profiles"), subject: search.open ? t("search") : nil, keys: keys) }
+    var page: Page { Page(t("profiles"), subject: search.subject, keys: keys) }
 
     private var keys: [Hint] {
-        if search.open {
-            return [Hint(key: Glyph.enter, label: t("keep")), Hint(key: "esc", label: t("clear"))]
-        }
+        if search.open { return search.hints }
         if confirming != nil {
             return [Hint(key: "y", label: t("delete")), Hint(key: "n", label: t("keep it"))]
         }
@@ -60,7 +58,7 @@ final class ProfilesScreen: Screen {
     // MARK: Input
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
-        if search.open { return handleSearch(key) }
+        if search.open { return search.take(key, list: &list) }
         if naming != nil { return handleNaming(key, ctx: ctx) }
         if let profile = confirming { return handleConfirm(key, profile: profile, ctx: ctx) }
 
@@ -122,20 +120,11 @@ final class ProfilesScreen: Screen {
             }
 
         case .esc:
-            if !search.query.isEmpty { search.query = ""; list.selected = 0; return .none }
+            if search.drop(list: &list) { return .none }
             return .pop
 
         case .ctrl("c"): return .quit
         default: break
-        }
-        return .none
-    }
-
-    private func handleSearch(_ key: KeyEvent) -> Route {
-        switch search.handle(key) {
-        case .changed, .cleared: list.selected = 0
-        case .quit: return .quit
-        case .closed, .unchanged: break
         }
         return .none
     }
@@ -232,10 +221,8 @@ final class ProfilesScreen: Screen {
         y += 1
 
         let shown = filtered
-        if search.open || !search.query.isEmpty {
-            let fx = s.text(rect.x, y, t("search") + ": ", Style(fg: theme.dim, bg: theme.appBg))
-            let end = s.text(fx, y, search.query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
-            if search.open { s.put(end, y, "▏", Style(fg: theme.accent, bg: theme.appBg)) }
+        if search.showing {
+            search.draw(into: s, x: rect.x, y: y, theme: theme)
             s.textRight(rect.maxX, y, t("%d of %d", shown.count, profiles.count),
                         Style(fg: theme.faint, bg: theme.appBg))
             y += 1

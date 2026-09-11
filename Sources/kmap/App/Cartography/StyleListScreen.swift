@@ -5,13 +5,11 @@ import Foundation
 /// A TYP on a mounted drive is never offered in place; importing takes a copy. Letters
 /// are commands and `/` starts a search, so typing does not filter the list.
 final class StyleListScreen: Screen {
-    var page: Page { Page(t("styles"), subject: search.open ? t("search") : nil, keys: keys) }
+    var page: Page { Page(t("styles"), subject: search.subject, keys: keys) }
 
     private var keys: [Hint] {
         if let asking { return asking.footerHints }
-        if search.open {
-            return [Hint(key: Glyph.enter, label: t("keep")), Hint(key: "esc", label: t("clear"))]
-        }
+        if search.open { return search.hints }
         if confirming != nil {
             return [Hint(key: "y", label: t("delete")), Hint(key: "n", label: t("keep it"))]
         }
@@ -96,7 +94,7 @@ final class StyleListScreen: Screen {
             }
             return .none
         }
-        if search.open { return handleSearch(key) }
+        if search.open { return search.take(key, list: &list) }
         if renaming { return handleRename(key, ctx: ctx) }
         if let style = confirming { return handleConfirm(key, style: style, ctx: ctx) }
 
@@ -123,7 +121,7 @@ final class StyleListScreen: Screen {
             say(tn("%d style(s)", styles.count))
 
         case .esc:
-            if !search.query.isEmpty { search.query = ""; list.selected = 0; return .none }
+            if search.drop(list: &list) { return .none }
             return .pop
 
         case .ctrl("c"): return .quit
@@ -230,15 +228,6 @@ final class StyleListScreen: Screen {
             confirm: t("restore"),
             cancel: t("cancel"),
             tone: .plain)
-    }
-
-    private func handleSearch(_ key: KeyEvent) -> Route {
-        switch search.handle(key) {
-        case .changed, .cleared: list.selected = 0
-        case .quit: return .quit
-        case .closed, .unchanged: break
-        }
-        return .none
     }
 
     private func handleRename(_ key: KeyEvent, ctx: AppContext) -> Route {
@@ -355,10 +344,8 @@ final class StyleListScreen: Screen {
         y += 1
 
         let shown = filtered
-        if search.open || !search.query.isEmpty {
-            let fx = s.text(rect.x, y, t("search") + ": ", Style(fg: theme.dim, bg: theme.appBg))
-            let end = s.text(fx, y, search.query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
-            if search.open { s.put(end, y, "▏", Style(fg: theme.accent, bg: theme.appBg)) }
+        if search.showing {
+            search.draw(into: s, x: rect.x, y: y, theme: theme)
             s.textRight(rect.maxX, y, t("%d of %d", shown.count, styles.count),
                         Style(fg: theme.faint, bg: theme.appBg))
             y += 1

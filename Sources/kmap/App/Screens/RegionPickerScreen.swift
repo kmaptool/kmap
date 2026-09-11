@@ -2,19 +2,15 @@ import Foundation
 
 /// Browses the Geofabrik region tree and hands the chosen region to the recipe screen.
 final class RegionPickerScreen: Screen {
-    var page: Page { Page(t("regions"), subject: searching ? t("search") : nil, keys: keys) }
+    var page: Page { Page(t("regions"), subject: search.subject, keys: keys) }
 
     private var keys: [Hint] {
+        if search.open { return search.hints }
         if !marked.isEmpty {
             return [Hint(key: "space", label: t("mark")),
                     Hint(key: "→←", label: t("browse")),
                     Hint(key: Glyph.enter, label: t("build %d", marked.count)),
                     Hint(key: "c", label: t("clear"))]
-        }
-        if searching {
-            return [Hint(key: "type", label: t("filter")),
-                    Hint(key: Glyph.enter, label: t("open")),
-                    Hint(key: "esc", label: t("cancel"))]
         }
         return [Hint(key: "↑↓", label: t("move")),
                 Hint(key: "→", label: t("open")),
@@ -26,8 +22,9 @@ final class RegionPickerScreen: Screen {
 
     private var currentID: String? = nil
     private var list = ListState()
-    private var searching = false
-    private var query = ""
+    /// A query stays applied once kept, so search results can be marked and opened like
+    /// any other list.
+    private var search = SearchPrompt()
     private var message: String?
 
     /// Remembered selection per level, so going back lands where it left off.
@@ -45,43 +42,15 @@ final class RegionPickerScreen: Screen {
     // MARK: Data
 
     private func visibleRegions(_ ctx: AppContext) -> [Region] {
-        if searching && !query.isEmpty { return ctx.index.search(query) }
+        if !search.query.isEmpty { return ctx.index.search(search.query) }
         return ctx.index.children(of: currentID)
     }
 
     // MARK: Input
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        if search.open { return search.take(key, list: &list) }
         let regions = visibleRegions(ctx)
-
-        if searching {
-            switch key {
-            case .esc:
-                searching = false
-                query = ""
-                list.selected = 0
-                return .none
-            case .backspace:
-                if !query.isEmpty { query.removeLast(); list.selected = 0 }
-                return .none
-            case .char(let c):
-                query.append(c)
-                list.selected = 0
-                return .none
-            case .paste(let text):
-                query += text.replacingOccurrences(of: "\n", with: " ")
-                return .none
-            case .up: list.move(-1, count: regions.count); return .none
-            case .down: list.move(1, count: regions.count); return .none
-            case .enter:
-                guard let region = regions[safe: list.selected] else { return .none }
-                searching = false
-                query = ""
-                return open(region, ctx)
-            default:
-                return .none
-            }
-        }
 
         switch key.command {
         case .char(" "):
@@ -104,9 +73,7 @@ final class RegionPickerScreen: Screen {
         case .end: list.jump(to: regions.count - 1, count: regions.count)
 
         case .char("/"):
-            searching = true
-            query = ""
-            list.selected = 0
+            search.open = true
 
         case .char("r"):
             message = t("refreshing the region index…")
@@ -120,6 +87,7 @@ final class RegionPickerScreen: Screen {
             return ascend()
 
         case .esc:
+            if search.drop(list: &list) { return .none }
             if currentID == nil { return .pop }
             return ascend()
 
@@ -176,8 +144,10 @@ final class RegionPickerScreen: Screen {
         probeSize(region)
     }
 
+    /// Leaving the list, by either door, drops a kept search.
     private func open(_ region: Region, _ ctx: AppContext) -> Route {
         if region.pbfURL != nil {
+            search.query = ""
             return .push(RecipeScreen(region: region, index: ctx.index,
                                       settings: ctx.settings,
                                       hasSeamPatch: ctx.toolchain.mkgmapIsPatched))
@@ -191,6 +161,7 @@ final class RegionPickerScreen: Screen {
     }
 
     private func descend(into id: String) {
+        search.query = ""
         trail.append((currentID, list.selected))
         currentID = id
         list = ListState()
@@ -289,26 +260,24 @@ final class RegionPickerScreen: Screen {
 
     /// The breadcrumb, or the search field, with the marked total riding on the right.
     private func renderHeader(into s: Surface, rect: Rect, ctx: AppContext, theme: Theme) {
-        if searching {
-            let prompt = t("search") + ": "
-            let x = s.text(rect.x, rect.y, prompt, Style(fg: theme.dim, bg: theme.appBg))
-            let end = s.text(x, rect.y, query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
-            s.put(end, rect.y, "▏", Style(fg: theme.accent, bg: theme.appBg))
+        var x: Int
+        if search.showing {
+            x = search.draw(into: s, x: rect.x, y: rect.y, theme: theme)
         } else {
             let crumb = ctx.index.breadcrumb(currentID)
-            let x = s.text(rect.x, rect.y, truncate(crumb, to: rect.w),
-                           Style(fg: theme.dim, bg: theme.appBg))
-            if !marked.isEmpty {
-                var summary = "  \(Glyph.dot) " + tn("%d marked", marked.count)
-                let known = marked.compactMap { sizes[$0] }
-                if known.count == marked.count {
-                    summary += ", \(Fmt.bytes(known.reduce(0, +)))"
-                } else if !known.isEmpty {
-                    summary += ", \(Fmt.bytes(known.reduce(0, +)))+"
-                }
-                s.text(x, rect.y, truncate(summary, to: max(0, rect.maxX - x)),
-                       Style(fg: theme.accent, bg: theme.appBg, bold: true))
+            x = s.text(rect.x, rect.y, truncate(crumb, to: rect.w),
+                       Style(fg: theme.dim, bg: theme.appBg))
+        }
+        if !marked.isEmpty {
+            var summary = "  \(Glyph.dot) " + tn("%d marked", marked.count)
+            let known = marked.compactMap { sizes[$0] }
+            if known.count == marked.count {
+                summary += ", \(Fmt.bytes(known.reduce(0, +)))"
+            } else if !known.isEmpty {
+                summary += ", \(Fmt.bytes(known.reduce(0, +)))+"
             }
+            s.text(x, rect.y, truncate(summary, to: max(0, rect.maxX - x)),
+                   Style(fg: theme.accent, bg: theme.appBg, bold: true))
         }
         s.hline(rect.x, rect.y + 1, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
     }
@@ -317,7 +286,7 @@ final class RegionPickerScreen: Screen {
     private func renderList(_ regions: [Region], into s: Surface, listRect: Rect,
                             bodyHeight: Int, theme: Theme) {
         guard !regions.isEmpty else {
-            let text = searching ? t("nothing matches \"%@\"", query) : t("no sub-regions here")
+            let text = search.query.isEmpty ? t("no sub-regions here") : search.nothingMatches
             s.text(listRect.x, listRect.y, text, Style(fg: theme.faint, bg: theme.appBg))
             return
         }
@@ -341,7 +310,8 @@ final class RegionPickerScreen: Screen {
                 : (region.hasChildren ? "\(Glyph.arrowRight) " : "  ")
             Widgets.row(s, rect: Rect(x: listRect.x, y: y, w: listRect.w - 1, h: 1),
                         y: y,
-                        text: searching ? "\(region.name)  \(Glyph.dot) \(region.id)" : region.name,
+                        text: search.query.isEmpty ? region.name
+                            : "\(region.name)  \(Glyph.dot) \(region.id)",
                         trailing: trailing,
                         theme: theme,
                         selected: index == list.selected,

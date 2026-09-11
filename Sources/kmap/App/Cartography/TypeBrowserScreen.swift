@@ -9,13 +9,11 @@ final class TypeBrowserScreen: Screen {
 
     var page: Page {
         Page("\(document.style.name) · \(kind.plural)",
-             subject: search.query.isEmpty ? nil : t("search"), keys: keys)
+             subject: search.subject, keys: keys)
     }
 
     private var keys: [Hint] {
-        if search.open {
-            return [Hint(key: Glyph.enter, label: t("keep")), Hint(key: "esc", label: t("clear"))]
-        }
+        if search.open { return search.hints }
         return [Hint(key: "↑↓", label: t("move")),
                 Hint(key: Glyph.enter, label: document.isEditable ? t("change") : t("inspect")),
                 Hint(key: "←→", label: t("points/lines/polygons")),
@@ -120,7 +118,7 @@ final class TypeBrowserScreen: Screen {
     // MARK: Input
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
-        if search.open { return handleSearch(key) }
+        if search.open { return search.take(key, list: &list) }
 
         let count = visible.count
         switch key {
@@ -173,19 +171,10 @@ final class TypeBrowserScreen: Screen {
             }
 
         case .esc:
-            if !search.query.isEmpty { search.query = ""; list.selected = 0; return .none }
+            if search.drop(list: &list) { return .none }
             return .pop
         case .ctrl("c"): return .quit
         default: break
-        }
-        return .none
-    }
-
-    private func handleSearch(_ key: KeyEvent) -> Route {
-        switch search.handle(key) {
-        case .changed, .cleared: list.selected = 0
-        case .quit: return .quit
-        case .closed, .unchanged: break
         }
         return .none
     }
@@ -307,10 +296,7 @@ final class TypeBrowserScreen: Screen {
             : t("TYP not readable")
         s.textRight(rect.maxX, rect.y, summary, Style(fg: theme.dim, bg: theme.appBg))
 
-        let fx = s.text(rect.x, rect.y + 1, t("search") + ": ",
-                        Style(fg: theme.dim, bg: theme.appBg))
-        let end = s.text(fx, rect.y + 1, search.query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
-        if search.open { s.put(end, rect.y + 1, "▏", Style(fg: theme.accent, bg: theme.appBg)) }
+        search.draw(into: s, x: rect.x, y: rect.y + 1, theme: theme)
         s.textRight(rect.maxX, rect.y + 1, t("%d of %d", shown, rows.count),
                     Style(fg: theme.faint, bg: theme.appBg))
         s.hline(rect.x, rect.y + 2, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))

@@ -25,6 +25,9 @@ struct SearchPrompt {
         case .char(let c):
             query.append(c)
             return .changed
+        case .paste(let text):
+            query += text.replacingOccurrences(of: "\n", with: " ")
+            return .changed
         case .backspace:
             guard !query.isEmpty else { return .unchanged }
             query.removeLast()
