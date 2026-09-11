@@ -47,6 +47,11 @@ extension RecipeForm {
             }
         case .contours: return toggle(recipe.contours) { self.recipe.contours = $0 }
         case .dem: return toggle(recipe.demLayer) { self.recipe.demLayer = $0 }
+        case .fixSummits:
+            // Inert while there is no DEM to write into, like the interval without contours.
+            var choice = toggle(recipe.fixSummits) { self.recipe.fixSummits = $0 }
+            choice.listable = recipe.demLayer
+            return choice
         case .routable: return toggle(recipe.routable) { self.recipe.routable = $0 }
         case .healRoads: return toggle(recipe.healRoadEnds) { self.recipe.healRoadEnds = $0 }
         case .index: return toggle(recipe.searchIndex) { self.recipe.searchIndex = $0 }

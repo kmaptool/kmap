@@ -18,6 +18,9 @@ struct BuildRecipe {
     /// The raster elevation grid embedded in the map, giving shaded relief and the
     /// elevation profile. Independent of the contour lines.
     var demLayer: Bool = true
+    /// Lift the DEM at each summit to the height OSM gives it, where the relief agrees:
+    /// the cell under a summit reads below it. See `BurnPeaks`.
+    var fixSummits: Bool = true
     /// Copernicus needs no login and covers the globe; the sources chain, so GLO-90
     /// fills the few cells GLO-30 does not publish.
     static let recommendedDEMSources = "copernicus1,copernicus3"

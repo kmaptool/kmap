@@ -39,6 +39,8 @@ enum CLI {
       --contours, --no-contours     contour lines. Off unless switched on here or by
                                     a profile — they cost an elevation download
       --dem, --no-dem               the DEM elevation layer. Off for the same reason
+      --summits, --no-summits       lift the DEM at each summit to its OSM height, where
+                                    the relief agrees. On with --dem unless switched off
       --interval=<metres>           contour interval, when contours are on
       --theme=all|day|night         which of the TYP's two drawings to pack. `day`
                                     leaves out every night colour, so a receiver
@@ -323,6 +325,7 @@ enum CLI {
         choices.styleID = "plain"
         choices.contours = false
         choices.demLayer = false
+        choices.fixSummits = false
         choices.routable = false
         choices.searchIndex = false
         choices.splitNameIndex = false

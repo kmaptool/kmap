@@ -47,6 +47,7 @@ final class ProfilesTests: XCTestCase {
         choices.contours = false
         choices.contourInterval = 25
         choices.demLayer = false
+        choices.fixSummits = false
         choices.demSources = "copernicus1"
         choices.levelsID = LevelsProfile.standard.id
         choices.labelLanguageID = LabelLanguage.russian.id

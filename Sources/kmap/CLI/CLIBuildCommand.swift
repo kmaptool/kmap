@@ -279,6 +279,7 @@ extension CLI {
             contours: switched("contours", choices.contours),
             contourInterval: interval,
             demLayer: switched("dem", choices.demLayer),
+            fixSummits: switched("summits", choices.fixSummits),
             demSources: CopernicusDEM.canonicalSourceList(flags.value("sources")
                 ?? choices.demSources),
             routable: switched("route", choices.routable),

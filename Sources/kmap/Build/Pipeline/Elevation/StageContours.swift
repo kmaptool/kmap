@@ -190,7 +190,7 @@ extension BuildPipeline {
     /// the source it takes each from. The cache is shared, and contours read it untouched:
     /// a raised summit would trace as rings.
     func burnPeakElevations(extracts: [URL]) async {
-        guard recipe.demLayer else { return }
+        guard recipe.demLayer, recipe.fixSummits else { return }
         let sources = demSearchPaths()
         // The tiles the DEM stage will take, by the source it takes each from.
         var wanted: [URL: Set<String>] = [:]

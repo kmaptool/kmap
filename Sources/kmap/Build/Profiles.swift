@@ -9,6 +9,7 @@ struct BuildChoices: Codable, Equatable {
     var contours: Bool = true
     var contourInterval: Int = 10
     var demLayer: Bool = true
+    var fixSummits: Bool = true
     var demSources: String = "view1,view3"
     var levelsID: String = LevelsProfile.smooth.id
     var labelLanguageID: String = LabelLanguage.local.id
@@ -77,6 +78,7 @@ extension BuildChoices {
         contours = read(.contours, fallback.contours)
         contourInterval = read(.contourInterval, fallback.contourInterval)
         demLayer = read(.demLayer, fallback.demLayer)
+        fixSummits = read(.fixSummits, fallback.fixSummits)
         demSources = read(.demSources, fallback.demSources)
         levelsID = read(.levelsID, fallback.levelsID)
         zoomPlanID = read(.zoomPlanID, fallback.zoomPlanID)
@@ -252,6 +254,7 @@ extension BuildRecipe {
             contours: contours,
             contourInterval: contourInterval,
             demLayer: demLayer,
+            fixSummits: fixSummits,
             demSources: demSources,
             levelsID: levels.id,
             labelLanguageID: LabelLanguage.all
@@ -289,6 +292,7 @@ extension BuildRecipe {
         contours = choices.contours
         contourInterval = choices.contourInterval
         demLayer = choices.demLayer
+        fixSummits = choices.fixSummits
         demSources = CopernicusDEM.canonicalSourceList(choices.demSources)
         levels = LevelsProfile.all.first { $0.id == choices.levelsID } ?? .smooth
         // A deleted plan, or one made for another ladder, falls back to the built-in.

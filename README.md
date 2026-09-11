@@ -359,6 +359,7 @@ out of range — stops the build instead of silently falling back to a default.
 | `--contours`, `--no-contours` | contour lines |
 | `--interval=<metres>` | contour interval |
 | `--dem`, `--no-dem` | the DEM layer — shaded relief and the elevation profile |
+| `--summits`, `--no-summits` | lift the DEM at each summit to its OSM height. On with `--dem` unless switched off |
 | `--sources=<list>` | elevation sources, tried in order — each fills only what the ones before it lack. Default `copernicus1,copernicus3` (recommended: global, no login); also `view1`, `view3`, `srtm1`, `alos1` |
 | `--levels=standard\|smooth` | how many zoom levels the map has |
 | `--labels=local\|ru\|en` | which OSM name tag to label with |

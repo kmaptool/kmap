@@ -37,6 +37,7 @@ final class CLIProfileTests: XCTestCase {
         XCTAssertEqual(CLI.bare.styleID, "plain")
         XCTAssertFalse(CLI.bare.contours)
         XCTAssertFalse(CLI.bare.demLayer)
+        XCTAssertFalse(CLI.bare.fixSummits)
         XCTAssertFalse(CLI.bare.routable)
         XCTAssertFalse(CLI.bare.searchIndex)
         XCTAssertFalse(CLI.bare.splitNameIndex)
@@ -89,6 +90,7 @@ final class CLIProfileTests: XCTestCase {
             "contours",          // --contours / --no-contours
             "contourInterval",   // --interval
             "demLayer",          // --dem / --no-dem
+            "fixSummits",        // --summits / --no-summits
             "demSources",        // --sources
             "levelsID",          // --levels
             "labelLanguageID",   // --labels

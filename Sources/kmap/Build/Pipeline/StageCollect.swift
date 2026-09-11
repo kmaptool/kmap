@@ -150,6 +150,7 @@ extension BuildPipeline {
             "overview      \(recipe.levels.overviewLevels)",
             "contours      \(recipe.contours ? "\(recipe.contourInterval) m" : "off")",
             "DEM layer     \(recipe.demLayer ? "on" : "off")",
+            "summits       \(recipe.demLayer && recipe.fixSummits ? "lifted to OSM heights" : "as measured")",
             "elevation     \(recipe.needsElevationData ? recipe.demSources : "—")",
             "routable      \(recipe.routable)",
             "search index  \(recipe.searchIndex)",

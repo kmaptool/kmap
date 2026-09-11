@@ -348,6 +348,7 @@ extension CLI {
          "contours": .bool(choices.contours),
          "interval": .int(choices.contourInterval),
          "dem": .bool(choices.demLayer),
+         "summits": .bool(choices.fixSummits),
          "sources": .string(choices.demSources),
          "levels": .string(choices.levelsID),
          "labels": .string(choices.labelLanguageID),

@@ -29,7 +29,8 @@ final class RecipeForm {
 
     enum Field: Int, CaseIterable {
         case profile
-        case style, contours, interval, dem, demSource, zoomPlan, language, codePage, familyID
+        case style, contours, interval, dem, fixSummits, demSource, zoomPlan, language, codePage,
+             familyID
         case routable, healRoads, index, houseNumbers, sea, descriptions
         case customPOIs, hide
         case splitMode, parts, output
@@ -43,6 +44,7 @@ final class RecipeForm {
             case .contours: return t("Contour lines")
             case .interval: return t("Interval")
             case .dem: return t("DEM layer")
+            case .fixSummits: return t("Fix summits")
             case .demSource: return t("Elevation data")
             // The ladder and its population in one row: a plan already names its ladder.
             case .zoomPlan: return t("Zoom plan")

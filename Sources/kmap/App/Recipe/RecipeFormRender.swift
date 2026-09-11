@@ -99,6 +99,11 @@ extension RecipeForm {
         case .contours: return onOff(recipe.contours)
         case .interval: return recipe.contours ? t("%d m", recipe.contourInterval) : "—"
         case .dem: return onOff(recipe.demLayer)
+        case .fixSummits:
+            guard recipe.demLayer else { return "—" }
+            return recipe.fixSummits
+                ? t("on") + "  ·  " + t("a summit's cell is lifted to its OSM height")
+                : t("off") + "  ·  " + t("the relief is used exactly as measured")
         case .demSource: return recipe.needsElevationData ? recipe.demSources : "—"
         case .zoomPlan:
             let base = RecipeForm.planLabel(recipe.zoomPlan)
@@ -185,6 +190,9 @@ extension RecipeForm {
             return Style(fg: on ? theme.ok : theme.faint, bg: theme.appBg)
         case .healRoads:
             return Style(fg: recipe.healRoadEnds ? theme.ok : theme.faint, bg: theme.appBg)
+        case .fixSummits:
+            return Style(fg: recipe.demLayer && recipe.fixSummits ? theme.ok : theme.faint,
+                         bg: theme.appBg)
         case .customPOIs:
             return Style(fg: recipe.customPOIs ? theme.ok : theme.faint, bg: theme.appBg)
         case .descriptions:

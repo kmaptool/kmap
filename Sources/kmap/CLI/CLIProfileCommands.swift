@@ -40,6 +40,7 @@ extension CLI {
             ("style", c.styleID),
             ("contours", c.contours ? "on · every \(c.contourInterval) m" : "off"),
             ("dem", c.demLayer ? "on" : "off"),
+            ("summits", c.fixSummits ? "on" : "off"),
             ("sources", c.demSources),
             ("levels", c.levelsID),
             ("zoom-plan", zoomPlanName(c, store: store)),
@@ -213,7 +214,8 @@ extension CLI {
     /// to one run — the region, the output folder, memory — and is refused with a word
     /// to that effect.
     private static let profileOptions: Set<String> = [
-        "contours", "no-contours", "dem", "no-dem", "route", "no-route",
+        "contours", "no-contours", "dem", "no-dem", "summits", "no-summits",
+        "route", "no-route",
         "repair-ends", "no-repair-ends", "index", "no-index",
         "word-index", "no-word-index", "lean-index",
         "house-numbers", "no-house-numbers", "sea", "no-sea",
@@ -246,6 +248,7 @@ extension CLI {
         }
         choices.contours = switched("contours", choices.contours)
         choices.demLayer = switched("dem", choices.demLayer)
+        choices.fixSummits = switched("summits", choices.fixSummits)
         choices.routable = switched("route", choices.routable)
         choices.healRoadEnds = switched("repair-ends", choices.healRoadEnds)
         choices.searchIndex = switched("index", choices.searchIndex)
