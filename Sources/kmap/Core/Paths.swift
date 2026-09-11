@@ -52,6 +52,7 @@ enum Paths {
     static var cache: URL { root.appendingPathComponent("cache", isDirectory: true) }
     static var indexCache: URL { cache.appendingPathComponent("geofabrik-index.json") }
     static var pbfCache: URL { cache.appendingPathComponent("pbf", isDirectory: true) }
+    static var polyCache: URL { cache.appendingPathComponent("poly", isDirectory: true) }
     static var hgtCache: URL { cache.appendingPathComponent("hgt", isDirectory: true) }
 
     static var tools: URL { root.appendingPathComponent("tools", isDirectory: true) }
