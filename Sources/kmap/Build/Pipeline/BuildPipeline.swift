@@ -178,7 +178,7 @@ final class BuildPipeline {
             // Elevation runs beside the split; only the first region's write waits on it,
             // where the contours are folded in. A retried split awaits the same task.
             let elevationTask = Task { [self] in
-                try await buildElevation(extract: extracts[0])
+                try await buildElevation(extracts: extracts)
             }
             defer { elevationTask.cancel() }
             // Node count only approximates how much a tile draws, so the cap starts at the

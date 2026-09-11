@@ -9,7 +9,7 @@ extension BuildPipeline {
 
     /// Populates the .hgt cache (used by the DEM layer) and, when asked, generates contour
     /// line files. Both come from the same downloaded elevation tiles.
-    func buildElevation(extract: URL) async throws -> [URL] {
+    func buildElevation(extracts: [URL]) async throws -> [URL] {
         guard recipe.needsElevationData else {
             set(.elevation, .skipped, t("not requested"))
             set(.elevationBuild, .skipped, t("not requested"))
@@ -45,7 +45,7 @@ extension BuildPipeline {
             guard count > 0 else { throw BuildError.noElevationTiles }
             log.ok("\(count) elevation tile(s) cached for the DEM layer")
             await measure(.elevationBuild, "burn the summits in") {
-                await burnPeakElevations(extract: extract)
+                await burnPeakElevations(extracts: extracts)
             }
             set(.elevationBuild, .done, "\(count) elevation tile(s)")
             return []
@@ -96,7 +96,7 @@ extension BuildPipeline {
         // Summits go in after tracing: raising a cell would change the contours there,
         // while the DEM layer reads the tiles as they end up.
         await measure(.elevationBuild, "burn the summits in") {
-            await burnPeakElevations(extract: extract)
+            await burnPeakElevations(extracts: extracts)
         }
         set(.elevationBuild, .done,
             recipe.contours ? "\(produced.count) contour file(s)" : "\(hgtFileCount()) elevation tile(s)")

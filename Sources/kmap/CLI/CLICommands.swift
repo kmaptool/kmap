@@ -130,14 +130,15 @@ extension CLI {
     /// Write OSM summit heights into a copy of the .hgt tiles.
     static func burnPeaks(_ arguments: [String]) -> Int32 {
         let flags = CLI.Flags(arguments, valued: ["pbf", "hgt-dir", "out", "threshold", "radius"])
-        guard let pbf = flags.value("pbf"), let source = flags.value("hgt-dir"),
+        let pbfs = flags.values("pbf")
+        guard !pbfs.isEmpty, let source = flags.value("hgt-dir"),
               let out = flags.value("out") else {
-            let usage = "usage: kmap burn-peaks --pbf <file> --hgt-dir <dir> --out <dir>"
+            let usage = "usage: kmap burn-peaks --pbf <file>... --hgt-dir <dir> --out <dir>"
                 + " [--threshold M] [--radius M] [--quiet]"
             return CLIOutput.failure(usage, code: 2)
         }
 
-        var burn = BurnPeaks(pbf: URL(fileURLWithPath: pbf),
+        var burn = BurnPeaks(extracts: pbfs.map { URL(fileURLWithPath: $0) },
                              hgt: URL(fileURLWithPath: source),
                              out: URL(fileURLWithPath: out))
         burn.threshold = flags.double("threshold") ?? 60
@@ -148,6 +149,7 @@ extension CLI {
             let gains = report.gains.sorted()
             CLIOutput.result([
                 "peaks": .int(report.peaks), "raised": .int(report.raised),
+                "cells": .int(report.cells),
                 "already": .int(report.already), "rejected": .int(report.rejected.count),
                 "outside": .int(report.outside),
                 "tiles": .array(report.written.map(JSONValue.string)),
@@ -163,6 +165,7 @@ extension CLI {
             }
             CLILog.line("summits with a usable height : \(report.peaks)")
             CLILog.line("  raised                     : \(report.raised)")
+            CLILog.line("  cells raised               : \(report.cells)")
             CLILog.line("  already at or above `ele`  : \(report.already)")
             CLILog.line("  rejected as bad OSM        : \(report.rejected.count)")
             CLILog.line("  outside the cached tiles   : \(report.outside)")

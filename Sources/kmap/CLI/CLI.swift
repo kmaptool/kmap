@@ -175,7 +175,7 @@ enum CLI {
       kmap repair-roads <in.osm.pbf> <out.osm.pbf>
                                     the annotate pass on its own: barriers, road ends,
                                     descriptions, repeated venues
-      kmap burn-peaks --pbf <extract> --hgt-dir <dir> --out <dir>
+      kmap burn-peaks --pbf <extract>... --hgt-dir <dir> --out <dir>
                                     raise summits in the elevation tiles to their OSM
                                     height, so the DEM and the map agree
       kmap make-gpi <extract> <out.gpi>

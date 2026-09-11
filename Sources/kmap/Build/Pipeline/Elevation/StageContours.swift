@@ -186,43 +186,50 @@ extension BuildPipeline {
         }
     }
 
-    /// Writes OSM summit heights into a private copy of the elevation tiles, so the DEM
-    /// carries a summit's mapped height rather than the average of the cell it stands on.
-    /// Contours keep reading the untouched cache, where a single raised cell would trace as
-    /// nested rings. The copy is private because the shared cache outlives the build.
-    func burnPeakElevations(extract: URL) async {
+    /// Writes OSM summit heights into a private copy of the tiles the DEM layer takes, from
+    /// the source it takes each from. The cache is shared, and contours read it untouched:
+    /// a raised summit would trace as rings.
+    func burnPeakElevations(extracts: [URL]) async {
         guard recipe.demLayer else { return }
         let sources = demSearchPaths()
-        guard !sources.isEmpty else { return }
+        // The tiles the DEM stage will take, by the source it takes each from.
+        var wanted: [URL: Set<String>] = [:]
+        for cell in elevationCells() {
+            let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+            guard let source = sources.first(where: {
+                FileTools.exists($0.appendingPathComponent(name + ".hgt"))
+            }) else { continue }
+            wanted[source, default: []].insert(name)
+        }
+        guard !wanted.isEmpty else { return }
         let root = workDirectory.appendingPathComponent("hgt-peaks", isDirectory: true)
+        // A copy from an earlier attempt must not shadow the cache.
+        FileTools.removeIfPresent(root)
         var burned: [URL] = []
-        // Read once and written into each source; the summits are the same for all.
         let peaks: [BurnPeaks.Peak]
         do {
-            peaks = try BurnPeaks.peaks(in: extract)
+            peaks = try BurnPeaks.peaks(in: extracts)
         } catch {
             // Cancelled rather than unreadable: nothing to say about it.
             guard !isCancelled, !Task.isCancelled else { return }
             log.warn("summit heights left out: \(error)")
             return
         }
-        for source in sources {
+        for (source, names) in wanted.sorted(by: { $0.key.path < $1.key.path }) {
             let destination = root.appendingPathComponent(source.lastPathComponent,
                                                           isDirectory: true)
             do {
-                let burn = BurnPeaks(pbf: extract, hgt: source, out: destination)
+                var burn = BurnPeaks(extracts: extracts, hgt: source, out: destination)
+                burn.tiles = names
                 let report = try burn.run(peaks: peaks)
                 log.append("\(report.raised) summit height(s) written into"
                            + " \(report.written.count) tile(s) of \(source.lastPathComponent),"
                            + " \(report.rejected.count) rejected as bad OSM")
+                if !report.written.isEmpty { burned.append(destination) }
             } catch {
                 guard !isCancelled, !Task.isCancelled else { return }
                 log.warn("summit heights left out of \(source.lastPathComponent): \(error)")
-                continue
             }
-            let written = (try? FileManager.default.contentsOfDirectory(
-                atPath: destination.path))?.count ?? 0
-            if written > 0 { burned.append(destination) }
         }
         burnedElevationDirectories = burned
     }
