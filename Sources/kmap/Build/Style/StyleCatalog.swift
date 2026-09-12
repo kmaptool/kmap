@@ -16,7 +16,7 @@ final class StyleCatalog {
     static let contourLineTypes = ["0x20", "0x21", "0x22"]
 
     /// Bump when the materialized style layout changes, to force a refresh.
-    private static let materializedVersion = "84"
+    private static let materializedVersion = "85"
 
     private let settings: SettingsStore
 

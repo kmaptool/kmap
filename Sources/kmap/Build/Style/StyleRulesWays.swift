@@ -126,6 +126,11 @@ extension StyleCatalog {
         log.append("trail visibility, difficulty and via ferrata warnings added")
     }
 
+    /// The line the barrier split writes over its block. The access rules anchor on it,
+    /// so the two share one text: a reworded comment once left them unanchored.
+    static let barrierBlockNote = "# kmap: one rule per context, so each can be hidden on"
+        + " its own, and one per group, so each wears its own number."
+
     /// Names each barrier in the map's own language and says when it cannot be passed,
     /// both through the barrier's label. The name is set here, not appended later: `add
     /// name=` below is a no-op once a name exists. These rules carry no type of their own.
@@ -159,8 +164,7 @@ extension StyleCatalog {
         // Above the barrier type block, not at the end of the file: that block assigns a
         // type, so it consumes the barrier and nothing after it would ever be reached.
         switch try insertRules(lines.joined(separator: "\n") + "\n\n", marked: marker,
-                               beforeLineWith: "# kmap: one rule per context, so each can"
-                                   + " be hidden on its own.",
+                               beforeLineWith: Self.barrierBlockNote,
                                intoFile: "points", in: directory) {
         case .added:
             log.append("barriers named in the map's language, with access noted")
@@ -212,8 +216,7 @@ extension StyleCatalog {
         """
         guard text.contains(original) else { return }
 
-        var split = ["# kmap: one rule per context, so each can be hidden on its own,"
-                     + " and one per group, so each wears its own number."]
+        var split = [Self.barrierBlockNote]
         for context in Self.barrierContexts {
             for group in Self.barrierGroups {
                 split.append(Self.barrierCondition(group.barriers, context: context))
