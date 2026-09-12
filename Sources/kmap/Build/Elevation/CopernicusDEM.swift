@@ -1,15 +1,11 @@
 import Foundation
-#if canImport(FoundationNetworking)
-// URLSession lives in a module of its own outside Apple's platforms.
-import FoundationNetworking
-#endif
 
 /// Copernicus DEM, fetched from its public buckets and converted to the `.hgt` files the
 /// rest of the pipeline understands: GLO-30 at one arc-second, GLO-90 at three and a ninth
-/// of the bytes. `HGTConversion` handles the two differences — a `.hgt` covers its degree
-/// inclusively, and the bucket thins longitude sampling north of 50°.
+/// of the bytes. `HGTConversion` handles the two differences - a `.hgt` covers its degree
+/// inclusively, and the bucket thins longitude sampling north of 50 deg.
 enum CopernicusDEM {
-    /// Whether a download error means the bucket holds no such tile — open sea, not a
+    /// Whether a download error means the bucket holds no such tile - open sea, not a
     /// failure. 404 is the plain answer; 403 is what S3 says for a missing key when
     /// listing is not allowed. Anything else is a failure.
     static func isAbsent(_ error: Error) -> Bool {
@@ -73,7 +69,7 @@ enum CopernicusDEM {
 
     static let flavors = [glo30, glo90]
 
-    /// The spellings that reached disk before the convention settled — "copernicus" and
+    /// The spellings that reached disk before the convention settled - "copernicus" and
     /// "copernicus90". Both keep working, and are resolved here.
     static func canonicalSourceID(_ id: String) -> String {
         switch id {
@@ -142,10 +138,7 @@ enum CopernicusDEM {
             if !cells.isEmpty { return cells }
         }
         guard let url = tileListURL(flavor) else { return nil }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 30
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+        guard let data = try? await Fetch.data(url),
               let text = String(data: data, encoding: .utf8) else { return nil }
         let cells = parseTileList(text)
         guard !cells.isEmpty else { return nil }

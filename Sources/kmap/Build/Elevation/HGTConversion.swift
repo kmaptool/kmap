@@ -6,6 +6,10 @@ import Foundation
 /// eastmost column belongs to the next cell east and its southmost row to the cell below,
 /// so reading tile by tile would leave those edges with nothing to sample.
 enum HGTConversion {
+    /// A degree in arc seconds, and the lattice's unit: a thousandth of one.
+    static let arcSecondsPerDegree = 3600
+    static let latticePerArcSecond = 1000
+    private static let latticePerDegree = arcSecondsPerDegree * latticePerArcSecond
 
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case noData(String)
@@ -60,8 +64,8 @@ enum HGTConversion {
 
         /// The height at one node of the output grid, bilinear between the samples around it.
         ///
-        /// The node is named by whole numbers — which degree cell, and which of its 3601 rows
-        /// and columns — never by latitude and longitude. Sources publish on whole
+        /// The node is named by whole numbers - which degree cell, and which of its 3601 rows
+        /// and columns - never by latitude and longitude. Sources publish on whole
         /// arc-seconds, which integers name exactly and degrees round.
         func height(cellLat: Int, cellLon: Int, row: Int, column: Int) -> Double? {
             // The node's own cell first, then every neighbour: the southern row belongs to
@@ -77,10 +81,11 @@ enum HGTConversion {
         /// A whole output row at once, or nil if no single tile carries it.
         ///
         /// Latitude is sampled once an arc-second everywhere, so the source row is read once
-        /// and interpolated along. `step` is the output grid's spacing in arc-seconds — 1 for
+        /// and interpolated along. `step` is the output grid's spacing in arc-seconds - 1 for
         /// a 3601-node cell, 3 for a 1201-node one; a source of another step returns nil.
         func row(cellLat: Int, cellLon: Int, row: Int, width n: Int, step: Int = 1) -> [Double?]? {
-            let lat = ((cellLat + 1) * 3600 - row * step) * 1000
+            let lat = ((cellLat + 1) * HGTConversion.arcSecondsPerDegree - row * step)
+                * HGTConversion.latticePerArcSecond
             // The row belongs to this cell unless it is the southern edge, which is the
             // first row of the cell below.
             let owner = row < n - 1 ? cellLat : cellLat - 1
@@ -93,7 +98,8 @@ enum HGTConversion {
 
             // The tile to the east, for nodes past this one's last sample.
             var beyond: [Float]?
-            let neighbour = tile(lat: owner, lon: Self.floorDiv(grid.originLon, 3600000) + 1)
+            let neighbour = tile(lat: owner,
+                                 lon: Self.floorDiv(grid.originLon, HGTConversion.latticePerDegree) + 1)
             if let neighbour, let far = lattice(of: neighbour), far.stepLon == grid.stepLon,
                far.stepLat == grid.stepLat {
                 let theirSouth = far.originLat - lat
@@ -114,7 +120,8 @@ enum HGTConversion {
 
             var out = [Double?](repeating: nil, count: n)
             for column in 0..<n {
-                let east = (cellLon * 3600 + column * step) * 1000 - grid.originLon
+                let east = (cellLon * HGTConversion.arcSecondsPerDegree + column * step)
+                    * HGTConversion.latticePerArcSecond - grid.originLon
                 guard east >= 0 else { continue }
                 let x0 = Self.floorDiv(east, grid.stepLon)
                 let remainder = east - x0 * grid.stepLon
@@ -131,13 +138,15 @@ enum HGTConversion {
         /// Where a node sits inside one tile, and the height there.
         ///
         /// Positions count in thousandths of an arc-second from the equator and the prime
-        /// meridian. Past 50° of latitude Copernicus thins longitude sampling to 2400 samples
+        /// meridian. Past 50 deg of latitude Copernicus thins longitude sampling to 2400 samples
         /// a degree, a step of one and a half seconds that whole arc-seconds cannot name.
         private func sample(_ tiff: GeoTIFF, cellLat: Int, cellLon: Int,
                             row: Int, column: Int) -> Double? {
             guard let grid = lattice(of: tiff) else { return nil }
-            let lon = (cellLon * 3600 + column) * 1000
-            let lat = ((cellLat + 1) * 3600 - row) * 1000
+            let lon = (cellLon * HGTConversion.arcSecondsPerDegree + column)
+                * HGTConversion.latticePerArcSecond
+            let lat = ((cellLat + 1) * HGTConversion.arcSecondsPerDegree - row)
+                * HGTConversion.latticePerArcSecond
 
             let east = lon - grid.originLon
             let south = grid.originLat - lat
@@ -162,8 +171,8 @@ enum HGTConversion {
                 }
                 // The neighbour east of *this tile*, which on the southernmost row is not
                 // the neighbour east of the cell being written: that row comes from below.
-                let here = (lat: Self.floorDiv(grid.originLat, 3600000) - 1,
-                            lon: Self.floorDiv(grid.originLon, 3600000))
+                let here = (lat: Self.floorDiv(grid.originLat, HGTConversion.latticePerDegree) - 1,
+                            lon: Self.floorDiv(grid.originLon, HGTConversion.latticePerDegree))
                 guard let next = tile(lat: here.lat, lon: here.lon + 1),
                       let far = lattice(of: next), far.stepLon == grid.stepLon else { return nil }
                 let over = x - tiff.width
@@ -189,7 +198,7 @@ enum HGTConversion {
         /// on a step that divides one. Anything else is refused rather than guessed at.
         private func lattice(of tiff: GeoTIFF)
             -> (originLon: Int, originLat: Int, stepLon: Int, stepLat: Int)? {
-            let unit = 3600.0 * 1000
+            let unit = Double(HGTConversion.latticePerDegree)
             let stepLon = (tiff.stepLon * unit).rounded()
             let stepLat = (-tiff.stepLat * unit).rounded()
             let originLon = (tiff.originLon * unit).rounded()
@@ -207,18 +216,18 @@ enum HGTConversion {
         }
     }
 
-    /// Writes one degree cell as `.hgt`: 3601² big-endian 16-bit, northmost row first.
+    /// Writes one degree cell as `.hgt`: 3601 x 3601 big-endian 16-bit, northmost row first.
     ///
     /// Heights are rounded to the nearest metre, halves away from zero: 0.5 becomes 1 and
     /// -3.5 becomes -4, matching `gdal_translate -ot Int16` with no warping in the way.
     @discardableResult
     static func write(cell: (lat: Int, lon: Int), from mosaic: Mosaic, to url: URL,
-                      nodes: Int = 3601) throws -> Int {
+                      nodes: Int = HGTConversion.arcSecondsPerDegree + 1) throws -> Int {
         let n = nodes
         // 3601 nodes step one arc-second, 1201 step three. The mosaic works in arc-seconds;
         // this scales output indices into that unit, so step 1 is unchanged.
-        precondition((3600 % (n - 1)) == 0, "a .hgt side must divide the degree")
-        let step = 3600 / (n - 1)
+        precondition((arcSecondsPerDegree % (n - 1)) == 0, "a .hgt side must divide the degree")
+        let step = arcSecondsPerDegree / (n - 1)
         guard mosaic.covers(cellLat: cell.lat, cellLon: cell.lon) else {
             throw Trouble.noData(CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon))
         }
@@ -234,7 +243,7 @@ enum HGTConversion {
         }
 
         // Every published source samples latitude once an arc-second, so a whole output row
-        // is lifted at once; longitude thins past 50°, so the row is interpolated across.
+        // is lifted at once; longitude thins past 50 deg, so the row is interpolated across.
         for row in 0..<n {
             if let line = mosaic.row(cellLat: cell.lat, cellLon: cell.lon, row: row,
                                      width: n, step: step) {

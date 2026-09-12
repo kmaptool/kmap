@@ -20,15 +20,16 @@ extension CLI {
                 CLILog.line("obstacles:     \(network.obstacleCount), points \(network.obstacleLat.count)")
                 CLILog.line(String(format: "loaded in %.1f s", loadSeconds))
                 let scan = Date()
-                let (found, loose) = RoadRepair(network: network, limit: 5.0).candidates()
+                let radius = BuildRecipe.defaultHealRadius
+                let (found, loose) = RoadRepair(network: network, limit: radius).candidates()
                 let scanSeconds = Date().timeIntervalSince(scan)
-                CLILog.line("road ends within 5.0 m of another line: \(found.count)")
+                CLILog.line("road ends within \(radius) m of another line: \(found.count)")
                 CLILog.line(String(format: "scanned in %.1f s", scanSeconds))
 
                 let judging = Date()
                 let hgt = CopernicusDEM.cacheDirectory
                 let dem = FileManager.default.fileExists(atPath: hgt.path) ? Terrain(directory: hgt) : nil
-                let plan = RepairPlanner(network: network, terrain: dem, bridging: true, limit: 5.0)
+                let plan = RepairPlanner(network: network, terrain: dem, bridging: true, limit: radius)
                     .plan(found, loose: loose)
                 let inserts = plan.inserts.values.reduce(0) { $0 + $1.count }
                 let judgeSeconds = Date().timeIntervalSince(judging)
@@ -233,13 +234,16 @@ extension CLI {
     /// around them all, and each sample point belonging to no tile.
     ///
     /// - Returns: 1 when there are holes, 0 otherwise.
+    /// Degrees between the probes of `kmap coverage`.
+    private static let coverageStep = 0.25
+
     static func coverage(_ arguments: [String]) -> Int32 {
         let flags = CLI.Flags(arguments, valued: ["step"])
         guard let path = flags.positionals.first, !path.hasPrefix("-") else {
-            return CLIOutput.failure("usage: kmap coverage <map.img> [--step 0.25] [--quiet]",
+            return CLIOutput.failure("usage: kmap coverage <map.img> [--step \(coverageStep)] [--quiet]",
                                      code: 2)
         }
-        let step = flags.double("step") ?? 0.25
+        let step = flags.double("step") ?? coverageStep
         let quiet = flags.has("quiet")
 
         let url = URL(fileURLWithPath: path)

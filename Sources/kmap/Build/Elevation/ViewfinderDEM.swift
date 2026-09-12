@@ -1,8 +1,4 @@
 import Foundation
-#if canImport(FoundationNetworking)
-// URLSession lives in a module of its own outside Apple's platforms.
-import FoundationNetworking
-#endif
 
 /// Viewfinder Panoramas elevation tiles, fetched without pyhgtmap. Tiles come in zone-wide
 /// zip archives, and which zone holds which degree is stated only by the image map on the
@@ -24,7 +20,7 @@ enum ViewfinderDEM {
     }
 
     /// A `.hgt` is a bare grid of big-endian 16-bit samples, so its size is the only thing
-    /// that says whether a download finished. 3601² at one arc-second, 1201² at three.
+    /// that says whether a download finished. 3601 x 3601 at one arc-second, 1201 x 1201 at three.
     static func expectedSize(_ resolution: Int) -> Int64 {
         let n = Int64(3600 / resolution + 1)
         return 2 * n * n
@@ -115,8 +111,8 @@ enum ViewfinderDEM {
         }
     }
 
-    /// The degree tiles inside one rectangle of the coverage image map, which is 1800×900
-    /// pixels for 360°×180°, five pixels to the degree. The rounding and the southern
+    /// The degree tiles inside one rectangle of the coverage image map, which is 1800x900
+    /// pixels for 360 deg x 180 deg, five pixels to the degree. The rounding and the southern
     /// hemisphere test follow pyhgtmap, so indexes written by either program agree.
     static func innerAreas(_ coords: String) -> [String] {
         let parts = coords.split(separator: ",")
@@ -163,6 +159,8 @@ enum ViewfinderDEM {
         }
     }
 
+    private static let coverageTimeout: TimeInterval = 60
+
     /// Loads the index, building it from the coverage page if there is none cached.
     static func index(_ resolution: Int, downloader: Downloader? = nil,
                       log: (String) -> Void) async throws -> Index {
@@ -174,15 +172,14 @@ enum ViewfinderDEM {
         Paths.ensure(Paths.hgtCache)
         // One plain GET rather than the downloader, which needs a Content-Length to divide
         // into byte ranges; the server compresses this page, so there is none.
-        guard let (data, response) = try? await URLSession.shared.data(from: url),
-              let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode)
+        guard let data = try? await Fetch.data(url, timeout: coverageTimeout)
         else { throw Trouble.noIndex(resolution) }
         // The page declares no dependable charset; latin-1 decodes any byte, and the bytes
         // that matter here are ASCII.
         //
         // `CodePage.latin1` rather than Foundation, which cannot be relied on for this off
         // Apple's platforms: measured, `String(data:encoding:.isoLatin1)` decodes a short
-        // buffer on Linux and returns nil for one the size of this page — 40 kB — so every
+        // buffer on Linux and returns nil for one the size of this page - 40 kB - so every
         // Viewfinder download failed there, with contours and the DEM along with it.
         let html = CodePage.latin1(data)
         let built = Index.parse(coveragePage: html)

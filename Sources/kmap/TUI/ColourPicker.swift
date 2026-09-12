@@ -20,11 +20,21 @@ struct ColourPicker {
     static let levels = 9
     /// The most hue columns the grid is given, however wide the window is.
     private static let maximumHues = 48
+    /// The lightness bands run down from the top value in equal steps.
+    private static let topLightness = 0.9, lightnessStep = 0.09
+    /// Below this saturation a colour is grey and sits on the grey row.
+    private static let greyBelow = 0.06
+    private static let defaultSaturation = 0.7
+    private static let hueDegrees = 360.0
+    /// The grid is drawn no fainter than this, so a grey pick still shows its hues.
+    private static let faintestGrid = 0.15
+    /// Luma in thousandths, ITU-R 601; above the threshold the ink goes dark.
+    private static let lumaRed = 299, lumaGreen = 587, lumaBlue = 114, darkInkAbove = 140
 
     private(set) var pane: Pane = .grid
     /// The chosen colour, held as HSL; everything shown is derived from these three.
     private(set) var hue: Double = 0
-    private(set) var saturation: Double = 0.7
+    private(set) var saturation: Double = ColourPicker.defaultSaturation
     private(set) var lightness: Double = 0.5
 
     private var slider = 0
@@ -113,7 +123,8 @@ struct ColourPicker {
     private mutating func nudge(_ steps: Int) {
         switch slider {
         case 0:
-            hue = (hue + Double(steps) + 360).truncatingRemainder(dividingBy: 360)
+            hue = (hue + Double(steps) + ColourPicker.hueDegrees)
+                .truncatingRemainder(dividingBy: ColourPicker.hueDegrees)
         case 1:
             saturation = min(1, max(0, saturation + Double(steps) / 100))
         default:
@@ -139,12 +150,12 @@ struct ColourPicker {
     /// The grid cell nearest the current colour; derived, so the cursor stays valid after
     /// the sliders move off a cell.
     private var gridColumn: Int {
-        Int((hue / 360 * Double(hues)).rounded()) % max(1, hues)
+        Int((hue / ColourPicker.hueDegrees * Double(hues)).rounded()) % max(1, hues)
     }
 
     private var gridRow: Int {
-        if saturation < 0.06 { return ColourPicker.levels }
-        let step = (0.9 - lightness) / 0.09
+        if saturation < ColourPicker.greyBelow { return ColourPicker.levels }
+        let step = (ColourPicker.topLightness - lightness) / ColourPicker.lightnessStep
         return max(0, min(ColourPicker.levels - 1, Int(step.rounded())))
     }
 
@@ -154,20 +165,21 @@ struct ColourPicker {
             lightness = Double(column) / Double(max(1, hues - 1))
             return
         }
-        hue = Double(column) * 360 / Double(max(1, hues))
-        lightness = 0.9 - Double(row) * 0.09
-        if saturation < 0.06 { saturation = 0.7 }
+        hue = Double(column) * ColourPicker.hueDegrees / Double(max(1, hues))
+        lightness = ColourPicker.topLightness - Double(row) * ColourPicker.lightnessStep
+        if saturation < ColourPicker.greyBelow { saturation = ColourPicker.defaultSaturation }
     }
 
     /// The `#RRGGBB` colour of one grid cell. Row `levels` is the grey row.
-    static func colour(row: Int, column: Int, hues: Int, saturation: Double = 0.7) -> String {
+    static func colour(row: Int, column: Int, hues: Int,
+                       saturation: Double = defaultSaturation) -> String {
         if row == levels {
             let step = 255 * column / max(1, hues - 1)
             return String(format: "#%02X%02X%02X", step, step, step)
         }
-        let (r, g, b) = hslToRGB(hue: Double(column) * 360 / Double(max(1, hues)),
+        let (r, g, b) = hslToRGB(hue: Double(column) * hueDegrees / Double(max(1, hues)),
                                  saturation: saturation,
-                                 lightness: 0.9 - Double(row) * 0.09)
+                                 lightness: topLightness - Double(row) * lightnessStep)
         return String(format: "#%02X%02X%02X", r, g, b)
     }
 
@@ -206,7 +218,7 @@ struct ColourPicker {
                 let x = box.x + 2 + c * cell
                 guard x + cell <= box.maxX - 1 else { continue }
                 let colour = ColourPicker.colour(row: r, column: c, hues: hues,
-                                                 saturation: max(0.15, saturation))
+                                                 saturation: max(ColourPicker.faintestGrid, saturation))
                 guard let parsed = Color.hex(colour) else { continue }
                 s.fill(Rect(x: x, y: y + r, w: cell, h: 1), Style(fg: parsed, bg: parsed))
 
@@ -246,7 +258,7 @@ struct ColourPicker {
 
     private func drawSliders(_ s: Surface, box: Rect, y: Int, theme: Theme) -> Int {
         let names = [t("hue"), t("saturation"), t("lightness")]
-        let values = [hue / 360, saturation, lightness]
+        let values = [hue / ColourPicker.hueDegrees, saturation, lightness]
         let shown = [String(format: "%3.0f°", hue),
                      String(format: "%3.0f%%", saturation * 100),
                      String(format: "%3.0f%%", lightness * 100)]
@@ -300,7 +312,8 @@ struct ColourPicker {
 
     private static func contrast(with colour: String) -> Color {
         guard let (r, g, b) = rgb(of: colour) else { return .rgb(255, 255, 255) }
-        return (299 * r + 587 * g + 114 * b) / 1000 > 140 ? .rgb(0, 0, 0) : .rgb(255, 255, 255)
+        let luma = (lumaRed * r + lumaGreen * g + lumaBlue * b) / 1000
+        return luma > darkInkAbove ? .rgb(0, 0, 0) : .rgb(255, 255, 255)
     }
 
     static func rgb(of hex: String) -> (Int, Int, Int)? {
@@ -310,7 +323,7 @@ struct ColourPicker {
         return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
     }
 
-    /// Hue in degrees, saturation and lightness in 0…1.
+    /// Hue in degrees, saturation and lightness in 0...1.
     private static func hslToRGB(hue: Double, saturation: Double,
                          lightness: Double) -> (Int, Int, Int) {
         let c = (1 - abs(2 * lightness - 1)) * saturation
@@ -331,7 +344,7 @@ struct ColourPicker {
         return (byte(r), byte(g), byte(b))
     }
 
-    /// Converts to hue in degrees, saturation and lightness in 0…1.
+    /// Converts to hue in degrees, saturation and lightness in 0...1.
     private static func rgbToHSL(r: Int, g: Int, b: Int) -> (hue: Double, saturation: Double,
                                                      lightness: Double) {
         let rd = Double(r) / 255, gd = Double(g) / 255, bd = Double(b) / 255

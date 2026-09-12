@@ -29,7 +29,7 @@ enum DownloadError: Error, LocalizedError {
 /// The session's delegate, forwarding to a weakly held `Downloader`.
 ///
 /// URLSession retains its delegate until the session is invalidated, and the Downloader
-/// owns the session, so a Downloader acting as its own delegate could never deinit —
+/// owns the session, so a Downloader acting as its own delegate could never deinit -
 /// which is where the invalidation that breaks the cycle belongs.
 private final class SessionRelay: NSObject, URLSessionDataDelegate {
     // Written once, right after the Downloader's `super.init`, and only read afterwards.
@@ -86,11 +86,14 @@ final class Downloader: NSObject, URLSessionDataDelegate {
     nonisolated(unsafe) private var parts: [Int: Part] = [:]  // by URLSessionTask.taskIdentifier
     nonisolated(unsafe) private var cancelled = false
 
+    /// Parts are joined in blocks of this size.
+    private static let joinBlock = 8 << 20
+
     init(log: Log) {
         self.log = log
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 24 * 3600
+        config.timeoutIntervalForResource = .day
         config.httpMaximumConnectionsPerHost = 16
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         relay = SessionRelay()
@@ -131,7 +134,7 @@ final class Downloader: NSObject, URLSessionDataDelegate {
     ///
     /// - Returns: The bytes reclaimed.
     @discardableResult
-    static func sweepAbandonedParts(in directory: URL, olderThan age: TimeInterval = 14 * 24 * 3600,
+    static func sweepAbandonedParts(in directory: URL, olderThan age: TimeInterval = 14 * .day,
                                     now: Date = Date()) -> Int64 {
         guard let walker = FileManager.default.enumerator(
             at: directory, includingPropertiesForKeys: [.contentModificationDateKey],
@@ -374,7 +377,7 @@ final class Downloader: NSObject, URLSessionDataDelegate {
         for part in plan.sorted(by: { $0.index < $1.index }) {
             let input = try FileHandle(forReadingFrom: part.url)
             defer { try? input.close() }
-            while let block = try input.read(upToCount: 8 * 1024 * 1024), !block.isEmpty {
+            while let block = try input.read(upToCount: Self.joinBlock), !block.isEmpty {
                 try out.write(contentsOf: block)
             }
         }

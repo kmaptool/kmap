@@ -1,8 +1,4 @@
 import Foundation
-#if canImport(FoundationNetworking)
-// URLSession lives in a module of its own outside Apple's platforms.
-import FoundationNetworking
-#endif
 
 /// One downloadable extract from Geofabrik's index.
 struct Region {
@@ -13,7 +9,7 @@ struct Region {
     /// The box around everything the region touches.
     let bbox: BBox
     /// The ground actually covered: one box per ring of the outline, so a region reaching
-    /// across 180° yields two distant boxes rather than one spanning the globe. Anything
+    /// across 180 deg yields two distant boxes rather than one spanning the globe. Anything
     /// counting ground -- elevation cells, the size estimate -- reads these.
     let boxes: [BBox]
     /// The outline itself, one ring of [lon, lat] vertices per entry in `boxes`. Boxes
@@ -24,7 +20,7 @@ struct Region {
 
     var hasChildren: Bool { !childIDs.isEmpty }
 
-    /// Rough count of 1°×1° DEM tiles the region covers.
+    /// Rough count of 1 deg x 1 deg DEM tiles the region covers.
     var demTileCount: Int { boxes.reduce(0) { $0 + $1.demTileCount } }
 
     /// The slash-separated region path, used for cache filenames and output naming.
@@ -68,7 +64,8 @@ final class RegionIndex {
 
     private static let indexURL = URL(string: "https://download.geofabrik.de/index-v1.json")!
     /// Refetch the index if the cached copy is older than this.
-    private static let maxCacheAge: TimeInterval = 7 * 24 * 3600
+    private static let maxCacheAge: TimeInterval = 7 * .day
+    private static let indexTimeout: TimeInterval = 60
 
     enum LoadError: Error, LocalizedError {
         case network(String)
@@ -98,12 +95,7 @@ final class RegionIndex {
         }
 
         do {
-            var request = URLRequest(url: indexURL)
-            request.timeoutInterval = 60
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                throw LoadError.network("HTTP \(http.statusCode)")
-            }
+            let data = try await Fetch.data(indexURL, timeout: indexTimeout)
             // Cached only once it proves to be JSON: garbage written here would shadow
             // the stale copy the catch below falls back to, for a whole cache period.
             if (try? JSONSerialization.jsonObject(with: data)) != nil {
@@ -223,7 +215,7 @@ final class RegionIndex {
 
     /// Descends GeoJSON coordinate nesting, which differs in depth between Polygon and
     /// MultiPolygon, to each ring of [lon, lat] pairs and takes a box around every ring
-    /// separately: one box over all rings of a region crossing 180° would span the globe.
+    /// separately: one box over all rings of a region crossing 180 deg would span the globe.
     private static func walkRings(_ node: Any, into boxes: inout [BBox],
                                   rings: inout [[(lon: Double, lat: Double)]]) {
         guard let array = node as? [Any], !array.isEmpty else { return }

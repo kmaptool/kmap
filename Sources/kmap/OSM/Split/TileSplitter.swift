@@ -76,7 +76,7 @@ final class TileSplitter {
     // is one file.
     let options: Options
     let log: (String) -> Void
-    /// Told how far the split has come, 0...1, at each phase boundary. Reporting only —
+    /// Told how far the split has come, 0...1, at each phase boundary. Reporting only -
     /// nothing inside the passes slows for it.
     var progress: ((Double) -> Void)?
     /// Nodes seen while measuring density, which is what sizes the node table. Zero when
@@ -90,19 +90,26 @@ final class TileSplitter {
 
     // MARK: Units
 
+    /// Garmin map units: 24 bits to the full circle.
+    private static let unitsPerCircle = Double(1 << 24), degreesPerCircle = 360.0
+    /// More areas than this is a runaway split, not a map.
+    private static let mostAreas = 4096
+    /// The node table's slack for the fringe: a sixteenth more, and never fewer than this.
+    private static let fringeShare = 16, fringeFloor = 1024
+
     /// Converts degrees to Garmin map units, rounding as Java's Math.round does, floor of
     /// x plus a half, which is what splitter did.
     static func mapUnits(_ degrees: Double) -> Int32 {
         // Clamping, not trapping: a corrupt coordinate must miscount a node rather than
         // kill the split.
-        let units = (degrees * Double(1 << 24) / 360.0 + 0.5).rounded(.down)
+        let units = (degrees * unitsPerCircle / degreesPerCircle + 0.5).rounded(.down)
         if units >= Double(Int32.max) { return Int32.max }
         if units <= Double(Int32.min) { return Int32.min }
         return Int32(units)
     }
 
     static func degrees(_ units: Int32) -> Double {
-        Double(units) * 360.0 / Double(1 << 24)
+        Double(units) * degreesPerCircle / unitsPerCircle
     }
 
     /// The alignment grid: 2048 map units, resolution 13.
@@ -306,7 +313,7 @@ final class TileSplitter {
                 out.append(rect.area)
                 continue
             }
-            guard out.count + queue.count < 4096 else { throw Trouble.tooManyAreas(out.count) }
+            guard out.count + queue.count < Self.mostAreas else { throw Trouble.tooManyAreas(out.count) }
             let leftShare = needed / 2
             guard let (a, b) = density.split(rect, share: Double(leftShare) / Double(needed))
             else {
@@ -343,7 +350,7 @@ final class TileSplitter {
         } else {
             // Room for the fringe, which density did not count; growing the table later
             // would hold the old copy and the new one at once.
-            expected += expected / 16 + 1024
+            expected += expected / Self.fringeShare + Self.fringeFloor
         }
         let nodes = NodeAreas(expecting: expected)
         // Which tiles a node belongs to is a grid lookup depending on nothing else; only
@@ -427,6 +434,6 @@ final class TileSplitter {
         }
     }
 
-    // MARK: Pass 2 — the problem list
+    // MARK: Pass 2 - the problem list
 
 }

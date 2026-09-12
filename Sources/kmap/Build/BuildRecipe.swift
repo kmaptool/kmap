@@ -130,7 +130,7 @@ struct BuildRecipe {
     /// rewrites the embedded TYP to whatever `--family-id` says.
     var familyID: Int = 6324
 
-    /// Tile ids are `familyID × 10000 + n`, the convention Garmin's own products follow.
+    /// Tile ids are `familyID x 10000 + n`, the convention Garmin's own products follow.
     /// Distinct per map, so two maps never claim the same tiles.
     var mapIDBase: Int { familyID * 10000 + 1 }
 
@@ -164,85 +164,6 @@ struct BuildRecipe {
     var heapGB: Int = 8
     var downloadConnections: Int = 4
 
-    /// The map's series name. Receivers display it only when it is short, so the device
-    /// title stands in; the region names stay in `mapName` and the Map Info block.
-    var seriesName: String { deviceTitle }
-
-    /// What a receiver lists the map as: the title again.
-    var familyName: String { headerDescription }
-
-    /// Garmin's own limit on the description field in an `.img` header.
-    static let headerDescriptionLimit = 50
-
-    /// What goes into the `.img` header: the device title, shown as the bold first line of
-    /// the map's card. Fitted to the limit, since mkgmap refuses a longer one only after
-    /// every tile is compiled.
-    var headerDescription: String {
-        Self.fitted(deviceTitle, to: Self.headerDescriptionLimit)
-    }
-
-    /// The bold line on the receiver: the tool, the month, and the region ids, which are
-    /// ASCII whatever the code page.
-    var deviceTitle: String {
-        let head = "kmap \(dateStamp.prefix(7)), "
-        return Self.fittedIDs(regions.map(\.id), limit: Self.headerDescriptionLimit) { named, rest in
-            head + named.joined(separator: rest > 0 ? ", " : " and ")
-                + (rest > 0 ? " and \(rest) more" : "")
-        }
-    }
-
-    /// Up to two of `ids` within `limit`, the rest counted: `spell` renders the named ids
-    /// and the count. One id where two do not fit; that id cut at a hyphen as the last
-    /// resort. The count always survives.
-    static func fittedIDs(_ ids: [String], limit: Int,
-                          spell: ([String], Int) -> String) -> String {
-        for named in [2, 1] where ids.count >= named {
-            let text = spell(Array(ids.prefix(named)), ids.count - named)
-            if text.count <= limit { return text }
-        }
-        guard let first = ids.first else { return spell([], 0) }
-        let overhead = spell([""], ids.count - 1).count
-        let cut = fitted(first, to: max(1, limit - overhead), breakingOn: "-")
-        return spell([cut], ids.count - 1)
-    }
-
-    static func fitted(_ text: String, to limit: Int,
-                       breakingOn separator: Character = " ") -> String {
-        guard text.count > limit else { return text }
-        let cut = String(text.prefix(limit))
-        // Only take the word boundary if it leaves most of the room used; a short first
-        // word would otherwise cut the text back to almost nothing.
-        if let word = cut.lastIndex(of: separator),
-           cut.distance(from: cut.startIndex, to: word) > limit / 2 {
-            return String(cut[cut.startIndex..<word])
-        }
-        return cut
-    }
-
-    /// What the map is called: one region's name, or the set spelled out. Not translated,
-    /// since the text is written into the map itself.
-    var mapName: String { Self.spelledOut(regions.map(\.name), upTo: 3) }
-
-    /// Up to `upTo` items spelled out; past that, the first `upTo` and a count.
-    static func spelledOut(_ items: [String], upTo: Int) -> String {
-        if items.count > upTo {
-            return items.prefix(upTo).joined(separator: ", ") + " and \(items.count - upTo) more"
-        }
-        switch items.count {
-        case 0: return ""
-        case 1: return items[0]
-        case 2: return "\(items[0]) and \(items[1])"
-        default: return items.dropLast().joined(separator: ", ") + " and \(items[items.count - 1])"
-        }
-    }
-
-    /// A file-safe id for the map: the region's id, or the first two ids and a count.
-    var slug: String {
-        guard !extraRegions.isEmpty else { return FileTools.slugify(region.id) }
-        let head = regions.prefix(2).map { FileTools.slugify($0.id) }.joined(separator: "+")
-        return regions.count > 2 ? "\(head)+\(regions.count - 2)" : head
-    }
-
     /// The ground the whole map covers: every region's bounds together. Elevation, contours
     /// and the split axis read this rather than the primary region's own box.
     var coverage: BBox {
@@ -256,10 +177,4 @@ struct BuildRecipe {
 
     /// Needs elevation data on disk, for either purpose.
     var needsElevationData: Bool { contours || demLayer }
-
-    /// Names for the produced files. The naming belongs to `TilePacker`, which decides the
-    /// grouping.
-    func partNames(count: Int, axis: SplitAxis) -> [String] {
-        TilePacker(mode: splitMode, axis: axis, slug: slug).partNames(count: count)
-    }
 }

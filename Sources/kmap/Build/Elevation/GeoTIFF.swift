@@ -22,6 +22,36 @@ struct GeoTIFF {
         }
     }
 
+    /// The tags read, by their TIFF numbers.
+    private enum Tag {
+        static let imageWidth = 256, imageLength = 257, bitsPerSample = 258
+        static let compression = 259, stripOffsets = 273, samplesPerPixel = 277
+        static let rowsPerStrip = 278, stripByteCounts = 279, predictor = 317
+        static let tileWidth = 322, tileLength = 323, tileOffsets = 324, tileByteCounts = 325
+        static let sampleFormat = 339
+        static let modelPixelScale = 33550, modelTiepoint = 33922, geoKeyDirectory = 34735
+    }
+
+    /// The values of the compression tag this reader decodes.
+    private enum Compression {
+        static let none = 1, lzw = 5, deflate = 8, packBits = 32773, adobeDeflate = 32946
+    }
+
+    private enum Predictor { static let horizontal = 2, floatingPoint = 3 }
+    private enum SampleFormat { static let signed = 2, float = 3 }
+
+    /// The version word after the byte-order mark: classic TIFF, or BigTIFF.
+    private static let classicTIFF = 42, bigTIFF = 43
+
+    /// GeoKey GTRasterType: 1 puts the tiepoint on a cell corner, 2 on the sample itself.
+    private static let rasterTypeKey = 1025, rasterIsArea = 1, rasterIsPoint = 2
+
+    /// LZW: the two reserved codes, the first code width, and the widest.
+    private static let lzwClear = 256, lzwEnd = 257, lzwFirstWidth = 9, lzwWidestCode = 12
+
+    /// PackBits: the one count byte that means nothing.
+    private static let packBitsNoOp = -128
+
     let width: Int
     let height: Int
 
@@ -63,8 +93,8 @@ struct GeoTIFF {
         default: throw Trouble.notTIFF
         }
         let magic = Self.u16(data, 2, bigEndian)
-        if magic == 43 { throw Trouble.bigTIFF }
-        guard magic == 42 else { throw Trouble.notTIFF }
+        if magic == Self.bigTIFF { throw Trouble.bigTIFF }
+        guard magic == Self.classicTIFF else { throw Trouble.notTIFF }
 
         let tags = try Self.readTagDirectory(in: data, bigEndian: bigEndian)
 
@@ -72,33 +102,34 @@ struct GeoTIFF {
             tags[tag]?.first.map { Int($0) } ?? fallback
         }
 
-        width = one(256, 0)
-        height = one(257, 0)
+        width = one(Tag.imageWidth, 0)
+        height = one(Tag.imageLength, 0)
         guard width > 0, height > 0 else { throw Trouble.unsupported("no image size") }
-        guard one(277, 1) == 1 else { throw Trouble.unsupported("more than one band") }
-        bitsPerSample = one(258, 32)
-        sampleFormat = one(339, 1)
-        compression = one(259, 1)
-        predictor = one(317, 1)
-        guard compression == 1 || compression == 5 || compression == 8
-                || compression == 32946 || compression == 32773 else {
+        guard one(Tag.samplesPerPixel, 1) == 1 else { throw Trouble.unsupported("more than one band") }
+        bitsPerSample = one(Tag.bitsPerSample, 32)
+        sampleFormat = one(Tag.sampleFormat, 1)
+        compression = one(Tag.compression, 1)
+        predictor = one(Tag.predictor, 1)
+        guard compression == Compression.none || compression == Compression.lzw
+                || compression == Compression.deflate || compression == Compression.adobeDeflate
+                || compression == Compression.packBits else {
             throw Trouble.unsupported("compression \(compression)")
         }
         guard bitsPerSample == 32 || bitsPerSample == 16 else {
             throw Trouble.unsupported("\(bitsPerSample) bits per sample")
         }
 
-        if let tw = tags[322]?.first, let th = tags[323]?.first {
+        if let tw = tags[Tag.tileWidth]?.first, let th = tags[Tag.tileLength]?.first {
             tileWidth = Int(tw)
             tileHeight = Int(th)
-            offsets = (tags[324] ?? []).map { Int($0) }
-            counts = (tags[325] ?? []).map { Int($0) }
+            offsets = (tags[Tag.tileOffsets] ?? []).map { Int($0) }
+            counts = (tags[Tag.tileByteCounts] ?? []).map { Int($0) }
         } else {
             // A stripped file is a tiled one whose tiles are full width.
             tileWidth = width
-            tileHeight = one(278, height)
-            offsets = (tags[273] ?? []).map { Int($0) }
-            counts = (tags[279] ?? []).map { Int($0) }
+            tileHeight = one(Tag.rowsPerStrip, height)
+            offsets = (tags[Tag.stripOffsets] ?? []).map { Int($0) }
+            counts = (tags[Tag.stripByteCounts] ?? []).map { Int($0) }
         }
         guard !offsets.isEmpty, offsets.count == counts.count else {
             throw Trouble.unsupported("no tile offsets")
@@ -155,25 +186,24 @@ struct GeoTIFF {
     /// Both are required rather than defaulted: a default would place the tile silently.
     private static func geoPlacement(from tags: [Int: [Double]]) throws
         -> (stepLon: Double, stepLat: Double, originLon: Double, originLat: Double) {
-        guard let scale = tags[33550], scale.count >= 2,
-              let tie = tags[33922], tie.count >= 6 else {
+        guard let scale = tags[Tag.modelPixelScale], scale.count >= 2,
+              let tie = tags[Tag.modelTiepoint], tie.count >= 6 else {
             throw Trouble.unsupported("no geo-referencing")
         }
         var lon = tie[3] - tie[0] * scale[0]
         var lat = tie[4] + tie[1] * scale[1]
 
-        // GTRasterType 1 means the tiepoint is a cell corner, so the sample is half a step
-        // in; 2 means it is already the sample. 2 is the default here.
-        var rasterType = 2
-        if let keys = tags[34735], keys.count >= 4 {
+        // Point registration is the default where the key is absent.
+        var rasterType = Self.rasterIsPoint
+        if let keys = tags[Tag.geoKeyDirectory], keys.count >= 4 {
             let count = Int(keys[3])
             for k in 0..<count {
                 let at = 4 + k * 4
                 guard at + 3 < keys.count else { break }
-                if Int(keys[at]) == 1025 { rasterType = Int(keys[at + 3]) }
+                if Int(keys[at]) == Self.rasterTypeKey { rasterType = Int(keys[at + 3]) }
             }
         }
-        if rasterType == 1 {
+        if rasterType == Self.rasterIsArea {
             lon += scale[0] / 2
             lat -= scale[1] / 2
         }
@@ -224,7 +254,7 @@ struct GeoTIFF {
         guard offset >= 0, count >= 0, offset + count <= data.count else {
             throw Trouble.truncated
         }
-        if compression == 1 {
+        if compression == Compression.none {
             guard count >= wanted else { throw Trouble.truncated }
             data.withUnsafeBytes { bytes in
                 _ = raw.withUnsafeMutableBytes { out in
@@ -232,9 +262,9 @@ struct GeoTIFF {
                         .copyBytes(to: out)
                 }
             }
-        } else if compression == 5 || compression == 32773 {
+        } else if compression == Compression.lzw || compression == Compression.packBits {
             let body = data.subdata(in: offset..<(offset + count))
-            let out = compression == 5 ? Self.lzw(body, expecting: wanted)
+            let out = compression == Compression.lzw ? Self.lzw(body, expecting: wanted)
                                        : Self.packBits(body, expecting: wanted)
             guard out.count >= wanted else { throw Trouble.truncated }
             raw = Array(out[0..<wanted])
@@ -266,12 +296,12 @@ struct GeoTIFF {
     /// does the same to the bytes, having first grouped a row's bytes by significance.
     /// Undoing 3 takes two passes: sum along the row bytewise, then regather each sample.
     private func undoPredictor(_ raw: inout [UInt8], bytesPerSample: Int) {
-        guard predictor == 2 || predictor == 3 else { return }
+        guard predictor == Predictor.horizontal || predictor == Predictor.floatingPoint else { return }
         let stride = tileWidth * bytesPerSample
         for r in 0..<tileHeight {
             let base = r * stride
             guard base + stride <= raw.count else { break }
-            if predictor == 2 {
+            if predictor == Predictor.horizontal {
                 // The horizontal predictor differences samples, not bytes, so a 16-bit band
                 // is reassembled before the sum and split again after.
                 if bytesPerSample == 1 {
@@ -314,7 +344,7 @@ struct GeoTIFF {
     private func samples(_ raw: [UInt8], bytesPerSample: Int) -> [Float] {
         let count = tileWidth * tileHeight
         var out = [Float](repeating: 0, count: count)
-        let msbFirst = predictor == 3 ? true : bigEndian
+        let msbFirst = predictor == Predictor.floatingPoint ? true : bigEndian
         for i in 0..<count {
             let at = i * bytesPerSample
             guard at + bytesPerSample <= raw.count else { break }
@@ -325,7 +355,7 @@ struct GeoTIFF {
                 } else {
                     for k in (0..<4).reversed() { bits = (bits << 8) | UInt32(raw[at + k]) }
                 }
-                out[i] = sampleFormat == 3 ? Float(bitPattern: bits)
+                out[i] = sampleFormat == SampleFormat.float ? Float(bitPattern: bits)
                                            : Float(Int32(bitPattern: bits))
             } else {
                 var bits: UInt16 = 0
@@ -334,18 +364,18 @@ struct GeoTIFF {
                 } else {
                     bits = (UInt16(raw[at + 1]) << 8) | UInt16(raw[at])
                 }
-                out[i] = sampleFormat == 2 ? Float(Int16(bitPattern: bits)) : Float(bits)
+                out[i] = sampleFormat == SampleFormat.signed ? Float(Int16(bitPattern: bits)) : Float(bits)
             }
         }
         return out
     }
 
     /// TIFF's LZW: codes most significant bit first, nine bits wide initially, widening one
-    /// code early — at 511 rather than 512.
+    /// code early - at 511 rather than 512.
     private static func lzw(_ input: Data, expecting wanted: Int) -> [UInt8] {
         var out = [UInt8](); out.reserveCapacity(wanted)
-        var table: [[UInt8]] = (0..<256).map { [UInt8($0)] } + [[], []]
-        var width = 9
+        var table: [[UInt8]] = (0..<Self.lzwClear).map { [UInt8($0)] } + [[], []]
+        var width = Self.lzwFirstWidth
         var previous: [UInt8]? = nil
         var bit = 0
         let bits = input.count * 8
@@ -362,13 +392,13 @@ struct GeoTIFF {
         }
 
         while let code = next() {
-            if code == 256 {
-                table = (0..<256).map { [UInt8($0)] } + [[], []]
-                width = 9
+            if code == Self.lzwClear {
+                table = (0..<Self.lzwClear).map { [UInt8($0)] } + [[], []]
+                width = Self.lzwFirstWidth
                 previous = nil
                 continue
             }
-            if code == 257 { break }
+            if code == Self.lzwEnd { break }
             var entry: [UInt8]
             if code < table.count {
                 entry = table[code]
@@ -382,7 +412,7 @@ struct GeoTIFF {
                 table.append(previous + [entry[0]])
             }
             previous = entry
-            if table.count + 1 >= (1 << width), width < 12 { width += 1 }
+            if table.count + 1 >= (1 << width), width < Self.lzwWidestCode { width += 1 }
             if out.count >= wanted { break }
         }
         return out
@@ -398,7 +428,7 @@ struct GeoTIFF {
                 let take = min(n + 1, input.endIndex - at)
                 out.append(contentsOf: input[at..<(at + take)])
                 at += take
-            } else if n != -128 {
+            } else if n != Self.packBitsNoOp {
                 guard at < input.endIndex else { break }
                 out.append(contentsOf: [UInt8](repeating: input[at], count: -n + 1))
                 at += 1
@@ -409,6 +439,8 @@ struct GeoTIFF {
 
     // MARK: Reading numbers out of the file
 
+    /// Bytes per value of a TIFF field type: 1 BYTE, 3 SHORT, 4 LONG, 11 FLOAT, 12 DOUBLE
+    /// and their kin.
     private static func typeSize(_ type: Int) -> Int {
         switch type {
         case 1, 2, 6, 7: 1

@@ -7,6 +7,10 @@ import Foundation
 final class Terrain {
     private let directory: URL
     private let size = 3601
+    /// SRTM marks a void with -32768; nothing that low is a reading.
+    private static let voidBelow: Int16 = -32000
+    /// One arc second along a meridian, in metres.
+    private static let metresPerPost = 30.9
     private var tiles: [Int32: Data?] = [:]
 
     init(directory: URL) {
@@ -32,14 +36,14 @@ final class Terrain {
         let at = (row * size + column) * 2
         guard at + 1 < data.count else { return nil }
         let value = Int16(bitPattern: UInt16(data[at]) << 8 | UInt16(data[at + 1]))
-        return value <= -32000 ? nil : Double(value)          // a void, not a sea-level reading
+        return value <= Terrain.voidBelow ? nil : Double(value)
     }
 
     /// Steepest gradient in degrees across the cells around the point.
     func slope(_ lat: Double, _ lon: Double) -> Double? {
         guard let here = elevation(lat, lon) else { return nil }
         let step = 1.0 / Double(size - 1)
-        let span = 30.9
+        let span = Terrain.metresPerPost
         let east = span * cos(lat * .pi / 180)
         var worst = 0.0
         for (dlat, dlon, run) in [(step, 0.0, span), (-step, 0.0, span),

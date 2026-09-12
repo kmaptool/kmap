@@ -58,6 +58,9 @@ enum ContourTiming {
         lock.unlock()
     }
 
+    /// A floor under the divisors, so an empty stage reports zeros rather than NaN.
+    private static let leastSeconds = 0.001
+
     /// The report, as lines for the build log.
     static func report(wall: Double, lanes: Int) -> [String] {
         guard on else { return [] }
@@ -69,12 +72,12 @@ enum ContourTiming {
         var out: [String] = []
         let busy = totals.values.reduce(0, +)
         out.append(String(format: "contour timing: %.1f s wall, %.1f s of work in %d lane(s)"
-                          + " — %.1f cores' worth", wall, busy, lanes, busy / max(wall, 0.001)))
+                          + " — %.1f cores' worth", wall, busy, lanes, busy / max(wall, leastSeconds)))
         for phase in order {
             let seconds = totals[phase] ?? 0
             out.append(String(format: "  %-10@ %7.1f s  %5.1f%% of work  %5.1f%% of wall",
-                              phase as NSString, seconds, 100 * seconds / max(busy, 0.001),
-                              100 * seconds / max(wall, 0.001) / Double(lanes)))
+                              phase as NSString, seconds, 100 * seconds / max(busy, leastSeconds),
+                              100 * seconds / max(wall, leastSeconds) / Double(lanes)))
         }
 
         // The tail: a stage with ten lanes and one four-minute cell spends its last four
@@ -98,8 +101,8 @@ enum ContourTiming {
         }
         out.append(String(format: "  %d cell(s); mean occupancy %.1f lane(s);"
                           + " %.1f s (%.0f%%) below half the lanes",
-                          cells.count, occupancy / max(last, 0.001), alone,
-                          100 * alone / max(last, 0.001)))
+                          cells.count, occupancy / max(last, leastSeconds), alone,
+                          100 * alone / max(last, leastSeconds)))
         out.append("  slowest cell(s): " + sorted.prefix(5).map {
             String(format: "%@ %.1f s (starts at %.1f)", $0.name, $0.seconds, $0.start)
         }.joined(separator: ", "))

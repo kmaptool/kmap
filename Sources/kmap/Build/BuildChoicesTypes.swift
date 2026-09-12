@@ -124,157 +124,25 @@ struct LevelsProfile: Equatable {
     /// Valid only together with `--overview-dem-dist` in StageCompile: the coarsest entry
     /// sets the farthest zoom that still gets hillshading.
     private static let demBands = [26496, 52992, 106048]
+    /// A source's own spacing in the same units: one arc second, and three.
+    private static let spacingOneArcSecond = 3312.0, spacingThreeArcSeconds = 9936.0
+    /// mkgmap rounds a spacing to a multiple of this anyway.
+    private static let demDistStep = 16
 
     func demDists(oneArcSecond: Bool) -> String {
         // The fine end climbs geometrically from the source's own spacing to the first
         // named band, so the ladder stays monotonic whatever its length and source.
-        let start = oneArcSecond ? 3312.0 : 9936.0
+        let start = oneArcSecond ? LevelsProfile.spacingOneArcSecond
+                                 : LevelsProfile.spacingThreeArcSeconds
         let head = max(0, levelCount - LevelsProfile.demBands.count)
         let span = Double(LevelsProfile.demBands[0]) / start
         var out: [Int] = []
         for step in 0..<head {
             let value = start * pow(span, Double(step) / Double(head))
-            // Held to multiples of 16, which is what mkgmap rounds them to anyway.
-            out.append(Int((value / 16).rounded()) * 16)
+            out.append(Int((value / Double(LevelsProfile.demDistStep)).rounded())
+                       * LevelsProfile.demDistStep)
         }
         return (out + LevelsProfile.demBands.suffix(levelCount - head))
             .map(String.init).joined(separator: ",")
-    }
-}
-
-extension BuildRecipe {
-    /// The day this build started, as it appears in every name it writes.
-    var dateStamp: String { Fmt.day(startedOn) }
-
-    /// How much of the slug a file name carries.
-    static let fileNamePartLimit = 48
-
-    /// One finished file: the regions, its part of `total` if several, the date last so
-    /// builds sort apart on a card, and the copy number from 2 up.
-    func fileName(ordinal: Int = 1, of total: Int = 1, copy: Int = 1) -> String {
-        let part = total > 1 ? "p\(ordinal)-" : ""
-        let bump = copy > 1 ? "-\(copy)" : ""
-        return "kmap-\(regionsFileToken)-\(part)\(dateStamp)\(bump).img"
-    }
-
-    /// The ids as a file name says them: "a+b", "a+b+N-more", fitted like the title.
-    private var regionsFileToken: String {
-        Self.fittedIDs(regions.map { FileTools.slugify($0.id) }, limit: Self.fileNamePartLimit) {
-            named, rest in
-            named.joined(separator: "+") + (rest > 0 ? "+\(rest)-more" : "")
-        }
-    }
-
-    /// The lowest copy number whose file names are all still free.
-    ///
-    /// Asked once per build, for every part at once: the parts of one build must share a
-    /// number, or part one could come out "-2" while part two did not and the set would
-    /// stop reading as a set.
-    ///
-    /// `taken` answers for the *other* builds in the output folder — the caller leaves
-    /// its own destination out, so rebuilding the same map on the same day still replaces
-    /// its own files rather than growing a number each time.
-    func freeCopy(of total: Int, taken: (String) -> Bool) -> Int {
-        var copy = 1
-        // Bounded only against a `taken` that never says no; a folder of files runs out
-        // of names to have taken long before this does.
-        while copy < 10_000 {
-            let anyTaken = (1...max(1, total)).contains { ordinal in
-                taken(fileName(ordinal: ordinal, of: total, copy: copy))
-            }
-            if !anyTaken { return copy }
-            copy += 1
-        }
-        return copy
-    }
-
-
-    /// The lines shown under Map Info; mkgmap shows the first in BaseCamp only.
-    /// Plain ASCII, no punctuation past a comma: Garmin's six-bit label alphabet drops a
-    /// line from the first character it cannot hold. OSM attribution is licence-required.
-    var copyrightLines: [String] {
-        // kmap's own date rather than mkgmap's $LONGDATE$, which is written in the Java
-        // locale and can contain characters the label alphabet does not hold.
-        var lines = ["kmap \(Version.number), mkgmap $MKGMAP_VERSION$, built \(dateStamp)",
-                     "(c) OpenStreetMap contributors, ODbL",
-                     "Built by kmap \(Version.number), \(dateStamp)"]
-        if contours || demLayer {
-            lines.append("Elevation: \(demSources.replacingOccurrences(of: ",", with: " "))"
-                         + (contours ? ", contours \(contourInterval) m" : ""))
-        }
-        // A borrowed look whose licence asks to be credited is credited here, where the
-        // receiver shows it: the map is the product the licence speaks of.
-        if let shipped = StyleCatalog.shippedPalette(id: style.id), !shipped.credit.isEmpty {
-            lines.append(shipped.credit)
-        }
-        return lines
-    }
-
-    /// The dated folder each build writes into, so repeated builds of the same region do
-    /// not overwrite each other.
-    var outputFolderName: String {
-        var parts: [String] = [dateStamp, slug]
-        parts.append(FileTools.slugify(style.id.replacingOccurrences(of: ":", with: "-")))
-        if contours { parts.append("\(contourInterval)m") }
-        if demLayer { parts.append("dem") }
-        return parts.joined(separator: "_")
-    }
-
-    /// The folder this build writes its finished maps into.
-    var destinationDirectory: URL {
-        outputDirectory.appendingPathComponent(outputFolderName, isDirectory: true)
-    }
-
-    /// Private scratch directory for this build, removed when it finishes.
-    var workDirectory: URL {
-        workRoot.appendingPathComponent(slug, isDirectory: true)
-    }
-}
-
-extension BuildRecipe {
-    /// The key a map is remembered by in the family-id registry: the region ids sorted and
-    /// joined, so the same set always resolves to the same map.
-    static func identityKey(_ regions: [Region]) -> String {
-        regions.map(\.id).sorted().joined(separator: "+")
-    }
-
-    /// Geofabrik region ids whose OSM `name` is written in Cyrillic. Under code page 1252
-    /// such names are silently transliterated to Latin.
-    private static let cyrillicRegions: Set<String> = [
-        "russia", "ukraine", "belarus", "bulgaria", "serbia", "macedonia",
-        "montenegro", "kazakhstan", "kyrgyzstan", "mongolia", "tajikistan",
-        "uzbekistan", "turkmenistan", "azerbaijan", "moldova", "abkhazia",
-        "south-ossetia"
-    ]
-
-    /// The code page suggested for a region. Walks the region's parents, since a
-    /// sub-region's own id says nothing about its alphabet while its parent's does.
-    static func suggestedCodePage(for region: Region, in index: RegionIndex? = nil) -> Int {
-        var cursor: Region? = region
-        var hops = 0
-        while let current = cursor, hops < 8 {
-            if cyrillicRegions.contains(current.id.lowercased()) { return CodePage.cyrillic }
-            guard let index, let parentID = current.parentID else { break }
-            cursor = index.region(parentID)
-            hops += 1
-        }
-        // Fall back to a substring check for callers without the index to hand.
-        let id = region.id.lowercased()
-        return cyrillicRegions.contains(where: { id.contains($0) })
-            ? CodePage.cyrillic : CodePage.westernEuropean
-    }
-}
-
-enum SplitAxis {
-    case longitude, latitude
-
-    /// Splits along whichever way the region is widest on the ground, so the halves are
-    /// roughly equal in area rather than in degrees.
-    static func best(for bbox: BBox) -> SplitAxis {
-        guard bbox.isValid else { return .longitude }
-        let midLat = (bbox.minLat + bbox.maxLat) / 2
-        let lonKm = (bbox.maxLon - bbox.minLon) * 111.32 * cos(midLat * .pi / 180)
-        let latKm = (bbox.maxLat - bbox.minLat) * 110.57
-        return lonKm >= latKm ? .longitude : .latitude
     }
 }

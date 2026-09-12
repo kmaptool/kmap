@@ -19,6 +19,8 @@ enum RegionSuggestion {
     /// stands alone.
     static let drawsALot = 0.1
     static let drawsAQuarter = 0.25
+    /// The sliver of `inside` that `drawsALot` needs beside it.
+    static let sliverInside = 0.15
 
     /// Minimum drawn density inside a region, as a fraction of the map's own average.
     /// Rectangular tiles laid over an excluded neighbour cover it entirely yet hold
@@ -161,7 +163,7 @@ enum RegionSuggestion {
             out += ranked(measured.filter {
                 !taken.contains($0.region.id) && $0.isDrawnOn
                     && ($0.share >= drawsAQuarter
-                        || ($0.share >= drawsALot && $0.inside >= 0.15)
+                        || ($0.share >= drawsALot && $0.inside >= sliverInside)
                         || ($0.inside >= mostlyInside / 2 && $0.share >= drawsEnough))
             })
         }

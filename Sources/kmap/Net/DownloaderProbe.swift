@@ -95,11 +95,7 @@ extension Downloader {
     /// Fetches an `.md5` file, whose format is "<hash>  <filename>", and returns the
     /// lowercased hash, or nil where it is missing or malformed.
     static func fetchExpectedMD5(_ url: URL) async -> String? {
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 30
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
-              let text = String(data: data, encoding: .utf8) else { return nil }
+        guard let text = await Fetch.text(url) else { return nil }
         let token = text.split(separator: " ").first.map(String.init)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let token, token.count == 32,
