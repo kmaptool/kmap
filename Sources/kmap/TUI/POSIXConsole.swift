@@ -108,7 +108,10 @@ enum POSIXConsole: ConsoleBackend {
             raise(sig)
         }
         for sig in [SIGABRT, SIGILL, SIGTRAP, SIGSEGV, SIGBUS, SIGFPE] {
-            signal(sig, crashing)
+            // A signal already ignored stays ignored, SIGTRAP on WSL 1 (main.swift).
+            // SIG_IGN is 1 on every POSIX.
+            let previous = signal(sig, crashing)
+            if previous.map({ unsafeBitCast($0, to: Int.self) }) == 1 { signal(sig, SIG_IGN) }
         }
     }
 

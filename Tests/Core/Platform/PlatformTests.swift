@@ -28,6 +28,14 @@ final class PlatformTests: XCTestCase {
     }
     #endif
 
+    /// Release strings alone tell the two WSLs apart, so this runs anywhere.
+    func testTheFirstWSLIsKnownByItsCapitalAndTheSecondByItsName() {
+        XCTAssertTrue(Platform.isFirstWSL(release: "4.4.0-26100-Microsoft"))
+        XCTAssertFalse(Platform.isFirstWSL(release: "5.15.146.1-microsoft-standard-WSL2"))
+        XCTAssertFalse(Platform.isFirstWSL(release: "6.8.0-45-generic"))
+        XCTAssertFalse(Platform.isFirstWSL(release: nil))
+    }
+
     #if canImport(Darwin)
     func testAMacIsAMacWhateverTheEnvironmentSays() {
         XCTAssertEqual(Platform.detect(environment: ["WSL_DISTRO_NAME": "Ubuntu"],
