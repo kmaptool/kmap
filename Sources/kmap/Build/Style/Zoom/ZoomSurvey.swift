@@ -42,13 +42,6 @@ struct ZoomSurvey {
         }
     }
 
-    /// The rung a family starts on after moving it `steps`: the coarsest rung any of its
-    /// rules reach, since a rule drawn at a coarse rung is drawn at every finer one too.
-    func startRung(_ family: ZoomFamily, shifted steps: Int) -> Int? {
-        guard let spread = spread(family) else { return nil }
-        return clamp(spread.coarsest + steps)
-    }
-
     /// The move that puts a family's start on `rung`. The screen offers rungs and stores
     /// moves, which keep their meaning when a later mkgmap shifts a rule.
     func shift(putting family: ZoomFamily, onRung rung: Int) -> Int? {
@@ -82,13 +75,6 @@ struct ZoomSurvey {
             return t("level %d", at)
         }
         return t("level %d", at) + "  ·  " + scale
-    }
-
-    /// The whole spread, for the panel: "rungs 1–4" or "rung 3".
-    func spreadReading(_ family: ZoomFamily, shifted steps: Int) -> String? {
-        guard let spread = spread(family) else { return nil }
-        let finest = clamp(spread.finest + steps), coarsest = clamp(spread.coarsest + steps)
-        return finest == coarsest ? t("level %d", finest) : t("levels %d–%d", finest, coarsest)
     }
 
     private func clamp(_ rung: Int) -> Int {

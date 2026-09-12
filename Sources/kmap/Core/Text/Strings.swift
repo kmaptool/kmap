@@ -96,9 +96,6 @@ enum Strings {
         "%d unused": "%d не используется",
         "%d/%d ready": "%d/%d готово",
         "1251 for Cyrillic names, 1252 for the rest": "1251 для кириллических названий, 1252 для остальных",
-        "3. Split the extract plus the contours into map tiles.": "3. Разрезать выгрузку вместе с горизонталями на плитки карты.",
-        "4. Compile the tiles with mkgmap, embedding the chosen TYP and the DEM layer.": "4. Собрать плитки через mkgmap, встроив выбранный TYP и слой DEM.",
-        "5. Write one .img per output file into the output folder.": "5. Записать по одному .img на каждый выходной файл в папку вывода.",
         "A .gpi beside the map, holding every object that has an OSM description. The only Garmin format with a real description field.": "Файл .gpi рядом с картой, со всеми объектами, у которых есть описание в OSM. Единственный формат Garmin с настоящим полем описания.",
         "A .img has its TYP lifted out here — there is no need to unpack it first. `~` is expanded.": "У .img TYP извлекается прямо здесь — распаковывать заранее не нужно. `~` раскрывается.",
         "A 10 m contour interval is a choice you make and kmap honours it. It is not the same as a 10 m resolution elevation model: freely available global elevation data is 1 arc-second, roughly 30 m on the ground. A 10 m interval drawn from 30 m data is normal practice and looks right in the mountains, but on flat ground the lines will wander. Nothing kmap can do about that — the data does not exist.": "Шаг горизонталей 10 м — ваш выбор, и kmap его выполняет. Но это не то же, что модель высот с разрешением 10 м: свободные данные о высотах имеют шаг в одну угловую секунду, примерно 30 м на местности. Рисовать десятиметровые горизонтали по тридцатиметровым данным — обычная практика: в горах выглядит правильно, на равнине линии плывут. Здесь kmap бессилен — более точных свободных данных не существует.",
@@ -118,8 +115,6 @@ enum Strings {
         "Build one from the main menu. Finished maps land here as .img files; copy one to Garmin/ on the device or its SD card to install it.": "Соберите первую из главного меню. Готовые карты попадают сюда файлами .img; скопируйте нужный в Garmin/ на приборе или на его карте памяти, чтобы установить.",
         "Cached elevation": "Кэш высот",
         "Cached extracts": "Кэш выгрузок",
-        "Carried in the address field — reads naturally, but the text can reach the street index.": "Едет в поле адреса — читается естественно, но текст может попасть в индекс улиц.",
-        "Carried in the phone field — stays out of the search index, but the device may label the line as a phone number.": "Едет в поле телефона — остаётся вне поискового индекса, но прибор может подписать строку как телефон.",
         "Casing": "Обводка",
         "Changing a field afterwards changes that map only, and says so on the profile row. Nothing else on the build screen is written down — a profile is rewritten from the profile screen and nowhere else, which is what makes it safe to build from.": "Если после этого поменять поле на экране сборки, изменится только эта карта — и строка профиля прямо об этом скажет. Сам профиль с экрана сборки не переписывается никогда: править его можно только на экране профилей. Поэтому на него можно положиться.",
         "Check tools and disk": "Проверка инструментов",
@@ -156,7 +151,6 @@ enum Strings {
         "Colour 2": "Цвет 2",
         "Compile map": "Сборка карты",
         "Contour lines": "Горизонтали",
-        "Contour lines and the DEM layer are separate things. Contours are vector lines drawn on the map; the DEM is the elevation grid that gives shaded relief and the elevation profile. kmap can build both.": "Горизонтали и слой DEM — разные вещи. Горизонтали — векторные линии, нарисованные на карте; DEM — сетка высот, дающая тени рельефа и профиль высоты. kmap умеет и то, и другое.",
         "Contour lines are vector ways generated from elevation data and drawn on the map like any other line. The DEM layer is a raster elevation grid stored in the map, and it is what gives shaded relief and the elevation profile. They are independent — you can have either, both, or neither. Both come from the same downloaded .hgt tiles, so enabling both costs one download.": "Горизонтали — векторные линии, построенные по данным высот; на карте они рисуются как обычные линии. Слой DEM — растровая сетка высот внутри карты: именно она даёт отмывку рельефа и профиль высот. Эти два слоя независимы — можно включить любой, оба или ни одного. Данные у них общие, те же скачанные плитки высот, так что оба вместе стоят одной загрузки.",
         "Contours and DEM": "Горизонтали и DEM",
         "Copy it to Garmin/POI on the device; it opens under Custom POIs.": "Скопируйте его в Garmin/POI на приборе; он откроется в разделе Custom POIs.",
@@ -194,7 +188,6 @@ enum Strings {
         "Interval": "Шаг",
         "JAXA login": "Логин JAXA",
         "JAXA password": "Пароль JAXA",
-        "Java has to be installed system-wide. Run:  %@": "Java ставится на всю систему. Выполните:  %@",
         "Java heap": "Память Java",
         "Java runtime": "Среда Java",
         "Keep work files": "Рабочие файлы",
@@ -300,7 +293,6 @@ enum Strings {
         "The code page decides which alphabet survives into the map. 1252 covers western Europe, 1251 covers Cyrillic. It also overrides the code page declared inside the TYP: get it wrong and localized labels are dropped silently, with no warning.": "Кодовая страница решает, какой алфавит переживёт запись в карту. 1252 покрывает Западную Европу, 1251 — кириллицу. Она же перекрывает кодовую страницу, объявленную внутри TYP: ошибётесь — и локальные подписи молча пропадут, без единого предупреждения.",
         "The copy kept at import is not touched, so this can be done again.": "Сохранённый при импорте оригинал не трогается, так что это можно повторить.",
         "The copy stays on this machine. kmap does not publish it and does not send it anywhere; what is done with it afterwards is yours to answer for.": "Копия остаётся на этой машине: kmap её не публикует и никуда не отправляет; за то, что будет с ней дальше, отвечаете вы.",
-        "The field mkgmap's own developer suggests for extra text.": "Поле, которое сам разработчик mkgmap советует под лишний текст.",
         "The language kmap speaks is chosen in Settings and is nothing to do with the map. What language a road is labelled in on the device is decided by Labels and the code page on the build screen, per map. Switching the interface to Russian does not change one byte of a built map.": "Язык, на котором говорит kmap, выбирается в настройках и к карте отношения не имеет. На каком языке подписана дорога на приборе, решают «Подписи» и кодовая страница на экране сборки, для каждой карты отдельно. Переключение интерфейса на русский не меняет в собранной карте ни байта.",
         "The region, the family id and the output folder. The region and the family id are set per map — the device hides maps that share a family id. The folder is set once, in Settings.": "Регион, family id и папка вывода. Регион и family id у каждой карты свои — карты с одинаковым family id прибор скрывает. Папка задаётся один раз в настройках.",
         "This TYP is compiled. Its identity reads fine, but its sections cannot be opened yet: mkgmap compiles source into a TYP and offers no way back, so decoding one is work kmap has to do itself. Until then the file can still be built with — it is simply not editable here.": "Этот TYP скомпилирован. Его опознавательные данные читаются, а вот секции пока не открыть: mkgmap собирает исходник в TYP и обратной дороги не предлагает, так что декодировать его kmap приходится самому. Пока этого нет, файл всё равно годится для сборки — просто не редактируется здесь.",
@@ -313,10 +305,8 @@ enum Strings {
         "USGS login": "Логин USGS",
         "USGS password": "Пароль USGS",
         "Unicode": "Юникод",
-        "What OpenTopoMap ships for opening hours. Renders reliably; region address search stops working properly.": "То, что OpenTopoMap возит в часах работы. Рисуется надёжно; поиск адреса по региону при этом работать перестаёт.",
         "What a profile does not hold: the region, the family id and the output folder. The first two belong to one map, and the folder is set once in Settings. It can also leave the code page to the region, which is usually right: the same profile then builds a Cyrillic map as 1251 and a German one as 1252.": "Чего в профиле нет: региона, family id и папки вывода. Первые два принадлежат конкретной карте, папка задаётся один раз в настройках. Кодовую страницу профиль может оставить на усмотрение региона — и обычно это правильно: один и тот же профиль соберёт кириллическую карту в 1251, а немецкую в 1252.",
         "Work folder": "Рабочая папка",
-        "Works on anything with a name — a path, a lake, a peak — because it is the label, not an address field. It is drawn on the map.": "Работает со всем, у чего есть название — тропа, озеро, вершина, — потому что это подпись, а не поле адреса. И она рисуется на карте.",
         "Write output": "Запись результата",
         "Zoom levels": "Уровни зума",
         "a %d m interval over this many tiles makes a large map and a long build": "шаг %d м на таком числе плиток даёт большую карту и долгую сборку",
@@ -380,7 +370,6 @@ enum Strings {
         "cancel": "отмена",
         "cancel build": "прервать сборку",
         "cancelled": "прервано",
-        "cartography and TYP files": "картография и файлы TYP",
         "central Europe": "Центральная Европа",
         "change": "изменить",
         "change colour": "изменить цвет",
@@ -394,8 +383,6 @@ enum Strings {
         "selected on the New map screen; fills in every field of the form": "выбирается на экране «Новая карта» и заполняет все поля формы",
         "city/region for address search (optional, 2.5 GB)": "для поиска по адресу (необязательно, 2,5 ГБ)",
         "clear": "очистить",
-        "closest zoom only": "только на самом близком зуме",
-        "closest zoom only (mkgmap's default)": "только на самом близком зуме (как у mkgmap)",
         "coastline data": "данные береговой линии",
         "code page": "кодовая страница",
         "code page %d": "кодовая страница %d",
@@ -473,7 +460,6 @@ enum Strings {
         "hide all shown": "скрыть всё показанное",
         "hide on map": "скрыть на карте",
         "hide the preview": "скрыть превью",
-        "how the pipeline works": "как устроен конвейер",
         "hue": "тон",
         "import": "импорт",
         "import a TYP": "импорт TYP",
@@ -550,21 +536,14 @@ enum Strings {
         "no region kmap can download overlaps this map (%@)":
             "ни один доступный для скачивания регион не пересекается с этой картой (%@)",
         "it did not work out": "не получилось",
-        "Nothing to change: the map already speaks the default codes.":
-            "Менять нечего: карта и так говорит кодами по умолчанию.",
         "Nothing to save: this map carries no look to take.":
             "Сохранять нечего: в этой карте нет оформления, которое можно перенести.",
-        "save as a style": "сохранить как стиль",
         "recovered": "восстановленный",
         "%@ now draws this map's look": "%@ теперь рисует оформление этой карты",
-        "saved as the style %@ — pick it when you build":
-            "сохранено как стиль %@ — выберите его при сборке",
         "nothing identified": "ничего не опознано",
         "draws several things": "рисует разное",
         "no rule for it": "правила нет",
         "too few sightings": "мало наблюдений",
-        "kept — builds with this style now apply it":
-            "сохранено — сборки с этим стилем теперь применяют его",
         "in library": "в библиотеке",
         "in use": "текущий",
         "index unavailable": "индекс недоступен",
@@ -576,18 +555,6 @@ enum Strings {
             "в Windows 10 начиная с 1803 tar входит в состав системы — на этой машине его нет",
         "needs python3 — %@": "нужен python3 — %@",
         "unpacks everything else on this page": "распаковывает всё остальное на этой странице",
-        "Pick a region, choose what goes into the map, and build it. Contour lines and the DEM layer are separate things — contours are vector lines drawn on the map, the DEM is the elevation grid that gives shaded relief and the profile — and kmap can build either or both from one download.":
-            "Выберите регион, решите, что попадёт в карту, и соберите её. Горизонтали и слой DEM — разные вещи: горизонтали это векторные линии на карте, DEM это сетка высот, дающая отмывку рельефа и профиль. kmap умеет и то, и другое из одной загрузки.",
-        "Every map built here, with its size and when it was made. From here a map can be shown in the file manager, ready to copy to the device, or deleted when the card is full.":
-            "Все собранные здесь карты, с размером и датой. Отсюда карту можно показать в файловом менеджере, чтобы скопировать на прибор, или удалить, когда карта памяти забита.",
-        "How a map looks is decided by its TYP file, not by the rules that choose what goes on it. Styles here can be edited, imported from a map somebody else built, or left alone — without one, the device picks the colours itself.":
-            "Как карта выглядит, решает её файл TYP, а не правила, выбирающие, что на неё попадёт. Стили здесь можно править, забирать из чужой карты или не трогать вовсе — без TYP цвета выберет сам прибор.",
-        "A profile is a named set of the choices on the new-map screen, so a device you build for often is one keystroke rather than twenty. It holds the choices and not the region.":
-            "Профиль — именованный набор настроек с экрана новой карты: прибор, для которого вы собираете часто, становится одним нажатием вместо двадцати. Он хранит настройки, но не регион.",
-        "What a build stands on: Java and mkgmap, the seam patch, the coastline and boundary data. kmap installs what it can itself and prints the line for what it cannot.":
-            "На чём стоит сборка: Java и mkgmap, патч швов, данные береговой линии и границ. Что может — kmap ставит сам, для остального печатает команду.",
-        "Where things are kept, how much memory a build may use, how many streams a download opens, and the language of these screens.":
-            "Где что лежит, сколько памяти можно занять сборке, сколько потоков открывает загрузка и на каком языке эти экраны.",
         "the command line": "командная строка",
         "Everything on these screens can be done from a shell, and a few things that cannot be done here at all. `kmap --help` lists every command and flag; the README has the same list in a table.":
             "Всё, что умеют эти экраны, доступно и из командной строки — а кое-что доступно только из неё. `kmap --help` перечисляет команды и флаги; в README тот же список таблицей.",
@@ -695,9 +662,7 @@ enum Strings {
         "move": "перейти",
         "moving": "переношу",
         "name it": "название",
-        "named sets of build choices": "именованные наборы параметров сборки",
         "needs Java first": "сначала нужна Java",
-        "needs python3 — install with: %@": "нужен python3 — установите через: %@",
         "never emitted": "не выдаётся",
         "new": "создать",
         "new map": "новая карта",
@@ -765,7 +730,6 @@ enum Strings {
         "paths, memory, connections": "пути, память, соединения",
         "pick": "взять",
         "pick a colour": "выбрать цвет",
-        "pick a region and build it": "выбрать регион и собрать его",
         "pixel by pixel, with the pointer": "пиксель за пикселем, указателем",
         "points": "точки",
         "points/lines/polygons": "точки/линии/полигоны",
@@ -881,7 +845,6 @@ enum Strings {
         "use this one": "взять этот",
         "western Europe": "Западная Европа",
         "what it does not include": "что в него не входит",
-        "what is on this screen, as the profile has it": "на экране ровно то, что записано в профиле",
         "whatever the device uses": "как решит прибор",
         "whatever the local mappers wrote — Russian in Russia, German in Germany": "как написали местные мапперы — по-русски в России, по-немецки в Германии",
         "where things live": "где что лежит",
@@ -907,26 +870,20 @@ enum Strings {
         "Zoom plans": "Планы зума",
         "zoom plan": "план зума",
         "zoom plans": "планы зума",
-        "the zoom level where each feature appears": "с какого уровня виден каждый вид объектов",
         "as measured": "как измерено",
         "ships with kmap": "входит в kmap",
         "zoom levels": "уровни зума",
-        "earlier / later": "раньше / позже",
         "name for the copy": "имя копии",
         "new name": "новое имя",
         "level %d": "уровень %d",
         "delete %@?": "удалить %@?",
         "%@ ships with kmap — press c to copy it": "%@ входит в kmap — нажмите c, чтобы скопировать",
         "this plan ships with kmap — copy it to make changes": "этот план входит в kmap — скопируйте его, чтобы менять",
-        "%@ is as far as this ladder goes": "%@ — дальше эта лестница не идёт",
         "deleted %@ — any profile using it goes back to what ships": "удалён %@ — профили с ним вернутся к тому, что входит в kmap",
         "no rule set on disk yet — build once and this fills in": "набора правил ещё нет на диске — соберите карту, и ступени появятся",
         "A device shows the map at several zoom levels. A zoom plan sets the level where each kind of feature appears: trails, roads, woodland and so on.": "Прибор показывает карту на нескольких уровнях зума. План зума задаёт, с какого уровня виден каждый вид объектов: тропы, дороги, лес и так далее.",
         "This plan comes with kmap and cannot be edited. Copy it on the plans page, and the copy is yours to change.": "Этот план встроен в kmap, его нельзя изменить. Скопируйте его на странице планов — копию можно менять.",
-        "Which rung each kind of feature starts on. The rungs themselves are the ladder %@ and do not move.": "С какой ступени начинается каждый вид объектов. Сами ступени — это лестница %@, и они не двигаются.",
         "from %@": "с %@",
-        "levels %d–%d": "уровни %d–%d",
-        "Rock and scree": "Скалы и осыпи",
         "from level %d": "с уровня %d",
         "%d m": "%d м",
         "build a map": "собрать карту",
@@ -982,7 +939,6 @@ enum Strings {
         "villages, suburbs, squares and named islands, as ground": "сёла, районы, площади и именованные острова — как площадь",
         "car parks and their ground, as an area rather than a POI": "стоянки и их территория — как площадь, а не как точка",
         "farmland, industry, housing, shops, tourism — whatever is left": "пашня, промзона, застройка, магазины, туризм — всё остальное",
-        "as measured: %@": "как измерено: %@",
         "edit these on the Zoom plans screen": "меняется на экране «Планы зума»",
         "Plans marked · come with kmap and cannot be edited. Copy one, and the copy is yours to change.": "Планы с точкой встроены в kmap, их нельзя изменить. Скопируйте план — копия полностью ваша.",
         "⏎ to make another": "⏎ чтобы сделать ещё один",
@@ -1000,25 +956,19 @@ enum Strings {
         "Boundaries": "Границы",
         "administrative borders, which the device also draws itself": "административные границы, которые прибор рисует и сам",
         "Parking": "Парковки",
-        "car parks and their access, as ground rather than as a POI": "стоянки и подъезды к ним — как площадь, а не как точка",
         "Sport and leisure": "Спорт и отдых",
         "pitches, tracks, playgrounds, parks and gardens": "площадки, дорожки, детские площадки, парки и сады",
         "the elevation lines and their labels": "линии высот и их подписи",
         "Trails and tracks": "Тропы и грунтовки",
-        "paths, tracks, footways, steps — what you walk": "тропы, грунтовки, дорожки, лестницы — то, чем ходят",
         "Roads": "Дороги",
-        "everything a vehicle drives on, from motorway to service road": "всё, по чему едут — от автомагистрали до проезда",
         "rail, tram, funicular and the aerialways": "железная дорога, трамвай, фуникулёр и канатки",
         "Water": "Вода",
-        "rivers, streams, lakes, wetland and the coast": "реки, ручьи, озёра, болота и берег",
         "Woodland": "Лес",
         "forest, wood and scrub — the fills that cover the most ground": "лес, роща и кустарник — заливки, покрывающие больше всего земли",
-        "cliffs, scree, bare rock, grassland, valleys and cutlines": "обрывы, осыпи, скалы, луга, долины и просеки",
         "Protected land": "Охраняемые земли",
         "reserves, national parks and their outlines": "заповедники, национальные парки и их контуры",
         "Buildings": "Здания",
         "building outlines, which are many and small": "контуры зданий — их много и они мелкие",
-        "farmland, meadow, industry, housing — whatever is left": "пашня, луг, промзона, застройка — всё остальное",
     ]
 
     /// Russian plural forms, by CLDR category: "one", "few", "many".
@@ -1078,16 +1028,6 @@ enum Strings {
             "few": "измерено на %d плитках",
             "many": "измерено на %d плитках"
         ],
-        "%d zone archive(s) to fetch, of whatever size they are": [
-            "one": "качать %d архив зоны, размер какой есть",
-            "few": "качать %d архива зон, размер какой есть",
-            "many": "качать %d архивов зон, размер какой есть"
-        ],
-        "%d elevation tile(s) to fetch": [
-            "one": "скачать %d плитку высот",
-            "few": "скачать %d плитки высот",
-            "many": "скачать %d плиток высот"
-        ],
         "%d entries": [
             "one": "%d запись",
             "few": "%d записи",
@@ -1132,26 +1072,6 @@ enum Strings {
             "one": "%d разобран",
             "few": "%d разобрано",
             "many": "%d разобрано"
-        ],
-        "%d reassignment(s) for the sheet": [
-            "one": "%d переназначение в листке",
-            "few": "%d переназначения в листке",
-            "many": "%d переназначений в листке"
-        ],
-        "%d picture(s) on kmap's numbers": [
-            "one": "%d рисунок на наших номерах",
-            "few": "%d рисунка на наших номерах",
-            "many": "%d рисунков на наших номерах"
-        ],
-        "%d thing(s) their style draws and kmap has no number for — nothing carries them, and there is nothing to reassign:": [
-            "one": "%d вещь их стиль рисует, а номера у нас нет — перенести нечем и переназначать нечего:",
-            "few": "%d вещи их стиль рисует, а номеров у нас нет — перенести нечем и переназначать нечего:",
-            "many": "%d вещей их стиль рисует, а номеров у нас нет — перенести нечем и переназначать нечего:"
-        ],
-        "%d seen": [
-            "one": "%d раз",
-            "few": "%d раза",
-            "many": "%d раз"
         ],
         "%d code(s) left alone — no rule of ours is aimed at them, so the map goes on drawing them as it did:": [
             "one": "%d код оставлен как есть — ни одно правило на него не наведено, карта рисует его по-прежнему:",
@@ -1218,11 +1138,6 @@ enum Strings {
             "few": "%d секции",
             "many": "%d секций"
         ],
-        "%d step(s) earlier": [
-            "one": "на %d шаг раньше",
-            "few": "на %d шага раньше",
-            "many": "на %d шагов раньше"
-        ],
         "%d style(s)": [
             "one": "%d стиль",
             "few": "%d стиля",
@@ -1264,25 +1179,10 @@ enum Strings {
             "many": "декомпилировано %d элементов"
         ],
 
-        "%d bit(s)": [
-            "one": "%d бит",
-            "few": "%d бита",
-            "many": "%d бит"
-        ],
         "%d family(ies) moved": [
             "one": "сдвинуто %d семейство",
             "few": "сдвинуто %d семейства",
             "many": "сдвинуто %d семейств"
-        ],
-        "%d rung(s) earlier": [
-            "one": "на %d ступень раньше",
-            "few": "на %d ступени раньше",
-            "many": "на %d ступеней раньше"
-        ],
-        "%d rung(s) later": [
-            "one": "на %d ступень позже",
-            "few": "на %d ступени позже",
-            "many": "на %d ступеней позже"
         ],
         "%d rule(s) in the style": [
             "one": "%d правило в стиле",
@@ -1324,22 +1224,6 @@ enum Strings {
             "one": "%d understood",
             "other": "%d understood"
         ],
-        "%d reassignment(s) for the sheet": [
-            "one": "%d reassignment for the sheet",
-            "other": "%d reassignments for the sheet"
-        ],
-        "%d picture(s) on kmap's numbers": [
-            "one": "%d picture on kmap's numbers",
-            "other": "%d pictures on kmap's numbers"
-        ],
-        "%d thing(s) their style draws and kmap has no number for — nothing carries them, and there is nothing to reassign:": [
-            "one": "%d thing their style draws and kmap has no number for — nothing carries it, and there is nothing to reassign:",
-            "other": "%d things their style draws and kmap has no number for — nothing carries them, and there is nothing to reassign:"
-        ],
-        "%d seen": [
-            "one": "%d seen",
-            "other": "%d seen"
-        ],
         "%d code(s) left alone — no rule of ours is aimed at them, so the map goes on drawing them as it did:": [
             "one": "%d code left alone — no rule of ours is aimed at it, so the map goes on drawing it as it did:",
             "other": "%d codes left alone — no rule of ours is aimed at them, so the map goes on drawing them as it did:"
@@ -1375,14 +1259,6 @@ enum Strings {
         "measured on %d tile(s)": [
             "one": "measured on %d tile",
             "other": "measured on %d tiles"
-        ],
-        "%d zone archive(s) to fetch, of whatever size they are": [
-            "one": "%d zone archive to fetch, of whatever size it is",
-            "other": "%d zone archives to fetch, of whatever size they are"
-        ],
-        "%d elevation tile(s) to fetch": [
-            "one": "%d elevation tile to fetch",
-            "other": "%d elevation tiles to fetch"
         ],
         "%d entries": [
             "one": "%d entry",
@@ -1452,10 +1328,6 @@ enum Strings {
             "one": "%d section",
             "other": "%d sections"
         ],
-        "%d step(s) earlier": [
-            "one": "%d step earlier",
-            "other": "%d steps earlier"
-        ],
         "%d style(s)": [
             "one": "%d style",
             "other": "%d styles"
@@ -1479,10 +1351,6 @@ enum Strings {
         "%d rule(s) in the style": [
             "one": "%d rule in the style",
             "other": "%d rules in the style"
-        ],
-        "%d bit(s)": [
-            "one": "%d bit",
-            "other": "%d bits"
         ],
         "%d × 1° tile(s)": [
             "one": "%d × 1° tile",

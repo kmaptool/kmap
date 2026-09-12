@@ -184,9 +184,6 @@ extension TileSplitter {
                 self.table = table
             }
 
-            /// Back to the beginning, for the next file's ids.
-            func rewind() { at = 0 }
-
             func value(for id: Int64) -> UInt16? {
                 let found: Int? = table.keys.withUnsafeBufferPointer { keys -> Int? in
                     guard at < keys.count else { return nil }
