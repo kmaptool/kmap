@@ -79,6 +79,17 @@ final class TileSplitter {
     /// Told how far the split has come, 0...1, at each phase boundary. Reporting only -
     /// nothing inside the passes slows for it.
     var progress: ((Double) -> Void)?
+    /// Asked between blobs and between phases; true ends the split with a
+    /// `CancellationError` and no tiles. The reads run on their own threads, where a
+    /// task's cancellation is not seen, so the caller's flag is what reaches them.
+    var shouldStop: () -> Bool = { false }
+
+    /// A reader on an input, carrying the stop flag.
+    func reader(_ url: URL) -> PBFReader { PBFReader(url: url, shouldStop: shouldStop) }
+
+    func stopIfAsked() throws {
+        if shouldStop() { throw CancellationError() }
+    }
     /// Nodes seen while measuring density, which is what sizes the node table. Zero when
     /// the areas were given and the measuring was skipped.
     private var countedNodes = 0
@@ -156,14 +167,17 @@ final class TileSplitter {
         }
         log("\(areas.count) tile area(s)")
         progress?(0.2)
+        try stopIfAsked()
 
         let lookup = AreaLookup(areas: areas, shapeOverlap: options.shapeOverlap)
         let assignment = try assignNodes(lookup: lookup)
         took("placed every node")
         progress?(0.6)
+        try stopIfAsked()
         let plan = try planProblems(assignment: assignment, lookup: lookup, areas: areas)
         took("worked out what spans tiles")
         progress?(0.75)
+        try stopIfAsked()
         let counts = try write(areas: areas, assignment: assignment, plan: plan)
         took("wrote the tiles")
         progress?(1)
@@ -264,7 +278,7 @@ final class TileSplitter {
         // beyond it is not counted. One window per input, and a node is kept if it falls
         // inside any of them.
         for input in options.inputs {
-            guard let bbox = try PBFReader(url: input).headerBBox() else { continue }
+            guard let bbox = try reader(input).headerBBox() else { continue }
             density.clips.append((minLatCell: Self.mapUnits(bbox.minLat) >> TileSplitter.gridShift,
                                   minLonCell: Self.mapUnits(bbox.minLon) >> TileSplitter.gridShift,
                                   maxLatCell: (Self.mapUnits(bbox.maxLat) + TileSplitter.gridMask) >> TileSplitter.gridShift,
@@ -275,7 +289,7 @@ final class TileSplitter {
         density.prepare()
         for input in options.inputs {
             let clips = density.clips
-            for part in try PBFReader(url: input).readConcurrently(make: {
+            for part in try reader(input).readConcurrently(make: {
                 var sink = Density()
                 sink.clips = clips
                 sink.prepare()
@@ -345,7 +359,7 @@ final class TileSplitter {
         if expected == 0 {
             // Only when the areas came ready-made: nothing has read the file yet.
             var counter = NodeCounter()
-            for input in options.inputs { try PBFReader(url: input).read(into: &counter) }
+            for input in options.inputs { try reader(input).read(into: &counter) }
             expected = counter.nodes
         } else {
             // Room for the fringe, which density did not count; growing the table later
@@ -356,7 +370,7 @@ final class TileSplitter {
         // Which tiles a node belongs to is a grid lookup depending on nothing else; only
         // the appending has to stay in order.
         for input in options.inputs {
-            try PBFReader(url: input).readInOrder(make: { NodeAssign(lookup: lookup) }) {
+            try reader(input).readInOrder(make: { NodeAssign(lookup: lookup) }) {
                 pass in
                 let base = nodes.count
                 nodes.append(ids: pass.ids, values: pass.values)

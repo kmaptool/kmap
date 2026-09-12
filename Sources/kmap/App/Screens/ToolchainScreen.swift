@@ -1,30 +1,53 @@
 import Foundation
 
 /// Shows what kmap needs, what it has, and installs the parts it can.
+///
+/// Several installs run at once, each drawing its own progress in its row. One that
+/// fetches what another is fetching waits for it instead: the patch pulls mkgmap in on
+/// its own, and two of those into one folder would be a mess.
 final class ToolchainScreen: Screen {
     var page: Page { Page(t("toolchain"), keys: keys) }
 
     private var keys: [Hint] {
-        if installing != nil {
-            return [Hint(key: "^C", label: t("stop"))]
+        var hints = [Hint(key: "↑↓", label: t("move")),
+                     Hint(key: Glyph.enter, label: t("install")),
+                     Hint(key: "u", label: t("update")),
+                     Hint(key: "a", label: t("install all missing")),
+                     Hint(key: "x", label: t("remove")),
+                     Hint(key: "r", label: t("re-check"))]
+        hints.append(isBusy ? Hint(key: "^C", label: t("stop"))
+                            : Hint(key: "esc", label: t("back")))
+        return hints
+    }
+
+    /// One install in flight: what its row draws, and what stops it.
+    final class Running {
+        let progress = InstallProgress()
+        let runner = ProcessRunner()
+        var task: Task<Void, Never>?
+
+        /// The process a step may be running, and the task, through which cancellation
+        /// reaches a download.
+        func stop() {
+            task?.cancel()
+            runner.cancel()
         }
-        return [Hint(key: "↑↓", label: t("move")),
-                Hint(key: Glyph.enter, label: t("install")),
-                Hint(key: "u", label: t("update")),
-                Hint(key: "a", label: t("install all missing")),
-                Hint(key: "x", label: t("remove")),
-                Hint(key: "r", label: t("re-check")),
-                Hint(key: "esc", label: t("back"))]
     }
 
     private var list = ListState()
-    private var installing: String?
+    private var running: [String: Running] = [:]
+    /// Waiting for an install that overlaps theirs, in the order they were asked for.
+    private var queued: [String] = []
+    private var installer: ToolInstaller?
     private var log = Log(limit: 500)
-    private var runner = ProcessRunner()
     private var message: String?
     private var refreshed = false
+    /// The tool whose root install has been asked about and not yet answered.
+    private var awaitingRoot: String?
 
-    /// Read from the shared snapshot — probing here would spawn a process per frame.
+    private var isBusy: Bool { !running.isEmpty || !queued.isEmpty }
+
+    /// Read from the shared snapshot - probing here would spawn a process per frame.
     private func tools(_ ctx: AppContext) -> [ToolStatus] { ctx.tools }
 
     func tick(_ ctx: AppContext) {
@@ -40,15 +63,6 @@ final class ToolchainScreen: Screen {
     }
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
-        if installing != nil {
-            if key == .ctrl("c") {
-                runner.cancel()
-                log.warn(t("stopped"))
-                installing = nil
-            }
-            return .none
-        }
-
         let tools = tools(ctx)
         switch key.command {
         case .up, .char("k"): awaitingRoot = nil; list.move(-1, count: tools.count)
@@ -60,8 +74,15 @@ final class ToolchainScreen: Screen {
         case .char("u"):
             guard let tool = tools[safe: list.selected] else { return .none }
             update(tool, ctx)
-        case .esc: return .pop
-        case .ctrl("c"): return .quit
+        case .esc:
+            guard !isBusy else {
+                message = t("still installing: ^C stops everything")
+                return .none
+            }
+            return .pop
+        case .ctrl("c"):
+            guard isBusy else { return .quit }
+            stopEverything()
         case .enter:
             guard let tool = tools[safe: list.selected] else { return .none }
             install(tool, ctx)
@@ -74,11 +95,7 @@ final class ToolchainScreen: Screen {
             awaitingRoot = nil
             start(tool, ctx)
         case .char("a"):
-            guard let tool = tools.first(where: { !$0.isReady && $0.installable && !$0.isOptional }) else {
-                message = t("nothing left to install")
-                return .none
-            }
-            install(tool, ctx)
+            installAllMissing(tools, ctx)
         case .char("x"):
             guard let tool = tools[safe: list.selected] else { return .none }
             remove(tool, ctx)
@@ -113,6 +130,10 @@ final class ToolchainScreen: Screen {
     /// Fetches a pack again by hand: the install path already replaces and stamps it, and
     /// this is how a pack that is merely out of date can be asked for at all.
     private func update(_ tool: ToolStatus, _ ctx: AppContext) {
+        guard !isInstalling(tool.id) else {
+            message = t("%@ is still installing", tool.name)
+            return
+        }
         switch updateAction(for: tool, ctx) {
         case .nothing(let said): message = said
         case .install: install(tool, ctx)
@@ -120,11 +141,11 @@ final class ToolchainScreen: Screen {
         }
     }
 
-    /// What the screen is saying and what it is doing, for the tests that press the keys.
-    var messageForTesting: String? { message }
-    var installingForTesting: String? { installing }
-
     private func remove(_ tool: ToolStatus, _ ctx: AppContext) {
+        guard !isInstalling(tool.id) else {
+            message = t("%@ is still installing", tool.name)
+            return
+        }
         guard tool.removable else {
             message = t("%@ cannot be removed", tool.name)
             return
@@ -138,10 +159,14 @@ final class ToolchainScreen: Screen {
         }
     }
 
-    /// The tool whose root install has been asked about and not yet answered.
-    private var awaitingRoot: String?
+    // MARK: Starting
 
     private func install(_ tool: ToolStatus, _ ctx: AppContext) {
+        guard !isInstalling(tool.id) else {
+            message = queued.contains(tool.id) ? waitingNote(for: tool.id, ctx)
+                                               : t("%@ is still installing", tool.name)
+            return
+        }
         // A package manager writes across the whole machine, and on a box with passwordless
         // sudo nothing would stop to say so. Asked once per tool, and the answer is not
         // remembered: the next install asks again.
@@ -157,6 +182,29 @@ final class ToolchainScreen: Screen {
         start(tool, ctx)
     }
 
+    /// Everything missing that a build needs, at once; what has to be installed as root
+    /// is left for its own Enter, since the question is asked one tool at a time.
+    private func installAllMissing(_ tools: [ToolStatus], _ ctx: AppContext) {
+        let wanted = tools.filter {
+            !$0.isFinished && $0.installable && !$0.isOptional && !isInstalling($0.id)
+        }
+        guard !wanted.isEmpty else {
+            message = t("nothing left to install")
+            return
+        }
+        var asRoot: [String] = []
+        for tool in wanted {
+            if ctx.toolchain.rootInstallCommand(for: tool.id) != nil {
+                asRoot.append(tool.name)
+            } else {
+                start(tool, ctx)
+            }
+        }
+        if !asRoot.isEmpty {
+            message = t("needs root, press Enter on its row: %@", asRoot.joined(separator: ", "))
+        }
+    }
+
     private func start(_ tool: ToolStatus, _ ctx: AppContext, force: Bool = false) {
         guard force || !tool.isFinished else {
             message = t("%@ is already installed", tool.name)
@@ -166,30 +214,96 @@ final class ToolchainScreen: Screen {
             message = tool.note ?? t("%@ has to be installed by hand", tool.name)
             return
         }
-
         message = nil
-        installing = tool.id
-        runner = ProcessRunner()
-        let runner = self.runner
-        let toolchain = ctx.toolchain
+        if blockers(of: tool.id, ahead: queued).isEmpty {
+            launch(tool, ctx)
+        } else {
+            queued.append(tool.id)
+            message = waitingNote(for: tool.id, ctx)
+        }
+    }
+
+    private func launch(_ tool: ToolStatus, _ ctx: AppContext) {
+        let job = Running()
+        running[tool.id] = job
         let log = self.log
+        let toolchain = ctx.toolchain
+        let install = installer ?? { id, log, runner, progress in
+            try await toolchain.install(id, log: log, runner: runner, progress: progress)
+        }
 
         log.step(t("installing %@", tool.name))
-        Task { [weak self] in
+        job.progress.begin(tool.name)
+        job.task = Task { [weak self] in
             do {
-                try await toolchain.install(tool.id, log: log, runner: runner)
+                try await install(tool.id, log, job.runner, job.progress)
                 log.ok(t("%@ installed", tool.name))
             } catch {
-                log.error(error.localizedDescription)
+                // A stopped install is said once, by the key that stopped it.
+                if !Task.isCancelled { log.error(error.localizedDescription) }
             }
             guard let self else { return }
-            await MainActor.run {
-                self.installing = nil
-                ctx.refreshTools(force: true)
-                ctx.refreshPackNews(force: true)
+            await MainActor.run { self.finished(tool.id, ctx) }
+        }
+    }
+
+    private func finished(_ id: String, _ ctx: AppContext) {
+        running.removeValue(forKey: id)
+        ctx.refreshTools(force: true)
+        ctx.refreshPackNews(force: true)
+        startQueued(ctx)
+    }
+
+    /// Launches every queued install nothing overlaps any more, in the order asked.
+    private func startQueued(_ ctx: AppContext) {
+        var launched = true
+        while launched {
+            launched = false
+            for (at, id) in queued.enumerated()
+            where blockers(of: id, ahead: Array(queued.prefix(at))).isEmpty {
+                queued.remove(at: at)
+                if let tool = ctx.tools.first(where: { $0.id == id }) { launch(tool, ctx) }
+                launched = true
+                break
             }
         }
     }
+
+    private func stopEverything() {
+        for job in running.values { job.stop() }
+        queued.removeAll()
+        log.warn(t("stopped"))
+        message = nil
+    }
+
+    private func isInstalling(_ id: String) -> Bool {
+        running[id] != nil || queued.contains(id)
+    }
+
+    /// The running and earlier-queued installs `id` overlaps with.
+    private func blockers(of id: String, ahead: [String]) -> [String] {
+        (running.keys.sorted() + ahead).filter { Toolchain.overlap(id, $0) }
+    }
+
+    private func waitingNote(for id: String, _ ctx: AppContext) -> String {
+        let names = blockers(of: id, ahead: queued.prefix { $0 != id }).map { blocker in
+            ctx.tools.first { $0.id == blocker }?.name ?? blocker
+        }
+        return t("waiting for %@", names.joined(separator: ", "))
+    }
+
+    // MARK: For the tests
+
+    var messageForTesting: String? { message }
+    var runningForTesting: [String] { running.keys.sorted() }
+    var queuedForTesting: [String] { queued }
+    func progressForTesting(_ id: String) -> InstallProgress? { running[id]?.progress }
+
+    /// Stands in for `Toolchain.install`, so a key can be pressed without fetching a
+    /// gigabyte.
+    func useForTesting(installer: @escaping ToolInstaller) { self.installer = installer }
+
+    // MARK: Drawing
 
     func render(into s: Surface, rect: Rect, ctx: AppContext) {
         let theme = ctx.theme
@@ -215,8 +329,10 @@ final class ToolchainScreen: Screen {
 
         for (i, tool) in tools.enumerated() {
             guard y + 2 < rect.maxY else { break }
-            let selected = i == list.selected && installing == nil
+            let selected = i == list.selected
             let bg = selected ? theme.selectionBg : theme.appBg
+            let job = running[tool.id]
+            let waiting = queued.contains(tool.id)
 
             if selected {
                 s.fill(Rect(x: rect.x, y: y, w: rect.w, h: 3), Style(fg: theme.text, bg: bg))
@@ -224,7 +340,8 @@ final class ToolchainScreen: Screen {
             }
 
             let (marker, tone): (String, Color) = {
-                if installing == tool.id { return (String(Widgets.spinner(ctx.frame)), theme.accent) }
+                if job != nil { return (String(Widgets.spinner(ctx.frame)), theme.accent) }
+                if waiting { return (String(Glyph.dot), theme.dim) }
                 switch tool.state {
                 case .ready: return (String(Glyph.check), theme.ok)
                 case .missing: return (String(Glyph.cross), theme.warn)
@@ -237,12 +354,20 @@ final class ToolchainScreen: Screen {
             s.text(rect.x + 22, y, tool.detail, Style(fg: theme.faint, bg: bg),
                    limit: max(0, rect.w - 24))
 
-            let statusText = installing == tool.id ? t("installing…")
+            // An install in flight takes the row's other two lines for itself.
+            if let job {
+                InstallProgressRow.draw(s, x: rect.x + 4, y: y + 1, width: rect.w - 6,
+                                        progress: job.progress, theme: theme, bg: bg)
+                y += 3
+                continue
+            }
+
+            let statusText = waiting ? waitingNote(for: tool.id, ctx)
                 : (tool.isReady ? (tool.version ?? t("ready")) : t("not installed"))
             let after = s.text(rect.x + 4, y + 1, truncate(statusText, to: rect.w - 6),
                                Style(fg: tool.isReady ? theme.dim : theme.warn, bg: bg))
             // A pack the mirror has moved on from, said where the note would go.
-            if installing != tool.id, let news = ctx.packNews[tool.id] {
+            if !waiting, let news = ctx.packNews[tool.id] {
                 let room = rect.maxX - after - 4
                 let said = t("newer one published %@ — press u", news.describedShortly)
                 if room > 8 {

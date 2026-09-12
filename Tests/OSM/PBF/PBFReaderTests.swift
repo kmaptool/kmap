@@ -390,4 +390,58 @@ final class PBFReaderTests: XCTestCase {
         XCTAssertEqual(out.nodes[0].lat, 45.0, accuracy: 1e-9)
         XCTAssertEqual(out.nodes[0].lon, 33.0, accuracy: 1e-9)
     }
+
+    // MARK: Stopping
+
+    /// Three blobs of one node each; enough to stop between.
+    private func threeBlobs() throws -> URL {
+        let url = path("three.osm.pbf")
+        var bytes: [UInt8] = []
+        for _ in 0..<3 { bytes += rawBlob(kind: "OSMData", payload: blockWithDenseTags([0], strings: [""])) }
+        try write(bytes, to: url)
+        return url
+    }
+
+    func testAReaderToldToStopReadsNothing() throws {
+        let url = try threeBlobs()
+        var reader = PBFReader(url: url)
+        reader.shouldStop = { true }
+        var collected = Collected()
+        XCTAssertThrowsError(try reader.read(into: &collected)) { XCTAssertTrue($0 is CancellationError) }
+        XCTAssertTrue(collected.nodes.isEmpty, "nothing was decoded")
+        XCTAssertThrowsError(try reader.readInOrder(make: { Collected() }, apply: { _ in })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+        XCTAssertThrowsError(try reader.readConcurrently(workers: 2, make: { Collected() })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+    }
+
+    func testTheStopIsAskedBetweenBlobsNotOnceAtTheStart() throws {
+        let url = try threeBlobs()
+        var asked = 0
+        var reader = PBFReader(url: url)
+        reader.shouldStop = { asked += 1; return asked > 1 }
+        var collected = Collected()
+        XCTAssertThrowsError(try reader.read(into: &collected))
+        XCTAssertEqual(asked, 2, "the first blob went through, the second was refused")
+    }
+
+    func testACancelledTaskStopsTheReadOnItsOwn() async throws {
+        let url = try threeBlobs()
+        let task = Task<Int, Error> {
+            // Held until the cancel has landed, so the read starts in a cancelled task.
+            while !Task.isCancelled { await Task.yield() }
+            var collected = Collected()
+            try PBFReader(url: url).read(into: &collected)
+            return collected.nodes.count
+        }
+        task.cancel()
+        do {
+            _ = try await task.value
+            XCTFail("a cancelled task reads nothing")
+        } catch {
+            XCTAssertTrue(error is CancellationError)
+        }
+    }
 }

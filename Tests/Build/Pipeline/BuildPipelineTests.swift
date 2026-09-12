@@ -216,6 +216,53 @@ final class BuildPipelineTests: XCTestCase {
         XCTAssertNil(after.stages.first { $0.status == .failed })
         XCTAssertNil(after.failure)
     }
+
+    // MARK: Cancelling reaches everything that is fetching
+
+    /// The elevation task runs beside the split, unstructured: the main task may be
+    /// waiting on it, and a cancelled task is not released from a wait. So `cancel()`
+    /// has to reach it by hand, along with every downloader still retained.
+    func testCancellingReachesTheElevationTaskAndEveryDownloader() async {
+        let build = pipeline()
+        let elevation = Task<[URL], Error> {
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+            return []
+        }
+        build.retain(elevation: elevation)
+        let first = Downloader(log: Log()), second = Downloader(log: Log())
+        build.retain(first)
+        build.retain(second)
+
+        build.cancel()
+        XCTAssertTrue(elevation.isCancelled)
+        XCTAssertTrue(first.wasCancelled, "the first retained downloader, not only the last")
+        XCTAssertTrue(second.wasCancelled)
+        do {
+            _ = try await elevation.value
+            XCTFail("a cancelled wait ends with the cancellation")
+        } catch {
+            XCTAssertTrue(error is CancellationError)
+        }
+    }
+
+    func testAnElevationTaskRegisteredAfterCancelIsCancelledAtOnce() async {
+        let build = pipeline()
+        build.cancel()
+        let elevation = Task<[URL], Error> {
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+            return []
+        }
+        build.retain(elevation: elevation)
+        XCTAssertTrue(elevation.isCancelled, "the two can race")
+    }
+
+    func testStopAskedFlipsWhenTheBuildIsCancelled() {
+        let build = pipeline()
+        let asked = build.stopAsked
+        XCTAssertFalse(asked())
+        build.cancel()
+        XCTAssertTrue(asked(), "what the splitter reads between blobs")
+    }
 }
 
 /// The whole build's bar only ever moves forward: a running stage without a fraction is

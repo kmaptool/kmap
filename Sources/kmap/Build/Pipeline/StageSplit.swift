@@ -4,7 +4,7 @@ import Foundation
 /// because its output is what gets split: barrier classes, repaired road ends, tidied
 /// descriptions and the contours, all in the one file the splitter is handed.
 extension BuildPipeline {
-    // MARK: 4 — split
+    // MARK: 4 - split
 
     struct TileSet {
         let directory: URL
@@ -68,6 +68,9 @@ extension BuildPipeline {
             self?.advance(.split, fraction: Self.splitAnnotateShare
                           + (1 - Self.splitAnnotateShare) * fraction)
         }
+        // The splitter reads on its own threads, so ^C reaches it through this rather
+        // than through the task; otherwise the cut runs to its end before stopping.
+        splitter.shouldStop = stopAsked
         let result = try await measure(.split, "cut the tiles") { try splitter.run() }
         try Task.checkCancellation()
         // One line per tile: the shape of the cut, which matters when a build is being

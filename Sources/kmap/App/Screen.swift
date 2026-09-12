@@ -35,6 +35,8 @@ final class AppContext {
     private var loadTicks: MachineLoad.Ticks?
     private var lastLoadFrame = -1000
     private var probing = false
+    /// Set by the tests: the list is theirs, and no probe replaces it.
+    private var toolsFrozen = false
     private var lastOverviewFrame = -1000
     private var lastElevationFrame = -1000
 
@@ -81,10 +83,10 @@ final class AppContext {
         self.styles = StyleCatalog(settings: settings, toolchain: toolchain)
     }
 
-    /// Probes the toolchain off the render loop. Cheap after the first call — the results
+    /// Probes the toolchain off the render loop. Cheap after the first call - the results
     /// are cached until `refreshTools(force:)` is asked to redo them.
     func refreshTools(force: Bool = false) {
-        guard !probing else { return }
+        guard !probing, !toolsFrozen else { return }
         if toolsProbed && !force { return }
         probing = true
         if force { toolchain.invalidate() }
@@ -130,6 +132,14 @@ final class AppContext {
                 self.askingPacks = false
             }
         }
+    }
+
+    /// A toolchain list of the test's own, which no probe replaces: what the machine
+    /// happens to have installed says nothing about the screen.
+    func useForTesting(tools: [ToolStatus]) {
+        self.tools = tools
+        toolsProbed = true
+        toolsFrozen = true
     }
 
     /// What a check found, without making one: the screen is testable with no network.

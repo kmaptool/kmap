@@ -6,7 +6,7 @@ import XCTest
 ///
 /// Every test here is `async`, as in every other main-actor suite: on Linux XCTest calls a
 /// synchronous test from a nonisolated context, and a main-actor-isolated one cannot be
-/// reached from there — the whole test target stops compiling, on the generated list
+/// reached from there - the whole test target stops compiling, on the generated list
 /// rather than on this file.
 @MainActor
 final class SetupScreenTests: XCTestCase {
@@ -62,5 +62,23 @@ final class SetupScreenTests: XCTestCase {
         // Where they go is part of the question, since it is the machine being changed.
         XCTAssertTrue(drawn.contains(Paths.root.lastPathComponent), "and where they land")
         XCTAssertTrue(drawn.contains("Java"), "and why they are needed")
+    }
+
+    /// ^C stops the install itself: a download runs on inside the task, and killing the
+    /// process alone left it fetching a gigabyte behind a screen that said "stopped".
+    func testStopReachesTheInstallItself() async {
+        let ctx = AppContext()
+        let installs = InstallStandIn()
+        let screen = SetupScreen(missing: [tool("java", ready: false)]) { _ in .pop }
+        screen.useForTesting(installer: installs.installer, wanted: [tool("java", ready: false)])
+        // The dialog opens on "not now"; the install button is one step over.
+        _ = screen.handle(.right, ctx: ctx)
+        _ = screen.handle(.enter, ctx: ctx)
+        await expectSettled { installs.startedIDs == ["java"] }
+
+        _ = screen.handle(.ctrl("c"), ctx: ctx)
+        await expectSettled("the task was cancelled, not only the process") { installs.cancelledIDs == ["java"] }
+        XCTAssertTrue(screen.isStoppedForTesting)
+        XCTAssertEqual(screen.page.subject, t("did not finish"))
     }
 }

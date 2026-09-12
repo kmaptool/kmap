@@ -15,6 +15,13 @@ enum PBFError: Error, CustomStringConvertible, LocalizedError {
 
 struct PBFReader {
     let url: URL
+    /// Asked between blobs on every thread that reads; true ends the read with a
+    /// `CancellationError`. A dispatch worker does not see `Task.isCancelled`, so a
+    /// caller with a task of its own hands its flag in here.
+    var shouldStop: () -> Bool = { false }
+
+    /// On the reading thread the task's own cancellation counts as well.
+    private func stopped() -> Bool { shouldStop() || Task.isCancelled }
 
     /// Field numbers from the OSM PBF schema.
     enum Field {
@@ -169,6 +176,7 @@ struct PBFReader {
             try Self.forEachBlob(in: file) { _, kind, blob in
                 // The header block holds nothing the sink wants.
                 guard kind == "OSMData" else { return }
+                if stopped() { throw CancellationError() }
                 batch.append(blob)
                 if batch.count == width { try drain() }
             }
@@ -267,9 +275,12 @@ struct PBFReader {
                 at = end
             }
 
+            if stopped() { throw CancellationError() }
             decode(batches[0], into: halves[0])
             for (index, batch) in batches.enumerated() {
                 group.wait()
+                // Nothing is in flight here: the next batch is dispatched below.
+                if stopped() { throw CancellationError() }
                 let half = halves[index % 2]
                 if index + 1 < batches.count {
                     decode(batches[index + 1], into: halves[(index + 1) % 2])
@@ -323,6 +334,7 @@ struct PBFReader {
                 blobs.append(blob)
             }
             guard !blobs.isEmpty else { return }
+            if stopped() { throw CancellationError() }
             let share = (blobs.count + width - 1) / width
 
             sinks.withUnsafeMutableBufferPointer { targets in
@@ -335,6 +347,7 @@ struct PBFReader {
                         var fields = Scratch()
                         do {
                             for index in from..<to {
+                                if shouldStop() { throw CancellationError() }
                                 let size = try Self.inflate(blobs[index], into: &scratch)
                                 try scratch.withUnsafeBytes { payload in
                                     try Self.decodeBlock(

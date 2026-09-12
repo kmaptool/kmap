@@ -31,7 +31,7 @@ final class BuildPipeline {
     var wasCancelled = false
     var outputs: [Output] = []
     /// The output groups in the order the packer laid them, set by the compile stage;
-    /// collect names the files p1, p2… along it.
+    /// collect names the files p1, p2... along it.
     var outputGroups: [String] = []
     var startedAt = Date()
     var finishedAt: Date?
@@ -44,8 +44,11 @@ final class BuildPipeline {
     var repairMoves: [MapElementKind: [Int: Int]] = [:]
 
     var runners: [ProcessRunner] = []
-    var downloader: Downloader?
+    var downloaders: [Downloader] = []
     var task: Task<Void, Never>?
+    /// Runs beside the split, unstructured, so `cancel()` has to reach it by hand: the
+    /// main task may be waiting on it, and a cancelled task is not released from a wait.
+    private var elevation: Task<[URL], Error>?
 
     /// - Parameter showing: the lowest severity the caller wants to be shown. The log
     ///   file beside the build keeps everything whatever this says.
@@ -75,11 +78,13 @@ final class BuildPipeline {
         lock.lock()
         wasCancelled = true
         let activeRunners = runners
-        let activeDownloader = downloader
+        let activeDownloaders = downloaders
+        let activeElevation = elevation
         lock.unlock()
         log.warn("cancelling…")
         for runner in activeRunners { runner.cancel() }
-        activeDownloader?.cancel()
+        for downloader in activeDownloaders { downloader.cancel() }
+        activeElevation?.cancel()
         task?.cancel()
     }
 
@@ -90,8 +95,14 @@ final class BuildPipeline {
         return wasCancelled
     }
 
+    /// The same, as a question for work that runs on threads of its own, where the
+    /// task's cancellation is not seen: the splitter asks it between blobs.
+    var stopAsked: () -> Bool {
+        { [weak self] in self?.isCancelled ?? true }
+    }
+
     /// Throws where the build has been cancelled. A stage can end early for its own
-    /// reasons — a killed tool, a dropped download — and the next must not start.
+    /// reasons - a killed tool, a dropped download - and the next must not start.
     func stopIfCancelled() throws {
         if isCancelled || Task.isCancelled { throw CancellationError() }
     }
@@ -102,8 +113,8 @@ final class BuildPipeline {
         return false
     }
 
-    /// Re-throws the cancellation itself. Stages go on without what they could not get —
-    /// contours, summit heights, annotation — but not without the build.
+    /// Re-throws the cancellation itself. Stages go on without what they could not get -
+    /// contours, summit heights, annotation - but not without the build.
     func rethrowIfCancelled(_ error: Error) throws {
         if error is CancellationError
             || isRunnerCancellation(error)
@@ -123,8 +134,18 @@ final class BuildPipeline {
     /// Synchronous, so async callers do not touch the lock directly.
     func retain(_ downloader: Downloader) {
         lock.lock()
-        self.downloader = downloader
+        downloaders.append(downloader)
         lock.unlock()
+    }
+
+    /// The elevation task, for `cancel()`. One registered after the build was cancelled
+    /// is cancelled on the spot: the two can race.
+    func retain(elevation task: Task<[URL], Error>) {
+        lock.lock()
+        elevation = task
+        let cancelled = wasCancelled
+        lock.unlock()
+        if cancelled { task.cancel() }
     }
 
     func makeRunner() -> ProcessRunner {
@@ -180,6 +201,7 @@ final class BuildPipeline {
             let elevationTask = Task { [self] in
                 try await buildElevation(extracts: extracts)
             }
+            retain(elevation: elevationTask)
             defer { elevationTask.cancel() }
             // Node count only approximates how much a tile draws, so the cap starts at the
             // setting and comes down only after a tile overflows the 16 MB drawing section.
@@ -228,7 +250,7 @@ final class BuildPipeline {
         }
     }
 
-    // MARK: 1 — preflight
+    // MARK: 1 - preflight
 
     func preflight() async throws {
         set(.preflight, .running, t("checking tools"))

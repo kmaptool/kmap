@@ -36,24 +36,25 @@ enum Widgets {
     /// A single-line bar: `━━━━━━──────  62%`
     static func progressBar(_ s: Surface, x: Int, y: Int, width: Int,
                             fraction: Double?, theme: Theme,
-                            fillColor: Color? = nil) {
+                            fillColor: Color? = nil, bg: Color? = nil) {
         guard width > 4 else { return }
         let labelWidth = 5
         let barWidth = width - labelWidth
         let color = fillColor ?? theme.accent
+        let ground = bg ?? theme.appBg
 
         guard let fraction else {
             // Indeterminate: a dim rule and no percentage.
-            s.hline(x, y, barWidth, Glyph.barEmpty, Style(fg: theme.rule, bg: theme.appBg))
-            s.text(x + barWidth + 1, y, "  ·  ", Style(fg: theme.faint, bg: theme.appBg))
+            s.hline(x, y, barWidth, Glyph.barEmpty, Style(fg: theme.rule, bg: ground))
+            s.text(x + barWidth + 1, y, "  ·  ", Style(fg: theme.faint, bg: ground))
             return
         }
 
         let clamped = max(0, min(1, fraction))
         let filled = Int((Double(barWidth) * clamped).rounded())
-        s.hline(x, y, filled, Glyph.barFill, Style(fg: color, bg: theme.appBg))
-        s.hline(x + filled, y, barWidth - filled, Glyph.barEmpty, Style(fg: theme.rule, bg: theme.appBg))
-        s.text(x + barWidth + 1, y, Fmt.percent(clamped), Style(fg: theme.dim, bg: theme.appBg))
+        s.hline(x, y, filled, Glyph.barFill, Style(fg: color, bg: ground))
+        s.hline(x + filled, y, barWidth - filled, Glyph.barEmpty, Style(fg: theme.rule, bg: ground))
+        s.text(x + barWidth + 1, y, Fmt.percent(clamped), Style(fg: theme.dim, bg: ground))
     }
 
     /// A label/value row with the label in a fixed left column.
@@ -252,7 +253,7 @@ enum Widgets {
 
     /// The size a picture is drawn at, in cells.
     struct PictureFit {
-        /// Whole-number reduction. 1 draws every pixel; 2 draws one cell per 2×2 block.
+        /// Whole-number reduction. 1 draws every pixel; 2 draws one cell per 2x2 block.
         let scale: Int
         let columns: Int
         let rows: Int

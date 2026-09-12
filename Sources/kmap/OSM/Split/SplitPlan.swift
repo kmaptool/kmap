@@ -82,7 +82,7 @@ extension TileSplitter {
             // Relations are gathered here and resolved in one batch below: a file's ways
             // all precede its relations, and the batch runs before the next file adds one.
             var pending: [(id: Int64, record: RelationRecord)] = []
-            try PBFReader(url: input).readInOrder(make: {
+            try reader(input).readInOrder(make: {
                 ProblemScan(nodes: assignment.nodes)
             }) { scan in
                 for (id, tile, span) in scan.outWays {
@@ -162,7 +162,7 @@ extension TileSplitter {
         s.refs = WayRefs(wanted: s.wantedWays)
         let wantedWays = s.wantedWays
         for input in options.inputs {
-            try PBFReader(url: input).readInOrder(make: { WayRefs(wanted: wantedWays) }) {
+            try reader(input).readInOrder(make: { WayRefs(wanted: wantedWays) }) {
                 part in
                 s.refs.refs.merge(part.refs) { first, _ in first }
                 part.refs.removeAll(keepingCapacity: true)
@@ -188,7 +188,7 @@ extension TileSplitter {
         let wantedNodes = s.wantedNodes
         if !wantedNodes.isEmpty {
             for input in options.inputs {
-                try PBFReader(url: input).readInOrder(
+                try reader(input).readInOrder(
                     make: { NodeCoords(wanted: wantedNodes) }) { part in
                     s.coords.coords.merge(part.coords) { first, _ in first }
                     part.coords.removeAll(keepingCapacity: true)

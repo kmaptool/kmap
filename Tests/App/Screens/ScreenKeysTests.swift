@@ -440,7 +440,7 @@ final class ScreenKeysTests: XCTestCase {
         let row = try XCTUnwrap(ctx.tools.firstIndex { $0.id == "sea" })
         select(screen, steps: row)
         _ = screen.handle(.char("u"), ctx: ctx)
-        XCTAssertNil(screen.installingForTesting, "nothing to fetch")
+        XCTAssertTrue(screen.runningForTesting.isEmpty, "nothing to fetch")
         XCTAssertEqual(screen.messageForTesting,
                        t("%@ is already the published one",
                          ctx.tools[row].name))

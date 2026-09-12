@@ -797,4 +797,37 @@ extension TileSplitterTests {
         XCTAssertEqual(after[0].maxLat, plain)
         XCTAssertEqual(after[1].minLat, plain)
     }
+
+    // MARK: Stopping
+
+    /// ^C during the cut used to wait for the cut: the reads run on their own threads,
+    /// where a task's cancellation is not seen, so the splitter is asked outright.
+    func testAStopAskedForEndsTheSplitWithoutTiles() throws {
+        let input = try extract("stop.osm.pbf", nodes: [(id: 1, lon: 100), (id: 2, lon: 3000)])
+        let out = directory.appendingPathComponent("tiles-stop")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let splitter = TileSplitter(options: .init(
+            inputs: [input], outputDirectory: out, mapID: 63410001,
+            maxNodes: 1_000_000, description: "test", areas: nil)) { _ in }
+        splitter.shouldStop = { true }
+        XCTAssertThrowsError(try splitter.run()) { XCTAssertTrue($0 is CancellationError) }
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: out.appendingPathComponent("template.args").path), "no tiles were written")
+    }
+
+    func testAStopAskedForLaterStillEndsTheSplit() throws {
+        let input = try extract("stop-later.osm.pbf", nodes: [(id: 1, lon: 100), (id: 2, lon: 3000)])
+        let out = directory.appendingPathComponent("tiles-stop-later")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let splitter = TileSplitter(options: .init(
+            inputs: [input], outputDirectory: out, mapID: 63410001,
+            maxNodes: 1_000_000, description: "test", areas: nil)) { _ in }
+        // The areas are measured first; the stop lands once the first phase reported.
+        var reached = 0.0
+        splitter.progress = { reached = $0 }
+        splitter.shouldStop = { reached > 0 }
+        XCTAssertThrowsError(try splitter.run()) { XCTAssertTrue($0 is CancellationError) }
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: out.appendingPathComponent("template.args").path))
+    }
 }

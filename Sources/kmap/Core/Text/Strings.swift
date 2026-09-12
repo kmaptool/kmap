@@ -969,6 +969,11 @@ enum Strings {
         "reserves, national parks and their outlines": "заповедники, национальные парки и их контуры",
         "Buildings": "Здания",
         "building outlines, which are many and small": "контуры зданий — их много и они мелкие",
+        "%@ left": "осталось %@",
+        "waiting for %@": "ждёт %@",
+        "%@ is still installing": "%@ ещё ставится",
+        "still installing: ^C stops everything": "установка идёт: ^C останавливает всё",
+        "needs root, press Enter on its row: %@": "ставится от root, Enter на его строке: %@",
     ]
 
     /// Russian plural forms, by CLDR category: "one", "few", "many".

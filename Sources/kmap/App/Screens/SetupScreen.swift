@@ -4,7 +4,7 @@ import Foundation
 ///
 /// A map needs Java and mkgmap, and a machine kmap was just installed on has neither.
 /// Rather than sending someone to the Toolchain screen to work out which lines matter,
-/// this asks once — install what is missing? — and then does it, saying what it is doing
+/// this asks once - install what is missing? - and then does it, saying what it is doing
 /// and how far along it is, because a silent ten-minute download reads as a hung program.
 ///
 /// Handed a continuation, so the build the person asked for starts by itself once the
@@ -50,6 +50,9 @@ final class SetupScreen: Screen {
     private let log = Log(limit: 400)
     private let progress = InstallProgress()
     private var runner = ProcessRunner()
+    private var task: Task<Void, Never>?
+    private var installer: ToolInstaller?
+    private var wantedForTesting: [ToolStatus]?
     private var started = false
 
     init(missing: [ToolStatus], whenReady: @escaping (AppContext) -> Route) {
@@ -84,6 +87,8 @@ final class SetupScreen: Screen {
 
         case .installing:
             if key == .ctrl("c") {
+                // The task as well as the process: a download stops only through its task.
+                task?.cancel()
                 runner.cancel()
                 log.warn(t("stopped"))
                 stage = .failed(t("stopped"))
@@ -119,20 +124,24 @@ final class SetupScreen: Screen {
         let toolchain = ctx.toolchain
         let log = self.log
         let progress = self.progress
+        let install = installer ?? { id, log, runner, progress in
+            try await toolchain.install(id, log: log, runner: runner, progress: progress)
+        }
         // Re-read rather than reusing the list this screen opened with: an earlier attempt
         // may have installed some of it.
-        let wanted = Toolchain.missingRequirements(in: toolchain.status())
+        let wanted = wantedForTesting ?? Toolchain.missingRequirements(in: toolchain.status())
 
-        Task { [weak self] in
+        task = Task { [weak self] in
             var failure: String?
             for (index, tool) in wanted.enumerated() {
                 progress.begin(tool.name, index: index + 1, of: wanted.count)
                 log.step(t("installing %@", tool.name))
                 do {
-                    try await toolchain.install(tool.id, log: log, runner: runner,
-                                                progress: progress)
+                    try await install(tool.id, log, runner, progress)
                     log.ok(t("%@ installed", tool.name))
                 } catch {
+                    // Stopped by ^C: the key said so, and the screen is already failed.
+                    if Task.isCancelled { return }
                     failure = (error as? LocalizedError)?.errorDescription ?? "\(error)"
                     log.error(failure ?? "")
                     break
@@ -151,6 +160,20 @@ final class SetupScreen: Screen {
                 }
             }
         }
+    }
+
+    // MARK: For the tests
+
+    /// Stands in for `Toolchain.install`, so the keys can be pressed without a network,
+    /// and for the probe, so what this machine has installed does not decide the test.
+    func useForTesting(installer: @escaping ToolInstaller, wanted: [ToolStatus]) {
+        self.installer = installer
+        wantedForTesting = wanted
+    }
+
+    var isStoppedForTesting: Bool {
+        if case .failed(let why) = stage { return why == t("stopped") }
+        return false
     }
 
     // MARK: Drawing
@@ -221,31 +244,16 @@ final class SetupScreen: Screen {
     private func drawProgress(into s: Surface, rect: Rect, y: inout Int, theme: Theme,
                               frame: Int) {
         guard y + 2 < rect.maxY else { return }
+        // The spinner turns whatever the stage, so a step with no percentage still moves.
         let position = progress.position
-        var heading = progress.tool
+        var heading = "\(Widgets.spinner(frame)) \(progress.tool)"
         if position.of > 1 { heading += "  \(position.index)/\(position.of)" }
         s.text(rect.x, y, heading, Style(fg: theme.strong, bg: theme.appBg, bold: true))
-
-        // A spinner beside the stage, so a step with no percentage still moves.
-        let stage = progress.stage
-        if !stage.isEmpty {
-            let text = "\(Widgets.spinner(frame)) \(stage)"
-            s.text(rect.x + max(20, heading.count + 2), y,
-                   truncate(text, to: max(0, rect.maxX - rect.x - 22)),
-                   Style(fg: theme.dim, bg: theme.appBg))
-        }
         y += 1
 
-        Widgets.progressBar(s, x: rect.x, y: y, width: rect.w, fraction: progress.fraction,
-                            theme: theme)
-        y += 1
-
-        if let bytes = progress.bytes {
-            var line = "\(Fmt.bytes(bytes.received)) / \(Fmt.bytes(bytes.total))"
-            if let rate = progress.rate { line += "  ·  \(Fmt.bytes(Int64(rate)))/s" }
-            s.text(rect.x, y, line, Style(fg: theme.faint, bg: theme.appBg))
-            y += 1
-        }
-        y += 1
+        // The same two lines the toolchain screen draws in a row.
+        InstallProgressRow.draw(s, x: rect.x, y: y, width: rect.w, progress: progress,
+                                theme: theme)
+        y += 3
     }
 }

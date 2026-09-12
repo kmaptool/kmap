@@ -53,6 +53,23 @@ extension Toolchain {
         return manager.spokenCommand(for: need, privilege: privilege)
     }
 
+    /// What an install fetches on its own when it is not there: the patch is compiled
+    /// against mkgmap with a JDK, mkgmap arrives as a zip, pyhgtmap is a Python package.
+    /// Two installs that overlap this way would fetch the same thing into the same place.
+    static func prerequisites(of id: String) -> [String] {
+        switch id {
+        case "mkgmap-patch": return ["java", "mkgmap"]
+        case "mkgmap": return ["unzip"]
+        case "pyhgtmap": return ["python"]
+        default: return []
+        }
+    }
+
+    /// Whether two installs must not run at once: either fetches what the other is.
+    static func overlap(_ id: String, _ other: String) -> Bool {
+        prerequisites(of: id).contains(other) || prerequisites(of: other).contains(id)
+    }
+
     /// - Parameter downloading: fetch into kmap's own directory even where the machine's
     ///   package manager could install it. Only Java can be had both ways.
     func install(_ id: String, log: Log, runner: ProcessRunner,

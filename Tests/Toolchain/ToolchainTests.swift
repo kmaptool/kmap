@@ -257,4 +257,21 @@ final class ToolchainTests: XCTestCase {
         waitForExit(zip)
         try FileManager.default.removeItem(at: staging)
     }
+
+    // MARK: What must not be installed at the same time
+
+    func testAnInstallNamesWhatItWouldFetchOnItsOwn() {
+        XCTAssertEqual(Toolchain.prerequisites(of: "mkgmap-patch"), ["java", "mkgmap"])
+        XCTAssertEqual(Toolchain.prerequisites(of: "mkgmap"), ["unzip"])
+        XCTAssertEqual(Toolchain.prerequisites(of: "pyhgtmap"), ["python"])
+        XCTAssertTrue(Toolchain.prerequisites(of: "sea").isEmpty)
+        XCTAssertTrue(Toolchain.prerequisites(of: "no-such-tool").isEmpty)
+    }
+
+    func testOverlapReadsBothWays() {
+        XCTAssertTrue(Toolchain.overlap("mkgmap-patch", "mkgmap"))
+        XCTAssertTrue(Toolchain.overlap("mkgmap", "mkgmap-patch"))
+        XCTAssertFalse(Toolchain.overlap("sea", "bounds"), "two packs fetch different things")
+        XCTAssertFalse(Toolchain.overlap("sea", "sea"), "a tool is not its own prerequisite")
+    }
 }

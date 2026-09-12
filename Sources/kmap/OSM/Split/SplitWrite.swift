@@ -30,7 +30,7 @@ extension TileSplitter {
         for (fileIndex, input) in options.inputs.enumerated() {
             var earlier = mergeable && overlapping
                 ? assignment.nodes.fileCursors(before: fileIndex) : []
-            try PBFReader(url: input).readInOrder(make: {
+            try reader(input).readInOrder(make: {
                 WritePass(nodes: assignment.nodes,
                           cursor: NodeAreas.Cursor(assignment.nodes),
                           plan: plan, phase: .nodes)
@@ -60,7 +60,7 @@ extension TileSplitter {
             log(String(format: "  nodes written, up to %@", Fmt.bytes(Machine.memoryInUse())))
         }
         for input in options.inputs {
-            try PBFReader(url: input).readInOrder(make: {
+            try reader(input).readInOrder(make: {
                 WritePass(nodes: assignment.nodes,
                           cursor: NodeAreas.Cursor(assignment.nodes),
                           plan: plan, phase: .waysAndRelations)

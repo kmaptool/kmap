@@ -113,6 +113,9 @@ final class Downloader: NSObject, URLSessionDataDelegate {
         session.invalidateAndCancel()
     }
 
+    /// Whether `cancel()` has been called.
+    var wasCancelled: Bool { isCancelled() }
+
     /// Synchronous: `NSLock` may not be taken from an async context.
     private func isCancelled() -> Bool {
         lock.lock()
