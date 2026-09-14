@@ -294,6 +294,105 @@ final class ScreenKeysTests: XCTestCase {
         }
     }
 
+    /// `d` asks first; the file is untouched until the answer.
+    func testDeletingASectionAsksFirstAndThenTakesItOut() async throws {
+        let document = StyleDocument.load(style)
+        let rows = document.rows(.polygon)
+        let index = try XCTUnwrap(rows.firstIndex { $0.code == 0x16 && $0.isStyled })
+        let screen = TypeBrowserScreen(document: document, kind: .polygon)
+        settle(screen)
+        select(screen, steps: index)
+
+        _ = screen.handle(.char("d"), ctx: ctx)
+        XCTAssertTrue(screen.footerHints.contains { $0.key == "←→" && $0.label == "choose" },
+                      "a question is open")
+        XCTAssertNotNil(TypSource.parse(try String(contentsOf: library, encoding: .utf8))
+            .section(.polygon, 0x16), "nothing goes before the answer")
+
+        _ = screen.handle(.esc, ctx: ctx)
+        XCTAssertNotNil(TypSource.parse(try String(contentsOf: library, encoding: .utf8))
+            .section(.polygon, 0x16), "cancelled is cancelled")
+
+        _ = screen.handle(.char("d"), ctx: ctx)
+        _ = screen.handle(.right, ctx: ctx)
+        _ = screen.handle(.enter, ctx: ctx)
+        let after = TypSource.parse(try String(contentsOf: library, encoding: .utf8))
+        XCTAssertNil(after.section(.polygon, 0x16))
+        XCTAssertFalse(after.drawOrder.contains { $0.code == 0x16 },
+                       "a polygon's draw-order entry goes with its section")
+        XCTAssertEqual(after.drawOrder.map(\.code), [0x4b, 0x51])
+    }
+
+    // MARK: The draw order
+
+    /// The arrows move the polygon under the cursor a level at a time.
+    func testTheArrowsMoveAPolygonBetweenLevels() async throws {
+        let screen = DrawOrderScreen(document: StyleDocument.load(style))
+        settle(screen)
+        // The cursor starts on 0x4b, alone on level 1.
+        XCTAssertEqual(screen.rows[safe: 1], .polygon(code: 0x4b, level: 1))
+
+        _ = screen.handle(.right, ctx: ctx)
+        var order = TypSource.parse(try String(contentsOf: library, encoding: .utf8)).drawOrder
+        XCTAssertEqual(order.first { $0.code == 0x4b }?.level, 2)
+        XCTAssertEqual(order.map(\.code), [0x16, 0x51, 0x4b],
+                       "it joins its new level after the others there")
+
+        // Still under the cursor: the next press puts it on a level of its own.
+        _ = screen.handle(.right, ctx: ctx)
+        order = TypSource.parse(try String(contentsOf: library, encoding: .utf8)).drawOrder
+        XCTAssertEqual(order.first { $0.code == 0x4b }?.level, 3)
+
+        // No higher than one above the top.
+        _ = screen.handle(.right, ctx: ctx)
+        order = TypSource.parse(try String(contentsOf: library, encoding: .utf8)).drawOrder
+        XCTAssertEqual(order.first { $0.code == 0x4b }?.level, 3)
+
+        _ = screen.handle(.left, ctx: ctx)
+        _ = screen.handle(.left, ctx: ctx)
+        _ = screen.handle(.left, ctx: ctx)
+        order = TypSource.parse(try String(contentsOf: library, encoding: .utf8)).drawOrder
+        XCTAssertEqual(order.first { $0.code == 0x4b }?.level, 1, "and nothing under 1")
+    }
+
+    /// Enter takes a level by number; one outside the table is refused.
+    func testATypedLevelMovesThePolygonStraightThere() async throws {
+        let screen = DrawOrderScreen(document: StyleDocument.load(style))
+        settle(screen)
+        _ = screen.handle(.enter, ctx: ctx)
+        XCTAssertTrue(screen.footerHints.contains { $0.label == "move it there" })
+        for c in "2" { _ = screen.handle(.char(c), ctx: ctx) }
+        _ = screen.handle(.enter, ctx: ctx)
+        let order = TypSource.parse(try String(contentsOf: library, encoding: .utf8)).drawOrder
+        XCTAssertEqual(order.first { $0.code == 0x4b }?.level, 2)
+
+        _ = screen.handle(.enter, ctx: ctx)
+        for c in "9" { _ = screen.handle(.char(c), ctx: ctx) }
+        _ = screen.handle(.enter, ctx: ctx)
+        let again = TypSource.parse(try String(contentsOf: library, encoding: .utf8)).drawOrder
+        XCTAssertEqual(again.first { $0.code == 0x4b }?.level, 2, "9 is out of the table")
+    }
+
+    /// A missing polygon heads the list; the arrow puts it in at level 1.
+    func testAForgottenPolygonIsListedFirstAndTheArrowPutsItIn() async throws {
+        let source = TypSource.parse(try String(contentsOf: library, encoding: .utf8))
+        try TypLibrary.save(try TypEdit.addSection(in: source, kind: .polygon, code: 0x4d),
+                            to: library)
+        // Taken out of the table by hand.
+        let text = try String(contentsOf: library, encoding: .utf8)
+            .replacingOccurrences(of: "; added by kmap\nType=0x4d,2\n", with: "")
+        try TypLibrary.save(text, to: library)
+        XCTAssertEqual(StyleDocument.load(style).polygonsNeverDrawn, [0x4d])
+
+        let screen = DrawOrderScreen(document: StyleDocument.load(style))
+        settle(screen)
+        XCTAssertEqual(screen.rows[safe: 1], .polygon(code: 0x4d, level: nil))
+        _ = screen.handle(.right, ctx: ctx)
+        let order = TypSource.parse(try String(contentsOf: library, encoding: .utf8)).drawOrder
+        XCTAssertEqual(order.first { $0.code == 0x4d }?.level, 1)
+        XCTAssertEqual(StyleDocument.load(style).polygonsNeverDrawn, [])
+    }
+
     func testTheArrowsMoveBetweenPointsLinesAndPolygons() async {
         let screen = TypeBrowserScreen(document: StyleDocument.load(style), kind: .point)
         settle(screen)

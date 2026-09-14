@@ -12,10 +12,16 @@ enum TypEdit {
         case noPicture(Int)
         case noSuchColour(Int, Int)
         case notAColour(String)
+        case noDrawOrder
+        case notALevel(Int)
         case noNightForm(Int)
 
         var errorDescription: String? {
             switch self {
+            case .noDrawOrder:
+                return t("this TYP declares no draw order")
+            case .notALevel(let level):
+                return t("%d is not a draw-order level — the lowest is 1", level)
             case .noNightForm(let code):
                 return t("%@ has no night form: a pattern needs an ink and a background"
                          + " before night can be added — give it a background first",
@@ -245,29 +251,135 @@ enum TypEdit {
 
     /// Puts a polygon into the draw order, at the level asked for or on top of everything.
     private static func insertIntoDrawOrder(_ lines: inout [String], code: Int, level: Int?) {
-        guard let open = lines.firstIndex(where: {
-            $0.trimmingCharacters(in: .whitespaces).lowercased() == "[_draworder]"
-        }) else { return }
-        guard let close = lines[open...].firstIndex(where: {
-            $0.trimmingCharacters(in: .whitespaces).lowercased() == "[end]"
-        }) else { return }
-
+        guard let table = drawOrderTable(in: lines) else { return }
         // The highest level in the table, so a new polygon lands above ground cover
         // rather than hidden beneath it.
-        var highest = 1
-        for line in lines[open..<close] {
-            let text = line.trimmingCharacters(in: .whitespaces)
-            guard text.lowercased().hasPrefix("type="), let comma = text.lastIndex(of: ",")
-            else { continue }
-            highest = max(highest, Int(text[text.index(after: comma)...]
-                .trimmingCharacters(in: .whitespaces)) ?? highest)
+        let highest = lines[table].compactMap { drawOrderEntry(of: $0)?.level }.max() ?? 1
+        placeInDrawOrder(&lines, table: table, entry: "Type=\(TypeMeaning.hex(code))",
+                         level: level ?? highest, note: "; added by kmap")
+    }
+
+    /// Moves a polygon to another level of the draw order, or adds a missing one.
+    ///
+    /// The entry is written among the others of its new level, so a table kept in level
+    /// order stays that way. The code keeps its spelling; kmap's own note above the
+    /// entry moves with it.
+    /// - Throws: `EditError.noDrawOrder` without a table, `.notALevel` below 1.
+    static func setDrawOrderLevel(in source: TypSource, code: Int, to level: Int) throws
+        -> String {
+        guard level >= 1 else { throw EditError.notALevel(level) }
+        var lines = source.lines
+        guard let table = drawOrderTable(in: lines) else { throw EditError.noDrawOrder }
+
+        var spelling = "Type=\(TypeMeaning.hex(code))"
+        var note: String?
+        if let number = table.first(where: { drawOrderEntry(of: lines[$0])?.code == code }) {
+            spelling = drawOrderEntry(of: lines[number])?.spelling ?? spelling
+            // Only kmap's own note moves: a divider above the entry belongs to the group.
+            if number > table.lowerBound,
+               lines[number - 1].trimmingCharacters(in: .whitespaces).lowercased()
+                   == "; added by kmap" {
+                note = "; added by kmap"
+            }
         }
-        let wanted = level ?? highest
-        // The note goes on a line of its own: the TYP compiler reads a draw-order entry
-        // to the end of its line, and a comment behind the level makes the whole file
-        // unreadable — the style then builds nothing at all.
-        lines.insert(contentsOf: ["; added by kmap",
-                                  "Type=\(TypeMeaning.hex(code)),\(wanted)"], at: close)
+        removeFromDrawOrder(&lines, code: code)
+        guard let again = drawOrderTable(in: lines) else { throw EditError.noDrawOrder }
+        placeInDrawOrder(&lines, table: again, entry: spelling, level: level, note: note)
+        return lines.joined(separator: "\n")
+    }
+
+    /// Writes an entry after the last one at or below its level, or at the top where
+    /// none is. The note goes on its own line: the TYP compiler reads an entry to the
+    /// end of the line, and a comment behind the level breaks the whole file.
+    private static func placeInDrawOrder(_ lines: inout [String], table: Range<Int>,
+                                         entry: String, level: Int, note: String?) {
+        var at = table.lowerBound
+        for number in table {
+            guard let entry = drawOrderEntry(of: lines[number]), entry.level <= level
+            else { continue }
+            at = number + 1
+        }
+        let indent = table.isEmpty ? "" : indentation(of: lines[table.lowerBound])
+        var written = [indent + "\(entry),\(level)"]
+        if let note { written.insert(indent + note, at: 0) }
+        lines.insert(contentsOf: written, at: at)
+    }
+
+    /// The lines between `[_drawOrder]` and its `[end]`, exclusive; nil without a table.
+    private static func drawOrderTable(in lines: [String]) -> Range<Int>? {
+        guard let open = lines.firstIndex(where: {
+            $0.trimmingCharacters(in: .whitespaces).lowercased() == "[_draworder]"
+        }) else { return nil }
+        guard let close = lines[open...].firstIndex(where: {
+            $0.trimmingCharacters(in: .whitespaces).lowercased() == "[end]"
+        }) else { return nil }
+        return open + 1..<close
+    }
+
+    // MARK: Taking out what is there
+
+    /// Removes a section; the device then draws that type its own way.
+    ///
+    /// The block goes from its header through `[end]` with one adjacent blank line, so
+    /// no double gap is left. Comments above the header stay: a divider like
+    /// `; --- water ---` cannot be told from a note about the section. A polygon's
+    /// `[_drawOrder]` entries go with it.
+    static func removeSection(in source: TypSource, kind: MapElementKind, code: Int) throws
+        -> String {
+        guard let section = source.section(kind, code) else {
+            throw EditError.noSuchSection(kind, code)
+        }
+        var lines = source.lines
+        var range = section.lines
+        if range.upperBound < lines.count, isBlank(lines[range.upperBound]) {
+            range = range.lowerBound..<range.upperBound + 1
+        } else if range.lowerBound > 0, isBlank(lines[range.lowerBound - 1]) {
+            range = range.lowerBound - 1..<range.upperBound
+        }
+        lines.removeSubrange(range)
+
+        // Found by content, so the table may sit above or below the sections.
+        if kind == .polygon {
+            removeFromDrawOrder(&lines, code: code)
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// Removes every draw-order entry for a polygon, with kmap's own note above it.
+    private static func removeFromDrawOrder(_ lines: inout [String], code: Int) {
+        guard let table = drawOrderTable(in: lines) else { return }
+        var going: Set<Int> = []
+        for number in table where drawOrderEntry(of: lines[number])?.code == code {
+            going.insert(number)
+            if number > table.lowerBound,
+               lines[number - 1].trimmingCharacters(in: .whitespaces).lowercased()
+                   == "; added by kmap" {
+                going.insert(number - 1)
+            }
+        }
+        for number in going.sorted(by: >) { lines.remove(at: number) }
+    }
+
+    /// An entry like `Type=0x04b,5`: the type, its level (0 where none is given) and the
+    /// type as spelt in the file. Nil for any other line. A comment behind the level,
+    /// which an older kmap wrote, does not hide the entry.
+    private static func drawOrderEntry(of line: String)
+        -> (code: Int, level: Int, spelling: String)? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.lowercased().hasPrefix("type="), let eq = trimmed.firstIndex(of: "=")
+        else { return nil }
+        let value = trimmed[trimmed.index(after: eq)...].prefix { $0 != ";" }
+        let parts = value.split(separator: ",", maxSplits: 1)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        guard let first = parts.first else { return nil }
+        let digits = first.lowercased().hasPrefix("0x") ? String(first.dropFirst(2)) : first
+        guard let code = Int(digits, radix: 16) else { return nil }
+        let level = parts.count > 1 ? (Int(parts[1]) ?? 0) : 0
+        return (code, level, "Type=\(first)")
+    }
+
+    private static func isBlank(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     // MARK: Finding things inside a section

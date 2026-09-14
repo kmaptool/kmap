@@ -13,11 +13,13 @@ final class TypeBrowserScreen: Screen {
     }
 
     private var keys: [Hint] {
+        if let asking { return asking.footerHints }
         if search.open { return search.hints }
         return [Hint(key: "↑↓", label: t("move")),
                 Hint(key: Glyph.enter, label: document.isEditable ? t("change") : t("inspect")),
                 Hint(key: "←→", label: t("points/lines/polygons")),
                 Hint(key: "a", label: t("add a section")),
+                Hint(key: "d", label: t("delete the section")),
                 Hint(key: "x", label: t("reassign a rule")),
                 Hint(key: "l", label: russian ? t("english") : t("russian")),
                 Hint(key: "p", label: showingDetail ? t("hide the preview") : t("preview")),
@@ -37,6 +39,9 @@ final class TypeBrowserScreen: Screen {
     /// Whether the pane under the list is open. Closed to start with: it costs the list
     /// about a third of its rows.
     private var showingDetail = false
+    /// The confirmation before a section is deleted, and the row it is about.
+    private var asking: Dialog?
+    private var removing: StyleTypeRow?
 
     /// Rebuilt only when the kind changes: parsing every row on every frame is wasted work.
     private var cachedRows: [StyleTypeRow] = []
@@ -118,6 +123,20 @@ final class TypeBrowserScreen: Screen {
     // MARK: Input
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        if var open = asking {
+            switch open.handle(key) {
+            case .confirmed:
+                asking = nil
+                if let row = removing { removeSection(row) }
+                removing = nil
+            case .cancelled:
+                asking = nil
+                removing = nil
+            case .none:
+                asking = open
+            }
+            return .none
+        }
         if search.open { return search.take(key, list: &list) }
 
         let count = visible.count
@@ -150,6 +169,9 @@ final class TypeBrowserScreen: Screen {
             case "a":
                 if unfoldIfFolded() { return .none }
                 return addSection(ctx)
+            case "d":
+                if unfoldIfFolded() { return .none }
+                askToRemoveSection()
             case "x":
                 if unfoldIfFolded() { return .none }
                 // The rule set, not the TYP: a code drawn correctly can still be emitted
@@ -212,6 +234,51 @@ final class TypeBrowserScreen: Screen {
         }
     }
 
+    /// Asks before deleting: the drawing and the names cannot be recovered once the
+    /// file is rewritten. The cursor starts on cancel.
+    private func askToRemoveSection() {
+        guard let row = visible[safe: list.selected] else { return }
+        guard let section = row.section else {
+            say(t("this TYP has no section for %@ — press a to add one", row.hex),
+                error: true)
+            return
+        }
+        guard document.isEditable else {
+            say(t("this style is read-only — take an editable copy first"), error: true)
+            return
+        }
+        var body = [t("The section for %@ will be deleted: its drawing, its colours and"
+                      + " its names. The device will then draw this type its own way.",
+                      row.hex)]
+        if kind == .polygon {
+            body.append(t("Its entry in the draw order will be deleted too."))
+        }
+        body.append(t("The file is rewritten at once. A new section can be created"
+                      + " with a, but the current colours and drawing will be lost."))
+        var detail = [(t("type"), row.hex)]
+        if let name = section.label(language: russian ? 0x19 : 0x00) ?? section.englishLabel {
+            detail.append((t("name"), name))
+        }
+        if let tag = row.tags.first { detail.append((t("drawn for"), tag)) }
+        removing = row
+        asking = Dialog(title: t("Delete the section"), body: body, detail: detail,
+                        confirm: t("delete"), cancel: t("cancel"))
+    }
+
+    /// Deletes the section after confirmation.
+    private func removeSection(_ row: StyleTypeRow) {
+        guard let source = document.source, let url = document.sourceURL else { return }
+        do {
+            let edited = try TypEdit.removeSection(in: source, kind: kind, code: row.code)
+            try TypLibrary.save(edited, to: url)
+            reload()
+            say(t("section for %@ deleted — the device will draw this type its own way",
+                  row.hex))
+        } catch {
+            say(error.localizedDescription, error: true)
+        }
+    }
+
     /// Re-reads the file after an edit, taking what is on disk rather than what was meant.
     private func reload() {
         document = StyleDocument.load(document.style)
@@ -228,6 +295,10 @@ final class TypeBrowserScreen: Screen {
     }
 
     // MARK: Rendering
+
+    func renderOverlay(into s: Surface, rect: Rect, ctx: AppContext) {
+        asking?.render(into: s, rect: rect, theme: ctx.theme)
+    }
 
     func render(into s: Surface, rect: Rect, ctx: AppContext) {
         let theme = ctx.theme

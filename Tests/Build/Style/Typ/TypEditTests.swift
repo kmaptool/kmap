@@ -272,6 +272,180 @@ final class TypEditTests: XCTestCase {
         XCTAssertEqual(TypSource.parse(edited).drawOrder.map(\.code), [0x16])
     }
 
+    // MARK: Taking a section out
+
+    func testASectionCanBeRemovedAndItsNeighboursStayWordForWord() throws {
+        let source = TypSource.parse(sample)
+        let edited = try TypEdit.removeSection(in: source, kind: .polygon, code: 0x16)
+        let after = TypSource.parse(edited)
+
+        XCTAssertNil(after.section(.polygon, 0x16))
+        XCTAssertEqual(after.sections.count, source.sections.count - 1)
+        XCTAssertEqual(after.section(.point, 0x2a00)?.englishLabel, "Restaurant")
+        // The blank line under the block went with it; the comments above stayed.
+        XCTAssertEqual(edited, """
+            ; -*- coding: UTF-8 -*-
+            ; A comment above the section that must survive.
+
+            [_point]
+            Type=0x2a00
+            DayXpm="2 2 2 1"
+            "! c #F80000"
+            ". c none"
+            "!."
+            ".!"
+            String=0x00,Restaurant
+            [end]
+            """)
+    }
+
+    func testRemovingTheLastSectionKeepsTheFileEndingInANewline() throws {
+        let source = TypSource.parse(sample + "\n")
+        let edited = try TypEdit.removeSection(in: source, kind: .point, code: 0x2a00)
+        XCTAssertTrue(edited.hasSuffix("[end]\n"))
+        XCTAssertFalse(edited.hasSuffix("\n\n"), "no gap is left hanging at the end")
+        XCTAssertEqual(TypSource.parse(edited).sections.map(\.code), [0x16])
+    }
+
+    func testRemovingOneThatIsNotThereIsRefused() {
+        let source = TypSource.parse(sample)
+        XCTAssertThrowsError(try TypEdit.removeSection(in: source, kind: .line, code: 0x16))
+    }
+
+    /// The draw-order entries go with the section: kmap's note above its entry, and
+    /// the older spelling with the note behind the level.
+    func testRemovingAPolygonTakesItOutOfTheDrawOrderAsWell() throws {
+        let withOrder = """
+            [_drawOrder]
+            Type=0x16,1
+            ; added by kmap
+            Type=0x4d,2
+            Type=0x04d,3; added by kmap
+            Type=0x51,2
+            [end]
+
+            [_polygon]
+            Type=0x4d
+            Xpm="0 0 1 0"
+            "a c #FF00FF"
+            [end]
+
+            [_polygon]
+            Type=0x16
+            Xpm="0 0 1 0"
+            "a c #A0D070"
+            [end]
+            """
+        let source = TypSource.parse(withOrder)
+        let edited = try TypEdit.removeSection(in: source, kind: .polygon, code: 0x4d)
+        let after = TypSource.parse(edited)
+
+        XCTAssertNil(after.section(.polygon, 0x4d))
+        XCTAssertEqual(after.drawOrder.map(\.code), [0x16, 0x51])
+        XCTAssertFalse(edited.contains("added by kmap"), "the note went with its entry")
+        XCTAssertEqual(edited, """
+            [_drawOrder]
+            Type=0x16,1
+            Type=0x51,2
+            [end]
+
+            [_polygon]
+            Type=0x16
+            Xpm="0 0 1 0"
+            "a c #A0D070"
+            [end]
+            """, "what stayed was not rewritten")
+    }
+
+    /// A line has no draw order to leave; its code is not a polygon's.
+    func testRemovingALineLeavesTheDrawOrderAlone() throws {
+        let text = "[_drawOrder]\nType=0x16,1\n[end]\n\n[_line]\nType=0x16\n"
+            + "Xpm=\"0 0 1 0\"\n\"a c #A0D070\"\n[end]\n"
+        let edited = try TypEdit.removeSection(in: TypSource.parse(text), kind: .line,
+                                               code: 0x16)
+        XCTAssertEqual(TypSource.parse(edited).drawOrder.map(\.code), [0x16])
+        XCTAssertNil(TypSource.parse(edited).section(.line, 0x16))
+    }
+
+    // MARK: Moving a polygon between levels
+
+    private let ordered = """
+        [_drawOrder]
+        ; --- 1: ground cover
+        Type=0x16,1
+        Type=0x050,1
+        ; --- 2: built-up
+        Type=0x01,2
+        ; added by kmap
+        Type=0x4d,3
+        [end]
+
+        [_polygon]
+        Type=0x4d
+        Xpm="0 0 1 0"
+        "a c #FF00FF"
+        [end]
+        """
+
+    func testAPolygonMovesIntoTheGroupOfItsNewLevelAndItsNoteTravels() throws {
+        let edited = try TypEdit.setDrawOrderLevel(in: TypSource.parse(ordered), code: 0x4d,
+                                                   to: 1)
+        XCTAssertEqual(TypSource.parse(edited).drawOrder.map { "\($0.code):\($0.level)" },
+                       ["22:1", "80:1", "77:1", "1:2"])
+        XCTAssertEqual(edited, """
+            [_drawOrder]
+            ; --- 1: ground cover
+            Type=0x16,1
+            Type=0x050,1
+            ; added by kmap
+            Type=0x4d,1
+            ; --- 2: built-up
+            Type=0x01,2
+            [end]
+
+            [_polygon]
+            Type=0x4d
+            Xpm="0 0 1 0"
+            "a c #FF00FF"
+            [end]
+            """, "the dividers stay where they were; the entry joins its level")
+    }
+
+    /// A new level is a new group after the last lower one.
+    func testAPolygonCanBeMovedAboveEveryLevelThereIs() throws {
+        let edited = try TypEdit.setDrawOrderLevel(in: TypSource.parse(ordered), code: 0x16,
+                                                   to: 5)
+        let order = TypSource.parse(edited).drawOrder
+        XCTAssertEqual(order.last.map { "\($0.code):\($0.level)" }, "22:5")
+        XCTAssertEqual(order.map(\.level), [1, 2, 3, 5], "the rest keep their places")
+    }
+
+    /// The file's spelling is kept; a comment behind the level, which an older kmap
+    /// wrote, is dropped: the compiler reads it as part of the level.
+    func testTheSpellingIsKeptAndATrailingCommentIsDropped() throws {
+        let source = TypSource.parse("[_drawOrder]\nType=0x01f,9; added by kmap\n"
+                                     + "Type=0x016,1\n[end]\n")
+        let edited = try TypEdit.setDrawOrderLevel(in: source, code: 0x1f, to: 4)
+        XCTAssertEqual(edited, "[_drawOrder]\nType=0x016,1\nType=0x01f,4\n[end]\n")
+    }
+
+    /// A missing polygon is put in.
+    func testAPolygonMissingFromTheDrawOrderIsPutInAtTheLevelAsked() throws {
+        let source = TypSource.parse(ordered)
+        let edited = try TypEdit.setDrawOrderLevel(in: source, code: 0x51, to: 2)
+        let order = TypSource.parse(edited).drawOrder
+        XCTAssertEqual(order.map { "\($0.code):\($0.level)" },
+                       ["22:1", "80:1", "1:2", "81:2", "77:3"])
+        XCTAssertTrue(edited.contains("Type=0x51,2"))
+    }
+
+    func testALevelBelowOneAndAFileWithNoTableAreRefused() {
+        XCTAssertThrowsError(try TypEdit.setDrawOrderLevel(in: TypSource.parse(ordered),
+                                                           code: 0x4d, to: 0))
+        XCTAssertThrowsError(try TypEdit.setDrawOrderLevel(in: TypSource.parse(sample),
+                                                           code: 0x16, to: 1))
+    }
+
     // MARK: Against the real file
 
     /// A whole file with one colour changed: every other line, comments and blanks
