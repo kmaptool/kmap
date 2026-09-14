@@ -48,7 +48,7 @@ extension StyleCatalog {
             "highway=via_ferrata [0x2b resolution 22]",
             "natural=cliff {name '${name}'} [0x2b resolution 22]",
             "man_made=cutline [0x23 resolution 21]",
-            "(kmap:fell_edge=yes | natural=fell) & highway!=* {name '${name}'} "
+            "(kmap:fell_edge=yes | (natural=fell & name=*)) & highway!=* {name '${name}'} "
                 + "[0x12 resolution 21 continue with_actions]"
         ]
         let lines = directory.appendingPathComponent("lines")

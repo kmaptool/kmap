@@ -273,8 +273,9 @@ extension StyleCatalog {
             \(marker) ---------------------------------------------
             # Member ways of a fell multipolygon carry no tags, so the outline rule in
             # `lines` would never see them. This hands each member the marker it matches on.
+            # Named plateaux only; see the rule in `lines`.
 
-            (type=multipolygon | type=boundary) & natural=fell
+            (type=multipolygon | type=boundary) & natural=fell & name=*
             { apply { set kmap:fell_edge=yes } }
 
             """
@@ -296,7 +297,12 @@ extension StyleCatalog {
         # `continue` for the same reason as the conservation outlines: a plain typed
         # match in `lines` ends a closed way's journey and it never reaches the polygon
         # rules, so without it this rim would delete the plateau's own fill.
-        (kmap:fell_edge=yes | natural=fell) & highway!=* {name '${name}'} [0x12 resolution 21 continue with_actions]
+        #
+        # Named fells only. The rim is for the yaylas, whose name it draws along the
+        # edge. natural=fell is also put on nameless patches of alpine meadow, where a
+        # rim reads as a fence or a reserve edge; those get the fill alone, like a
+        # grassland.
+        (kmap:fell_edge=yes | (natural=fell & name=*)) & highway!=* {name '${name}'} [0x12 resolution 21 continue with_actions]
 
         """
         guard try spliceRules(rules, marked: marker, intoFile: "lines", in: directory)
