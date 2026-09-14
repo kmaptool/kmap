@@ -138,9 +138,9 @@ extension TypEdit {
 
     /// Gives an element night colours where it has only day ones.
     ///
-    /// A line or polygon with two colours says nothing about night, so the block grows
-    /// from two colours to four. The new pair starts as a copy of the day pair; the pixel
-    /// rows are untouched, since they only ever name the first two keys.
+    /// A solid with one colour grows to two; a pattern or a cased line with two grows to
+    /// four. The new colours copy the day ones; the pixel rows only name the day keys
+    /// and are untouched.
     static func addNightColours(in source: TypSource, kind: MapElementKind,
                                 code: Int) throws -> String {
         guard let section = source.section(kind, code) else {
@@ -154,23 +154,31 @@ extension TypEdit {
         guard section.colourSlots.night.isEmpty else {
             throw AddError.alreadyThere(kind, code)
         }
-        guard block.palette.count == 2 else { throw EditError.noPicture(code) }
+        // Day takes one colour for a plain solid, two for a pattern or a cased line, as
+        // `colourSlots` decided. Anything else is not a shape the compiler documents.
+        let dayCount = section.colourSlots.day.count
+        guard block.palette.count == dayCount,
+              dayCount == 2 || (dayCount == 1 && block.isSolid) else {
+            throw EditError.noNightForm(code)
+        }
 
         let used = Set(block.palette.map(\.key))
-        // `3` and `4` are the conventional keys for the night pair; other keys are taken
-        // only when those are already used.
+        // Conventional keys follow the day ones by number: `2` after `1`, `3` and `4`
+        // after a pair. Other keys only when those are taken.
         var keys: [String] = []
-        for candidate in ["3", "4"] + XpmBlock.keyAlphabet.map(String.init)
-        where keys.count < 2 {
+        let conventional = (dayCount + 1...dayCount * 2).map(String.init)
+        for candidate in conventional + XpmBlock.keyAlphabet.map(String.init)
+        where keys.count < dayCount {
             guard !used.contains(candidate), !keys.contains(candidate),
                   candidate.count == max(1, block.charsPerPixel) else { continue }
             keys.append(candidate)
         }
-        guard keys.count == 2 else { throw EditError.noPicture(code) }
+        guard keys.count == dayCount else { throw EditError.noPicture(code) }
 
         var palette = block.palette
-        palette.append((key: keys[0], colour: block.palette[0].colour))
-        palette.append((key: keys[1], colour: block.palette[1].colour))
+        for (key, day) in zip(keys, block.palette) {
+            palette.append((key: key, colour: day.colour))
+        }
 
         let grown = XpmBlock(width: block.width, height: block.height,
                              declaredColours: palette.count,

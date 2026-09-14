@@ -31,6 +31,7 @@ enum Strings {
         "%1$@ exited with code %2$d": "%1$@ завершился с кодом %2$d",
         "%1$@ has no %2$@ to lend": "%1$@ не может одолжить рисунок: %2$@",
         "%1$@ has no colour %2$d": "у %1$@ нет цвета %2$d",
+        "%@ has no night form: a pattern needs an ink and a background before night can be added — give it a background first": "у %@ нет ночной формы: узору нужны краска и фон, прежде чем добавлять ночь — сначала задайте ему фон",
         "%@ already covers that": "%@ уже включает это",
         "%@ already has a section — press ⏎ to change it": "у %@ уже есть секция — ⏎, чтобы изменить",
         "%@ could not be decoded": "%@ не поддался разбору",

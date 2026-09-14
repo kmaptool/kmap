@@ -12,9 +12,14 @@ enum TypEdit {
         case noPicture(Int)
         case noSuchColour(Int, Int)
         case notAColour(String)
+        case noNightForm(Int)
 
         var errorDescription: String? {
             switch self {
+            case .noNightForm(let code):
+                return t("%@ has no night form: a pattern needs an ink and a background"
+                         + " before night can be added — give it a background first",
+                         TypeMeaning.hex(code))
             case .noSuchSection(let kind, let code):
                 return t("this TYP has no %1$@ section for %2$@",
                          kind.rawValue, TypeMeaning.hex(code))

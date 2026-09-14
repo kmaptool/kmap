@@ -236,6 +236,60 @@ final class DayNightTests: XCTestCase {
         XCTAssertEqual(after.colourSlots.night.map(\.colour), ["#101820", "#404040"])
     }
 
+    func testASolidWithOneColourGrowsToTwoSoNightCanBeSaid() throws {
+        // What `addSection` writes: one colour, nothing about night.
+        let source = TypSource.parse(try TypEdit.addSection(in: TypSource.parse(""),
+                                                            kind: .polygon, code: 0x1f,
+                                                            colour: "#E3E6C8"))
+        XCTAssertTrue(try section(source.text, .polygon, 0x1f).colourSlots.night.isEmpty)
+
+        let grown = TypSource.parse(try TypEdit.addNightColours(in: source, kind: .polygon,
+                                                                code: 0x1f))
+        let after = try XCTUnwrap(grown.section(.polygon, 0x1f))
+        XCTAssertEqual(after.colourSlots.day.map(\.colour), ["#E3E6C8"])
+        XCTAssertEqual(after.colourSlots.night.map(\.colour), ["#E3E6C8"])
+        XCTAssertEqual(after.xpm?.palette.map(\.key), ["a", "2"])
+
+        // The night half is then editable on its own.
+        let night = try XCTUnwrap(after.colourSlots.night.first)
+        let edited = try section(try TypEdit.setColour(in: grown, kind: .polygon, code: 0x1f,
+                                                       colourIndex: night.index,
+                                                       to: "#40402E", tag: night.tag),
+                                 .polygon, 0x1f)
+        XCTAssertEqual(edited.colourSlots.day.map(\.colour), ["#E3E6C8"])
+        XCTAssertEqual(edited.colourSlots.night.map(\.colour), ["#40402E"])
+    }
+
+    func testASolidLineWithOneColourGrowsTheSameWay() throws {
+        let source = TypSource.parse(try TypEdit.addSection(in: TypSource.parse(""),
+                                                            kind: .line, code: 0x23))
+        let after = try section(try TypEdit.addNightColours(in: source, kind: .line,
+                                                            code: 0x23), .line, 0x23)
+        XCTAssertEqual(after.colourSlots.day.count, 1)
+        XCTAssertEqual(after.colourSlots.night.count, 1)
+        XCTAssertEqual(after.lineWidth, 2, "the rest of the section stays")
+    }
+
+    func testAPatternNamingOneColourIsRefused() {
+        // Not a shape the compiler documents.
+        let source = TypSource.parse("""
+            [_polygon]
+            Type=0x0d
+            Xpm="2 2 1 1"
+            "! c #F0D8A8"
+            "!!"
+            "!!"
+            [end]
+            """)
+        XCTAssertThrowsError(try TypEdit.addNightColours(in: source, kind: .polygon,
+                                                         code: 0x0d)) { error in
+            guard case TypEdit.EditError.noNightForm(0x0d) = error else {
+                return XCTFail("\(error)")
+            }
+            XCTAssertTrue(error.localizedDescription.contains("background"))
+        }
+    }
+
     func testAnElementThatAlreadySaysSomethingAboutNightIsRefused() {
         let source = TypSource.parse("""
             [_polygon]
