@@ -58,11 +58,28 @@ final class BurnPeaksTests: XCTestCase {
         XCTAssertEqual(BurnPeaks.metres("1527,4"), 1527.4)
     }
 
-    func testAHeightInFeetIsRefusedRatherThanConverted() {
-        // Converting would turn a mistagged unit into a plausible wrong height.
-        XCTAssertNil(BurnPeaks.metres("5000 ft"))
-        XCTAssertNil(BurnPeaks.metres("5000'"))
-        XCTAssertNil(BurnPeaks.metres("5000 feet"))
+    func testAHeightDeclaredInFeetIsConverted() {
+        XCTAssertEqual(BurnPeaks.metres("5000 ft"), 1524)
+        XCTAssertEqual(BurnPeaks.metres("5000'"), 1524)
+        XCTAssertEqual(BurnPeaks.metres("5000 feet"), 1524)
+        XCTAssertEqual(BurnPeaks.metres("5000ft"), 1524)
+        XCTAssertEqual(BurnPeaks.metres("14,505 ft")!, 4421.124, accuracy: 1e-9)
+        // `ele:ft` carries no unit of its own.
+        XCTAssertEqual(BurnPeaks.metres(feet: "14505")!, 4421.124, accuracy: 1e-9)
+        XCTAssertEqual(BurnPeaks.metres(feet: "14,505")!, 4421.124, accuracy: 1e-9)
+        XCTAssertNil(BurnPeaks.metres(feet: "high"))
+    }
+
+    /// An American mapper's comma groups thousands; a European one's is the decimal point.
+    func testACommaIsReadTheWayTheMapperMeantIt() {
+        XCTAssertEqual(BurnPeaks.metres("1,527"), 1527)
+        // Too high for metres, so feet: Whitney, as an American mapper writes it.
+        XCTAssertEqual(BurnPeaks.metres("14,505")!, 4421.124, accuracy: 1e-9)
+        XCTAssertEqual(BurnPeaks.metres("1,527.4"), 1527.4)
+        XCTAssertEqual(BurnPeaks.metres("1527,4"), 1527.4)
+        XCTAssertEqual(BurnPeaks.metres("1,5"), 1.5)
+        XCTAssertEqual(BurnPeaks.metres("-1,5"), -1.5)
+        XCTAssertNil(BurnPeaks.metres("1,52,7"))
     }
 
     func testNonsenseIsNoHeight() {
@@ -70,7 +87,8 @@ final class BurnPeaksTests: XCTestCase {
         XCTAssertNil(BurnPeaks.metres(""))
         XCTAssertNil(BurnPeaks.metres("   "))
         XCTAssertNil(BurnPeaks.metres("high"))
-        XCTAssertNil(BurnPeaks.metres("99999"))       // above any real summit
+        XCTAssertNil(BurnPeaks.metres("99999"))       // above any real summit, in any unit
+        XCTAssertNil(BurnPeaks.metres("29600"))       // just above Everest in feet
         XCTAssertNil(BurnPeaks.metres("-9999"))
     }
 
@@ -266,6 +284,30 @@ final class BurnPeaksTests: XCTestCase {
         let report = try BurnPeaks(extracts: [url], hgt: hgt,
                                    out: directory.appendingPathComponent("out")).run()
         XCTAssertEqual(report.peaks, 0)
+    }
+
+    /// A summit carrying only `ele:ft` is burned at the metres those feet make.
+    func testASummitWithOnlyFeetIsBurnedInMetres() throws {
+        let hgt = directory.appendingPathComponent("hgt")
+        try FileManager.default.createDirectory(at: hgt, withIntermediateDirectories: true)
+        try HGTFixture.constant(1000, at: hgt.appendingPathComponent("N44W111.hgt"))
+        let url = directory.appendingPathComponent("feet.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        writer.nodes([
+            PBFWriter.Node(id: 1, lat: 44.5, lon: -110.5,
+                           tags: [("natural", "peak"), ("ele:ft", "3400")]),
+            // `ele` wins where both are given, whatever `ele:ft` says.
+            PBFWriter.Node(id: 2, lat: 44.6, lon: -110.6,
+                           tags: [("natural", "peak"), ("ele", "1010"), ("ele:ft", "9000")])
+        ])
+        try writer.finish()
+        let report = try BurnPeaks(extracts: [url], hgt: hgt,
+                                   out: directory.appendingPathComponent("out")).run()
+        XCTAssertEqual(report.peaks, 2)
+        XCTAssertEqual(report.raised, 2)
+        // 3400 ft is 1036.32 m, and 1010 m is 1010: the cells rose by these.
+        XCTAssertEqual(report.gains.sorted(), [10, 36])
     }
 
     func testAVolcanoCountsAsASummit() throws {
