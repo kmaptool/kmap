@@ -39,7 +39,7 @@ enum TypAugment {
 
     /// The tag the repair pass writes on a link and on its mark; the rules that carry
     /// it are kmap's own, and their sections go into every TYP a build uses.
-    static let repairTag = "kmap:repair"
+    static let repairTag = PBFRewriter.repairTag
 
     /// A draw-order entry is read to the end of its line, so a note behind the level
     /// makes the compiler refuse the whole file. kmap wrote such a note itself for a

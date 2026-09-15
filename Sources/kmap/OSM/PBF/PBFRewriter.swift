@@ -13,6 +13,11 @@ struct PBFRewriter {
         }
     }
 
+    /// The tags this pass writes, for the style rules to match on.
+    static let barrierTag = "kmap:on"
+    static let duplicateVenueTag = "kmap:dup_venue"
+    static let repairTag = "kmap:repair"
+
     let url: URL
     let plan: RepairPlan
     let network: RoadNetwork
@@ -42,56 +47,9 @@ struct PBFRewriter {
         var contourBlocks = 0
     }
 
-    private enum Part { case nodes, ways }
-
     /// What each contour file's data blobs hold, recorded on the first walk: bit 0 nodes,
     /// bit 1 ways. The files are walked twice, nodes before ways.
     var contourKinds: [[UInt8]] = []
-
-    /// Passes the node blocks, or the way blocks, of every contour file straight through,
-    /// still deflated. The files are read in the order given, which is the order their id
-    /// ranges were handed out, so ids still ascend.
-    private mutating func copyContours(_ part: Part, into writer: PBFWriter,
-                              scratch: inout [UInt8]) throws -> Int {
-        if contourKinds.count != contours.count {
-            contourKinds = [[UInt8]](repeating: [], count: contours.count)
-        }
-        let wanted: UInt8 = part == .nodes ? 1 : 2
-        var count = 0
-        for (at, file) in contours.enumerated() {
-            let known = contourKinds[at]
-            var kinds = known
-            var index = 0
-            var fields = PBFReader.Scratch()
-            let data = try Data(contentsOf: file, options: .alwaysMapped)
-            var written = 0
-            try data.withUnsafeBytes { bytes in
-                try PBFReader.forEachBlob(in: bytes) { header, kind, blob in
-                    // Each contour file carries its own OSMHeader; the one already written
-                    // stands for the lot.
-                    guard kind == "OSMData" else { return }
-                    let holds: UInt8
-                    if index < known.count {
-                        holds = known[index]
-                    } else {
-                        let size = try PBFReader.inflate(blob, into: &scratch)
-                        let block = try scratch.withUnsafeBytes {
-                            try Block(UnsafeRawBufferPointer(rebasing: $0[0..<size]), fields: &fields)
-                        }
-                        holds = (block.hasNodes ? 1 : 0) | (block.hasWays ? 2 : 0)
-                        kinds.append(holds)
-                    }
-                    index += 1
-                    guard holds & wanted != 0 else { return }
-                    writer.copy(header: header, blob: blob)
-                    written += 1
-                }
-            }
-            contourKinds[at] = kinds
-            count += written
-        }
-        return count
-    }
 
     mutating func write(to destination: URL) throws -> Tally {
         // A cheap rejection test in front of the tables. Nodes and ways are filtered
@@ -117,7 +75,7 @@ struct PBFRewriter {
         var addedWays = false
 
         let data = try Data(contentsOf: url, options: .alwaysMapped)
-        var scratch = [UInt8](repeating: 0, count: 32 << 20)
+        var scratch = [UInt8](repeating: 0, count: PBFSchema.maxUncompressedBlob)
 
         // Blocks are inflated and decoded a batch at a time across every core, then acted
         // on in file order: objects this pass adds go into the first block of their kind.
@@ -136,54 +94,32 @@ struct PBFRewriter {
             func decodeBatch() throws {
                 guard !batch.isEmpty else { return }
                 let items = batch
-                scratches.withUnsafeMutableBufferPointer { buffers in
-                    fieldSets.withUnsafeMutableBufferPointer { fields in
-                    decoded.withUnsafeMutableBufferPointer { blocks in
-                        failures.withUnsafeMutableBufferPointer { errors in
-                            DispatchQueue.concurrentPerform(iterations: items.count) { i in
+                try scratches.withUnsafeMutableBufferPointer { buffers in
+                    try fieldSets.withUnsafeMutableBufferPointer { fields in
+                        try decoded.withUnsafeMutableBufferPointer { blocks in
+                            try PBFReader.acrossCores(items.count, failures: &failures) { i in
                                 blocks[i] = nil
                                 guard items[i].isData else { return }
-                                do {
-                                    let size = try PBFReader.inflate(items[i].blob,
-                                                                     into: &buffers[i])
-                                    blocks[i] = try buffers[i].withUnsafeBytes {
-                                        try Block(UnsafeRawBufferPointer(rebasing: $0[0..<size]),
-                                                  fields: &fields[i])
-                                    }
-                                } catch {
-                                    errors[i] = error
+                                let size = try PBFReader.inflate(items[i].blob,
+                                                                 into: &buffers[i])
+                                blocks[i] = try buffers[i].withUnsafeBytes {
+                                    try Block(UnsafeRawBufferPointer(rebasing: $0[0..<size]),
+                                              fields: &fields[i])
                                 }
                             }
                         }
                     }
+                }
+                // Whether a block needs rebuilding, and the rebuilding, depend on nothing
+                // but the block and the tables, so they run on every core.
+                try prepared.withUnsafeMutableBufferPointer { slots in
+                    try PBFReader.acrossCores(items.count, failures: &failures) { i in
+                        slots[i] = nil
+                        guard let block = decoded[i] else { return }
+                        slots[i] = try rebuild(block, moved: moved, inserts: inserts,
+                                               nodeFilter: nodeFilter, wayFilter: wayFilter,
+                                               mergeFilter: mergeFilter, moveFilter: moveFilter)
                     }
-                }
-                if let failure = failures.prefix(items.count).compactMap({ $0 }).first {
-                    failures = [Error?](repeating: nil, count: width)
-                    throw failure
-                }
-                // Deciding whether a block needs rebuilding, and rebuilding it, depends on
-                // nothing but the block and the tables, so it runs on every core.
-                prepared.withUnsafeMutableBufferPointer { slots in
-                    failures.withUnsafeMutableBufferPointer { errors in
-                        DispatchQueue.concurrentPerform(iterations: items.count) { i in
-                            slots[i] = nil
-                            guard let block = decoded[i] else { return }
-                            do {
-                                slots[i] = try rebuild(block, moved: moved, inserts: inserts,
-                                                       nodeFilter: nodeFilter,
-                                                       wayFilter: wayFilter,
-                                                       mergeFilter: mergeFilter,
-                                                       moveFilter: moveFilter)
-                            } catch {
-                                errors[i] = error
-                            }
-                        }
-                    }
-                }
-                if let failure = failures.prefix(items.count).compactMap({ $0 }).first {
-                    failures = [Error?](repeating: nil, count: width)
-                    throw failure
                 }
                 for i in 0..<items.count {
                     guard let block = decoded[i] else {
@@ -201,7 +137,7 @@ struct PBFRewriter {
             }
 
             try PBFReader.forEachBlob(in: file) { header, kind, blob in
-                batch.append((header, blob, kind == "OSMData"))
+                batch.append((header, blob, kind == PBFSchema.dataBlob))
                 if batch.count == width { try decodeBatch() }
             }
             try decodeBatch()
@@ -261,7 +197,7 @@ struct PBFRewriter {
             var batch = block.nodes(movedBy: moved, filter: moveFilter)
             for i in batch.indices {
                 if let kind = barriers[batch[i].id] {
-                    batch[i].tags.append(("kmap:on", kind))
+                    batch[i].tags.append((Self.barrierTag, kind))
                     out.tagged += 1
                 }
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
@@ -273,7 +209,7 @@ struct PBFRewriter {
             for i in batch.indices {
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
                 if duplicateVenues.contains(batch[i].id) {
-                    batch[i].tags.append(("kmap:dup_venue", "yes"))
+                    batch[i].tags.append((Self.duplicateVenueTag, "yes"))
                     out.marked += 1
                 }
             }
@@ -316,60 +252,5 @@ struct PBFRewriter {
         tally.marked += ready.marked
         if let nodes = ready.nodes { writer.nodes(nodes) }
         if let ways = ready.ways { writer.ways(ways) }
-    }
-
-    /// Drops any description that only repeats the name, and returns how many were
-    /// dropped. mkgmap cannot compare two tags, so this happens before the build.
-    static func tidy(_ tags: inout [(String, String)]) -> Int {
-        guard let name = Self.comparableName(tags) else { return 0 }
-        let before = tags.count
-        tags.removeAll { Self.saysNothingNew($0, $1, beside: name) }
-        return before - tags.count
-    }
-
-    /// Whether `tidy` would drop anything, without building the tidied list.
-    static func wouldTidy(_ tags: [(String, String)]) -> Bool {
-        guard let name = Self.comparableName(tags) else { return false }
-        return tags.contains { saysNothingNew($0.0, $0.1, beside: name) }
-    }
-
-    /// The name a description is measured against, folded for comparison.
-    private static func comparableName(_ tags: [(String, String)]) -> String? {
-        guard let name = tags.first(where: { $0.0 == "name" || $0.0 == "name:ru" })?.1,
-              !name.isEmpty else { return nil }
-        let folded = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return folded.isEmpty ? nil : folded
-    }
-
-    private static func saysNothingNew(_ key: String, _ value: String,
-                                       beside name: String) -> Bool {
-        guard key == "description" || key == "description:ru" || key == "description:en" else {
-            return false
-        }
-        let described = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if described.isEmpty || described == name { return true }
-        return (described.contains(name) || name.contains(described))
-            && abs(described.count - name.count) < 6
-    }
-
-    private func inventedNodes() -> [PBFWriter.Node] {
-        var batch: [PBFWriter.Node] = []
-        for bridge in plan.bridges {
-            batch.append(PBFWriter.Node(id: bridge.node, lat: bridge.lat, lon: bridge.lon, tags: []))
-            batch.append(PBFWriter.Node(
-                id: bridge.node + 1, lat: bridge.middle.lat, lon: bridge.middle.lon,
-                tags: [("kmap:repair", bridge.word),
-                       ("name", RepairLabel.sign(bridge.word, bridge.length, bridge.height, language))]))
-        }
-        return batch
-    }
-
-    private func inventedWays() -> [PBFWriter.Way] {
-        plan.bridges.map { bridge in
-            PBFWriter.Way(id: bridge.node, refs: [bridge.end, bridge.node],
-                          tags: [("highway", "path"), ("kmap:repair", bridge.word),
-                                 ("name", RepairLabel.link(bridge.word, bridge.length,
-                                                           bridge.height, language))])
-        }
     }
 }

@@ -88,12 +88,12 @@ extension BuildPipeline {
     }
 
     private func parseTiles(in directory: URL) throws -> [Tile] {
-        let argsURL = directory.appendingPathComponent("template.args")
+        let argsURL = directory.appendingPathComponent(TileSplitter.templateArgsName)
         guard let argsText = try? String(contentsOf: argsURL, encoding: .utf8) else {
             throw BuildError.splitterOutput("template.args was not produced")
         }
 
-        let bounds = parseAreasList(directory.appendingPathComponent("areas.list"))
+        let bounds = parseAreasList(directory.appendingPathComponent(TileSplitter.areasListName))
 
         // template.args is a sequence of blocks, each introduced by `mapname:`.
         var tiles: [Tile] = []

@@ -2,14 +2,27 @@ import Foundation
 
 /// Finding the road ends OSM left short of the line they were drawn for.
 ///
-/// The loose ends are gridded rather than the segments — two orders of magnitude fewer
-/// entries — and every segment is streamed past that grid.
+/// The loose ends are gridded rather than the segments, two orders of magnitude fewer
+/// entries, and every segment is streamed past that grid.
 struct RoadRepair {
     static let metresPerDegree = 111320.0
 
     /// Grid cell for filing the loose ends: about 55 m of latitude, comfortably wider
     /// than any gap worth closing.
-    private static let cellDegrees = 0.0005
+    static let cellDegrees = 0.0005
+    
+    /// Two ends per way, and the 3 by 3 cells round one.
+    static let endsPerWay = 2
+    
+    private static let neighbourhood = 9
+    
+    /// A guess at how many ways have a loose end, for the candidates' capacity.
+    private static let looseShare = 4
+
+    /// Metres per degree of longitude at a latitude.
+    static func metresPerLonDegree(at lat: Double) -> Double {
+        metresPerDegree * cos(lat * .pi / 180)
+    }
 
     /// A candidate: an end of a way, and the nearest line it stops short of.
     struct Candidate {
@@ -30,11 +43,11 @@ struct RoadRepair {
     static func looseEnds(of network: RoadNetwork) -> [Bool] {
         var sorted = network.refs
         sorted.sort()
-        var loose = [Bool](repeating: false, count: network.wayCount * 2)
+        var loose = [Bool](repeating: false, count: network.wayCount * Self.endsPerWay)
         for way in 0..<network.wayCount {
             let range = network.points(of: way)
             for (slot, point) in [range.lowerBound, range.upperBound - 1].enumerated() {
-                loose[way * 2 + slot] = Self.appearsOnce(network.refs[point], in: sorted)
+                loose[way * Self.endsPerWay + slot] = Self.appearsOnce(network.refs[point], in: sorted)
             }
         }
         return loose
@@ -57,23 +70,23 @@ struct RoadRepair {
     func candidates() -> (found: [Candidate], loose: [Bool]) {
         let loose = Self.looseEnds(of: network)
         var ends: [Candidate] = []
-        ends.reserveCapacity(network.wayCount / 4)
+        ends.reserveCapacity(network.wayCount / Self.looseShare)
         for way in 0..<network.wayCount {
-            if loose[way * 2] { ends.append(Candidate(way: Int32(way), atEnd: false)) }
-            if loose[way * 2 + 1] { ends.append(Candidate(way: Int32(way), atEnd: true)) }
+            if loose[way * Self.endsPerWay] { ends.append(Candidate(way: Int32(way), atEnd: false)) }
+            if loose[way * Self.endsPerWay + 1] { ends.append(Candidate(way: Int32(way), atEnd: true)) }
         }
 
         // Each end is filed into its own cell and the eight around it, so a segment finds
         // every end within reach with one probe rather than nine.
         let cell = Self.cellDegrees
         var grid: [Int64: [Int32]] = [:]
-        grid.reserveCapacity(ends.count * 9)
+        grid.reserveCapacity(ends.count * Self.neighbourhood)
         for (i, end) in ends.enumerated() {
             let point = self.point(of: end)
             let home = Self.key(point.lat, point.lon, cell)
             for dy in -1...1 {
                 for dx in -1...1 {
-                    grid[home &+ (Int64(dy) << 32) &+ Int64(dx), default: []].append(Int32(i))
+                    grid[Self.neighbour(of: home, dy: dy, dx: dx), default: []].append(Int32(i))
                 }
             }
         }
@@ -127,7 +140,7 @@ struct RoadRepair {
               network.refs[at] != network.refs[segment + 1] else { return }
 
         let plat = network.lat[at], plon = network.lon[at]
-        let kx = Self.metresPerDegree * cos(plat * .pi / 180)
+        let kx = Self.metresPerLonDegree(at: plat)
         let (distance, along) = Self.project(plat, plon, alat, alon, blat, blon, kx)
         guard distance < end.distance else { return }
         end.distance = distance
@@ -148,5 +161,41 @@ struct RoadRepair {
         let t = max(0, min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy)))
         let ox = ax + t * dx, oy = ay + t * dy
         return ((ox * ox + oy * oy).squareRoot(), t)
+    }
+}
+
+extension RoadRepair {
+    /// Every grid cell a segment passes through. Filing a segment under its first point
+    /// alone hides the long ones, whose middles are then never looked at.
+    static func cells(_ alat: Double, _ alon: Double, _ blat: Double, _ blon: Double,
+                      _ cell: Double, _ body: (Int64) -> Void) {
+        let steps = Int(max(abs(blat - alat), abs(blon - alon)) / cell) + 1
+        var last: Int64 = .min
+        for step in 0...steps {
+            let u = Double(step) / Double(steps)
+            let here = key(alat + u * (blat - alat), alon + u * (blon - alon), cell)
+            if here != last {
+                last = here
+                body(here)
+            }
+        }
+    }
+
+    /// A cell key: the latitude cell in the high half, the longitude cell in the low.
+    private static let latShift = 32
+    private static let lowHalf: Int64 = 0xFFFF_FFFF
+    /// x is biased to the middle of its half: the neighbour cells are probed by adding
+    /// or subtracting 1, and an unbiased x of 0 or -1 would borrow into the latitude half.
+    private static let lonBias: Int64 = 0x8000_0000
+
+    static func key(_ lat: Double, _ lon: Double, _ cell: Double) -> Int64 {
+        let y = Int64((lat / cell).rounded(.down))
+        let x = Int64((lon / cell).rounded(.down))
+        return y << latShift | ((x &+ lonBias) & lowHalf)
+    }
+
+    /// The key of the cell `dy` rows and `dx` columns away.
+    static func neighbour(of key: Int64, dy: Int, dx: Int) -> Int64 {
+        key &+ (Int64(dy) << latShift) &+ Int64(dx)
     }
 }

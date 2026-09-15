@@ -6,6 +6,9 @@ import Foundation
 /// than by its coordinates: segments meet when their edge keys are equal, an integer
 /// comparison. Coordinates are resolved once, at the end.
 struct Contours {
+    /// A cell owns two of its edges, east and south; the other two belong to neighbours.
+    private static let edgesPerCell = 2
+
     /// Below this a sample is a void, not ground. A cell holding one is skipped entirely:
     /// interpolating between ground and nodata invents a cliff.
     static let void = -32000
@@ -44,91 +47,6 @@ struct Contours {
         let rows = clamp(top)..<(clamp(bottom) + 1)
         let columns = clamp(left)..<(clamp(right) + 1)
         return (rows.isEmpty ? whole : rows, columns.isEmpty ? whole : columns)
-    }
-
-    struct Grid {
-        var samples: [Int16]
-        var n: Int
-        /// South-west corner, whole degrees.
-        var lat: Int
-        var lon: Int
-
-        func value(_ row: Int, _ column: Int) -> Int {
-            Int(samples[row * n + column])
-        }
-
-        /// Row 0 is the north edge, as a .hgt stores it.
-        func latitude(_ row: Double) -> Double {
-            Double(lat) + 1 - row / Double(n - 1)
-        }
-
-        func longitude(_ column: Double) -> Double {
-            Double(lon) + column / Double(n - 1)
-        }
-
-        /// For a caller that already holds the samples.
-        init(samples: [Int16], n: Int, lat: Int, lon: Int) {
-            self.samples = samples
-            self.n = n
-            self.lat = lat
-            self.lon = lon
-        }
-
-        init(contentsOf url: URL) throws {
-            let data = try Data(contentsOf: url)
-            let count = data.count / 2
-            let side = Int(Double(count).squareRoot().rounded())
-            guard side * side * 2 == data.count else { throw Trouble.notSquare(url.lastPathComponent) }
-            var values = [Int16](repeating: 0, count: count)
-            data.withUnsafeBytes { raw in
-                for i in 0..<count {
-                    values[i] = Int16(bitPattern: UInt16(raw[i * 2]) << 8 | UInt16(raw[i * 2 + 1]))
-                }
-            }
-            self.samples = values
-            self.n = side
-            let corner = HGTName.corner(of: url.lastPathComponent)
-            self.lat = corner?.lat ?? 0
-            self.lon = corner?.lon ?? 0
-        }
-    }
-
-    enum Trouble: Error, CustomStringConvertible, LocalizedError {
-        case notSquare(String)
-        var description: String {
-            if case let .notSquare(name) = self { return "\(name) is not a square .hgt" }
-            return ""
-        }
-    }
-
-    /// The most vertices one way may carry, matching pyhgtmap's limit.
-    static let maxPoints = 2000
-
-    /// Splits lines longer than `maxPoints`. Each piece repeats the vertex it shares with
-    /// the next, so the line stays joined.
-    static func split(_ lines: [Line]) -> [Line] {
-        var out: [Line] = []
-        for line in lines {
-            guard line.points.count > maxPoints else {
-                out.append(line)
-                continue
-            }
-            var at = 0
-            while at < line.points.count - 1 {
-                let end = min(at + maxPoints, line.points.count)
-                out.append(Line(elevation: line.elevation,
-                                points: Array(line.points[at..<end]), closed: false))
-                at = end - 1
-            }
-        }
-        return out
-    }
-
-    /// One traced line at one elevation.
-    struct Line {
-        var elevation: Int
-        var points: [(lat: Double, lon: Double)]
-        var closed: Bool
     }
 
     /// Every contour in the tile, at every multiple of `step` the ground reaches. One sweep
@@ -174,8 +92,8 @@ struct Contours {
     /// Where every crossing sits and what joins to what, one set per level.
     ///
     /// Crossings are numbered, not keyed: the edge key is used once, so the second cell
-    /// sharing an edge can find what the first made. Everything after that — position,
-    /// links, walking segments into lines — is an array index.
+    /// sharing an edge can find what the first made. Everything after that, position,
+    /// links, walking segments into lines, is an array index.
     private struct Level {
         /// How far along its edge each crossing sits.
         var along: [Double] = []
@@ -188,8 +106,8 @@ struct Contours {
         var linkB: [Int32] = []
         /// One row's worth of edges, in place of a map from edge key to crossing number:
         /// one slot per column holding the number, and beside it the row that slot belongs
-        /// to. Cells sharing an edge are neighbours in the sweep — an east edge is shared by
-        /// the rows above and below, a south edge by the columns left and right — and the
+        /// to. Cells sharing an edge are neighbours in the sweep (an east edge is shared by
+        /// the rows above and below, a south edge by the columns left and right) and the
         /// stored row makes a stale slot read as empty without clearing.
         var eastID: [Int32]
         var eastRow: [Int32]
@@ -346,7 +264,7 @@ struct Contours {
     /// A crossing is named by the edge it sits on: `(row, column)` of the cell corner the
     /// edge starts at, and whether it runs east or south from there.
     private func edgeKey(_ row: Int, _ column: Int, south: Bool) -> Int32 {
-        Int32(((row * grid.n) + column) * 2 + (south ? 1 : 0))
+        Int32(((row * grid.n) + column) * Self.edgesPerCell + (south ? 1 : 0))
     }
 
     /// The position of a crossing, from its edge key and how far along that edge it sits.
@@ -377,7 +295,7 @@ struct Contours {
         // into one integer: no two crossings in a level share an edge, so this sorts by edge.
         var order = [UInt64](repeating: 0, count: count)
         for id in 0..<count {
-            order[id] = UInt64(UInt32(bitPattern: edge[id])) << 32 | UInt64(UInt32(id))
+            order[id] = UInt64(UInt32(bitPattern: edge[id])) << UInt32.bitWidth | UInt64(UInt32(id))
         }
         order.sort()
 

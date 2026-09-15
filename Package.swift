@@ -77,8 +77,8 @@ let package = Package(
                 .linkedLibrary("user32", .when(platforms: [.windows]))
             ]
         ),
-        // Mirrors the source tree: Tests/OSM/PBF/ProtobufTests.swift tests
-        // Sources/kmap/OSM/PBF/Protobuf.swift.
+        // Mirrors the source tree: Tests/OSM/PBF/ProtoReaderTests.swift tests
+        // Sources/kmap/OSM/PBF/ProtoReader.swift.
         .testTarget(
             name: "kmapTests",
             dependencies: ["kmap"],

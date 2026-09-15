@@ -21,21 +21,21 @@ extension PBFReader {
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
-            case Field.stringTable:
+            case PBFSchema.stringTable:
                 var table = ProtoReader(reader.lengthDelimited())
                 while let entry = table.nextField() {
-                    if entry.number == Field.stringEntry {
+                    if entry.number == PBFSchema.stringEntry {
                         words.append(table.lengthDelimited())
                     } else {
                         table.skip(wire: entry.wire)
                     }
                 }
-            case Field.primitiveGroup: groups.append(reader.lengthDelimited())
+            case PBFSchema.primitiveGroup: groups.append(reader.lengthDelimited())
             // Bit patterns, not range-checked conversions: a corrupt value must give a
             // wrong coordinate rather than trap.
-            case Field.granularity: block.granularity = Int64(bitPattern: reader.varint())
-            case Field.latOffset: block.latOffset = Int64(bitPattern: reader.varint())
-            case Field.lonOffset: block.lonOffset = Int64(bitPattern: reader.varint())
+            case PBFSchema.granularity: block.granularity = Int64(bitPattern: reader.varint())
+            case PBFSchema.latOffset: block.latOffset = Int64(bitPattern: reader.varint())
+            case PBFSchema.lonOffset: block.lonOffset = Int64(bitPattern: reader.varint())
             default: reader.skip(wire: field.wire)
             }
         }
@@ -47,17 +47,17 @@ extension PBFReader {
             var reader = ProtoReader(group)
             while let field = reader.nextField() {
                 switch field.number {
-                case Field.groupDense:
+                case PBFSchema.groupDense:
                     sink.sawGroup(.nodes)
                     guard wanted.contains(.nodes) else { reader.skip(wire: field.wire); break }
                     decodeDense(reader.lengthDelimited(), block: block, into: &sink,
                                 fields: &fields)
-                case Field.groupWays:
+                case PBFSchema.groupWays:
                     sink.sawGroup(.ways)
                     guard wanted.contains(.ways) else { reader.skip(wire: field.wire); break }
                     decodeWay(reader.lengthDelimited(), block: block, into: &sink,
                               fields: &fields)
-                case Field.groupRelations:
+                case PBFSchema.groupRelations:
                     sink.sawGroup(.relations)
                     guard wanted.contains(.relations) else { reader.skip(wire: field.wire); break }
                     decodeRelation(reader.lengthDelimited(), block: block, into: &sink,
@@ -80,10 +80,10 @@ extension PBFReader {
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
-            case Field.denseID: Self.packedZigzag(reader.lengthDelimited(), into: &fields.ids)
-            case Field.denseLat: Self.packedZigzag(reader.lengthDelimited(), into: &fields.lats)
-            case Field.denseLon: Self.packedZigzag(reader.lengthDelimited(), into: &fields.lons)
-            case Field.denseKeysVals:
+            case PBFSchema.denseID: Self.packedZigzag(reader.lengthDelimited(), into: &fields.ids)
+            case PBFSchema.denseLat: Self.packedZigzag(reader.lengthDelimited(), into: &fields.lats)
+            case PBFSchema.denseLon: Self.packedZigzag(reader.lengthDelimited(), into: &fields.lons)
+            case PBFSchema.denseKeysVals:
                 Self.packedVarint32(reader.lengthDelimited(), into: &fields.tags)
             default: reader.skip(wire: field.wire)
             }
@@ -119,12 +119,12 @@ extension PBFReader {
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
-            case Field.elementID: id = Int64(bitPattern: reader.varint())
-            case Field.elementKeys:
+            case PBFSchema.elementID: id = Int64(bitPattern: reader.varint())
+            case PBFSchema.elementKeys:
                 Self.packedVarint32(reader.lengthDelimited(), into: &fields.keys)
-            case Field.elementVals:
+            case PBFSchema.elementVals:
                 Self.packedVarint32(reader.lengthDelimited(), into: &fields.values)
-            case Field.wayRefs:
+            case PBFSchema.wayRefs:
                 var delta: Int64 = 0
                 var packed = ProtoReader(reader.lengthDelimited())
                 while !packed.isAtEnd {
@@ -150,21 +150,21 @@ extension PBFReader {
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
-            case Field.elementID: id = Int64(bitPattern: reader.varint())
-            case Field.elementKeys:
+            case PBFSchema.elementID: id = Int64(bitPattern: reader.varint())
+            case PBFSchema.elementKeys:
                 Self.packedVarint32(reader.lengthDelimited(), into: &fields.keys)
-            case Field.elementVals:
+            case PBFSchema.elementVals:
                 Self.packedVarint32(reader.lengthDelimited(), into: &fields.values)
-            case Field.memberRoles:
+            case PBFSchema.memberRoles:
                 Self.packedVarint32(reader.lengthDelimited(), into: &fields.roles)
-            case Field.memberIDs:
+            case PBFSchema.memberIDs:
                 var delta: Int64 = 0
                 var packed = ProtoReader(reader.lengthDelimited())
                 while !packed.isAtEnd {
                     delta &+= packed.zigzag()
                     fields.refs.append(delta)
                 }
-            case Field.memberKinds:
+            case PBFSchema.memberKinds:
                 Self.packedVarint32(reader.lengthDelimited(), into: &fields.kinds)
             default: reader.skip(wire: field.wire)
             }
