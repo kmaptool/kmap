@@ -4,7 +4,6 @@ BINARY    := kmap
 BUILD_DIR := .build
 PREFIX    ?= /usr/local
 ARGS      ?=
-ARCHES    ?=
 
 UNAME := $(shell uname)
 
@@ -79,9 +78,9 @@ clean:
 package-mac:
 	@Scripts/build-mac.sh
 
-## The architecture, or several: `make package-debian ARCHES="amd64 arm64"`.
+## Only on Debian or Ubuntu; the machine's own architecture.
 package-debian:
-	@Scripts/build-debian.sh $(ARCHES)
+	@Scripts/build-debian.sh
 
 ## Only on Windows, from a bash prompt there.
 package-windows:

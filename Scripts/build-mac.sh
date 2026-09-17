@@ -1,5 +1,6 @@
 #!/bin/bash
-# kmap.app and a .dmg to drag it out of.
+# kmap.app and a .dmg to drag it out of, built on a Mac. One universal binary for Intel
+# and Apple silicon.
 #
 # kmap is a terminal program, so the bundle's executable is a small launcher that opens
 # Terminal on the real binary in Resources. For a terminal-only install use `make install`.
@@ -8,22 +9,36 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/build/mac"
 APP="$OUT/kmap.app"
+# SwiftPM puts a multi-architecture build under .build/apple.
+BINARY="$ROOT/.build/apple/Products/Release/kmap"
 
-if [ "$(uname)" != "Darwin" ]; then
+# ---------------------------------------------------------------- the machine
+
+if [ "$(uname -s)" != "Darwin" ]; then
     echo "this builds a Mac application, and needs a Mac to build it on" >&2
     exit 1
 fi
+MISSING=()
+command -v swift >/dev/null 2>&1 || MISSING+=("swift (xcode-select --install)")
+command -v hdiutil >/dev/null 2>&1 || MISSING+=("hdiutil")
+if [ ${#MISSING[@]} -gt 0 ]; then
+    echo "missing:" >&2
+    printf '  %s\n' "${MISSING[@]}" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------- the build
 
 cd "$ROOT"
-# One universal binary for Intel and Apple silicon; SwiftPM puts it under .build/apple.
 if [ "${SKIP_BUILD:-}" != "1" ]; then
-    echo "building for arm64 and x86_64..."
+    echo "=== building for arm64 and x86_64 ==="
     swift build -c release --arch arm64 --arch x86_64
 fi
-BINARY="$ROOT/.build/apple/Products/Release/kmap"
 [ -x "$BINARY" ] || { echo "no release binary at $BINARY" >&2; exit 1; }
 echo "binary: $(lipo -archs "$BINARY" 2>/dev/null || echo "one architecture")"
 VERSION="$("$BINARY" --version | sed 's/^kmap //; s/ .*//')"
+
+# ---------------------------------------------------------------- the bundle
 
 rm -rf "$OUT"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
@@ -35,7 +50,7 @@ ICON="$ROOT/Assets/app-icon/kmap.icns"
 if [ -f "$ICON" ]; then
     cp "$ICON" "$APP/Contents/Resources/kmap.icns"
 else
-    echo "note: no Assets/app-icon/kmap.icns — the bundle will get the generic icon"
+    echo "note: no Assets/app-icon/kmap.icns - the bundle will get the generic icon"
 fi
 
 cat > "$APP/Contents/MacOS/kmap" <<'LAUNCHER'
@@ -77,10 +92,11 @@ PLIST
 # Not a Developer ID signature, so Gatekeeper still asks the first time.
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || \
     echo "note: could not sign the bundle; it will still run, with a warning"
-
 echo "built $APP"
 
-# The disk image: the bundle on the left, an Applications link on the right.
+# ---------------------------------------------------------------- the disk image
+
+# The bundle on the left, an Applications link on the right.
 STAGE="$OUT/dmg"
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
@@ -88,7 +104,4 @@ ln -s /Applications "$STAGE/Applications"
 DMG="$OUT/kmap-$VERSION.dmg"
 hdiutil create -quiet -volname "kmap $VERSION" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
 rm -rf "$STAGE"
-
 echo "built $DMG"
-echo
-echo "For a terminal-only install, with no bundle: make install"

@@ -447,8 +447,6 @@ try {
         Write-Host "staged ${architecture}: kmap.exe and $($libraries.Count) libraries - $size MB"
         Test-StagedPayload -Architecture $architecture -Staging $staging
     }
-    $staging = Join-Path $payloads $hostArchitecture
-
     # ------------------------------------------------------------ the installer
 
     $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
@@ -467,10 +465,16 @@ try {
         return
     }
 
-    # Ask the staged copy for its version: if it answers, the runtime beside it is right.
-    $staged = Join-Path $staging "kmap.exe"
-    $version = (& $staged --version) -replace "^kmap\s+", "" -replace "\s.*$", ""
-    if (-not $version) { throw "the staged kmap.exe would not run - the runtime beside it is wrong" }
+    # Ask the staged copy for the host for its version: if it answers, the runtime beside
+    # it is right. A payload for the other architecture alone cannot be run here, so the
+    # VERSION file stands in.
+    $staged = Join-Path $payloads "$hostArchitecture\kmap.exe"
+    if (Test-Path $staged) {
+        $version = (& $staged --version) -replace "^kmap\s+", "" -replace "\s.*$", ""
+        if (-not $version) { throw "the staged kmap.exe would not run - the runtime beside it is wrong" }
+    } else {
+        $version = (Get-Content (Join-Path $root "VERSION") -Raw).Trim()
+    }
 
     # Whatever payloads are on disk, not only the ones just built. @() keeps a single
     # match a list.
