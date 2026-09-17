@@ -212,7 +212,7 @@ extension CLI {
             asked.word(name, among: options)
         }
         let askedHeap = number("heap", in: 1...512)
-        let askedConnections = number("connections", in: 1...Downloader.maxParts)
+        let askedConnections = number("connections", in: 1...PartFiles.maxParts)
         if let memory = number("memory", in: 1...4096) { Machine.told(memory) }
         let askedRepairRadius = asked.repairRadius()
 

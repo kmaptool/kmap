@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Every build asks two questions about a cached extract, and they cost very different
 /// amounts. "Has the source changed?" is one HEAD request. "Is what is on disk still
-/// whole?" means reading the file end to end — a second or so for a continent on this
+/// whole?" means reading the file end to end, a second or so for a continent on this
 /// machine, considerably more on a laptop with a spinning disk, and it happened on every
 /// build. Asking the cheap question first means an extract that has not moved is never
 /// hashed at all.

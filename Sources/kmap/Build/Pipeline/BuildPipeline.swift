@@ -299,8 +299,8 @@ final class BuildPipeline {
         log.append("output:  \(recipe.splitMode.label) → \(Paths.display(recipe.destinationDirectory))")
         // Unfinished downloads leave parts behind; nothing else removes them. The tools
         // folder too: a half-fetched data pack is the largest of them.
-        let freed = Downloader.sweepAbandonedParts(in: Paths.cache)
-            + Downloader.sweepAbandonedParts(in: Paths.tools)
+        let freed = PartFiles.sweepAbandoned(in: Paths.cache)
+            + PartFiles.sweepAbandoned(in: Paths.tools)
         if freed > 0 {
             log.append("cleared \(Fmt.bytes(freed)) left by downloads that were never finished")
         }
