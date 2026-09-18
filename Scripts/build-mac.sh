@@ -9,7 +9,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/build/mac"
 APP="$OUT/kmap.app"
-# SwiftPM puts a multi-architecture build under .build/apple.
+# One build for both architectures. Where SwiftPM puts it is its own to say: the folder
+# moved from .build/apple to .build/out in Swift 6.4. So it is asked, and the binary is
+# copied to .build/apple, which stays where it always was.
+BUILD=(swift build -c release --arch arm64 --arch x86_64)
 BINARY="$ROOT/.build/apple/Products/Release/kmap"
 
 # ---------------------------------------------------------------- the machine
@@ -32,7 +35,15 @@ fi
 cd "$ROOT"
 if [ "${SKIP_BUILD:-}" != "1" ]; then
     echo "=== building for arm64 and x86_64 ==="
-    swift build -c release --arch arm64 --arch x86_64
+    "${BUILD[@]}"
+fi
+BUILT="$("${BUILD[@]}" --show-bin-path)/kmap"
+if [ -x "$BUILT" ] && ! [ "$BUILT" -ef "$BINARY" ]; then
+    mkdir -p "$(dirname "$BINARY")"
+    # A fresh file, not one written over in place: macOS remembers the old signature of
+    # an overwritten binary and kills it on its first run.
+    rm -f "$BINARY"
+    cp "$BUILT" "$BINARY"
 fi
 [ -x "$BINARY" ] || { echo "no release binary at $BINARY" >&2; exit 1; }
 echo "binary: $(lipo -archs "$BINARY" 2>/dev/null || echo "one architecture")"
