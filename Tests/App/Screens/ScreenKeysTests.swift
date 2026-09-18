@@ -509,7 +509,9 @@ final class ScreenKeysTests: XCTestCase {
     /// The toolchain list is probed off the render loop; these tests need it settled.
     private func settledToolchain(_ screen: ToolchainScreen) async -> Bool {
         screen.tick(ctx)
-        for _ in 0..<200 where !ctx.toolsProbed {
+        // Up to ten seconds: the probe asks every tool for its version, and on a machine
+        // busy with other builds that takes longer than it does alone.
+        for _ in 0..<500 where !ctx.toolsProbed {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
         return ctx.toolsProbed
@@ -534,7 +536,7 @@ final class ScreenKeysTests: XCTestCase {
     func testUpdatingAPackWithNoNewsFetchesNothing() async throws {
         try installFakeSeaPack()
         let screen = ToolchainScreen()
-        _ = await settledToolchain(screen)
+        guard await settledToolchain(screen) else { return XCTFail("the list never settled") }
         ctx.useForTesting(packNews: [:])
         let row = try XCTUnwrap(ctx.tools.firstIndex { $0.id == "sea" })
         select(screen, steps: row)
@@ -549,7 +551,7 @@ final class ScreenKeysTests: XCTestCase {
     func testUpdatingAPackWithNewsStartsTheFetch() async throws {
         try installFakeSeaPack()
         let screen = ToolchainScreen()
-        _ = await settledToolchain(screen)
+        guard await settledToolchain(screen) else { return XCTFail("the list never settled") }
         ctx.useForTesting(packNews: ["sea": DataPack.News(size: 343_858_019,
                                                           lastModified: nil,
                                                           published: Date())])
