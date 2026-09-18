@@ -38,6 +38,14 @@ struct CacheStamp: Codable, Equatable {
         FileTools.removeIfPresent(url(for: file))
     }
 
+    /// Whether the checksum recorded at download differs from the one the server publishes
+    /// now, which settles staleness without reading the file. A stamp without a checksum
+    /// says nothing.
+    func isSuperseded(by remoteMD5: String) -> Bool {
+        guard let md5 else { return false }
+        return md5 != remoteMD5
+    }
+
     /// Whether the server is still offering exactly what was cached.
     ///
     /// Both halves have to agree, and a server that reports neither is not taken as

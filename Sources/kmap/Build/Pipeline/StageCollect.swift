@@ -104,8 +104,7 @@ extension BuildPipeline {
     /// an OSM description; the map's own POI records have no description field.
     /// Best-effort: a failure warns and leaves the build successful.
     private func writeCustomPOIs(to directory: URL) async {
-        let extract = Paths.pbfCache
-            .appendingPathComponent("\(FileTools.slugify(recipe.region.id)).osm.pbf")
+        let extract = Paths.cachedExtract(forRegion: recipe.region.id)
         guard FileTools.exists(extract) else { return }
         let destination = directory.appendingPathComponent("\(recipe.slug).gpi")
 

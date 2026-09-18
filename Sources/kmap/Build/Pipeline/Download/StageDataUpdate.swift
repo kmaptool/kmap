@@ -101,10 +101,8 @@ extension BuildPipeline {
             while !Task.isCancelled {
                 guard let self else { return }
                 let p = downloader.progress
-                let text = "\(pack.what) · \(Fmt.bytes(p.received)) / \(Fmt.bytes(p.total))"
-                    + "  ·  \(Fmt.rate(p.rate))"
-                    + (p.eta.isFinite ? "  ·  \(Fmt.duration(p.eta)) left" : "")
-                self.detail(.dataUpdate, text, fraction: p.fraction)
+                self.detail(.dataUpdate, "\(pack.what) · " + p.line(secondsLeft: p.eta),
+                            fraction: p.fraction)
                 try? await Task.sleep(nanoseconds: BuildPipeline.progressTick)
             }
         }

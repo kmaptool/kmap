@@ -52,6 +52,11 @@ enum Paths {
     static var cache: URL { root.appendingPathComponent("cache", isDirectory: true) }
     static var indexCache: URL { cache.appendingPathComponent("geofabrik-index.json") }
     static var pbfCache: URL { cache.appendingPathComponent("pbf", isDirectory: true) }
+
+    /// Where a region's downloaded extract is kept between builds.
+    static func cachedExtract(forRegion id: String) -> URL {
+        pbfCache.appendingPathComponent("\(FileTools.slugify(id)).osm.pbf")
+    }
     static var polyCache: URL { cache.appendingPathComponent("poly", isDirectory: true) }
     static var hgtCache: URL { cache.appendingPathComponent("hgt", isDirectory: true) }
 

@@ -409,7 +409,7 @@ final class RegionPickerScreen: Screen {
             line(t("elevation"), tn("%d × 1° tile(s)", tiles))
         }
 
-        let cached = Paths.pbfCache.appendingPathComponent("\(FileTools.slugify(region.id)).osm.pbf")
+        let cached = Paths.cachedExtract(forRegion: region.id)
         if FileTools.exists(cached) {
             line(t("cached"), Fmt.bytes(FileTools.size(of: cached)), tone: theme.ok)
         }

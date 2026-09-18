@@ -78,4 +78,25 @@ final class DownloadProgressTests: XCTestCase {
         XCTAssertEqual(progress.total, 500)
         XCTAssertEqual(progress.partFractions, [0, 0])
     }
+
+    // MARK: The line a stage shows
+
+    func testTheLineCarriesBytesRateAndTheTimeItIsGiven() {
+        let progress = DownloadProgress()
+        progress.begin(total: 2_000_000, partTotals: [2_000_000], alreadyOnDisk: 0)
+        progress.advance(part: 0, by: 500_000)
+        let line = progress.line(secondsLeft: 75)
+        XCTAssertTrue(line.hasPrefix("\(Fmt.bytes(500_000)) / \(Fmt.bytes(2_000_000))"), line)
+        XCTAssertTrue(line.contains(Fmt.duration(75)), line)
+        XCTAssertEqual(line.components(separatedBy: DownloadProgress.separator).count, 3)
+    }
+
+    func testNoTimeIsShownUntilThereIsOne() {
+        let progress = DownloadProgress()
+        progress.begin(total: 100, partTotals: [100], alreadyOnDisk: 0)
+        for left in [nil, Double.infinity] as [Double?] {
+            XCTAssertEqual(progress.line(secondsLeft: left)
+                .components(separatedBy: DownloadProgress.separator).count, 2)
+        }
+    }
 }

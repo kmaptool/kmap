@@ -92,4 +92,17 @@ final class CacheStampTests: XCTestCase {
         // And removing one that was never there is not an error.
         CacheStamp.remove(besides: file)
     }
+
+    // MARK: Staleness without reading the file
+
+    func testAChecksumTheServerNoLongerPublishesSaysTheCopyIsStale() {
+        let stamped = CacheStamp(size: 10, lastModified: "then", md5: "aaaa")
+        XCTAssertTrue(stamped.isSuperseded(by: "bbbb"))
+        XCTAssertFalse(stamped.isSuperseded(by: "aaaa"))
+    }
+
+    func testAStampWithoutAChecksumSaysNothing() {
+        // The file still has to be read: there is nothing recorded to compare.
+        XCTAssertFalse(CacheStamp(size: 10, lastModified: "then", md5: nil).isSuperseded(by: "bbbb"))
+    }
 }

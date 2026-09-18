@@ -77,6 +77,19 @@ final class DownloadProgress {
     }
 
     func setStage(_ s: String) { lock.withLock { _stage = s } }
+
+    /// "84.8 MB / 128.5 MB  ·  2.6 MB/s  ·  17s left", as a stage shows a running download.
+    /// The time is the caller's to give: this file's own, or a whole stage's.
+    func line(secondsLeft: Double?) -> String {
+        var parts = ["\(Fmt.bytes(received)) / \(Fmt.bytes(total))", Fmt.rate(rate)]
+        if let secondsLeft, secondsLeft.isFinite {
+            parts.append(t("%@ left", Fmt.duration(secondsLeft)))
+        }
+        return parts.joined(separator: Self.separator)
+    }
+
+    /// Between the parts of a progress line.
+    static let separator = "  ·  "
 }
 
 private extension NSLock {
