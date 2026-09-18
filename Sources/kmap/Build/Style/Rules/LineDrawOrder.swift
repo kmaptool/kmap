@@ -9,6 +9,11 @@ import Foundation
 /// patched mkgmap writes the ranked types in rank order (a stable sort, so everything
 /// else keeps the order it had, water and rail and fences included, all below the roads).
 ///
+/// A map with contours has one tier more. Contours are folded into the extract last and
+/// so arrive last: left among the unranked, they are painted over a reserve's edge, a
+/// river, a fence. They stay at the bottom, unnamed, and every other line is lifted one
+/// rank above them, the roads along with the rest.
+///
 /// The ranks are read from the style itself - whichever OSM tags a rule matches on decide
 /// what the code it emits means - so a borrowed style, a shipped one and a recovered one
 /// are all ordered by the same rule without knowing anything about their numbering.
@@ -42,11 +47,31 @@ enum LineDrawOrder {
         return ranks
     }
 
+    /// The rank of everything that is neither a road nor a contour, on a map with
+    /// contours: above them, below the roads.
+    private static let aboveContours = 1
+
+    /// The ranks for a map carrying contours: the contour types are left out, so they stay
+    /// at the bottom; every other line the style emits sits one rank up, and the roads
+    /// keep their order above that.
+    static func ranks(in index: RuleSetIndex, overContours contours: Set<Int>) -> [Int: Int] {
+        let roads = ranks(in: index)
+        var lifted: [Int: Int] = [:]
+        for code in index.codes(.line) where !contours.contains(code) {
+            lifted[code] = (roads[code] ?? 0) + aboveContours
+        }
+        return lifted
+    }
+
     /// The option the patched mkgmap reads, or nil when the style names no roads - an
     /// unranked map keeps mkgmap's own order, exactly as before.
-    static func option(in index: RuleSetIndex) -> String? {
-        let ranks = ranks(in: index)
-        guard !ranks.isEmpty else { return nil }
+    ///
+    /// - Parameter contours: the line types the build's contours are drawn with; empty
+    ///   for a map without them, whose order is then the roads' alone.
+    static func option(in index: RuleSetIndex, overContours contours: Set<Int> = []) -> String? {
+        guard !ranks(in: index).isEmpty else { return nil }
+        let ranks = contours.isEmpty ? ranks(in: index)
+                                     : ranks(in: index, overContours: contours)
         let list = ranks.sorted { $0.key < $1.key }
             .map { "\(TypeMeaning.hex($0.key)):\($0.value)" }
         return "--x-line-draw-order=" + list.joined(separator: ",")

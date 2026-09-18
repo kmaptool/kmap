@@ -91,8 +91,26 @@ extension BuildPipeline {
         await RegionOutline.rings(for: region)
     }
 
-    func contourCell(_ cell: BBox, index: Int, mask: GroundMask?, directory: URL,
-                             major: Int, medium: Int) async throws {
+    /// The lakes, reservoirs and river banks of every extract, for the contours to stop
+    /// at. A scan that fails costs the cut and nothing else: the contours are still drawn.
+    func standingWater(in extracts: [URL]) -> WaterBodies {
+        var water = WaterBodies()
+        for extract in extracts {
+            do {
+                water.add(contentsOf: try WaterScan.bodies(in: extract))
+            } catch {
+                log.warn("could not read the water of \(extract.lastPathComponent)"
+                         + " — contours will cross it: \(error.localizedDescription)")
+            }
+        }
+        if !water.isEmpty {
+            log.append("contours will stop at \(water.rings.count) shoreline(s)")
+        }
+        return water
+    }
+
+    func contourCell(_ cell: BBox, index: Int, mask: GroundMask?, water: WaterBodies,
+                             directory: URL, major: Int, medium: Int) async throws {
         // A non-overlapping id slice per cell, starting clear of the ids OSM itself uses.
         let nodeStart = ContourOutput.nodeIDBase + Int64(index) * ContourOutput.nodeIDSlice
         let wayStart = ContourOutput.wayIDBase + Int64(index) * ContourOutput.wayIDSlice
@@ -116,7 +134,13 @@ extension BuildPipeline {
             let traced = ContourTiming.measure("split") { Contours.split(raw) }
             // Cut where they leave the region. Lines share no nodes, and the mask answers
             // identically for a coordinate in whichever cell asks, so seams stay in step.
-            let lines = ContourTiming.measure("mask") { mask.map { $0.clip(traced) } ?? traced }
+            let onGround = ContourTiming.measure("mask") { mask.map { $0.clip(traced) } ?? traced }
+            // And where they meet water. Lines share no nodes, and a shore stands where it
+            // stands whichever cell asks, so the seams stay in step here too.
+            let lines = ContourTiming.measure("water") {
+                WaterMask(cellAt: Int(cell.minLat.rounded(.down)), Int(cell.minLon.rounded(.down)),
+                          water: water)?.clip(onGround) ?? onGround
+            }
             guard !lines.isEmpty else { return }
             let output = directory.appendingPathComponent("\(prefix).osm.pbf")
             let counts = try ContourTiming.measure("write") {

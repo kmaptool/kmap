@@ -61,4 +61,60 @@ final class LineDrawOrderTests: XCTestCase {
         let index = try index("highway=secondary & bridge=yes [0x11f15 resolution 24]\n")
         XCTAssertEqual(LineDrawOrder.ranks(in: index)[0x11f15], 4)
     }
+
+    // MARK: A map with contours
+
+    private let contours: Set<Int> = [0x20, 0x21, 0x22]
+
+    private func mapWithContours() throws -> RuleSetIndex {
+        try index("""
+        contour=elevation & contour_ext=elevation_minor [0x20 resolution 23]
+        contour=elevation & contour_ext=elevation_major [0x22 resolution 21]
+        boundary=protected_area [0x19 resolution 21]
+        waterway=river [0x1f resolution 20]
+        highway=path [0x16 resolution 23]
+        highway=motorway [0x01 resolution 16]
+        """)
+    }
+
+    func testContoursStayAtTheBottomAndEverythingElseIsLiftedOverThem() throws {
+        // Folded into the extract last, they arrive last, and among the unranked that
+        // paints them over a reserve's edge.
+        let ranks = LineDrawOrder.ranks(in: try mapWithContours(), overContours: contours)
+        XCTAssertNil(ranks[0x20], "a contour is left unnamed, which is the bottom")
+        XCTAssertNil(ranks[0x22])
+        XCTAssertEqual(ranks[0x19], 1, "a reserve's edge is above them")
+        XCTAssertEqual(ranks[0x1f], 1, "and so is a river")
+    }
+
+    func testRoadsKeepTheirOrderAboveTheRest() throws {
+        let ranks = LineDrawOrder.ranks(in: try mapWithContours(), overContours: contours)
+        XCTAssertEqual(ranks[0x16], 2, "a path, one above the rivers and edges")
+        XCTAssertEqual(ranks[0x01], 8)
+        XCTAssertTrue(ranks[0x01]! > ranks[0x16]! && ranks[0x16]! > ranks[0x19]!)
+    }
+
+    func testTheOptionForAMapWithContoursNamesEveryLineButThem() throws {
+        XCTAssertEqual(LineDrawOrder.option(in: try mapWithContours(), overContours: contours),
+                       "--x-line-draw-order=0x01:8,0x16:2,0x19:1,0x1f:1")
+    }
+
+    func testAMapWithoutContoursIsOrderedAsItAlwaysWas() throws {
+        // No contours, nothing to lift: the extra tier would cost a branch of
+        // subdivisions and buy nothing.
+        let index = try mapWithContours()
+        XCTAssertEqual(LineDrawOrder.option(in: index), "--x-line-draw-order=0x01:7,0x16:1")
+        XCTAssertEqual(LineDrawOrder.option(in: index, overContours: []),
+                       LineDrawOrder.option(in: index))
+    }
+
+    func testAStyleWithoutRoadsIsLeftAloneEvenWithContours() throws {
+        let index = try index("waterway=stream [0x18 resolution 24]\ncontour=elevation [0x20 resolution 23]\n")
+        XCTAssertNil(LineDrawOrder.option(in: index, overContours: contours))
+    }
+
+    func testTheContourCodesAreTheTypesTheStyleDrawsThemWith() {
+        XCTAssertEqual(StyleCatalog.contourLineCodes, [0x20, 0x21, 0x22])
+        XCTAssertEqual(StyleCatalog.contourLineCodes.count, StyleCatalog.contourLineTypes.count)
+    }
 }

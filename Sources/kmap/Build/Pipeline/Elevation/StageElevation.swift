@@ -67,7 +67,8 @@ extension BuildPipeline {
                        + " at a time rather than \(Machine.workers)")
         }
 
-        try await traceContourCells(cells, into: contourDir, major: major, medium: medium,
+        try await traceContourCells(cells, extracts: extracts, into: contourDir,
+                                    major: major, medium: medium,
                                     concurrency: concurrency)
         try Task.checkCancellation()
 
@@ -105,10 +106,20 @@ extension BuildPipeline {
 
     /// Traces every cell's contours, `concurrency` at a time, with a live progress
     /// line. Each cell writes into its own reserved id range, so order changes nothing.
-    private func traceContourCells(_ cells: [BBox], into contourDir: URL,
+    private func traceContourCells(_ cells: [BBox], extracts: [URL], into contourDir: URL,
                                    major: Int, medium: Int, concurrency: Int) async throws {
         // The outline every cell's contours are cut to, fetched once for the build.
         let mask = await regionMask()
+        // And the water they stop at: a contour is not drawn across a lake.
+        // Read on a plain queue thread: the passes block on every core, and blocking the
+        // cooperative pool would starve whatever else is awaiting.
+        let water = await measure(.elevationBuild, "find the water") {
+            await withCheckedContinuation { done in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    done.resume(returning: self.standingWater(in: extracts))
+                }
+            }
+        }
         let completed = Counter()
         let (total, board) = (cells.count, board)
         let monitor = Task {
@@ -134,7 +145,7 @@ extension BuildPipeline {
                 let cell = cells[index]
                 group.addTask { [weak self] in
                     guard let self else { return }
-                    try await self.contourCell(cell, index: index, mask: mask,
+                    try await self.contourCell(cell, index: index, mask: mask, water: water,
                                                directory: contourDir,
                                                major: major, medium: medium)
                     completed.increment()

@@ -14,6 +14,8 @@ final class StyleCatalog: Sendable {
     /// Named here because the compile stage lets them run past a tile frame, into the
     /// overlap band: a contour is drawn and never routed.
     static let contourLineTypes = ["0x20", "0x21", "0x22"]
+    /// The same, as the numbers they are.
+    static let contourLineCodes = Set(contourLineTypes.compactMap { Int($0.dropFirst(2), radix: 16) })
 
     /// Bump when the materialized style layout changes, to force a refresh.
     private static let materializedVersion = "85"

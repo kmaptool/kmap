@@ -209,7 +209,8 @@ extension BuildPipeline {
             // to itself that is the order they arrived in: a river could cover the road it
             // passes under. The style's own road rules give every road type a rank.
             if let styleDir = styleUsed, let index = RuleSetIndex.read(styleDirectory: styleDir),
-               let order = LineDrawOrder.option(in: index) {
+               let order = LineDrawOrder.option(
+                   in: index, overContours: recipe.contours ? StyleCatalog.contourLineCodes : []) {
                 options.append(order)
             }
         }
