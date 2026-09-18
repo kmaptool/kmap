@@ -212,8 +212,8 @@ Ubuntu 20.04, Debian 11 и выше; Intel или ARM. Так же работа�
 архив и положите `kmap` в каталог из `PATH`. Нужны только glibc, libcurl и zlib.
 
 ```sh
-tar -xf kmap-<версия>-linux-<арх>.tar.xz
-sudo install kmap-<версия>-linux-<арх>/kmap /usr/local/bin/
+tar -xf kmap_<версия>_linux_<арх>.tar.xz
+sudo install kmap*/kmap /usr/local/bin/
 ```
 
 ### macOS

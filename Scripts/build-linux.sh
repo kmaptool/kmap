@@ -78,8 +78,9 @@ echo "needs at least ${FLOOR:-an unknown glibc}"
 
 # ---------------------------------------------------------------- the archive
 
-# Named the way those distributions name the architecture, x86_64 and aarch64.
-NAME="kmap-${VERSION}-linux-${MACHINE}"
+# Underscores, as the .deb has them, so a release lists the archives right after the
+# packages; the architecture as those distributions name it, x86_64 and aarch64.
+NAME="kmap_${VERSION}_linux_${MACHINE}"
 STAGE="$SCRATCH/archive/$NAME"
 rm -rf "$SCRATCH/archive"
 mkdir -p "$STAGE" "$OUT"

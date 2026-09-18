@@ -8,7 +8,7 @@ without a bundle, an installer or a package manager.
 |---|---|---|
 | `build-mac.sh` | macOS | `build/mac/kmap.app`, `build/mac/kmap-<version>.dmg` |
 | `build-debian.sh` | Debian or Ubuntu | `build/debian/kmap_<version>_<arch>.deb` |
-| `build-linux.sh` | Amazon Linux 2 | `build/linux/kmap-<version>-linux-<arch>.tar.xz`, for every other Linux |
+| `build-linux.sh` | Amazon Linux 2 | `build/linux/kmap_<version>_linux_<arch>.tar.xz`, for every other Linux |
 | `build-windows.sh` | Windows, from Git Bash | `build/windows/kmap-<version>.exe` |
 
 `make package-mac`, `make package-debian`, `make package-linux` and `make package-windows`
