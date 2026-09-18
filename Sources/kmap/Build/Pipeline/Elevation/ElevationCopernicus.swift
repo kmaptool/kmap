@@ -103,18 +103,18 @@ extension BuildPipeline {
 
         // How fast tiles have been finishing lately rather than on average since the
         // start: a burst of early arrivals skews an average badly. See `Pace`.
-        var pace = Pace()
-        let monitor = Task { [weak self] in
+        let (total, board) = (missing.count, board)
+        let monitor = Task {
+            var pace = Pace()
             while !Task.isCancelled {
-                guard let self else { return }
                 let done = fetched.value + absent.value
                 pace.note(done: done)
-                let text = Self.fetchLine(done: done, of: missing.count,
-                                          received: flight.received,
-                                          elapsed: Date().timeIntervalSince(started),
-                                          secondsLeft: pace.secondsLeft(missing.count - done))
-                self.detail(.elevation, text,
-                            fraction: Double(done) / Double(max(1, missing.count)))
+                let text = BuildPipeline.fetchLine(done: done, of: total,
+                                                   received: flight.received,
+                                                   elapsed: Date().timeIntervalSince(started),
+                                                   secondsLeft: pace.secondsLeft(total - done))
+                board.detail(.elevation, text,
+                             fraction: Double(done) / Double(max(1, total)))
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
         }

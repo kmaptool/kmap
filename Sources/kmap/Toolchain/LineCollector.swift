@@ -2,7 +2,10 @@ import Foundation
 
 /// Hands a command's output on line by line and keeps the last lines for an error report.
 /// State is behind a lock: `readabilityHandler` runs on whatever thread has the data.
-final class LineCollector {
+/// Fed from a pipe's readability handler and finished from the caller's thread.
+/// `@unchecked Sendable` stands on `lock`: the pending text, the tail and the finishing
+/// flag are reached only under it.
+final class LineCollector: @unchecked Sendable {
     /// Lines kept for the report.
     static let tailLength = 40
 

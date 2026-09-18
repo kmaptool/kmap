@@ -19,7 +19,7 @@ extension BuildPipeline {
         /// counts beside it belong to this region alone.
         let label: String
         /// The region's own 0...1 progress as a position on the stage's bar.
-        let part: (Double) -> Double
+        let part: @Sendable (Double) -> Double
         /// Bytes still to be fetched after this region, for the time left.
         let bytesAfter: Int64
         /// The published checksum, asked for as the job begins.
@@ -192,14 +192,15 @@ extension BuildPipeline {
 
         // Mirrors the downloader's own progress into this stage. The time left is the
         // stage's, like the bar it stands beside.
-        let monitor = Task { [weak self, job] in
+        // It holds the board and not the build: the board is what may be shared.
+        let (label, part, bytesAfter, board) = (job.label, job.part, job.bytesAfter, board)
+        let monitor = Task {
             while !Task.isCancelled {
-                guard let self else { return }
                 let p = downloader.progress
-                let left = Self.stageSecondsLeft(fileSecondsLeft: p.eta, rate: p.rate,
-                                                 bytesAfterThisFile: job.bytesAfter)
-                self.detail(.download, job.label + p.line(secondsLeft: left),
-                            fraction: job.part(p.fraction))
+                let left = BuildPipeline.stageSecondsLeft(fileSecondsLeft: p.eta, rate: p.rate,
+                                                          bytesAfterThisFile: bytesAfter)
+                board.detail(.download, label + p.line(secondsLeft: left),
+                             fraction: part(p.fraction))
                 try? await Task.sleep(nanoseconds: BuildPipeline.progressTick)
             }
         }

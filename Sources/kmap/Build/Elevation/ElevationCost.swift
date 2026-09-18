@@ -49,16 +49,35 @@ enum ElevationCost {
 
     /// The size probe and the coverage lists, replaceable so tests run without the
     /// network. Estimation is read-only, so a test overriding these touches no cache.
-    static var probeSize: (URL) async throws -> Int64 = { try await Downloader.probe($0).size }
-    static var copernicusCoverage: (CopernicusDEM.Flavor) async -> Set<String>?
-        = { await CopernicusDEM.availableCells($0) }
-    static var viewfinderIndex: (Int) async -> ViewfinderDEM.Index? = { resolution in
-        if let index = ViewfinderDEM.Index.load(ViewfinderDEM.indexFile(resolution)) {
-            return index
+    private struct Seams {
+        var probeSize: @Sendable (URL) async throws -> Int64 = { try await Downloader.probe($0).size }
+        var copernicusCoverage: @Sendable (CopernicusDEM.Flavor) async -> Set<String>?
+            = { await CopernicusDEM.availableCells($0) }
+        var viewfinderIndex: @Sendable (Int) async -> ViewfinderDEM.Index? = { resolution in
+            if let index = ViewfinderDEM.Index.load(ViewfinderDEM.indexFile(resolution)) {
+                return index
+            }
+            return try? await ViewfinderDEM.index(resolution,
+                                                  downloader: Downloader(log: Log()),
+                                                  log: { _ in })
         }
-        return try? await ViewfinderDEM.index(resolution,
-                                              downloader: Downloader(log: Log()),
-                                              log: { _ in })
+    }
+
+    private static let seams = Locked(Seams())
+
+    static var probeSize: @Sendable (URL) async throws -> Int64 {
+        get { seams.withLock { $0.probeSize } }
+        set { seams.withLock { $0.probeSize = newValue } }
+    }
+
+    static var copernicusCoverage: @Sendable (CopernicusDEM.Flavor) async -> Set<String>? {
+        get { seams.withLock { $0.copernicusCoverage } }
+        set { seams.withLock { $0.copernicusCoverage = newValue } }
+    }
+
+    static var viewfinderIndex: @Sendable (Int) async -> ViewfinderDEM.Index? {
+        get { seams.withLock { $0.viewfinderIndex } }
+        set { seams.withLock { $0.viewfinderIndex = newValue } }
     }
 
     // MARK: The cells

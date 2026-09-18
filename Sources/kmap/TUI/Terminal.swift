@@ -9,7 +9,15 @@ final class Terminal {
     private var pending: [UInt8] = []
     private let source: InputSource
 
-    static weak var shared: Terminal?
+    /// The terminal in use, for whoever has to lend it out or put it back: a file dialog,
+    /// an interrupt. Held weakly, and behind a lock since an interrupt asks from outside.
+    static var shared: Terminal? {
+        get { held.withLock { $0.terminal } }
+        set { held.withLock { $0.terminal = newValue } }
+    }
+
+    private struct Held { weak var terminal: Terminal? }
+    private static let held = Locked(Held())
 
     init(reading source: InputSource = ConsoleInput()) {
         self.source = source

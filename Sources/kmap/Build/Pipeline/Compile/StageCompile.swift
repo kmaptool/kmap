@@ -85,14 +85,14 @@ extension BuildPipeline {
     private func runMkgmapCompile(java: JavaRuntime, arguments: [String], tileDir: URL,
                                   tileIDs: [String], nodeCap: Int) async throws -> Set<String> {
         // The last tenth of the bar is the bundling that follows.
-        let watcher = Task { [weak self] in
+        let board = board
+        let watcher = Task {
             while !Task.isCancelled {
-                guard let self else { return }
                 let done = tileIDs.filter {
                     FileTools.exists(tileDir.appendingPathComponent("\($0).img"))
                 }.count
-                self.detail(.compile, "\(done)/\(tileIDs.count) tile(s)",
-                            fraction: min(0.88, Double(done) / Double(max(1, tileIDs.count)) * 0.9))
+                board.detail(.compile, "\(done)/\(tileIDs.count) tile(s)",
+                             fraction: min(0.88, Double(done) / Double(max(1, tileIDs.count)) * 0.9))
                 try? await Task.sleep(nanoseconds: 500_000_000)
             }
         }

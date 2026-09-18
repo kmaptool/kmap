@@ -12,8 +12,18 @@ import Foundation
 /// stream carries everything the prose would have said — results, log lines and errors —
 /// as events.
 enum CLILog {
+    private struct State {
+        var sink: ((_ text: String, _ isError: Bool) -> Void)?
+        var proseSuppressed = false
+    }
+
+    private static let state = Locked(State())
+
     /// Receives every write. Replaced by `capture(_:)`; nil writes to the real streams.
-    private static var sink: ((_ text: String, _ isError: Bool) -> Void)?
+    private static var sink: ((_ text: String, _ isError: Bool) -> Void)? {
+        get { state.withLock { $0.sink } }
+        set { state.withLock { $0.sink = newValue } }
+    }
 
     /// The same sink, settable across an `await`: `capture(_:)` takes a synchronous
     /// body, which an async command cannot be. Tests only.
@@ -24,7 +34,10 @@ enum CLILog {
 
     /// Whether prose is dropped entirely, which `--json` switches on: the event stream
     /// carries everything as structured lines, so the sentences would only repeat it.
-    static var proseSuppressed = false
+    static var proseSuppressed: Bool {
+        get { state.withLock { $0.proseSuppressed } }
+        set { state.withLock { $0.proseSuppressed = newValue } }
+    }
 
     /// Writes `text` and a newline to standard output.
     static func line(_ text: String = "") { write(text + "\n") }

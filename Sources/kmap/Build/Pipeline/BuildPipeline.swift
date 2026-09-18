@@ -5,7 +5,7 @@ import Foundation
 ///
 /// All mutable state is guarded by `lock` and read through `snapshot()`, so the render
 /// loop never blocks on the work.
-final class BuildPipeline {
+final class BuildPipeline: Sendable {
 
     let log: Log
     let recipe: BuildRecipe
@@ -15,40 +15,73 @@ final class BuildPipeline {
     let toolchain: Toolchain
     let styles: StyleCatalog
 
-    let lock = NSLock()
-    var stages: [StageID: Stage] = [:]
-    /// The timed pieces of work inside each stage; see `PipelineProgress`.
-    var marks: [Mark] = []
-    /// The furthest the whole build's bar has reached, so it never moves backwards.
-    /// Written under `lock`, inside `snapshot()`.
-    var overallHighWater = 0.0
+    /// The stages, kept where a progress monitor can hold them without holding the build.
+    let board = StageBoard()
 
-    /// The degree cells elevation actually works on, once the region outlines have had
-    /// their say. Nil until the elevation stage computes it; see trimElevationCells().
-    var outlineElevationCells: [(lat: Int, lon: Int)]?
-    var finished = false
-    var failure: String?
-    var wasCancelled = false
-    var outputs: [Output] = []
-    /// The output groups in the order the packer laid them, set by the compile stage;
-    /// collect names the files p1, p2... along it.
-    var outputGroups: [String] = []
-    var startedAt = Date()
-    var finishedAt: Date?
+    /// Everything about the run that changes while it runs. The stages run on several
+    /// tasks at once, the elevation beside the split, and the screen reads from its own
+    /// thread, so all of it sits behind one lock.
+    struct Run {
+        /// The timed pieces of work inside each stage; see `PipelineProgress`.
+        var marks: [Mark] = []
+        /// The degree cells elevation actually works on, once the region outlines have
+        /// had their say. Nil until the elevation stage computes it; see
+        /// trimElevationCells().
+        var outlineElevationCells: [(lat: Int, lon: Int)]?
+        var finished = false
+        var failure: String?
+        var wasCancelled = false
+        var outputs: [Output] = []
+        /// The output groups in the order the packer laid them, set by the compile stage;
+        /// collect names the files p1, p2... along it.
+        var outputGroups: [String] = []
+        var startedAt = Date()
+        var finishedAt: Date?
+        /// Private copies of elevation tiles carrying OSM summit heights, written by
+        /// `burnPeakElevations` and searched ahead of the shared cache.
+        var burnedElevationDirectories: [URL] = []
+        /// Where kmap's own marks ended up when the chosen TYP already drew their
+        /// numbers. The rules emitting them are moved to match, in this build's style
+        /// snapshot.
+        var repairMoves: [MapElementKind: [Int: Int]] = [:]
+        /// Data packs found to have moved on; see `StageDataUpdate`.
+        var pendingPackUpdates: [(pack: DataPack, news: DataPack.News)] = []
 
-    /// Private copies of elevation tiles carrying OSM summit heights, written by
-    /// `burnPeakElevations` and searched ahead of the shared cache.
-    var burnedElevationDirectories: [URL] = []
-    /// Where kmap's own marks ended up when the chosen TYP already drew their numbers.
-    /// The rules emitting them are moved to match, in this build's style snapshot.
-    var repairMoves: [MapElementKind: [Int: Int]] = [:]
+        var runners: [ProcessRunner] = []
+        var downloaders: [Downloader] = []
+        var task: Task<Void, Never>?
+        /// Runs beside the split, unstructured, so `cancel()` has to reach it by hand:
+        /// the main task may be waiting on it, and a cancelled task is not released from
+        /// a wait.
+        var elevation: Task<[URL], Error>?
+    }
 
-    var runners: [ProcessRunner] = []
-    var downloaders: [Downloader] = []
-    var task: Task<Void, Never>?
-    /// Runs beside the split, unstructured, so `cancel()` has to reach it by hand: the
-    /// main task may be waiting on it, and a cancelled task is not released from a wait.
-    private var elevation: Task<[URL], Error>?
+    /// One step at a time through `withLock`; a change that reads what it writes takes
+    /// the lock once, not per field.
+    let state = Locked(Run())
+
+    // One field each, for the stages that read or set a single thing.
+    var outlineElevationCells: [(lat: Int, lon: Int)]? {
+        get { state.withLock { $0.outlineElevationCells } }
+        set { state.withLock { $0.outlineElevationCells = newValue } }
+    }
+    var outputGroups: [String] {
+        get { state.withLock { $0.outputGroups } }
+        set { state.withLock { $0.outputGroups = newValue } }
+    }
+    var burnedElevationDirectories: [URL] {
+        get { state.withLock { $0.burnedElevationDirectories } }
+        set { state.withLock { $0.burnedElevationDirectories = newValue } }
+    }
+    var repairMoves: [MapElementKind: [Int: Int]] {
+        get { state.withLock { $0.repairMoves } }
+        set { state.withLock { $0.repairMoves = newValue } }
+    }
+    var pendingPackUpdates: [(pack: DataPack, news: DataPack.News)] {
+        get { state.withLock { $0.pendingPackUpdates } }
+        set { state.withLock { $0.pendingPackUpdates = newValue } }
+    }
+    var wasCancelled: Bool { state.withLock { $0.wasCancelled } }
 
     /// - Parameter showing: the lowest severity the caller wants to be shown. The log
     ///   file beside the build keeps everything whatever this says.
@@ -61,39 +94,37 @@ final class BuildPipeline {
         Paths.ensure(Paths.logs)
         let logFile = Paths.logs.appendingPathComponent("\(recipe.slug)-\(Int(Date().timeIntervalSince1970)).log")
         self.log = Log(mirrorTo: logFile, showing: showing)
-        for id in StageID.allCases { stages[id] = Stage(id: id) }
     }
 
     // MARK: Lifecycle
 
     func start() {
-        guard task == nil else { return }
-        lock.lock(); startedAt = Date(); lock.unlock()
-        task = Task.detached(priority: .userInitiated) { [weak self] in
-            await self?.run()
+        // Asked and answered in one step, so two callers cannot both start it.
+        let alreadyStarted = state.withLock { run -> Bool in
+            guard run.task == nil else { return true }
+            run.startedAt = Date()
+            run.task = Task.detached(priority: .userInitiated) { [weak self] in
+                await self?.run()
+            }
+            return false
         }
+        _ = alreadyStarted
     }
 
     func cancel() {
-        lock.lock()
-        wasCancelled = true
-        let activeRunners = runners
-        let activeDownloaders = downloaders
-        let activeElevation = elevation
-        lock.unlock()
+        let active = state.withLock { run -> Run in
+            run.wasCancelled = true
+            return run
+        }
         log.warn("cancelling…")
-        for runner in activeRunners { runner.cancel() }
-        for downloader in activeDownloaders { downloader.cancel() }
-        activeElevation?.cancel()
-        task?.cancel()
+        for runner in active.runners { runner.cancel() }
+        for downloader in active.downloaders { downloader.cancel() }
+        active.elevation?.cancel()
+        active.task?.cancel()
     }
 
-    /// Whether cancel() has been called. Read under the lock.
-    var isCancelled: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return wasCancelled
-    }
+    /// Whether cancel() has been called.
+    var isCancelled: Bool { wasCancelled }
 
     /// The same, as a question for work that runs on threads of its own, where the
     /// task's cancellation is not seen: the splitter asks it between blobs.
@@ -124,56 +155,49 @@ final class BuildPipeline {
         }
     }
 
-    /// Synchronous, so async callers do not touch the lock directly.
     func publish(_ written: [Output]) {
-        lock.lock()
-        outputs = written
-        lock.unlock()
+        state.withLock { $0.outputs = written }
     }
 
-    /// Synchronous, so async callers do not touch the lock directly.
     func retain(_ downloader: Downloader) {
-        lock.lock()
-        downloaders.append(downloader)
-        lock.unlock()
+        state.withLock { $0.downloaders.append(downloader) }
     }
 
     /// The elevation task, for `cancel()`. One registered after the build was cancelled
     /// is cancelled on the spot: the two can race.
     func retain(elevation task: Task<[URL], Error>) {
-        lock.lock()
-        elevation = task
-        let cancelled = wasCancelled
-        lock.unlock()
+        let cancelled = state.withLock { run -> Bool in
+            run.elevation = task
+            return run.wasCancelled
+        }
         if cancelled { task.cancel() }
     }
 
     func makeRunner() -> ProcessRunner {
         let runner = ProcessRunner()
-        lock.lock(); runners.append(runner); lock.unlock()
+        state.withLock { $0.runners.append(runner) }
         return runner
     }
 
     func finish(error: Error?) {
-        lock.lock()
-        finished = true
-        finishedAt = Date()
-        if let error {
-            if wasCancelled || error is CancellationError {
-                wasCancelled = true
-            } else {
-                failure = error.localizedDescription
+        let wasCancelled = state.withLock { run -> Bool in
+            run.finished = true
+            run.finishedAt = Date()
+            if let error {
+                if run.wasCancelled || error is CancellationError {
+                    run.wasCancelled = true
+                } else {
+                    run.failure = error.localizedDescription
+                }
             }
+            return run.wasCancelled
         }
-        lock.unlock()
 
         // Both cancellation and failure mark the stage that was running, or it keeps its
         // spinner and reads as still working.
         if error != nil {
             let reason = wasCancelled ? t("cancelled") : t("failed")
-            for (id, stage) in stages where stage.status == .running {
-                set(id, .failed, reason)
-            }
+            for id in board.running { set(id, .failed, reason) }
         }
 
         if let error, !(error is CancellationError), !wasCancelled {
@@ -327,6 +351,4 @@ final class BuildPipeline {
 
     var workDirectory: URL { recipe.workDirectory }
 
-    /// What preflight found the mirrors offering, for the stage that fetches it.
-    var pendingPackUpdates: [(pack: DataPack, news: DataPack.News)] = []
 }

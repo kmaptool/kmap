@@ -50,7 +50,9 @@ extension TileSplitter {
             took("placed the relations")
             return Unmanaged.passRetained(held)
         }()
-        DispatchQueue.global(qos: .background).async { handoff.release() }
+        // Released on a background thread: freeing it is slow, and nothing reads it again.
+        nonisolated(unsafe) let scaffolding = handoff
+        DispatchQueue.global(qos: .background).async { scaffolding.release() }
         took("handed the scaffolding over")
         return plan
     }
@@ -105,8 +107,11 @@ extension TileSplitter {
                 var resolved = [[(Int64, RelationRecord)]](repeating: [], count: workers)
                 let problemWays = s.problemWays
                 let sets = s.sets
-                let wayArea = s.wayArea
+                // Read-only by now, and each lane fills only its own slot: nothing is shared.
+                nonisolated(unsafe) let wayArea = s.wayArea
+                let pending = pending
                 resolved.withUnsafeMutableBufferPointer { slots in
+                    nonisolated(unsafe) let slots = slots
                     DispatchQueue.concurrentPerform(iterations: workers) { w in
                         let lo = w * chunk, hi = min(pending.count, lo + chunk)
                         guard lo < hi else { return }
@@ -251,6 +256,8 @@ extension TileSplitter {
                 repeating: ([], []), count: laneCount)
             let chunk = (spanning.count + laneCount - 1) / laneCount
             lanes.withUnsafeMutableBufferPointer { slots in
+                // Each lane fills only its own slot, which no type can say: nothing is shared.
+                nonisolated(unsafe) let slots = slots
                 DispatchQueue.concurrentPerform(iterations: laneCount) { w in
                     let lo = w * chunk, hi = min(spanning.count, lo + chunk)
                     guard lo < hi else { return }

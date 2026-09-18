@@ -38,13 +38,19 @@ extension BuildPipeline {
             var running = 0
             func launch(_ index: Int) {
                 let extract = extracts[index]
+                // Only the first region folds the contours in, and only its write needs
+                // them, so its scan overlaps with the tracer.
+                let contours: (@Sendable () async throws -> [URL])?
+                if index == 0 {
+                    contours = { try await contoursTask.value }
+                } else {
+                    contours = nil
+                }
                 group.addTask { [weak self] in
                     guard let self else { return (index, []) }
-                    // Only the first region folds the contours in, and only its write
-                    // needs them, so its scan overlaps with the tracer.
                     return (index, try await self.annotateBarriersIfNeeded(
                         extract,
-                        contoursReady: index == 0 ? { try await contoursTask.value } : nil,
+                        contoursReady: contours,
                         suffix: extracts.count > 1 ? "-\(index)" : "",
                         regionIndex: index))
                 }
@@ -71,7 +77,7 @@ extension BuildPipeline {
     /// classified by the way they stand on, redundant descriptions dropped, road ends
     /// repaired, contours folded in. Returns the files the splitter should read.
     private func annotateBarriersIfNeeded(_ extract: URL,
-                                          contoursReady: (() async throws -> [URL])? = nil,
+                                          contoursReady: (@Sendable () async throws -> [URL])? = nil,
                                           suffix: String = "",
                                           regionIndex: Int = 0) async throws -> [String] {
         let dropDuplicates = recipe.descriptions != .off

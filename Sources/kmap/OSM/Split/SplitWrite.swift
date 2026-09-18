@@ -84,6 +84,9 @@ extension TileSplitter {
         // closes per tile.
         var finishFailures = [Error?](repeating: nil, count: writers.count)
         finishFailures.withUnsafeMutableBufferPointer { slots in
+            // Each lane finishes its own writer into its own slot: nothing is shared.
+            nonisolated(unsafe) let slots = slots
+            nonisolated(unsafe) let writers = writers
             DispatchQueue.concurrentPerform(iterations: writers.count) { index in
                 do { try writers[index].finish() } catch { slots[index] = error }
             }

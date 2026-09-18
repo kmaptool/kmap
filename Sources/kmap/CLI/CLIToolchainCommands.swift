@@ -129,17 +129,20 @@ extension CLI {
         }
 
         let log = Log(limit: 400, showing: CLIOutput.showing)
-        var printed = 0
+        let printed = Locked(0)
 
-        // Drain whatever the installer has logged so far.
-        func drain() {
-            let lines = log.snapshot()
-            guard lines.count > printed else { return }
-            for line in lines[printed...] {
-                CLILog.line(prefix(line) + line.text)
-                CLIOutput.log(line)
+        // Drain whatever the installer has logged so far. Called from the ticker's task
+        // and from here, so the count and the printing are one step.
+        let drain: @Sendable () -> Void = {
+            printed.withLock { printed in
+                let lines = log.snapshot()
+                guard lines.count > printed else { return }
+                for line in lines[printed...] {
+                    CLILog.line(prefix(line) + line.text)
+                    CLIOutput.log(line)
+                }
+                printed = lines.count
             }
-            printed = lines.count
         }
 
         for tool in targets {

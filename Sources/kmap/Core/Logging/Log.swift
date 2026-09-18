@@ -6,7 +6,11 @@ import Foundation
 /// the ones below its floor, and passes the rest to every attached sink: the ring the
 /// interface draws, the file the run leaves behind, the JSON stream a program reads.
 /// Nothing that produces a message needs to know which of those exist.
-final class Log {
+///
+/// Shared by every thread of a run. `@unchecked Sendable` stands on `lock`: the outlets,
+/// the floor and the sequence are read and written only under it, and a sink guards
+/// whatever it keeps.
+final class Log: @unchecked Sendable {
     /// A sink and the lowest severity it wants. The interface asks for less than the file
     /// the run leaves behind, which is why the floor belongs here and not on the log.
     private struct Outlet {

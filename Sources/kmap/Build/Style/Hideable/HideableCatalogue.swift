@@ -10,8 +10,7 @@ enum HideableCatalogue {
         StyleCatalog.baseStyleDirectory.appendingPathComponent("hideable.txt")
     }
 
-    private static let lock = NSLock()
-    private static var held: String?
+    private static let held = Locked<String?>(nil)
 
     /// Where the catalogue for a points file goes: beside it, not at `url`. The base style
     /// is built in a staging directory and swapped into place, which would remove a file
@@ -30,24 +29,22 @@ enum HideableCatalogue {
         guard (try? made.text.write(to: beside, atomically: true, encoding: .utf8)) != nil else {
             return 0
         }
-        lock.lock(); held = made.text; lock.unlock()
+        held.withLock { $0 = made.text }
         HideableFeature.forget()
         return made.features
     }
 
     /// The catalogue text: what the last style produced, or what the binary carries.
     static func text() -> String {
-        lock.lock()
-        if let held { lock.unlock(); return held }
-        lock.unlock()
+        if let text = held.withLock({ $0 }) { return text }
         let found = (try? String(contentsOf: url, encoding: .utf8))
             ?? StyleAssets.hideableCatalogue
-        lock.lock(); held = found; lock.unlock()
+        held.withLock { $0 = found }
         return found
     }
 
     /// Drops the cached catalogue text.
     static func forget() {
-        lock.lock(); held = nil; lock.unlock()
+        held.withLock { $0 = nil }
     }
 }

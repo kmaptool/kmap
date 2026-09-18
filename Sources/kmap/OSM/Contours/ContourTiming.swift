@@ -14,24 +14,25 @@ import Foundation
 enum ContourTiming {
     static let on = ProcessInfo.processInfo.environment["KMAP_CONTOUR_TIMING"] != nil
 
-    private static let lock = NSLock()
-    private static var totals: [String: Double] = [:]
-    private static var order: [String] = []
-    private static var cells: [(index: Int, name: String, start: Double,
-                                seconds: Double, points: Int)] = []
-    private static var origin = DispatchTime.now().uptimeNanoseconds
+    private struct Record {
+        var totals: [String: Double] = [:]
+        var order: [String] = []
+        var cells: [(index: Int, name: String, start: Double, seconds: Double, points: Int)] = []
+        var origin = DispatchTime.now().uptimeNanoseconds
+    }
+
+    private static let record = Locked(Record())
 
     static func begin() {
         guard on else { return }
-        lock.lock()
-        totals = [:]; order = []; cells = []
-        origin = DispatchTime.now().uptimeNanoseconds
-        lock.unlock()
+        record.withLock { $0 = Record() }
     }
 
-    /// Seconds since the stage began, for placing a cell on the timeline.
+    /// Seconds since the stage began, for placing a cell on the timeline. Asked once per
+    /// degree cell, never inside a sweep.
     static func now() -> Double {
-        Double(DispatchTime.now().uptimeNanoseconds &- origin) / 1e9
+        let origin = record.withLock { $0.origin }
+        return Double(DispatchTime.now().uptimeNanoseconds &- origin) / 1e9
     }
 
     @inline(__always)
@@ -45,17 +46,15 @@ enum ContourTiming {
 
     static func add(_ phase: String, _ seconds: Double) {
         guard on else { return }
-        lock.lock()
-        if totals[phase] == nil { order.append(phase) }
-        totals[phase, default: 0] += seconds
-        lock.unlock()
+        record.withLock {
+            if $0.totals[phase] == nil { $0.order.append(phase) }
+            $0.totals[phase, default: 0] += seconds
+        }
     }
 
     static func cell(index: Int, name: String, start: Double, seconds: Double, points: Int) {
         guard on else { return }
-        lock.lock()
-        cells.append((index, name, start, seconds, points))
-        lock.unlock()
+        record.withLock { $0.cells.append((index, name, start, seconds, points)) }
     }
 
     /// A floor under the divisors, so an empty stage reports zeros rather than NaN.
@@ -64,9 +63,7 @@ enum ContourTiming {
     /// The report, as lines for the build log.
     static func report(wall: Double, lanes: Int) -> [String] {
         guard on else { return [] }
-        lock.lock()
-        let totals = self.totals, order = self.order, cells = self.cells
-        lock.unlock()
+        let (totals, order, cells) = record.withLock { ($0.totals, $0.order, $0.cells) }
         guard !cells.isEmpty else { return [] }
 
         var out: [String] = []

@@ -13,21 +13,19 @@ final class Surface {
         func hash(into hasher: inout Hasher) { hasher.combine(x); hasher.combine(y) }
     }
 
-    nonisolated(unsafe) private static var clips: [Clip]?
-    private static let clipGate = NSLock()
+    /// Nil except while something is collecting.
+    private static let clips = Locked<[Clip]?>(nil)
 
     static func collectClipped<T>(_ body: () throws -> T) rethrows -> (T, [Clip]) {
-        clipGate.lock(); clips = []; clipGate.unlock()
-        defer { clipGate.lock(); clips = nil; clipGate.unlock() }
+        clips.withLock { $0 = [] }
+        defer { clips.withLock { $0 = nil } }
         let out = try body()
-        clipGate.lock(); let found = clips ?? []; clipGate.unlock()
-        return (out, found)
+        return (out, clips.withLock { $0 ?? [] })
     }
 
     private static func noteClipped(at x: Int, _ y: Int, _ string: String) {
-        clipGate.lock()
-        if clips != nil, !string.isEmpty { clips?.append(Clip(x: x, y: y, text: string)) }
-        clipGate.unlock()
+        guard !string.isEmpty else { return }
+        clips.withLock { $0?.append(Clip(x: x, y: y, text: string)) }
     }
 
     private(set) var width = 0

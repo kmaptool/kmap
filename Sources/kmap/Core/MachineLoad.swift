@@ -79,7 +79,11 @@ struct MachineLoad {
             }
         }
         guard result == KERN_SUCCESS else { return (0, total) }
-        let page = UInt64(vm_kernel_page_size)
+        // Asked of the host rather than read from the global the headers export: the counts
+        // are in the kernel's pages, and the global is a mutable C variable.
+        var pageSize: vm_size_t = 0
+        guard host_page_size(mach_host_self(), &pageSize) == KERN_SUCCESS else { return (0, total) }
+        let page = UInt64(pageSize)
         let wired = UInt64(stats.wire_count) * page
         let active = UInt64(stats.active_count) * page
         let compressed = UInt64(stats.compressor_page_count) * page

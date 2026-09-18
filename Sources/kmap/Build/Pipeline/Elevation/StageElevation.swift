@@ -110,14 +110,14 @@ extension BuildPipeline {
         // The outline every cell's contours are cut to, fetched once for the build.
         let mask = await regionMask()
         let completed = Counter()
-        let monitor = Task { [weak self] in
+        let (total, board) = (cells.count, board)
+        let monitor = Task {
             while !Task.isCancelled {
-                guard let self else { return }
                 let done = completed.value
                 // The conversion is the first fifth of this stage and tracing the rest.
-                self.detail(.elevationBuild,
-                            "tracing \(done)/\(cells.count) cell(s)",
-                            fraction: 0.2 + 0.8 * Double(done) / Double(max(1, cells.count)))
+                board.detail(.elevationBuild,
+                             "tracing \(done)/\(total) cell(s)",
+                             fraction: 0.2 + 0.8 * Double(done) / Double(max(1, total)))
                 try? await Task.sleep(nanoseconds: 500_000_000)
             }
         }

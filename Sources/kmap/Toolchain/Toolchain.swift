@@ -5,7 +5,10 @@ import FoundationNetworking
 #endif
 
 /// Finds the external programs kmap needs, and installs the ones it can.
-final class Toolchain {
+/// Shared by the interface and every task of a build. `@unchecked Sendable` stands on
+/// `cacheLock`: the probe caches are the only state that changes, and they are read and
+/// written only under it.
+final class Toolchain: @unchecked Sendable {
 
     let settings: SettingsStore
     init(settings: SettingsStore) { self.settings = settings }

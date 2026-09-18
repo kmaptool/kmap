@@ -39,7 +39,7 @@ extension BuildPipeline {
                 log.append("\(pack.what) is current")
                 continue
             }
-            pendingPackUpdates.append((pack, news))
+            state.withLock { $0.pendingPackUpdates.append((pack, news)) }
             log.append("\(pack.what): a newer pack was published — \(news.describedShortly)")
         }
         guard !asked.isEmpty else { return }
@@ -97,12 +97,12 @@ extension BuildPipeline {
         retain(downloader)
 
         // Mirrors the downloader's own progress into this stage, as the extract does.
-        let monitor = Task { [weak self] in
+        let (what, board) = (pack.what, board)
+        let monitor = Task {
             while !Task.isCancelled {
-                guard let self else { return }
                 let p = downloader.progress
-                self.detail(.dataUpdate, "\(pack.what) · " + p.line(secondsLeft: p.eta),
-                            fraction: p.fraction)
+                board.detail(.dataUpdate, "\(what) · " + p.line(secondsLeft: p.eta),
+                             fraction: p.fraction)
                 try? await Task.sleep(nanoseconds: BuildPipeline.progressTick)
             }
         }

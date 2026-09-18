@@ -73,15 +73,30 @@ struct Settings: Codable {
 }
 
 /// Loads and saves `Settings`, tolerating a missing or malformed file.
-final class SettingsStore {
-    /// What the file holds, and what a save writes.
-    private var persisted: Settings
-    /// Changes for this process only, applied over `persisted` in order; see
-    /// `overrideForRun`.
-    private var overrides: [(inout Settings) -> Void] = []
-    /// The stored settings with this run's overrides applied. Derived; never assigned
-    /// directly.
-    private(set) var settings: Settings
+final class SettingsStore: Sendable {
+    private struct State {
+        /// What the file holds, and what a save writes.
+        var persisted: Settings
+        /// Changes for this process only, applied over `persisted` in order; see
+        /// `overrideForRun`.
+        var overrides: [(inout Settings) -> Void] = []
+        /// The stored settings with this run's overrides applied. Derived; never
+        /// assigned directly.
+        var settings: Settings
+
+        mutating func refresh() {
+            var effective = persisted
+            for override in overrides { override(&effective) }
+            settings = effective
+        }
+    }
+
+    /// The interface writes and a build reads, from tasks of its own, so every read and
+    /// write goes through the lock.
+    private let state: Locked<State>
+
+    /// The stored settings with this run's overrides applied.
+    var settings: Settings { state.withLock { $0.settings } }
 
     init() {
         // An unreadable file is renamed rather than overwritten, since anything below
@@ -92,8 +107,8 @@ final class SettingsStore {
             FileTools.removeIfPresent(aside)
             try? FileManager.default.moveItem(at: Paths.settingsFile, to: aside)
         }
-        persisted = SettingsStore.load() ?? .default
-        settings = persisted
+        let persisted = SettingsStore.load() ?? .default
+        state = Locked(State(persisted: persisted, settings: persisted))
         // The build form needs a profile; `ensureProfile` writes nothing once one exists.
         ensureProfile()
     }
@@ -149,8 +164,10 @@ final class SettingsStore {
     /// Applies a durable change: written to the file, and visible to this run unless an
     /// override covers the same field.
     func update(_ mutate: (inout Settings) -> Void) {
-        mutate(&persisted)
-        refresh()
+        state.withLock {
+            mutate(&$0.persisted)
+            $0.refresh()
+        }
         save()
     }
 
@@ -159,14 +176,10 @@ final class SettingsStore {
     /// Held as a layer over the stored settings, so a later durable change saves a copy
     /// that never contained the override.
     func overrideForRun(_ mutate: @escaping (inout Settings) -> Void) {
-        overrides.append(mutate)
-        refresh()
-    }
-
-    private func refresh() {
-        var effective = persisted
-        for override in overrides { override(&effective) }
-        settings = effective
+        state.withLock {
+            $0.overrides.append(mutate)
+            $0.refresh()
+        }
     }
 
     /// Returns the family id for a map, allocated on first use and kept afterwards.
@@ -186,7 +199,7 @@ final class SettingsStore {
         Paths.bootstrap()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? encoder.encode(persisted) {
+        if let data = try? encoder.encode(state.withLock({ $0.persisted })) {
             try? data.write(to: Paths.settingsFile, options: .atomic)
         }
     }

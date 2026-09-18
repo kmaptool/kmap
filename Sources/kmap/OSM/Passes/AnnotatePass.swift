@@ -34,8 +34,8 @@ struct AnnotatePass {
 
     /// Runs the scans first and awaits the contours only between them and the rewrite that
     /// folds them in, so the scans overlap with the contour tracer.
-    func run(contoursReady: @escaping () async throws -> [URL],
-             log: @escaping (String) -> Void) async throws -> PBFRewriter.Tally {
+    func run(contoursReady: @escaping @Sendable () async throws -> [URL],
+             log: @escaping @Sendable (String) -> Void) async throws -> PBFRewriter.Tally {
         let held = self
         return try await withCheckedThrowingContinuation { done in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -44,14 +44,16 @@ struct AnnotatePass {
                         // Bridged with a semaphore: the scans run on a plain queue thread,
                         // never the cooperative pool, so blocking here starves nothing.
                         let gate = DispatchSemaphore(value: 0)
-                        nonisolated(unsafe) var landed: Result<[URL], Error> = .success([])
+                        let landed = Locked<Result<[URL], Error>>(.success([]))
                         Task {
-                            do { landed = .success(try await contoursReady()) }
-                            catch { landed = .failure(error) }
+                            let answer: Result<[URL], Error>
+                            do { answer = .success(try await contoursReady()) }
+                            catch { answer = .failure(error) }
+                            landed.withLock { $0 = answer }
                             gate.signal()
                         }
                         gate.wait()
-                        return try landed.get()
+                        return try landed.withLock { $0 }.get()
                     }, log: log)
                     done.resume(returning: tally)
                 } catch {
@@ -119,32 +121,35 @@ struct AnnotatePass {
     /// the repair plan, the barrier scan tags the gates, the venue scan finds the
     /// repeats. Blocks until all three are done.
     private func runScans() -> ScanResults {
-        // One local variable per scan, not fields of one shared struct: each closure may
-        // then write its own box without contending for exclusive access to the whole.
+        // One box per scan, not fields of one shared struct: each scan writes its own
+        // once, when it is done, and never waits on another's.
         let timings = ScanTimings()
 
-        nonisolated(unsafe) var repair: Result<(RoadNetwork, RepairPlan, [String]), Error>?
-        nonisolated(unsafe) var barriers: Result<[Int64: String], Error> = .success([:])
-        nonisolated(unsafe) var venues: Result<Set<Int64>, Error> = .success([])
+        let repair = Locked<Result<(RoadNetwork, RepairPlan, [String]), Error>?>(nil)
+        let barriers = Locked<Result<[Int64: String], Error>>(.success([:]))
+        let venues = Locked<Result<Set<Int64>, Error>>(.success([]))
 
         let scans = DispatchGroup()
         let pool = DispatchQueue.global(qos: .userInitiated)
         if repairRadius > 0 {
             pool.async(group: scans) { [self] in
                 timings.timed("repairing road ends") {
-                    repair = Result { try repairScan(timings: timings) }
+                    let found = Result { try repairScan(timings: timings) }
+                    repair.withLock { $0 = found }
                 }
             }
         }
         pool.async(group: scans) {
             timings.timed("classifying barriers") {
-                barriers = Result { try BarrierScan.classify(self.source) }
+                let found = Result { try BarrierScan.classify(self.source) }
+                barriers.withLock { $0 = found }
             }
         }
         if markDuplicateVenues {
             pool.async(group: scans) {
                 timings.timed("finding repeated venues") {
-                    venues = Result { try VenueScan.duplicates(in: self.source) }
+                    let found = Result { try VenueScan.duplicates(in: self.source) }
+                    venues.withLock { $0 = found }
                 }
             }
         }
@@ -152,7 +157,7 @@ struct AnnotatePass {
 
         var results = ScanResults()
         results.timings = timings
-        switch repair {
+        switch repair.withLock({ $0 }) {
         case .success(let (network, plan, lines)):
             results.network = network
             results.plan = plan
@@ -162,11 +167,11 @@ struct AnnotatePass {
         case nil:
             break
         }
-        switch barriers {
+        switch barriers.withLock({ $0 }) {
         case .success(let tagged): results.barriers = tagged
         case .failure(let error): results.barrierFailure = error
         }
-        switch venues {
+        switch venues.withLock({ $0 }) {
         case .success(let marked): results.venues = marked
         case .failure(let error): results.venueFailure = error
         }
@@ -238,7 +243,8 @@ struct AnnotatePass {
 
 /// Wall-clock per scan, appended from the scan threads under one lock. The scans run at
 /// once, so the pass's own phase line reports only the longest; this keeps each one.
-final class ScanTimings {
+/// `entries` is reached only under `lock`, which is what `@unchecked Sendable` stands on.
+final class ScanTimings: @unchecked Sendable {
     private var entries: [(String, Double)] = []
     private let lock = NSLock()
 

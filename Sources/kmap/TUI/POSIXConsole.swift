@@ -9,8 +9,10 @@ import Glibc
 /// `ConsoleBackend` on Unix: termios raw mode, `poll` for input, and signal handlers.
 enum POSIXConsole: ConsoleBackend {
 
-    private static var original = termios()
-    private static var rawEnabled = false
+    // Read from signal handlers, where no lock may be taken: a handler that interrupts the
+    // thread holding it would wait for ever. Both are written before the handlers exist.
+    nonisolated(unsafe) private static var original = termios()
+    nonisolated(unsafe) private static var rawEnabled = false
 
     static func enterRawMode() -> Bool {
         guard tcgetattr(STDIN_FILENO, &original) == 0 else { return false }
@@ -115,8 +117,9 @@ enum POSIXConsole: ConsoleBackend {
         }
     }
 
-    /// Held here because a C function pointer cannot capture anything.
-    private static var interrupted: (() -> Void)?
+    /// Held here because a C function pointer cannot capture anything. Set once, before
+    /// the handlers that call it are installed, and called from them: no lock, as above.
+    nonisolated(unsafe) private static var interrupted: (() -> Void)?
 }
 
 /// The C `read` and `write` under distinct names: unqualified calls in this file would

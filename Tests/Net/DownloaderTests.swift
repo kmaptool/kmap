@@ -87,4 +87,41 @@ final class DownloaderTests: XCTestCase {
     func testHashingSomethingThatIsNotThereThrowsRatherThanReturningAHash() {
         XCTAssertThrowsError(try Downloader.md5(of: directory.appendingPathComponent("absent")))
     }
+
+    // MARK: A part and its file
+
+    func testAPartKnowsItsLengthAndReadsItsProgressOffTheDisk() throws {
+        // The file is the record: nothing else counts what a part has fetched.
+        let url = directory.appendingPathComponent("region.osm.pbf.part2")
+        let part = RangeSession.Part(index: 2, start: 100, end: 199, url: url)
+        XCTAssertEqual(part.length, 100, "both ends are inside the range")
+        XCTAssertEqual(part.written, 0, "no file yet")
+        try Data(count: 40).write(to: url)
+        XCTAssertEqual(part.written, 40)
+    }
+
+    func testCancellingIsRememberedAndRefusesFurtherWork() async {
+        // A retry sleep can end after the cancel; a task made on a dead session never ends.
+        let session = RangeSession(progress: DownloadProgress())
+        XCTAssertFalse(session.isCancelled)
+        session.cancel()
+        XCTAssertTrue(session.isCancelled)
+        let part = RangeSession.Part(index: 0, start: 0, end: 9,
+                                     url: directory.appendingPathComponent("x.part0"))
+        do {
+            try await session.fetch(part, from: URL(string: "https://example.invalid/x")!, ranged: true)
+            XCTFail("fetched on a cancelled session")
+        } catch DownloadError.cancelled {
+        } catch {
+            XCTFail("\(error)")
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: part.url.path), "nothing was opened")
+    }
+
+    func testADownloaderIsCancelledThroughItsSession() {
+        let downloader = Downloader(log: Log())
+        XCTAssertFalse(downloader.wasCancelled)
+        downloader.cancel()
+        XCTAssertTrue(downloader.wasCancelled)
+    }
 }

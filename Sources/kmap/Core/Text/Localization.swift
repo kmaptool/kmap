@@ -30,21 +30,13 @@ enum Lang: String, CaseIterable, Codable {
 /// tables are compiled in, in `Strings`.
 enum L10n {
 
-    /// The current language. Read from any thread and written from the main one, so every
-    /// access is under `gate`.
-    private static let gate = NSLock()
-    nonisolated(unsafe) private static var chosen: Lang = .en
+    /// The current language. Read from any thread and written from the main one.
+    private static let chosen = Locked(Lang.en)
 
-    static var current: Lang {
-        gate.lock()
-        defer { gate.unlock() }
-        return chosen
-    }
+    static var current: Lang { chosen.withLock { $0 } }
 
     private static func choose(_ language: Lang) {
-        gate.lock()
-        chosen = language
-        gate.unlock()
+        chosen.withLock { $0 = language }
     }
 
     /// Resolves the language for this run from a stored value and the system list.

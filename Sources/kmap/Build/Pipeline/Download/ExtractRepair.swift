@@ -31,7 +31,7 @@ extension BuildPipeline {
     /// - Returns: The extracts to build from, or nil where none of them was damaged and
     ///   the failure is somebody else's.
     func refetchDamagedExtracts(among extracts: [URL]) async throws -> [URL]? {
-        let closingLine = stages[.download]?.detail
+        let closingLine = board.detail(of: .download)
         set(.download, .running, t("verifying cached copy"))
         let damaged = damagedExtracts(among: extracts)
         guard !damaged.isEmpty else {
@@ -44,9 +44,7 @@ extension BuildPipeline {
             FileTools.removeIfPresent(extract)
             CacheStamp.remove(besides: extract)
         }
-        for (id, stage) in stages where stage.status == .running && id != .download {
-            set(id, .pending, "")
-        }
+        for id in board.running where id != .download { set(id, .pending, "") }
         set(.download, .running, t("cached copy was damaged — downloading again"))
         return try await downloadExtracts()
     }

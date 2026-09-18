@@ -104,21 +104,20 @@ enum CodePage {
 
     private static let question: UInt8 = 0x3F
 
-    private static let reverseLock = NSLock()
-    private nonisolated(unsafe) static var reverseCache: [Int: [UInt32: UInt8]] = [:]
+    private static let reverseCache = Locked<[Int: [UInt32: UInt8]]>([:])
 
-    /// Scalar-to-byte table for `codePage`, built once and cached under `reverseLock`.
+    /// Scalar-to-byte table for `codePage`, built once and cached.
     private static func reverse(_ codePage: Int) -> [UInt32: UInt8]? {
         guard let table = highHalves[codePage] else { return nil }
-        reverseLock.lock()
-        defer { reverseLock.unlock() }
-        if let hit = reverseCache[codePage] { return hit }
-        var map = [UInt32: UInt8](minimumCapacity: 128)
-        for (offset, scalar) in table.enumerated() where scalar != undefined {
-            map[UInt32(scalar)] = UInt8(0x80 + offset)
+        return reverseCache.withLock { cache in
+            if let hit = cache[codePage] { return hit }
+            var map = [UInt32: UInt8](minimumCapacity: 128)
+            for (offset, scalar) in table.enumerated() where scalar != undefined {
+                map[UInt32(scalar)] = UInt8(0x80 + offset)
+            }
+            cache[codePage] = map
+            return map
         }
-        reverseCache[codePage] = map
-        return map
     }
 
     /// Bytes 0x80–0xFF for each page; 0x00–0x7F is ASCII in all of them.

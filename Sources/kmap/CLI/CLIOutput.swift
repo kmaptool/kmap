@@ -19,27 +19,26 @@ enum CLIOutput {
     /// never for a field that is merely added.
     static let schema = 1
 
-    private static let lock = NSLock()
-    private static var shape: Shape = .text
-    private static var options = CLIOptions()
-    private static var sequence = 0
-
-    static var isJSON: Bool {
-        lock.lock(); defer { lock.unlock() }; return shape == .json
+    private struct State {
+        var shape: Shape = .text
+        var options = CLIOptions()
+        var sequence = 0
     }
+
+    private static let state = Locked(State())
+
+    static var isJSON: Bool { state.withLock { $0.shape == .json } }
 
     /// The lowest severity to report, which `--verbose` lowers.
-    static var showing: LogSeverity {
-        lock.lock(); defer { lock.unlock() }; return options.showing
-    }
+    static var showing: LogSeverity { state.withLock { $0.options.showing } }
 
     /// Sets the shape for this run and, in JSON, writes the opening line.
     static func begin(_ options: CLIOptions, command: String) {
-        lock.lock()
-        Self.options = options
-        shape = options.json ? .json : .text
-        sequence = 0
-        lock.unlock()
+        state.withLock {
+            $0.options = options
+            $0.shape = options.json ? .json : .text
+            $0.sequence = 0
+        }
         // Under --json standard output is the stream, and the prose is not printed.
         CLILog.proseSuppressed = options.json
         guard options.json else { return }
@@ -118,26 +117,31 @@ enum CLIOutput {
     }
 
     private static func emit(_ name: String, _ fields: [String: JSONValue]) {
-        lock.lock()
-        sequence += 1
-        var object = fields
-        object["event"] = .string(name)
-        object["seq"] = .int(sequence)
-        object["at"] = .string(Stamp.now())
-        let line = JSONValue.object(object).line()
-        lock.unlock()
+        // Numbered and stamped in one step, so the stream's order is the numbers' order.
+        let line = state.withLock { state -> String in
+            state.sequence += 1
+            var object = fields
+            object["event"] = .string(name)
+            object["seq"] = .int(state.sequence)
+            object["at"] = .string(Stamp.now())
+            return JSONValue.object(object).line()
+        }
         CLILog.data(line)
     }
 }
 
 /// The one time format the stream uses: RFC 3339, UTC, milliseconds.
 private enum Stamp {
-    private static let formatter: ISO8601DateFormatter = {
+    /// Behind a lock: a formatter is a class with state of its own, and events are
+    /// stamped from whichever thread has something to say.
+    private static let formatter: Locked<ISO8601DateFormatter> = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         formatter.timeZone = TimeZone(identifier: "UTC")
-        return formatter
+        return Locked(formatter)
     }()
 
-    static func now(_ date: Date = Date()) -> String { formatter.string(from: date) }
+    static func now(_ date: Date = Date()) -> String {
+        formatter.withLock { $0.string(from: date) }
+    }
 }

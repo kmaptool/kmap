@@ -5,10 +5,10 @@ import FoundationNetworking
 
 /// Downloads one file over several connections, resuming whatever a previous run left in
 /// `.partN` files. The ranges go through a `RangeSession`; the files are `PartFiles`.
-final class Downloader {
+final class Downloader: Sendable {
 
-    nonisolated(unsafe) let progress = DownloadProgress()
-    nonisolated(unsafe) private let log: Log
+    let progress = DownloadProgress()
+    private let log: Log
     private let session: RangeSession
 
     /// Consecutive retries allowed per part. Any byte that arrives resets the count, so
@@ -65,6 +65,8 @@ final class Downloader {
 
         Paths.ensure(destination.deletingLastPathComponent())
         let files = PartFiles(destination: destination)
+        // Without ranges nothing can be picked up: the server sends the file from the top.
+        if !info.acceptsRanges { files.removeParts() }
 
         // Contiguous ranges, the last one taking the remainder.
         let chunk = info.size / Int64(partCount)
@@ -76,21 +78,16 @@ final class Downloader {
         }
         files.keepLayout(size: info.size, count: partCount)
 
-        // Whatever each part already holds is a downloaded prefix of its range.
-        var alreadyOnDisk: Int64 = 0
-        for part in plan {
-            let existing = FileTools.size(of: part.url)
-            // A part longer than its range cannot be a prefix of it.
-            if existing > part.length {
-                FileTools.removeIfPresent(part.url)
-                continue
-            }
-            part.written = existing
-            alreadyOnDisk += existing
+        // Whatever each part already holds is a downloaded prefix of its range; one longer
+        // than its range cannot be, and goes.
+        for part in plan where part.written > part.length {
+            FileTools.removeIfPresent(part.url)
         }
+        let onDisk = plan.map(\.written)
+        let alreadyOnDisk = onDisk.reduce(0, +)
 
         progress.begin(total: info.size, partTotals: plan.map(\.length), alreadyOnDisk: alreadyOnDisk)
-        for part in plan { progress.seedPart(part.index, bytes: part.written) }
+        for part in plan { progress.seedPart(part.index, bytes: onDisk[part.index]) }
 
         if alreadyOnDisk > 0 {
             log.append("resuming — \(Fmt.bytes(alreadyOnDisk)) of \(Fmt.bytes(info.size)) already on disk")
@@ -98,11 +95,13 @@ final class Downloader {
         progress.setStage("downloading")
 
         // Every part runs concurrently; the first failure cancels the rest.
+        let source = info.finalURL
+        let acceptsRanges = info.acceptsRanges
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for part in plan where part.written < part.length {
-                group.addTask { [weak self] in
-                    guard let self else { return }
-                    try await self.fetch(part: part, from: info.finalURL, ranged: info.acceptsRanges)
+            for part in plan where onDisk[part.index] < part.length {
+                // The group ends inside this call, so `self` outlives every child task.
+                group.addTask {
+                    try await self.fetch(part: part, from: source, ranged: acceptsRanges)
                 }
             }
             for try await _ in group {}
@@ -126,17 +125,17 @@ final class Downloader {
                 return
             } catch {
                 if Task.isCancelled { throw error }
+                let written = part.written
                 // Bytes arrived before the drop, so the count starts again.
-                if part.written > before { failures = 0 }
-                // Retrying without ranges would append a second copy from the top.
-                guard ranged, part.written < part.length,
+                if written > before { failures = 0 }
+                // Without ranges there is no picking up, only starting over.
+                guard ranged, written < part.length,
                       failures < Self.retriesPerPart, Self.worthRetrying(error) else { throw error }
                 failures += 1
                 if failures == 1 {
-                    log.warn("connection dropped with \(Fmt.bytes(part.length - part.written))"
+                    log.warn("connection dropped with \(Fmt.bytes(part.length - written))"
                              + " left of part \(part.index + 1) — picking it up again")
                 }
-                part.failure = nil
                 try await Self.backOff(after: failures)
             }
         }

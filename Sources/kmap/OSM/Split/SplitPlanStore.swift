@@ -154,6 +154,9 @@ extension TileSplitter {
                 let plan = bounds
                 source.withUnsafeMutableBufferPointer { from in
                     target.withUnsafeMutableBufferPointer { into in
+                        // Each merge reads and writes its own two stretches: nothing is shared.
+                        nonisolated(unsafe) let from = from
+                        nonisolated(unsafe) let into = into
                         DispatchQueue.concurrentPerform(iterations: merges) { k in
                             let left = plan[2 * k], right = plan[2 * k + 1]
                             var i = left.from, j = right.from, out = left.from

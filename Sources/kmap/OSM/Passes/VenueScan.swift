@@ -95,10 +95,14 @@ struct VenueScan {
         // Tags do not interact, so the groups are independent and go out to every core;
         // the sets are unioned afterwards, which does not depend on order.
         let tags = byTag.keys.sorted()
+        // Read-only from here on, and read from every lane.
+        let groups = byTag, points = nodesByTag
         var parts = [Set<Int64>](repeating: [], count: tags.count)
         parts.withUnsafeMutableBufferPointer { slots in
+            // Each tag fills only its own slot, which no type can say: nothing is shared.
+            nonisolated(unsafe) let slots = slots
             DispatchQueue.concurrentPerform(iterations: tags.count) { i in
-                slots[i] = markOne(byTag[tags[i]] ?? [], nodes: nodesByTag[tags[i]] ?? [])
+                slots[i] = markOne(groups[tags[i]] ?? [], nodes: points[tags[i]] ?? [])
             }
         }
         var marked = Set<Int64>()

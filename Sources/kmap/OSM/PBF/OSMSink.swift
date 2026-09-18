@@ -10,7 +10,16 @@ struct OSMParts: OptionSet {
     static let all: OSMParts = [.nodes, .ways, .relations]
 }
 
-protocol OSMSink {
+// A sink's type is named inside the lanes that decode in parallel. Newer compilers want
+// the promise that naming it there is safe, which every plain type keeps; older ones have
+// no such protocol to name.
+#if compiler(>=6.2)
+typealias LaneSafeMetatype = SendableMetatype
+#else
+typealias LaneSafeMetatype = Any
+#endif
+
+protocol OSMSink: LaneSafeMetatype {
     /// The parts this sink wants. All of them unless it says otherwise.
     var wantedParts: OSMParts { get }
 

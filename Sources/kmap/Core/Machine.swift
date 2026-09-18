@@ -51,16 +51,16 @@ enum Machine {
     /// Memory this build may use, in whole gigabytes: physical memory, or the smaller
     /// figure given by `KMAP_MEMORY_GB` or `told(_:)`.
     static var memoryGB: Int {
-        gate.lock()
-        defer { gate.unlock() }
-        if let said { return said }
-        if let told = ProcessInfo.processInfo.environment["KMAP_MEMORY_GB"],
-           let gigabytes = Int(told), gigabytes > 0 {
-            said = gigabytes
-            return gigabytes
+        said.withLock { said in
+            if let said { return said }
+            if let told = ProcessInfo.processInfo.environment["KMAP_MEMORY_GB"],
+               let gigabytes = Int(told), gigabytes > 0 {
+                said = gigabytes
+                return gigabytes
+            }
+            said = physicalGB
+            return physicalGB
         }
-        said = physicalGB
-        return physicalGB
     }
 
     /// The machine's memory in whole gigabytes, asked of the system directly on Windows,
@@ -77,15 +77,12 @@ enum Machine {
     }
 
     /// Sets the memory figure for this run. Written once before a build starts and read
-    /// from every queue, so it is guarded by `gate`.
+    /// from every queue.
     static func told(_ gigabytes: Int) {
-        gate.lock()
-        said = max(1, gigabytes)
-        gate.unlock()
+        said.withLock { $0 = max(1, gigabytes) }
     }
 
-    private static let gate = NSLock()
-    nonisolated(unsafe) private static var said: Int?
+    private static let said = Locked<Int?>(nil)
 
     /// Returns how many workers holding `gigabytes` each may run at once: `wanted`,
     /// capped by half of memory, and never fewer than one.

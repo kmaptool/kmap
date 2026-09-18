@@ -10,7 +10,9 @@ typealias ToolInstaller = (_ id: String, _ log: Log, _ runner: ProcessRunner,
 /// The installer writes; the render loop reads. A download reports its own fraction, and
 /// the steps around it - unpacking, compiling, asking a package manager - report a stage
 /// with no fraction, which the bar draws as indeterminate rather than as zero.
-final class InstallProgress {
+/// Written by an install on its own task and read by the screen. `@unchecked Sendable`
+/// stands on `lock`: every property is reached only under it.
+final class InstallProgress: @unchecked Sendable {
     private let lock = NSLock()
     private var _tool = ""
     private var _stage = ""

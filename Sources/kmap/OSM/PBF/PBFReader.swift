@@ -181,9 +181,15 @@ struct PBFReader {
     static func acrossCores(_ count: Int, failures: inout [Error?],
                             _ body: (Int) throws -> Void) throws {
         guard count > 0 else { return }
-        failures.withUnsafeMutableBufferPointer { errors in
-            DispatchQueue.concurrentPerform(iterations: count) { i in
-                do { try body(i) } catch { errors[i] = error }
+        withoutActuallyEscaping(body) { body in
+            failures.withUnsafeMutableBufferPointer { errors in
+                // Each index writes only its own slot, and `body` is the caller's promise
+                // of the same: nothing is shared, which no type can say.
+                nonisolated(unsafe) let errors = errors
+                nonisolated(unsafe) let body = body
+                DispatchQueue.concurrentPerform(iterations: count) { i in
+                    do { try body(i) } catch { errors[i] = error }
+                }
             }
         }
         for i in 0..<count {

@@ -5,8 +5,9 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// Live state of a running download. Every property is safe to read from any thread.
-final class DownloadProgress {
+/// Live state of a running download. Every property is safe to read from any thread:
+/// each is reached only under `lock`, which is what `@unchecked Sendable` stands on.
+final class DownloadProgress: @unchecked Sendable {
     private let lock = NSLock()
 
     private var _total: Int64 = 0

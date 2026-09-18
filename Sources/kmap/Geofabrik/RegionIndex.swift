@@ -58,9 +58,22 @@ struct Region {
 }
 
 /// The parsed Geofabrik region tree, cached on disk.
-final class RegionIndex {
-    private(set) var regions: [String: Region] = [:]
-    private(set) var rootIDs: [String] = []
+final class RegionIndex: Sendable {
+    private struct Tables {
+        var regions: [String: Region] = [:]
+        var rootIDs: [String] = []
+    }
+
+    /// Loaded off the main actor and read from it, so the two tables change together and
+    /// behind a lock.
+    private let tables = Locked(Tables())
+
+    var regions: [String: Region] { tables.withLock { $0.regions } }
+    var rootIDs: [String] { tables.withLock { $0.rootIDs } }
+
+    private func install(_ parsed: (regions: [String: Region], roots: [String])) {
+        tables.withLock { $0 = Tables(regions: parsed.regions, rootIDs: parsed.roots) }
+    }
 
     private static let indexURL = URL(string: "https://download.geofabrik.de/index-v1.json")!
     /// Refetch the index if the cached copy is older than this.
@@ -111,13 +124,8 @@ final class RegionIndex {
 
     func load(forceRefresh: Bool = false) async throws {
         let data = try await RegionIndex.fetchIndexData(forceRefresh: forceRefresh)
-        // Parsed off the calling thread, installed on the main actor: the tables are read
-        // from the main actor, and replacing a dictionary under a concurrent read is a race.
-        let tables = try RegionIndex.tables(from: data)
-        await MainActor.run {
-            regions = tables.regions
-            rootIDs = tables.roots
-        }
+        // Parsed off the calling thread, which is where the time goes; installing is a swap.
+        install(try RegionIndex.tables(from: data))
     }
 
     // MARK: Parsing
@@ -144,9 +152,7 @@ final class RegionIndex {
     }
 
     func parse(_ data: Data) throws {
-        let tables = try RegionIndex.tables(from: data)
-        regions = tables.regions
-        rootIDs = tables.roots
+        install(try RegionIndex.tables(from: data))
     }
 
     static func tables(from data: Data) throws -> (regions: [String: Region], roots: [String]) {

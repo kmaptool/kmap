@@ -22,7 +22,9 @@ enum HGTConversion {
     }
 
     /// The tiles available to sample from, opened as they are wanted and then kept.
-    final class Mosaic {
+    /// Asked from every lane of a conversion. `@unchecked Sendable` stands on `lock`: the
+    /// open tiles and the absent set are reached only under it.
+    final class Mosaic: @unchecked Sendable {
         private var open: [Int: GeoTIFF] = [:]
         private var absent: Set<Int> = []
         private let locate: (Int, Int) -> URL?

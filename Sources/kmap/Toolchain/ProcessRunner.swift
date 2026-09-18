@@ -1,7 +1,9 @@
 import Foundation
 
 /// Runs an external command, streaming its output line by line, and can be cancelled.
-final class ProcessRunner {
+/// Cancelled from another thread than the one that runs it. `@unchecked Sendable` stands
+/// on `lock`: the process, its latch and the terminated flag are reached only under it.
+final class ProcessRunner: @unchecked Sendable {
 
     /// Lines of the tail an error report shows.
     private static let reportedTail = 6
@@ -33,7 +35,9 @@ final class ProcessRunner {
     /// Records an exit that may arrive before anything waits for it. Installed before the
     /// process starts, so `signal` and `wait` may occur in either order; whichever comes
     /// second finds the first already recorded. Lock-guarded, callable from any thread.
-    private final class ExitLatch {
+    /// Signalled from the process's termination handler and awaited by the caller.
+    /// `@unchecked Sendable` stands on `lock`, which both sides take.
+    private final class ExitLatch: @unchecked Sendable {
         private let lock = NSLock()
         private var exited = false
         private var waiter: CheckedContinuation<Void, Never>?

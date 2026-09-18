@@ -31,6 +31,8 @@ extension PBFReader {
             /// Decodes one batch of blobs into one half's slots.
             func decode(_ range: Range<Int>, into half: Half<Sink>) {
                 group.enter()
+                // One half belongs to one thread at a time; see `Half`.
+                nonisolated(unsafe) let half = half
                 pool.async {
                     half.sinks.withUnsafeMutableBufferPointer { targets in
                         half.scratches.withUnsafeMutableBufferPointer { buffers in

@@ -2,8 +2,9 @@ import Foundation
 
 /// Byte totals across every download lane, settled and in flight both.
 ///
-/// Thread-safe: every accessor is taken under the lock.
-final class Flight {
+/// Thread-safe: every accessor is taken under the lock, which is what
+/// `@unchecked Sendable` stands on.
+final class Flight: @unchecked Sendable {
     private let lock = NSLock()
     private var live: [ObjectIdentifier: Downloader] = [:]
     private var settled: Int64 = 0

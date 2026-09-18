@@ -100,26 +100,18 @@ extension BuildPipeline {
         }
     }
 
-    /// The current status of a stage. Read under `lock`.
-    func status(of id: StageID) -> StageStatus {
-        lock.lock()
-        defer { lock.unlock() }
-        return stages[id]?.status ?? .pending
-    }
+    func status(of id: StageID) -> StageStatus { board.status(of: id) }
 
     func snapshot() -> Snapshot {
-        lock.lock()
-        defer { lock.unlock() }
-        var made = Snapshot(stages: StageID.allCases.compactMap { stages[$0] },
-                            finished: finished,
-                            failure: failure,
-                            cancelled: wasCancelled,
-                            outputs: outputs,
-                            startedAt: startedAt,
-                            finishedAt: finishedAt)
-        // Whatever the stages say, the whole build's bar only ever moves forward.
-        overallHighWater = max(overallHighWater, made.rawOverall)
-        made.overallFloor = overallHighWater
+        let run = state.withLock { $0 }
+        var made = Snapshot(stages: board.stages,
+                            finished: run.finished,
+                            failure: run.failure,
+                            cancelled: run.wasCancelled,
+                            outputs: run.outputs,
+                            startedAt: run.startedAt,
+                            finishedAt: run.finishedAt)
+        made.overallFloor = board.floor(raisedTo: made.rawOverall)
         return made
     }
 
@@ -141,73 +133,37 @@ extension BuildPipeline {
         return result
     }
 
-    /// Kept apart from `measure` so the lock is never taken from an async function.
     func record(_ stage: StageID, _ name: String, _ seconds: Double) {
-        lock.lock()
-        defer { lock.unlock() }
-        if let at = marks.firstIndex(where: { $0.stage == stage && $0.name == name }) {
-            marks[at].seconds += seconds
-            marks[at].peakBytes = Machine.memoryInUse()
-        } else {
-            marks.append(Mark(stage: stage, name: name, seconds: seconds,
-                              peakBytes: Machine.memoryInUse()))
+        let peak = Machine.memoryInUse()
+        state.withLock { run in
+            if let at = run.marks.firstIndex(where: { $0.stage == stage && $0.name == name }) {
+                run.marks[at].seconds += seconds
+                run.marks[at].peakBytes = peak
+            } else {
+                run.marks.append(Mark(stage: stage, name: name, seconds: seconds, peakBytes: peak))
+            }
         }
     }
+
+    // The stages live on the board; these forward, so a stage reads as it always did.
 
     func set(_ id: StageID, _ status: StageStatus, _ detail: String? = nil, fraction: Double? = nil) {
-        lock.lock()
-        var stage = stages[id] ?? Stage(id: id)
-        if status == .running, stage.status != .running {
-            // Starting, or restarting after a re-split: the bar begins from here.
-            if stage.startedAt == nil { stage.startedAt = Date() }
-            stage.fraction = nil
-        }
-        if status == .done || status == .failed {
-            if let started = stage.startedAt { stage.seconds = Date().timeIntervalSince(started) }
-            stage.peakBytes = Machine.memoryInUse()
-        }
-        stage.status = status
-        if let detail { stage.detail = detail }
-        if let fraction { stage.advance(to: fraction) }
-        stages[id] = stage
-        lock.unlock()
+        board.set(id, status, detail, fraction: fraction)
     }
 
-    /// Clears the progress fraction for a stage that has moved on to a different piece of
-    /// work. `advance(to:)` only ever moves forward, which is wrong across two pieces.
-    func beginPhase(_ id: StageID, _ text: String) {
-        lock.lock()
-        var stage = stages[id] ?? Stage(id: id)
-        stage.detail = text
-        stage.fraction = nil
-        stages[id] = stage
-        lock.unlock()
-    }
+    func beginPhase(_ id: StageID, _ text: String) { board.beginPhase(id, text) }
 
-    /// Moves a stage's bar forward without touching its detail line.
-    func advance(_ id: StageID, fraction: Double) {
-        lock.lock()
-        var stage = stages[id] ?? Stage(id: id)
-        stage.advance(to: fraction)
-        stages[id] = stage
-        lock.unlock()
-    }
+    func advance(_ id: StageID, fraction: Double) { board.advance(id, fraction: fraction) }
 
     func detail(_ id: StageID, _ text: String, fraction: Double? = nil) {
-        lock.lock()
-        var stage = stages[id] ?? Stage(id: id)
-        stage.detail = text
-        if let fraction { stage.advance(to: fraction) }
-        stages[id] = stage
-        lock.unlock()
+        board.detail(id, text, fraction: fraction)
     }
 
     /// Logs what each stage cost, in the order they ran. The memory column is the
     /// high-water mark at the end of the stage.
     func reportTimings() {
-        lock.lock()
-        let ran = StageID.allCases.compactMap { stages[$0] }.filter { $0.seconds > 0 }
-        lock.unlock()
+        let ran = board.stages.filter { $0.seconds > 0 }
+        let marks = state.withLock { $0.marks }
         guard !ran.isEmpty else { return }
         let total = ran.reduce(0.0) { $0 + $1.seconds }
         guard total > 1 else { return }

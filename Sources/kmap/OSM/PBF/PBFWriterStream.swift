@@ -12,7 +12,8 @@ extension PBFWriter {
     /// several open, each keeps to its own queue.
     static let live = LiveCount()
 
-    final class LiveCount {
+    /// `value` is reached only under `lock`, which is what `@unchecked Sendable` stands on.
+    final class LiveCount: @unchecked Sendable {
         private let lock = NSLock()
         private var value = 0
         func enter() { lock.lock(); value += 1; lock.unlock() }
@@ -31,6 +32,8 @@ extension PBFWriter {
     /// Hands a batch to this writer's own queue, waiting if one is already there.
     func submit(_ work: @escaping () -> Void) {
         Self.room.wait()
+        // Run once, on this writer's own serial queue, after the caller has let go of it.
+        nonisolated(unsafe) let work = work
         queue.async {
             work()
             Self.room.signal()
@@ -72,6 +75,8 @@ extension PBFWriter {
             }
         } else {
             packed.withUnsafeMutableBufferPointer { slots in
+                // Each lane writes only its own slot, which no type can say: nothing is shared.
+                nonisolated(unsafe) let slots = slots
                 DispatchQueue.concurrentPerform(iterations: work.count) { i in
                     if case .toCompress(_, let payload) = work[i] {
                         slots[i] = Self.deflate(payload)

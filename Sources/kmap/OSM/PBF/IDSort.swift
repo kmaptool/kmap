@@ -48,9 +48,12 @@ enum IDSort {
         }
         let lanes = max(2, min(Machine.fastCores, total / leastPerLane))
         var step = (total + lanes - 1) / lanes
+        let chunkSize = step
         ids.withUnsafeMutableBufferPointer { source in
-            DispatchQueue.concurrentPerform(iterations: (total + step - 1) / step) { lane in
-                let low = lane * step, high = min(total, low + step)
+            // Each lane sorts its own stretch, which no type can say: nothing is shared.
+            nonisolated(unsafe) let source = source
+            DispatchQueue.concurrentPerform(iterations: (total + chunkSize - 1) / chunkSize) { lane in
+                let low = lane * chunkSize, high = min(total, low + chunkSize)
                 guard low < high else { return }
                 var chunk = UnsafeMutableBufferPointer(rebasing: source[low..<high])
                 chunk.sort()
@@ -64,8 +67,9 @@ enum IDSort {
             let width = step
             ids.withUnsafeMutableBufferPointer { a in
                 scratch.withUnsafeMutableBufferPointer { b in
-                    let from = settled ? a : b
-                    let into = settled ? b : a
+                    // Each pair merges its own stretch of `from` into the same of `into`.
+                    nonisolated(unsafe) let from = settled ? a : b
+                    nonisolated(unsafe) let into = settled ? b : a
                     DispatchQueue.concurrentPerform(iterations: pairs) { pair in
                         let low = pair * 2 * width
                         let middle = min(total, low + width)

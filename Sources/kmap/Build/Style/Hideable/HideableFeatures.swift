@@ -73,19 +73,18 @@ struct HideableFeature: Equatable {
     /// The curated entries plus the generated catalogue. Parsed once and cached, and
     /// dropped by `forget` when a style writes a new catalogue.
     static var all: [HideableFeature] {
-        lock.lock()
-        defer { lock.unlock() }
-        if let cached { return cached }
-        let made = curated + parseCatalogue(HideableCatalogue.text())
-        cached = made
-        return made
+        cached.withLock { held in
+            if let held { return held }
+            let made = curated + parseCatalogue(HideableCatalogue.text())
+            held = made
+            return made
+        }
     }
 
-    private static let lock = NSLock()
-    private static var cached: [HideableFeature]?
+    private static let cached = Locked<[HideableFeature]?>(nil)
 
     static func forget() {
-        lock.lock(); cached = nil; lock.unlock()
+        cached.withLock { $0 = nil }
     }
 
     static func feature(id: String) -> HideableFeature? {
