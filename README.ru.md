@@ -208,6 +208,14 @@ sudo apt install ./kmap_<версия>_<арх>.deb
 
 Ubuntu 20.04, Debian 11 и выше; Intel или ARM. Так же работает и под WSL.
 
+Для остальных дистрибутивов (Arch, Fedora, openSUSE и др.) есть `.tar.xz`: распакуйте
+архив и положите `kmap` в каталог из `PATH`. Нужны только glibc, libcurl и zlib.
+
+```sh
+tar -xf kmap-<версия>-linux-<арх>.tar.xz
+sudo install kmap-<версия>-linux-<арх>/kmap /usr/local/bin/
+```
+
 ### macOS
 
 Откройте `.dmg` и перетащите **kmap** в папку «Программы». Или скопируйте исполняемый файл

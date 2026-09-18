@@ -36,7 +36,7 @@ ifdef UNCHECKED
 endif
 
 .PHONY: all build release run test linux assets version reassign clean install uninstall \
-        package-mac package-debian package-windows
+        package-mac package-debian package-linux package-windows
 
 all: build
 
@@ -81,6 +81,10 @@ package-mac:
 ## Only on Debian or Ubuntu; the machine's own architecture.
 package-debian:
 	@Scripts/build-debian.sh
+
+## Every other Linux: a .tar.xz, built on Amazon Linux 2. See Scripts/README.md.
+package-linux:
+	@Scripts/build-linux.sh
 
 ## Only on Windows, from a bash prompt there.
 package-windows:

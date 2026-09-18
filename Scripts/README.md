@@ -8,11 +8,12 @@ without a bundle, an installer or a package manager.
 |---|---|---|
 | `build-mac.sh` | macOS | `build/mac/kmap.app`, `build/mac/kmap-<version>.dmg` |
 | `build-debian.sh` | Debian or Ubuntu | `build/debian/kmap_<version>_<arch>.deb` |
+| `build-linux.sh` | Amazon Linux 2 | `build/linux/kmap-<version>-linux-<arch>.tar.xz`, for every other Linux |
 | `build-windows.sh` | Windows, from Git Bash | `build/windows/kmap-<version>.exe` |
 
-`make package-mac`, `make package-debian` and `make package-windows` call them. Each
-script refuses on the wrong OS and names any tool it is missing. `SKIP_BUILD=1` packages
-what was built last time; on Windows the same is `-SkipBuild`.
+`make package-mac`, `make package-debian`, `make package-linux` and `make package-windows`
+call them. Each script refuses on the wrong OS and names any tool it is missing.
+`SKIP_BUILD=1` packages what was built last time; on Windows the same is `-SkipBuild`.
 
 ## Requirements
 
@@ -20,6 +21,7 @@ what was built last time; on Windows the same is `-SkipBuild`.
 |---|---|
 | macOS | Xcode or its command line tools. The bundle is signed ad-hoc: Gatekeeper asks once on first launch. |
 | Debian | The Swift toolchain, `dpkg-dev` and `binutils`. The last two the script installs through apt: outright as root, after asking otherwise, and never with `SKIP_APT=1`. Build on the oldest base you mean to support: a binary built against an older glibc runs on newer ones, not the reverse. Ubuntu 20.04 (glibc 2.31, also Debian 11's) covers everything since. |
+| Linux | The Swift toolchain, `tar`, `xz` and `binutils`. The last three the script installs through dnf or yum when run as root, and never with `SKIP_INSTALL=1`. Build on Amazon Linux 2. Ubuntu's libcurl tags its symbols with a version; a binary built against it asks for those tags, and the loader of every distribution whose libcurl has none prints a warning on each run. Amazon Linux 2 has no tags to ask for, and its glibc 2.26 is older than any distribution still in use. The script checks the finished binary and refuses one that asks for versioned libcurl symbols. |
 | Windows 10 1803+ | The Swift toolchain, Visual Studio Build Tools, the Windows SDK and [Inno Setup](https://jrsoftware.org/isinfo.php). Without Inno Setup the script stages a folder that runs as it is. |
 
 ## Folders
@@ -30,11 +32,13 @@ Everything is written inside the checkout, and every path here is in `.gitignore
 |---|---|---|
 | macOS | `.build/` | `build/mac/` |
 | Debian | `.build-linux-<arch>/` | `build/debian/` |
+| Linux | `.build-portable-<arch>/` | `build/linux/` |
 | Windows | `.build-windows-<arch>/` | `build/windows/` |
 
-Debian and Windows keep out of `.build/`: a checkout also built on a Mac has
+Debian, Linux and Windows keep out of `.build/`: a checkout also built on a Mac has
 `.build/release` as a symlink into `arm64-apple-macosx`, which is no place for another
-platform's binary.
+platform's binary. The two Linux builds keep apart as well: they are built against
+different systems and must not share objects.
 
 The Windows checkout has to be on a local disk. From a folder shared by a Mac, mapped to
 a drive letter or not, SwiftPM resolves the path to its UNC form and stops:
@@ -47,6 +51,7 @@ a drive letter or not, SwiftPM resolves the path to its UNC form and stops:
 |---|---|
 | macOS | One universal binary (`swift build --arch arm64 --arch x86_64`), so one `.app` and one `.dmg`. |
 | Debian | One `.deb` per architecture, each built on a machine of that architecture: real, virtual or a container. Both builds keep their own scratch folder, so one checkout serves both. |
+| Linux | One `.tar.xz` per architecture, built the same way. The name carries the architecture as those distributions spell it: `x86_64`, `aarch64`. |
 | Windows | One installer carrying both, built from either kind of machine. Inno Setup lays down the payload matching the machine it installs on. |
 
 A file name without an architecture runs on anything that platform has. A Windows build
