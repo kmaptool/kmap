@@ -932,6 +932,7 @@ enum Strings {
         "checking tools": "проверяю инструменты",
         "checking for a newer extract": "проверяю, нет ли выгрузки свежее",
         "verifying cached copy": "проверяю копию из кэша",
+        "cached copy was damaged — downloading again": "копия в кэше повреждена — скачиваю заново",
         "verifying checksum": "проверяю контрольную сумму",
         "downloaded": "скачано",
         "all from the cache": "все из кэша",

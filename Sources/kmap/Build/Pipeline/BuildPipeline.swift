@@ -196,57 +196,72 @@ final class BuildPipeline {
             try stopIfCancelled()
             let extracts = try await downloadExtracts()
             try stopIfCancelled()
-            // Elevation runs beside the split; only the first region's write waits on it,
-            // where the contours are folded in. A retried split awaits the same task.
-            let elevationTask = Task { [self] in
-                try await buildElevation(extracts: extracts)
-            }
-            retain(elevation: elevationTask)
-            defer { elevationTask.cancel() }
-            // Node count only approximates how much a tile draws, so the cap starts at the
-            // setting and comes down only after a tile overflows the 16 MB drawing section.
-            var cap = recipe.maxNodesPerTile
-            // On overflow only the tiles mkgmap names are cut; halving the cap is the
-            // fallback for an overflow reported without them.
-            var areas: [TileSplitter.Area]? = nil
-            var rounds = 0
-            while true {
-                let tiles = try await splitIntoTiles(extracts: extracts,
-                                                     contours: elevationTask,
-                                                     maxNodes: cap, areas: areas)
-                try stopIfCancelled()
-                do {
-                    try await compile(tiles: tiles)
-                    break
-                } catch BuildError.tileTooDense(let atCap, let failed) {
-                    rounds += 1
-                    guard rounds <= 8 else { throw BuildError.tileTooDense(atCap, failed: failed) }
-                    let indexes = Set(failed.map { $0 - recipe.mapIDBase })
-                        .filter { $0 >= 0 && $0 < tiles.tiles.count }
-                    if !indexes.isEmpty {
-                        let current = tiles.tiles.map { TileSplitter.Area(bbox: $0.bbox) }
-                        let next = TileSplitter.refined(current, splitting: indexes)
-                        guard next.count > current.count else {
-                            throw BuildError.tileTooDense(atCap, failed: failed)
-                        }
-                        log.warn("\(indexes.count) tile(s) held more detail than Garmin's"
-                                 + " 16 MB drawing section takes — cutting just those in half")
-                        areas = next
-                        continue
-                    }
-                    let next = cap / 2
-                    guard next >= 200_000 else { throw BuildError.tileTooDense(cap, failed: []) }
-                    log.warn("a tile held more detail than Garmin's 16 MB drawing section takes"
-                             + " — re-splitting at \(next / 1000)k nodes per tile")
-                    cap = next
-                    areas = nil
+            do {
+                try await buildMap(from: extracts)
+            } catch where Self.readsLikeADamagedExtract(error) {
+                // An extract would not decode. If one was damaged on disk it is fetched
+                // again and the build carries on; this is tried once.
+                guard let fetched = try await refetchDamagedExtracts(among: extracts) else {
+                    throw error
                 }
+                try stopIfCancelled()
+                try await buildMap(from: fetched)
             }
             try stopIfCancelled()
             try await collect()
             finish(error: nil)
         } catch {
             finish(error: error)
+        }
+    }
+
+    /// Everything between the download and the collection: elevation, split and compile.
+    private func buildMap(from extracts: [URL]) async throws {
+        // Elevation runs beside the split; only the first region's write waits on it,
+        // where the contours are folded in. A retried split awaits the same task.
+        let elevationTask = Task { [self] in
+            try await buildElevation(extracts: extracts)
+        }
+        retain(elevation: elevationTask)
+        defer { elevationTask.cancel() }
+        // Node count only approximates how much a tile draws, so the cap starts at the
+        // setting and comes down only after a tile overflows the 16 MB drawing section.
+        var cap = recipe.maxNodesPerTile
+        // On overflow only the tiles mkgmap names are cut; halving the cap is the
+        // fallback for an overflow reported without them.
+        var areas: [TileSplitter.Area]? = nil
+        var rounds = 0
+        while true {
+            let tiles = try await splitIntoTiles(extracts: extracts,
+                                                 contours: elevationTask,
+                                                 maxNodes: cap, areas: areas)
+            try stopIfCancelled()
+            do {
+                try await compile(tiles: tiles)
+                break
+            } catch BuildError.tileTooDense(let atCap, let failed) {
+                rounds += 1
+                guard rounds <= 8 else { throw BuildError.tileTooDense(atCap, failed: failed) }
+                let indexes = Set(failed.map { $0 - recipe.mapIDBase })
+                    .filter { $0 >= 0 && $0 < tiles.tiles.count }
+                if !indexes.isEmpty {
+                    let current = tiles.tiles.map { TileSplitter.Area(bbox: $0.bbox) }
+                    let next = TileSplitter.refined(current, splitting: indexes)
+                    guard next.count > current.count else {
+                        throw BuildError.tileTooDense(atCap, failed: failed)
+                    }
+                    log.warn("\(indexes.count) tile(s) held more detail than Garmin's"
+                             + " 16 MB drawing section takes — cutting just those in half")
+                    areas = next
+                    continue
+                }
+                let next = cap / 2
+                guard next >= 200_000 else { throw BuildError.tileTooDense(cap, failed: []) }
+                log.warn("a tile held more detail than Garmin's 16 MB drawing section takes"
+                         + " — re-splitting at \(next / 1000)k nodes per tile")
+                cap = next
+                areas = nil
+            }
         }
     }
 
