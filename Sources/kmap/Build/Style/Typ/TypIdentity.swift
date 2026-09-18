@@ -1,6 +1,6 @@
 import Foundation
 
-/// Telling one TYP from another — the fingerprint, what the library holds — and
+/// Telling one TYP from another - the fingerprint, what the library holds - and
 /// the recovered rule sheet kept beside a library file.
 extension TypLibrary {
     // MARK: Telling one TYP from another

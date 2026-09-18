@@ -2,7 +2,7 @@ import Foundation
 
 /// What the recovery is doing right now, for a screen to draw.
 ///
-/// The pipeline writes, the render loop reads, and the lock keeps the pair honest —
+/// The pipeline writes, the render loop reads, and the lock keeps the pair honest -
 /// the same shape the build pipeline uses, sized down to four stages.
 final class RecoverProgress: @unchecked Sendable {
     enum Stage: Equatable {
@@ -13,7 +13,7 @@ final class RecoverProgress: @unchecked Sendable {
         case reading
         /// Loading one OSM extract into the ground index.
         case indexing(String)
-        /// Matching map elements against that ground — a stage with a true total.
+        /// Matching map elements against that ground - a stage with a true total.
         case matching(String)
         /// Looking up what geometry could not name: unmatched points asked of the
         /// place they stand on, coarse fills of the ways beneath them.

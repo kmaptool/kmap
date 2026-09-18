@@ -40,7 +40,7 @@ struct StylePalette {
             var line = raw.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty, !line.hasPrefix("#") else { continue }
             // A trailing note is a note, not part of the name. ` # ` and not bare `#`,
-            // because every colour in the table starts with one — and none with a space.
+            // because every colour in the table starts with one - and none with a space.
             if let note = line.range(of: " # ") {
                 line = String(line[..<note.lowerBound]).trimmingCharacters(in: .whitespaces)
             }

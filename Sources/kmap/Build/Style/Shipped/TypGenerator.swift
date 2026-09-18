@@ -4,18 +4,18 @@ import Foundation
 ///
 /// The table is the whole input: every polygon becomes a `[_polygon]`, every line a
 /// `[_line]`, and the draw order is read off the levels. Night colours are not in the
-/// table — they are derived, by dimming the day colour and snapping each channel to the
+/// table - they are derived, by dimming the day colour and snapping each channel to the
 /// four steps a MIP watch can actually show (0, 85, 170, 255). A night palette drawn in
 /// finer steps looks fine on paper and collapses to mud on the wrist.
 enum TypGenerator {
 
-    /// `points` is a block of ready `[_point]` sections appended as it is — icons are
+    /// `points` is a block of ready `[_point]` sections appended as it is - icons are
     /// bitmaps made once from their SVGs, not something to regenerate at build time.
     ///
     /// `graphics` is a block of ready `[_polygon]`/`[_line]` sections, a style's own
     /// pattern drawings taken whole: a section whose code the palette carries REPLACES
     /// the flat colour that would be generated, a line section for a code the palette
-    /// does not carry is appended, and a polygon for an unknown code is dropped — a
+    /// does not carry is appended, and a polygon for an unknown code is dropped - a
     /// polygon needs a draw order, and the palette is where draw orders live.
     static func text(from palette: StylePalette, fid: Int, productCode: Int = 1,
                      points: String = "", graphics: String = "") -> String {
@@ -138,7 +138,7 @@ enum TypGenerator {
     }
 
     /// The night version of a day colour: dimmed to two thirds, then each channel
-    /// snapped to the nearest of 0, 85, 170, 255 — the only greys a MIP display has.
+    /// snapped to the nearest of 0, 85, 170, 255 - the only greys a MIP display has.
     static func night(of day: String) -> String {
         guard day.count == 7, day.hasPrefix("#"),
               let value = Int(day.dropFirst(), radix: 16) else { return day }

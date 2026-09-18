@@ -21,7 +21,7 @@ struct TypBinary {
             kind == .point || type > 0xFF ? (type << 8) | subtype : type
         }
 
-        /// Day ink, day background, night ink, night background — as many as the element
+        /// Day ink, day background, night ink, night background - as many as the element
         /// stores. A nil is a slot the file marks transparent and does not store at all.
         let colours: [String?]
 
@@ -288,7 +288,7 @@ struct TypBinary {
         }
 
         /// A point's image: its own palette, then its pixels. Mode 0x20 packs each colour
-        /// into 28 unaligned bits — blue, green, red, four of alpha; mode 0x10 stores solid
+        /// into 28 unaligned bits - blue, green, red, four of alpha; mode 0x10 stores solid
         /// colours and appends one transparent slot; anything else is solid colours alone.
         mutating func pointImage(width: Int, height: Int) throws -> TypBinary.PointImage {
             let solidCount = u1()

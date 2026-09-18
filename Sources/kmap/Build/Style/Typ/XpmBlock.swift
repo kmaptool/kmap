@@ -11,7 +11,7 @@ struct XpmBlock: Equatable {
     let declaredColours: Int
     let charsPerPixel: Int
 
-    /// Palette in declaration order. A nil colour is `none` — transparent, and drawn as
+    /// Palette in declaration order. A nil colour is `none` - transparent, and drawn as
     /// whatever lies beneath.
     let palette: [(key: String, colour: String?)]
 

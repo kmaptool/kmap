@@ -32,7 +32,7 @@ struct RuleReassignment: Equatable {
     /// number a person chose in the style editor from one kmap moved by itself.
     static let mark = "# kmap: was "
 
-    /// `[0x2f06` — the opening of the type bracket, which is what identifies the code in
+    /// `[0x2f06` - the opening of the type bracket, which is what identifies the code in
     /// the line. Matching the bare number would also hit a resolution or a coordinate.
     private static func bracket(_ code: Int) -> String { "[" + TypeMeaning.hex(code) }
 }

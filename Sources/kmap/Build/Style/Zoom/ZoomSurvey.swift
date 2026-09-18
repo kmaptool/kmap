@@ -49,7 +49,7 @@ struct ZoomSurvey {
         return rung - spread.coarsest
     }
 
-    /// The same rung as a sentence about a family: "starts at rung 2 · 1.2 km". One
+    /// The same rung as a sentence about a family: "starts at rung 2 - 1.2 km". One
     /// localization key rather than a preposition glued to `rungLabel`, since an inflecting
     /// language cannot assemble the phrase from parts.
     func startsAt(rung: Int) -> String {
@@ -58,7 +58,7 @@ struct ZoomSurvey {
         return t("from level %d", at) + scale
     }
 
-    /// The far end of a window, as a sentence: "and stops at rung 3 · 3 km". One
+    /// The far end of a window, as a sentence: "and stops at rung 3 - 3 km". One
     /// localization key, for the reason `startsAt` is one.
     func stopsAt(rung: Int) -> String {
         let at = clamp(rung)

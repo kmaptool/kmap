@@ -20,7 +20,7 @@ struct TypSource {
     /// Types the file declares as deliberately left to the device, by kind, so a coverage
     /// report can skip them. Carried in a comment the TYP compiler ignores:
     ///
-    ///     ; kmap:unstyled lines 0x01 0x02 0x03 — the road hierarchy, left to the device
+    ///     ; kmap:unstyled lines 0x01 0x02 0x03 - the road hierarchy, left to the device
     let deliberatelyUnstyled: [MapElementKind: Set<Int>]
 
     var text: String { lines.joined(separator: "\n") }

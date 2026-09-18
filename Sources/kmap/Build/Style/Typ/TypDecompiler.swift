@@ -189,8 +189,8 @@ enum TypDecompiler {
         for label in element.labels {
             out.append("String=\(String(format: "0x%02x", label.language)),\(label.text)")
         }
-        // Omitting FontStyle is meaningful — it leaves the style at whatever the device
-        // uses — so it is written only where the file actually carried one.
+        // Omitting FontStyle is meaningful - it leaves the style at whatever the device
+        // uses - so it is written only where the file actually carried one.
         if let style = element.fontStyle, style != "Default" {
             out.append("FontStyle=\(style)")
         }
@@ -260,7 +260,7 @@ enum TypDecompiler {
         XpmBlock.key(index, width: width)
     }
 
-    /// A type code in the form the compiler reads back as the same type — the one
+    /// A type code in the form the compiler reads back as the same type - the one
     /// spelling the rule files, the TYP source and the reassignments share.
     private static func hex(_ code: Int) -> String { TypeMeaning.hex(code) }
 }

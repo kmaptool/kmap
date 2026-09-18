@@ -8,7 +8,7 @@ struct ZoomRungs {
     /// Bits per rung, finest first -- the order mkgmap's own `--levels` string uses.
     let bits: [Int]
 
-    /// Reads the `--levels` string: `0:24, 1:23, …`. Anything unreadable is left out
+    /// Reads the `--levels` string: `0:24, 1:23, ...`. Anything unreadable is left out
     /// rather than guessed at, and an empty ladder makes every move a no-op.
     init(levels: String) {
         bits = levels.split(separator: ",").compactMap { entry in

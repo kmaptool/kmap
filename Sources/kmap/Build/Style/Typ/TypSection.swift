@@ -41,8 +41,8 @@ struct TypSection {
     }
 
     /// The night drawing, or nil where the file states nothing about night. A point holds a
-    /// second picture; a pattern holds one set of pixels and two colour pairs — day ink, day
-    /// background, night ink, night background — and reads them through the second pair.
+    /// second picture; a pattern holds one set of pixels and two colour pairs - day ink, day
+    /// background, night ink, night background - and reads them through the second pair.
     var nightPicture: XpmBlock? {
         if kind == .point { return nightXpm }
         guard let picture, picture.palette.count >= 4 else { return nil }

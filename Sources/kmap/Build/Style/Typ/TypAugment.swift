@@ -1,13 +1,13 @@
 import Foundation
 
 /// Adds kmap's own sections to whatever TYP a build is using: the repair pass emits two
-/// type codes no other style draws. The sections travel with the build — the original file
+/// type codes no other style draws. The sections travel with the build - the original file
 /// is never written to, a TYP already defining one of these types keeps its own, and
 /// everything else comes through verbatim with the sections appended at the end.
 enum TypAugment {
 
     /// Where a copy goes when the caller names nowhere. A build names its own scratch
-    /// directory instead, so the copy — which carries the theme applied to it — is removed
+    /// directory instead, so the copy - which carries the theme applied to it - is removed
     /// with the rest of that build's work files.
     static var directory: URL {
         Paths.styles.appendingPathComponent("build-typ", isDirectory: true)
@@ -139,8 +139,8 @@ enum TypAugment {
         }
 
         let source = TypSource.parse(text)
-        // A borrowed style may already draw the number kmap repairs with — this one
-        // draws 0x0d as a pedestrian street — and the mark would then wear that look
+        // A borrowed style may already draw the number kmap repairs with - this one
+        // draws 0x0d as a pedestrian street - and the mark would then wear that look
         // instead of its own. Such a mark moves to a number the style leaves free, and
         // the rules that emit it are moved with it.
         var moved: [MapElementKind: [Int: Int]] = [:]
@@ -151,10 +151,10 @@ enum TypAugment {
                 continue
             }
             // Whose drawing is it? A style that means to draw kmap's repair link says
-            // so in the label kmap's own section carries — that is how a copy of it is
+            // so in the label kmap's own section carries - that is how a copy of it is
             // recognised, and such a style keeps its own drawing. Any other section on
-            // that number belongs to the style's own vocabulary — this one draws 0x0d
-            // as a pedestrian street — so the mark moves to a number left free rather
+            // that number belongs to the style's own vocabulary - this one draws 0x0d
+            // as a pedestrian street - so the mark moves to a number left free rather
             // than wearing a look that means something else.
             if taken.englishLabel == Self.repairLabel { continue }
             // The link itself is a road: it moves only to a number that still routes, and

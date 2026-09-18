@@ -79,7 +79,7 @@ extension TypSource {
                          deliberatelyUnstyled: unstyled)
     }
 
-    /// Parses `; kmap:unstyled lines 0x01 0x02 — why`; returns nil for any other comment.
+    /// Parses `; kmap:unstyled lines 0x01 0x02 - why`; returns nil for any other comment.
     /// Text after the codes is ignored, and a malformed marker is treated as an ordinary
     /// comment rather than guessed at.
     private static func parseUnstyledMarker(_ line: String)
@@ -250,7 +250,7 @@ extension TypSource {
         return out
     }
 
-    /// Parses `String=0x19,…`. The language index is hex; the text runs to end of line and
+    /// Parses `String=0x19,...`. The language index is hex; the text runs to end of line and
     /// may itself contain commas.
     private static func parseLabel(_ value: String) -> (language: Int, text: String)? {
         guard let comma = value.firstIndex(of: ",") else { return nil }

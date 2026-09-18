@@ -5,7 +5,7 @@ import Foundation
 /// A rule may span two lines, the condition on one and `[0x14 resolution 22]` on the next,
 /// or three, with an action block sharing the type's line:
 ///
-///     waterway=* & waterway!=no & (area=no | …)
+///     waterway=* & waterway!=no & (area=no | ...)
 ///         {add name='${waterway|subst:"_=> "}'} [0x26 resolution 24]
 ///
 /// Both the survey and the rewriting pass read through this, so they cannot diverge.
@@ -14,7 +14,7 @@ struct ZoomRuleScan {
     struct Rule {
         let line: Int
         let condition: String
-        /// The `[…]` including its brackets.
+        /// The `[...]` including its brackets.
         let type: String
         /// Where the type sits in that line.
         let typeRange: Range<String.Index>
@@ -59,7 +59,7 @@ struct ZoomRuleScan {
     /// The `resolution` value in a type, if it has one.
     ///
     /// Read as its own token because the number is not always last in the bracket:
-    /// `continue`, `with_actions` and `default_name '…'` follow it.
+    /// `continue`, `with_actions` and `default_name '...'` follow it.
     static func resolution(in type: String) -> (value: Int, range: Range<String.Index>)? {
         guard let at = type.range(of: "resolution ") else { return nil }
         let digits = type[at.upperBound...].prefix { $0.isNumber }

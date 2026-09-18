@@ -31,7 +31,7 @@ enum StyleRecovery {
         var codesByTag: [String: [String: Int]] = [:]
         /// The ground each meaning covers under each code, in map units squared.
         var areaByTag: [String: [String: Double]] = [:]
-        /// How many objects of each meaning the searched ground holds at all — so a tag
+        /// How many objects of each meaning the searched ground holds at all - so a tag
         /// the ground never carries is not reported as a map's omission.
         var groundTags: [String: Int] = [:]
     }
@@ -50,7 +50,7 @@ enum StyleRecovery {
         /// with a second vocabulary for the zoomed-out levels shows here.
         var resolutions: [Int: Int] = [:]
 
-        /// `16–18`, or nil where nothing was recorded.
+        /// `16-18`, or nil where nothing was recorded.
         var zooms: String? {
             guard let low = resolutions.keys.min(), let high = resolutions.keys.max()
             else { return nil }
@@ -62,7 +62,7 @@ enum StyleRecovery {
     /// background under it. No OSM way is their source, so no evidence can exist.
     ///
     /// The land polygon is deliberately NOT here. It rides on 0x27, and a borrowed
-    /// style that paints that number paints it over every acre of the map — the one
+    /// style that paints that number paints it over every acre of the map - the one
     /// tried it as a construction hatch, and the whole country came out a building
     /// site. Land is drawn only where their vocabulary leaves the number alone, which
     /// is the same rule everything else follows.
@@ -284,6 +284,8 @@ enum StyleRecovery {
         let span = (dump.count + cores - 1) / cores
         guard span > 0 else { return Evidence() }
         var out = Evidence()
+        // Each core writes only the matches of its own span: nothing is shared.
+        nonisolated(unsafe) let matches = matches
         try await withThrowingTaskGroup(of: Evidence.self) { group in
             for core in 0..<cores {
                 let from = core * span

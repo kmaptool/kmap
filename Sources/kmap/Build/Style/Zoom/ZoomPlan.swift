@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The two built-in plans hold the ladders as measured; they cannot be edited or deleted,
 /// and editing one makes a copy. A move is counted in rungs of the ladder the plan is built
-/// on, never in bits — see `ZoomRungs`. Positive is coarser.
+/// on, never in bits - see `ZoomRungs`. Positive is coarser.
 struct ZoomPlan: Codable, Equatable, Identifiable {
     var id: String
     var name: String
@@ -14,8 +14,8 @@ struct ZoomPlan: Codable, Equatable, Identifiable {
 
     /// The rungs a family is drawn on: a run, not a set.
     ///
-    /// A style rule carries one `resolution`, optionally as a range — `[0x0c resolution
-    /// 23-19]` — and a range is contiguous by construction, so a gap cannot be expressed.
+    /// A style rule carries one `resolution`, optionally as a range - `[0x0c resolution
+    /// 23-19]` - and a range is contiguous by construction, so a gap cannot be expressed.
     struct Window: Codable, Equatable {
         /// Rung indexes: finest is the smaller, since rung 0 is the closest zoom.
         var finest: Int

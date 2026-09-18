@@ -47,8 +47,8 @@ extension TypLibrary {
         return roots.filter { FileTools.exists($0) }
     }
 
-    /// Walks the search roots for anything holding a TYP. Blocking and slow — it reaches
-    /// into every Garmin folder on every volume — so call it off the render loop.
+    /// Walks the search roots for anything holding a TYP. Blocking and slow - it reaches
+    /// into every Garmin folder on every volume - so call it off the render loop.
     /// - Parameter excluding: kmap's own output folder, which is skipped.
     static func discover(excluding output: URL?) -> [TypCandidate] {
         var found: [TypCandidate] = []
@@ -146,7 +146,7 @@ extension TypLibrary {
 
     /// What an import produced.
     struct Imported {
-        /// The library entry — the file the editor will be pointed at.
+        /// The library entry - the file the editor will be pointed at.
         let url: URL
         /// True when the TYP was compiled and has been written back out as source.
         let decompiled: Bool
@@ -234,7 +234,7 @@ extension TypLibrary {
     /// The map a library entry was taken out of, from the latest import-log line naming
     /// it, and only while that path is still a Garmin container.
     ///
-    /// The log exists in two shapes — with and without the fingerprint column — so the
+    /// The log exists in two shapes - with and without the fingerprint column - so the
     /// path is found by ruling the fingerprint out rather than by counting columns. It
     /// used to be found by asking which field began with a slash, which is a question
     /// only a Unix path answers yes to: on Windows the path begins `C:\`, no field
@@ -258,7 +258,7 @@ extension TypLibrary {
 
     /// Whether a field is the fingerprint column: sixteen hex digits, or the dash written
     /// where there was nothing to fingerprint. Nothing else is that shape, and a path
-    /// never is — it has a separator in it.
+    /// never is - it has a separator in it.
     private static func isFingerprint(_ field: String) -> Bool {
         if field == "-" { return true }
         return field.count == 16 && field.allSatisfy(\.isHexDigit)
@@ -272,8 +272,8 @@ extension TypLibrary {
     }
 
     /// Takes a copy of whatever is at `url`: a TYP is copied, a `.img` has its TYP lifted
-    /// out. Returns where it landed. Never overwrites — a file already in the library may
-    /// have been edited — so the copy gets a dated or numbered name instead.
+    /// out. Returns where it landed. Never overwrites - a file already in the library may
+    /// have been edited - so the copy gets a dated or numbered name instead.
     @discardableResult
     static func take(at url: URL, into directory: URL = TypLibrary.directory,
                      on day: Date = Date()) throws -> Imported {
