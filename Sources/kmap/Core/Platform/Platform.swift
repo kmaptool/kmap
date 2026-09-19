@@ -30,7 +30,8 @@ enum Platform: Equatable {
         // A kernel built by Microsoft names itself in its release string; catches a
         // process started outside a login shell, where the variables are absent.
         if let release = osRelease()?.lowercased(),
-           release.contains("microsoft") || release.contains("wsl") {
+            release.contains("microsoft") || release.contains("wsl")
+        {
             return .wsl
         }
         return .linux

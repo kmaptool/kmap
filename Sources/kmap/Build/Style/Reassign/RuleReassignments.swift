@@ -23,7 +23,9 @@ struct RuleReassignment: Equatable {
         guard let index = lines.lastIndex(where: { $0.contains(Self.bracket(fromCode)) })
         else { return lines }
         lines[index] = lines[index].replacingOccurrences(
-            of: Self.bracket(fromCode), with: Self.bracket(toCode))
+            of: Self.bracket(fromCode),
+            with: Self.bracket(toCode)
+        )
         if !note.isEmpty { lines[index] += "  # kmap: \(note)" }
         return lines
     }
@@ -42,7 +44,6 @@ struct RuleReassignment: Equatable {
 /// by the same code, so a line that no longer matches the installed mkgmap is reported in
 /// the build log rather than silently skipped.
 enum RuleReassignments {
-
     static var file: URL { Paths.root.appendingPathComponent("reassignments.txt") }
 
     private static let header = """
@@ -85,7 +86,8 @@ enum RuleReassignments {
         guard !list.isEmpty else { return "" }
         var hash: UInt64 = 0xcbf29ce484222325
         for byte in list.map({ "\($0.file)\($0.old.joined())\($0.new.joined())" })
-            .joined().utf8 {
+            .joined().utf8
+        {
             hash = (hash ^ UInt64(byte)) &* 0x100000001b3
         }
         return "+reassign-\(list.count)-" + String(hash & 0xFFFFFF, radix: 16)
@@ -107,8 +109,10 @@ enum RuleReassignments {
     }
 
     /// Records a reassignment, appending to whatever is already there.
-    static func add(_ reassignment: RuleReassignment,
-                    to file: URL = RuleReassignments.file) throws {
+    static func add(
+        _ reassignment: RuleReassignment,
+        to file: URL = RuleReassignments.file
+    ) throws {
         // Two substitutions with the same `-` line would fight: the first applies and the
         // second then reports itself as missed.
         let old = reassignment.oldLines

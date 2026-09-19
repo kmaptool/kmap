@@ -138,7 +138,8 @@ struct BurnPeaks {
 
     private static func parse(_ raw: String?, inFeet: Bool) -> Double? {
         guard var text = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-              !text.isEmpty else { return nil }
+            !text.isEmpty
+        else { return nil }
         text = text.replacingOccurrences(of: "\u{00A0}", with: "")
         text = text.replacingOccurrences(of: " ", with: "")
         var feet = inFeet
@@ -166,7 +167,8 @@ struct BurnPeaks {
     private static func groupsThousands(_ text: String) -> Bool {
         let groups = text.split(separator: ",", omittingEmptySubsequences: false)
         guard groups.count > 1, let first = groups.first, (1...3).contains(first.count),
-              first.allSatisfy(\.isNumber) || first.hasPrefix("-") else { return false }
+            first.allSatisfy(\.isNumber) || first.hasPrefix("-")
+        else { return false }
         return groups.dropFirst().allSatisfy { $0.count == 3 && $0.allSatisfy(\.isNumber) }
     }
 
@@ -176,8 +178,13 @@ struct BurnPeaks {
 
         var peaks: [Peak] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var natural: String?, ele: String?, eleFeet: String?, name = ""
             var at = tags.startIndex
             while at + 1 < tags.endIndex {
@@ -191,7 +198,7 @@ struct BurnPeaks {
                 at += 2
             }
             guard natural == "peak" || natural == "volcano",
-                  let height = BurnPeaks.metres(ele) ?? BurnPeaks.metres(feet: eleFeet)
+                let height = BurnPeaks.metres(ele) ?? BurnPeaks.metres(feet: eleFeet)
             else { return }
             peaks.append(Peak(lat: lat, lon: lon, ele: height, name: name))
         }

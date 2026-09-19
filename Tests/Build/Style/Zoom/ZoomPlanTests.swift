@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Whether moving a family of features lands where it was asked to.
@@ -7,7 +8,6 @@ import XCTest
 /// `0:24, 1:23, 2:22, 3:21, 4:19, …` there is no rung at 20, so a rule at 21 moved by one
 /// bit lands on 20, which mkgmap draws from 21.
 final class ZoomPlanTests: XCTestCase {
-
     private let smooth = ZoomRungs(levels: LevelsProfile.smooth.levels)
 
     func testARuleLandsOnTheFinestRungThatCanHoldIt() {

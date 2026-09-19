@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The decoder's buffers are refilled, not replaced.
@@ -6,7 +7,6 @@ import XCTest
 /// A slice handed to the sink points into the buffer it was filled from, so a reused
 /// buffer keeps its address. Distinct addresses are counted, since growth moves a buffer.
 final class DecodeBufferReuseTests: XCTestCase {
-
     private var folder: URL!
 
     override func setUpWithError() throws {
@@ -27,23 +27,38 @@ final class DecodeBufferReuseTests: XCTestCase {
             slice.withUnsafeBufferPointer { $0.baseAddress.map { UInt(bitPattern: $0) } }
         }
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             nodes += 1
             if let at = Self.address(tags) { nodeTags.append((at, tags.count)) }
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                          values: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             ways += 1
             if let at = Self.address(refs) { wayRefs.insert(at) }
             if let at = Self.address(keys) { wayKeys.insert(at) }
         }
 
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {}
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {}
     }
 
     private func fileWithManyWays(_ count: Int) throws -> URL {
@@ -52,9 +67,13 @@ final class DecodeBufferReuseTests: XCTestCase {
         writer.header()
         var batch: [PBFWriter.Way] = []
         for id in 1...count {
-            batch.append(PBFWriter.Way(id: Int64(id),
-                                       refs: (0..<8).map { Int64(id * 10 + $0) },
-                                       tags: [("highway", "path"), ("name", "way \(id)")]))
+            batch.append(
+                PBFWriter.Way(
+                    id: Int64(id),
+                    refs: (0..<8).map { Int64(id * 10 + $0) },
+                    tags: [("highway", "path"), ("name", "way \(id)")]
+                )
+            )
         }
         writer.ways(batch)
         try writer.finish()
@@ -98,10 +117,16 @@ final class DecodeBufferReuseTests: XCTestCase {
         XCTAssertEqual(seen.ways, 2000)
         // A handful of addresses means the buffer grew a few times early and then settled.
         // One per way -- which is what assigning a new array gives -- would be thousands.
-        XCTAssertLessThan(seen.wayRefs.count, 8,
-                          "way refs are landing in \(seen.wayRefs.count) different buffers")
-        XCTAssertLessThan(seen.wayKeys.count, 8,
-                          "way keys are landing in \(seen.wayKeys.count) different buffers")
+        XCTAssertLessThan(
+            seen.wayRefs.count,
+            8,
+            "way refs are landing in \(seen.wayRefs.count) different buffers"
+        )
+        XCTAssertLessThan(
+            seen.wayKeys.count,
+            8,
+            "way keys are landing in \(seen.wayKeys.count) different buffers"
+        )
     }
 
     /// Every dense node's tags are a slice of one buffer, so each begins at a different
@@ -111,11 +136,16 @@ final class DecodeBufferReuseTests: XCTestCase {
         let url = folder.appendingPathComponent("nodes.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
-        writer.nodes((1...4000).map {
-            PBFWriter.Node(id: Int64($0), lat: 44 + Double($0) / 100_000,
-                           lon: 33 + Double($0) / 100_000,
-                           tags: [("place", "hamlet")])
-        })
+        writer.nodes(
+            (1...4000).map {
+                PBFWriter.Node(
+                    id: Int64($0),
+                    lat: 44 + Double($0) / 100_000,
+                    lon: 33 + Double($0) / 100_000,
+                    tags: [("place", "hamlet")]
+                )
+            }
+        )
         try writer.finish()
 
         var seen = Addresses()
@@ -131,7 +161,10 @@ final class DecodeBufferReuseTests: XCTestCase {
         }
         // Not all of them: a block boundary starts the buffer over, and this file is
         // several blocks. Nearly all of them is what one buffer per block looks like.
-        XCTAssertGreaterThan(consecutive, seen.nodeTags.count - 10,
-                             "dense tags are not running end to end through one buffer")
+        XCTAssertGreaterThan(
+            consecutive,
+            seen.nodeTags.count - 10,
+            "dense tags are not running end to end through one buffer"
+        )
     }
 }

@@ -28,15 +28,19 @@ enum ElementMatcher {
 
     /// The single way this vertex chain belongs to, or nil. Generic over the chain, so the
     /// caller can pass a slice of one large array rather than an array per element.
-    static func way<Chain: RandomAccessCollection>(of cells: Chain,
-                                                   in index: GroundIndex,
-                                                   ring: Bool = false) -> Int32?
+    static func way<Chain: RandomAccessCollection>(
+        of cells: Chain,
+        in index: GroundIndex,
+        ring: Bool = false
+    ) -> Int32?
     where Chain.Element == UInt64, Chain.Index == Int {
         let n = cells.count
         let first = cells.startIndex
         // A two-vertex element is one edge, looked up as such.
         let edge = n == GarminGrid.edgeVertices
-        let grams = edge ? [GarminGrid.edge(cells[first], cells[first + 1])]
+        let grams =
+            edge
+            ? [GarminGrid.edge(cells[first], cells[first + 1])]
             : GarminGrid.grams(of: cells)
         guard !grams.isEmpty else { return nil }
 
@@ -48,7 +52,9 @@ enum ElementMatcher {
                 votes[pair.slot, default: 0] += 1
             }
         }
-        let reversed = edge ? [GarminGrid.edge(cells[first + 1], cells[first])]
+        let reversed =
+            edge
+            ? [GarminGrid.edge(cells[first + 1], cells[first])]
             : GarminGrid.gramsReversed(of: cells)
         for gram in reversed {
             for pair in index.slots(of: gram) {
@@ -71,21 +77,27 @@ enum ElementMatcher {
             let aligned = alignment(of: cells, in: along, least: least).aligned
             guard aligned >= least else { continue }
             let candidate = Candidate(
-                slot: slot, aligned: aligned,
-                whole: ring && closed && Double(aligned) >= tracedWhole * Double(way.count))
+                slot: slot,
+                aligned: aligned,
+                whole: ring && closed && Double(aligned) >= tracedWhole * Double(way.count)
+            )
             if aligned >= wanted { standing.append(candidate) } else { pieces.append(candidate) }
         }
         if !standing.isEmpty { return settle(standing, length: n, in: index) }
         // Nothing holds it alone: the pieces of one thing, split or merged since the
         // map was made, if together they would.
         guard pieces.count > 1,
-              pieces.reduce(0, { $0 + $1.aligned }) >= wanted else { return nil }
+            pieces.reduce(0, { $0 + $1.aligned }) >= wanted
+        else { return nil }
         return settle(pieces, length: n, in: index)
     }
 
     /// One name out of several candidates, or nil.
-    private static func settle(_ candidates: [Candidate], length: Int,
-                               in index: GroundIndex) -> Int32? {
+    private static func settle(
+        _ candidates: [Candidate],
+        length: Int,
+        in index: GroundIndex
+    ) -> Int32? {
         if candidates.count == 1 { return candidates[0].slot }
         if let one = agreed(candidates, in: index) { return one }
         // A closed way traced whole that is nearly the whole element is the element;
@@ -108,9 +120,11 @@ enum ElementMatcher {
 
     /// The best of the candidates when all of them mean one thing, else nil.
     private static func agreed(_ candidates: [Candidate], in index: GroundIndex) -> Int32? {
-        let meanings = Set(candidates.map {
-            DefaultRuleBook.meaning(of: index.tags(ofWay: $0.slot))
-        })
+        let meanings = Set(
+            candidates.map {
+                DefaultRuleBook.meaning(of: index.tags(ofWay: $0.slot))
+            }
+        )
         guard meanings.count == 1 else { return nil }
         return candidates.max { ($0.aligned, $1.slot) < ($1.aligned, $0.slot) }?.slot
     }
@@ -125,14 +139,17 @@ enum ElementMatcher {
     /// vertices, a driveway two.
     static func threshold(_ elementLength: Int, ring: Bool = false) -> Int {
         let least = min(minimumRun, elementLength)
-        return ring ? max(least, min(elementLength / 2, ringRunCap))
-                    : max(least, elementLength / 2)
+        return ring
+            ? max(least, min(elementLength / 2, ringRunCap))
+            : max(least, elementLength / 2)
     }
 
     /// The longest aligned run of identical cells, in either direction: mkgmap writes
     /// a way whichever way round suits it.
-    static func longestRun<Chain: RandomAccessCollection>(of element: Chain,
-                                                          in way: [UInt64]) -> Int
+    static func longestRun<Chain: RandomAccessCollection>(
+        of element: Chain,
+        in way: [UInt64]
+    ) -> Int
     where Chain.Element == UInt64, Chain.Index == Int {
         alignment(of: element, in: way).longest
     }
@@ -140,9 +157,11 @@ enum ElementMatcher {
     /// The element's cells lying in aligned runs of at least `least`, and the longest
     /// such run, in the better of the two directions. Runs rather than one run: a
     /// node moved since the map was made breaks the run, not the identity.
-    static func alignment<Chain: RandomAccessCollection>(of element: Chain,
-                                                         in way: [UInt64],
-                                                         least: Int = minimumRun)
+    static func alignment<Chain: RandomAccessCollection>(
+        of element: Chain,
+        in way: [UInt64],
+        least: Int = minimumRun
+    )
         -> (aligned: Int, longest: Int)
     where Chain.Element == UInt64, Chain.Index == Int {
         guard !element.isEmpty, !way.isEmpty else { return (0, 0) }
@@ -158,8 +177,12 @@ enum ElementMatcher {
     }
 
     private static func runs<Chain: RandomAccessCollection>(
-        _ element: Chain, forward: Bool,
-        _ at: [UInt64: [Int32]], _ way: [UInt64], least: Int) -> (aligned: Int, longest: Int)
+        _ element: Chain,
+        forward: Bool,
+        _ at: [UInt64: [Int32]],
+        _ way: [UInt64],
+        least: Int
+    ) -> (aligned: Int, longest: Int)
     where Chain.Element == UInt64, Chain.Index == Int {
         let n = element.count
         let base = element.startIndex
@@ -174,7 +197,8 @@ enum ElementMatcher {
             for start in at[cell(i)] ?? [] {
                 var runLength = 1
                 while i + runLength < n, Int(start) + runLength < way.count,
-                      cell(i + runLength) == way[Int(start) + runLength] {
+                    cell(i + runLength) == way[Int(start) + runLength]
+                {
                     runLength += 1
                 }
                 if runLength > longestHere { longestHere = runLength }

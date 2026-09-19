@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Burning OSM summit heights into the .hgt tiles a build is about to contour.
@@ -6,7 +7,6 @@ import XCTest
 /// A cell straddling a cliff averages the top of the face with the bottom, so a cliff-top
 /// summit reads low; raising that one cell to the tagged height corrects it, within limits.
 final class BurnPeaksTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
     private let side = 3601
 
@@ -87,13 +87,13 @@ final class BurnPeaksTests: XCTestCase {
         XCTAssertNil(BurnPeaks.metres(""))
         XCTAssertNil(BurnPeaks.metres("   "))
         XCTAssertNil(BurnPeaks.metres("high"))
-        XCTAssertNil(BurnPeaks.metres("99999"))       // above any real summit, in any unit
-        XCTAssertNil(BurnPeaks.metres("29600"))       // just above Everest in feet
+        XCTAssertNil(BurnPeaks.metres("99999"))  // above any real summit, in any unit
+        XCTAssertNil(BurnPeaks.metres("29600"))  // just above Everest in feet
         XCTAssertNil(BurnPeaks.metres("-9999"))
     }
 
     func testGroundBelowSeaLevelIsAHeightLikeAnyOther() {
-        XCTAssertEqual(BurnPeaks.metres("-430"), -430)   // dry ground below sea level
+        XCTAssertEqual(BurnPeaks.metres("-430"), -430)  // dry ground below sea level
     }
 
     // MARK: Burning
@@ -103,27 +103,44 @@ final class BurnPeaksTests: XCTestCase {
         try HGTFixture.constant(height, at: directory.appendingPathComponent(name))
     }
 
-    private func extract(_ peaks: [(lat: Double, lon: Double, ele: String, name: String)])
-        throws -> URL {
+    private func extract(
+        _ peaks: [(lat: Double, lon: Double, ele: String, name: String)]
+    )
+        throws -> URL
+    {
         let url = directory.appendingPathComponent("peaks.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
-        writer.nodes(peaks.enumerated().map { index, peak in
-            PBFWriter.Node(id: Int64(index + 1), lat: peak.lat, lon: peak.lon,
-                           tags: [("natural", "peak"), ("ele", peak.ele),
-                                  ("name", peak.name)])
-        })
+        writer.nodes(
+            peaks.enumerated().map { index, peak in
+                PBFWriter.Node(
+                    id: Int64(index + 1),
+                    lat: peak.lat,
+                    lon: peak.lon,
+                    tags: [
+                        ("natural", "peak"), ("ele", peak.ele),
+                        ("name", peak.name)
+                    ]
+                )
+            }
+        )
         try writer.finish()
         return url
     }
 
-    private func burn(_ peaks: [(lat: Double, lon: Double, ele: String, name: String)],
-                      tileName: String, height: Int16 = 1000) throws -> BurnPeaks.Report {
+    private func burn(
+        _ peaks: [(lat: Double, lon: Double, ele: String, name: String)],
+        tileName: String,
+        height: Int16 = 1000
+    ) throws -> BurnPeaks.Report {
         let hgt = directory.appendingPathComponent("hgt")
         try FileManager.default.createDirectory(at: hgt, withIntermediateDirectories: true)
         try HGTFixture.constant(height, at: hgt.appendingPathComponent(tileName))
-        return try BurnPeaks(extracts: [try extract(peaks)], hgt: hgt,
-                             out: directory.appendingPathComponent("out")).run()
+        return try BurnPeaks(
+            extracts: [try extract(peaks)],
+            hgt: hgt,
+            out: directory.appendingPathComponent("out")
+        ).run()
     }
 
     func testASummitAboveItsCellIsRaisedToWhatOSMSays() throws {
@@ -147,9 +164,11 @@ final class BurnPeaksTests: XCTestCase {
     }
 
     /// Burns into a tile of the caller's making; returns the written tile.
-    private func burn(onto make: (URL) throws -> Void,
-                      _ peaks: [(lat: Double, lon: Double, ele: String, name: String)],
-                      only tiles: Set<String>? = nil) throws -> (report: BurnPeaks.Report, tile: URL) {
+    private func burn(
+        onto make: (URL) throws -> Void,
+        _ peaks: [(lat: Double, lon: Double, ele: String, name: String)],
+        only tiles: Set<String>? = nil
+    ) throws -> (report: BurnPeaks.Report, tile: URL) {
         let hgt = directory.appendingPathComponent("hgt")
         try FileManager.default.createDirectory(at: hgt, withIntermediateDirectories: true)
         try make(hgt)
@@ -161,8 +180,10 @@ final class BurnPeaksTests: XCTestCase {
 
     func testTheRingAroundTheSummitIsRaisedWithIt() throws {
         // Every cell the receiver's interpolation can read carries ele.
-        let (_, tile) = try burn(onto: { try HGTFixture.constant(1000, at: $0.appendingPathComponent("N44E033.hgt")) },
-                                 [(44.5, 33.5, "1040", "Peak")])
+        let (_, tile) = try burn(
+            onto: { try HGTFixture.constant(1000, at: $0.appendingPathComponent("N44E033.hgt")) },
+            [(44.5, 33.5, "1040", "Peak")]
+        )
         for row in centre - 1...centre + 1 {
             for column in centre - 1...centre + 1 {
                 XCTAssertEqual(try sample(tile, row, column), 1040, "\(row),\(column)")
@@ -174,11 +195,14 @@ final class BurnPeaksTests: XCTestCase {
 
     func testACliffBesideTheSummitIsLiftedToIt() throws {
         // The cell down the face is what drags the reading at the edge low.
-        let (report, tile) = try burn(onto: { hgt in
-            try HGTFixture.rows(at: hgt.appendingPathComponent("N44E033.hgt")) { _ in
-                (0..<self.side).map { $0 > self.centre ? Int16(500) : Int16(1000) }
-            }
-        }, [(44.5, 33.5, "1030", "Edge")])
+        let (report, tile) = try burn(
+            onto: { hgt in
+                try HGTFixture.rows(at: hgt.appendingPathComponent("N44E033.hgt")) { _ in
+                    (0..<self.side).map { $0 > self.centre ? Int16(500) : Int16(1000) }
+                }
+            },
+            [(44.5, 33.5, "1030", "Edge")]
+        )
         XCTAssertEqual(report.raised, 1)
         XCTAssertEqual(report.cells, 9)
         XCTAssertEqual(report.gains, [30])
@@ -187,13 +211,16 @@ final class BurnPeaksTests: XCTestCase {
     }
 
     func testASummitAlreadyAtItsHeightStillLiftsTheRing() throws {
-        let (report, _) = try burn(onto: { hgt in
-            try HGTFixture.rows(at: hgt.appendingPathComponent("N44E033.hgt")) { row in
-                var heights = [Int16](repeating: 1000, count: self.side)
-                if row == self.centre { heights[self.centre] = 1040 }
-                return heights
-            }
-        }, [(44.5, 33.5, "1040", "Peak")])
+        let (report, _) = try burn(
+            onto: { hgt in
+                try HGTFixture.rows(at: hgt.appendingPathComponent("N44E033.hgt")) { row in
+                    var heights = [Int16](repeating: 1000, count: self.side)
+                    if row == self.centre { heights[self.centre] = 1040 }
+                    return heights
+                }
+            },
+            [(44.5, 33.5, "1040", "Peak")]
+        )
         XCTAssertEqual(report.raised, 1)
         XCTAssertEqual(report.already, 0)
         XCTAssertEqual(report.cells, 8)
@@ -201,13 +228,16 @@ final class BurnPeaksTests: XCTestCase {
     }
 
     func testAVoidInTheRingIsLeftAlone() throws {
-        let (report, tile) = try burn(onto: { hgt in
-            try HGTFixture.rows(at: hgt.appendingPathComponent("N44E033.hgt")) { row in
-                var heights = [Int16](repeating: 1000, count: self.side)
-                if row == self.centre { heights[self.centre + 1] = -32768 }
-                return heights
-            }
-        }, [(44.5, 33.5, "1040", "Peak")])
+        let (report, tile) = try burn(
+            onto: { hgt in
+                try HGTFixture.rows(at: hgt.appendingPathComponent("N44E033.hgt")) { row in
+                    var heights = [Int16](repeating: 1000, count: self.side)
+                    if row == self.centre { heights[self.centre + 1] = -32768 }
+                    return heights
+                }
+            },
+            [(44.5, 33.5, "1040", "Peak")]
+        )
         XCTAssertEqual(report.cells, 8)
         XCTAssertEqual(try sample(tile, centre, centre + 1), -32768)
     }
@@ -218,24 +248,37 @@ final class BurnPeaksTests: XCTestCase {
         let more = directory.appendingPathComponent("more.osm.pbf")
         let writer = try PBFWriter(to: more)
         writer.header()
-        writer.nodes([PBFWriter.Node(id: 9, lat: 44.6, lon: 33.6,
-                                     tags: [("natural", "peak"), ("ele", "1050")])])
+        writer.nodes([
+            PBFWriter.Node(
+                id: 9,
+                lat: 44.6,
+                lon: 33.6,
+                tags: [("natural", "peak"), ("ele", "1050")]
+            )
+        ])
         try writer.finish()
         let hgt = directory.appendingPathComponent("hgt")
         try FileManager.default.createDirectory(at: hgt, withIntermediateDirectories: true)
         try HGTFixture.constant(1000, at: hgt.appendingPathComponent("N44E033.hgt"))
-        let report = try BurnPeaks(extracts: [first, more], hgt: hgt,
-                                   out: directory.appendingPathComponent("out")).run()
+        let report = try BurnPeaks(
+            extracts: [first, more],
+            hgt: hgt,
+            out: directory.appendingPathComponent("out")
+        ).run()
         XCTAssertEqual(report.peaks, 2)
         XCTAssertEqual(report.raised, 2)
         XCTAssertEqual(report.gains.sorted(), [40, 50])
     }
 
     func testOnlyTheTilesAskedForAreWritten() throws {
-        let (report, _) = try burn(onto: { hgt in
-            try HGTFixture.constant(1000, at: hgt.appendingPathComponent("N44E033.hgt"))
-            try HGTFixture.constant(1000, at: hgt.appendingPathComponent("N44E034.hgt"))
-        }, [(44.5, 33.5, "1040", "Here"), (44.5, 34.5, "1040", "There")], only: ["N44E033"])
+        let (report, _) = try burn(
+            onto: { hgt in
+                try HGTFixture.constant(1000, at: hgt.appendingPathComponent("N44E033.hgt"))
+                try HGTFixture.constant(1000, at: hgt.appendingPathComponent("N44E034.hgt"))
+            },
+            [(44.5, 33.5, "1040", "Here"), (44.5, 34.5, "1040", "There")],
+            only: ["N44E033"]
+        )
         XCTAssertEqual(report.written, ["N44E033.hgt"])
         XCTAssertEqual(report.raised, 1)
         XCTAssertEqual(report.outside, 1)
@@ -273,16 +316,27 @@ final class BurnPeaksTests: XCTestCase {
         let hgt = directory.appendingPathComponent("hgt")
         try FileManager.default.createDirectory(at: hgt, withIntermediateDirectories: true)
         _ = try tile("N44E033.hgt")
-        try FileManager.default.moveItem(at: directory.appendingPathComponent("N44E033.hgt"),
-                                         to: hgt.appendingPathComponent("N44E033.hgt"))
+        try FileManager.default.moveItem(
+            at: directory.appendingPathComponent("N44E033.hgt"),
+            to: hgt.appendingPathComponent("N44E033.hgt")
+        )
         let url = directory.appendingPathComponent("other.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
-        writer.nodes([PBFWriter.Node(id: 1, lat: 44.5, lon: 33.5,
-                                     tags: [("natural", "tree"), ("ele", "1040")])])
+        writer.nodes([
+            PBFWriter.Node(
+                id: 1,
+                lat: 44.5,
+                lon: 33.5,
+                tags: [("natural", "tree"), ("ele", "1040")]
+            )
+        ])
         try writer.finish()
-        let report = try BurnPeaks(extracts: [url], hgt: hgt,
-                                   out: directory.appendingPathComponent("out")).run()
+        let report = try BurnPeaks(
+            extracts: [url],
+            hgt: hgt,
+            out: directory.appendingPathComponent("out")
+        ).run()
         XCTAssertEqual(report.peaks, 0)
     }
 
@@ -295,15 +349,26 @@ final class BurnPeaksTests: XCTestCase {
         let writer = try PBFWriter(to: url)
         writer.header()
         writer.nodes([
-            PBFWriter.Node(id: 1, lat: 44.5, lon: -110.5,
-                           tags: [("natural", "peak"), ("ele:ft", "3400")]),
+            PBFWriter.Node(
+                id: 1,
+                lat: 44.5,
+                lon: -110.5,
+                tags: [("natural", "peak"), ("ele:ft", "3400")]
+            ),
             // `ele` wins where both are given, whatever `ele:ft` says.
-            PBFWriter.Node(id: 2, lat: 44.6, lon: -110.6,
-                           tags: [("natural", "peak"), ("ele", "1010"), ("ele:ft", "9000")])
+            PBFWriter.Node(
+                id: 2,
+                lat: 44.6,
+                lon: -110.6,
+                tags: [("natural", "peak"), ("ele", "1010"), ("ele:ft", "9000")]
+            )
         ])
         try writer.finish()
-        let report = try BurnPeaks(extracts: [url], hgt: hgt,
-                                   out: directory.appendingPathComponent("out")).run()
+        let report = try BurnPeaks(
+            extracts: [url],
+            hgt: hgt,
+            out: directory.appendingPathComponent("out")
+        ).run()
         XCTAssertEqual(report.peaks, 2)
         XCTAssertEqual(report.raised, 2)
         // 3400 ft is 1036.32 m, and 1010 m is 1010: the cells rose by these.
@@ -314,16 +379,27 @@ final class BurnPeaksTests: XCTestCase {
         let hgt = directory.appendingPathComponent("hgt")
         try FileManager.default.createDirectory(at: hgt, withIntermediateDirectories: true)
         _ = try tile("N44E033.hgt")
-        try FileManager.default.moveItem(at: directory.appendingPathComponent("N44E033.hgt"),
-                                         to: hgt.appendingPathComponent("N44E033.hgt"))
+        try FileManager.default.moveItem(
+            at: directory.appendingPathComponent("N44E033.hgt"),
+            to: hgt.appendingPathComponent("N44E033.hgt")
+        )
         let url = directory.appendingPathComponent("volcano.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
-        writer.nodes([PBFWriter.Node(id: 1, lat: 44.5, lon: 33.5,
-                                     tags: [("natural", "volcano"), ("ele", "1040")])])
+        writer.nodes([
+            PBFWriter.Node(
+                id: 1,
+                lat: 44.5,
+                lon: 33.5,
+                tags: [("natural", "volcano"), ("ele", "1040")]
+            )
+        ])
         try writer.finish()
-        let report = try BurnPeaks(extracts: [url], hgt: hgt,
-                                   out: directory.appendingPathComponent("out")).run()
+        let report = try BurnPeaks(
+            extracts: [url],
+            hgt: hgt,
+            out: directory.appendingPathComponent("out")
+        ).run()
         XCTAssertEqual(report.peaks, 1)
         XCTAssertEqual(report.raised, 1)
     }

@@ -55,7 +55,9 @@ extension BuildPipeline {
                 log.step("region \(index + 1) of \(regions.count): \(region.name)")
             }
             var job = ExtractJob(
-                region: region, source: source, destination: cached[index],
+                region: region,
+                source: source,
+                destination: cached[index],
                 label: regions.count > 1
                     ? "\(index + 1)/\(regions.count)" + DownloadProgress.separator : "",
                 part: { slices.fraction(region: index, at: $0) },
@@ -63,7 +65,8 @@ extension BuildPipeline {
                 expected: region.md5URL.map { url in
                     Task { await Downloader.fetchExpectedMD5(url) }
                 },
-                remote: probes[index])
+                remote: probes[index]
+            )
             if try await !reuseCachedExtract(&job) {
                 try Task.checkCancellation()
                 try await fetchFreshExtract(&job)
@@ -82,9 +85,12 @@ extension BuildPipeline {
                 + Fmt.bytes(FileTools.size(of: extracts[0]))
         }
         let cached = extracts.count - fetched
-        let how = fetched == 0 ? t("all from the cache")
-            : cached == 0 ? t("all downloaded")
-            : t("%1$d downloaded, %2$d from the cache", fetched, cached)
+        let how =
+            fetched == 0
+            ? t("all from the cache")
+            : cached == 0
+                ? t("all downloaded")
+                : t("%1$d downloaded, %2$d from the cache", fetched, cached)
         return tn("%d extract(s)", extracts.count) + " — " + how
     }
 
@@ -147,14 +153,18 @@ extension BuildPipeline {
             if job.remote == nil {
                 // Unreachable, so downloading would fail too: the cached extract is used
                 // and its possible staleness reported.
-                log.warn("could not reach the server — building from the cached extract ("
-                         + Fmt.bytes(FileTools.size(of: job.destination))
-                         + "), which may be out of date")
+                log.warn(
+                    "could not reach the server — building from the cached extract ("
+                        + Fmt.bytes(FileTools.size(of: job.destination))
+                        + "), which may be out of date"
+                )
                 settleOnCachedCopy(job)
                 return true
             }
-            log.append("no checksum published and the server is offering something"
-                       + " different — downloading a fresh copy")
+            log.append(
+                "no checksum published and the server is offering something"
+                    + " different — downloading a fresh copy"
+            )
             discardCachedCopy(job)
             return false
         }
@@ -197,17 +207,26 @@ extension BuildPipeline {
         let monitor = Task {
             while !Task.isCancelled {
                 let p = downloader.progress
-                let left = BuildPipeline.stageSecondsLeft(fileSecondsLeft: p.eta, rate: p.rate,
-                                                          bytesAfterThisFile: bytesAfter)
-                board.detail(.download, label + p.line(secondsLeft: left),
-                             fraction: part(p.fraction))
+                let left = BuildPipeline.stageSecondsLeft(
+                    fileSecondsLeft: p.eta,
+                    rate: p.rate,
+                    bytesAfterThisFile: bytesAfter
+                )
+                board.detail(
+                    .download,
+                    label + p.line(secondsLeft: left),
+                    fraction: part(p.fraction)
+                )
                 try? await Task.sleep(nanoseconds: BuildPipeline.progressTick)
             }
         }
         defer { monitor.cancel() }
 
-        try await downloader.download(url: job.source, to: job.destination,
-                                      connections: recipe.downloadConnections)
+        try await downloader.download(
+            url: job.source,
+            to: job.destination,
+            connections: recipe.downloadConnections
+        )
 
         if let remoteMD5 = await job.expected?.value {
             let localMD5 = try checksum(of: job, saying: job.label + t("verifying checksum"))
@@ -239,8 +258,11 @@ extension BuildPipeline {
 
     /// Records what the server said about the file now on disk.
     private func stamp(_ job: ExtractJob, md5: String?) {
-        CacheStamp(size: FileTools.size(of: job.destination),
-                   lastModified: job.remote?.lastModified, md5: md5)
-            .write(besides: job.destination)
+        CacheStamp(
+            size: FileTools.size(of: job.destination),
+            lastModified: job.remote?.lastModified,
+            md5: md5
+        )
+        .write(besides: job.destination)
     }
 }

@@ -4,7 +4,6 @@ import Foundation
 /// label/value rows, and two buttons. The cursor starts on cancel, so confirming needs a
 /// deliberate move.
 struct Dialog {
-
     enum Outcome: Equatable {
         case none
         case confirmed
@@ -31,8 +30,14 @@ struct Dialog {
     /// Which button has the cursor. Starts on cancel.
     private(set) var focus: Focus = .cancel
 
-    init(title: String, body: [String], detail: [(label: String, value: String)] = [],
-         confirm: String, cancel: String, tone: Tone = .danger) {
+    init(
+        title: String,
+        body: [String],
+        detail: [(label: String, value: String)] = [],
+        confirm: String,
+        cancel: String,
+        tone: Tone = .danger
+    ) {
         self.title = title
         self.body = body
         self.detail = detail
@@ -44,8 +49,10 @@ struct Dialog {
     /// Footer hints for the current focus. The Esc hint appears only while the cursor is
     /// on confirm.
     var footerHints: [Hint] {
-        var hints = [Hint(key: "←→", label: t("choose")),
-                     Hint(key: Glyph.enter, label: focus == .confirm ? confirm : cancel)]
+        var hints = [
+            Hint(key: "←→", label: t("choose")),
+            Hint(key: Glyph.enter, label: focus == .confirm ? confirm : cancel)
+        ]
         if focus == .confirm { hints.append(Hint(key: "esc", label: cancel)) }
         return hints
     }
@@ -72,11 +79,15 @@ struct Dialog {
     private var colours: (fill: Color, edge: Color, ink: Color, quiet: Color) {
         switch tone {
         case .danger:
-            return (fill: .rgb(122, 16, 16), edge: .rgb(214, 60, 60),
-                    ink: .rgb(255, 255, 255), quiet: .rgb(246, 196, 196))
+            return (
+                fill: .rgb(122, 16, 16), edge: .rgb(214, 60, 60),
+                ink: .rgb(255, 255, 255), quiet: .rgb(246, 196, 196)
+            )
         case .plain:
-            return (fill: .xterm(236), edge: .xterm(240),
-                    ink: .xterm(255), quiet: .xterm(250))
+            return (
+                fill: .xterm(236), edge: .xterm(240),
+                ink: .xterm(255), quiet: .xterm(250)
+            )
         }
     }
 
@@ -106,9 +117,12 @@ struct Dialog {
     func render(into s: Surface, rect: Rect, theme: Theme) {
         let w = width(in: rect)
         let h = height(in: rect)
-        let box = Rect(x: rect.x + (rect.w - w) / 2,
-                       y: rect.y + max(0, (rect.h - h) / 2),
-                       w: w, h: h)
+        let box = Rect(
+            x: rect.x + (rect.w - w) / 2,
+            y: rect.y + max(0, (rect.h - h) / 2),
+            w: w,
+            h: h
+        )
         let c = colours
 
         s.fill(box, Style(fg: c.ink, bg: c.fill))
@@ -137,11 +151,18 @@ struct Dialog {
             let labelWidth = min(widest + 2, max(12, (box.w - 6) / 2))
             for row in detail {
                 guard y < box.maxY - 2 else { break }
-                s.text(box.x + 3, y, truncate(row.label, to: labelWidth - 1),
-                       Style(fg: c.quiet, bg: c.fill))
-                s.text(box.x + 3 + labelWidth, y,
-                       truncate(row.value, to: max(0, box.maxX - box.x - 4 - labelWidth)),
-                       Style(fg: c.ink, bg: c.fill, bold: true))
+                s.text(
+                    box.x + 3,
+                    y,
+                    truncate(row.label, to: labelWidth - 1),
+                    Style(fg: c.quiet, bg: c.fill)
+                )
+                s.text(
+                    box.x + 3 + labelWidth,
+                    y,
+                    truncate(row.value, to: max(0, box.maxX - box.x - 4 - labelWidth)),
+                    Style(fg: c.ink, bg: c.fill, bold: true)
+                )
                 y += 1
             }
         }
@@ -150,8 +171,11 @@ struct Dialog {
     }
 
     /// Draws both buttons right-aligned on the bottom row, cancel first.
-    private func drawButtons(into s: Surface, box: Rect,
-                             colours c: (fill: Color, edge: Color, ink: Color, quiet: Color)) {
+    private func drawButtons(
+        into s: Surface,
+        box: Rect,
+        colours c: (fill: Color, edge: Color, ink: Color, quiet: Color)
+    ) {
         let y = box.maxY - 2
         let labels = [(cancel, Focus.cancel), (confirm, Focus.confirm)]
         var widths = labels.map { $0.0.count + 4 }
@@ -159,7 +183,8 @@ struct Dialog {
         var x = box.maxX - 3 - widths.reduce(0, +) - (widths.count - 1) * 2
         for (i, entry) in labels.enumerated() {
             let picked = focus == entry.1
-            let style = picked
+            let style =
+                picked
                 ? Style(fg: c.fill, bg: c.ink, bold: true)
                 : Style(fg: c.ink, bg: c.fill)
             let label = (picked ? "▸ " : "  ") + entry.0 + "  "

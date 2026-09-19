@@ -5,7 +5,6 @@ import Foundation
 /// Darwin supports only UTF-8, UTF-16, ASCII and Latin-1. Generated from the unicode.org
 /// mappings.
 enum CodePage {
-
     /// UTF-8, which a TYP may declare instead of a single-byte page.
     static let utf8 = 65001
 
@@ -27,7 +26,7 @@ enum CodePage {
     ///
     /// - Returns: The text, or nil where a byte has no character in that page.
     static func decode<Bytes: Collection>(_ bytes: Bytes, codePage: Int) -> String?
-        where Bytes.Element == UInt8 {
+    where Bytes.Element == UInt8 {
         if codePage == utf8 { return String(bytes: bytes, encoding: .utf8) }
         guard let table = highHalves[codePage] else { return latin1(bytes) }
         var scalars = String.UnicodeScalarView()
@@ -51,7 +50,7 @@ enum CodePage {
 
     /// Decodes in `codePage`, falling back to Latin-1 where the bytes do not fit it.
     static func decodeLenient<Bytes: Collection>(_ bytes: Bytes, codePage: Int) -> String
-        where Bytes.Element == UInt8 {
+    where Bytes.Element == UInt8 {
         decode(bytes, codePage: codePage) ?? latin1(bytes)
     }
 
@@ -68,9 +67,13 @@ enum CodePage {
             var out = [UInt8]()
             out.reserveCapacity(text.unicodeScalars.count)
             for scalar in text.unicodeScalars {
-                if scalar.value < 0x100 { out.append(UInt8(scalar.value)) }
-                else if lossy { out.append(question) }
-                else { return nil }
+                if scalar.value < 0x100 {
+                    out.append(UInt8(scalar.value))
+                } else if lossy {
+                    out.append(question)
+                } else {
+                    return nil
+                }
             }
             return out
         }

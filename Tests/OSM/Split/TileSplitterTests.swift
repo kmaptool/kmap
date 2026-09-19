@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Cutting one extract into map tiles.
@@ -7,7 +8,6 @@ import XCTest
 /// including objects that live mostly elsewhere: a way crossing a border is written whole
 /// to both sides.
 final class TileSplitterTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -38,8 +38,11 @@ final class TileSplitterTests: XCTestCase {
 
     func testDegreesAndMapUnitsAgreeWithEachOther() {
         for units in [Int32(0), 1, -1, 1 << 20, -(1 << 20), 1 << 23, -(1 << 23)] {
-            XCTAssertEqual(TileSplitter.mapUnits(TileSplitter.degrees(units)), units,
-                           "\(units)")
+            XCTAssertEqual(
+                TileSplitter.mapUnits(TileSplitter.degrees(units)),
+                units,
+                "\(units)"
+            )
         }
     }
 
@@ -66,9 +69,15 @@ final class TileSplitterTests: XCTestCase {
 
     private var twoAreas: [TileSplitter.Area] {
         // Side by side, sharing the line at longitude `side`.
-        [TileSplitter.Area(minLat: 0, minLon: 0, maxLat: Self.side, maxLon: Self.side),
-         TileSplitter.Area(minLat: 0, minLon: Self.side,
-                           maxLat: Self.side, maxLon: Self.side * 2)]
+        [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: Self.side, maxLon: Self.side),
+            TileSplitter.Area(
+                minLat: 0,
+                minLon: Self.side,
+                maxLat: Self.side,
+                maxLon: Self.side * 2
+            )
+        ]
     }
 
     func testAPointInsideAnAreaBelongsToThatOneAlone() {
@@ -90,7 +99,7 @@ final class TileSplitterTests: XCTestCase {
             TileSplitter.Area(minLat: 0, minLon: 0, maxLat: side, maxLon: side),
             TileSplitter.Area(minLat: 0, minLon: side, maxLat: side, maxLon: side * 2),
             TileSplitter.Area(minLat: side, minLon: 0, maxLat: side * 2, maxLon: side),
-            TileSplitter.Area(minLat: side, minLon: side, maxLat: side * 2, maxLon: side * 2),
+            TileSplitter.Area(minLat: side, minLon: side, maxLat: side * 2, maxLon: side * 2)
         ]
         let lookup = TileSplitter.AreaLookup(areas: areas)
         XCTAssertEqual(lookup.areas(lat: side, lon: side).sorted, [0, 1, 2, 3])
@@ -99,8 +108,13 @@ final class TileSplitterTests: XCTestCase {
     func testAPointBeyondEveryAreaBelongsToNone() {
         let lookup = TileSplitter.AreaLookup(areas: twoAreas)
         let clear = TileSplitter.shapeClipOverlap + 1
-        XCTAssertEqual(lookup.shapeAreas(lat: Self.side / 2,
-                                         lon: Self.side * 2 + clear).count, 0)
+        XCTAssertEqual(
+            lookup.shapeAreas(
+                lat: Self.side / 2,
+                lon: Self.side * 2 + clear
+            ).count,
+            0
+        )
         XCTAssertEqual(lookup.shapeAreas(lat: -clear, lon: Self.side / 2).count, 0)
     }
 
@@ -165,7 +179,7 @@ final class TileSplitterTests: XCTestCase {
         let table = TileSplitter.NodeAreas(expecting: 4)
         table.set(7, 1)
         table.set(9, 1)
-        table.set(7, 2)          // a new run, and the newer answer
+        table.set(7, 2)  // a new run, and the newer answer
         XCTAssertEqual(table.get(7), 2)
     }
 
@@ -190,7 +204,7 @@ final class TileSplitterTests: XCTestCase {
         let table = TileSplitter.NodeAreas(expecting: 2)
         let value = table.intern([3, 1, 2])
         table.set(1, value)
-        XCTAssertEqual(table.areas(of: table.get(1)!), [1, 2, 3])   // sorted, and all there
+        XCTAssertEqual(table.areas(of: table.get(1)!), [1, 2, 3])  // sorted, and all there
         // An equal set interns to the same entry.
         XCTAssertEqual(table.intern([2, 3, 1]), value)
         XCTAssertEqual(table.sets.count, 1)
@@ -202,10 +216,13 @@ final class TileSplitterTests: XCTestCase {
         var density = TileSplitter.Density()
         for cell in cells {
             for _ in 0..<cell.count {
-                density.node(id: 1,
-                             lat: TileSplitter.degrees(cell.lat << 11) + 0.001,
-                             lon: TileSplitter.degrees(cell.lon << 11) + 0.001,
-                             tags: [], block: OSMBlock())
+                density.node(
+                    id: 1,
+                    lat: TileSplitter.degrees(cell.lat << 11) + 0.001,
+                    lon: TileSplitter.degrees(cell.lon << 11) + 0.001,
+                    tags: [],
+                    block: OSMBlock()
+                )
             }
         }
         density.seal()
@@ -266,12 +283,39 @@ final class TileSplitterTests: XCTestCase {
     func testDensityCountsWhatFallsInARectangle() {
         let d = density([(0, 0, 5), (0, 1, 7), (3, 3, 11)])
         XCTAssertEqual(d.total, 23)
-        XCTAssertEqual(d.count(TileSplitter.Density.Cells(minLat: 0, minLon: 0,
-                                                          maxLat: 1, maxLon: 2)), 12)
-        XCTAssertEqual(d.count(TileSplitter.Density.Cells(minLat: 3, minLon: 3,
-                                                          maxLat: 4, maxLon: 4)), 11)
-        XCTAssertEqual(d.count(TileSplitter.Density.Cells(minLat: 10, minLon: 10,
-                                                          maxLat: 20, maxLon: 20)), 0)
+        XCTAssertEqual(
+            d.count(
+                TileSplitter.Density.Cells(
+                    minLat: 0,
+                    minLon: 0,
+                    maxLat: 1,
+                    maxLon: 2
+                )
+            ),
+            12
+        )
+        XCTAssertEqual(
+            d.count(
+                TileSplitter.Density.Cells(
+                    minLat: 3,
+                    minLon: 3,
+                    maxLat: 4,
+                    maxLon: 4
+                )
+            ),
+            11
+        )
+        XCTAssertEqual(
+            d.count(
+                TileSplitter.Density.Cells(
+                    minLat: 10,
+                    minLon: 10,
+                    maxLat: 20,
+                    maxLon: 20
+                )
+            ),
+            0
+        )
     }
 
     func testTheBoundsAreTheCellsThatHoldSomething() {
@@ -347,7 +391,6 @@ final class TileSplitterTests: XCTestCase {
 // MARK: - The contract, end to end
 
 extension TileSplitterTests {
-
     /// Multiplier applied to every end-to-end fixture coordinate. The fixtures are written
     /// about a border at 2048 map units; unscaled, that whole span sits inside
     /// `shapeClipOverlap` and every node would land in both tiles.
@@ -356,10 +399,20 @@ extension TileSplitterTests {
     private func scaled(_ units: Int32) -> Int32 { units * Self.fixtureScale }
 
     private var sideBySide: [TileSplitter.Area] {
-        [TileSplitter.Area(minLat: 0, minLon: 0,
-                           maxLat: scaled(4096), maxLon: scaled(2048)),
-         TileSplitter.Area(minLat: 0, minLon: scaled(2048),
-                           maxLat: scaled(4096), maxLon: scaled(4096))]
+        [
+            TileSplitter.Area(
+                minLat: 0,
+                minLon: 0,
+                maxLat: scaled(4096),
+                maxLon: scaled(2048)
+            ),
+            TileSplitter.Area(
+                minLat: 0,
+                minLon: scaled(2048),
+                maxLat: scaled(4096),
+                maxLon: scaled(4096)
+            )
+        ]
     }
 
     private func degrees(_ units: Int32) -> Double { TileSplitter.degrees(units) }
@@ -372,18 +425,33 @@ extension TileSplitterTests {
 
     private struct TileReader: OSMSink {
         var tile = Tile()
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             tile.nodes.insert(id)
         }
-        mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                          values: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             tile.ways[id] = Array(refs)
         }
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             tile.relations.insert(id)
         }
     }
@@ -391,9 +459,16 @@ extension TileSplitterTests {
     private func splitTiles(inputs: [URL], areas: [TileSplitter.Area]) throws -> [Tile] {
         let out = directory.appendingPathComponent("tiles-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: inputs, outputDirectory: out, mapID: 63410001,
-            maxNodes: 1_000_000, description: "test", areas: areas)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: inputs,
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: areas
+            )
+        ) { _ in }
         let result = try splitter.run()
         return try result.tiles.map { tile in
             var reader = TileReader()
@@ -405,21 +480,40 @@ extension TileSplitterTests {
 
     /// Writes an extract with the given objects, placing each node at a longitude in map
     /// units so a test can say which side of the border it is on.
-    private func extract(_ name: String,
-                         nodes: [(id: Int64, lon: Int32)],
-                         ways: [(id: Int64, refs: [Int64])] = [],
-                         relations: [PBFWriter.Relation] = []) throws -> URL {
+    private func extract(
+        _ name: String,
+        nodes: [(id: Int64, lon: Int32)],
+        ways: [(id: Int64, refs: [Int64])] = [],
+        relations: [PBFWriter.Relation] = []
+    ) throws -> URL {
         let url = path(name)
         let writer = try PBFWriter(to: url)
-        writer.header(bbox: (minLat: degrees(0), minLon: degrees(0),
-                             maxLat: degrees(scaled(4096)), maxLon: degrees(scaled(4096))))
-        writer.nodes(nodes.map {
-            PBFWriter.Node(id: $0.id, lat: degrees(scaled(1024)),
-                           lon: degrees(scaled($0.lon)), tags: [])
-        })
+        writer.header(
+            bbox: (
+                minLat: degrees(0), minLon: degrees(0),
+                maxLat: degrees(scaled(4096)), maxLon: degrees(scaled(4096))
+            )
+        )
+        writer.nodes(
+            nodes.map {
+                PBFWriter.Node(
+                    id: $0.id,
+                    lat: degrees(scaled(1024)),
+                    lon: degrees(scaled($0.lon)),
+                    tags: []
+                )
+            }
+        )
         if !ways.isEmpty {
-            writer.ways(ways.map { PBFWriter.Way(id: $0.id, refs: $0.refs,
-                                                 tags: [("highway", "track")]) })
+            writer.ways(
+                ways.map {
+                    PBFWriter.Way(
+                        id: $0.id,
+                        refs: $0.refs,
+                        tags: [("highway", "track")]
+                    )
+                }
+            )
         }
         if !relations.isEmpty { writer.relations(relations) }
         try writer.finish()
@@ -427,9 +521,11 @@ extension TileSplitterTests {
     }
 
     func testAnObjectWhollyInsideOneTileGoesToThatTileAlone() throws {
-        let input = try extract("one.osm.pbf",
-                                nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
-                                ways: [(10, [1, 2]), (11, [3, 4])])
+        let input = try extract(
+            "one.osm.pbf",
+            nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
+            ways: [(10, [1, 2]), (11, [3, 4])]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         XCTAssertEqual(tiles.count, 2)
         XCTAssertTrue(tiles[0].ways.keys.contains(10))
@@ -443,17 +539,26 @@ extension TileSplitterTests {
     /// draw order across tiles cannot correct for it.
     func testAClosedWayInsideTheNeighboursBandGoesToBothTiles() throws {
         let band = TileSplitter.shapeClipOverlap / Self.fixtureScale
-        let justPast = 2048 + band / 2                    // past the line, inside the band
-        let input = try extract("band.osm.pbf",
-                                nodes: [(1, justPast), (2, justPast + 10),
-                                        (3, justPast + 20)],
-                                ways: [(10, [1, 2, 3, 1])])
+        let justPast = 2048 + band / 2  // past the line, inside the band
+        let input = try extract(
+            "band.osm.pbf",
+            nodes: [
+                (1, justPast), (2, justPast + 10),
+                (3, justPast + 20)
+            ],
+            ways: [(10, [1, 2, 3, 1])]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         XCTAssertEqual(tiles[1].ways[10], [1, 2, 3, 1], "the tile it lies in lost it")
-        XCTAssertEqual(tiles[0].ways[10], [1, 2, 3, 1],
-                       "the neighbour paints this ground and was not given the shape")
-        XCTAssertTrue(tiles[0].nodes.isSuperset(of: [1, 2, 3]),
-                      "the shape arrived without the nodes that draw it")
+        XCTAssertEqual(
+            tiles[0].ways[10],
+            [1, 2, 3, 1],
+            "the neighbour paints this ground and was not given the shape"
+        )
+        XCTAssertTrue(
+            tiles[0].nodes.isSuperset(of: [1, 2, 3]),
+            "the shape arrived without the nodes that draw it"
+        )
     }
 
     /// The other half of the rule: an open way in the same place is clipped to the frame
@@ -461,33 +566,43 @@ extension TileSplitterTests {
     func testAnOpenWayInsideTheNeighboursBandStaysInItsOwnTile() throws {
         let band = TileSplitter.shapeClipOverlap / Self.fixtureScale
         let justPast = 2048 + band / 2
-        let input = try extract("bandline.osm.pbf",
-                                nodes: [(1, justPast), (2, justPast + 10)],
-                                ways: [(10, [1, 2])])
+        let input = try extract(
+            "bandline.osm.pbf",
+            nodes: [(1, justPast), (2, justPast + 10)],
+            ways: [(10, [1, 2])]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         XCTAssertEqual(tiles[1].ways[10], [1, 2])
         XCTAssertFalse(tiles[0].ways.keys.contains(10), "a line was carried into the band")
-        XCTAssertTrue(tiles[0].nodes.isDisjoint(with: [1, 2]),
-                      "a line's nodes were carried into the band")
+        XCTAssertTrue(
+            tiles[0].nodes.isDisjoint(with: [1, 2]),
+            "a line's nodes were carried into the band"
+        )
     }
 
     func testAWayCrossingTheBorderIsWrittenWholeToBothSides() throws {
-        let input = try extract("cross.osm.pbf",
-                                nodes: [(1, 100), (2, 1000), (3, 3000), (4, 3900)],
-                                ways: [(10, [1, 2, 3, 4])])
+        let input = try extract(
+            "cross.osm.pbf",
+            nodes: [(1, 100), (2, 1000), (3, 3000), (4, 3900)],
+            ways: [(10, [1, 2, 3, 4])]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         for (index, tile) in tiles.enumerated() {
             XCTAssertEqual(tile.ways[10], [1, 2, 3, 4], "tile \(index) has the way cut short")
-            XCTAssertTrue(tile.nodes.isSuperset(of: [1, 2, 3, 4]),
-                          "tile \(index) is missing nodes of a way it carries")
+            XCTAssertTrue(
+                tile.nodes.isSuperset(of: [1, 2, 3, 4]),
+                "tile \(index) is missing nodes of a way it carries"
+            )
         }
     }
 
     func testAWayEndingExactlyOnTheBorderCountsAsCrossingIt() throws {
         // A node on the shared line belongs to both tiles, so the way spans them.
-        let input = try extract("edge.osm.pbf",
-                                nodes: [(1, 100), (2, 2048)],
-                                ways: [(10, [1, 2])])
+        let input = try extract(
+            "edge.osm.pbf",
+            nodes: [(1, 100), (2, 2048)],
+            ways: [(10, [1, 2])]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         XCTAssertEqual(tiles[0].ways[10], [1, 2])
         XCTAssertEqual(tiles[1].ways[10], [1, 2])
@@ -496,23 +611,33 @@ extension TileSplitterTests {
     func testAWayReachingOutOfTheMapKeepsTheNodesThatAreLeft() throws {
         // The far end lies beyond every tile; the tile holding the rest still gets the
         // whole way.
-        let input = try extract("fringe.osm.pbf",
-                                nodes: [(1, 100), (2, 200), (3, 9000)],
-                                ways: [(10, [1, 2, 3])])
+        let input = try extract(
+            "fringe.osm.pbf",
+            nodes: [(1, 100), (2, 200), (3, 9000)],
+            ways: [(10, [1, 2, 3])]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         XCTAssertEqual(tiles[0].ways[10], [1, 2, 3])
         XCTAssertTrue(tiles[0].nodes.contains(3))
     }
 
     func testARelationSpanningTilesIsCarriedToBothWithItsMembers() throws {
-        let members = [PBFWriter.Relation.Member(kind: 1, ref: 10, role: "outer"),
-                       PBFWriter.Relation.Member(kind: 1, ref: 11, role: "outer")]
-        let input = try extract("relation.osm.pbf",
-                                nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
-                                ways: [(10, [1, 2]), (11, [3, 4])],
-                                relations: [PBFWriter.Relation(
-                                    id: 20, members: members,
-                                    tags: [("type", "multipolygon"), ("natural", "water")])])
+        let members = [
+            PBFWriter.Relation.Member(kind: 1, ref: 10, role: "outer"),
+            PBFWriter.Relation.Member(kind: 1, ref: 11, role: "outer")
+        ]
+        let input = try extract(
+            "relation.osm.pbf",
+            nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
+            ways: [(10, [1, 2]), (11, [3, 4])],
+            relations: [
+                PBFWriter.Relation(
+                    id: 20,
+                    members: members,
+                    tags: [("type", "multipolygon"), ("natural", "water")]
+                )
+            ]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         for (index, tile) in tiles.enumerated() {
             XCTAssertTrue(tile.relations.contains(20), "tile \(index) lost the relation")
@@ -525,37 +650,66 @@ extension TileSplitterTests {
     func testARelationOfAKindThatCarriesNothingDoesNotDragItsMembersAround() throws {
         // A route relation fills nothing, so a tile holding none of it carries no member.
         let members = [PBFWriter.Relation.Member(kind: 1, ref: 10, role: "")]
-        let input = try extract("route.osm.pbf",
-                                nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
-                                ways: [(10, [1, 2]), (11, [3, 4])],
-                                relations: [PBFWriter.Relation(
-                                    id: 20, members: members,
-                                    tags: [("type", "route"), ("route", "hiking")])])
+        let input = try extract(
+            "route.osm.pbf",
+            nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
+            ways: [(10, [1, 2]), (11, [3, 4])],
+            relations: [
+                PBFWriter.Relation(
+                    id: 20,
+                    members: members,
+                    tags: [("type", "route"), ("route", "hiking")]
+                )
+            ]
+        )
         let tiles = try splitTiles(inputs: [input], areas: sideBySide)
         XCTAssertFalse(tiles[1].ways.keys.contains(10))
     }
 
     func testTheSameObjectInTwoOverlappingExtractsIsWrittenOnce() throws {
         // Adjacent extracts share a margin strip, so the same object arrives twice.
-        let first = try extract("a.osm.pbf", nodes: [(1, 100), (2, 200)],
-                                ways: [(10, [1, 2])])
-        let second = try extract("b.osm.pbf", nodes: [(1, 100), (2, 200), (3, 300)],
-                                 ways: [(10, [1, 2]), (11, [2, 3])])
+        let first = try extract(
+            "a.osm.pbf",
+            nodes: [(1, 100), (2, 200)],
+            ways: [(10, [1, 2])]
+        )
+        let second = try extract(
+            "b.osm.pbf",
+            nodes: [(1, 100), (2, 200), (3, 300)],
+            ways: [(10, [1, 2]), (11, [2, 3])]
+        )
         let out = directory.appendingPathComponent("dedupe")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [first, second], outputDirectory: out, mapID: 63410001,
-            maxNodes: 1_000_000, description: "test", areas: sideBySide)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [first, second],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: sideBySide
+            )
+        ) { _ in }
         let result = try splitter.run()
 
         var counted: [Int64: Int] = [:]
         struct Counter: OSMSink {
             var nodes: [Int64] = []
             var ways: [Int64] = []
-            mutating func node(id: Int64, lat: Double, lon: Double,
-                               tags: ArraySlice<Int32>, block: OSMBlock) { nodes.append(id) }
-            mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                              values: ArraySlice<Int32>, block: OSMBlock) { ways.append(id) }
+            mutating func node(
+                id: Int64,
+                lat: Double,
+                lon: Double,
+                tags: ArraySlice<Int32>,
+                block: OSMBlock
+            ) { nodes.append(id) }
+            mutating func way(
+                id: Int64,
+                refs: ArraySlice<Int64>,
+                keys: ArraySlice<Int32>,
+                values: ArraySlice<Int32>,
+                block: OSMBlock
+            ) { ways.append(id) }
         }
         var wayCounts: [Int64: Int] = [:]
         for tile in result.tiles {
@@ -576,15 +730,26 @@ extension TileSplitterTests {
         let input = try extract("list.osm.pbf", nodes: [(1, 100), (2, 3000)])
         let out = directory.appendingPathComponent("companions")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [input], outputDirectory: out, mapID: 63410001,
-            maxNodes: 1_000_000, description: "a test map", areas: sideBySide)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "a test map",
+                areas: sideBySide
+            )
+        ) { _ in }
         let result = try splitter.run()
 
         let list = try String(contentsOf: result.areasList, encoding: .utf8)
         XCTAssertTrue(list.contains("63410001: 0,0 to \(scaled(4096)),\(scaled(2048))"), list)
-        XCTAssertTrue(list.contains(
-            "63410002: 0,\(scaled(2048)) to \(scaled(4096)),\(scaled(4096))"), list)
+        XCTAssertTrue(
+            list.contains(
+                "63410002: 0,\(scaled(2048)) to \(scaled(4096)),\(scaled(4096))"
+            ),
+            list
+        )
 
         let args = try String(contentsOf: result.templateArgs, encoding: .utf8)
         XCTAssertTrue(args.contains("mapname: 63410001"), args)
@@ -596,9 +761,16 @@ extension TileSplitterTests {
         let input = try extract("ids.osm.pbf", nodes: [(1, 100), (2, 3000)])
         let out = directory.appendingPathComponent("ids")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [input], outputDirectory: out, mapID: 63050001,
-            maxNodes: 1_000_000, description: "test", areas: sideBySide)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63050001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: sideBySide
+            )
+        ) { _ in }
         let result = try splitter.run()
         XCTAssertEqual(result.tiles.map(\.mapID), ["63050001", "63050002"])
     }
@@ -610,9 +782,16 @@ extension TileSplitterTests {
         try writer.finish()
         let out = directory.appendingPathComponent("none")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [url], outputDirectory: out, mapID: 63410001,
-            maxNodes: 1_000_000, description: "test", areas: nil)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [url],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: nil
+            )
+        ) { _ in }
         XCTAssertThrowsError(try splitter.run())
     }
 
@@ -624,11 +803,17 @@ extension TileSplitterTests {
         let url = path(name)
         let writer = try PBFWriter(to: url)
         let top = (lons.max() ?? 0) + TileSplitter.grain
-        writer.header(bbox: (minLat: degrees(0), minLon: degrees(0),
-                             maxLat: degrees(4096), maxLon: degrees(top)))
-        writer.nodes(lons.enumerated().map { (i, lon) in
-            PBFWriter.Node(id: Int64(i + 1), lat: degrees(1024), lon: degrees(lon), tags: [])
-        })
+        writer.header(
+            bbox: (
+                minLat: degrees(0), minLon: degrees(0),
+                maxLat: degrees(4096), maxLon: degrees(top)
+            )
+        )
+        writer.nodes(
+            lons.enumerated().map { (i, lon) in
+                PBFWriter.Node(id: Int64(i + 1), lat: degrees(1024), lon: degrees(lon), tags: [])
+            }
+        )
         try writer.finish()
         return url
     }
@@ -665,9 +850,16 @@ extension TileSplitterTests {
         let input = try wideExtract("cover.osm.pbf", lons: lons)
         let out = directory.appendingPathComponent("cover")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [input], outputDirectory: out, mapID: 63410001,
-            maxNodes: 3, description: "a test map", areas: nil)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 3,
+                description: "a test map",
+                areas: nil
+            )
+        ) { _ in }
         let areas = try splitter.run().tiles.map(\.area)
 
         XCTAssertGreaterThan(areas.count, 2, "the split did not divide anything")
@@ -676,21 +868,32 @@ extension TileSplitterTests {
 
     func testNeighbouringTilesMeetRatherThanOverlapOrPartCompany() throws {
         // The tiles are a partition: each inner edge is also a neighbour's edge.
-        let input = try wideExtract("meet.osm.pbf",
-                                    lons: (0..<24).map { Int32($0) * TileSplitter.grain + 8 })
+        let input = try wideExtract(
+            "meet.osm.pbf",
+            lons: (0..<24).map { Int32($0) * TileSplitter.grain + 8 }
+        )
         let out = directory.appendingPathComponent("meet")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [input], outputDirectory: out, mapID: 63410001,
-            maxNodes: 3, description: "a test map", areas: nil)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 3,
+                description: "a test map",
+                areas: nil
+            )
+        ) { _ in }
         let areas = try splitter.run().tiles.map(\.area)
 
         XCTAssertGreaterThan(areas.count, 3)
         // Every tile's western edge is either the map's own edge or flush with a neighbour.
         let west = areas.map(\.minLon).min()!
         for area in areas where area.minLon != west {
-            XCTAssertTrue(areas.contains { $0.maxLon == area.minLon },
-                          "a tile starts at \(area.minLon) where none ends")
+            XCTAssertTrue(
+                areas.contains { $0.maxLon == area.minLon },
+                "a tile starts at \(area.minLon) where none ends"
+            )
         }
     }
 
@@ -702,8 +905,12 @@ extension TileSplitterTests {
 
     /// Asserts that two sets of areas cover exactly the same ground, to the grain: neither
     /// a moved boundary nor an opened sliver is allowed.
-    private func assertSamePartition(_ before: [TileSplitter.Area], _ after: [TileSplitter.Area],
-                                     file: StaticString = #filePath, line: UInt = #line) {
+    private func assertSamePartition(
+        _ before: [TileSplitter.Area],
+        _ after: [TileSplitter.Area],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
         func cells(_ areas: [TileSplitter.Area]) -> Set<Int64> {
             var out = Set<Int64>()
             for a in areas {
@@ -724,8 +931,10 @@ extension TileSplitterTests {
 
     func testOnlyTheNamedTileIsCutAndTheGroundStaysWhole() {
         // An overflow cuts the tile that overflowed, not every tile in the map.
-        let before = [area(0, 0, 8192, 8192), area(0, 8192, 8192, 16384),
-                      area(8192, 0, 16384, 16384)]
+        let before = [
+            area(0, 0, 8192, 8192), area(0, 8192, 8192, 16384),
+            area(8192, 0, 16384, 16384)
+        ]
         let after = TileSplitter.refined(before, splitting: [1])
         XCTAssertEqual(after.count, 4)
         XCTAssertEqual(after[0].minLat, before[0].minLat)
@@ -752,8 +961,10 @@ extension TileSplitterTests {
     }
 
     func testSeveralOverflowsAreAllCutInOneRound() {
-        let before = [area(0, 0, 8192, 8192), area(0, 8192, 8192, 16384),
-                      area(8192, 0, 16384, 16384)]
+        let before = [
+            area(0, 0, 8192, 8192), area(0, 8192, 8192, 16384),
+            area(8192, 0, 16384, 16384)
+        ]
         let after = TileSplitter.refined(before, splitting: [0, 2])
         XCTAssertEqual(after.count, 5)
         assertSamePartition(before, after)
@@ -771,12 +982,17 @@ extension TileSplitterTests {
     func testASharedBoundaryOnAPowerOfTwoMoves() {
         // A boundary on a power of two draws a seam on the receiver.
         let round: Int32 = 1 << 21
-        let before = [TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 1000),
-                      TileSplitter.Area(minLat: round, minLon: 0, maxLat: round + 100_000, maxLon: 1000)]
+        let before = [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 1000),
+            TileSplitter.Area(minLat: round, minLon: 0, maxLat: round + 100_000, maxLon: 1000)
+        ]
         let after = TileSplitter.nudgedOffPowersOfTwo(before)
         XCTAssertEqual(after[0].maxLat, round + TileSplitter.grain)
-        XCTAssertEqual(after[1].minLat, round + TileSplitter.grain,
-                       "both sides must move together or the split stops partitioning")
+        XCTAssertEqual(
+            after[1].minLat,
+            round + TileSplitter.grain,
+            "both sides must move together or the split stops partitioning"
+        )
         XCTAssertEqual(after[0].minLat, 0, "an outer edge stays put")
         XCTAssertEqual(after[1].maxLat, round + 100_000)
     }
@@ -790,9 +1006,11 @@ extension TileSplitterTests {
 
     func testOrdinaryBoundariesAreLeftAlone() {
         // 12 or 13 trailing zeros is where the alignment grid puts a boundary.
-        let plain: Int32 = 2_084_864          // lat 44.73633, 12 trailing zeros
-        let before = [TileSplitter.Area(minLat: 0, minLon: 0, maxLat: plain, maxLon: 1000),
-                      TileSplitter.Area(minLat: plain, minLon: 0, maxLat: plain + 4096, maxLon: 1000)]
+        let plain: Int32 = 2_084_864  // lat 44.73633, 12 trailing zeros
+        let before = [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: plain, maxLon: 1000),
+            TileSplitter.Area(minLat: plain, minLon: 0, maxLat: plain + 4096, maxLon: 1000)
+        ]
         let after = TileSplitter.nudgedOffPowersOfTwo(before)
         XCTAssertEqual(after[0].maxLat, plain)
         XCTAssertEqual(after[1].minLat, plain)
@@ -806,28 +1024,49 @@ extension TileSplitterTests {
         let input = try extract("stop.osm.pbf", nodes: [(id: 1, lon: 100), (id: 2, lon: 3000)])
         let out = directory.appendingPathComponent("tiles-stop")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [input], outputDirectory: out, mapID: 63410001,
-            maxNodes: 1_000_000, description: "test", areas: nil)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: nil
+            )
+        ) { _ in }
         splitter.shouldStop = { true }
         XCTAssertThrowsError(try splitter.run()) { XCTAssertTrue($0 is CancellationError) }
-        XCTAssertFalse(FileManager.default.fileExists(
-            atPath: out.appendingPathComponent("template.args").path), "no tiles were written")
+        XCTAssertFalse(
+            FileManager.default.fileExists(
+                atPath: out.appendingPathComponent("template.args").path
+            ),
+            "no tiles were written"
+        )
     }
 
     func testAStopAskedForLaterStillEndsTheSplit() throws {
         let input = try extract("stop-later.osm.pbf", nodes: [(id: 1, lon: 100), (id: 2, lon: 3000)])
         let out = directory.appendingPathComponent("tiles-stop-later")
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
-        let splitter = TileSplitter(options: .init(
-            inputs: [input], outputDirectory: out, mapID: 63410001,
-            maxNodes: 1_000_000, description: "test", areas: nil)) { _ in }
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: nil
+            )
+        ) { _ in }
         // The areas are measured first; the stop lands once the first phase reported.
         var reached = 0.0
         splitter.progress = { reached = $0 }
         splitter.shouldStop = { reached > 0 }
         XCTAssertThrowsError(try splitter.run()) { XCTAssertTrue($0 is CancellationError) }
-        XCTAssertFalse(FileManager.default.fileExists(
-            atPath: out.appendingPathComponent("template.args").path))
+        XCTAssertFalse(
+            FileManager.default.fileExists(
+                atPath: out.appendingPathComponent("template.args").path
+            )
+        )
     }
 }

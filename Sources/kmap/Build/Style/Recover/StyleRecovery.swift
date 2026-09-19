@@ -7,7 +7,6 @@ import Foundation
 /// rule line that should emit the foreign code. The output is a substitution sheet,
 /// applied per style at build time.
 enum StyleRecovery {
-
     struct Report {
         var frame = BBox.empty
         var extracts: [URL] = []
@@ -90,9 +89,13 @@ enum StyleRecovery {
     ///
     /// Cancellation is the task's: it kills the reader process, and the matching loop
     /// checks between elements.
-    static func run(img: URL, extracts explicit: [URL], log: Log,
-                    rulesDirectory: URL? = nil,
-                    progress: RecoverProgress? = nil) async throws -> Report {
+    static func run(
+        img: URL,
+        extracts explicit: [URL],
+        log: Log,
+        rulesDirectory: URL? = nil,
+        progress: RecoverProgress? = nil
+    ) async throws -> Report {
         var report = Report()
 
         let drawn = RegionSuggestion.drawnGround(of: img)
@@ -106,7 +109,8 @@ enum StyleRecovery {
         if let missing = explicit.first(where: { !FileTools.exists($0) }) {
             throw Trouble.noSuchExtract(missing)
         }
-        let extracts = explicit.isEmpty
+        let extracts =
+            explicit.isEmpty
             ? RegionSuggestion.cachedExtracts(drawnOn: drawn) : explicit
         guard !extracts.isEmpty else { throw Trouble.noExtracts(frame) }
         report.extracts = extracts
@@ -121,12 +125,18 @@ enum StyleRecovery {
         for extract in extracts {
             let reader = PBFReader(url: extract)
             var box = ((try? reader.headerBBox()) ?? nil).map {
-                BBox(minLon: $0.minLon, minLat: $0.minLat,
-                     maxLon: $0.maxLon, maxLat: $0.maxLat)
+                BBox(
+                    minLon: $0.minLon,
+                    minLat: $0.minLat,
+                    maxLon: $0.maxLon,
+                    maxLat: $0.maxLat
+                )
             }
             if box == nil {
-                log.step("\(extract.lastPathComponent) carries no bounding box in its"
-                       + " header — reading its nodes for one")
+                log.step(
+                    "\(extract.lastPathComponent) carries no bounding box in its"
+                        + " header — reading its nodes for one"
+                )
                 do {
                     // No nodes at all: the extract covers no ground, and nothing it holds
                     // can name anything on the map.
@@ -134,8 +144,10 @@ enum StyleRecovery {
                     box = measured
                     log.append("its own nodes lie in \(measured.display)")
                 } catch {
-                    log.warn("\(extract.lastPathComponent) cannot be read for its bounds,"
-                           + " so the whole frame is searched — this takes longer")
+                    log.warn(
+                        "\(extract.lastPathComponent) cannot be read for its bounds,"
+                            + " so the whole frame is searched — this takes longer"
+                    )
                     grounds = [frame]
                     break
                 }
@@ -148,14 +160,20 @@ enum StyleRecovery {
 
         log.step("reading the map's elements")
         progress?.move(to: .reading)
-        let dump = try ElementDumper.dump(img: img, grounds: grounds, log: log,
-                                          progress: progress)
+        let dump = try ElementDumper.dump(
+            img: img,
+            grounds: grounds,
+            log: log,
+            progress: progress
+        )
         report.elements = dump.count
         log.append("\(dump.count) element(s) at the detail level, over the ground searched")
         if let finest = dump.resolutions.max(), finest < GarminGrid.fullResolution {
-            log.warn("the detail level is drawn at resolution \(finest), not"
-                   + " \(GarminGrid.fullResolution): its vertices are rounded off the grid,"
-                   + " and few will match")
+            log.warn(
+                "the detail level is drawn at resolution \(finest), not"
+                    + " \(GarminGrid.fullResolution): its vertices are rounded off the grid,"
+                    + " and few will match"
+            )
         }
 
         // One byte per element, shared by every extract: the best match any of them
@@ -165,8 +183,13 @@ enum StyleRecovery {
         defer { matches.deallocate() }
 
         // The zoomed-out drawings too: a reserve's hatch may exist only there.
-        let coarse = (try? ElementDumper.dump(img: img, grounds: grounds, log: log,
-                                              coarserLevels: true)) ?? ElementDumper.Dump()
+        let coarse =
+            (try? ElementDumper.dump(
+                img: img,
+                grounds: grounds,
+                log: log,
+                coarserLevels: true
+            )) ?? ElementDumper.Dump()
 
         var evidence = Evidence()
         // Extracts overlap where one lies inside another; an object is counted once.
@@ -190,14 +213,25 @@ enum StyleRecovery {
             }
             progress?.move(to: .matching(extract.lastPathComponent))
             progress?.count(0, of: dump.count)
-            evidence.merge(try await matched(dump, against: index, matches: matches,
-                                             progress: progress))
+            evidence.merge(
+                try await matched(
+                    dump,
+                    against: index,
+                    matches: matches,
+                    progress: progress
+                )
+            )
             // What geometry could not name is asked of the place. Its own stage, or
             // the bar sits on a finished 100% while this works.
             progress?.move(to: .placing(extract.lastPathComponent))
             CoarseEvidence.match(coarse, index: index, into: &evidence)
-            await CoarseEvidence.rescuePoints(dump, matches: matches, index: index,
-                                              into: &evidence, progress: progress)
+            await CoarseEvidence.rescuePoints(
+                dump,
+                matches: matches,
+                index: index,
+                into: &evidence,
+                progress: progress
+            )
         }
         evidence.tally(dump, matches: UnsafeBufferPointer(matches))
 
@@ -218,7 +252,8 @@ enum StyleRecovery {
         let typScratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("recover-\(UUID().uuidString).typ")
         if ImgContainer.extractTYP(from: img, to: typScratch),
-           let typ = try? TypBinary.read(typScratch) {
+            let typ = try? TypBinary.read(typScratch)
+        {
             typDefined[.area] = Set(typ.polygons.map(\.code))
             typDefined[.line] = Set(typ.lines.map(\.code))
             typDefined[.point] = Set(typ.points.map(\.code))
@@ -227,8 +262,13 @@ enum StyleRecovery {
 
         progress?.move(to: .deriving)
         let rules = rulesDirectory.map { DefaultRuleBook.load(from: $0) } ?? DefaultRuleBook.load()
-        derive(evidence, into: &report, rules: rules, typDefined: typDefined,
-               ground: report.groundTags)
+        derive(
+            evidence,
+            into: &report,
+            rules: rules,
+            typDefined: typDefined,
+            ground: report.groundTags
+        )
         recoverStyle(from: img, into: &report, log: log, rulesDirectory: rulesDirectory)
         return report
     }
@@ -238,19 +278,26 @@ enum StyleRecovery {
     /// Silent where there is nothing to recover, or no rules of ours to put it on.
     /// Our numbers are read from the neutral rules where given: the last build's own
     /// set carries its hides, and a hidden number would come out unpainted.
-    private static func recoverStyle(from img: URL, into report: inout Report, log: Log,
-                                     rulesDirectory: URL?) {
+    private static func recoverStyle(
+        from img: URL,
+        into report: inout Report,
+        log: Log,
+        rulesDirectory: URL?
+    ) {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("recovered-\(UUID().uuidString).typ")
         defer { FileTools.removeIfPresent(scratch) }
         guard ImgContainer.extractTYP(from: img, to: scratch),
-              let binary = try? TypBinary.read(scratch) else {
+            let binary = try? TypBinary.read(scratch)
+        else {
             log.append("the map carries no TYP — there is no look to recover")
             return
         }
         let theirs = TypSource.parse(TypDecompiler.source(binary))
-        guard let rules = RuleSetIndex.read(
-            styleDirectory: rulesDirectory ?? StyleCatalog.baseStyleDirectory)
+        guard
+            let rules = RuleSetIndex.read(
+                styleDirectory: rulesDirectory ?? StyleCatalog.baseStyleDirectory
+            )
         else {
             log.warn("kmap's own rules are not materialized yet — build once, then recover")
             return
@@ -258,18 +305,34 @@ enum StyleRecovery {
         // The zooms each code was seen at, so a ladder of theirs lands on ours.
         var zooms: [String: [Int: Int]] = [:]
         for (key, outcome) in report.outcomes { zooms[key] = outcome.resolutions }
-        let ported = StylePort.map(codesByTag: report.codesByTag, rules: rules,
-                                   theirZooms: zooms, theirTyp: theirs,
-                                   theirAreas: report.areaByTag)
+        let ported = StylePort.map(
+            codesByTag: report.codesByTag,
+            rules: rules,
+            theirZooms: zooms,
+            theirTyp: theirs,
+            theirAreas: report.areaByTag
+        )
         report.style = StylePort.typ(
-            from: theirs, ported: ported, familyID: theirs.familyID,
-            productID: theirs.productID, codePage: theirs.codePage,
-            unstyled: StylePort.leftToTheDevice(codesByTag: report.codesByTag, rules: rules,
-                                                theirTyp: theirs, ported: ported))
+            from: theirs,
+            ported: ported,
+            familyID: theirs.familyID,
+            productID: theirs.productID,
+            codePage: theirs.codePage,
+            unstyled: StylePort.leftToTheDevice(
+                codesByTag: report.codesByTag,
+                rules: rules,
+                theirTyp: theirs,
+                ported: ported
+            )
+        )
         report.ported = Dictionary(grouping: ported, by: \.kind).mapValues(\.count)
         report.contested = ported.filter { !$0.rivals.isEmpty }
-        report.uncovered = StylePort.uncovered(codesByTag: report.codesByTag, rules: rules,
-                                               theirs: theirs, ported: ported)
+        report.uncovered = StylePort.uncovered(
+            codesByTag: report.codesByTag,
+            rules: rules,
+            theirs: theirs,
+            ported: ported
+        )
         let counted = report.ported.map { "\($0.value) \($0.key.plural)" }.sorted()
         log.append("recovered " + counted.joined(separator: ", ") + " onto kmap's numbers")
     }
@@ -277,9 +340,12 @@ enum StyleRecovery {
     /// The match, spread over the machine's cores: elements are independent, so the list
     /// is cut into equal spans, each core tallies its own evidence, and the tallies are
     /// folded together.
-    private static func matched(_ dump: ElementDumper.Dump, against index: GroundIndex,
-                                matches: UnsafeMutableBufferPointer<UInt8>,
-                                progress: RecoverProgress?) async throws -> Evidence {
+    private static func matched(
+        _ dump: ElementDumper.Dump,
+        against index: GroundIndex,
+        matches: UnsafeMutableBufferPointer<UInt8>,
+        progress: RecoverProgress?
+    ) async throws -> Evidence {
         let cores = max(1, min(ProcessInfo.processInfo.activeProcessorCount, mostCores))
         let span = (dump.count + cores - 1) / cores
         guard span > 0 else { return Evidence() }
@@ -300,9 +366,12 @@ enum StyleRecovery {
                         }
                         // The best any extract managed: a match stands whatever a
                         // later extract says, an ambiguity outranks a plain miss.
-                        let outcome = mine.record(dump.elements[at], chain: dump.chain(at),
-                                                  in: index,
-                                                  resolution: dump.resolution(at))
+                        let outcome = mine.record(
+                            dump.elements[at],
+                            chain: dump.chain(at),
+                            in: index,
+                            resolution: dump.resolution(at)
+                        )
                         if outcome.rawValue > matches[at] { matches[at] = outcome.rawValue }
                     }
                     return mine
@@ -325,7 +394,7 @@ enum StyleRecovery {
                 return "no such extract: \(Paths.display(url))"
             case .noExtracts(let frame):
                 return "no cached extract covers \(frame.display) — download the region"
-                     + " first, or pass --extract"
+                    + " first, or pass --extract"
             }
         }
     }

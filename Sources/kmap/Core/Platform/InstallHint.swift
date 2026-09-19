@@ -2,12 +2,13 @@ import Foundation
 
 /// The line to print when kmap cannot install something itself.
 extension Platform {
-
     /// Returns the command that installs `what` with the package manager this machine
     /// has, or a download location when no known manager carries it.
-    static func installHint(_ what: PackageManager.Need,
-                            manager: PackageManager? = PackageManager.detect(),
-                            privilege: Privilege? = nil) -> String {
+    static func installHint(
+        _ what: PackageManager.Need,
+        manager: PackageManager? = PackageManager.detect(),
+        privilege: Privilege? = nil
+    ) -> String {
         if let manager {
             let privilege = privilege ?? Privilege.forInstalling(with: manager)
             if let command = manager.spokenCommand(for: what, privilege: privilege) {

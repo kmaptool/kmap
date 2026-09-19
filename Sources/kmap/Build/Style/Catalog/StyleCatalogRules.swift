@@ -17,9 +17,12 @@ extension StyleCatalog {
     /// exact-line: a substitution that no longer matches is reported, not applied loosely.
     @discardableResult
 
-    static func applySubstitutions(_ list: String, in directory: URL) throws
-        -> (applied: Int, missed: [String], hidden: Int) {
-
+    static func applySubstitutions(
+        _ list: String,
+        in directory: URL
+    ) throws
+        -> (applied: Int, missed: [String], hidden: Int)
+    {
         var edits: [String: [(old: String, new: [String])]] = [:]
         for entry in SubstitutionSheet.parse(list) where !entry.file.isEmpty {
             edits[entry.file, default: []].append((entry.old.joined(separator: "\n"), entry.new))
@@ -36,26 +39,33 @@ extension StyleCatalog {
                     // The hide pass rewrites a rule's type line and leaves its mark; a
                     // substitution aimed at a hidden rule has nothing to retarget - the
                     // rule draws nothing - so the miss is bookkeeping, not a warning.
-                    let condition = substitution.old
+                    let condition =
+                        substitution.old
                         .components(separatedBy: " [0x").first ?? substitution.old
                     if let at = text.range(of: condition),
-                       text[at.upperBound...].prefix(200).contains("# kmap: hidden") {
+                        text[at.upperBound...].prefix(200).contains("# kmap: hidden")
+                    {
                         hidden += 1
                         continue
                     }
                     // A name literal the language pass rewrote does not unmake the rule:
                     // the same condition carrying the same type is the same rule, and
                     // only its type token is swapped.
-                    if Self.retype(&text, old: substitution.old,
-                                   new: substitution.new.joined(separator: "\n")) {
+                    if Self.retype(
+                        &text,
+                        old: substitution.old,
+                        new: substitution.new.joined(separator: "\n")
+                    ) {
                         applied += 1
                     } else {
                         missed.append("\(name): \(truncate(substitution.old, to: 60))")
                     }
                     continue
                 }
-                text = text.replacingOccurrences(of: substitution.old,
-                                                 with: substitution.new.joined(separator: "\n"))
+                text = text.replacingOccurrences(
+                    of: substitution.old,
+                    with: substitution.new.joined(separator: "\n")
+                )
                 applied += 1
             }
             try text.write(to: url, atomically: true, encoding: .utf8)
@@ -68,8 +78,12 @@ extension StyleCatalog {
     static func rungs(of levels: LevelsProfile) -> [Int] {
         (levels.levels + ", " + levels.overviewLevels)
             .split(separator: ",")
-            .compactMap { Int($0.split(separator: ":").last?
-                .trimmingCharacters(in: .whitespaces) ?? "") }
+            .compactMap {
+                Int(
+                    $0.split(separator: ":").last?
+                        .trimmingCharacters(in: .whitespaces) ?? ""
+                )
+            }
             .sorted()
     }
 
@@ -99,23 +113,31 @@ extension StyleCatalog {
             text = reachOfLadders(in: text)
             var out: [String] = []
             for line in text.components(separatedBy: "\n") {
-                guard let range = line.range(of: "resolution [0-9]+-[0-9]+",
-                                             options: .regularExpression) else {
+                guard
+                    let range = line.range(
+                        of: "resolution [0-9]+-[0-9]+",
+                        options: .regularExpression
+                    )
+                else {
                     out.append(line)
                     continue
                 }
                 let numbers = line[range].split(separator: " ")[1].split(separator: "-")
                 guard numbers.count == 2, let low = Int(numbers[0]),
-                      let high = Int(numbers[1]) else { out.append(line); continue }
+                    let high = Int(numbers[1])
+                else { out.append(line); continue }
                 // A band with a rung inside it already draws where it should.
                 if ladder.contains(where: { $0 >= low && $0 <= high }) {
                     out.append(line)
                     continue
                 }
                 let fittedLow = nearest(low), fittedHigh = nearest(high)
-                out.append(line.replacingCharacters(
-                    in: range,
-                    with: "resolution \(min(fittedLow, fittedHigh))-\(max(fittedLow, fittedHigh))"))
+                out.append(
+                    line.replacingCharacters(
+                        in: range,
+                        with: "resolution \(min(fittedLow, fittedHigh))-\(max(fittedLow, fittedHigh))"
+                    )
+                )
                 fitted += 1
             }
             text = out.joined(separator: "\n")
@@ -134,14 +156,19 @@ extension StyleCatalog {
         func condition(of line: String) -> String? {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             guard trimmed.contains("[0x"), !trimmed.hasPrefix("#") else { return nil }
-            let cut = trimmed.firstIndex(of: "{") ?? trimmed.firstIndex(of: "[")
+            let cut =
+                trimmed.firstIndex(of: "{") ?? trimmed.firstIndex(of: "[")
                 ?? trimmed.endIndex
             let head = String(trimmed[..<cut]).trimmingCharacters(in: .whitespaces)
             return head.isEmpty ? nil : head
         }
         func band(of line: String) -> (low: Int, high: Int)? {
-            guard let found = line.range(of: "resolution [0-9]+-[0-9]+",
-                                         options: .regularExpression) else { return nil }
+            guard
+                let found = line.range(
+                    of: "resolution [0-9]+-[0-9]+",
+                    options: .regularExpression
+                )
+            else { return nil }
             let parts = line[found].split(separator: " ")[1].split(separator: "-")
             guard parts.count == 2, let low = Int(parts[0]), let high = Int(parts[1])
             else { return nil }
@@ -149,8 +176,11 @@ extension StyleCatalog {
         }
         func plainResolution(of line: String) -> Int? {
             guard band(of: line) == nil,
-                  let found = line.range(of: "resolution [0-9]+",
-                                         options: .regularExpression) else { return nil }
+                let found = line.range(
+                    of: "resolution [0-9]+",
+                    options: .regularExpression
+                )
+            else { return nil }
             return Int(line[found].split(separator: " ")[1])
         }
 
@@ -176,7 +206,8 @@ extension StyleCatalog {
             lines[lowest.index] = lines[lowest.index].replacingOccurrences(
                 of: "resolution [0-9]+-[0-9]+",
                 with: "resolution \(reach)-\(lowest.high)",
-                options: .regularExpression)
+                options: .regularExpression
+            )
         }
         return lines.joined(separator: "\n")
     }
@@ -200,7 +231,8 @@ extension StyleCatalog {
         }
         func bareCondition(of rule: String) -> String? {
             let first = rule.split(separator: "\n").first.map(String.init) ?? rule
-            let cut = first.firstIndex(of: "{") ?? first.firstIndex(of: "[")
+            let cut =
+                first.firstIndex(of: "{") ?? first.firstIndex(of: "[")
                 ?? first.endIndex
             let condition = String(first[..<cut]).trimmingCharacters(in: .whitespaces)
             return condition.isEmpty ? nil : condition
@@ -212,26 +244,36 @@ extension StyleCatalog {
         let newLines = new.isEmpty ? [] : new.components(separatedBy: "\n")
         // Every replacement line must be about the same rule, or this substitution is
         // doing more than the fallback understands.
-        guard newLines.allSatisfy({ line in
-            line.contains("[0x") ? bareCondition(of: line) == condition : true
-        }) else { return false }
+        guard
+            newLines.allSatisfy({ line in
+                line.contains("[0x") ? bareCondition(of: line) == condition : true
+            })
+        else { return false }
 
         var lines = text.components(separatedBy: "\n")
         for at in lines.indices {
             // The whole condition, not a prefix: `highway=motorway` must not land on
             // `highway=motorway & mkgmap:fast_road=yes`.
-            guard bareCondition(of: lines[at]
-                .trimmingCharacters(in: .whitespaces)) == condition else { continue }
+            guard
+                bareCondition(
+                    of: lines[at]
+                        .trimmingCharacters(in: .whitespaces)
+                ) == condition
+            else { continue }
             // The type may sit on this line or, for a two-line rule, on the next.
-            guard let target = [at, at + 1].first(where: {
-                $0 < lines.count && lines[$0].contains(oldToken)
-            }) else { continue }
+            guard
+                let target = [at, at + 1].first(where: {
+                    $0 < lines.count && lines[$0].contains(oldToken)
+                })
+            else { continue }
 
             // The rule's own resolution here and now: an unbanded stroke follows it, so
             // the stack appears and vanishes as one.
-            let here = lines[target].range(of: "resolution [0-9-]+",
-                                           options: .regularExpression)
-                .map { String(lines[target][$0]) }
+            let here = lines[target].range(
+                of: "resolution [0-9-]+",
+                options: .regularExpression
+            )
+            .map { String(lines[target][$0]) }
             func fitted(_ line: String) -> String {
                 // A stroke is paint, not meaning: the name belongs to the rule below
                 // it, which sets it whatever language this build speaks. A label
@@ -241,28 +283,38 @@ extension StyleCatalog {
                 // closing brace inside it, and a lazy match ends there.
                 var out = line
                 if let open = out.firstIndex(of: "{"),
-                   let type = out.range(of: "[0x"),
-                   let close = out[open..<type.lowerBound].lastIndex(of: "}") {
+                    let type = out.range(of: "[0x"),
+                    let close = out[open..<type.lowerBound].lastIndex(of: "}")
+                {
                     let block = open...close
                     let kept = out[block].dropFirst().dropLast()
                         .split(separator: ";")
                         .map { $0.trimmingCharacters(in: .whitespaces) }
-                        .filter { !$0.hasPrefix("name ") && !$0.hasPrefix("add name")
-                                  && !$0.hasPrefix("set name") }
+                        .filter {
+                            !$0.hasPrefix("name ") && !$0.hasPrefix("add name")
+                                && !$0.hasPrefix("set name")
+                        }
                     out = out.replacingCharacters(
                         in: block,
-                        with: kept.isEmpty ? "" : "{" + kept.joined(separator: "; ") + "}")
+                        with: kept.isEmpty ? "" : "{" + kept.joined(separator: "; ") + "}"
+                    )
                     while out.contains("  ") {
                         out = out.replacingOccurrences(of: "  ", with: " ")
                     }
                 }
                 // A stroke pinned to a band of zooms keeps it: the band is where that
                 // stroke belongs, and the rule's own resolution says nothing about it.
-                guard let here, out.range(of: "resolution [0-9]+-[0-9]+",
-                                          options: .regularExpression) == nil
+                guard let here,
+                    out.range(
+                        of: "resolution [0-9]+-[0-9]+",
+                        options: .regularExpression
+                    ) == nil
                 else { return out }
-                return out.replacingOccurrences(of: "resolution [0-9-]+", with: here,
-                                                options: .regularExpression)
+                return out.replacingOccurrences(
+                    of: "resolution [0-9-]+",
+                    with: here,
+                    options: .regularExpression
+                )
             }
 
             guard !newLines.isEmpty else {
@@ -275,27 +327,39 @@ extension StyleCatalog {
             // ones before it are strokes stacked above.
             guard let closing = newLines.last, let newToken = token(of: closing)
             else { return false }
-            let layers = newLines.dropLast(oldLines.count == newLines.count ? 1
-                                           : oldLines.count).map(fitted)
-            lines[target] = lines[target].replacingOccurrences(of: String(oldToken),
-                                                               with: String(newToken))
+            let layers = newLines.dropLast(
+                oldLines.count == newLines.count
+                    ? 1
+                    : oldLines.count
+            ).map(fitted)
+            lines[target] = lines[target].replacingOccurrences(
+                of: String(oldToken),
+                with: String(newToken)
+            )
             // A rule the sheet has pinned to a band takes that band: the strokes above
             // it own the other zooms, and leaving its own `resolution N` - which means
             // N and every zoom finer - would draw it under each of them as well, a
             // river once in its own colour and again in the stroke's. Never coarser
             // than this build already draws the rule: the zoom plan has had its say.
-            if let band = closing.range(of: "resolution [0-9]+-[0-9]+",
-                                        options: .regularExpression),
-               lines[target].range(of: "resolution [0-9]+-[0-9]+",
-                                   options: .regularExpression) == nil {
+            if let band = closing.range(
+                of: "resolution [0-9]+-[0-9]+",
+                options: .regularExpression
+            ),
+                lines[target].range(
+                    of: "resolution [0-9]+-[0-9]+",
+                    options: .regularExpression
+                ) == nil
+            {
                 let edges = closing[band].split(separator: " ")[1].split(separator: "-")
                 let own = here.flatMap { Int($0.split(separator: " ")[1]) }
                 if edges.count == 2, let low = Int(edges[0]), let high = Int(edges[1]),
-                   max(low, own ?? low) <= high {
+                    max(low, own ?? low) <= high
+                {
                     lines[target] = lines[target].replacingOccurrences(
                         of: "resolution [0-9-]+",
                         with: "resolution \(max(low, own ?? low))-\(high)",
-                        options: .regularExpression)
+                        options: .regularExpression
+                    )
                 }
             }
             // Above the rule, which stops the chain: a stroke pinned to a band does

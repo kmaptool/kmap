@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The counter progress is kept in while workers run.
 final class CounterTests: XCTestCase {
-
     func testItCountsEveryIncrementFromEveryCore() {
         let counter = Counter()
         DispatchQueue.concurrentPerform(iterations: 8) { _ in

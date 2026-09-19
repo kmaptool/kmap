@@ -46,8 +46,10 @@ extension TypLibrary {
         var out = Held()
         // Only an original whose entry is still there: a folder tidied by hand can leave
         // an orphan, which would report a missing style as already in the library.
-        let entries = Set(contents(in: directory)
-            .map { $0.deletingPathExtension().lastPathComponent })
+        let entries = Set(
+            contents(in: directory)
+                .map { $0.deletingPathExtension().lastPathComponent }
+        )
         for url in contents(in: originalsDirectory(in: directory)) {
             let name = url.deletingPathExtension().lastPathComponent
             guard entries.contains(name) else { continue }

@@ -3,16 +3,18 @@ import Foundation
 /// Showing a file in the desktop's file manager, which each platform is asked for
 /// differently.
 extension Platform {
-
     /// Returns the command that shows `url` in a file manager, or nil where no file
     /// manager is installed.
     ///
     /// macOS and Windows select the file; plain Linux opens its folder instead, since
     /// `xdg-open` cannot select and would launch a handler application for the file.
-    static func revealCommand(for url: URL,
-                              on platform: Platform = Platform.current,
-                              which: (String) -> String? = { Platform.which($0) })
-        -> (executable: String, arguments: [String])? {
+    static func revealCommand(
+        for url: URL,
+        on platform: Platform = Platform.current,
+        which: (String) -> String? = { Platform.which($0) }
+    )
+        -> (executable: String, arguments: [String])?
+    {
         switch platform {
         case .macOS:
             guard let open = which("open") else { return nil }
@@ -20,7 +22,8 @@ extension Platform {
         case .wsl:
             // Windows Explorer needs a Windows path; the conversion can fail.
             guard let explorer = which("explorer.exe"),
-                  let windows = windowsPath(for: url, on: .wsl) else {
+                let windows = windowsPath(for: url, on: .wsl)
+            else {
                 return revealCommand(for: url, on: .linux, which: which)
             }
             // No space after the comma: `/select,<path>` must be one argument, or

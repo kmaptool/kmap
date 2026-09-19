@@ -5,7 +5,6 @@ import Foundation
 /// floating-point predictor; anything else throws `Trouble.unsupported`. Tiles are decoded on
 /// first touch and cached, since a caller reads whole rows.
 struct GeoTIFF {
-
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case notTIFF
         case bigTIFF
@@ -110,9 +109,11 @@ struct GeoTIFF {
         sampleFormat = one(Tag.sampleFormat, 1)
         compression = one(Tag.compression, 1)
         predictor = one(Tag.predictor, 1)
-        guard compression == Compression.none || compression == Compression.lzw
+        guard
+            compression == Compression.none || compression == Compression.lzw
                 || compression == Compression.deflate || compression == Compression.adobeDeflate
-                || compression == Compression.packBits else {
+                || compression == Compression.packBits
+        else {
             throw Trouble.unsupported("compression \(compression)")
         }
         guard bitsPerSample == 32 || bitsPerSample == 16 else {
@@ -141,8 +142,12 @@ struct GeoTIFF {
 
     /// The IFD: every tag the file carries, each as the numbers it holds. A tag of an
     /// unknown type, or one pointing past the end, is skipped rather than fatal.
-    private static func readTagDirectory(in data: Data, bigEndian: Bool) throws
-        -> [Int: [Double]] {
+    private static func readTagDirectory(
+        in data: Data,
+        bigEndian: Bool
+    ) throws
+        -> [Int: [Double]]
+    {
         let directory = Int(Self.u32(data, 4, bigEndian))
         guard directory + 2 <= data.count else { throw Trouble.truncated }
         let entries = Int(Self.u16(data, directory, bigEndian))
@@ -184,10 +189,14 @@ struct GeoTIFF {
     /// ModelPixelScale (33550) is (x, y, z) with y positive downwards; ModelTiepoint
     /// (33922) is six doubles whose last three are the world position of raster (i, j).
     /// Both are required rather than defaulted: a default would place the tile silently.
-    private static func geoPlacement(from tags: [Int: [Double]]) throws
-        -> (stepLon: Double, stepLat: Double, originLon: Double, originLat: Double) {
+    private static func geoPlacement(
+        from tags: [Int: [Double]]
+    ) throws
+        -> (stepLon: Double, stepLat: Double, originLon: Double, originLat: Double)
+    {
         guard let scale = tags[Tag.modelPixelScale], scale.count >= 2,
-              let tie = tags[Tag.modelTiepoint], tie.count >= 6 else {
+            let tie = tags[Tag.modelTiepoint], tie.count >= 6
+        else {
             throw Trouble.unsupported("no geo-referencing")
         }
         var lon = tie[3] - tie[0] * scale[0]
@@ -264,8 +273,10 @@ struct GeoTIFF {
             }
         } else if compression == Compression.lzw || compression == Compression.packBits {
             let body = data.subdata(in: offset..<(offset + count))
-            let out = compression == Compression.lzw ? Self.lzw(body, expecting: wanted)
-                                       : Self.packBits(body, expecting: wanted)
+            let out =
+                compression == Compression.lzw
+                ? Self.lzw(body, expecting: wanted)
+                : Self.packBits(body, expecting: wanted)
             guard out.count >= wanted else { throw Trouble.truncated }
             raw = Array(out[0..<wanted])
         } else {
@@ -274,8 +285,11 @@ struct GeoTIFF {
             do {
                 try data.withUnsafeBytes { bytes in
                     try raw.withUnsafeMutableBufferPointer { out in
-                        try Zlib.inflate(UnsafeRawBufferPointer(rebasing: bytes[offset..<(offset + count)]),
-                                         into: out, expecting: wanted)
+                        try Zlib.inflate(
+                            UnsafeRawBufferPointer(rebasing: bytes[offset..<(offset + count)]),
+                            into: out,
+                            expecting: wanted
+                        )
                     }
                 }
             } catch {
@@ -310,8 +324,10 @@ struct GeoTIFF {
                     var previous: UInt16 = 0
                     for k in 0..<tileWidth {
                         let at = base + k * 2
-                        let raw16 = bigEndian ? (UInt16(raw[at]) << 8) | UInt16(raw[at + 1])
-                                              : (UInt16(raw[at + 1]) << 8) | UInt16(raw[at])
+                        let raw16 =
+                            bigEndian
+                            ? (UInt16(raw[at]) << 8) | UInt16(raw[at + 1])
+                            : (UInt16(raw[at + 1]) << 8) | UInt16(raw[at])
                         let value = k == 0 ? raw16 : raw16 &+ previous
                         previous = value
                         if bigEndian {
@@ -355,8 +371,10 @@ struct GeoTIFF {
                 } else {
                     for k in (0..<4).reversed() { bits = (bits << 8) | UInt32(raw[at + k]) }
                 }
-                out[i] = sampleFormat == SampleFormat.float ? Float(bitPattern: bits)
-                                           : Float(Int32(bitPattern: bits))
+                out[i] =
+                    sampleFormat == SampleFormat.float
+                    ? Float(bitPattern: bits)
+                    : Float(Int32(bitPattern: bits))
             } else {
                 var bits: UInt16 = 0
                 if msbFirst {
@@ -453,23 +471,30 @@ struct GeoTIFF {
 
     private static func u16(_ d: Data, _ at: Int, _ big: Bool) -> UInt16 {
         guard at + 2 <= d.count else { return 0 }
-        return big ? (UInt16(d[at]) << 8) | UInt16(d[at + 1])
-                   : (UInt16(d[at + 1]) << 8) | UInt16(d[at])
+        return big
+            ? (UInt16(d[at]) << 8) | UInt16(d[at + 1])
+            : (UInt16(d[at + 1]) << 8) | UInt16(d[at])
     }
 
     private static func u32(_ d: Data, _ at: Int, _ big: Bool) -> UInt32 {
         guard at + 4 <= d.count else { return 0 }
         var out: UInt32 = 0
-        if big { for k in 0..<4 { out = (out << 8) | UInt32(d[at + k]) } }
-        else { for k in (0..<4).reversed() { out = (out << 8) | UInt32(d[at + k]) } }
+        if big {
+            for k in 0..<4 { out = (out << 8) | UInt32(d[at + k]) }
+        } else {
+            for k in (0..<4).reversed() { out = (out << 8) | UInt32(d[at + k]) }
+        }
         return out
     }
 
     private static func u64(_ d: Data, _ at: Int, _ big: Bool) -> UInt64 {
         guard at + 8 <= d.count else { return 0 }
         var out: UInt64 = 0
-        if big { for k in 0..<8 { out = (out << 8) | UInt64(d[at + k]) } }
-        else { for k in (0..<8).reversed() { out = (out << 8) | UInt64(d[at + k]) } }
+        if big {
+            for k in 0..<8 { out = (out << 8) | UInt64(d[at + k]) }
+        } else {
+            for k in (0..<8).reversed() { out = (out << 8) | UInt64(d[at + k]) }
+        }
         return out
     }
 }

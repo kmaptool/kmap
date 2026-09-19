@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Writing a repaired copy of an extract: some blocks rebuilt, the rest copied as bytes.
@@ -6,7 +7,6 @@ import XCTest
 /// Checked whole, file in and file out: objects the pass did not mean to touch come out
 /// untouched.
 final class PBFRewriterTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -25,8 +25,13 @@ final class PBFRewriterTests: XCTestCase {
         var nodes: [(id: Int64, lat: Double, lon: Double, tags: [(String, String)])] = []
         var ways: [(id: Int64, refs: [Int64], tags: [(String, String)])] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var pairs: [(String, String)] = []
             var i = tags.startIndex
             while i + 1 < tags.endIndex {
@@ -36,10 +41,19 @@ final class PBFRewriterTests: XCTestCase {
             nodes.append((id, lat, lon, pairs))
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                          values: ArraySlice<Int32>, block: OSMBlock) {
-            ways.append((id, Array(refs),
-                         zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }))
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
+            ways.append(
+                (
+                    id, Array(refs),
+                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
+                )
+            )
         }
     }
 
@@ -51,19 +65,30 @@ final class PBFRewriterTests: XCTestCase {
 
     /// A small extract: nodes with tags, ways over them.
     @discardableResult
-    private func makeExtract(_ url: URL,
-                             nodes: [PBFWriter.Node]? = nil,
-                             ways: [PBFWriter.Way]? = nil) throws -> URL {
+    private func makeExtract(
+        _ url: URL,
+        nodes: [PBFWriter.Node]? = nil,
+        ways: [PBFWriter.Way]? = nil
+    ) throws -> URL {
         let writer = try PBFWriter(to: url)
         writer.header(bbox: (minLat: 44, minLon: 33, maxLat: 45, maxLon: 34))
-        writer.nodes(nodes ?? (1...100).map {
-            PBFWriter.Node(id: Int64($0), lat: 44.5 + Double($0) * 1e-4,
-                           lon: 33.5, tags: [("name", "node \($0)")])
-        })
-        writer.ways(ways ?? [
-            PBFWriter.Way(id: 1000, refs: Array(1...50), tags: [("highway", "track")]),
-            PBFWriter.Way(id: 1001, refs: Array(51...100), tags: [("highway", "path")]),
-        ])
+        writer.nodes(
+            nodes
+                ?? (1...100).map {
+                    PBFWriter.Node(
+                        id: Int64($0),
+                        lat: 44.5 + Double($0) * 1e-4,
+                        lon: 33.5,
+                        tags: [("name", "node \($0)")]
+                    )
+                }
+        )
+        writer.ways(
+            ways ?? [
+                PBFWriter.Way(id: 1000, refs: Array(1...50), tags: [("highway", "track")]),
+                PBFWriter.Way(id: 1001, refs: Array(51...100), tags: [("highway", "path")])
+            ]
+        )
         try writer.finish()
         return url
     }
@@ -77,7 +102,9 @@ final class PBFRewriterTests: XCTestCase {
     func testAnExtractWithNothingToRepairComesOutWithEveryObjectIntact() throws {
         let source = try makeExtract(path("in.osm.pbf"))
         let out = path("out.osm.pbf")
-        let tally = try { var made = rewriter(source); return try made.write(to: out) }()
+        let tally = try {
+            var made = rewriter(source); return try made.write(to: out)
+        }()
 
         let before = try read(source)
         let after = try read(out)
@@ -92,7 +119,9 @@ final class PBFRewriterTests: XCTestCase {
     func testTheHeaderTravelsWithTheFile() throws {
         let source = try makeExtract(path("in.osm.pbf"))
         let out = path("out.osm.pbf")
-        _ = try { var made = rewriter(source); return try made.write(to: out) }()
+        _ = try {
+            var made = rewriter(source); return try made.write(to: out)
+        }()
         let box = try PBFReader(url: out).headerBBox()
         XCTAssertEqual(box?.minLat ?? 0, 44, accuracy: 1e-9)
         XCTAssertEqual(box?.maxLon ?? 0, 34, accuracy: 1e-9)
@@ -105,14 +134,18 @@ final class PBFRewriterTests: XCTestCase {
         let writer = try PBFWriter(to: source)
         writer.header()
         for batch in 0..<30 {
-            writer.nodes((0..<1000).map {
-                PBFWriter.Node(id: Int64(batch * 1000 + $0 + 1), lat: 44, lon: 33, tags: [])
-            })
+            writer.nodes(
+                (0..<1000).map {
+                    PBFWriter.Node(id: Int64(batch * 1000 + $0 + 1), lat: 44, lon: 33, tags: [])
+                }
+            )
         }
         try writer.finish()
 
         let out = path("many-out.osm.pbf")
-        _ = try { var made = rewriter(source); return try made.write(to: out) }()
+        _ = try {
+            var made = rewriter(source); return try made.write(to: out)
+        }()
         XCTAssertEqual(try read(out).nodes.map(\.id), Array(1...30_000))
     }
 
@@ -128,8 +161,10 @@ final class PBFRewriterTests: XCTestCase {
         let after = try read(out)
         let seven = after.nodes.first { $0.id == 7 }
         XCTAssertEqual(seven?.tags.first { $0.0 == "kmap:on" }?.1, "minor")
-        XCTAssertEqual(after.nodes.first { $0.id == 9 }?.tags.first { $0.0 == "kmap:on" }?.1,
-                       "path")
+        XCTAssertEqual(
+            after.nodes.first { $0.id == 9 }?.tags.first { $0.0 == "kmap:on" }?.1,
+            "path"
+        )
         // And nothing else was touched.
         XCTAssertNil(after.nodes.first { $0.id == 8 }?.tags.first { $0.0 == "kmap:on" })
         XCTAssertEqual(tally.tagged, 2)
@@ -144,20 +179,37 @@ final class PBFRewriterTests: XCTestCase {
         let tally = try pass.write(to: out)
 
         let after = try read(out)
-        XCTAssertEqual(after.ways.first { $0.id == 1000 }?
-            .tags.first { $0.0 == "kmap:dup_venue" }?.1, "yes")
-        XCTAssertNil(after.ways.first { $0.id == 1001 }?
-            .tags.first { $0.0 == "kmap:dup_venue" })
+        XCTAssertEqual(
+            after.ways.first { $0.id == 1000 }?
+                .tags.first { $0.0 == "kmap:dup_venue" }?.1,
+            "yes"
+        )
+        XCTAssertNil(
+            after.ways.first { $0.id == 1001 }?
+                .tags.first { $0.0 == "kmap:dup_venue" }
+        )
         XCTAssertEqual(tally.marked, 1)
     }
 
     func testADescriptionThatOnlyRepeatsTheNameIsDropped() throws {
-        let source = try makeExtract(path("in.osm.pbf"), nodes: [
-            PBFWriter.Node(id: 1, lat: 44, lon: 33,
-                           tags: [("name", "Родник"), ("description", "Родник")]),
-            PBFWriter.Node(id: 2, lat: 44, lon: 33,
-                           tags: [("name", "Родник"), ("description", "вода круглый год")]),
-        ], ways: [])
+        let source = try makeExtract(
+            path("in.osm.pbf"),
+            nodes: [
+                PBFWriter.Node(
+                    id: 1,
+                    lat: 44,
+                    lon: 33,
+                    tags: [("name", "Родник"), ("description", "Родник")]
+                ),
+                PBFWriter.Node(
+                    id: 2,
+                    lat: 44,
+                    lon: 33,
+                    tags: [("name", "Родник"), ("description", "вода круглый год")]
+                )
+            ],
+            ways: []
+        )
         let out = path("out.osm.pbf")
         var pass = rewriter(source)
         pass.tidyDescriptions = true
@@ -165,8 +217,11 @@ final class PBFRewriterTests: XCTestCase {
 
         let after = try read(out)
         XCTAssertNil(after.nodes.first { $0.id == 1 }?.tags.first { $0.0 == "description" })
-        XCTAssertEqual(after.nodes.first { $0.id == 2 }?
-            .tags.first { $0.0 == "description" }?.1, "вода круглый год")
+        XCTAssertEqual(
+            after.nodes.first { $0.id == 2 }?
+                .tags.first { $0.0 == "description" }?.1,
+            "вода круглый год"
+        )
         XCTAssertEqual(tally.dropped, 1)
     }
 
@@ -174,7 +229,7 @@ final class PBFRewriterTests: XCTestCase {
         let source = try makeExtract(path("in.osm.pbf"))
         let out = path("out.osm.pbf")
         var pass = rewriter(source)
-        pass.tidyDescriptions = true          // on, but nothing in the file matches
+        pass.tidyDescriptions = true  // on, but nothing in the file matches
         let tally = try pass.write(to: out)
         XCTAssertEqual(tally.rebuilt, 0)
         XCTAssertEqual(try read(out).nodes.count, 100)
@@ -187,11 +242,18 @@ final class PBFRewriterTests: XCTestCase {
         let contours = path("contours.osm.pbf")
         let writer = try PBFWriter(to: contours)
         writer.header()
-        writer.nodes((1...20).map {
-            PBFWriter.Node(id: 5_000_000 + Int64($0), lat: 44.6, lon: 33.6, tags: [])
-        })
-        writer.ways([PBFWriter.Way(id: 6_000_000, refs: (1...20).map { 5_000_000 + Int64($0) },
-                                   tags: [("contour", "elevation"), ("ele", "100")])])
+        writer.nodes(
+            (1...20).map {
+                PBFWriter.Node(id: 5_000_000 + Int64($0), lat: 44.6, lon: 33.6, tags: [])
+            }
+        )
+        writer.ways([
+            PBFWriter.Way(
+                id: 6_000_000,
+                refs: (1...20).map { 5_000_000 + Int64($0) },
+                tags: [("contour", "elevation"), ("ele", "100")]
+            )
+        ])
         try writer.finish()
 
         let out = path("out.osm.pbf")
@@ -250,8 +312,13 @@ final class PBFRewriterTests: XCTestCase {
         XCTAssertEqual(dropped([("name:ru", "Родник"), ("description:ru", "Родник")]).count, 1)
         XCTAssertEqual(dropped([("name", "Spring"), ("description:en", "spring")]).count, 1)
         // Other tags are never touched.
-        XCTAssertEqual(dropped([("name", "Родник"), ("description", "Родник"),
-                                ("natural", "spring")]).map(\.0), ["name", "natural"])
+        XCTAssertEqual(
+            dropped([
+                ("name", "Родник"), ("description", "Родник"),
+                ("natural", "spring")
+            ]).map(\.0),
+            ["name", "natural"]
+        )
     }
 
     func testWouldTidyAgreesWithTidy() {
@@ -261,7 +328,7 @@ final class PBFRewriterTests: XCTestCase {
             [("name", "A")],
             [],
             [("description", "A")],
-            [("name", "Родник"), ("description", "Родник."), ("natural", "spring")],
+            [("name", "Родник"), ("description", "Родник."), ("natural", "spring")]
         ]
         for tags in cases {
             var copy = tags

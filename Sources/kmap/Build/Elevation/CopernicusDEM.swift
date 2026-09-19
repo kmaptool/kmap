@@ -13,7 +13,6 @@ enum CopernicusDEM {
         return false
     }
 
-
     /// One resolution of the survey: its id in settings, its cache names, its grid.
     struct Flavor {
         /// The source id shown in the build screen and stored in settings.
@@ -59,13 +58,23 @@ enum CopernicusDEM {
 
     // The ids follow the other sources' convention, the digit being arc-seconds as in
     // view1, srtm1 and alos1, rather than the survey's own metre branding.
-    static let glo30 = Flavor(sourceID: "copernicus1", directoryName: "COP1",
-                              nodes: 3601, bucket: "copernicus-dem-30m",
-                              cogField: "10", tifCacheName: "copernicus-tif")
+    static let glo30 = Flavor(
+        sourceID: "copernicus1",
+        directoryName: "COP1",
+        nodes: 3601,
+        bucket: "copernicus-dem-30m",
+        cogField: "10",
+        tifCacheName: "copernicus-tif"
+    )
 
-    static let glo90 = Flavor(sourceID: "copernicus3", directoryName: "COP3",
-                              nodes: 1201, bucket: "copernicus-dem-90m",
-                              cogField: "30", tifCacheName: "copernicus3-tif")
+    static let glo90 = Flavor(
+        sourceID: "copernicus3",
+        directoryName: "COP3",
+        nodes: 1201,
+        bucket: "copernicus-dem-90m",
+        cogField: "30",
+        tifCacheName: "copernicus3-tif"
+    )
 
     static let flavors = [glo30, glo90]
 
@@ -139,7 +148,8 @@ enum CopernicusDEM {
         }
         guard let url = tileListURL(flavor) else { return nil }
         guard let data = try? await Fetch.data(url),
-              let text = String(data: data, encoding: .utf8) else { return nil }
+            let text = String(data: data, encoding: .utf8)
+        else { return nil }
         let cells = parseTileList(text)
         guard !cells.isEmpty else { return nil }
         Paths.ensure(file.deletingLastPathComponent())
@@ -152,17 +162,17 @@ enum CopernicusDEM {
     /// contours inside the region rather than covering whole degrees.
     static func writeClipPolygon(_ box: BBox, to url: URL) throws {
         let text = """
-        kmap-clip
-        1
-           \(box.minLon)  \(box.minLat)
-           \(box.maxLon)  \(box.minLat)
-           \(box.maxLon)  \(box.maxLat)
-           \(box.minLon)  \(box.maxLat)
-           \(box.minLon)  \(box.minLat)
-        END
-        END
+            kmap-clip
+            1
+               \(box.minLon)  \(box.minLat)
+               \(box.maxLon)  \(box.minLat)
+               \(box.maxLon)  \(box.maxLat)
+               \(box.minLon)  \(box.maxLat)
+               \(box.minLon)  \(box.minLat)
+            END
+            END
 
-        """
+            """
         try text.write(to: url, atomically: true, encoding: .utf8)
     }
 }

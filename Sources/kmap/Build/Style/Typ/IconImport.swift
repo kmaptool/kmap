@@ -1,4 +1,5 @@
 import Foundation
+
 // Apple's own decoders, kept for the formats stb does not read - TIFF and HEIC through
 // ImageIO, SVG through AppKit. They are asked second, and only where they exist.
 #if canImport(ImageIO)
@@ -15,7 +16,6 @@ import AppKit
 /// on a small square grid. The result reports how far the picture was scaled, how many
 /// colours it lost, and how many pixels had to be forced solid or clear.
 enum IconImport {
-
     /// The palette ceiling: a point image indexes its palette with at most eight bits. One
     /// slot goes to transparency wherever the source has any.
     static let maximumColours = 256
@@ -33,8 +33,11 @@ enum IconImport {
             switch self {
             case .notFound(let path): return t("%@: no such file", path)
             case .unreadable(let name):
-                return t("%@ could not be read as a picture. PNG, JPEG, TIFF, GIF and BMP "
-                       + "work; SVG works where the system can draw it.", name)
+                return t(
+                    "%@ could not be read as a picture. PNG, JPEG, TIFF, GIF and BMP "
+                        + "work; SVG works where the system can draw it.",
+                    name
+                )
             case .empty: return t("that picture has no pixels in it")
             }
         }
@@ -64,12 +67,16 @@ enum IconImport {
         var warnings: [String] {
             var out: [String] = []
             if !wasExactSize {
-                out.append("scaled from \(sourceWidth)×\(sourceHeight) — a drawing made for "
-                           + "one size rarely survives another")
+                out.append(
+                    "scaled from \(sourceWidth)×\(sourceHeight) — a drawing made for "
+                        + "one size rarely survives another"
+                )
             }
             if softEdgePixels > 0 {
-                out.append("\(softEdgePixels) pixel(s) were part-transparent and had to be "
-                           + "made solid or clear; a TYP has no alpha")
+                out.append(
+                    "\(softEdgePixels) pixel(s) were part-transparent and had to be "
+                        + "made solid or clear; a TYP has no alpha"
+                )
             }
             if sourceColours > paletteSize {
                 out.append("\(sourceColours) colours reduced to \(paletteSize)")
@@ -116,8 +123,14 @@ enum IconImport {
         var pixels: [Pixel] = []
         pixels.reserveCapacity(size * size)
         for index in stride(from: 0, to: grid.rgba.count, by: 4) {
-            pixels.append(Pixel(r: grid.rgba[index], g: grid.rgba[index + 1],
-                                b: grid.rgba[index + 2], a: grid.rgba[index + 3]))
+            pixels.append(
+                Pixel(
+                    r: grid.rgba[index],
+                    g: grid.rgba[index + 1],
+                    b: grid.rgba[index + 2],
+                    a: grid.rgba[index + 3]
+                )
+            )
         }
         return (pixels, sourceSize)
     }
@@ -128,15 +141,21 @@ enum IconImport {
     ///
     /// - Parameter size: the grid this is headed for. A drawing with no pixels of its own
     ///   is rendered straight onto it; a raster is read at its own size and resampled.
-    private static func decode(_ url: URL, at size: Int) -> (bitmap: Raster.Bitmap,
-                                                             nominal: (Int, Int))? {
+    private static func decode(
+        _ url: URL,
+        at size: Int
+    ) -> (
+        bitmap: Raster.Bitmap,
+        nominal: (Int, Int)
+    )? {
         if let bitmap = Raster.decode(contentsOf: url) {
             return (bitmap, (bitmap.width, bitmap.height))
         }
         #if canImport(ImageIO)
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-           let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
-           let bitmap = drawn(image, width: image.width, height: image.height) {
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+            let bitmap = drawn(image, width: image.width, height: image.height)
+        {
             return (bitmap, (image.width, image.height))
         }
         #endif
@@ -175,16 +194,26 @@ enum IconImport {
         }
     }
 
-    private static func drawn(width: Int, height: Int,
-                              _ body: (CGContext) -> Void) -> Raster.Bitmap? {
+    private static func drawn(
+        width: Int,
+        height: Int,
+        _ body: (CGContext) -> Void
+    ) -> Raster.Bitmap? {
         guard width > 0, height > 0, width * height <= Raster.maximumPixels else { return nil }
         let space = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
         var buffer = [UInt8](repeating: 0, count: width * height * 4)
         let drew = buffer.withUnsafeMutableBytes { raw -> Bool in
-            guard let context = CGContext(
-                data: raw.baseAddress, width: width, height: height, bitsPerComponent: 8,
-                bytesPerRow: width * 4, space: space,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            guard
+                let context = CGContext(
+                    data: raw.baseAddress,
+                    width: width,
+                    height: height,
+                    bitsPerComponent: 8,
+                    bytesPerRow: width * 4,
+                    space: space,
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                )
+            else { return false }
             context.interpolationQuality = .none
             context.setShouldAntialias(false)
             body(context)
@@ -207,8 +236,11 @@ enum IconImport {
 
     /// Turns straight RGBA into a palette and pixel rows. Colours are taken by how much of
     /// the picture they cover, and anything past the ceiling is mapped to the nearest kept.
-    private static func quantise(_ pixels: [Pixel], size: Int,
-                                 sourceSize: (Int, Int)) -> Result {
+    private static func quantise(
+        _ pixels: [Pixel],
+        size: Int,
+        sourceSize: (Int, Int)
+    ) -> Result {
         var soft = 0
         var tally: [String: Int] = [:]
 
@@ -252,7 +284,8 @@ enum IconImport {
             var row = ""
             for x in 0..<size {
                 let pixel = pixels[y * size + x]
-                let index = pixel.a >= UInt8(alphaThreshold)
+                let index =
+                    pixel.a >= UInt8(alphaThreshold)
                     ? (mapped[pixel.hex] ?? 0)
                     : clearIndex
                 row += key(min(index, palette.count - 1), width: keyWidth)
@@ -260,22 +293,36 @@ enum IconImport {
             rows.append(row)
         }
 
-        let block = XpmBlock(width: size, height: size, declaredColours: palette.count,
-                             charsPerPixel: keyWidth, palette: palette, rows: rows)
-        return Result(block: block,
-                      sourceWidth: sourceSize.0, sourceHeight: sourceSize.1,
-                      sourceColours: tally.count, paletteSize: palette.count,
-                      softEdgePixels: soft)
+        let block = XpmBlock(
+            width: size,
+            height: size,
+            declaredColours: palette.count,
+            charsPerPixel: keyWidth,
+            palette: palette,
+            rows: rows
+        )
+        return Result(
+            block: block,
+            sourceWidth: sourceSize.0,
+            sourceHeight: sourceSize.1,
+            sourceColours: tally.count,
+            paletteSize: palette.count,
+            softEdgePixels: soft
+        )
     }
 
-    private static func nearest(_ colour: String, among kept: [String],
-                                indexOf: [String: Int]) -> Int {
+    private static func nearest(
+        _ colour: String,
+        among kept: [String],
+        indexOf: [String: Int]
+    ) -> Int {
         guard let target = rgb(colour), !kept.isEmpty else { return 0 }
         var best = 0
         var bestDistance = Int.max
         for candidate in kept {
             guard let value = rgb(candidate) else { continue }
-            let distance = (value.0 - target.0) * (value.0 - target.0)
+            let distance =
+                (value.0 - target.0) * (value.0 - target.0)
                 + (value.1 - target.1) * (value.1 - target.1)
                 + (value.2 - target.2) * (value.2 - target.2)
             if distance < bestDistance {

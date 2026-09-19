@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Where a borrowed style draws 0x0d, the link moves — and has to go on routing, which is
 /// the one thing it is for.
 final class RepairMoveTests: XCTestCase {
-
     private static let rule =
         "kmap:repair=* [0x0d road_class=0 road_speed=0 resolution 22]"
 
@@ -13,8 +13,11 @@ final class RepairMoveTests: XCTestCase {
             .appendingPathComponent("repair-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        try lines.write(to: dir.appendingPathComponent("lines"), atomically: true,
-                        encoding: .utf8)
+        try lines.write(
+            to: dir.appendingPathComponent("lines"),
+            atomically: true,
+            encoding: .utf8
+        )
         return dir
     }
 

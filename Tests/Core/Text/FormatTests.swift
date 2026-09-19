@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The numbers a reader sees, and the box every stage measures ground with.
@@ -7,7 +8,6 @@ import XCTest
 /// region list asks it how big a build will be, and the split asks it what it covers. A
 /// box wrong by a degree is a missing row of contours at the edge of the map.
 final class FormatTests: XCTestCase {
-
     // MARK: Sizes and times
 
     func testBytesUseTheDecimalUnitsDownloadSitesQuote() {
@@ -93,33 +93,46 @@ final class FormatTests: XCTestCase {
         // A box already on whole degrees is left where it is, not grown by one.
         let whole = BBox(minLon: 5, minLat: 49, maxLon: 7, maxLat: 51)
         XCTAssertEqual(whole.snappedOutward(), whole)
-        XCTAssertEqual(whole.snappedOutward(margin: 0.5),
-                       BBox(minLon: 4, minLat: 48, maxLon: 8, maxLat: 52))
+        XCTAssertEqual(
+            whole.snappedOutward(margin: 0.5),
+            BBox(minLon: 4, minLat: 48, maxLon: 8, maxLat: 52)
+        )
     }
 
     func testSnappingWorksBelowTheEquatorAndWestOfGreenwich() {
         // Rounding towards zero instead of down puts a southern box one degree north of
         // where it belongs.
         let box = BBox(minLon: -71.2, minLat: -33.9, maxLon: -70.3, maxLat: -33.1)
-        XCTAssertEqual(box.snappedOutward(),
-                       BBox(minLon: -72, minLat: -34, maxLon: -70, maxLat: -33))
+        XCTAssertEqual(
+            box.snappedOutward(),
+            BBox(minLon: -72, minLat: -34, maxLon: -70, maxLat: -33)
+        )
     }
 
     func testTheTileCountIsTheNumberOfDegreeCellsCovered() {
-        XCTAssertEqual(BBox(minLon: 5.73, minLat: 49.45, maxLon: 6.53, maxLat: 50.18)
-                        .demTileCount, 4)
+        XCTAssertEqual(
+            BBox(minLon: 5.73, minLat: 49.45, maxLon: 6.53, maxLat: 50.18)
+                .demTileCount,
+            4
+        )
         XCTAssertEqual(BBox(minLon: 0, minLat: 0, maxLon: 1, maxLat: 1).demTileCount, 1)
         // A point is still one cell to fetch, not none.
-        XCTAssertEqual(BBox(minLon: 6.1, minLat: 49.6, maxLon: 6.1, maxLat: 49.6)
-                        .demTileCount, 1)
+        XCTAssertEqual(
+            BBox(minLon: 6.1, minLat: 49.6, maxLon: 6.1, maxLat: 49.6)
+                .demTileCount,
+            1
+        )
     }
 
     func testOneBoxRoundTheWholeWorldIsWhatRingsExistToAvoid() {
         // A region reaching across 180° drawn as one box asks Copernicus for a hemisphere;
         // this is the number that says so, and RegionIndex keeps a box per ring because of
         // it. Pinned here so the cost stays visible.
-        XCTAssertEqual(BBox(minLon: -180, minLat: 40, maxLon: 180, maxLat: 80)
-                        .demTileCount, 360 * 40)
+        XCTAssertEqual(
+            BBox(minLon: -180, minLat: 40, maxLon: 180, maxLat: 80)
+                .demTileCount,
+            360 * 40
+        )
     }
 
     func testContainsIsInclusiveOnEveryEdge() {
@@ -134,7 +147,7 @@ final class FormatTests: XCTestCase {
     func testDistanceIsZeroInsideAndGrowsOutwards() {
         let box = BBox(minLon: 0, minLat: 0, maxLon: 10, maxLat: 10)
         XCTAssertEqual(box.distance(toLat: 5, lon: 5), 0)
-        XCTAssertEqual(box.distance(toLat: 5, lon: 10), 0)          // on the edge
+        XCTAssertEqual(box.distance(toLat: 5, lon: 10), 0)  // on the edge
         XCTAssertEqual(box.distance(toLat: 5, lon: 13), 3, accuracy: 1e-9)
         XCTAssertEqual(box.distance(toLat: -4, lon: 5), 4, accuracy: 1e-9)
         // Off a corner, both directions count.
@@ -143,8 +156,11 @@ final class FormatTests: XCTestCase {
 
     func testTheAreaArgumentIsTheOrderPyhgtmapExpects() {
         // minlon:minlat:maxlon:maxlat -- swapping a pair silently contours the wrong ground.
-        XCTAssertEqual(BBox(minLon: 5.73, minLat: 49.45, maxLon: 6.53, maxLat: 50.18)
-                        .areaArgument, "5.7300:49.4500:6.5300:50.1800")
+        XCTAssertEqual(
+            BBox(minLon: 5.73, minLat: 49.45, maxLon: 6.53, maxLat: 50.18)
+                .areaArgument,
+            "5.7300:49.4500:6.5300:50.1800"
+        )
     }
 
     func testABoxSurvivesBeingWrittenToSettingsAndReadBack() throws {

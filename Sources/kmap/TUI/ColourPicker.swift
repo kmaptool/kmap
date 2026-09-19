@@ -4,7 +4,6 @@ import Foundation
 /// grey row, hue/saturation/lightness sliders, and the colours the edited style already
 /// uses. Enter takes the current colour, Esc cancels.
 struct ColourPicker {
-
     enum Outcome {
         case none
         case chose(String)
@@ -60,8 +59,11 @@ struct ColourPicker {
     }
 
     var current: String {
-        let (r, g, b) = ColourPicker.hslToRGB(hue: hue, saturation: saturation,
-                                              lightness: lightness)
+        let (r, g, b) = ColourPicker.hslToRGB(
+            hue: hue,
+            saturation: saturation,
+            lightness: lightness
+        )
         return String(format: "#%02X%02X%02X", r, g, b)
     }
 
@@ -73,8 +75,11 @@ struct ColourPicker {
             pane = Pane(rawValue: (pane.rawValue + 1) % Pane.allCases.count) ?? .grid
             if pane == .palette, palette.isEmpty { pane = .grid }
         case .backTab:
-            pane = Pane(rawValue: (pane.rawValue + Pane.allCases.count - 1)
-                        % Pane.allCases.count) ?? .grid
+            pane =
+                Pane(
+                    rawValue: (pane.rawValue + Pane.allCases.count - 1)
+                        % Pane.allCases.count
+                ) ?? .grid
             if pane == .palette, palette.isEmpty { pane = .sliders }
         case .enter:
             if pane == .palette, let colour = palette[safe: paletteIndex] {
@@ -171,15 +176,21 @@ struct ColourPicker {
     }
 
     /// The `#RRGGBB` colour of one grid cell. Row `levels` is the grey row.
-    static func colour(row: Int, column: Int, hues: Int,
-                       saturation: Double = defaultSaturation) -> String {
+    static func colour(
+        row: Int,
+        column: Int,
+        hues: Int,
+        saturation: Double = defaultSaturation
+    ) -> String {
         if row == levels {
             let step = 255 * column / max(1, hues - 1)
             return String(format: "#%02X%02X%02X", step, step, step)
         }
-        let (r, g, b) = hslToRGB(hue: Double(column) * hueDegrees / Double(max(1, hues)),
-                                 saturation: saturation,
-                                 lightness: topLightness - Double(row) * lightnessStep)
+        let (r, g, b) = hslToRGB(
+            hue: Double(column) * hueDegrees / Double(max(1, hues)),
+            saturation: saturation,
+            lightness: topLightness - Double(row) * lightnessStep
+        )
         return String(format: "#%02X%02X%02X", r, g, b)
     }
 
@@ -195,13 +206,20 @@ struct ColourPicker {
         // and the readout.
         let paletteRows = palette.isEmpty ? 0 : 3
         let height = 2 + (ColourPicker.levels + 1) + paletteRows + 4 + 1
-        let box = Rect(x: rect.x, y: max(rect.y, rect.maxY - height),
-                       w: min(hues * cell + 4, rect.w), h: min(height, rect.h))
+        let box = Rect(
+            x: rect.x,
+            y: max(rect.y, rect.maxY - height),
+            w: min(hues * cell + 4, rect.w),
+            h: min(height, rect.h)
+        )
 
         s.fill(box, Style(fg: theme.text, bg: theme.panelBg))
-        s.box(box, Style(fg: theme.accent, bg: theme.panelBg),
-              title: t("pick a colour"),
-              titleStyle: Style(fg: theme.accent, bg: theme.panelBg, bold: true))
+        s.box(
+            box,
+            Style(fg: theme.accent, bg: theme.panelBg),
+            title: t("pick a colour"),
+            titleStyle: Style(fg: theme.accent, bg: theme.panelBg, bold: true)
+        )
 
         var y = box.y + 1
         y = drawGrid(s, box: box, y: y, cell: cell, theme: theme)
@@ -217,8 +235,12 @@ struct ColourPicker {
             for c in 0..<hues {
                 let x = box.x + 2 + c * cell
                 guard x + cell <= box.maxX - 1 else { continue }
-                let colour = ColourPicker.colour(row: r, column: c, hues: hues,
-                                                 saturation: max(ColourPicker.faintestGrid, saturation))
+                let colour = ColourPicker.colour(
+                    row: r,
+                    column: c,
+                    hues: hues,
+                    saturation: max(ColourPicker.faintestGrid, saturation)
+                )
                 guard let parsed = Color.hex(colour) else { continue }
                 s.fill(Rect(x: x, y: y + r, w: cell, h: 1), Style(fg: parsed, bg: parsed))
 
@@ -236,8 +258,12 @@ struct ColourPicker {
 
     /// Draws the colours the edited style already uses, and returns the next free row.
     private func drawPalette(_ s: Surface, box: Rect, y: Int, theme: Theme) -> Int {
-        s.text(box.x + 2, y, t("already in this style"),
-               Style(fg: pane == .palette ? theme.text : theme.faint, bg: theme.panelBg))
+        s.text(
+            box.x + 2,
+            y,
+            t("already in this style"),
+            Style(fg: pane == .palette ? theme.text : theme.faint, bg: theme.panelBg)
+        )
         var x = box.x + 2
         let row = y + 1
         for (index, colour) in palette.enumerated() {
@@ -259,28 +285,52 @@ struct ColourPicker {
     private func drawSliders(_ s: Surface, box: Rect, y: Int, theme: Theme) -> Int {
         let names = [t("hue"), t("saturation"), t("lightness")]
         let values = [hue / ColourPicker.hueDegrees, saturation, lightness]
-        let shown = [String(format: "%3.0f°", hue),
-                     String(format: "%3.0f%%", saturation * 100),
-                     String(format: "%3.0f%%", lightness * 100)]
+        let shown = [
+            String(format: "%3.0f°", hue),
+            String(format: "%3.0f%%", saturation * 100),
+            String(format: "%3.0f%%", lightness * 100)
+        ]
         let barWidth = max(8, box.w - 24)
 
         for (index, name) in names.enumerated() {
             let row = y + index
             guard row < box.maxY - 2 else { break }
             let active = pane == .sliders && index == slider
-            s.text(box.x + 2, row, active ? "\(Glyph.arrowRight) " : "  ",
-                   Style(fg: theme.accent, bg: theme.panelBg))
-            s.text(box.x + 4, row, name.padding(toLength: 11, withPad: " ", startingAt: 0),
-                   Style(fg: active ? theme.text : theme.dim, bg: theme.panelBg))
+            s.text(
+                box.x + 2,
+                row,
+                active ? "\(Glyph.arrowRight) " : "  ",
+                Style(fg: theme.accent, bg: theme.panelBg)
+            )
+            s.text(
+                box.x + 4,
+                row,
+                name.padding(toLength: 11, withPad: " ", startingAt: 0),
+                Style(fg: active ? theme.text : theme.dim, bg: theme.panelBg)
+            )
 
             let filled = Int(Double(barWidth) * values[index])
             let x = box.x + 15
-            s.hline(x, row, filled, Glyph.barFill,
-                    Style(fg: active ? theme.accent : theme.dim, bg: theme.panelBg))
-            s.hline(x + filled, row, barWidth - filled, Glyph.barEmpty,
-                    Style(fg: theme.rule, bg: theme.panelBg))
-            s.textRight(box.maxX - 2, row, shown[index],
-                        Style(fg: active ? theme.strong : theme.dim, bg: theme.panelBg))
+            s.hline(
+                x,
+                row,
+                filled,
+                Glyph.barFill,
+                Style(fg: active ? theme.accent : theme.dim, bg: theme.panelBg)
+            )
+            s.hline(
+                x + filled,
+                row,
+                barWidth - filled,
+                Glyph.barEmpty,
+                Style(fg: theme.rule, bg: theme.panelBg)
+            )
+            s.textRight(
+                box.maxX - 2,
+                row,
+                shown[index],
+                Style(fg: active ? theme.strong : theme.dim, bg: theme.panelBg)
+            )
         }
         return y + names.count
     }
@@ -291,15 +341,22 @@ struct ColourPicker {
         var x = Widgets.swatch(s, x: box.x + 2, y: y, colour: colour, width: 4, theme: theme)
         x = s.text(x + 1, y, colour, Style(fg: theme.strong, bg: theme.panelBg, bold: true))
         if let (r, g, b) = ColourPicker.rgb(of: colour) {
-            s.text(x + 2, y, String(format: "r %3d  g %3d  b %3d", r, g, b),
-                   Style(fg: theme.dim, bg: theme.panelBg))
+            s.text(
+                x + 2,
+                y,
+                String(format: "r %3d  g %3d  b %3d", r, g, b),
+                Style(fg: theme.dim, bg: theme.panelBg)
+            )
         }
         // Key names are literal; only what they do is translated.
-        s.textRight(box.maxX - 2, y,
-                    "⇥ " + t("grid") + " · " + t("sliders")
-                    + (palette.isEmpty ? "" : " · " + t("style"))
-                    + "   ⏎ " + t("take it") + "   esc " + t("back"),
-                    Style(fg: theme.faint, bg: theme.panelBg))
+        s.textRight(
+            box.maxX - 2,
+            y,
+            "⇥ " + t("grid") + " · " + t("sliders")
+                + (palette.isEmpty ? "" : " · " + t("style"))
+                + "   ⏎ " + t("take it") + "   esc " + t("back"),
+            Style(fg: theme.faint, bg: theme.panelBg)
+        )
     }
 
     // MARK: For the tests
@@ -324,8 +381,11 @@ struct ColourPicker {
     }
 
     /// Hue in degrees, saturation and lightness in 0...1.
-    private static func hslToRGB(hue: Double, saturation: Double,
-                         lightness: Double) -> (Int, Int, Int) {
+    private static func hslToRGB(
+        hue: Double,
+        saturation: Double,
+        lightness: Double
+    ) -> (Int, Int, Int) {
         let c = (1 - abs(2 * lightness - 1)) * saturation
         let h = hue.truncatingRemainder(dividingBy: 360) / 60
         let x = c * (1 - abs(h.truncatingRemainder(dividingBy: 2) - 1))
@@ -345,8 +405,14 @@ struct ColourPicker {
     }
 
     /// Converts to hue in degrees, saturation and lightness in 0...1.
-    private static func rgbToHSL(r: Int, g: Int, b: Int) -> (hue: Double, saturation: Double,
-                                                     lightness: Double) {
+    private static func rgbToHSL(
+        r: Int,
+        g: Int,
+        b: Int
+    ) -> (
+        hue: Double, saturation: Double,
+        lightness: Double
+    ) {
         let rd = Double(r) / 255, gd = Double(g) / 255, bd = Double(b) / 255
         let high = max(rd, gd, bd), low = min(rd, gd, bd)
         let lightness = (high + low) / 2

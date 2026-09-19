@@ -5,7 +5,6 @@ import Foundation
 /// each, and a multipolygon also to every tile its rings enclose. Areas are in Garmin map
 /// units, degrees times 2^24 over 360, aligned to 2048 of them.
 final class TileSplitter {
-
     /// One tile area, in map units, half-open on its top edges.
     struct Area {
         var minLat: Int32
@@ -16,10 +15,12 @@ final class TileSplitter {
         /// Converts the degrees a finished tile reports back to map units. The round trip
         /// is exact: both directions scale by the same power of two.
         init(bbox: BBox) {
-            self.init(minLat: TileSplitter.mapUnits(bbox.minLat),
-                      minLon: TileSplitter.mapUnits(bbox.minLon),
-                      maxLat: TileSplitter.mapUnits(bbox.maxLat),
-                      maxLon: TileSplitter.mapUnits(bbox.maxLon))
+            self.init(
+                minLat: TileSplitter.mapUnits(bbox.minLat),
+                minLon: TileSplitter.mapUnits(bbox.minLon),
+                maxLat: TileSplitter.mapUnits(bbox.maxLat),
+                maxLon: TileSplitter.mapUnits(bbox.maxLon)
+            )
         }
 
         init(minLat: Int32, minLon: Int32, maxLat: Int32, maxLon: Int32) {
@@ -34,8 +35,12 @@ final class TileSplitter {
         /// The same rectangle with a margin all round: the ground a tile may paint beyond
         /// its own frame, and so the ground it has to be given.
         func grown(by margin: Int32) -> Area {
-            Area(minLat: minLat - margin, minLon: minLon - margin,
-                 maxLat: maxLat + margin, maxLon: maxLon + margin)
+            Area(
+                minLat: minLat - margin,
+                minLon: minLon - margin,
+                maxLat: maxLat + margin,
+                maxLon: maxLon + margin
+            )
         }
     }
 
@@ -190,8 +195,12 @@ final class TileSplitter {
         let argsURL = options.outputDirectory.appendingPathComponent(Self.templateArgsName)
         var tiles: [(mapID: String, area: Area, nodes: Int)] = []
         for (index, area) in areas.enumerated() {
-            tiles.append((mapID: String(options.mapID + index), area: area,
-                          nodes: counts[index]))
+            tiles.append(
+                (
+                    mapID: String(options.mapID + index), area: area,
+                    nodes: counts[index]
+                )
+            )
         }
         try writeAreasList(tiles, to: listURL)
         try writeTemplateArgs(tiles, to: argsURL)
@@ -232,9 +241,13 @@ final class TileSplitter {
                     nodes.setValue(at: base + entry.at, to: nodes.intern(entry.areas))
                 }
                 for entry in pass.banded {
-                    nodes.setValue(at: base + entry.at,
-                                   to: nodes.internBand(strict: entry.strict,
-                                                        shape: entry.shape))
+                    nodes.setValue(
+                        at: base + entry.at,
+                        to: nodes.internBand(
+                            strict: entry.strict,
+                            shape: entry.shape
+                        )
+                    )
                 }
                 pass.clear()
             }
@@ -248,8 +261,13 @@ final class TileSplitter {
         let wantedParts: OSMParts = .nodes
 
         var nodes = 0
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) { nodes += 1 }
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) { nodes += 1 }
     }
 
     /// One block's mapping of node to tiles, worked out on any core. A shared-line node's
@@ -266,8 +284,13 @@ final class TileSplitter {
         /// shape band: where it lives, and where a shape through it must be delivered.
         var banded: [(at: Int, strict: AreaLookup.Hits, shape: AreaLookup.Hits)] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             let mapLat = TileSplitter.mapUnits(lat)
             let mapLon = TileSplitter.mapUnits(lon)
             let hits = lookup.areas(lat: mapLat, lon: mapLon)
@@ -301,5 +324,4 @@ final class TileSplitter {
     }
 
     // MARK: Pass 2 - the problem list
-
 }

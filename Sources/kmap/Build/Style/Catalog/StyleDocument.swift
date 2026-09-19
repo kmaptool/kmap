@@ -73,8 +73,10 @@ struct StyleTypeRow {
         }
         // The convention is a hint beside a TYP's own label; with no label the name
         // column is already the convention.
-        guard section?.englishLabel?.isEmpty == false
-            || section?.russianLabel?.isEmpty == false else { return "" }
+        guard
+            section?.englishLabel?.isEmpty == false
+                || section?.russianLabel?.isEmpty == false
+        else { return "" }
         return GarminStandard.meaning(kind, code, russian: russian) ?? ""
     }
 
@@ -106,30 +108,52 @@ struct StyleDocument {
     /// style's list is completed against.
     private static let referenceRules =
         RuleSetIndex.read(styleDirectory: StyleCatalog.baseStyleDirectory)
-            ?? RuleSetIndex()
+        ?? RuleSetIndex()
 
     /// Reads what can be read. Never throws and never writes: a style whose TYP is binary
     /// or missing still produces a document, just a thinner one.
     static func load(_ style: MapStyle) -> StyleDocument {
-        let rules = RuleSetIndex.read(styleDirectory: style.styleDirectory
-            ?? StyleCatalog.baseStyleDirectory)
+        let rules = RuleSetIndex.read(
+            styleDirectory: style.styleDirectory
+                ?? StyleCatalog.baseStyleDirectory
+        )
 
         guard let typURL = style.typURL else {
-            return StyleDocument(style: style, availability: .none, source: nil,
-                                 rules: rules, sourceURL: nil)
+            return StyleDocument(
+                style: style,
+                availability: .none,
+                source: nil,
+                rules: rules,
+                sourceURL: nil
+            )
         }
 
         if typURL.pathExtension.lowercased() == "txt" {
             guard let source = TypSource.read(typURL) else {
-                return StyleDocument(style: style, availability: .none, source: nil,
-                                     rules: rules, sourceURL: typURL)
+                return StyleDocument(
+                    style: style,
+                    availability: .none,
+                    source: nil,
+                    rules: rules,
+                    sourceURL: typURL
+                )
             }
-            return StyleDocument(style: style, availability: .source, source: source,
-                                 rules: rules, sourceURL: typURL)
+            return StyleDocument(
+                style: style,
+                availability: .source,
+                source: source,
+                rules: rules,
+                sourceURL: typURL
+            )
         }
 
-        return StyleDocument(style: style, availability: .binary, source: nil,
-                             rules: rules, sourceURL: typURL)
+        return StyleDocument(
+            style: style,
+            availability: .binary,
+            source: nil,
+            rules: rules,
+            sourceURL: typURL
+        )
     }
 
     // MARK: What is in it
@@ -174,10 +198,13 @@ struct StyleDocument {
             }
         }
         return codes.sorted().map { code in
-            StyleTypeRow(kind: kind, code: code,
-                         meaning: rules?.meaning(kind, code),
-                         reference: Self.referenceRules.meaning(kind, code),
-                         section: source?.section(kind, code))
+            StyleTypeRow(
+                kind: kind,
+                code: code,
+                meaning: rules?.meaning(kind, code),
+                reference: Self.referenceRules.meaning(kind, code),
+                section: source?.section(kind, code)
+            )
         }
     }
 
@@ -202,11 +229,13 @@ struct StyleDocument {
         let styled = source?.codes(kind) ?? []
         let intended = source?.deliberatelyUnstyled[kind] ?? []
         let missing = emitted.subtracting(styled)
-        return Coverage(kind: kind,
-                        both: emitted.intersection(styled).count,
-                        unstyled: missing.subtracting(intended).sorted(),
-                        deliberate: missing.intersection(intended).sorted(),
-                        unused: styled.subtracting(emitted).sorted())
+        return Coverage(
+            kind: kind,
+            both: emitted.intersection(styled).count,
+            unstyled: missing.subtracting(intended).sorted(),
+            deliberate: missing.intersection(intended).sorted(),
+            unused: styled.subtracting(emitted).sorted()
+        )
     }
 
     /// Whether the file says this type is left to the device on purpose.

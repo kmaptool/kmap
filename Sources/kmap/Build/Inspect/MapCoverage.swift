@@ -31,7 +31,8 @@ enum MapCoverage {
     /// A signed 24-bit little-endian value.
     static func signed24(_ bytes: [UInt8], at offset: Int) -> Int32? {
         guard offset + 2 < bytes.count else { return nil }
-        let value = Int32(bytes[offset]) | Int32(bytes[offset + 1]) << 8
+        let value =
+            Int32(bytes[offset]) | Int32(bytes[offset + 1]) << 8
             | Int32(bytes[offset + 2]) << 16
         return value & 0x80_0000 != 0 ? value - (1 << 24) : value
     }
@@ -40,15 +41,19 @@ enum MapCoverage {
     ///
     /// The header opens with its own length and the words `GARMIN TRE`; the four corners
     /// sit at 0x15 in the order north, east, south, west.
-    static func bounds(ofTRE header: [UInt8])
-        -> (minLat: Double, minLon: Double, maxLat: Double, maxLon: Double)? {
+    static func bounds(
+        ofTRE header: [UInt8]
+    )
+        -> (minLat: Double, minLon: Double, maxLat: Double, maxLon: Double)?
+    {
         guard header.count >= 0x21 else { return nil }
         let name = String(decoding: header[2..<12], as: UTF8.self)
         guard name == "GARMIN TRE" else { return nil }
         guard let maxLat = signed24(header, at: 0x15),
-              let maxLon = signed24(header, at: 0x18),
-              let minLat = signed24(header, at: 0x1B),
-              let minLon = signed24(header, at: 0x1E) else { return nil }
+            let maxLon = signed24(header, at: 0x18),
+            let minLat = signed24(header, at: 0x1B),
+            let minLon = signed24(header, at: 0x1E)
+        else { return nil }
         return (degrees(minLat), degrees(minLon), degrees(maxLat), degrees(maxLon))
     }
 
@@ -59,13 +64,22 @@ enum MapCoverage {
             // The header states its own length in its first two bytes; two is enough to
             // learn how much to read.
             guard let opening = ImgContainer.read(file, from: url, offset: 0, length: 2),
-                  opening.count >= 2 else { continue }
+                opening.count >= 2
+            else { continue }
             let length = Int(opening[0]) | Int(opening[1]) << 8
             guard length >= 0x21,
-                  let header = ImgContainer.read(file, from: url, offset: 0, length: length),
-                  let box = bounds(ofTRE: [UInt8](header)) else { continue }
-            out.append(Tile(name: file.name, minLat: box.minLat, minLon: box.minLon,
-                            maxLat: box.maxLat, maxLon: box.maxLon))
+                let header = ImgContainer.read(file, from: url, offset: 0, length: length),
+                let box = bounds(ofTRE: [UInt8](header))
+            else { continue }
+            out.append(
+                Tile(
+                    name: file.name,
+                    minLat: box.minLat,
+                    minLon: box.minLon,
+                    maxLat: box.maxLat,
+                    maxLon: box.maxLon
+                )
+            )
         }
         return out.sorted { $0.name < $1.name }
     }
@@ -76,10 +90,11 @@ enum MapCoverage {
     /// edge, where both neighbours claim it and a gap of nothing would read as covered.
     static func check(_ tiles: [Tile], step: Double = 0.25) -> Report? {
         guard step > 0,
-              let minLat = tiles.map(\.minLat).min(),
-              let minLon = tiles.map(\.minLon).min(),
-              let maxLat = tiles.map(\.maxLat).max(),
-              let maxLon = tiles.map(\.maxLon).max() else { return nil }
+            let minLat = tiles.map(\.minLat).min(),
+            let minLon = tiles.map(\.minLon).min(),
+            let maxLat = tiles.map(\.maxLat).max(),
+            let maxLon = tiles.map(\.maxLon).max()
+        else { return nil }
 
         var sampled = 0
         var holes: [(lat: Double, lon: Double)] = []
@@ -95,7 +110,14 @@ enum MapCoverage {
             }
             lat += step
         }
-        return Report(tiles: tiles, minLat: minLat, minLon: minLon,
-                      maxLat: maxLat, maxLon: maxLon, sampled: sampled, holes: holes)
+        return Report(
+            tiles: tiles,
+            minLat: minLat,
+            minLon: minLon,
+            maxLat: maxLat,
+            maxLon: maxLon,
+            sampled: sampled,
+            holes: holes
+        )
     }
 }

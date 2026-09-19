@@ -47,7 +47,8 @@ struct ZoomPlan: Codable, Equatable, Identifiable {
         let box = try decoder.container(keyedBy: CodingKeys.self)
         id = try box.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
         name = try box.decodeIfPresent(String.self, forKey: .name) ?? "Zoom plan"
-        levelsID = try box.decodeIfPresent(String.self, forKey: .levelsID)
+        levelsID =
+            try box.decodeIfPresent(String.self, forKey: .levelsID)
             ?? LevelsProfile.smooth.id
         // Plans written while this was a per-family shift carry `shifts` and no `windows`.
         // A shift cannot become a window without the style to measure against, so it is
@@ -67,10 +68,16 @@ struct ZoomPlan: Codable, Equatable, Identifiable {
 
     // MARK: The ones that ship
 
-    static let asMeasured = ZoomPlan(id: "as-measured", name: "Default",
-                                     levelsID: LevelsProfile.smooth.id)
-    static let standard = ZoomPlan(id: "standard-as-is", name: "Default, 4 levels",
-                                   levelsID: LevelsProfile.standard.id)
+    static let asMeasured = ZoomPlan(
+        id: "as-measured",
+        name: "Default",
+        levelsID: LevelsProfile.smooth.id
+    )
+    static let standard = ZoomPlan(
+        id: "standard-as-is",
+        name: "Default, 4 levels",
+        levelsID: LevelsProfile.standard.id
+    )
 
     static let builtins = [asMeasured, standard]
 

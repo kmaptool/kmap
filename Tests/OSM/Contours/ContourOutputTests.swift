@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Writing traced contours as a PBF for mkgmap to read.
@@ -6,7 +7,6 @@ import XCTest
 /// Ids must stay inside the cell's own range, and a closed line must end on the node it
 /// started from.
 final class ContourOutputTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -23,13 +23,23 @@ final class ContourOutputTests: XCTestCase {
         var nodes: [Int64] = []
         var ways: [(id: Int64, refs: [Int64], tags: [String: String])] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             nodes.append(id)
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                          values: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var pairs: [String: String] = [:]
             for (key, value) in zip(keys, values) {
                 pairs[block.text(Int(key))] = block.text(Int(value))
@@ -39,22 +49,39 @@ final class ContourOutputTests: XCTestCase {
     }
 
     @discardableResult
-    private func write(_ lines: [Contours.Line], nodeStart: Int64 = 20_000_000_000,
-                       wayStart: Int64 = 5_000_000_000,
-                       major: Int = 100, medium: Int = 50) throws
-        -> (counts: (nodes: Int, ways: Int), read: Collected) {
+    private func write(
+        _ lines: [Contours.Line],
+        nodeStart: Int64 = 20_000_000_000,
+        wayStart: Int64 = 5_000_000_000,
+        major: Int = 100,
+        medium: Int = 50
+    ) throws
+        -> (counts: (nodes: Int, ways: Int), read: Collected)
+    {
         let url = directory.appendingPathComponent("out.osm.pbf")
-        let counts = try ContourOutput.write(lines, to: url, nodeStart: nodeStart,
-                                             wayStart: wayStart, major: major, medium: medium)
+        let counts = try ContourOutput.write(
+            lines,
+            to: url,
+            nodeStart: nodeStart,
+            wayStart: wayStart,
+            major: major,
+            medium: medium
+        )
         var collected = Collected()
         try PBFReader(url: url).read(into: &collected)
         return (counts, collected)
     }
 
-    private func line(_ elevation: Int, _ points: [(Double, Double)],
-                      closed: Bool = false) -> Contours.Line {
-        Contours.Line(elevation: elevation,
-                      points: points.map { (lat: $0.0, lon: $0.1) }, closed: closed)
+    private func line(
+        _ elevation: Int,
+        _ points: [(Double, Double)],
+        closed: Bool = false
+    ) -> Contours.Line {
+        Contours.Line(
+            elevation: elevation,
+            points: points.map { (lat: $0.0, lon: $0.1) },
+            closed: closed
+        )
     }
 
     // MARK: Shape
@@ -70,8 +97,13 @@ final class ContourOutputTests: XCTestCase {
 
     func testAClosedLineEndsOnTheNodeItStartedFrom() throws {
         // A second node in the same place draws alike but leaves mkgmap an open ring.
-        let result = try write([line(100, [(44, 33), (44.1, 33), (44.1, 33.1), (44, 33)],
-                                     closed: true)])
+        let result = try write([
+            line(
+                100,
+                [(44, 33), (44.1, 33), (44.1, 33.1), (44, 33)],
+                closed: true
+            )
+        ])
         XCTAssertEqual(result.counts.nodes, 3)
         let refs = result.read.ways[0].refs
         XCTAssertEqual(refs.count, 4)
@@ -95,8 +127,11 @@ final class ContourOutputTests: XCTestCase {
     // MARK: Ids
 
     func testIDsStartWhereTheCellWasToldToStart() throws {
-        let result = try write([line(100, [(44, 33), (44.1, 33.1)])],
-                               nodeStart: 21_000_000_000, wayStart: 6_000_000_000)
+        let result = try write(
+            [line(100, [(44, 33), (44.1, 33.1)])],
+            nodeStart: 21_000_000_000,
+            wayStart: 6_000_000_000
+        )
         XCTAssertEqual(result.read.nodes.first, 21_000_000_000)
         XCTAssertEqual(result.read.ways.first?.id, 6_000_000_000)
     }
@@ -104,7 +139,7 @@ final class ContourOutputTests: XCTestCase {
     func testIDsAscendAcrossLinesSoTheSplitterCanWalkThem() throws {
         let result = try write([
             line(100, [(44, 33), (44.1, 33.1)]),
-            line(120, [(44.2, 33.2), (44.3, 33.3), (44.4, 33.4)]),
+            line(120, [(44.2, 33.2), (44.3, 33.3), (44.4, 33.4)])
         ])
         XCTAssertEqual(result.read.nodes, result.read.nodes.sorted())
         XCTAssertEqual(result.read.ways.map(\.id), result.read.ways.map(\.id).sorted())
@@ -116,7 +151,7 @@ final class ContourOutputTests: XCTestCase {
         // Sharing a node between two contours would break the ascending numbering.
         let result = try write([
             line(100, [(44, 33), (44.5, 33.5)]),
-            line(120, [(44, 33.5), (44.5, 33)]),
+            line(120, [(44, 33.5), (44.5, 33)])
         ])
         XCTAssertEqual(result.counts.nodes, 4)
         XCTAssertEqual(Set(result.read.nodes).count, 4)

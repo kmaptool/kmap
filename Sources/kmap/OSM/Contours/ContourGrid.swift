@@ -42,8 +42,10 @@ extension Contours {
             // Big-endian, as a .hgt stores its samples.
             data.withUnsafeBytes { raw in
                 for i in 0..<count {
-                    values[i] = Int16(bitPattern: UInt16(raw[i * sampleSize]) << UInt8.bitWidth
-                                      | UInt16(raw[i * sampleSize + 1]))
+                    values[i] = Int16(
+                        bitPattern: UInt16(raw[i * sampleSize]) << UInt8.bitWidth
+                            | UInt16(raw[i * sampleSize + 1])
+                    )
                 }
             }
             self.samples = values
@@ -77,8 +79,13 @@ extension Contours {
             var at = 0
             while at < line.points.count - 1 {
                 let end = min(at + maxPoints, line.points.count)
-                out.append(Line(elevation: line.elevation,
-                                points: Array(line.points[at..<end]), closed: false))
+                out.append(
+                    Line(
+                        elevation: line.elevation,
+                        points: Array(line.points[at..<end]),
+                        closed: false
+                    )
+                )
                 at = end - 1
             }
         }

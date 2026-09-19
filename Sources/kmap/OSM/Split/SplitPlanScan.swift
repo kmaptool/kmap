@@ -46,9 +46,13 @@ extension TileSplitter {
             rawRelations.removeAll(keepingCapacity: true)
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                          block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             // A closed way or a contour is drawn but not routed and must reach every tile
             // whose shape band it falls in; a routed way is clipped to the frame exactly.
             let closed = refs.count > 3 && refs.first == refs.last
@@ -77,8 +81,11 @@ extension TileSplitter {
                     claim(value)
                 } else {
                     // On a shared line, or in a neighbour's band: names several tiles.
-                    for area in (drawnNotRouted ? nodes.shapeAreas(of: value)
-                                                : nodes.areas(of: value)) {
+                    for area
+                        in (drawnNotRouted
+                        ? nodes.shapeAreas(of: value)
+                        : nodes.areas(of: value))
+                    {
                         claim(area)
                     }
                 }
@@ -99,18 +106,26 @@ extension TileSplitter {
 
         /// Whether the way is a contour, by the `contour=elevation` tag pyhgtmap writes.
         /// The split runs before the style, so there is no map type to test.
-        private static func isContour(_ keys: ArraySlice<Int32>, _ values: ArraySlice<Int32>,
-                                      _ block: OSMBlock) -> Bool {
+        private static func isContour(
+            _ keys: ArraySlice<Int32>,
+            _ values: ArraySlice<Int32>,
+            _ block: OSMBlock
+        ) -> Bool {
             for (key, value) in zip(keys, values) where block.text(Int(key)) == "contour" {
                 return block.text(Int(value)) == "elevation"
             }
             return false
         }
 
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var record = RelationRecord()
             for (kind, ref) in zip(memberKinds, memberIDs) {
                 switch kind {
@@ -131,7 +146,8 @@ extension TileSplitter {
                 if block.text(Int(key)) == "type" {
                     let type = block.text(Int(value))
                     record.fillsRings = type == "multipolygon" || type == "boundary"
-                    record.carriesMembers = record.fillsRings
+                    record.carriesMembers =
+                        record.fillsRings
                         || type == "restriction" || type == "associatedStreet"
                 }
             }
@@ -144,9 +160,13 @@ extension TileSplitter {
 
         var wanted: WantedIDs
         var refs: [Int64: [Int64]] = [:]
-        mutating func way(id: Int64, refs list: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                          block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs list: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             if wanted.wants(id) { refs[id] = list.exactly }
         }
     }
@@ -156,8 +176,13 @@ extension TileSplitter {
 
         var wanted: WantedIDs
         var coords: [Int64: (lat: Int32, lon: Int32)] = [:]
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             if wanted.wants(id) {
                 coords[id] = (TileSplitter.mapUnits(lat), TileSplitter.mapUnits(lon))
             }

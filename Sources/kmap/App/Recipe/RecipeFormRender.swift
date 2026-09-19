@@ -20,8 +20,12 @@ extension RecipeForm {
                 let fg = selected ? Color.xterm(233) : theme.text
                 let box = Rect(x: rect.x, y: y, w: min(28, rect.w), h: 1)
                 s.fill(box, Style(fg: fg, bg: bg))
-                s.text(box.x + 2, y, field == .build ? t("Build map") : t("Save profile"),
-                       Style(fg: fg, bg: bg, bold: true))
+                s.text(
+                    box.x + 2,
+                    y,
+                    field == .build ? t("Build map") : t("Save profile"),
+                    Style(fg: fg, bg: bg, bold: true)
+                )
                 s.textRight(box.maxX - 2, y, Glyph.enter, Style(fg: fg, bg: bg))
                 fieldRows[field] = y
                 y += 1
@@ -34,21 +38,29 @@ extension RecipeForm {
                 guard y < rect.maxY else { break }
             }
 
-            Widgets.field(s, rect: rect, y: y,
-                          label: field.label,
-                          value: value(for: field),
-                          theme: theme,
-                          labelWidth: Layout.fieldLabel,
-                          valueStyle: valueStyle(for: field, theme: theme),
-                          selected: selected)
+            Widgets.field(
+                s,
+                rect: rect,
+                y: y,
+                label: field.label,
+                value: value(for: field),
+                theme: theme,
+                labelWidth: Layout.fieldLabel,
+                valueStyle: valueStyle(for: field, theme: theme),
+                selected: selected
+            )
             fieldRows[field] = y
             y += 1
         }
 
         if let message {
             let my = min(rect.maxY - 1, y + 1)
-            s.text(rect.x + 2, my, truncate(message, to: rect.w - 2),
-                   Style(fg: theme.warn, bg: theme.appBg))
+            s.text(
+                rect.x + 2,
+                my,
+                truncate(message, to: rect.w - 2),
+                Style(fg: theme.warn, bg: theme.appBg)
+            )
         }
     }
 
@@ -66,7 +78,8 @@ extension RecipeForm {
     /// counting rows from the top, and that count changes whenever a row is added.
     func openPicker(_ field: Field, _ ctx: AppContext) {
         guard let choice = choice(for: field, ctx), choice.listable,
-              choice.options.count > 1 else { return }
+            choice.options.count > 1
+        else { return }
         picking = (field, choice.options, choice.current)
     }
 
@@ -76,8 +89,14 @@ extension RecipeForm {
     /// painted after it. The widget clamps the box to `rect`.
     func renderOverlay(into s: Surface, rect: Rect, ctx: AppContext) {
         guard let open = picking, let row = fieldRows[open.field] else { return }
-        Widgets.optionList(s, within: rect, anchorRow: row,
-                           options: open.options, at: open.at, theme: ctx.theme)
+        Widgets.optionList(
+            s,
+            within: rect,
+            anchorRow: row,
+            options: open.options,
+            at: open.at,
+            theme: ctx.theme
+        )
     }
 
     func value(for field: Field) -> String {
@@ -123,8 +142,11 @@ extension RecipeForm {
         case .routable: return onOff(recipe.routable)
         case .healRoads:
             return recipe.healRoadEnds
-                ? t("on") + "  ·  " + t("joins ends within %d m that block a route",
-                                        Int(recipe.healRadius))
+                ? t("on") + "  ·  "
+                    + t(
+                        "joins ends within %d m that block a route",
+                        Int(recipe.healRadius)
+                    )
                 : t("off") + "  ·  " + t("the data is used exactly as OSM has it")
         case .index: return onOff(recipe.searchIndex)
         case .houseNumbers: return onOff(recipe.houseNumbers)
@@ -174,8 +196,11 @@ extension RecipeForm {
 
         switch field {
         case .profile:
-            return Style(fg: isModified ? theme.warn : theme.strong, bg: theme.appBg,
-                         bold: !isModified)
+            return Style(
+                fg: isModified ? theme.warn : theme.strong,
+                bg: theme.appBg,
+                bold: !isModified
+            )
         case .contours, .dem, .routable, .index, .houseNumbers, .sea:
             // Asked of the recipe, not of the drawn value, which is localized.
             let on: Bool
@@ -191,13 +216,17 @@ extension RecipeForm {
         case .healRoads:
             return Style(fg: recipe.healRoadEnds ? theme.ok : theme.faint, bg: theme.appBg)
         case .fixSummits:
-            return Style(fg: recipe.demLayer && recipe.fixSummits ? theme.ok : theme.faint,
-                         bg: theme.appBg)
+            return Style(
+                fg: recipe.demLayer && recipe.fixSummits ? theme.ok : theme.faint,
+                bg: theme.appBg
+            )
         case .customPOIs:
             return Style(fg: recipe.customPOIs ? theme.ok : theme.faint, bg: theme.appBg)
         case .descriptions:
-            return Style(fg: recipe.descriptions == .off ? theme.faint : theme.ok,
-                         bg: theme.appBg)
+            return Style(
+                fg: recipe.descriptions == .off ? theme.faint : theme.ok,
+                bg: theme.appBg
+            )
         default:
             return nil
         }

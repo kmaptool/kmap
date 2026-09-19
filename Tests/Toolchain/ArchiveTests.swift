@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// Unpacking a zip with whatever the machine has for the job. The two tools do the same
 /// three things with different letters, and a wrong order or a missing `-O` turns "read
 /// one entry" into "write a file into the working directory".
 final class ArchiveTests: XCTestCase {
-
     private let unzip = Archive(tool: .unzip, path: "/usr/bin/unzip")
     private let bsdtar = Archive(tool: .bsdtar, path: #"C:\Windows\System32\tar.exe"#)
     private let jar = URL(fileURLWithPath: "/home/k/.kmap/tools/mkgmap/mkgmap.jar")
@@ -45,11 +45,15 @@ final class ArchiveTests: XCTestCase {
     // MARK: Reading one entry
 
     func testReadingOneEntrySendsItToStandardOutputRatherThanToDisk() {
-        XCTAssertEqual(unzip.read("mkgmap-version.properties", from: jar).arguments,
-                       ["-p", jar.nativePath, "mkgmap-version.properties"])
+        XCTAssertEqual(
+            unzip.read("mkgmap-version.properties", from: jar).arguments,
+            ["-p", jar.nativePath, "mkgmap-version.properties"]
+        )
         // Without the O, bsdtar writes a file into the working directory and prints nothing.
-        XCTAssertEqual(bsdtar.read("mkgmap-version.properties", from: jar).arguments,
-                       ["-xOf", jar.nativePath, "mkgmap-version.properties"])
+        XCTAssertEqual(
+            bsdtar.read("mkgmap-version.properties", from: jar).arguments,
+            ["-xOf", jar.nativePath, "mkgmap-version.properties"]
+        )
     }
 
     func testTheProgramItselfIsTheOneThatWasFound() {
@@ -65,17 +69,23 @@ final class ArchiveTests: XCTestCase {
         let into = URL(fileURLWithPath: "/tmp/staging", isDirectory: true)
         XCTAssertTrue(unzip.unpack(jar, into: into).arguments.contains("-o"))
         // bsdtar overwrites by default and asks nothing, so it needs no flag for it.
-        XCTAssertEqual(bsdtar.unpack(jar, into: into).arguments,
-                       ["-xf", jar.nativePath, "-C", into.nativePath])
+        XCTAssertEqual(
+            bsdtar.unpack(jar, into: into).arguments,
+            ["-xf", jar.nativePath, "-C", into.nativePath]
+        )
     }
 
     func testThePatternsGoWhereEachToolExpectsThem() {
         let into = URL(fileURLWithPath: "/tmp/staging", isDirectory: true)
         // unzip's own argument order: patterns after the archive, before -d.
-        XCTAssertEqual(unzip.unpack(jar, into: into, matching: ["styles/default/*"]).arguments,
-                       ["-q", "-o", jar.nativePath, "styles/default/*", "-d", into.nativePath])
-        XCTAssertEqual(bsdtar.unpack(jar, into: into, matching: ["styles/default/*"]).arguments,
-                       ["-xf", jar.nativePath, "-C", into.nativePath, "styles/default/*"])
+        XCTAssertEqual(
+            unzip.unpack(jar, into: into, matching: ["styles/default/*"]).arguments,
+            ["-q", "-o", jar.nativePath, "styles/default/*", "-d", into.nativePath]
+        )
+        XCTAssertEqual(
+            bsdtar.unpack(jar, into: into, matching: ["styles/default/*"]).arguments,
+            ["-xf", jar.nativePath, "-C", into.nativePath, "styles/default/*"]
+        )
     }
 
     func testWithNoPatternTheWholeArchiveComesOut() {

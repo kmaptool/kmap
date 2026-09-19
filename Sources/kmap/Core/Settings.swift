@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 // URLSession lives in a separate module outside Apple's platforms, where this module
 // does not exist.
@@ -11,10 +12,10 @@ struct Settings: Codable {
     /// Scratch space for downloads in progress, tiles and contours. Cleared once the
     /// maps are written, unless `keepWorkFiles` is set.
     var workDirectory: String = Paths.work.path
-    var mkgmapJar: String = ""          // empty → auto-discover
-    var javaBinary: String = ""         // empty → auto-discover
+    var mkgmapJar: String = ""  // empty → auto-discover
+    var javaBinary: String = ""  // empty → auto-discover
     var downloadConnections: Int = 4
-    var javaHeapGB: Int = 0             // 0 → auto from physical memory
+    var javaHeapGB: Int = 0  // 0 → auto from physical memory
     /// OSM nodes per tile, and so how many tiles a map has.
     ///
     /// A tile's RGN section cannot exceed 16,777,215 bytes, which the format fixes and
@@ -130,8 +131,8 @@ final class SettingsStore: Sendable {
             return migrated(decoded)
         }
         guard let stored = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let defaultData = try? JSONEncoder().encode(Settings.default),
-              let defaults = (try? JSONSerialization.jsonObject(with: defaultData))
+            let defaultData = try? JSONEncoder().encode(Settings.default),
+            let defaults = (try? JSONSerialization.jsonObject(with: defaultData))
                 as? [String: Any]
         else { return nil }
 

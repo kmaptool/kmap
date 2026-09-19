@@ -99,7 +99,8 @@ final class Surface {
             }
             // Control characters are never stored: they would reach the terminal verbatim.
             if let scalar = ch.unicodeScalars.first,
-               scalar.value < 0x20 || scalar.value == 0x7F || (0x80...0x9F).contains(scalar.value) {
+                scalar.value < 0x20 || scalar.value == 0x7F || (0x80...0x9F).contains(scalar.value)
+            {
                 continue
             }
             put(cx, y, ch, style)
@@ -219,7 +220,7 @@ func stripControlSequences(_ text: String) -> String {
     var i = 0
     while i < scalars.count {
         let s = scalars[i]
-        if s.value == 0x1B { // ESC — skip the whole sequence
+        if s.value == 0x1B {  // ESC — skip the whole sequence
             let next = i + 1 < scalars.count ? scalars[i + 1] : UnicodeScalar(0)
             if next == "[" {
                 i += 2
@@ -235,7 +236,9 @@ func stripControlSequences(_ text: String) -> String {
             }
             continue
         }
-        if s.value == 0x09 || s.value == 0x0A || (s.value >= 0x20 && s.value != 0x7F && !(0x80...0x9F).contains(s.value)) {
+        if s.value == 0x09 || s.value == 0x0A
+            || (s.value >= 0x20 && s.value != 0x7F && !(0x80...0x9F).contains(s.value))
+        {
             result.unicodeScalars.append(s)
         }
         i += 1

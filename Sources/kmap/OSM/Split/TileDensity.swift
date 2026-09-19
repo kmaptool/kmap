@@ -19,8 +19,11 @@ extension TileSplitter {
         var minLatCell = Int32.max, maxLatCell = Int32.min
         var minLonCell = Int32.max, maxLonCell = Int32.min
         /// Cells outside every window are fringe: counted nowhere, covered by no tile.
-        var clips: [(minLatCell: Int32, minLonCell: Int32,
-                     maxLatCell: Int32, maxLonCell: Int32)] = []
+        var clips:
+            [(
+                minLatCell: Int32, minLonCell: Int32,
+                maxLatCell: Int32, maxLonCell: Int32
+            )] = []
 
         /// Row-major running totals over the occupied box, one row and column of zeroes
         /// ahead of it so a rectangle needs no special case at the edges.
@@ -53,14 +56,21 @@ extension TileSplitter {
             grid = [Int32](repeating: 0, count: rows * cols)
         }
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             let latCell = TileSplitter.mapUnits(lat) >> TileSplitter.gridShift
             let lonCell = TileSplitter.mapUnits(lon) >> TileSplitter.gridShift
-            if !clips.isEmpty, !clips.contains(where: {
-                latCell >= $0.minLatCell && latCell < $0.maxLatCell
-                    && lonCell >= $0.minLonCell && lonCell < $0.maxLonCell
-            }) {
+            if !clips.isEmpty,
+                !clips.contains(where: {
+                    latCell >= $0.minLatCell && latCell < $0.maxLatCell
+                        && lonCell >= $0.minLonCell && lonCell < $0.maxLonCell
+                })
+            {
                 return
             }
             if !grid.isEmpty {
@@ -132,14 +142,22 @@ extension TileSplitter {
         struct Cells {
             var minLat: Int32, minLon: Int32, maxLat: Int32, maxLon: Int32
             var area: Area {
-                Area(minLat: minLat << TileSplitter.gridShift, minLon: minLon << TileSplitter.gridShift,
-                     maxLat: maxLat << TileSplitter.gridShift, maxLon: maxLon << TileSplitter.gridShift)
+                Area(
+                    minLat: minLat << TileSplitter.gridShift,
+                    minLon: minLon << TileSplitter.gridShift,
+                    maxLat: maxLat << TileSplitter.gridShift,
+                    maxLon: maxLon << TileSplitter.gridShift
+                )
             }
         }
 
         func boundsCells() -> Cells {
-            Cells(minLat: minLatCell, minLon: minLonCell,
-                  maxLat: maxLatCell + 1, maxLon: maxLonCell + 1)
+            Cells(
+                minLat: minLatCell,
+                minLon: minLonCell,
+                maxLat: maxLatCell + 1,
+                maxLon: maxLonCell + 1
+            )
         }
 
         /// Rows and columns of the table a rectangle covers, clipped to what was counted.
@@ -156,7 +174,8 @@ extension TileSplitter {
         func count(_ rect: Cells) -> Int {
             guard let w = window(rect) else { return 0 }
             let stride = cols + 1
-            let total = sums[w.bottom * stride + w.right]
+            let total =
+                sums[w.bottom * stride + w.right]
                 - sums[w.top * stride + w.right]
                 - sums[w.bottom * stride + w.left]
                 + sums[w.top * stride + w.left]
@@ -165,13 +184,25 @@ extension TileSplitter {
 
         /// One row of cells within a rectangle, and one column.
         private func rowCount(_ latCell: Int32, in rect: Cells) -> Int {
-            count(Cells(minLat: latCell, minLon: rect.minLon,
-                        maxLat: latCell + 1, maxLon: rect.maxLon))
+            count(
+                Cells(
+                    minLat: latCell,
+                    minLon: rect.minLon,
+                    maxLat: latCell + 1,
+                    maxLon: rect.maxLon
+                )
+            )
         }
 
         private func columnCount(_ lonCell: Int32, in rect: Cells) -> Int {
-            count(Cells(minLat: rect.minLat, minLon: lonCell,
-                        maxLat: rect.maxLat, maxLon: lonCell + 1))
+            count(
+                Cells(
+                    minLat: rect.minLat,
+                    minLon: lonCell,
+                    maxLat: rect.maxLat,
+                    maxLon: lonCell + 1
+                )
+            )
         }
 
         /// Cuts through the widest run of empty grid lines, where one is wide enough to be
@@ -184,8 +215,10 @@ extension TileSplitter {
                 var bestStart = Int32(0), bestRun = Int32(0)
                 var run = Int32(0)
                 for line in lo..<hi {
-                    let occupied = alongLat ? rowCount(line, in: rect)
-                                            : columnCount(line, in: rect)
+                    let occupied =
+                        alongLat
+                        ? rowCount(line, in: rect)
+                        : columnCount(line, in: rect)
                     if occupied == 0 {
                         run += 1
                         if run > bestRun { bestRun = run; bestStart = line - run + 1 }
@@ -195,7 +228,8 @@ extension TileSplitter {
                 }
                 // Ignore a gap that runs off either end: that is just margin, not a divide.
                 guard bestRun >= Self.gapCells, bestStart > lo,
-                      bestStart + bestRun < hi else { continue }
+                    bestStart + bestRun < hi
+                else { continue }
                 let cut = bestStart + bestRun / 2
                 return Self.cut(rect, at: cut, alongLat: alongLat)
             }
@@ -240,24 +274,51 @@ extension TileSplitter {
 
         /// The two halves of a rectangle, lower first on either axis. Which half comes
         /// first decides which one `share` was about, so both axes answer the same way.
-        private static func cut(_ rect: Cells, at line: Int32,
-                                alongLat: Bool) -> (Cells, Cells) {
+        private static func cut(
+            _ rect: Cells,
+            at line: Int32,
+            alongLat: Bool
+        ) -> (Cells, Cells) {
             if alongLat {
-                return (Cells(minLat: rect.minLat, minLon: rect.minLon,
-                              maxLat: line, maxLon: rect.maxLon),
-                        Cells(minLat: line, minLon: rect.minLon,
-                              maxLat: rect.maxLat, maxLon: rect.maxLon))
+                return (
+                    Cells(
+                        minLat: rect.minLat,
+                        minLon: rect.minLon,
+                        maxLat: line,
+                        maxLon: rect.maxLon
+                    ),
+                    Cells(
+                        minLat: line,
+                        minLon: rect.minLon,
+                        maxLat: rect.maxLat,
+                        maxLon: rect.maxLon
+                    )
+                )
             }
-            return (Cells(minLat: rect.minLat, minLon: rect.minLon,
-                          maxLat: rect.maxLat, maxLon: line),
-                    Cells(minLat: rect.minLat, minLon: line,
-                          maxLat: rect.maxLat, maxLon: rect.maxLon))
+            return (
+                Cells(
+                    minLat: rect.minLat,
+                    minLon: rect.minLon,
+                    maxLat: rect.maxLat,
+                    maxLon: line
+                ),
+                Cells(
+                    minLat: rect.minLat,
+                    minLon: line,
+                    maxLat: rect.maxLat,
+                    maxLon: rect.maxLon
+                )
+            )
         }
 
         /// Shrinks an area to the grid cells that actually hold nodes.
         func trim(_ area: Area) -> Area {
-            let rect = Cells(minLat: area.minLat >> TileSplitter.gridShift, minLon: area.minLon >> TileSplitter.gridShift,
-                             maxLat: area.maxLat >> TileSplitter.gridShift, maxLon: area.maxLon >> TileSplitter.gridShift)
+            let rect = Cells(
+                minLat: area.minLat >> TileSplitter.gridShift,
+                minLon: area.minLon >> TileSplitter.gridShift,
+                maxLat: area.maxLat >> TileSplitter.gridShift,
+                maxLon: area.maxLon >> TileSplitter.gridShift
+            )
             guard count(rect) > 0 else { return area }
             var minLat = rect.minLat, maxLat = rect.maxLat - 1
             while minLat < maxLat, rowCount(minLat, in: rect) == 0 { minLat += 1 }
@@ -265,8 +326,12 @@ extension TileSplitter {
             var minLon = rect.minLon, maxLon = rect.maxLon - 1
             while minLon < maxLon, columnCount(minLon, in: rect) == 0 { minLon += 1 }
             while maxLon > minLon, columnCount(maxLon, in: rect) == 0 { maxLon -= 1 }
-            return Area(minLat: minLat << TileSplitter.gridShift, minLon: minLon << TileSplitter.gridShift,
-                        maxLat: (maxLat + 1) << TileSplitter.gridShift, maxLon: (maxLon + 1) << TileSplitter.gridShift)
+            return Area(
+                minLat: minLat << TileSplitter.gridShift,
+                minLon: minLon << TileSplitter.gridShift,
+                maxLat: (maxLat + 1) << TileSplitter.gridShift,
+                maxLon: (maxLon + 1) << TileSplitter.gridShift
+            )
         }
     }
 }

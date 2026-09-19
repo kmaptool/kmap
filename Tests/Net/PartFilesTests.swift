@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// Clearing up after downloads that stopped.
 final class PartFilesTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -15,7 +15,6 @@ final class PartFilesTests: XCTestCase {
     override func tearDownWithError() throws {
         try? FileManager.default.removeItem(at: directory)
     }
-
 
     private func makeFile(_ name: String, bytes: Int = 16) throws -> URL {
         let url = directory.appendingPathComponent(name)
@@ -60,8 +59,10 @@ final class PartFilesTests: XCTestCase {
         let layout = try makeFile("region-c.osm.pbf.layout", bytes: 8)
         // Only part0 is old enough; part1 was touched just now.
         let old = Date().addingTimeInterval(-30 * 24 * 3600)
-        try FileManager.default.setAttributes([.modificationDate: old],
-            ofItemAtPath: directory.appendingPathComponent("region-c.osm.pbf.part0").path)
+        try FileManager.default.setAttributes(
+            [.modificationDate: old],
+            ofItemAtPath: directory.appendingPathComponent("region-c.osm.pbf.part0").path
+        )
 
         _ = PartFiles.sweepAbandoned(in: directory)
 
@@ -75,8 +76,13 @@ final class PartFilesTests: XCTestCase {
         let stamp = try makeFile("region-a.osm.pbf.stamp")
         let odd = try makeFile("notes.partly")
         let alsoOdd = try makeFile("archive.part")
-        XCTAssertEqual(PartFiles.sweepAbandoned(
-            in: directory, now: Date().addingTimeInterval(365 * 24 * 3600)), 0)
+        XCTAssertEqual(
+            PartFiles.sweepAbandoned(
+                in: directory,
+                now: Date().addingTimeInterval(365 * 24 * 3600)
+            ),
+            0
+        )
         for url in [extract, stamp, odd, alsoOdd] { XCTAssertTrue(FileTools.exists(url), "\(url)") }
     }
 }

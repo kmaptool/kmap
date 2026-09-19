@@ -6,7 +6,6 @@ import Foundation
 /// The binary form `write` produces matches, byte for byte, the Java helper compiled
 /// against mkgmap.jar that this replaced.
 enum ElementDumper {
-
     enum Kind: Character {
         case point = "P", line = "L", area = "A"
 
@@ -76,27 +75,40 @@ enum ElementDumper {
     ///   elements outside every rectangle are skipped.
     /// - Parameter coarserLevels: read the zoomed-out levels instead of the detailed
     ///   one - where a style may keep what it never draws up close.
-    static func dump(img: URL, grounds: [BBox], log: Log,
-                     coarserLevels: Bool = false,
-                     progress: RecoverProgress? = nil) throws -> Dump {
+    static func dump(
+        img: URL,
+        grounds: [BBox],
+        log: Log,
+        coarserLevels: Bool = false,
+        progress: RecoverProgress? = nil
+    ) throws -> Dump {
         var dump = Dump()
         var seen = 0
         // Extended-type polygons and points too: a third-party style may keep whole
         // classes of feature on an extended code.
-        try ImgElements.read(img: img, grounds: grounds.map(ImgElements.Ground.init),
-                             extendedAreasAndPoints: true,
-                             coarserLevels: coarserLevels,
-                             tick: {
-                                 seen += 1
-                                 if seen % 20000 == 0 {
-                                     try Task.checkCancellation()
-                                     progress?.count(seen)
-                                 }
-                             }) { kind, type, coords, resolution in
+        try ImgElements.read(
+            img: img,
+            grounds: grounds.map(ImgElements.Ground.init),
+            extendedAreasAndPoints: true,
+            coarserLevels: coarserLevels,
+            tick: {
+                seen += 1
+                if seen % 20000 == 0 {
+                    try Task.checkCancellation()
+                    progress?.count(seen)
+                }
+            }
+        ) { kind, type, coords, resolution in
             let from = dump.cells.count
             for c in coords { dump.cells.append(GarminGrid.pack(latUnit: c.lat, lonUnit: c.lon)) }
-            dump.elements.append(Element(kind: kind, type: type,
-                                         from: Int32(from), count: Int32(coords.count)))
+            dump.elements.append(
+                Element(
+                    kind: kind,
+                    type: type,
+                    from: Int32(from),
+                    count: Int32(coords.count)
+                )
+            )
             dump.resolutions.append(Int16(resolution))
         }
         return dump
@@ -135,23 +147,41 @@ enum ElementDumper {
                 guard let kind = Kind(byte: raw.load(fromByteOffset: at, as: UInt8.self)) else {
                     break
                 }
-                let type = Int(Int32(littleEndian:
-                    raw.loadUnaligned(fromByteOffset: at + 1, as: Int32.self)))
-                let count = Int(Int32(littleEndian:
-                    raw.loadUnaligned(fromByteOffset: at + 5, as: Int32.self)))
+                let type = Int(
+                    Int32(
+                        littleEndian:
+                            raw.loadUnaligned(fromByteOffset: at + 1, as: Int32.self)
+                    )
+                )
+                let count = Int(
+                    Int32(
+                        littleEndian:
+                            raw.loadUnaligned(fromByteOffset: at + 5, as: Int32.self)
+                    )
+                )
                 at += 9
                 guard count > 0, at + count * 8 <= end else { break }
                 let from = dump.cells.count
                 for vertex in 0..<count {
-                    let lat = Int32(littleEndian:
-                        raw.loadUnaligned(fromByteOffset: at + vertex * 8, as: Int32.self))
-                    let lon = Int32(littleEndian:
-                        raw.loadUnaligned(fromByteOffset: at + vertex * 8 + 4, as: Int32.self))
+                    let lat = Int32(
+                        littleEndian:
+                            raw.loadUnaligned(fromByteOffset: at + vertex * 8, as: Int32.self)
+                    )
+                    let lon = Int32(
+                        littleEndian:
+                            raw.loadUnaligned(fromByteOffset: at + vertex * 8 + 4, as: Int32.self)
+                    )
                     dump.cells.append(GarminGrid.pack(latUnit: lat, lonUnit: lon))
                 }
                 at += count * 8
-                dump.elements.append(Element(kind: kind, type: type,
-                                             from: Int32(from), count: Int32(count)))
+                dump.elements.append(
+                    Element(
+                        kind: kind,
+                        type: type,
+                        from: Int32(from),
+                        count: Int32(count)
+                    )
+                )
             }
         }
         return dump

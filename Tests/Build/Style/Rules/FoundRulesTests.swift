@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Rules kmap adds for meanings a foreign map draws and mkgmap's style does not emit.
@@ -6,11 +7,12 @@ import XCTest
 /// Each is found by `kmap recover`, which reads a foreign map against the OSM data it was
 /// built from. What is checked here is what makes such a rule safe to add.
 final class FoundRulesTests: XCTestCase {
-
     private var everyRule: String {
-        [StyleCatalog.foundPointRules,
-         StyleCatalog.foundLineRules,
-         StyleCatalog.foundPolygonRules].joined(separator: "\n")
+        [
+            StyleCatalog.foundPointRules,
+            StyleCatalog.foundLineRules,
+            StyleCatalog.foundPolygonRules
+        ].joined(separator: "\n")
     }
 
     /// Rule lines only, comments and blanks dropped.
@@ -34,11 +36,13 @@ final class FoundRulesTests: XCTestCase {
             0x2f09: "marina and ferry pier", 0x2c08: "sports pitch", 0x2c02: "ruin and dig",
             0x18: "stream and drain", 0x17: "fence, wall, hedge, breakwater, park",
             0x25: "pedestrian area", 0x0e: "runway", 0x0c: "quarry and industry",
-            0x05: "car park", 0x4f: "scrub", 0x13: "building",
+            0x05: "car park", 0x4f: "scrub", 0x13: "building"
         ]
         for code in codes(everyRule) {
-            XCTAssertNotNil(kin[code],
-                            "0x\(String(code, radix: 16)) is not a code this style already draws with")
+            XCTAssertNotNil(
+                kin[code],
+                "0x\(String(code, radix: 16)) is not a code this style already draws with"
+            )
         }
     }
 
@@ -47,8 +51,10 @@ final class FoundRulesTests: XCTestCase {
     func testNoLineHereWearsATypeTheFirmwareMightRouteAlong() {
         let routable = Set(0x01...0x13).union([0x16, 0x1a, 0x1b, 0x2c, 0x2d, 0x2e, 0x2f])
         for code in codes(StyleCatalog.foundLineRules) {
-            XCTAssertFalse(routable.contains(code),
-                           "0x\(String(code, radix: 16)) is firmware-routable and this is not a road")
+            XCTAssertFalse(
+                routable.contains(code),
+                "0x\(String(code, radix: 16)) is firmware-routable and this is not a road"
+            )
         }
     }
 
@@ -70,13 +76,18 @@ final class FoundRulesTests: XCTestCase {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         try "building=* & building!=no [0x13 resolution 24]\n\n<finalize>\n"
-            .write(to: folder.appendingPathComponent("polygons"),
-                   atomically: true, encoding: .utf8)
+            .write(
+                to: folder.appendingPathComponent("polygons"),
+                atomically: true,
+                encoding: .utf8
+            )
 
         let catalog = StyleCatalog(settings: SettingsStore(), toolchain: Toolchain(settings: SettingsStore()))
         try catalog.addFoundPolygonRules(in: folder, log: Log())
-        let text = try String(contentsOf: folder.appendingPathComponent("polygons"),
-                              encoding: .utf8)
+        let text = try String(
+            contentsOf: folder.appendingPathComponent("polygons"),
+            encoding: .utf8
+        )
         let building = try XCTUnwrap(text.range(of: "building=* & building!=no"))
         let church = try XCTUnwrap(text.range(of: "amenity=place_of_worship [0x13"))
         XCTAssertLessThan(building.lowerBound, church.lowerBound)
@@ -92,8 +103,11 @@ final class FoundRulesTests: XCTestCase {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         try "waterway=stream | waterway=drain [0x18 resolution 22]\n"
-            .write(to: folder.appendingPathComponent("lines"),
-                   atomically: true, encoding: .utf8)
+            .write(
+                to: folder.appendingPathComponent("lines"),
+                atomically: true,
+                encoding: .utf8
+            )
 
         let catalog = StyleCatalog(settings: SettingsStore(), toolchain: Toolchain(settings: SettingsStore()))
         try catalog.addFoundLineRules(in: folder, log: Log())

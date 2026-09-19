@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// Where a plugged-in device turns up, per platform.
 final class RemovableMediaTests: XCTestCase {
-
     func testAMacLooksInTheOnePlaceAMacPutsThem() {
         XCTAssertEqual(Platform.mediaRoots(.macOS, environment: [:]), ["/Volumes"])
     }
@@ -22,17 +22,25 @@ final class RemovableMediaTests: XCTestCase {
     }
 
     func testEveryMountedVolumeIsOfferedOnceAndHiddenOnesAreNot() {
-        let volumes = Platform.mountedVolumes(.wsl, environment: [:], contents: { root in
-            root == "/mnt" ? ["c", "e", ".hidden", "wsl"] : []
-        })
+        let volumes = Platform.mountedVolumes(
+            .wsl,
+            environment: [:],
+            contents: { root in
+                root == "/mnt" ? ["c", "e", ".hidden", "wsl"] : []
+            }
+        )
         XCTAssertEqual(volumes.map(\.path), ["/mnt/c", "/mnt/e", "/mnt/wsl"])
     }
 
     func testTheSameDirectoryReachedTwiceIsOfferedOnce() {
         // /media and /media/<user> overlap on some desktops.
-        let volumes = Platform.mountedVolumes(.linux, environment: ["USER": "k"], contents: { root in
-            root == "/media/k" || root == "/media" ? ["GARMIN"] : []
-        })
+        let volumes = Platform.mountedVolumes(
+            .linux,
+            environment: ["USER": "k"],
+            contents: { root in
+                root == "/media/k" || root == "/media" ? ["GARMIN"] : []
+            }
+        )
         XCTAssertEqual(volumes.map(\.path), ["/media/k/GARMIN", "/media/GARMIN"])
     }
 
@@ -46,7 +54,9 @@ final class RemovableMediaTests: XCTestCase {
     func testTheFloppyLettersAreNotAsked() {
         // Asking about an empty A: raises the "insert a disk" dialog.
         var asked: [String] = []
-        _ = Platform.windowsDriveRoots(exists: { asked.append($0); return false })
+        _ = Platform.windowsDriveRoots(exists: {
+            asked.append($0); return false
+        })
         XCTAssertFalse(asked.contains(#"A:\"#))
         XCTAssertFalse(asked.contains(#"B:\"#))
         XCTAssertEqual(asked.count, 24, "C through Z")
@@ -56,12 +66,15 @@ final class RemovableMediaTests: XCTestCase {
         XCTAssertEqual(Platform.mediaRoots(.windows, environment: [:]), [])
         // What is checked is the routing: the drive letters were asked and the directory
         // listing was not.
-        let volumes = Platform.mountedVolumes(.windows, environment: [:],
-                                              contents: { _ in
-                                                  XCTFail("nothing to enumerate on Windows")
-                                                  return []
-                                              },
-                                              exists: { $0 == #"E:\"# })
+        let volumes = Platform.mountedVolumes(
+            .windows,
+            environment: [:],
+            contents: { _ in
+                XCTFail("nothing to enumerate on Windows")
+                return []
+            },
+            exists: { $0 == #"E:\"# }
+        )
         XCTAssertEqual(volumes.count, 1)
     }
 }

@@ -5,7 +5,6 @@ import Foundation
 /// Every tile, the most detailed level of each, and in it the polylines, polygons and
 /// points - classic and extended types alike - in the file's own 24-bit map units.
 enum ImgElements {
-
     struct Coord {
         let lat: Int32
         let lon: Int32
@@ -53,33 +52,54 @@ enum ImgElements {
     /// - Parameter resolution: read only the subdivisions drawn at this resolution,
     ///   whatever level or tile they live in - the way to compare two maps that ladder
     ///   their zooms differently, or to ask what one draws at a given zoom.
-    static func read(img: URL, grounds: [Ground], extendedAreasAndPoints: Bool,
-                     coarserLevels: Bool = false, resolution: Int? = nil,
-                     tick: () throws -> Void,
-                     emit: (ElementDumper.Kind, Int, [Coord]) -> Void) throws {
-        try read(img: img, grounds: grounds,
-                 extendedAreasAndPoints: extendedAreasAndPoints,
-                 coarserLevels: coarserLevels, resolution: resolution, tick: tick) {
-            kind, type, coords, _ in emit(kind, type, coords)
+    static func read(
+        img: URL,
+        grounds: [Ground],
+        extendedAreasAndPoints: Bool,
+        coarserLevels: Bool = false,
+        resolution: Int? = nil,
+        tick: () throws -> Void,
+        emit: (ElementDumper.Kind, Int, [Coord]) -> Void
+    ) throws {
+        try read(
+            img: img,
+            grounds: grounds,
+            extendedAreasAndPoints: extendedAreasAndPoints,
+            coarserLevels: coarserLevels,
+            resolution: resolution,
+            tick: tick
+        ) {
+            kind,
+            type,
+            coords,
+            _ in emit(kind, type, coords)
         }
     }
 
     /// The same walk, telling the caller which resolution each element is drawn at: a
     /// style may keep a second, thinner vocabulary for the zoomed-out levels, and only
     /// the resolution tells the two apart.
-    static func read(img: URL, grounds: [Ground], extendedAreasAndPoints: Bool,
-                     coarserLevels: Bool = false, resolution: Int? = nil,
-                     tick: () throws -> Void,
-                     emit: (ElementDumper.Kind, Int, [Coord], Int) -> Void) throws {
+    static func read(
+        img: URL,
+        grounds: [Ground],
+        extendedAreasAndPoints: Bool,
+        coarserLevels: Bool = false,
+        resolution: Int? = nil,
+        tick: () throws -> Void,
+        emit: (ElementDumper.Kind, Int, [Coord], Int) -> Void
+    ) throws {
         let directory = ImgContainer.directory(of: img)
         let tiles = directory.filter { $0.ext.uppercased() == "TRE" }
         guard !tiles.isEmpty else { throw Trouble.noTiles }
         for tre in tiles {
-            guard let rgn = directory.first(where: {
-                $0.name == tre.name && $0.ext.uppercased() == "RGN"
-            }) else { continue }
+            guard
+                let rgn = directory.first(where: {
+                    $0.name == tre.name && $0.ext.uppercased() == "RGN"
+                })
+            else { continue }
             guard let treData = ImgContainer.read(tre, from: img),
-                  let rgnData = ImgContainer.read(rgn, from: img) else { continue }
+                let rgnData = ImgContainer.read(rgn, from: img)
+            else { continue }
             let tree = try Tree(treData, tile: tre.name)
             let region = try Region(rgnData, tile: tre.name)
             // Level 0 is the most detailed; it is named by that number, not by its
@@ -88,10 +108,14 @@ enum ImgElements {
             // close - a reserve's hatch over half a district.
             for division in tree.subdivisions
             where resolution.map({ 24 - division.shift == $0 })
-                ?? (coarserLevels ? division.level > 0 : division.level == 0) {
+                ?? (coarserLevels ? division.level > 0 : division.level == 0)
+            {
                 guard grounds.contains(where: { division.near($0) }) else { continue }
-                try region.read(division, extendedAreasAndPoints: extendedAreasAndPoints,
-                                tile: tre.name) { kind, type, coords in
+                try region.read(
+                    division,
+                    extendedAreasAndPoints: extendedAreasAndPoints,
+                    tile: tre.name
+                ) { kind, type, coords in
                     try tick()
                     guard coords.contains(where: { c in grounds.contains { $0.contains(c) } })
                     else { return }

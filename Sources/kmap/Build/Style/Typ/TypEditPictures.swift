@@ -5,8 +5,13 @@ import Foundation
 extension TypEdit {
     /// Replaces a section's `Xpm` / `DayXpm` block (header, palette and pixel rows),
     /// leaving every other line of the section where it was.
-    static func setPicture(in source: TypSource, kind: MapElementKind, code: Int,
-                           to block: XpmBlock, tag wanted: String? = nil) throws -> String {
+    static func setPicture(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int,
+        to block: XpmBlock,
+        tag wanted: String? = nil
+    ) throws -> String {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
@@ -23,8 +28,10 @@ extension TypEdit {
 
     /// An `Xpm` block as the TYP compiler wants it written.
     static func render(_ block: XpmBlock, tag: String, indent: String = "") -> [String] {
-        var out = [indent + "\(tag)=\"\(block.width) \(block.height) "
-                   + "\(block.declaredColours) \(block.charsPerPixel)\""]
+        var out = [
+            indent + "\(tag)=\"\(block.width) \(block.height) "
+                + "\(block.declaredColours) \(block.charsPerPixel)\""
+        ]
         for entry in block.palette {
             out.append(indent + "\"\(entry.key) c \(entry.colour ?? "none")\"")
         }
@@ -71,9 +78,15 @@ extension TypEdit {
                 let trimmed = source.lines[number].trimmingCharacters(in: .whitespaces)
                 guard trimmed.lowercased().hasPrefix("nightcustomcolor=") else { continue }
                 if wanted == .night, let value = trimmed.split(separator: "=").last {
-                    edits.append((number..<number + 1,
-                                  [indentation(of: source.lines[number])
-                                   + "DayCustomColor=" + value]))
+                    edits.append(
+                        (
+                            number..<number + 1,
+                            [
+                                indentation(of: source.lines[number])
+                                    + "DayCustomColor=" + value
+                            ]
+                        )
+                    )
                     convertedNightColour = true
                 } else {
                     edits.append((number..<number + 1, []))
@@ -84,7 +97,8 @@ extension TypEdit {
                 // so the original is dropped.
                 for number in section.lines
                 where source.lines[number].trimmingCharacters(in: .whitespaces)
-                    .lowercased().hasPrefix("daycustomcolor=") {
+                    .lowercased().hasPrefix("daycustomcolor=")
+                {
                     edits.append((number..<number + 1, []))
                 }
             }
@@ -94,7 +108,8 @@ extension TypEdit {
             var dayPictureReplaced = false
             if let nightRange = pictureLineRange(in: source, section: section, tag: "NightXpm") {
                 if wanted == .night, let nightBlock = section.nightXpm,
-                   let dayRange = pictureLineRange(in: source, section: section, tag: nil) {
+                    let dayRange = pictureLineRange(in: source, section: section, tag: nil)
+                {
                     let indent = indentation(of: source.lines[dayRange.lowerBound])
                     let tag = pictureTag(of: source.lines[dayRange.lowerBound]) ?? "Xpm"
                     edits.append((nightRange, []))
@@ -109,19 +124,26 @@ extension TypEdit {
             if section.kind != .point, !dayPictureReplaced {
                 let slots = section.colourSlots
                 if !slots.night.isEmpty, let block = section.xpm,
-                   let extent = pictureLineRange(in: source, section: section, tag: nil) {
+                    let extent = pictureLineRange(in: source, section: section, tag: nil)
+                {
                     var palette = Array(block.palette.prefix(slots.day.count))
                     if wanted == .night {
                         let night = block.colours
                         for i in palette.indices where night.indices.contains(slots.day.count + i) {
-                            palette[i] = (key: palette[i].key,
-                                          colour: night[slots.day.count + i])
+                            palette[i] = (
+                                key: palette[i].key,
+                                colour: night[slots.day.count + i]
+                            )
                         }
                     }
-                    let kept = XpmBlock(width: block.width, height: block.height,
-                                        declaredColours: palette.count,
-                                        charsPerPixel: block.charsPerPixel,
-                                        palette: palette, rows: block.rows)
+                    let kept = XpmBlock(
+                        width: block.width,
+                        height: block.height,
+                        declaredColours: palette.count,
+                        charsPerPixel: block.charsPerPixel,
+                        palette: palette,
+                        rows: block.rows
+                    )
                     let indent = indentation(of: source.lines[extent.lowerBound])
                     let tag = pictureTag(of: source.lines[extent.lowerBound]) ?? "Xpm"
                     edits.append((extent, render(kept, tag: tag, indent: indent)))
@@ -141,8 +163,11 @@ extension TypEdit {
     /// A solid with one colour grows to two; a pattern or a cased line with two grows to
     /// four. The new colours copy the day ones; the pixel rows only name the day keys
     /// and are untouched.
-    static func addNightColours(in source: TypSource, kind: MapElementKind,
-                                code: Int) throws -> String {
+    static func addNightColours(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int
+    ) throws -> String {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
@@ -158,7 +183,8 @@ extension TypEdit {
         // `colourSlots` decided. Anything else is not a shape the compiler documents.
         let dayCount = section.colourSlots.day.count
         guard block.palette.count == dayCount,
-              dayCount == 2 || (dayCount == 1 && block.isSolid) else {
+            dayCount == 2 || (dayCount == 1 && block.isSolid)
+        else {
             throw EditError.noNightForm(code)
         }
 
@@ -170,7 +196,8 @@ extension TypEdit {
         for candidate in conventional + XpmBlock.keyAlphabet.map(String.init)
         where keys.count < dayCount {
             guard !used.contains(candidate), !keys.contains(candidate),
-                  candidate.count == max(1, block.charsPerPixel) else { continue }
+                candidate.count == max(1, block.charsPerPixel)
+            else { continue }
             keys.append(candidate)
         }
         guard keys.count == dayCount else { throw EditError.noPicture(code) }
@@ -180,10 +207,14 @@ extension TypEdit {
             palette.append((key: key, colour: day.colour))
         }
 
-        let grown = XpmBlock(width: block.width, height: block.height,
-                             declaredColours: palette.count,
-                             charsPerPixel: block.charsPerPixel,
-                             palette: palette, rows: block.rows)
+        let grown = XpmBlock(
+            width: block.width,
+            height: block.height,
+            declaredColours: palette.count,
+            charsPerPixel: block.charsPerPixel,
+            palette: palette,
+            rows: block.rows
+        )
         return try setPicture(in: source, kind: kind, code: code, to: grown, tag: "Xpm")
     }
 

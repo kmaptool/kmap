@@ -41,14 +41,16 @@ struct Color: Equatable {
             }
             let (ri, gi, bi) = (nearestLevel(Int(r)), nearestLevel(Int(g)), nearestLevel(Int(b)))
             let cube = 16 + 36 * ri + 6 * gi + bi
-            let cubeError = abs(levels[ri] - Int(r)) + abs(levels[gi] - Int(g))
+            let cubeError =
+                abs(levels[ri] - Int(r)) + abs(levels[gi] - Int(g))
                 + abs(levels[bi] - Int(b))
 
             // The grey ramp runs 8, 18, … 238 at indices 232…255.
             let average = (Int(r) + Int(g) + Int(b)) / 3
             let step = max(0, min(23, (average - 8 + 5) / 10))
             let greyValue = 8 + step * 10
-            let greyError = abs(greyValue - Int(r)) + abs(greyValue - Int(g))
+            let greyError =
+                abs(greyValue - Int(r)) + abs(greyValue - Int(g))
                 + abs(greyValue - Int(b))
 
             return greyError < cubeError ? 232 + step : cube
@@ -67,8 +69,14 @@ struct Style: Equatable {
 
     static let plain = Style()
 
-    func with(fg: Color? = nil, bg: Color? = nil, bold: Bool? = nil,
-              dim: Bool? = nil, underline: Bool? = nil, reverse: Bool? = nil) -> Style {
+    func with(
+        fg: Color? = nil,
+        bg: Color? = nil,
+        bold: Bool? = nil,
+        dim: Bool? = nil,
+        underline: Bool? = nil,
+        reverse: Bool? = nil
+    ) -> Style {
         var s = self
         if let fg { s.fg = fg }
         if let bg { s.bg = bg }
@@ -131,14 +139,18 @@ struct Rect {
     /// Splits off `n` columns from the left, returning (left, remainder).
     func splitLeft(_ n: Int) -> (Rect, Rect) {
         let cut = max(0, min(n, w))
-        return (Rect(x: x, y: y, w: cut, h: h),
-                Rect(x: x + cut, y: y, w: w - cut, h: h))
+        return (
+            Rect(x: x, y: y, w: cut, h: h),
+            Rect(x: x + cut, y: y, w: w - cut, h: h)
+        )
     }
     /// Splits off `n` rows from the top, returning (top, remainder).
     func splitTop(_ n: Int) -> (Rect, Rect) {
         let cut = max(0, min(n, h))
-        return (Rect(x: x, y: y, w: w, h: cut),
-                Rect(x: x, y: y + cut, w: w, h: h - cut))
+        return (
+            Rect(x: x, y: y, w: w, h: cut),
+            Rect(x: x, y: y + cut, w: w, h: h - cut)
+        )
     }
 }
 
@@ -154,12 +166,12 @@ struct Theme {
     let faint = Color.xterm(240)
     let rule = Color.xterm(237)
 
-    let accent = Color.xterm(74)      // steel blue
+    let accent = Color.xterm(74)  // steel blue
     let accentDim = Color.xterm(67)
-    let ok = Color.xterm(108)         // muted green
-    let picked = Color.xterm(114)     // brighter green
-    let warn = Color.xterm(179)       // khaki
-    let danger = Color.xterm(167)     // muted red
+    let ok = Color.xterm(108)  // muted green
+    let picked = Color.xterm(114)  // brighter green
+    let warn = Color.xterm(179)  // khaki
+    let danger = Color.xterm(167)  // muted red
 
     let headerBg = Color.xterm(236)
     let headerFg = Color.xterm(253)
@@ -243,7 +255,7 @@ enum Glyph {
         "⏎": "←", "⇥": "→", "＋": "+",
         // The spinner, frame for frame, as the same turning stroke.
         "⠋": "|", "⠙": "/", "⠹": "-", "⠸": "\\", "⠼": "|",
-        "⠴": "/", "⠦": "-", "⠧": "\\", "⠇": "|", "⠏": "/",
+        "⠴": "/", "⠦": "-", "⠧": "\\", "⠇": "|", "⠏": "/"
     ]
 
     static func drawable(_ ch: Character) -> Character {

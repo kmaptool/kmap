@@ -6,7 +6,6 @@ import Foundation
 /// picked with its convention in view rather than blind. A TYP may repurpose any of
 /// these, which is exactly what the list then shows instead.
 enum GarminStandard {
-
     /// The settlement points, 0x0100 to 0x1100: a receiver draws these with glyphs and
     /// sizes of its own, and no TYP paints them. A style that leaves them unpainted
     /// leaves them to the receiver, as every style does.
@@ -42,8 +41,11 @@ enum GarminStandard {
     /// The meaning only where the vocabulary names this exact code - for a point, the
     /// entry carrying its subtype, never the family: "Food & drink" is not a name for
     /// one dish in it. What the name column may use; the family stays a hint.
-    static func exactMeaning(_ kind: MapElementKind, _ code: Int,
-                             russian: Bool) -> String? {
+    static func exactMeaning(
+        _ kind: MapElementKind,
+        _ code: Int,
+        russian: Bool
+    ) -> String? {
         if kind == .point {
             let key = "P\(String(format: "%04x", code > 0xFF ? code : code << 8))"
             guard let found = table[key] else { return nil }

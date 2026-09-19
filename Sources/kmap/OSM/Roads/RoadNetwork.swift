@@ -51,13 +51,13 @@ struct RoadNetwork {
 /// What an obstacle is, in one byte. The raw values match `obstacle_kind()` in the
 /// reference Python tool.
 enum ObstacleKind: UInt8 {
-    case fence = 0          // a plot boundary: never crossed, at any height
-    case building = 1       // no route was meant to go through a house
+    case fence = 0  // a plot boundary: never crossed, at any height
+    case building = 1  // no route was meant to go through a house
     case cliff = 2
     case ravine = 3
-    case water = 4          // river or canal; a stream is not an obstacle to a walker
+    case water = 4  // river or canal; a stream is not an obstacle to a walker
     case embankment = 5
-    case barrier = 6        // a kerb, a guard rail, a chain: crossable, and marked when crossed
+    case barrier = 6  // a kerb, a guard rail, a chain: crossable, and marked when crossed
 
     var isImpassable: Bool { self == .fence || self == .building }
 }
@@ -82,8 +82,13 @@ struct RoadNetworkLoader {
     private static let waterKinds: Set<String> = ["river", "canal"]
     private static let embankmentKinds: Set<String> = ["embankment", "pier", "breakwater"]
 
-    static func obstacleKind(barrier: String?, natural: String?, waterway: String?,
-                             manMade: String?, building: Bool) -> ObstacleKind? {
+    static func obstacleKind(
+        barrier: String?,
+        natural: String?,
+        waterway: String?,
+        manMade: String?,
+        building: Bool
+    ) -> ObstacleKind? {
         if let barrier, OSMCensus.enclosing.contains(barrier) { return .fence }
         if barrier != nil { return .barrier }
         if let natural, cliffKinds.contains(natural) { return .cliff }
@@ -179,7 +184,6 @@ struct RoadNetworkLoader {
         }
         return network
     }
-
 }
 
 /// First pass: the ways, and the node ids they will need.
@@ -200,8 +204,13 @@ private struct ShapeCollector: OSMSink {
         words.removeAll(keepingCapacity: true)
     }
 
-    mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                      keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func way(
+        id: Int64,
+        refs: ArraySlice<Int64>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         guard refs.count >= 2 else { return }
         var highway: String?, barrier: String?, natural: String?
         var waterway: String?, manMade: String?, building = false
@@ -220,8 +229,11 @@ private struct ShapeCollector: OSMSink {
             case "bridge": bridge = block.text(Int(value))
             case "tunnel": tunnel = block.text(Int(value))
             case "height", "est_height":
-                height = Float(block.text(Int(value)).split(separator: " ").first.map(String.init)?
-                    .replacingOccurrences(of: ",", with: ".") ?? "") ?? .nan
+                height =
+                    Float(
+                        block.text(Int(value)).split(separator: " ").first.map(String.init)?
+                            .replacingOccurrences(of: ",", with: ".") ?? ""
+                    ) ?? .nan
             default: break
             }
         }
@@ -233,21 +245,39 @@ private struct ShapeCollector: OSMSink {
             network.start.append(Int32(network.refs.count))
             return
         }
-        guard let kind = RoadNetworkLoader.obstacleKind(
-            barrier: barrier, natural: natural, waterway: waterway,
-            manMade: manMade, building: building) else { return }
+        guard
+            let kind = RoadNetworkLoader.obstacleKind(
+                barrier: barrier,
+                natural: natural,
+                waterway: waterway,
+                manMade: manMade,
+                building: building
+            )
+        else { return }
         network.obstacleKind.append(kind.rawValue)
         network.obstacleWord.append(0)
-        words.append(Self.word(for: kind, barrier: barrier, natural: natural,
-                               waterway: waterway, manMade: manMade))
+        words.append(
+            Self.word(
+                for: kind,
+                barrier: barrier,
+                natural: natural,
+                waterway: waterway,
+                manMade: manMade
+            )
+        )
         network.obstacleHeight.append(height)
         obstacleRefs.append(contentsOf: refs)
         network.obstacleStart.append(Int32(obstacleRefs.count))
     }
 
     /// What an obstacle is called on the map: the OSM value it was recognised by.
-    static func word(for kind: ObstacleKind, barrier: String?, natural: String?,
-                     waterway: String?, manMade: String?) -> String {
+    static func word(
+        for kind: ObstacleKind,
+        barrier: String?,
+        natural: String?,
+        waterway: String?,
+        manMade: String?
+    ) -> String {
         switch kind {
         case .fence, .barrier: return barrier ?? "barrier"
         case .cliff, .ravine: return natural ?? "cliff"
@@ -256,6 +286,4 @@ private struct ShapeCollector: OSMSink {
         case .building: return "building"
         }
     }
-
 }
-

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Spelling one path the other side's way, across the WSL boundary.
@@ -6,10 +7,11 @@ import XCTest
 /// Only WSL needs this: a native Windows build has nothing to translate, and a Unix
 /// without mounted drives never meets a drive letter.
 final class WindowsPathsTests: XCTestCase {
-
     func testADriveLetterBecomesAMountPointAndBack() {
-        XCTAssertEqual(Platform.defaultWindowsPath(for: "/mnt/e/Garmin/x.img"),
-                       #"E:\Garmin\x.img"#)
+        XCTAssertEqual(
+            Platform.defaultWindowsPath(for: "/mnt/e/Garmin/x.img"),
+            #"E:\Garmin\x.img"#
+        )
         XCTAssertEqual(Platform.linuxPath(for: #"E:\Garmin\x.img"#), "/mnt/e/Garmin/x.img")
     }
 
@@ -34,8 +36,10 @@ final class WindowsPathsTests: XCTestCase {
     func testSomewhereWindowsCannotReachHasNoWindowsPath() {
         XCTAssertNil(Platform.defaultWindowsPath(for: "/home/k/.kmap/work"))
         XCTAssertNil(Platform.defaultWindowsPath(for: "/mnt"))
-        XCTAssertNil(Platform.defaultWindowsPath(for: "/mnt/wsl/instance"),
-                     "a multi-letter name under /mnt is not a drive")
+        XCTAssertNil(
+            Platform.defaultWindowsPath(for: "/mnt/wsl/instance"),
+            "a multi-letter name under /mnt is not a drive"
+        )
     }
 
     func testSomethingThatIsNotAWindowsPathHasNoLinuxPath() {

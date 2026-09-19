@@ -6,7 +6,6 @@ import Foundation
 /// section order and the letters chosen for a palette are not held in the binary. What
 /// survives is everything that governs what the device draws.
 enum TypDecompiler {
-
     /// Whether an element has anything to draw with. One that does not is dropped rather
     /// than given an invented colour: a section with no `Xpm` is refused by the compiler,
     /// and a type with no section is left for the device to draw its own way.
@@ -45,8 +44,10 @@ enum TypDecompiler {
     // MARK: The parts that are not elements
 
     private static func preamble(_ typ: TypBinary, origin: String?) -> [String] {
-        var out = ["; -*- coding: UTF-8 -*-",
-                   "; " + String(repeating: "=", count: 74)]
+        var out = [
+            "; -*- coding: UTF-8 -*-",
+            "; " + String(repeating: "=", count: 74)
+        ]
         if let origin {
             out.append("; Decompiled by kmap from \(origin).")
         } else {
@@ -59,34 +60,47 @@ enum TypDecompiler {
             "; so none of that came back. What did come back is everything the device acts",
             "; on: type codes, colours, patterns, icons, widths, label styling and the type",
             "; names in every language the file carried.",
-            ";"])
+            ";"
+        ])
 
         let inexact = typ.all.filter { !$0.exact }
         let dropped = typ.all.filter { !isUsable($0) }
 
         if inexact.isEmpty {
-            out.append("; Every one of the \(typ.all.count) elements ended exactly where the "
-                       + "next one begins,")
+            out.append(
+                "; Every one of the \(typ.all.count) elements ended exactly where the "
+                    + "next one begins,"
+            )
             out.append("; which is the check that says the whole file was understood.")
         } else {
             // A section that did not decode cleanly may still be mostly right, so the
             // inexact ones are marked rather than dropped.
-            out.append("; \(typ.exactCount) of \(typ.all.count) elements ended exactly where "
-                       + "the next one begins. The")
-            out.append("; \(inexact.count) that did not are marked NOT FULLY DECODED where "
-                       + "they appear below;")
-            out.append("; their colours and labels may still be right, but nothing here "
-                       + "guarantees it.")
+            out.append(
+                "; \(typ.exactCount) of \(typ.all.count) elements ended exactly where "
+                    + "the next one begins. The"
+            )
+            out.append(
+                "; \(inexact.count) that did not are marked NOT FULLY DECODED where "
+                    + "they appear below;"
+            )
+            out.append(
+                "; their colours and labels may still be right, but nothing here "
+                    + "guarantees it."
+            )
         }
 
         if !dropped.isEmpty {
             // Named rather than merely counted: a type missing from the output is one the
             // device draws its own way.
             out.append(";")
-            out.append("; \(dropped.count) element(s) had nothing readable to draw with and "
-                       + "were left out")
-            out.append("; entirely. Nothing was invented for them; the device draws those "
-                       + "types its own way:")
+            out.append(
+                "; \(dropped.count) element(s) had nothing readable to draw with and "
+                    + "were left out"
+            )
+            out.append(
+                "; entirely. Nothing was invented for them; the device draws those "
+                    + "types its own way:"
+            )
             for line in wrapCodes(dropped) { out.append("; " + line) }
         }
         out.append("; " + String(repeating: "=", count: 74))
@@ -108,11 +122,13 @@ enum TypDecompiler {
     }
 
     private static func identity(_ typ: TypBinary) -> [String] {
-        ["[_id]",
-         "FID=\(typ.familyID)",
-         "ProductCode=\(typ.productID)",
-         "CodePage=\(typ.codePage)",
-         "[end]"]
+        [
+            "[_id]",
+            "FID=\(typ.familyID)",
+            "ProductCode=\(typ.productID)",
+            "CodePage=\(typ.codePage)",
+            "[end]"
+        ]
     }
 
     /// The draw order, level by level. A polygon missing from this table is not drawn at
@@ -123,8 +139,10 @@ enum TypDecompiler {
         // Levels are renumbered from one. The binary marks groups with separators whose
         // count does not map back to source numbering; only the stacking order matters.
         let ordered = Array(Set(typ.drawOrder.map(\.level))).sorted()
-        let renumbered = Dictionary(uniqueKeysWithValues:
-            ordered.enumerated().map { ($1, $0 + 1) })
+        let renumbered = Dictionary(
+            uniqueKeysWithValues:
+                ordered.enumerated().map { ($1, $0 + 1) }
+        )
 
         var out = ["[_drawOrder]"]
         var level = 0
@@ -152,13 +170,18 @@ enum TypDecompiler {
         var out = [element.kind.typSection]
         out.append("Type=\(hex(element.code))")
         if !element.exact {
-            out.append("; NOT FULLY DECODED — this element did not end where the next one "
-                       + "begins.")
-            out.append("; What follows is the best reading of it; check it against the "
-                       + "device.")
+            out.append(
+                "; NOT FULLY DECODED — this element did not end where the next one "
+                    + "begins."
+            )
+            out.append(
+                "; What follows is the best reading of it; check it against the "
+                    + "device."
+            )
         }
         if let english = element.labels.first(where: { $0.language == 0 })?.text,
-           !english.isEmpty {
+            !english.isEmpty
+        {
             out.append("; \(english)")
         }
 
@@ -225,8 +248,11 @@ enum TypDecompiler {
         // Only the first two keys appear in the rows: the pattern is one bit deep, and the
         // device swaps in the night pair itself.
         for row in bitmap {
-            out.append("\"" + row.map { key(min($0, colours.count - 1), width: 1) }
-                .joined() + "\"")
+            out.append(
+                "\""
+                    + row.map { key(min($0, colours.count - 1), width: 1) }
+                    .joined() + "\""
+            )
         }
         return out
     }
@@ -244,8 +270,11 @@ enum TypDecompiler {
             out.append(paletteLine(key: key(index, width: keyWidth), colour: colour))
         }
         for row in image.pixels {
-            out.append("\"" + row.map { key(min($0, colours.count - 1), width: keyWidth) }
-                .joined() + "\"")
+            out.append(
+                "\""
+                    + row.map { key(min($0, colours.count - 1), width: keyWidth) }
+                    .joined() + "\""
+            )
         }
         return out
     }

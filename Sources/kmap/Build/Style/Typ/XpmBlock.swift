@@ -53,8 +53,14 @@ struct XpmBlock: Equatable {
         guard palette.indices.contains(index) else { return self }
         var updated = palette
         updated[index] = (key: palette[index].key, colour: colour)
-        return XpmBlock(width: width, height: height, declaredColours: declaredColours,
-                        charsPerPixel: charsPerPixel, palette: updated, rows: rows)
+        return XpmBlock(
+            width: width,
+            height: height,
+            declaredColours: declaredColours,
+            charsPerPixel: charsPerPixel,
+            palette: updated,
+            rows: rows
+        )
     }
 
     /// The same picture on a different grid, cropped or padded, anchored top-left. Padding
@@ -88,7 +94,8 @@ struct XpmBlock: Equatable {
             var x = 0
             while x < newWidth {
                 if x < width, index < row.endIndex {
-                    let next = row.index(index, offsetBy: step, limitedBy: row.endIndex)
+                    let next =
+                        row.index(index, offsetBy: step, limitedBy: row.endIndex)
                         ?? row.endIndex
                     line += String(row[index..<next])
                     index = next
@@ -100,8 +107,14 @@ struct XpmBlock: Equatable {
             out.append(line)
         }
 
-        return XpmBlock(width: newWidth, height: newHeight, declaredColours: palette.count,
-                        charsPerPixel: step, palette: palette, rows: out)
+        return XpmBlock(
+            width: newWidth,
+            height: newHeight,
+            declaredColours: palette.count,
+            charsPerPixel: step,
+            palette: palette,
+            rows: out
+        )
     }
 
     /// Characters usable as palette keys, in a fixed order: every character except the
@@ -109,7 +122,8 @@ struct XpmBlock: Equatable {
     /// import reproducible, so a file can be diffed against its previous self.
     static let keyAlphabet = Array(
         "!#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_"
-        + "abcdefghijklmnopqrstuvwxyz{|}~")
+            + "abcdefghijklmnopqrstuvwxyz{|}~"
+    )
 
     /// The key for palette slot `index`: one character where `width` is 1, otherwise the
     /// two-character form the TYP format allows.
@@ -132,7 +146,8 @@ struct XpmBlock: Equatable {
             var out: [String?] = []
             var index = row.startIndex
             while index < row.endIndex, out.count < width {
-                let next = row.index(index, offsetBy: charsPerPixel, limitedBy: row.endIndex)
+                let next =
+                    row.index(index, offsetBy: charsPerPixel, limitedBy: row.endIndex)
                     ?? row.endIndex
                 let key = String(row[index..<next])
                 out.append(lookup[key] ?? nil)

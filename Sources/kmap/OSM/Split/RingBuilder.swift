@@ -10,8 +10,11 @@ extension TileSplitter {
         var closed: [[(lat: Int32, lon: Int32)]]
         var openBBox: Area?
 
-        static func rings(of ways: [Int64], refs: [Int64: [Int64]],
-                          coords: [Int64: (lat: Int32, lon: Int32)]) -> RingBuilder {
+        static func rings(
+            of ways: [Int64],
+            refs: [Int64: [Int64]],
+            coords: [Int64: (lat: Int32, lon: Int32)]
+        ) -> RingBuilder {
             // Chains of node ids, joined by shared endpoints, either direction.
             var pieces: [[Int64]] = ways.compactMap { refs[$0] }.filter { $0.count >= 2 }
             var closedIDs: [[Int64]] = []
@@ -70,8 +73,12 @@ extension TileSplitter {
                     }
                 }
                 if minLat <= maxLat {
-                    bbox = Area(minLat: minLat, minLon: minLon,
-                                maxLat: maxLat, maxLon: maxLon)
+                    bbox = Area(
+                        minLat: minLat,
+                        minLon: minLon,
+                        maxLat: maxLat,
+                        maxLon: maxLon
+                    )
                 }
             }
             return RingBuilder(closed: closed, openBBox: bbox)
@@ -80,8 +87,9 @@ extension TileSplitter {
         /// Does the multipolygon claim this tile -- ring crossing it, or swallowing it?
         func claims(_ area: Area) -> Bool {
             if let bbox = openBBox,
-               bbox.minLat < area.maxLat, bbox.maxLat >= area.minLat,
-               bbox.minLon < area.maxLon, bbox.maxLon >= area.minLon {
+                bbox.minLat < area.maxLat, bbox.maxLat >= area.minLat,
+                bbox.minLon < area.maxLon, bbox.maxLon >= area.minLon
+            {
                 return true
             }
             let centreLat = Int64(area.minLat) + Int64(area.maxLat - area.minLat) / 2
@@ -104,8 +112,11 @@ extension TileSplitter {
             return inside
         }
 
-        private func segmentMeets(_ a: (lat: Int32, lon: Int32),
-                                  _ b: (lat: Int32, lon: Int32), _ rect: Area) -> Bool {
+        private func segmentMeets(
+            _ a: (lat: Int32, lon: Int32),
+            _ b: (lat: Int32, lon: Int32),
+            _ rect: Area
+        ) -> Bool {
             // Trivial rejection first: both ends on the same outside of one edge.
             if a.lat < rect.minLat && b.lat < rect.minLat { return false }
             if a.lat >= rect.maxLat && b.lat >= rect.maxLat { return false }
@@ -115,10 +126,13 @@ extension TileSplitter {
             if rect.contains(lat: a.lat, lon: a.lon) { return true }
             if rect.contains(lat: b.lat, lon: b.lon) { return true }
             // Otherwise test the segment against each rectangle edge by orientation.
-            let corners = [(rect.minLat, rect.minLon), (rect.minLat, rect.maxLon),
-                           (rect.maxLat, rect.maxLon), (rect.maxLat, rect.minLon)]
+            let corners = [
+                (rect.minLat, rect.minLon), (rect.minLat, rect.maxLon),
+                (rect.maxLat, rect.maxLon), (rect.maxLat, rect.minLon)
+            ]
             func side(_ p: (Int32, Int32)) -> Int {
-                let cross = Int64(b.lon - a.lon) * Int64(p.0 - a.lat)
+                let cross =
+                    Int64(b.lon - a.lon) * Int64(p.0 - a.lat)
                     - Int64(b.lat - a.lat) * Int64(p.1 - a.lon)
                 return cross == 0 ? 0 : (cross > 0 ? 1 : -1)
             }

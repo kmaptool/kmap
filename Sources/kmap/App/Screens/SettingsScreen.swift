@@ -6,9 +6,11 @@ final class SettingsScreen: Screen {
 
     private var keys: [Hint] {
         if picking != nil {
-            return [Hint(key: "↑↓", label: t("move")),
-                    Hint(key: Glyph.enter, label: t("choose")),
-                    Hint(key: "esc", label: t("cancel"))]
+            return [
+                Hint(key: "↑↓", label: t("move")),
+                Hint(key: Glyph.enter, label: t("choose")),
+                Hint(key: "esc", label: t("cancel"))
+            ]
         }
         if let editing {
             var hints = [Hint(key: Glyph.enter, label: t("accept"))]
@@ -18,10 +20,12 @@ final class SettingsScreen: Screen {
             hints.append(Hint(key: "esc", label: t("cancel")))
             return hints
         }
-        return [Hint(key: "↑↓", label: t("field")),
-                Hint(key: "←→", label: t("change")),
-                Hint(key: Glyph.enter, label: t("edit")),
-                Hint(key: "esc", label: t("save & back"))]
+        return [
+            Hint(key: "↑↓", label: t("field")),
+            Hint(key: "←→", label: t("change")),
+            Hint(key: Glyph.enter, label: t("edit")),
+            Hint(key: "esc", label: t("save & back"))
+        ]
     }
 
     /// The visible fields. The four login fields serve srtm1 and alos1, which exist only
@@ -91,8 +95,10 @@ final class SettingsScreen: Screen {
                 return t("same file, same permissions")
             case .connections: return t("parallel byte-range connections per download")
             case .toolchainUpdates:
-                return t("how often a build asks whether the coastline and boundary"
-                       + " packs have been republished")
+                return t(
+                    "how often a build asks whether the coastline and boundary"
+                        + " packs have been republished"
+                )
             case .heap: return t("memory handed to mkgmap; 0 means auto")
             case .maxNodes: return t("upper limit on one map tile; the default suits most machines")
             case .keepWork: return t("keep intermediate tiles and contours after a build")
@@ -138,8 +144,12 @@ final class SettingsScreen: Screen {
             case .ctrl("o"):
                 // The system file dialog, for the fields that name a path.
                 if let wanted = field.wants,
-                   let chosen = FilePicker.choose(wanted, startingAt: Paths.expand(draft),
-                                                  prompt: field.label) {
+                    let chosen = FilePicker.choose(
+                        wanted,
+                        startingAt: Paths.expand(draft),
+                        prompt: field.label
+                    )
+                {
                     draft = chosen.path
                 }
             case .enter:
@@ -187,7 +197,7 @@ final class SettingsScreen: Screen {
             guard let field = fields[safe: list.selected] else { return .none }
             switch field {
             case .output, .work, .usgsUser, .usgsPassword, .jaxaUser, .jaxaPassword,
-                 .mkgmapJar, .javaBinary:
+                .mkgmapJar, .javaBinary:
                 editing = field
                 draft = currentText(field, ctx)
             case .clearCache:
@@ -275,8 +285,10 @@ final class SettingsScreen: Screen {
                 case .rejected:
                     self.message = t("%@ refused these credentials", service.displayName)
                 case .unreachable:
-                    self.message = t("%@ did not answer — the login is left as it was",
-                                     service.displayName)
+                    self.message = t(
+                        "%@ did not answer — the login is left as it was",
+                        service.displayName
+                    )
                 }
             }
         }
@@ -288,22 +300,30 @@ final class SettingsScreen: Screen {
         let settings = ctx.settings.settings
         switch field {
         case .uiLanguage:
-            return (Lang.allCases.map(\.nativeName),
-                    Lang.allCases.firstIndex(of: L10n.current) ?? 0)
+            return (
+                Lang.allCases.map(\.nativeName),
+                Lang.allCases.firstIndex(of: L10n.current) ?? 0
+            )
         case .connections:
-            return ((1...16).map { "\($0)" },
-                    max(0, min(15, settings.downloadConnections - 1)))
+            return (
+                (1...16).map { "\($0)" },
+                max(0, min(15, settings.downloadConnections - 1))
+            )
         case .toolchainUpdates:
-            return (ToolchainUpdates.allCases.map(\.title),
-                    ToolchainUpdates.allCases.firstIndex(of: settings.toolchainUpdates) ?? 0)
+            return (
+                ToolchainUpdates.allCases.map(\.title),
+                ToolchainUpdates.allCases.firstIndex(of: settings.toolchainUpdates) ?? 0
+            )
         case .heap:
             let labels = Self.heapChoices.map {
                 $0 == 0 ? t("auto (%d GB)", settings.resolvedHeapGB) : "\($0) GB"
             }
             return (labels, Self.heapChoices.firstIndex(of: settings.javaHeapGB) ?? 0)
         case .maxNodes:
-            return (Self.nodeChoices.map { "\($0 / 1000)k" },
-                    Self.nodeChoices.firstIndex(of: settings.maxNodesPerTile) ?? 2)
+            return (
+                Self.nodeChoices.map { "\($0 / 1000)k" },
+                Self.nodeChoices.firstIndex(of: settings.maxNodesPerTile) ?? 2
+            )
         case .keepWork:
             return ([t("off"), t("on")], settings.keepWorkFiles ? 1 : 0)
         default:
@@ -366,12 +386,16 @@ final class SettingsScreen: Screen {
                 s.toolchainUpdates = all[max(0, min(all.count - 1, index + delta))]
             case .heap:
                 let index = Self.heapChoices.firstIndex(of: s.javaHeapGB) ?? 0
-                s.javaHeapGB = Self.heapChoices[
-                    max(0, min(Self.heapChoices.count - 1, index + delta))]
+                s.javaHeapGB =
+                    Self.heapChoices[
+                        max(0, min(Self.heapChoices.count - 1, index + delta))
+                    ]
             case .maxNodes:
                 let index = Self.nodeChoices.firstIndex(of: s.maxNodesPerTile) ?? 2
-                s.maxNodesPerTile = Self.nodeChoices[
-                    max(0, min(Self.nodeChoices.count - 1, index + delta))]
+                s.maxNodesPerTile =
+                    Self.nodeChoices[
+                        max(0, min(Self.nodeChoices.count - 1, index + delta))
+                    ]
             case .keepWork: s.keepWorkFiles.toggle()
             default: break
             }
@@ -423,20 +447,26 @@ final class SettingsScreen: Screen {
             case .usgsUser, .jaxaUser:
                 let service: ElevationLogins.Service = field == .usgsUser ? .srtm : .alos
                 let user = ElevationLogins.load(service).user
-                value = editing == field ? draft + "▏"
+                value =
+                    editing == field
+                    ? draft + "▏"
                     : (user.isEmpty ? t("not set — 3 arc-second data only") : user)
             case .usgsPassword, .jaxaPassword:
                 let service: ElevationLogins.Service = field == .usgsPassword ? .srtm : .alos
                 let stored = ElevationLogins.load(service).password
-                value = editing == field ? draft + "▏"
-                    : (stored.isEmpty ? t("not set")
-                       : String(repeating: "•", count: min(12, stored.count)))
+                value =
+                    editing == field
+                    ? draft + "▏"
+                    : (stored.isEmpty
+                        ? t("not set")
+                        : String(repeating: "•", count: min(12, stored.count)))
             case .connections:
                 value = "\(settings.downloadConnections)"
             case .toolchainUpdates:
                 value = settings.toolchainUpdates.title
             case .heap:
-                value = settings.javaHeapGB == 0
+                value =
+                    settings.javaHeapGB == 0
                     ? t("auto (%d GB)", settings.resolvedHeapGB)
                     : "\(settings.javaHeapGB) GB"
             case .maxNodes:
@@ -444,47 +474,73 @@ final class SettingsScreen: Screen {
             case .keepWork:
                 value = settings.keepWorkFiles ? t("on") : t("off")
             case .mkgmapJar:
-                value = editing == .mkgmapJar ? draft + "▏"
+                value =
+                    editing == .mkgmapJar
+                    ? draft + "▏"
                     : (settings.mkgmapJar.isEmpty
-                       ? (ctx.toolchain.findMkgmap().map { Paths.display($0.url) } ?? t("not found"))
-                       : settings.mkgmapJar)
+                        ? (ctx.toolchain.findMkgmap().map { Paths.display($0.url) } ?? t("not found"))
+                        : settings.mkgmapJar)
             case .javaBinary:
-                value = editing == .javaBinary ? draft + "▏"
+                value =
+                    editing == .javaBinary
+                    ? draft + "▏"
                     : (settings.javaBinary.isEmpty
-                       ? (ctx.toolchain.findJava()?.path ?? t("not found"))
-                       : settings.javaBinary)
+                        ? (ctx.toolchain.findJava()?.path ?? t("not found"))
+                        : settings.javaBinary)
             case .clearCache:
                 let overview = ctx.overview
-                value = overview.cachedExtracts == 0 ? t("empty")
+                value =
+                    overview.cachedExtracts == 0
+                    ? t("empty")
                     : tn("%d file(s)", overview.cachedExtracts)
                         + " · \(Fmt.bytes(overview.cachedBytes)) — " + t("⏎ to clear")
             case .clearElevation:
                 let cache = ctx.overview.elevation
-                value = cache.tiles == 0 ? t("empty")
+                value =
+                    cache.tiles == 0
+                    ? t("empty")
                     : tn("%d tile(s)", cache.tiles) + " · \(Fmt.bytes(cache.bytes))"
                         + " · \(cache.sources.joined(separator: " ")) — " + t("⏎ to clear")
             }
 
-            Widgets.field(s, rect: rect, y: y, label: field.label, value: value,
-                          theme: theme, labelWidth: Layout.fieldLabel, selected: selected)
+            Widgets.field(
+                s,
+                rect: rect,
+                y: y,
+                label: field.label,
+                value: value,
+                theme: theme,
+                labelWidth: Layout.fieldLabel,
+                selected: selected
+            )
             if field == picking?.field { pickerRow = y }
             y += 1
-            s.text(rect.x + 20, y, field.help, Style(fg: theme.faint, bg: theme.appBg),
-                   limit: max(0, rect.w - 20))
+            s.text(
+                rect.x + 20,
+                y,
+                field.help,
+                Style(fg: theme.faint, bg: theme.appBg),
+                limit: max(0, rect.w - 20)
+            )
             y += 1
         }
 
         if let message, y < rect.maxY {
             s.text(rect.x + 2, y, message, Style(fg: theme.ok, bg: theme.appBg))
         }
-
     }
 
     /// Draws the open dropdown over the screen, anchored to its field's row.
     func renderOverlay(into s: Surface, rect: Rect, ctx: AppContext) {
         guard let open = picking, let row = pickerRow else { return }
-        Widgets.optionList(s, within: rect, anchorRow: row,
-                           options: open.labels, at: open.at,
-                           theme: ctx.theme, indent: 20)
+        Widgets.optionList(
+            s,
+            within: rect,
+            anchorRow: row,
+            options: open.labels,
+            at: open.at,
+            theme: ctx.theme,
+            indent: 20
+        )
     }
 }

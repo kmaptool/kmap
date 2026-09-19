@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Every kmap rule pass, run in the build's own order over a stand-in for the stock
@@ -6,16 +7,17 @@ import XCTest
 /// holds only what the passes look for: the rule files, a `<finalize>` section and the
 /// stock lines three of the passes anchor on.
 final class RulePassesTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
     private let ruleFiles = ["points", "lines", "polygons", "relations"]
     private let woodland = "landuse=forest | landuse=wood [0x50"
 
     /// The stock lines the anchored passes aim at, as mkgmap's default style spells them.
     private let anchors = [
-        "points": ["amenity=drinking_water [0x5000 resolution 24]",
-                   "natural=spring [0x6511 resolution 24]"],
-        "polygons": ["landuse=forest | landuse=wood [0x50 resolution 20]"],
+        "points": [
+            "amenity=drinking_water [0x5000 resolution 24]",
+            "natural=spring [0x6511 resolution 24]"
+        ],
+        "polygons": ["landuse=forest | landuse=wood [0x50 resolution 20]"]
     ]
 
     override func setUpWithError() throws {
@@ -116,8 +118,11 @@ final class RulePassesTests: XCTestCase {
             for line in lines[(at + 1)...] where !line.hasPrefix("#") {
                 XCTAssertFalse(line.contains("[0x"), "\(name) defines a type after <finalize>: \(line)")
             }
-            XCTAssertGreaterThan(markers(in: lines[..<at].joined(separator: "\n")).count, 1,
-                                 "\(name): the typed blocks belong ahead of <finalize>")
+            XCTAssertGreaterThan(
+                markers(in: lines[..<at].joined(separator: "\n")).count,
+                1,
+                "\(name): the typed blocks belong ahead of <finalize>"
+            )
         }
     }
 
@@ -132,8 +137,10 @@ final class RulePassesTests: XCTestCase {
             for stock in stockLines {
                 let sought = stock.hasPrefix(woodland) ? woodland : stock
                 let at = try XCTUnwrap(text.range(of: sought), sought).lowerBound
-                XCTAssertFalse(markers(in: String(text[..<at])).isEmpty,
-                               "nothing was put ahead of \(stock)")
+                XCTAssertFalse(
+                    markers(in: String(text[..<at])).isEmpty,
+                    "nothing was put ahead of \(stock)"
+                )
             }
         }
     }
@@ -163,8 +170,11 @@ final class RulePassesTests: XCTestCase {
 
         XCTAssertNotEqual(latin["points"], cyrillic["points"], "the labels should differ")
         for name in ruleFiles {
-            XCTAssertEqual(markers(in: try XCTUnwrap(latin[name])),
-                           markers(in: try XCTUnwrap(cyrillic[name])), name)
+            XCTAssertEqual(
+                markers(in: try XCTUnwrap(latin[name])),
+                markers(in: try XCTUnwrap(cyrillic[name])),
+                name
+            )
         }
         let hasCyrillic: (String) -> Bool = { $0.unicodeScalars.contains { (0x400...0x4FF).contains($0.value) } }
         XCTAssertTrue(hasCyrillic(try XCTUnwrap(cyrillic["points"])))

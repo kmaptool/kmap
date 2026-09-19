@@ -1,25 +1,30 @@
 import XCTest
+
 @testable import kmap
 
 /// What `kmap regions` lists for a query: the continents, the inside of a region named
 /// by its exact id, or a search.
 final class CLIRegionListingTests: XCTestCase {
     private func feature(id: String, name: String, parent: String? = nil) -> [String: Any] {
-        var properties: [String: Any] = ["id": id, "name": name,
-                                         "urls": ["pbf": "https://x/\(id).osm.pbf"]]
+        var properties: [String: Any] = [
+            "id": id, "name": name,
+            "urls": ["pbf": "https://x/\(id).osm.pbf"]
+        ]
         if let parent { properties["parent"] = parent }
         return ["properties": properties]
     }
 
     private func index() throws -> RegionIndex {
-        let data = try JSONSerialization.data(withJSONObject: ["features": [
-            feature(id: "europe", name: "Europe"),
-            feature(id: "asia", name: "Asia"),
-            feature(id: "austria", name: "Austria", parent: "europe"),
-            feature(id: "germany", name: "Germany", parent: "europe"),
-            feature(id: "bayern", name: "Bayern", parent: "germany"),
-            feature(id: "dach", name: "Germany, Austria, Switzerland", parent: "europe"),
-        ]])
+        let data = try JSONSerialization.data(withJSONObject: [
+            "features": [
+                feature(id: "europe", name: "Europe"),
+                feature(id: "asia", name: "Asia"),
+                feature(id: "austria", name: "Austria", parent: "europe"),
+                feature(id: "germany", name: "Germany", parent: "europe"),
+                feature(id: "bayern", name: "Bayern", parent: "germany"),
+                feature(id: "dach", name: "Germany, Austria, Switzerland", parent: "europe")
+            ]
+        ])
         let index = RegionIndex()
         try index.parse(data)
         return index

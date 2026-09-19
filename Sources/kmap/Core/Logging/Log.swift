@@ -86,14 +86,28 @@ final class Log: @unchecked Sendable {
 
     /// An ordinary line: what is happening, in the words the user thinks in.
     func append(_ text: String, stage: String? = nil, fields: [String: JSONValue] = [:]) {
-        send(LogEvent(text: text, severity: .info, kind: .plain, stage: stage,
-                      fields: fields))
+        send(
+            LogEvent(
+                text: text,
+                severity: .info,
+                kind: .plain,
+                stage: stage,
+                fields: fields
+            )
+        )
     }
 
     /// A piece of work starting.
     func step(_ text: String, stage: String? = nil, fields: [String: JSONValue] = [:]) {
-        send(LogEvent(text: text, severity: .info, kind: .step, stage: stage,
-                      fields: fields))
+        send(
+            LogEvent(
+                text: text,
+                severity: .info,
+                kind: .step,
+                stage: stage,
+                fields: fields
+            )
+        )
     }
 
     /// A piece of work that finished as it should.
@@ -103,20 +117,41 @@ final class Log: @unchecked Sendable {
 
     /// The run continues, but something about it is not what was asked for.
     func warn(_ text: String, stage: String? = nil, fields: [String: JSONValue] = [:]) {
-        send(LogEvent(text: text, severity: .warn, kind: .plain, stage: stage,
-                      fields: fields))
+        send(
+            LogEvent(
+                text: text,
+                severity: .warn,
+                kind: .plain,
+                stage: stage,
+                fields: fields
+            )
+        )
     }
 
     /// The run cannot do what it was asked to do.
     func error(_ text: String, stage: String? = nil, fields: [String: JSONValue] = [:]) {
-        send(LogEvent(text: text, severity: .error, kind: .plain, stage: stage,
-                      fields: fields))
+        send(
+            LogEvent(
+                text: text,
+                severity: .error,
+                kind: .plain,
+                stage: stage,
+                fields: fields
+            )
+        )
     }
 
     /// Detail for working out why a run behaved as it did. Off unless asked for.
     func debug(_ text: String, stage: String? = nil, fields: [String: JSONValue] = [:]) {
-        send(LogEvent(text: text, severity: .debug, kind: .plain, stage: stage,
-                      fields: fields))
+        send(
+            LogEvent(
+                text: text,
+                severity: .debug,
+                kind: .plain,
+                stage: stage,
+                fields: fields
+            )
+        )
     }
 
     /// A line as another program wrote it. Debug, because a person reading a build wants

@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// A value behind a lock, shared by threads no actor can own.
 final class LockedTests: XCTestCase {
-
     func testEveryThreadCountsIntoTheSameValue() {
         let counter = Locked(0)
         DispatchQueue.concurrentPerform(iterations: 16) { _ in

@@ -23,8 +23,12 @@ extension ImgElements {
             }
         }
 
-        func read(_ division: Subdivision, extendedAreasAndPoints: Bool, tile: String,
-                  emit: (ElementDumper.Kind, Int, [Coord]) throws -> Void) throws {
+        func read(
+            _ division: Subdivision,
+            extendedAreasAndPoints: Bool,
+            tile: String,
+            emit: (ElementDumper.Kind, Int, [Coord]) throws -> Void
+        ) throws {
             var r = data
             // One vertex buffer reused for every element of the subdivision; `emit` copies
             // whatever it keeps before the buffer is filled again.
@@ -116,16 +120,22 @@ extension ImgElements {
                     lineOffset = Int(r.u16()); headerLength += 2
                 }
                 if division.hasAreas
-                    && (division.hasPoints || division.hasIndexedPoints || division.hasLines) {
+                    && (division.hasPoints || division.hasIndexedPoints || division.hasLines)
+                {
                     areaOffset = Int(r.u16()); headerLength += 2
                 }
                 if division.hasPoints {
-                    pointEnd = division.hasIndexedPoints ? indexedOffset
-                        : division.hasLines ? lineOffset
-                        : division.hasAreas ? areaOffset : whole
+                    pointEnd =
+                        division.hasIndexedPoints
+                        ? indexedOffset
+                        : division.hasLines
+                            ? lineOffset
+                            : division.hasAreas ? areaOffset : whole
                 }
                 if division.hasIndexedPoints {
-                    indexedEnd = division.hasLines ? lineOffset
+                    indexedEnd =
+                        division.hasLines
+                        ? lineOffset
                         : division.hasAreas ? areaOffset : whole
                 }
                 if division.hasLines { lineEnd = division.hasAreas ? areaOffset : whole }
@@ -133,9 +143,13 @@ extension ImgElements {
             }
         }
 
-        private func points(_ r: inout Bytes, _ division: Subdivision, until end: Int,
-                            tile: String,
-                            emit: (ElementDumper.Kind, Int, [Coord]) throws -> Void) throws {
+        private func points(
+            _ r: inout Bytes,
+            _ division: Subdivision,
+            until end: Int,
+            tile: String,
+            emit: (ElementDumper.Kind, Int, [Coord]) throws -> Void
+        ) throws {
             while r.position < end {
                 guard r.position + 8 <= data.count else {
                     throw Trouble.malformed(tile, "point past the end of RGN")
@@ -145,13 +159,25 @@ extension ImgElements {
                 let hasSubtype = value & 0x800000 != 0
                 let dLon = Int32(r.s16()), dLat = Int32(r.s16())
                 if hasSubtype { type |= Int(r.u8()) }
-                try emit(.point, type, [Coord(lat: division.lat &+ (dLat << Int32(division.shift)),
-                                              lon: division.lon &+ (dLon << Int32(division.shift)))])
+                try emit(
+                    .point,
+                    type,
+                    [
+                        Coord(
+                            lat: division.lat &+ (dLat << Int32(division.shift)),
+                            lon: division.lon &+ (dLon << Int32(division.shift))
+                        )
+                    ]
+                )
             }
         }
 
-        private func extendedPoint(_ r: inout Bytes, _ division: Subdivision, tile: String,
-                                   emit: (ElementDumper.Kind, Int, [Coord]) throws -> Void) throws {
+        private func extendedPoint(
+            _ r: inout Bytes,
+            _ division: Subdivision,
+            tile: String,
+            emit: (ElementDumper.Kind, Int, [Coord]) throws -> Void
+        ) throws {
             guard r.position + 6 <= data.count else {
                 throw Trouble.malformed(tile, "extended point past the end of RGN")
             }
@@ -161,13 +187,26 @@ extension ImgElements {
             let dLon = Int32(r.s16()), dLat = Int32(r.s16())
             if b & 0x20 != 0 { _ = r.u24() }
             if b & 0x80 != 0 { try skipExtraBytes(&r, tile: tile) }
-            try emit(.point, type, [Coord(lat: division.lat &+ (dLat << Int32(division.shift)),
-                                          lon: division.lon &+ (dLon << Int32(division.shift)))])
+            try emit(
+                .point,
+                type,
+                [
+                    Coord(
+                        lat: division.lat &+ (dLat << Int32(division.shift)),
+                        lon: division.lon &+ (dLon << Int32(division.shift))
+                    )
+                ]
+            )
         }
 
         /// A classic polyline or polygon record.
-        private func line(_ r: inout Bytes, _ division: Subdivision, polygon: Bool,
-                          tile: String, into coords: inout [Coord]) throws -> Int {
+        private func line(
+            _ r: inout Bytes,
+            _ division: Subdivision,
+            polygon: Bool,
+            tile: String,
+            into coords: inout [Coord]
+        ) throws -> Int {
             guard r.position + 9 <= data.count else {
                 throw Trouble.malformed(tile, "line past the end of RGN")
             }
@@ -183,16 +222,31 @@ extension ImgElements {
                 throw Trouble.malformed(tile, "bit stream past the end of RGN")
             }
             let stream = r.take(length)
-            bitStream(from: stream, base: base, length: length, shift: division.shift,
-                      start: Coord(lat: division.lat &+ (dLat << Int32(division.shift)),
-                                   lon: division.lon &+ (dLon << Int32(division.shift))),
-                      extra: extra, extended: false, polygon: polygon, into: &coords)
+            bitStream(
+                from: stream,
+                base: base,
+                length: length,
+                shift: division.shift,
+                start: Coord(
+                    lat: division.lat &+ (dLat << Int32(division.shift)),
+                    lon: division.lon &+ (dLon << Int32(division.shift))
+                ),
+                extra: extra,
+                extended: false,
+                polygon: polygon,
+                into: &coords
+            )
             return type
         }
 
         /// An extended-type polyline or polygon record.
-        private func extendedLine(_ r: inout Bytes, _ division: Subdivision, polygon: Bool,
-                                  tile: String, into coords: inout [Coord]) throws -> Int {
+        private func extendedLine(
+            _ r: inout Bytes,
+            _ division: Subdivision,
+            polygon: Bool,
+            tile: String,
+            into coords: inout [Coord]
+        ) throws -> Int {
             guard r.position + 8 <= data.count else {
                 throw Trouble.malformed(tile, "extended line past the end of RGN")
             }
@@ -210,17 +264,27 @@ extension ImgElements {
                 let l2 = Int(r.u8())
                 length = ((l2 << 8) + l1) >> 2
             }
-            length -= 1   // the encoded value includes the base byte
+            length -= 1  // the encoded value includes the base byte
             guard length > 0 else { throw Trouble.malformed(tile, "empty extended bit stream") }
             let base = Int(r.u8())
             guard r.position + length <= data.count else {
                 throw Trouble.malformed(tile, "bit stream past the end of RGN")
             }
             let stream = r.take(length)
-            bitStream(from: stream, base: base, length: length, shift: division.shift,
-                      start: Coord(lat: division.lat &+ (dLat << Int32(division.shift)),
-                                   lon: division.lon &+ (dLon << Int32(division.shift))),
-                      extra: false, extended: true, polygon: polygon, into: &coords)
+            bitStream(
+                from: stream,
+                base: base,
+                length: length,
+                shift: division.shift,
+                start: Coord(
+                    lat: division.lat &+ (dLat << Int32(division.shift)),
+                    lon: division.lon &+ (dLon << Int32(division.shift))
+                ),
+                extra: false,
+                extended: true,
+                polygon: polygon,
+                into: &coords
+            )
             if hasLabel { _ = r.u24() }
             if hasExtraBytes { try skipExtraBytes(&r, tile: tile) }
             return type
@@ -248,9 +312,17 @@ extension ImgElements {
         /// The deltas of a line, unpacked into vertices: the same-sign flags, the widths
         /// taken from the base byte, the escape a signed delta uses to say "add another",
         /// the trailing zero pair that is padding, and the closing vertex of a polygon.
-        private func bitStream(from offset: Int, base: Int, length: Int,
-                               shift: Int, start: Coord, extra: Bool, extended: Bool,
-                               polygon: Bool, into out: inout [Coord]) {
+        private func bitStream(
+            from offset: Int,
+            base: Int,
+            length: Int,
+            shift: Int,
+            start: Coord,
+            extra: Bool,
+            extended: Bool,
+            polygon: Bool,
+            into out: inout [Coord]
+        ) {
             out.removeAll(keepingCapacity: true)
             out.append(start)
             guard length > 0 else { return }

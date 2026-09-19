@@ -7,7 +7,6 @@ import Foundation
 /// picture belongs to which number is decided by the evidence - what each side was seen
 /// drawing a meaning with. What their style never drew stays unpainted.
 enum StylePort {
-
     /// One porting: their code, and how sure the evidence is.
     struct Ported {
         let ours: Int
@@ -47,11 +46,13 @@ enum StylePort {
     ///   - theirAreas: the ground each meaning covers under each of their codes. A
     ///     number of ours shared by two meanings wears the picture of the one covering
     ///     more: fields are few and wide, lawns many and small.
-    static func map(codesByTag: [String: [String: Int]],
-                    rules: RuleSetIndex,
-                    theirZooms: [String: [Int: Int]] = [:],
-                    theirTyp: TypSource? = nil,
-                    theirAreas: [String: [String: Double]] = [:]) -> [Ported] {
+    static func map(
+        codesByTag: [String: [String: Int]],
+        rules: RuleSetIndex,
+        theirZooms: [String: [Int: Int]] = [:],
+        theirTyp: TypSource? = nil,
+        theirAreas: [String: [String: Double]] = [:]
+    ) -> [Ported] {
         // Our side: meaning -> the numbers kmap draws it with, and the closest zoom each
         // of them is drawn at, so our own ladder can be read the same way as theirs.
         let ourCodes = ourNumbers(in: rules)
@@ -68,8 +69,12 @@ enum StylePort {
                 // be emitted by several meanings, and a dictionary hands them over in a
                 // different order in every process.
                 ourFinest[kind, default: [:]][meaning.code] =
-                    max(held, (reach?.banded == false) ? everyZoom
-                              : (reach?.finest ?? GarminGrid.fullResolution))
+                    max(
+                        held,
+                        (reach?.banded == false)
+                            ? everyZoom
+                            : (reach?.finest ?? GarminGrid.fullResolution)
+                    )
             }
         }
 
@@ -79,8 +84,11 @@ enum StylePort {
         // values of that key no rule of ours names: a hotel never reaches the
         // `tourism=*` fallback, so their hotel is no answer for it.
 
-        var theirs: [MapElementKind: [String: [(code: Int, count: Int, finest: Int,
-                                               area: Double)]]] = [:]
+        var theirs:
+            [MapElementKind: [String: [(
+                code: Int, count: Int, finest: Int,
+                area: Double
+            )]]] = [:]
         for (tag, drawn) in codesByTag {
             let family = tag.split(separator: "=").first.map { $0 + "=*" }
             for (key, count) in drawn where count >= fewestToPort {
@@ -158,39 +166,59 @@ enum StylePort {
                     // the near rung's picture, the far rung's width.
                     let far = ladder.last
                     let spread = kind == .line && ourFinest[kind]?[ours] == everyZoom
-                    let width = spread
-                        ? [theirTyp?.section(kind, picture.code)?.lineWidth,
-                           far.flatMap { theirTyp?.section(kind, $0.code)?.lineWidth }]
-                            .compactMap { $0 }.min()
+                    let width =
+                        spread
+                        ? [
+                            theirTyp?.section(kind, picture.code)?.lineWidth,
+                            far.flatMap { theirTyp?.section(kind, $0.code)?.lineWidth }
+                        ]
+                        .compactMap { $0 }.min()
                         : nil
                     // Two meanings on one number of ours: where their code for one of
                     // them IS our number, the two vocabularies agree and that settles
                     // it; then the fill covering more ground, and elsewhere the one
                     // seen more often.
                     let held = claimed[kind, default: [:]][ours]
-                    let weight = kind == .polygon && picture.area > 0
+                    let weight =
+                        kind == .polygon && picture.area > 0
                         ? picture.area : Double(picture.count)
-                    let mineNow = (picture.code == ours ? 1 : 0,
-                                   stray(picture.code, kind, picture.count) ? 0 : 1, weight)
+                    let mineNow = (
+                        picture.code == ours ? 1 : 0,
+                        stray(picture.code, kind, picture.count) ? 0 : 1, weight
+                    )
                     let theirsNow = held.map {
-                        ($0.theirs == ours ? 1 : 0,
-                         stray($0.theirs, kind, $0.witnesses) ? 0 : 1, $0.weight)
+                        (
+                            $0.theirs == ours ? 1 : 0,
+                            stray($0.theirs, kind, $0.witnesses) ? 0 : 1, $0.weight
+                        )
                     }
                     // The same look under another tag is no rival: one rule, two names.
                     if let held, held.theirs == picture.code { continue }
                     if theirsNow == nil || mineNow > theirsNow! {
                         var rivals = held?.rivals ?? []
                         if let held {
-                            rivals.append(Rival(theirs: held.theirs, meaning: held.meaning,
-                                                witnesses: held.witnesses))
+                            rivals.append(
+                                Rival(
+                                    theirs: held.theirs,
+                                    meaning: held.meaning,
+                                    witnesses: held.witnesses
+                                )
+                            )
                         }
                         claimed[kind, default: [:]][ours] = Ported(
-                            ours: ours, theirs: picture.code, kind: kind,
-                            meaning: tag, witnesses: picture.count, width: width,
-                            weight: weight, rivals: rivals)
+                            ours: ours,
+                            theirs: picture.code,
+                            kind: kind,
+                            meaning: tag,
+                            witnesses: picture.count,
+                            width: width,
+                            weight: weight,
+                            rivals: rivals
+                        )
                     } else {
                         claimed[kind]?[ours]?.rivals.append(
-                            Rival(theirs: picture.code, meaning: tag, witnesses: picture.count))
+                            Rival(theirs: picture.code, meaning: tag, witnesses: picture.count)
+                        )
                     }
                 }
             }
@@ -218,9 +246,14 @@ enum StylePort {
     /// number their TYP has no section for at all, so the receiver's own glyph is what
     /// their map shows. A bay's name, a town. Declared in the ported TYP, so the build
     /// does not silence the rule for want of a picture.
-    static func leftToTheDevice(codesByTag: [String: [String: Int]], rules: RuleSetIndex,
-                                theirTyp: TypSource, ported: [Ported])
-        -> [MapElementKind: Set<Int>] {
+    static func leftToTheDevice(
+        codesByTag: [String: [String: Int]],
+        rules: RuleSetIndex,
+        theirTyp: TypSource,
+        ported: [Ported]
+    )
+        -> [MapElementKind: Set<Int>]
+    {
         let ourCodes = ourNumbers(in: rules)
         var painted: [MapElementKind: Set<Int>] = [:]
         for port in ported { painted[port.kind, default: []].insert(port.ours) }
@@ -228,7 +261,8 @@ enum StylePort {
         for (tag, drawn) in codesByTag {
             for (key, count) in drawn where count >= fewestToPort {
                 guard let (kind, code) = read(key), theirTyp.section(kind, code) == nil,
-                      let ours = ourCodes[kind]?[tag] else { continue }
+                    let ours = ourCodes[kind]?[tag]
+                else { continue }
                 for number in ours where painted[kind]?.contains(number) != true {
                     out[kind, default: []].insert(number)
                 }
@@ -240,8 +274,11 @@ enum StylePort {
     /// The road hierarchy kept in the widths: a motorway drawn at every zoom takes a
     /// width the overview can carry, and without this the driveway beside it - drawn
     /// only up close - comes out the wider of the two.
-    private static func ordered(_ ported: [Ported], ranks: [Int: Int],
-                                theirs: TypSource?) -> [Ported] {
+    private static func ordered(
+        _ ported: [Ported],
+        ranks: [Int: Int],
+        theirs: TypSource?
+    ) -> [Ported] {
         guard let theirs, !ranks.isEmpty else { return ported }
         var narrowest = Int.max
         var capped: [Int: Int] = [:]
@@ -261,15 +298,25 @@ enum StylePort {
         return ported.map { port in
             guard let width = capped[port.ours], port.kind == .line, width != port.width
             else { return port }
-            return Ported(ours: port.ours, theirs: port.theirs, kind: port.kind,
-                          meaning: port.meaning, witnesses: port.witnesses, width: width)
+            return Ported(
+                ours: port.ours,
+                theirs: port.theirs,
+                kind: port.kind,
+                meaning: port.meaning,
+                witnesses: port.witnesses,
+                width: width
+            )
         }
     }
 
     /// What their style draws that no number of ours can carry: the list that says
     /// where kmap's own rules want widening.
-    static func uncovered(codesByTag: [String: [String: Int]], rules: RuleSetIndex,
-                          theirs: TypSource, ported: [Ported]) -> [Ported] {
+    static func uncovered(
+        codesByTag: [String: [String: Int]],
+        rules: RuleSetIndex,
+        theirs: TypSource,
+        ported: [Ported]
+    ) -> [Ported] {
         let taken = Set(ported.map { "\($0.kind.rawValue):\($0.theirs)" })
         var out: [String: Ported] = [:]
         // In the meanings' own order: a picture drawn as much for two of them would
@@ -277,13 +324,19 @@ enum StylePort {
         for tag in codesByTag.keys.sorted() {
             for (key, count) in codesByTag[tag] ?? [:] {
                 guard let (kind, code) = read(key),
-                      !taken.contains("\(kind.rawValue):\(code)"),
-                      draws(theirs.section(kind, code)) else { continue }
+                    !taken.contains("\(kind.rawValue):\(code)"),
+                    draws(theirs.section(kind, code))
+                else { continue }
                 let held = out["\(kind.rawValue):\(code)"]
                 if held == nil || count > held!.witnesses {
                     out["\(kind.rawValue):\(code)"] = Ported(
-                        ours: 0, theirs: code, kind: kind, meaning: tag,
-                        witnesses: count, width: nil)
+                        ours: 0,
+                        theirs: code,
+                        kind: kind,
+                        meaning: tag,
+                        witnesses: count,
+                        width: nil
+                    )
                 }
             }
         }
@@ -309,8 +362,12 @@ enum StylePort {
                 stride(from: 0, to: row.count, by: max(1, block.charsPerPixel)).contains {
                     at in
                     let start = row.index(row.startIndex, offsetBy: at)
-                    let end = row.index(start, offsetBy: max(1, block.charsPerPixel),
-                                        limitedBy: row.endIndex) ?? row.endIndex
+                    let end =
+                        row.index(
+                            start,
+                            offsetBy: max(1, block.charsPerPixel),
+                            limitedBy: row.endIndex
+                        ) ?? row.endIndex
                     return opaque.contains(String(row[start..<end]))
                 }
             }
@@ -326,7 +383,7 @@ enum StylePort {
         (.line, 0x20, 0x20), (.line, 0x21, 0x21), (.line, 0x22, 0x22),
         (.polygon, seaCode, seaCode), (.polygon, 0x4a, 0x4a),
         (.polygon, backgroundCode, backgroundCode),
-        (.polygon, 0x27, backgroundCode),
+        (.polygon, 0x27, backgroundCode)
     ]
 
     /// The sea and the background, the two grounds with a level of their own.
@@ -360,8 +417,11 @@ enum StylePort {
     /// Where a rule sits on its ladder: `resolution 22-23` is a rung reaching 23, a
     /// bare `resolution 22` the rule itself, drawn at every zoom from there in.
     private static func rung(of tail: String) -> (banded: Bool, finest: Int) {
-        guard let found = tail.range(of: "resolution [0-9]+(-[0-9]+)?",
-                                     options: .regularExpression)
+        guard
+            let found = tail.range(
+                of: "resolution [0-9]+(-[0-9]+)?",
+                options: .regularExpression
+            )
         else { return (false, GarminGrid.fullResolution) }
         let numbers = tail[found].split(separator: " ")[1].split(separator: "-")
         guard numbers.count == 2, let high = Int(numbers[1])

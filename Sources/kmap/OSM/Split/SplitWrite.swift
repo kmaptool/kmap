@@ -21,19 +21,24 @@ extension TileSplitter {
         // A repeated node is dropped by merging rather than hashing: ids ascend within each
         // extract, so a cursor per earlier file walks it in step with the arriving ids.
         // An extract whose ids are not sorted falls back to the `seenNodes` set.
-        let mergeable = !assignment.nodes.filesInterleave
+        let mergeable =
+            !assignment.nodes.filesInterleave
             && assignment.nodes.fileEnds.count == options.inputs.count
         var seenNodes: Set<Int64> = []
         var seenWays: Set<Int64> = []
         var seenRelations: Set<Int64> = []
 
         for (fileIndex, input) in options.inputs.enumerated() {
-            var earlier = mergeable && overlapping
+            var earlier =
+                mergeable && overlapping
                 ? assignment.nodes.fileCursors(before: fileIndex) : []
             try reader(input).readInOrder(make: {
-                WritePass(nodes: assignment.nodes,
-                          cursor: NodeAreas.Cursor(assignment.nodes),
-                          plan: plan, phase: .nodes)
+                WritePass(
+                    nodes: assignment.nodes,
+                    cursor: NodeAreas.Cursor(assignment.nodes),
+                    plan: plan,
+                    phase: .nodes
+                )
             }) { pass in
                 for (node, tile, span) in pass.outNodes {
                     if overlapping {
@@ -61,9 +66,12 @@ extension TileSplitter {
         }
         for input in options.inputs {
             try reader(input).readInOrder(make: {
-                WritePass(nodes: assignment.nodes,
-                          cursor: NodeAreas.Cursor(assignment.nodes),
-                          plan: plan, phase: .waysAndRelations)
+                WritePass(
+                    nodes: assignment.nodes,
+                    cursor: NodeAreas.Cursor(assignment.nodes),
+                    plan: plan,
+                    phase: .waysAndRelations
+                )
             }) { pass in
                 for (way, tile, span) in pass.outWays {
                     if overlapping, !seenWays.insert(way.id).inserted { continue }
@@ -109,10 +117,14 @@ extension TileSplitter {
             self.url = url
             self.area = area
             writer = try PBFWriter(to: url)
-            writer.header(bbox: (minLat: TileSplitter.degrees(area.minLat),
-                                 minLon: TileSplitter.degrees(area.minLon),
-                                 maxLat: TileSplitter.degrees(area.maxLat),
-                                 maxLon: TileSplitter.degrees(area.maxLon)))
+            writer.header(
+                bbox: (
+                    minLat: TileSplitter.degrees(area.minLat),
+                    minLon: TileSplitter.degrees(area.minLon),
+                    maxLat: TileSplitter.degrees(area.maxLat),
+                    maxLon: TileSplitter.degrees(area.maxLon)
+                )
+            )
         }
 
         func add(_ node: PBFWriter.Node) {
@@ -185,14 +197,21 @@ extension TileSplitter {
         }
 
         /// One way as the writer wants it, built where the block's text is at hand.
-        private func built(_ id: Int64, _ refs: ArraySlice<Int64>,
-                           _ keys: ArraySlice<Int32>, _ values: ArraySlice<Int32>,
-                           _ block: OSMBlock) -> PBFWriter.Way {
+        private func built(
+            _ id: Int64,
+            _ refs: ArraySlice<Int64>,
+            _ keys: ArraySlice<Int32>,
+            _ values: ArraySlice<Int32>,
+            _ block: OSMBlock
+        ) -> PBFWriter.Way {
             PBFWriter.Way(id: id, refs: refs.exactly, tags: tags(keys, values, block))
         }
 
-        private func tags(_ keys: ArraySlice<Int32>, _ values: ArraySlice<Int32>,
-                          _ block: OSMBlock) -> [(String, String)] {
+        private func tags(
+            _ keys: ArraySlice<Int32>,
+            _ values: ArraySlice<Int32>,
+            _ block: OSMBlock
+        ) -> [(String, String)] {
             zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
         }
 
@@ -206,8 +225,13 @@ extension TileSplitter {
             return out
         }
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags run: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags run: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             guard phase == .nodes else { return }
             let stored = cursor.value(for: id)
             let extra = plan.extra.isEmpty ? nil : plan.extra.tiles(for: id, walking: &extraAt)
@@ -215,9 +239,18 @@ extension TileSplitter {
             // Nearly every node is inside exactly one tile and named by no repair; the
             // general path below builds a set and two arrays for each.
             if extra == nil, let stored, stored != NodeAreas.outside,
-               stored & NodeAreas.flags == 0 {
-                outNodes.append((PBFWriter.Node(id: id, lat: lat, lon: lon,
-                                                tags: denseTags(run, block)), stored, -1))
+                stored & NodeAreas.flags == 0
+            {
+                outNodes.append(
+                    (
+                        PBFWriter.Node(
+                            id: id,
+                            lat: lat,
+                            lon: lon,
+                            tags: denseTags(run, block)
+                        ), stored, -1
+                    )
+                )
                 return
             }
 
@@ -225,14 +258,26 @@ extension TileSplitter {
             if let stored { tiles.formUnion(nodes.areas(of: stored)) }
             guard !tiles.isEmpty else { return }
             spans.append(tiles.sorted())
-            outNodes.append((PBFWriter.Node(id: id, lat: lat, lon: lon,
-                                            tags: denseTags(run, block)),
-                             Self.several, Int32(spans.count - 1)))
+            outNodes.append(
+                (
+                    PBFWriter.Node(
+                        id: id,
+                        lat: lat,
+                        lon: lon,
+                        tags: denseTags(run, block)
+                    ),
+                    Self.several, Int32(spans.count - 1)
+                )
+            )
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                          block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             guard phase == .waysAndRelations else { return }
             let planned = plan.wayTiles.isEmpty ? nil : plan.wayTiles[id]
 
@@ -256,19 +301,28 @@ extension TileSplitter {
                     let areas = nodes.areas(of: value)
                     guard !areas.isEmpty else { continue }
                     tiles.formUnion(areas)
-                    break                           // a non-spanning way has only one
+                    break  // a non-spanning way has only one
                 }
             }
             guard !tiles.isEmpty else { return }
             spans.append(tiles.sorted())
-            outWays.append((built(id, refs, keys, values, block),
-                            Self.several, Int32(spans.count - 1)))
+            outWays.append(
+                (
+                    built(id, refs, keys, values, block),
+                    Self.several, Int32(spans.count - 1)
+                )
+            )
         }
 
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             guard phase == .waysAndRelations else { return }
             // Already in order: the sets are sorted when they are interned.
             let tiles = plan.relationTiles[id].map { plan.sets[$0] } ?? []
@@ -276,34 +330,50 @@ extension TileSplitter {
             var members: [PBFWriter.Relation.Member] = []
             for (index, (kind, ref)) in zip(memberKinds, memberIDs).enumerated() {
                 let roleIndex = memberRoles.startIndex + index
-                let role = roleIndex < memberRoles.endIndex
+                let role =
+                    roleIndex < memberRoles.endIndex
                     ? block.text(Int(memberRoles[roleIndex])) : ""
                 members.append(.init(kind: kind, ref: ref, role: role))
             }
             spans.append(tiles)
-            outRelations.append((PBFWriter.Relation(id: id, members: members,
-                                                    tags: tags(keys, values, block)),
-                                 Int32(spans.count - 1)))
+            outRelations.append(
+                (
+                    PBFWriter.Relation(
+                        id: id,
+                        members: members,
+                        tags: tags(keys, values, block)
+                    ),
+                    Int32(spans.count - 1)
+                )
+            )
         }
     }
 
     // MARK: The two companion files
 
-    func writeAreasList(_ tiles: [(mapID: String, area: Area, nodes: Int)],
-                                to url: URL) throws {
+    func writeAreasList(
+        _ tiles: [(mapID: String, area: Area, nodes: Int)],
+        to url: URL
+    ) throws {
         var text = "# List of areas\n# Generated by kmap\n#\n"
         for tile in tiles {
             let a = tile.area
             text += "\(tile.mapID): \(a.minLat),\(a.minLon) to \(a.maxLat),\(a.maxLon)\n"
-            text += String(format: "#       : %f,%f to %f,%f\n\n",
-                           Self.degrees(a.minLat), Self.degrees(a.minLon),
-                           Self.degrees(a.maxLat), Self.degrees(a.maxLon))
+            text += String(
+                format: "#       : %f,%f to %f,%f\n\n",
+                Self.degrees(a.minLat),
+                Self.degrees(a.minLon),
+                Self.degrees(a.maxLat),
+                Self.degrees(a.maxLon)
+            )
         }
         try text.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    func writeTemplateArgs(_ tiles: [(mapID: String, area: Area, nodes: Int)],
-                                   to url: URL) throws {
+    func writeTemplateArgs(
+        _ tiles: [(mapID: String, area: Area, nodes: Int)],
+        to url: URL
+    ) throws {
         var text = "#\n# This file can be given to mkgmap using the -c option\n#\n"
         for tile in tiles {
             text += "\nmapname: \(tile.mapID)\n"
@@ -312,5 +382,4 @@ extension TileSplitter {
         }
         try text.write(to: url, atomically: true, encoding: .utf8)
     }
-
 }

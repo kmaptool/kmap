@@ -48,7 +48,7 @@ struct TypSection {
         guard let picture, picture.palette.count >= 4 else { return nil }
         let night = picture.colours
         return picture.replacingColour(at: 0, with: night[2])
-                      .replacingColour(at: 1, with: night[3])
+            .replacingColour(at: 1, with: night[3])
     }
 
     /// True where this section carries a pattern whose every pixel is transparent. Third-
@@ -82,12 +82,20 @@ struct TypSection {
     var colourSlots: (day: [ColourSlot], night: [ColourSlot]) {
         if kind == .point {
             let day = (dayXpm?.colours ?? []).enumerated().map {
-                ColourSlot(role: t("Colour %d", $0.offset + 1), tag: "DayXpm",
-                           index: $0.offset, colour: $0.element)
+                ColourSlot(
+                    role: t("Colour %d", $0.offset + 1),
+                    tag: "DayXpm",
+                    index: $0.offset,
+                    colour: $0.element
+                )
             }
             let night = (nightXpm?.colours ?? []).enumerated().map {
-                ColourSlot(role: t("Colour %d", $0.offset + 1), tag: "NightXpm",
-                           index: $0.offset, colour: $0.element)
+                ColourSlot(
+                    role: t("Colour %d", $0.offset + 1),
+                    tag: "NightXpm",
+                    index: $0.offset,
+                    colour: $0.element
+                )
             }
             return (day, night)
         }
@@ -115,19 +123,29 @@ struct TypSection {
 
         switch colours.count {
         case 4:
-            return ([slot(names.first, 0), slot(names.second, 1)].compactMap { $0 },
-                    [slot(names.first, 2), slot(names.second, 3)].compactMap { $0 })
+            return (
+                [slot(names.first, 0), slot(names.second, 1)].compactMap { $0 },
+                [slot(names.first, 2), slot(names.second, 3)].compactMap { $0 }
+            )
         case 2 where patterned || (borderWidth ?? 0) > 0:
             // Both belong to the day pair; the device derives the night pair itself.
             return ([slot(names.first, 0), slot(names.second, 1)].compactMap { $0 }, [])
         case 2:
-            return ([slot(t("Colour"), 0)].compactMap { $0 },
-                    [slot(t("Colour"), 1)].compactMap { $0 })
+            return (
+                [slot(t("Colour"), 0)].compactMap { $0 },
+                [slot(t("Colour"), 1)].compactMap { $0 }
+            )
         default:
-            return (colours.indices.map {
-                ColourSlot(role: colours.count > 1 ? t("Colour %d", $0 + 1) : t("Colour"),
-                           tag: tag, index: $0, colour: colours[$0])
-            }, [])
+            return (
+                colours.indices.map {
+                    ColourSlot(
+                        role: colours.count > 1 ? t("Colour %d", $0 + 1) : t("Colour"),
+                        tag: tag,
+                        index: $0,
+                        colour: colours[$0]
+                    )
+                }, []
+            )
         }
     }
 

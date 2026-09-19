@@ -26,8 +26,11 @@ final class SetupScreen: Screen {
         switch stage {
         case .asking: return asking?.footerHints ?? []
         case .installing: return [Hint(key: "^C", label: t("stop"))]
-        case .failed: return [Hint(key: Glyph.enter, label: t("try again")),
-                              Hint(key: "esc", label: t("back"))]
+        case .failed:
+            return [
+                Hint(key: Glyph.enter, label: t("try again")),
+                Hint(key: "esc", label: t("back"))
+            ]
         case .ready: return [Hint(key: Glyph.enter, label: t("build"))]
         }
     }
@@ -64,7 +67,8 @@ final class SetupScreen: Screen {
             detail: missing.map { (label: $0.name, value: $0.note ?? t("kmap can install this")) },
             confirm: t("install"),
             cancel: t("not now"),
-            tone: .plain)
+            tone: .plain
+        )
     }
 
     // MARK: Input
@@ -124,9 +128,10 @@ final class SetupScreen: Screen {
         let toolchain = ctx.toolchain
         let log = self.log
         let progress = self.progress
-        let install = installer ?? { id, log, runner, progress in
-            try await toolchain.install(id, log: log, runner: runner, progress: progress)
-        }
+        let install =
+            installer ?? { id, log, runner, progress in
+                try await toolchain.install(id, log: log, runner: runner, progress: progress)
+            }
         // Re-read rather than reusing the list this screen opened with: an earlier attempt
         // may have installed some of it.
         let wanted = wantedForTesting ?? Toolchain.missingRequirements(in: toolchain.status())
@@ -198,14 +203,25 @@ final class SetupScreen: Screen {
             let mark = ready ? Glyph.check : Glyph.dot
             let colour = ready ? theme.ok : theme.dim
             s.text(rect.x, y, "\(mark) \(tool.name)", Style(fg: colour, bg: theme.appBg))
-            s.text(rect.x + 20, y, truncate(tool.detail, to: max(0, rect.w - 20)),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x + 20,
+                y,
+                truncate(tool.detail, to: max(0, rect.w - 20)),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
         y += 1
 
-        if case .installing = stage { drawProgress(into: s, rect: rect, y: &y, theme: theme,
-                                                   frame: ctx.frame) }
+        if case .installing = stage {
+            drawProgress(
+                into: s,
+                rect: rect,
+                y: &y,
+                theme: theme,
+                frame: ctx.frame
+            )
+        }
         if case .failed(let why) = stage, y < rect.maxY {
             for chunk in wrapText(why, width: rect.w) where y < rect.maxY {
                 s.text(rect.x, y, chunk, Style(fg: theme.danger, bg: theme.appBg))
@@ -214,21 +230,36 @@ final class SetupScreen: Screen {
             y += 1
         }
         if case .ready = stage, y < rect.maxY {
-            s.text(rect.x, y, t("Everything is in place — press ⏎ to build."),
-                   Style(fg: theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("Everything is in place — press ⏎ to build."),
+                Style(fg: theme.ok, bg: theme.appBg)
+            )
             y += 2
         }
 
         // The log below, so a person who wants the detail has it without leaving.
         if y < rect.maxY - 1 {
-            s.sectionRule(rect, y, t("output"),
-                          labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                          ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+            s.sectionRule(
+                rect,
+                y,
+                t("output"),
+                labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+                ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+            )
             y += 1
-            Widgets.logPane(s, rect: Rect(x: rect.x, y: y, w: rect.w,
-                                          h: max(0, rect.maxY - y)),
-                            lines: log.snapshot().filter { $0.severity > .debug },
-                            theme: theme)
+            Widgets.logPane(
+                s,
+                rect: Rect(
+                    x: rect.x,
+                    y: y,
+                    w: rect.w,
+                    h: max(0, rect.maxY - y)
+                ),
+                lines: log.snapshot().filter { $0.severity > .debug },
+                theme: theme
+            )
         }
 
         asking?.render(into: s, rect: rect, theme: theme)
@@ -236,13 +267,20 @@ final class SetupScreen: Screen {
 
     /// Said once, in the question and again on the screen behind it.
     private static var explanation: String {
-        t("A map is compiled by mkgmap, which is a Java program, so both have to be on"
-          + " this machine. kmap fetches them into %@ and changes nothing else.",
-          Paths.display(Paths.root))
+        t(
+            "A map is compiled by mkgmap, which is a Java program, so both have to be on"
+                + " this machine. kmap fetches them into %@ and changes nothing else.",
+            Paths.display(Paths.root)
+        )
     }
 
-    private func drawProgress(into s: Surface, rect: Rect, y: inout Int, theme: Theme,
-                              frame: Int) {
+    private func drawProgress(
+        into s: Surface,
+        rect: Rect,
+        y: inout Int,
+        theme: Theme,
+        frame: Int
+    ) {
         guard y + 2 < rect.maxY else { return }
         // The spinner turns whatever the stage, so a step with no percentage still moves.
         let position = progress.position
@@ -252,8 +290,14 @@ final class SetupScreen: Screen {
         y += 1
 
         // The same two lines the toolchain screen draws in a row.
-        InstallProgressRow.draw(s, x: rect.x, y: y, width: rect.w, progress: progress,
-                                theme: theme)
+        InstallProgressRow.draw(
+            s,
+            x: rect.x,
+            y: y,
+            width: rect.w,
+            progress: progress,
+            theme: theme
+        )
         y += 3
     }
 }

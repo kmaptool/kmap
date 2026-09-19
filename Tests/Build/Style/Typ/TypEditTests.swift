@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Covers editing a TYP source in place.
@@ -6,7 +7,6 @@ import XCTest
 /// The property under test is that nothing but the edited value changes, so every test
 /// asserts the exact set of changed lines.
 final class TypEditTests: XCTestCase {
-
     /// Line numbers where two versions of a file differ, plus any change in length.
     private func changedLines(_ before: String, _ after: String) -> [Int] {
         let a = before.components(separatedBy: "\n")
@@ -47,8 +47,13 @@ final class TypEditTests: XCTestCase {
 
     func testChangingAColourTouchesThatLineAndNoOther() throws {
         let source = TypSource.parse(sample)
-        let edited = try TypEdit.setColour(in: source, kind: .polygon, code: 0x16,
-                                           colourIndex: 0, to: "#68B0F8")
+        let edited = try TypEdit.setColour(
+            in: source,
+            kind: .polygon,
+            code: 0x16,
+            colourIndex: 0,
+            to: "#68B0F8"
+        )
 
         XCTAssertEqual(changedLines(sample, edited), [7], "only the day colour line")
         XCTAssertEqual(edited.components(separatedBy: "\n")[7], "\"a c #68B0F8\"")
@@ -58,8 +63,13 @@ final class TypEditTests: XCTestCase {
     /// leave the rows pointing at a missing palette entry.
     func testThePaletteKeyIsKeptSoThePixelsStillFindTheirColour() throws {
         let source = TypSource.parse(sample)
-        let edited = try TypEdit.setColour(in: source, kind: .point, code: 0x2a00,
-                                           colourIndex: 0, to: "#00FF00")
+        let edited = try TypEdit.setColour(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            colourIndex: 0,
+            to: "#00FF00"
+        )
         XCTAssertTrue(edited.contains("\"! c #00FF00\""), edited)
 
         let reparsed = TypSource.parse(edited)
@@ -69,31 +79,53 @@ final class TypEditTests: XCTestCase {
 
     func testTheSecondColourIsTheNightOne() throws {
         let source = TypSource.parse(sample)
-        let edited = try TypEdit.setColour(in: source, kind: .polygon, code: 0x16,
-                                           colourIndex: 1, to: "#101010")
+        let edited = try TypEdit.setColour(
+            in: source,
+            kind: .polygon,
+            code: 0x16,
+            colourIndex: 1,
+            to: "#101010"
+        )
         XCTAssertEqual(changedLines(sample, edited), [8])
-        XCTAssertEqual(TypSource.parse(edited).section(.polygon, 0x16)?.colours,
-                       ["#A0D070", "#101010"])
+        XCTAssertEqual(
+            TypSource.parse(edited).section(.polygon, 0x16)?.colours,
+            ["#A0D070", "#101010"]
+        )
     }
 
     func testAColourCanBeMadeTransparent() throws {
         let source = TypSource.parse(sample)
-        let edited = try TypEdit.setColour(in: source, kind: .point, code: 0x2a00,
-                                           colourIndex: 0, to: nil)
+        let edited = try TypEdit.setColour(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            colourIndex: 0,
+            to: nil
+        )
         XCTAssertTrue(edited.contains("\"! c none\""), edited)
     }
 
     func testAColourIsWrittenBackInTheCaseTheFileUses() throws {
         let source = TypSource.parse(sample)
-        let edited = try TypEdit.setColour(in: source, kind: .polygon, code: 0x16,
-                                           colourIndex: 0, to: "68b0f8")
+        let edited = try TypEdit.setColour(
+            in: source,
+            kind: .polygon,
+            code: 0x16,
+            colourIndex: 0,
+            to: "68b0f8"
+        )
         XCTAssertTrue(edited.contains("\"a c #68B0F8\""), edited)
     }
 
     func testIndentationIsPreserved() throws {
         let indented = "[_polygon]\n    Type=0x16\n    Xpm=\"0 0 1 0\"\n    \"a c #A0D070\"\n[end]"
-        let edited = try TypEdit.setColour(in: TypSource.parse(indented), kind: .polygon,
-                                           code: 0x16, colourIndex: 0, to: "#000000")
+        let edited = try TypEdit.setColour(
+            in: TypSource.parse(indented),
+            kind: .polygon,
+            code: 0x16,
+            colourIndex: 0,
+            to: "#000000"
+        )
         XCTAssertTrue(edited.contains("    \"a c #000000\""), edited)
     }
 
@@ -101,59 +133,113 @@ final class TypEditTests: XCTestCase {
 
     func testRubbishIsRefusedAndTheFileIsNotTouched() {
         let source = TypSource.parse(sample)
-        XCTAssertThrowsError(try TypEdit.setColour(in: source, kind: .polygon, code: 0x16,
-                                                   colourIndex: 0, to: "reddish"))
+        XCTAssertThrowsError(
+            try TypEdit.setColour(
+                in: source,
+                kind: .polygon,
+                code: 0x16,
+                colourIndex: 0,
+                to: "reddish"
+            )
+        )
     }
 
     func testAColourThatIsNotThereIsRefused() {
         let source = TypSource.parse(sample)
-        XCTAssertThrowsError(try TypEdit.setColour(in: source, kind: .polygon, code: 0x16,
-                                                   colourIndex: 9, to: "#000000"))
+        XCTAssertThrowsError(
+            try TypEdit.setColour(
+                in: source,
+                kind: .polygon,
+                code: 0x16,
+                colourIndex: 9,
+                to: "#000000"
+            )
+        )
     }
 
     func testASectionThatIsNotThereIsRefused() {
         let source = TypSource.parse(sample)
-        XCTAssertThrowsError(try TypEdit.setColour(in: source, kind: .polygon, code: 0x99,
-                                                   colourIndex: 0, to: "#000000"))
+        XCTAssertThrowsError(
+            try TypEdit.setColour(
+                in: source,
+                kind: .polygon,
+                code: 0x99,
+                colourIndex: 0,
+                to: "#000000"
+            )
+        )
         // Line 0x16 and polygon 0x16 are different types; the kind is part of the lookup.
-        XCTAssertThrowsError(try TypEdit.setColour(in: source, kind: .line, code: 0x16,
-                                                   colourIndex: 0, to: "#000000"))
+        XCTAssertThrowsError(
+            try TypEdit.setColour(
+                in: source,
+                kind: .line,
+                code: 0x16,
+                colourIndex: 0,
+                to: "#000000"
+            )
+        )
     }
 
     // MARK: Labels
 
     func testALabelIsReplacedInPlace() throws {
         let source = TypSource.parse(sample)
-        let edited = try TypEdit.setLabel(in: source, kind: .polygon, code: 0x16,
-                                          language: 0x19, to: "Природный заповедник")
+        let edited = try TypEdit.setLabel(
+            in: source,
+            kind: .polygon,
+            code: 0x16,
+            language: 0x19,
+            to: "Природный заповедник"
+        )
         XCTAssertEqual(changedLines(sample, edited), [10])
-        XCTAssertEqual(TypSource.parse(edited).section(.polygon, 0x16)?.russianLabel,
-                       "Природный заповедник")
+        XCTAssertEqual(
+            TypSource.parse(edited).section(.polygon, 0x16)?.russianLabel,
+            "Природный заповедник"
+        )
     }
 
     /// A new label is inserted after the last existing one, so a comment written under
     /// the labels stays under them.
     func testANewLabelIsAddedBesideTheExistingOnes() throws {
         let source = TypSource.parse(sample)
-        let edited = try TypEdit.setLabel(in: source, kind: .point, code: 0x2a00,
-                                          language: 0x19, to: "Ресторан")
+        let edited = try TypEdit.setLabel(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            language: 0x19,
+            to: "Ресторан"
+        )
         let lines = edited.components(separatedBy: "\n")
         let english = try XCTUnwrap(lines.firstIndex(of: "String=0x00,Restaurant"))
         XCTAssertEqual(lines[english + 1], "String=0x19,Ресторан")
-        XCTAssertEqual(TypSource.parse(edited).section(.point, 0x2a00)?.englishLabel,
-                       "Restaurant", "the existing label must survive")
+        XCTAssertEqual(
+            TypSource.parse(edited).section(.point, 0x2a00)?.englishLabel,
+            "Restaurant",
+            "the existing label must survive"
+        )
     }
 
     // MARK: Whole pictures
 
     func testReplacingAPictureLeavesTheRestOfTheSectionAlone() throws {
         let source = TypSource.parse(sample)
-        let replacement = XpmBlock(width: 2, height: 2, declaredColours: 2, charsPerPixel: 1,
-                                   palette: [(key: "x", colour: "#123456"),
-                                             (key: "y", colour: nil)],
-                                   rows: ["xy", "yx"])
-        let edited = try TypEdit.setPicture(in: source, kind: .point, code: 0x2a00,
-                                            to: replacement)
+        let replacement = XpmBlock(
+            width: 2,
+            height: 2,
+            declaredColours: 2,
+            charsPerPixel: 1,
+            palette: [
+                (key: "x", colour: "#123456"),
+                (key: "y", colour: nil)
+            ],
+            rows: ["xy", "yx"]
+        )
+        let edited = try TypEdit.setPicture(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            to: replacement
+        )
 
         // Two palette lines and two rows; the header is unchanged, the replacement being
         // of the same size and colour count.
@@ -169,10 +255,20 @@ final class TypEditTests: XCTestCase {
     /// the number of rows it carries.
     func testAPictureOfADifferentSizeChangesTheHeaderToMatch() throws {
         let source = TypSource.parse(sample)
-        let replacement = XpmBlock(width: 3, height: 1, declaredColours: 1, charsPerPixel: 1,
-                                   palette: [(key: "z", colour: "#FFFFFF")], rows: ["zzz"])
-        let edited = try TypEdit.setPicture(in: source, kind: .point, code: 0x2a00,
-                                            to: replacement)
+        let replacement = XpmBlock(
+            width: 3,
+            height: 1,
+            declaredColours: 1,
+            charsPerPixel: 1,
+            palette: [(key: "z", colour: "#FFFFFF")],
+            rows: ["zzz"]
+        )
+        let edited = try TypEdit.setPicture(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            to: replacement
+        )
         XCTAssertTrue(edited.contains("DayXpm=\"3 1 1 1\""), edited)
 
         let picture = try XCTUnwrap(TypSource.parse(edited).section(.point, 0x2a00)?.picture)
@@ -184,10 +280,20 @@ final class TypEditTests: XCTestCase {
     /// would leave the point with no icon.
     func testAPointKeepsItsDayXpmTag() throws {
         let source = TypSource.parse(sample)
-        let replacement = XpmBlock(width: 1, height: 1, declaredColours: 1, charsPerPixel: 1,
-                                   palette: [(key: "z", colour: "#FFFFFF")], rows: ["z"])
-        let edited = try TypEdit.setPicture(in: source, kind: .point, code: 0x2a00,
-                                            to: replacement)
+        let replacement = XpmBlock(
+            width: 1,
+            height: 1,
+            declaredColours: 1,
+            charsPerPixel: 1,
+            palette: [(key: "z", colour: "#FFFFFF")],
+            rows: ["z"]
+        )
+        let edited = try TypEdit.setPicture(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            to: replacement
+        )
         XCTAssertTrue(edited.contains("DayXpm="), edited)
         XCTAssertFalse(edited.contains("\nXpm=\"1 1"), edited)
     }
@@ -200,15 +306,22 @@ final class TypEditTests: XCTestCase {
         let source = TypSource.parse(sample)
         XCTAssertNil(source.section(.point, 0x2f06))
 
-        let edited = try TypEdit.addSection(in: source, kind: .point, code: 0x2f06,
-                                            label: "amenity=bank")
+        let edited = try TypEdit.addSection(
+            in: source,
+            kind: .point,
+            code: 0x2f06,
+            label: "amenity=bank"
+        )
         let after = TypSource.parse(edited)
 
         let added = try XCTUnwrap(after.section(.point, 0x2f06))
         XCTAssertEqual(added.englishLabel, "amenity=bank")
         XCTAssertNotNil(added.picture, "a point needs something to draw")
-        XCTAssertEqual(added.picture?.colours.compactMap { $0 }, ["#FF00FF"],
-                       "magenta: a new section is not a finished one")
+        XCTAssertEqual(
+            added.picture?.colours.compactMap { $0 },
+            ["#FF00FF"],
+            "magenta: a new section is not a finished one"
+        )
     }
 
     func testEverySectionAlreadyThereSurvivesTheAddition() throws {
@@ -219,8 +332,10 @@ final class TypEditTests: XCTestCase {
         XCTAssertEqual(after.sections.count, source.sections.count + 1)
         XCTAssertEqual(after.section(.polygon, 0x16)?.colours, ["#A0D070", "#204020"])
         XCTAssertEqual(after.section(.point, 0x2a00)?.englishLabel, "Restaurant")
-        XCTAssertTrue(edited.hasPrefix(sample.components(separatedBy: "\n")[0]),
-                      "the file it was added to comes first and unchanged")
+        XCTAssertTrue(
+            edited.hasPrefix(sample.components(separatedBy: "\n")[0]),
+            "the file it was added to comes first and unchanged"
+        )
     }
 
     func testAddingOneThatIsAlreadyThereIsRefused() {
@@ -247,8 +362,10 @@ final class TypEditTests: XCTestCase {
         let after = TypSource.parse(edited)
 
         XCTAssertNotNil(after.section(.polygon, 0x4d))
-        XCTAssertTrue(after.drawOrder.contains { $0.code == 0x4d },
-                      "a polygon missing from the draw order is never drawn")
+        XCTAssertTrue(
+            after.drawOrder.contains { $0.code == 0x4d },
+            "a polygon missing from the draw order is never drawn"
+        )
         XCTAssertEqual(after.polygonsMissingFromDrawOrder, [])
         // Above the ground cover rather than hidden beneath it.
         XCTAssertEqual(after.drawOrder.first { $0.code == 0x4d }?.level, 2)
@@ -259,8 +376,10 @@ final class TypEditTests: XCTestCase {
     func testADrawOrderEntryCarriesNothingButTheTypeAndItsLevel() throws {
         let source = TypSource.parse("[_drawOrder]\nType=0x16,1\n[end]\n")
         let edited = try TypEdit.addSection(in: source, kind: .polygon, code: 0x4d)
-        let entry = try XCTUnwrap(edited.split(separator: "\n").map(String.init)
-            .first { $0.hasPrefix("Type=0x4d,") })
+        let entry = try XCTUnwrap(
+            edited.split(separator: "\n").map(String.init)
+                .first { $0.hasPrefix("Type=0x4d,") }
+        )
         XCTAssertEqual(entry, "Type=0x4d,1")
         XCTAssertFalse(entry.contains(";"), "a comment here is read as part of the level")
     }
@@ -283,7 +402,9 @@ final class TypEditTests: XCTestCase {
         XCTAssertEqual(after.sections.count, source.sections.count - 1)
         XCTAssertEqual(after.section(.point, 0x2a00)?.englishLabel, "Restaurant")
         // The blank line under the block went with it; the comments above stayed.
-        XCTAssertEqual(edited, """
+        XCTAssertEqual(
+            edited,
+            """
             ; -*- coding: UTF-8 -*-
             ; A comment above the section that must survive.
 
@@ -296,7 +417,8 @@ final class TypEditTests: XCTestCase {
             ".!"
             String=0x00,Restaurant
             [end]
-            """)
+            """
+        )
     }
 
     func testRemovingTheLastSectionKeepsTheFileEndingInANewline() throws {
@@ -343,7 +465,9 @@ final class TypEditTests: XCTestCase {
         XCTAssertNil(after.section(.polygon, 0x4d))
         XCTAssertEqual(after.drawOrder.map(\.code), [0x16, 0x51])
         XCTAssertFalse(edited.contains("added by kmap"), "the note went with its entry")
-        XCTAssertEqual(edited, """
+        XCTAssertEqual(
+            edited,
+            """
             [_drawOrder]
             Type=0x16,1
             Type=0x51,2
@@ -354,15 +478,21 @@ final class TypEditTests: XCTestCase {
             Xpm="0 0 1 0"
             "a c #A0D070"
             [end]
-            """, "what stayed was not rewritten")
+            """,
+            "what stayed was not rewritten"
+        )
     }
 
     /// A line has no draw order to leave; its code is not a polygon's.
     func testRemovingALineLeavesTheDrawOrderAlone() throws {
-        let text = "[_drawOrder]\nType=0x16,1\n[end]\n\n[_line]\nType=0x16\n"
+        let text =
+            "[_drawOrder]\nType=0x16,1\n[end]\n\n[_line]\nType=0x16\n"
             + "Xpm=\"0 0 1 0\"\n\"a c #A0D070\"\n[end]\n"
-        let edited = try TypEdit.removeSection(in: TypSource.parse(text), kind: .line,
-                                               code: 0x16)
+        let edited = try TypEdit.removeSection(
+            in: TypSource.parse(text),
+            kind: .line,
+            code: 0x16
+        )
         XCTAssertEqual(TypSource.parse(edited).drawOrder.map(\.code), [0x16])
         XCTAssertNil(TypSource.parse(edited).section(.line, 0x16))
     }
@@ -388,11 +518,18 @@ final class TypEditTests: XCTestCase {
         """
 
     func testAPolygonMovesIntoTheGroupOfItsNewLevelAndItsNoteTravels() throws {
-        let edited = try TypEdit.setDrawOrderLevel(in: TypSource.parse(ordered), code: 0x4d,
-                                                   to: 1)
-        XCTAssertEqual(TypSource.parse(edited).drawOrder.map { "\($0.code):\($0.level)" },
-                       ["22:1", "80:1", "77:1", "1:2"])
-        XCTAssertEqual(edited, """
+        let edited = try TypEdit.setDrawOrderLevel(
+            in: TypSource.parse(ordered),
+            code: 0x4d,
+            to: 1
+        )
+        XCTAssertEqual(
+            TypSource.parse(edited).drawOrder.map { "\($0.code):\($0.level)" },
+            ["22:1", "80:1", "77:1", "1:2"]
+        )
+        XCTAssertEqual(
+            edited,
+            """
             [_drawOrder]
             ; --- 1: ground cover
             Type=0x16,1
@@ -408,13 +545,18 @@ final class TypEditTests: XCTestCase {
             Xpm="0 0 1 0"
             "a c #FF00FF"
             [end]
-            """, "the dividers stay where they were; the entry joins its level")
+            """,
+            "the dividers stay where they were; the entry joins its level"
+        )
     }
 
     /// A new level is a new group after the last lower one.
     func testAPolygonCanBeMovedAboveEveryLevelThereIs() throws {
-        let edited = try TypEdit.setDrawOrderLevel(in: TypSource.parse(ordered), code: 0x16,
-                                                   to: 5)
+        let edited = try TypEdit.setDrawOrderLevel(
+            in: TypSource.parse(ordered),
+            code: 0x16,
+            to: 5
+        )
         let order = TypSource.parse(edited).drawOrder
         XCTAssertEqual(order.last.map { "\($0.code):\($0.level)" }, "22:5")
         XCTAssertEqual(order.map(\.level), [1, 2, 3, 5], "the rest keep their places")
@@ -423,8 +565,10 @@ final class TypEditTests: XCTestCase {
     /// The file's spelling is kept; a comment behind the level, which an older kmap
     /// wrote, is dropped: the compiler reads it as part of the level.
     func testTheSpellingIsKeptAndATrailingCommentIsDropped() throws {
-        let source = TypSource.parse("[_drawOrder]\nType=0x01f,9; added by kmap\n"
-                                     + "Type=0x016,1\n[end]\n")
+        let source = TypSource.parse(
+            "[_drawOrder]\nType=0x01f,9; added by kmap\n"
+                + "Type=0x016,1\n[end]\n"
+        )
         let edited = try TypEdit.setDrawOrderLevel(in: source, code: 0x1f, to: 4)
         XCTAssertEqual(edited, "[_drawOrder]\nType=0x016,1\nType=0x01f,4\n[end]\n")
     }
@@ -434,16 +578,28 @@ final class TypEditTests: XCTestCase {
         let source = TypSource.parse(ordered)
         let edited = try TypEdit.setDrawOrderLevel(in: source, code: 0x51, to: 2)
         let order = TypSource.parse(edited).drawOrder
-        XCTAssertEqual(order.map { "\($0.code):\($0.level)" },
-                       ["22:1", "80:1", "1:2", "81:2", "77:3"])
+        XCTAssertEqual(
+            order.map { "\($0.code):\($0.level)" },
+            ["22:1", "80:1", "1:2", "81:2", "77:3"]
+        )
         XCTAssertTrue(edited.contains("Type=0x51,2"))
     }
 
     func testALevelBelowOneAndAFileWithNoTableAreRefused() {
-        XCTAssertThrowsError(try TypEdit.setDrawOrderLevel(in: TypSource.parse(ordered),
-                                                           code: 0x4d, to: 0))
-        XCTAssertThrowsError(try TypEdit.setDrawOrderLevel(in: TypSource.parse(sample),
-                                                           code: 0x16, to: 1))
+        XCTAssertThrowsError(
+            try TypEdit.setDrawOrderLevel(
+                in: TypSource.parse(ordered),
+                code: 0x4d,
+                to: 0
+            )
+        )
+        XCTAssertThrowsError(
+            try TypEdit.setDrawOrderLevel(
+                in: TypSource.parse(sample),
+                code: 0x16,
+                to: 1
+            )
+        )
     }
 
     // MARK: Against the real file
@@ -455,19 +611,29 @@ final class TypEditTests: XCTestCase {
         let source = TypSource.parse(original)
 
         let before = try XCTUnwrap(source.section(.polygon, 0x16))
-        let edited = try TypEdit.setColour(in: source, kind: .polygon, code: 0x16,
-                                           colourIndex: 0, to: "#123456")
+        let edited = try TypEdit.setColour(
+            in: source,
+            kind: .polygon,
+            code: 0x16,
+            colourIndex: 0,
+            to: "#123456"
+        )
 
         let changed = changedLines(original, edited)
         XCTAssertEqual(changed.count, 1, "changed lines: \(changed)")
-        XCTAssertTrue(before.lines.contains(changed[0]),
-                      "the changed line must be inside the section that was edited")
+        XCTAssertTrue(
+            before.lines.contains(changed[0]),
+            "the changed line must be inside the section that was edited"
+        )
 
         let after = TypSource.parse(edited)
         XCTAssertEqual(after.section(.polygon, 0x16)?.colours.first, "#123456")
         XCTAssertEqual(after.sections.count, source.sections.count)
-        XCTAssertEqual(after.section(.polygon, 0x16)?.comments,
-                       before.comments, "the provenance comments must be untouched")
+        XCTAssertEqual(
+            after.section(.polygon, 0x16)?.comments,
+            before.comments,
+            "the provenance comments must be untouched"
+        )
     }
 
     /// Borrowing a drawing from another type in the same file. The sizes differ, and
@@ -491,8 +657,11 @@ final class TypEditTests: XCTestCase {
         // Everything else about the section it landed on.
         XCTAssertEqual(replaced.englishLabel, "Restaurant")
         XCTAssertEqual(replaced.russianLabel, "Ресторан")
-        XCTAssertEqual(replaced.comments, restaurant.comments,
-                       "the provenance comments must survive a drawing being swapped")
+        XCTAssertEqual(
+            replaced.comments,
+            restaurant.comments,
+            "the provenance comments must survive a drawing being swapped"
+        )
 
         // And the donor, which is a different section of the same file.
         XCTAssertEqual(after.section(.point, 0x6511)?.picture, spring)
@@ -505,11 +674,20 @@ final class TypEditTests: XCTestCase {
         let restaurant = try XCTUnwrap(source.section(.point, 0x2a00))
         let picture = try XCTUnwrap(restaurant.picture)
 
-        let replacement = XpmBlock(width: 2, height: 2, declaredColours: 1, charsPerPixel: 1,
-                                   palette: [(key: "z", colour: "#FFFFFF")],
-                                   rows: ["zz", "zz"])
-        let edited = try TypEdit.setPicture(in: source, kind: .point, code: 0x2a00,
-                                            to: replacement)
+        let replacement = XpmBlock(
+            width: 2,
+            height: 2,
+            declaredColours: 1,
+            charsPerPixel: 1,
+            palette: [(key: "z", colour: "#FFFFFF")],
+            rows: ["zz", "zz"]
+        )
+        let edited = try TypEdit.setPicture(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            to: replacement
+        )
 
         // A header, 23 palette lines and 20 rows go out; a header, one palette line and two
         // rows come in.
@@ -518,8 +696,11 @@ final class TypEditTests: XCTestCase {
         XCTAssertEqual(picture.declaredColours, TypFixture.iconColours)
 
         let after = TypSource.parse(edited)
-        XCTAssertEqual(after.sections.count, source.sections.count,
-                       "no section may be lost or gained")
+        XCTAssertEqual(
+            after.sections.count,
+            source.sections.count,
+            "no section may be lost or gained"
+        )
         XCTAssertEqual(after.section(.point, 0x2a00)?.englishLabel, "Restaurant")
         XCTAssertEqual(after.section(.point, 0x2a00)?.russianLabel, "Ресторан")
         XCTAssertEqual(after.section(.point, 0x2a00)?.picture?.width, 2)

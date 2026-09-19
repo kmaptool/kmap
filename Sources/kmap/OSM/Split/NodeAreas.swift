@@ -51,8 +51,10 @@ extension TileSplitter {
         func internBand(strict: AreaLookup.Hits, shape: AreaLookup.Hits) -> UInt16 {
             let key = BandKey(strict: strict, shape: shape)
             if let hit = bandHitsIndex[key] { return hit }
-            precondition(bandSets.count < Int(Self.bandFlag),
-                         "more distinct band sets than the value can name")
+            precondition(
+                bandSets.count < Int(Self.bandFlag),
+                "more distinct band sets than the value can name"
+            )
             let index = UInt16(bandSets.count) | Self.bandFlag
             bandSets.append((strict.sorted, shape.sorted))
             bandHitsIndex[key] = index
@@ -62,8 +64,10 @@ extension TileSplitter {
         func internBand(strict: [UInt16], shape: [UInt16]) -> UInt16 {
             let key = strict.sorted() + [UInt16.max] + shape.sorted()
             if let hit = bandIndex[key] { return hit }
-            precondition(bandSets.count < Int(Self.bandFlag),
-                         "more distinct band sets than the value can name")
+            precondition(
+                bandSets.count < Int(Self.bandFlag),
+                "more distinct band sets than the value can name"
+            )
             let index = UInt16(bandSets.count) | Self.bandFlag
             bandSets.append((strict.sorted(), shape.sorted()))
             bandIndex[key] = index
@@ -320,5 +324,4 @@ extension TileSplitter {
     }
 
     // MARK: Pass 1 — nodes
-
 }

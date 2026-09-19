@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// Reading an elevation tile without GDAL. Copernicus publishes Float32, DEFLATE,
 /// predictor 3, point-registered, in 1024-pixel tiles; ALOS publishes Int16, uncompressed,
 /// a row to a strip, registered on cell areas — half a step off the nodes.
 final class GeoTIFFTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -41,8 +41,10 @@ final class GeoTIFFTests: XCTestCase {
         for row in 0..<3 {
             XCTAssertEqual(try tiff.row(row), (0..<4).map { Float((row * 4 + $0) * 10) })
             for column in 0..<4 {
-                XCTAssertEqual(try tiff.value(row: row, column: column),
-                               Float((row * 4 + column) * 10))
+                XCTAssertEqual(
+                    try tiff.value(row: row, column: column),
+                    Float((row * 4 + column) * 10)
+                )
             }
         }
     }
@@ -86,7 +88,7 @@ final class GeoTIFFTests: XCTestCase {
         var stripped = Fixture()
         stripped.width = 6; stripped.height = 5; stripped.samples = ramp(6, 5)
         var tiled = stripped
-        tiled.tile = (width: 4, height: 4)          // two across, two down, both ragged
+        tiled.tile = (width: 4, height: 4)  // two across, two down, both ragged
         let a = try GeoTIFF(contentsOf: try write(stripped, as: "a.tif"))
         let b = try GeoTIFF(contentsOf: try write(tiled, as: "b.tif"))
         for row in 0..<5 {
@@ -97,7 +99,7 @@ final class GeoTIFFTests: XCTestCase {
     func testSeveralStripsAreJoinedBackIntoOneImage() throws {
         var fixture = Fixture()
         fixture.width = 4; fixture.height = 6; fixture.samples = ramp(4, 6)
-        fixture.tile = (width: 4, height: 2)        // three strips
+        fixture.tile = (width: 4, height: 2)  // three strips
         let tiff = try GeoTIFF(contentsOf: try write(fixture))
         XCTAssertEqual(try tiff.row(5), [200, 210, 220, 230])
     }
@@ -162,7 +164,7 @@ final class GeoTIFFTests: XCTestCase {
         XCTAssertThrowsError(try GeoTIFF(contentsOf: url)) { error in
             XCTAssertEqual("\(error)", "not a TIFF file")
         }
-        try Data([0x49, 0x49]).write(to: url)          // right mark, nothing behind it
+        try Data([0x49, 0x49]).write(to: url)  // right mark, nothing behind it
         XCTAssertThrowsError(try GeoTIFF(contentsOf: url))
     }
 

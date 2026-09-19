@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The element reader against real maps, held to mkgmap's own reading of them.
@@ -9,7 +10,6 @@ import XCTest
 /// so the expectations are their counts and checksum. Maps and expectations are the
 /// developer's own and live outside the repository; see `LocalTestMaps`.
 final class RealMapReaderTests: XCTestCase {
-
     func testTheReaderStillReadsWhatMkgmapReads() throws {
         let expectations = LocalTestMaps.load()?.reader ?? []
         try XCTSkipUnless(!expectations.isEmpty, "no local map expectations")
@@ -22,16 +22,29 @@ final class RealMapReaderTests: XCTestCase {
             guard FileTools.exists(url), map.ground.count == 4 else { continue }
             seen += 1
 
-            let ground = BBox(minLon: map.ground[1], minLat: map.ground[0],
-                              maxLon: map.ground[3], maxLat: map.ground[2])
+            let ground = BBox(
+                minLon: map.ground[1],
+                minLat: map.ground[0],
+                maxLon: map.ground[3],
+                maxLat: map.ground[2]
+            )
             var dump = ElementDumper.Dump()
-            try ImgElements.read(img: url, grounds: [ImgElements.Ground(ground)],
-                                 extendedAreasAndPoints: false, tick: {}) { kind, type, coords in
+            try ImgElements.read(
+                img: url,
+                grounds: [ImgElements.Ground(ground)],
+                extendedAreasAndPoints: false,
+                tick: {}
+            ) { kind, type, coords in
                 let from = dump.cells.count
                 for c in coords { dump.cells.append(GarminGrid.pack(latUnit: c.lat, lonUnit: c.lon)) }
-                dump.elements.append(ElementDumper.Element(kind: kind, type: type,
-                                                           from: Int32(from),
-                                                           count: Int32(coords.count)))
+                dump.elements.append(
+                    ElementDumper.Element(
+                        kind: kind,
+                        type: type,
+                        from: Int32(from),
+                        count: Int32(coords.count)
+                    )
+                )
             }
             XCTAssertEqual(dump.count, map.elements, url.lastPathComponent)
             XCTAssertEqual(dump.cells.count, map.vertices, url.lastPathComponent)

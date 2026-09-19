@@ -1,12 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// The progress a download is watched through. Several connections write into their own
 /// ranges of one file, and the counters are read from the render loop while the network
 /// writes them.
 final class DownloadProgressTests: XCTestCase {
-
-
     func testNothingIsKnownBeforeTheSizeIs() {
         // The screen reads these before the first response arrives.
         let progress = DownloadProgress()
@@ -59,8 +58,11 @@ final class DownloadProgressTests: XCTestCase {
     func testTheCountersHoldUpUnderEveryConnectionAtOnce() {
         let progress = DownloadProgress()
         let parts = 8
-        progress.begin(total: Int64(parts * 1000),
-                       partTotals: Array(repeating: 1000, count: parts), alreadyOnDisk: 0)
+        progress.begin(
+            total: Int64(parts * 1000),
+            partTotals: Array(repeating: 1000, count: parts),
+            alreadyOnDisk: 0
+        )
         DispatchQueue.concurrentPerform(iterations: parts) { part in
             for _ in 0..<1000 { progress.advance(part: part, by: 1) }
         }
@@ -95,8 +97,11 @@ final class DownloadProgressTests: XCTestCase {
         let progress = DownloadProgress()
         progress.begin(total: 100, partTotals: [100], alreadyOnDisk: 0)
         for left in [nil, Double.infinity] as [Double?] {
-            XCTAssertEqual(progress.line(secondsLeft: left)
-                .components(separatedBy: DownloadProgress.separator).count, 2)
+            XCTAssertEqual(
+                progress.line(secondsLeft: left)
+                    .components(separatedBy: DownloadProgress.separator).count,
+                2
+            )
         }
     }
 }

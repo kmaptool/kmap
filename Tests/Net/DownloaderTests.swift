@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Which failures a download picks itself up from, and the checksum that says it arrived
 /// whole.
 final class DownloaderTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -19,12 +19,13 @@ final class DownloaderTests: XCTestCase {
 
     // MARK: Picking a part up again
 
-
     /// A transport failure is worth another try; a definite answer from the server is not.
     func testADroppedConnectionIsWorthAnotherTryAndAMissingFileIsNot() {
-        for code: URLError.Code in [.timedOut, .networkConnectionLost, .cannotConnectToHost,
-                                    .cannotFindHost, .dnsLookupFailed, .notConnectedToInternet,
-                                    .resourceUnavailable, .badServerResponse, .zeroByteResource] {
+        for code: URLError.Code in [
+            .timedOut, .networkConnectionLost, .cannotConnectToHost,
+            .cannotFindHost, .dnsLookupFailed, .notConnectedToInternet,
+            .resourceUnavailable, .badServerResponse, .zeroByteResource
+        ] {
             XCTAssertTrue(Downloader.worthRetrying(URLError(code)), "\(code)")
         }
         for code: URLError.Code in [.cancelled, .unsupportedURL, .badURL, .userAuthenticationRequired] {
@@ -106,8 +107,12 @@ final class DownloaderTests: XCTestCase {
         XCTAssertFalse(session.isCancelled)
         session.cancel()
         XCTAssertTrue(session.isCancelled)
-        let part = RangeSession.Part(index: 0, start: 0, end: 9,
-                                     url: directory.appendingPathComponent("x.part0"))
+        let part = RangeSession.Part(
+            index: 0,
+            start: 0,
+            end: 9,
+            url: directory.appendingPathComponent("x.part0")
+        )
         do {
             try await session.fetch(part, from: URL(string: "https://example.invalid/x")!, ranged: true)
             XCTFail("fetched on a cancelled session")

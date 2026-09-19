@@ -1,4 +1,5 @@
 import Foundation
+
 @testable import kmap
 
 /// Enough for tar, zip and gpsbabel on a slow machine.

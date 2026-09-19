@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Which of the four machines this is.
@@ -6,24 +7,43 @@ import XCTest
 /// Detection answers from the compiler, so each platform can only check its own case.
 /// Everything the answer decides is passed a platform instead and is tested anywhere.
 final class PlatformTests: XCTestCase {
-
     #if !canImport(Darwin) && !os(Windows)
     func testTheVariableWslSetsForEveryShellIsEnough() {
-        XCTAssertEqual(Platform.detect(environment: ["WSL_DISTRO_NAME": "Ubuntu"],
-                                       osRelease: nil), .wsl)
-        XCTAssertEqual(Platform.detect(environment: ["WSL_INTEROP": "/run/WSL/8_interop"],
-                                       osRelease: nil), .wsl)
+        XCTAssertEqual(
+            Platform.detect(
+                environment: ["WSL_DISTRO_NAME": "Ubuntu"],
+                osRelease: nil
+            ),
+            .wsl
+        )
+        XCTAssertEqual(
+            Platform.detect(
+                environment: ["WSL_INTEROP": "/run/WSL/8_interop"],
+                osRelease: nil
+            ),
+            .wsl
+        )
     }
 
     func testAKernelBuiltByMicrosoftSaysSoEvenWithNoVariablesSet() {
         // A process started outside a login shell has none of the variables set.
-        XCTAssertEqual(Platform.detect(environment: [:],
-                                       osRelease: "5.15.146.1-microsoft-standard-WSL2"), .wsl)
+        XCTAssertEqual(
+            Platform.detect(
+                environment: [:],
+                osRelease: "5.15.146.1-microsoft-standard-WSL2"
+            ),
+            .wsl
+        )
     }
 
     func testAnOrdinaryLinuxIsOrdinaryLinux() {
-        XCTAssertEqual(Platform.detect(environment: [:],
-                                       osRelease: "6.8.0-45-generic"), .linux)
+        XCTAssertEqual(
+            Platform.detect(
+                environment: [:],
+                osRelease: "6.8.0-45-generic"
+            ),
+            .linux
+        )
         XCTAssertEqual(Platform.detect(environment: [:], osRelease: nil), .linux)
     }
     #endif
@@ -38,8 +58,13 @@ final class PlatformTests: XCTestCase {
 
     #if canImport(Darwin)
     func testAMacIsAMacWhateverTheEnvironmentSays() {
-        XCTAssertEqual(Platform.detect(environment: ["WSL_DISTRO_NAME": "Ubuntu"],
-                                       osRelease: "microsoft"), .macOS)
+        XCTAssertEqual(
+            Platform.detect(
+                environment: ["WSL_DISTRO_NAME": "Ubuntu"],
+                osRelease: "microsoft"
+            ),
+            .macOS
+        )
     }
     #endif
 
@@ -47,8 +72,13 @@ final class PlatformTests: XCTestCase {
     func testWindowsIsWindowsAndNotTheLinuxThatMightBeUnderIt() {
         // `cmd.exe` started from a WSL session inherits WSL's variables and is still
         // Windows.
-        XCTAssertEqual(Platform.detect(environment: ["WSL_DISTRO_NAME": "Ubuntu"],
-                                       osRelease: "microsoft"), .windows)
+        XCTAssertEqual(
+            Platform.detect(
+                environment: ["WSL_DISTRO_NAME": "Ubuntu"],
+                osRelease: "microsoft"
+            ),
+            .windows
+        )
     }
     #endif
 

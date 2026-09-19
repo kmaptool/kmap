@@ -20,11 +20,13 @@ extension StyleRecovery {
     ///   it breaks every route through what it drew, and it cannot be re-aimed either,
     ///   because receivers route only on the plain road types. It keeps its code and
     ///   wears their colours for it, which is the least of the harms on offer.
-    static func silencedRuleSheet(verdicts: [String: CodeVerdict],
-                                          witnessedSlots: Set<String>,
-                                          typDefined: [ElementDumper.Kind: Set<Int>],
-                                          claimed: [String: ClaimedRule],
-                                          rules: DefaultRuleBook) -> [String] {
+    static func silencedRuleSheet(
+        verdicts: [String: CodeVerdict],
+        witnessedSlots: Set<String>,
+        typDefined: [ElementDumper.Kind: Set<Int>],
+        claimed: [String: ClaimedRule],
+        rules: DefaultRuleBook
+    ) -> [String] {
         // A map with no TYP to read hands over no vocabulary at all, and silencing every
         // rule against an empty one would leave an empty map.
         guard !typDefined.isEmpty else { return [] }
@@ -33,10 +35,14 @@ extension StyleRecovery {
             let file = DefaultRuleBook.file(for: kind)
             for line in rules.allLines(forKind: file) {
                 guard claimed[line.file + ":" + line.text] == nil,
-                      let type = Int(line.code, radix: 16) else { continue }
+                    let type = Int(line.code, radix: 16)
+                else { continue }
                 guard !line.text.contains("road_class=") else { continue }
-                guard !Self.generated.contains(
-                    Evidence.key(kind, type).uppercased()) else { continue }
+                guard
+                    !Self.generated.contains(
+                        Evidence.key(kind, type).uppercased()
+                    )
+                else { continue }
                 // A point code below 0x100 is a bare type; the TYP folds the subtype in.
                 let painted = kind == .point && type < 0x100 ? type << 8 : type
                 let verdict = verdicts[codeKey(kind, type)]
@@ -49,9 +55,14 @@ extension StyleRecovery {
                     continue
                 }
                 sheet.append("@@ \(line.file)")
-                sheet.append(String(format: "# their map draws 0x%02x as %@ — silenced,"
-                                    + " so their look stays honest",
-                                    type, verdict?.meaning ?? "nothing at all"))
+                sheet.append(
+                    String(
+                        format: "# their map draws 0x%02x as %@ — silenced,"
+                            + " so their look stays honest",
+                        type,
+                        verdict?.meaning ?? "nothing at all"
+                    )
+                )
                 sheet.append("- \(line.text)")
                 if let second = line.continuation { sheet.append("- \(second)") }
             }
@@ -65,13 +76,17 @@ extension StyleRecovery {
     static func claimedRuleSheet(
         _ claimed: [String: ClaimedRule],
         ladders: inout [String: [(type: Int, resolutions: [Int: Int])]],
-        known: [String: [(type: Int, resolutions: [Int: Int])]] = [:]) -> [String] {
+        known: [String: [(type: Int, resolutions: [Int: Int])]] = [:]
+    ) -> [String] {
         var sheet: [String] = []
         for (_, entry) in claimed.sorted(by: { $0.key < $1.key }) {
             // One claim per code: a rule reached from two meanings is claimed twice by
             // the same code, which would become a base with a layer of itself on top.
-            var byType: [Int: (type: Int, weight: Int, ids: Set<Int64>,
-                               tags: [String: Int], resolutions: [Int: Int])] = [:]
+            var byType:
+                [Int: (
+                    type: Int, weight: Int, ids: Set<Int64>,
+                    tags: [String: Int], resolutions: [Int: Int]
+                )] = [:]
             for claim in entry.codes {
                 if var held = byType[claim.type] {
                     held.weight += claim.weight
@@ -84,8 +99,10 @@ extension StyleRecovery {
                 }
             }
             for (type, held) in byType {
-                byType[type] = (held.type, held.weight, held.ids, held.tags,
-                                steadyZooms(held.resolutions))
+                byType[type] = (
+                    held.type, held.weight, held.ids, held.tags,
+                    steadyZooms(held.resolutions)
+                )
             }
             guard let line = entry.lines.first else { continue }
             // One meaning, one stroke per zoom: at each resolution the code their map
@@ -100,8 +117,12 @@ extension StyleRecovery {
             // finest zoom the rule is drawn at - and is written as a line of its own
             // over the range it belongs to, rather than stacked everywhere.
             let finest = byType.values.compactMap { $0.resolutions.keys.max() }.max()
-            func zoomedOut(_ claim: (type: Int, weight: Int, ids: Set<Int64>,
-                                     tags: [String: Int], resolutions: [Int: Int])) -> Bool {
+            func zoomedOut(
+                _ claim: (
+                    type: Int, weight: Int, ids: Set<Int64>,
+                    tags: [String: Int], resolutions: [Int: Int]
+                )
+            ) -> Bool {
                 guard let finest, let highest = claim.resolutions.keys.max() else {
                     return false
                 }
@@ -130,8 +151,11 @@ extension StyleRecovery {
             // Never the rule's own code: it is already emitted by the line itself, and
             // a layer of it would draw the same stroke twice - two plain road lines
             // under their extended one, thicker and in the plain colour.
-            let layers = line.isSplit ? [] : ranked.dropFirst().reversed()
-                .filter { paintsTheSame($0.ids, base.ids) && !line.emits($0.type) }
+            let layers =
+                line.isSplit
+                ? []
+                : ranked.dropFirst().reversed()
+                    .filter { paintsTheSame($0.ids, base.ids) && !line.emits($0.type) }
             // The rule's own code holds the line and nothing is painted over it: the
             // line stays as it is - unless a zoomed-out stroke wants a line of its own.
             if line.emits(base.type), layers.isEmpty, overview.isEmpty { continue }
@@ -165,7 +189,8 @@ extension StyleRecovery {
             // its code: a roundabout is a trunk road written under another tag, and the
             // ways carrying it were counted as trunk roads.
             if ladder.isEmpty, !line.isSplit,
-               let known = known[line.file + ":" + String(base.type, radix: 16)] {
+                let known = known[line.file + ":" + String(base.type, radix: 16)]
+            {
                 // Only the paint travels: a plain number Garmin routes on belongs to
                 // the rule that carries the routing, and a second rule emitting it
                 // without those attributes is one way added both routable and not.
@@ -174,7 +199,8 @@ extension StyleRecovery {
                 }
             }
             var strokes = ladder.map { stroke in
-                stroke.resolutions.isEmpty ? line.layered(to: stroke.type)
+                stroke.resolutions.isEmpty
+                    ? line.layered(to: stroke.type)
                     : banded(line, to: stroke.type, resolutions: stroke.resolutions)
             }
             if ranked.isEmpty {
@@ -189,18 +215,27 @@ extension StyleRecovery {
             // goes over it.
             if !line.isSplit, base.type >= 0x10000, line.text.contains("road_class=") {
                 ladder.append((base.type, ladderKnown ? base.resolutions : [:]))
-                strokes.append(ladderKnown
-                    ? banded(line, to: base.type, resolutions: base.resolutions)
-                    : line.layered(to: base.type))
+                strokes.append(
+                    ladderKnown
+                        ? banded(line, to: base.type, resolutions: base.resolutions)
+                        : line.layered(to: base.type)
+                )
                 remember(&ladders, line.file, line.code, ladder)
                 sheet.append(contentsOf: keeping(line, under: strokes))
                 continue
             }
             remember(&ladders, line.file, String(base.type, radix: 16), ladder)
-            sheet.append(contentsOf: keeping(
-                closing(line.replacement(to: base.type), of: line,
-                        owning: base.resolutions, under: strokes),
-                under: strokes))
+            sheet.append(
+                contentsOf: keeping(
+                    closing(
+                        line.replacement(to: base.type),
+                        of: line,
+                        owning: base.resolutions,
+                        under: strokes
+                    ),
+                    under: strokes
+                )
+            )
         }
         return sheet
     }
@@ -210,8 +245,10 @@ extension StyleRecovery {
     /// one that saw the most strokes.
     private static func remember(
         _ ladders: inout [String: [(type: Int, resolutions: [Int: Int])]],
-        _ file: String, _ code: String,
-        _ strokes: [(type: Int, resolutions: [Int: Int])]) {
+        _ file: String,
+        _ code: String,
+        _ strokes: [(type: Int, resolutions: [Int: Int])]
+    ) {
         guard !strokes.isEmpty else { return }
         let key = file + ":" + code
         if ladders[key] == nil || ladders[key]!.count < strokes.count {
@@ -229,7 +266,9 @@ extension StyleRecovery {
     /// is known gets that ladder, banded exactly as the witnessed rule's was.
     static func siblingRuleSheet(
         ladders: [String: [(type: Int, resolutions: [Int: Int])]],
-        already: Set<String>, rules: DefaultRuleBook) -> [String] {
+        already: Set<String>,
+        rules: DefaultRuleBook
+    ) -> [String] {
         var sheet: [String] = []
         for kind in [ElementDumper.Kind.line, .area, .point] {
             let file = DefaultRuleBook.file(for: kind)
@@ -238,8 +277,9 @@ extension StyleRecovery {
                 // claimed pass: a stroke is one line, and the condition of a rule
                 // written apart from its type would be left behind.
                 guard !line.isSplit, !already.contains(line.text),
-                      let ladder = ladders[line.file + ":" + line.code],
-                      !ladder.isEmpty else { continue }
+                    let ladder = ladders[line.file + ":" + line.code],
+                    !ladder.isEmpty
+                else { continue }
                 // A rule already drawn with one of its own strokes needs nothing.
                 guard !ladder.contains(where: { line.emits($0.type) }) else { continue }
                 let paint = ladder.filter { !routable($0.type) }
@@ -259,15 +299,19 @@ extension StyleRecovery {
     /// Step six: rules that did not exist, written above the file's first rule so they
     /// are reached before the general ones. All of a file's additions go in one
     /// substitution, because they share an anchor.
-    static func additionSheet(_ additions: [ElementDumper.Kind: [RuleAddition]],
-                                      claimed: [String: ClaimedRule],
-                                      rules: DefaultRuleBook) -> [String] {
+    static func additionSheet(
+        _ additions: [ElementDumper.Kind: [RuleAddition]],
+        claimed: [String: ClaimedRule],
+        rules: DefaultRuleBook
+    ) -> [String] {
         var sheet: [String] = []
         for (kind, wanted) in additions.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
             let file = DefaultRuleBook.file(for: kind)
-            guard let anchor = rules.firstRuleLine(
-                in: file,
-                avoiding: Set(claimed.values.flatMap { $0.lines.map(\.text) }))
+            guard
+                let anchor = rules.firstRuleLine(
+                    in: file,
+                    avoiding: Set(claimed.values.flatMap { $0.lines.map(\.text) })
+                )
             else { continue }
             sheet.append("@@ \(file)")
             sheet.append("- \(anchor)")
@@ -290,19 +334,24 @@ extension StyleRecovery {
                     $0.key + "@" + String($0.type) == familyKey
                 }
                 if members.count >= fewestFamily,
-                   !rules.hasRules(key: addition.key, kind: kind) {
+                    !rules.hasRules(key: addition.key, kind: kind)
+                {
                     if taken.insert(familyKey).inserted {
-                        collapsed.append(RuleAddition(
-                            tag: addition.key + "=*", key: addition.key,
-                            type: addition.type,
-                            witnesses: members.reduce(0) { $0 + $1.witnesses },
-                            ids: members.reduce(into: Set<Int64>()) {
-                                $0.formUnion($1.ids)
-                            },
-                            resolutions: members.reduce(into: [Int: Int]()) {
-                                $0.merge($1.resolutions, uniquingKeysWith: +)
-                            },
-                            openOnly: members.filter(\.openOnly).count * 2 > members.count))
+                        collapsed.append(
+                            RuleAddition(
+                                tag: addition.key + "=*",
+                                key: addition.key,
+                                type: addition.type,
+                                witnesses: members.reduce(0) { $0 + $1.witnesses },
+                                ids: members.reduce(into: Set<Int64>()) {
+                                    $0.formUnion($1.ids)
+                                },
+                                resolutions: members.reduce(into: [Int: Int]()) {
+                                    $0.merge($1.resolutions, uniquingKeysWith: +)
+                                },
+                                openOnly: members.filter(\.openOnly).count * 2 > members.count
+                            )
+                        )
                     }
                 } else {
                     collapsed.append(addition)
@@ -319,10 +368,16 @@ extension StyleRecovery {
                 // drawn - every building outline, and no building. Where our rules
                 // draw this key as an area too, the added line continues, so the map
                 // gets both, which is what the borrowed one has.
-                let overAnArea = kind == .line && rules.hasRules(key: addition.key,
-                                                                 kind: .area)
-                sheet.append("# their style draws \(addition.tag), ours had no rule"
-                           + " — \(addition.witnesses) of them identified")
+                let overAnArea =
+                    kind == .line
+                    && rules.hasRules(
+                        key: addition.key,
+                        kind: .area
+                    )
+                sheet.append(
+                    "# their style draws \(addition.tag), ours had no rule"
+                        + " — \(addition.witnesses) of them identified"
+                )
                 // Pinned to the zooms it was seen at, where those are known: a bare
                 // resolution means that zoom and every finer one, which would paint
                 // an outline over the zooms another stroke of the same thing owns.
@@ -335,11 +390,18 @@ extension StyleRecovery {
                 }
                 // Buildings carrying the tag fall through to the building rule, as
                 // their map draws them.
-                let condition = addition.tag
+                let condition =
+                    addition.tag
                     + (addition.openOnly ? " & " + DefaultRuleBook.openGroundOnly : "")
-                sheet.append(String(format: "+ %@ [0x%02x resolution %@%@]",
-                                    condition, addition.type, band,
-                                    layered || overAnArea ? " continue" : ""))
+                sheet.append(
+                    String(
+                        format: "+ %@ [0x%02x resolution %@%@]",
+                        condition,
+                        addition.type,
+                        band,
+                        layered || overAnArea ? " continue" : ""
+                    )
+                )
             }
             sheet.append("+ \(anchor)")
         }

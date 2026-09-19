@@ -1,4 +1,5 @@
 import Foundation
+
 @testable import kmap
 
 /// The shell this machine has, and the scripts the process tests ask it for.
@@ -6,12 +7,12 @@ import Foundation
 /// Every platform can run all of them and none spells them the same way: `/bin/sh -c` on
 /// the Unixes, `cmd /c` and a different language on Windows, which has no `sh` at all.
 enum TestShell {
-
     /// The shell itself.
     static var path: String {
         #if os(Windows)
-        return (ProcessInfo.processInfo.environment.variable("ComSpec")
-                ?? #"C:\Windows\System32\cmd.exe"#)
+        return
+            (ProcessInfo.processInfo.environment.variable("ComSpec")
+            ?? #"C:\Windows\System32\cmd.exe"#)
         #else
         return "/bin/sh"
         #endif

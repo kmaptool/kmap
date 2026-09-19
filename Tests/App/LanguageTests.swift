@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The interface translates; nothing that reaches the built map does: map names, label
@@ -7,7 +8,6 @@ import XCTest
 /// generated test list cannot name a synchronous main-actor method.
 @MainActor
 final class LanguageTests: XCTestCase {
-
     private var ctx: AppContext!
     private var languageBefore: Lang!
     private var storedBefore: String!
@@ -42,8 +42,11 @@ final class LanguageTests: XCTestCase {
         surface.resize(width, height)
         surface.clear(ctx.theme.base)
         screen.tick(ctx)
-        screen.render(into: surface, rect: Rect(x: 2, y: 2, w: width - 4, h: height - 4),
-                      ctx: ctx)
+        screen.render(
+            into: surface,
+            rect: Rect(x: 2, y: 2, w: width - 4, h: height - 4),
+            ctx: ctx
+        )
         return surface.compose()
     }
 
@@ -60,8 +63,11 @@ final class LanguageTests: XCTestCase {
 
         _ = screen.handle(.right, ctx: ctx)
         XCTAssertEqual(L10n.current, .ru)
-        XCTAssertEqual(ctx.settings.settings.uiLanguage, "ru",
-                       "a language chosen has to survive the next launch")
+        XCTAssertEqual(
+            ctx.settings.settings.uiLanguage,
+            "ru",
+            "a language chosen has to survive the next launch"
+        )
 
         // The field's own label is drawn in the language being chosen.
         let russian = frame(screen)
@@ -82,20 +88,27 @@ final class LanguageTests: XCTestCase {
     }
 
     func testEveryScreenSpeaksTheLanguageInHand() async {
-        let screens: [Screen] = [MainMenuScreen(), LibraryScreen(), HelpScreen(),
-                                 ToolchainScreen(), SettingsScreen(), StyleListScreen(),
-                                 RegionPickerScreen(),
-                                 HideScreen(hidden: []) { _ in }]
+        let screens: [Screen] = [
+            MainMenuScreen(), LibraryScreen(), HelpScreen(),
+            ToolchainScreen(), SettingsScreen(), StyleListScreen(),
+            RegionPickerScreen(),
+            HideScreen(hidden: []) { _ in }
+        ]
         for screen in screens {
             L10n.use(.en)
             let english = words(screen)
             L10n.use(.ru)
             let russian = words(screen)
             XCTAssertNotEqual(english.count, 0)
-            XCTAssertNotEqual(english, russian,
-                              "\(type(of: screen)) says the same thing in both languages")
-            XCTAssertTrue(russian.contains(where: { $0.isCyrillic }),
-                          "\(type(of: screen)) has no Russian on it at all")
+            XCTAssertNotEqual(
+                english,
+                russian,
+                "\(type(of: screen)) says the same thing in both languages"
+            )
+            XCTAssertTrue(
+                russian.contains(where: { $0.isCyrillic }),
+                "\(type(of: screen)) has no Russian on it at all"
+            )
         }
     }
 
@@ -115,17 +128,21 @@ final class LanguageTests: XCTestCase {
     func testKeyNamesAreNeverTranslated_onlyWhatTheyDo() async {
         // A key name is a place on the keyboard, not a word: it is the same in every
         // language, while the label beside it is translated.
-        let screens: [Screen] = [MainMenuScreen(), LibraryScreen(), HelpScreen(),
-                                 ToolchainScreen(), SettingsScreen(), StyleListScreen(),
-                                 RegionPickerScreen(),
-                                 HideScreen(hidden: []) { _ in },
-                                 StylePickerScreen(styles: [], current: LanguageTests.style) { _ in }]
+        let screens: [Screen] = [
+            MainMenuScreen(), LibraryScreen(), HelpScreen(),
+            ToolchainScreen(), SettingsScreen(), StyleListScreen(),
+            RegionPickerScreen(),
+            HideScreen(hidden: []) { _ in },
+            StylePickerScreen(styles: [], current: LanguageTests.style) { _ in }
+        ]
         for screen in screens {
             L10n.use(.ru)
             _ = frame(screen)
             for hint in screen.footerHints {
-                XCTAssertFalse(hint.key.contains(where: { $0.isCyrillic }),
-                               "\(type(of: screen)) translated the key \"\(hint.key)\"")
+                XCTAssertFalse(
+                    hint.key.contains(where: { $0.isCyrillic }),
+                    "\(type(of: screen)) translated the key \"\(hint.key)\""
+                )
             }
         }
     }
@@ -143,22 +160,40 @@ final class LanguageTests: XCTestCase {
 
     // MARK: What the language may not touch
 
-    private static let style = MapStyle(id: "borrowed", name: "Borrowed", summary: "",
-                                        origin: .builtin, styleDirectory: nil, typURL: nil,
-                                        familyID: 6324, productID: 1)
+    private static let style = MapStyle(
+        id: "borrowed",
+        name: "Borrowed",
+        summary: "",
+        origin: .builtin,
+        styleDirectory: nil,
+        typURL: nil,
+        familyID: 6324,
+        productID: 1
+    )
 
     private func recipe() -> BuildRecipe {
-        let parent = Region(id: "continent/parent-region", name: "Parent Region",
-                            parentID: "continent",
-                            pbfURL: nil,
-                            bbox: BBox(minLon: 9, minLat: 46, maxLon: 17, maxLat: 49),
-                            boxes: [])
-        let child = Region(id: "continent/parent-region/child-region", name: "Child Region",
-                           parentID: "continent/parent-region", pbfURL: nil, bbox: .empty,
-                           boxes: [])
-        var made = BuildRecipe(region: parent, extraRegions: [child],
-                               style: LanguageTests.style,
-                               outputDirectory: URL(fileURLWithPath: "/tmp/out"))
+        let parent = Region(
+            id: "continent/parent-region",
+            name: "Parent Region",
+            parentID: "continent",
+            pbfURL: nil,
+            bbox: BBox(minLon: 9, minLat: 46, maxLon: 17, maxLat: 49),
+            boxes: []
+        )
+        let child = Region(
+            id: "continent/parent-region/child-region",
+            name: "Child Region",
+            parentID: "continent/parent-region",
+            pbfURL: nil,
+            bbox: .empty,
+            boxes: []
+        )
+        var made = BuildRecipe(
+            region: parent,
+            extraRegions: [child],
+            style: LanguageTests.style,
+            outputDirectory: URL(fileURLWithPath: "/tmp/out")
+        )
         made.codePage = 1251
         made.descriptions = .phone
         return made
@@ -166,12 +201,14 @@ final class LanguageTests: XCTestCase {
 
     /// Everything the recipe decides that ends up written into the map or onto the disk.
     private func whatReachesTheMap(_ made: BuildRecipe) -> [String] {
-        [made.mapName, made.familyName, made.seriesName, made.headerDescription,
-         made.slug, made.outputFolderName, made.effectiveNameTagList,
-         made.levels.levels, made.levels.overviewLevels,
-         made.descriptions.tag ?? "-",
-         made.partNames(count: 2, axis: .longitude).joined(separator: ","),
-         "\(made.familyID)", "\(made.codePage)", "\(made.mapIDBase)"]
+        [
+            made.mapName, made.familyName, made.seriesName, made.headerDescription,
+            made.slug, made.outputFolderName, made.effectiveNameTagList,
+            made.levels.levels, made.levels.overviewLevels,
+            made.descriptions.tag ?? "-",
+            made.partNames(count: 2, axis: .longitude).joined(separator: ","),
+            "\(made.familyID)", "\(made.codePage)", "\(made.mapIDBase)"
+        ]
     }
 
     func testTheLanguageOfTheInterfaceNeverReachesTheMap() async {
@@ -181,8 +218,11 @@ final class LanguageTests: XCTestCase {
         L10n.use(.ru)
         let russian = whatReachesTheMap(made)
 
-        XCTAssertEqual(english, russian,
-                       "something the interface says is being written into the map")
+        XCTAssertEqual(
+            english,
+            russian,
+            "something the interface says is being written into the map"
+        )
         // The map's own name, spelled out rather than implied.
         XCTAssertEqual(made.mapName, "Parent Region and Child Region")
     }

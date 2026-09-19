@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The merge that drops a node repeated between overlapping extracts.
@@ -6,7 +7,6 @@ import XCTest
 /// Correct only while both premises hold: the table knows where each file's stretch ends,
 /// and every stretch ascends strictly. A file that breaks either raises the fallback signal.
 final class FileMergeDedupTests: XCTestCase {
-
     private func table(files: [[Int64]]) -> TileSplitter.NodeAreas {
         let nodes = TileSplitter.NodeAreas(expecting: files.reduce(0) { $0 + $1.count })
         for ids in files {

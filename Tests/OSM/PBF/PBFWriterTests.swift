@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Writing a PBF, and reading it back with kmap's own reader.
@@ -6,7 +7,6 @@ import XCTest
 /// A round trip covers most of it. What a round trip cannot see -- the blob framing, the
 /// zlib wrapper, how many blocks a batch was cut into -- is checked directly.
 final class PBFWriterTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -27,11 +27,19 @@ final class PBFWriterTests: XCTestCase {
     private struct Collected: OSMSink {
         var nodes: [(id: Int64, lat: Double, lon: Double, tags: [(String, String)])] = []
         var ways: [(id: Int64, refs: [Int64], tags: [(String, String)])] = []
-        var relations: [(id: Int64, kinds: [Int32], ids: [Int64], roles: [String],
-                         tags: [(String, String)])] = []
+        var relations:
+            [(
+                id: Int64, kinds: [Int32], ids: [Int64], roles: [String],
+                tags: [(String, String)]
+            )] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var pairs: [(String, String)] = []
             var i = tags.startIndex
             while i + 1 < tags.endIndex {
@@ -41,25 +49,45 @@ final class PBFWriterTests: XCTestCase {
             nodes.append((id, lat, lon, pairs))
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                          values: ArraySlice<Int32>, block: OSMBlock) {
-            ways.append((id, Array(refs),
-                         zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }))
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
+            ways.append(
+                (
+                    id, Array(refs),
+                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
+                )
+            )
         }
 
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {
-            relations.append((id, Array(memberKinds), Array(memberIDs),
-                              memberRoles.map { block.text(Int($0)) },
-                              zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }))
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
+            relations.append(
+                (
+                    id, Array(memberKinds), Array(memberIDs),
+                    memberRoles.map { block.text(Int($0)) },
+                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
+                )
+            )
         }
     }
 
     @discardableResult
-    private func roundTrip(_ write: (PBFWriter) -> Void,
-                           file: URL? = nil) throws -> Collected {
+    private func roundTrip(
+        _ write: (PBFWriter) -> Void,
+        file: URL? = nil
+    ) throws -> Collected {
         let url = file ?? path()
         let writer = try PBFWriter(to: url)
         writer.header()
@@ -86,12 +114,14 @@ final class PBFWriterTests: XCTestCase {
     func testCoordinatesSurviveEveryCornerOfTheWorld() throws {
         let places: [(Double, Double)] = [
             (0, 0), (90, 180), (-90, -180), (89.9999999, 179.9999999),
-            (-33.8688, 151.2093), (78.2232, 15.6469), (-54.8019, -68.3030),
+            (-33.8688, 151.2093), (78.2232, 15.6469), (-54.8019, -68.3030)
         ]
         let out = try roundTrip { writer in
-            writer.nodes(places.enumerated().map { i, place in
-                PBFWriter.Node(id: Int64(i + 1), lat: place.0, lon: place.1, tags: [])
-            })
+            writer.nodes(
+                places.enumerated().map { i, place in
+                    PBFWriter.Node(id: Int64(i + 1), lat: place.0, lon: place.1, tags: [])
+                }
+            )
         }
         XCTAssertEqual(out.nodes.count, places.count)
         for (i, place) in places.enumerated() {
@@ -105,7 +135,7 @@ final class PBFWriterTests: XCTestCase {
             writer.nodes([
                 PBFWriter.Node(id: 900, lat: 1, lon: 1, tags: []),
                 PBFWriter.Node(id: 3, lat: 2, lon: 2, tags: []),
-                PBFWriter.Node(id: 47, lat: 3, lon: 3, tags: []),
+                PBFWriter.Node(id: 47, lat: 3, lon: 3, tags: [])
             ])
         }
         XCTAssertEqual(out.nodes.map(\.id), [3, 47, 900])
@@ -117,11 +147,19 @@ final class PBFWriterTests: XCTestCase {
     func testNodeTagsSurviveIncludingRepeatsAndAlphabets() throws {
         let out = try roundTrip { writer in
             writer.nodes([
-                PBFWriter.Node(id: 1, lat: 0, lon: 0,
-                               tags: [("barrier", "gate"), ("name", "Ливадия")]),
-                PBFWriter.Node(id: 2, lat: 0, lon: 0,
-                               tags: [("barrier", "gate")]),   // same strings again
-                PBFWriter.Node(id: 3, lat: 0, lon: 0, tags: []),
+                PBFWriter.Node(
+                    id: 1,
+                    lat: 0,
+                    lon: 0,
+                    tags: [("barrier", "gate"), ("name", "Ливадия")]
+                ),
+                PBFWriter.Node(
+                    id: 2,
+                    lat: 0,
+                    lon: 0,
+                    tags: [("barrier", "gate")]
+                ),  // same strings again
+                PBFWriter.Node(id: 3, lat: 0, lon: 0, tags: [])
             ])
         }
         XCTAssertEqual(out.nodes[0].tags.map(\.0), ["barrier", "name"])
@@ -154,8 +192,13 @@ final class PBFWriterTests: XCTestCase {
 
     func testAWayKeepsItsRefsInOrderIncludingRepeats() throws {
         let out = try roundTrip { writer in
-            writer.ways([PBFWriter.Way(id: 7, refs: [5, 5, 900, 4, 900],
-                                       tags: [("highway", "track")])])
+            writer.ways([
+                PBFWriter.Way(
+                    id: 7,
+                    refs: [5, 5, 900, 4, 900],
+                    tags: [("highway", "track")]
+                )
+            ])
         }
         XCTAssertEqual(out.ways.count, 1)
         XCTAssertEqual(out.ways[0].refs, [5, 5, 900, 4, 900])
@@ -180,11 +223,16 @@ final class PBFWriterTests: XCTestCase {
         let members = [
             PBFWriter.Relation.Member(kind: 0, ref: 100, role: "admin_centre"),
             PBFWriter.Relation.Member(kind: 1, ref: 200, role: "outer"),
-            PBFWriter.Relation.Member(kind: 2, ref: 300, role: ""),
+            PBFWriter.Relation.Member(kind: 2, ref: 300, role: "")
         ]
         let out = try roundTrip { writer in
-            writer.relations([PBFWriter.Relation(id: 9, members: members,
-                                                 tags: [("type", "multipolygon")])])
+            writer.relations([
+                PBFWriter.Relation(
+                    id: 9,
+                    members: members,
+                    tags: [("type", "multipolygon")]
+                )
+            ])
         }
         XCTAssertEqual(out.relations.count, 1)
         XCTAssertEqual(out.relations[0].kinds, [0, 1, 2])
@@ -195,8 +243,13 @@ final class PBFWriterTests: XCTestCase {
 
     func testARelationWithNoMembersStillCarriesItsTags() throws {
         let out = try roundTrip { writer in
-            writer.relations([PBFWriter.Relation(id: 1, members: [],
-                                                 tags: [("type", "route")])])
+            writer.relations([
+                PBFWriter.Relation(
+                    id: 1,
+                    members: [],
+                    tags: [("type", "route")]
+                )
+            ])
         }
         XCTAssertEqual(out.relations[0].ids, [])
         XCTAssertEqual(out.relations[0].tags.map(\.1), ["route"])
@@ -206,8 +259,13 @@ final class PBFWriterTests: XCTestCase {
         let out = try roundTrip { writer in
             writer.nodes([PBFWriter.Node(id: 1, lat: 1, lon: 1, tags: [])])
             writer.ways([PBFWriter.Way(id: 2, refs: [1], tags: [])])
-            writer.relations([PBFWriter.Relation(
-                id: 3, members: [.init(kind: 1, ref: 2, role: "outer")], tags: [])])
+            writer.relations([
+                PBFWriter.Relation(
+                    id: 3,
+                    members: [.init(kind: 1, ref: 2, role: "outer")],
+                    tags: []
+                )
+            ])
         }
         XCTAssertEqual(out.nodes.count, 1)
         XCTAssertEqual(out.ways.count, 1)
@@ -219,12 +277,21 @@ final class PBFWriterTests: XCTestCase {
     func testABatchTooBigForOneBlockIsCutIntoSeveral() throws {
         // The per-block bound is sixteen thousand; the batch comes back whole regardless.
         let url = path("big.osm.pbf")
-        let out = try roundTrip({ writer in
-            writer.nodes((1...40_000).map {
-                PBFWriter.Node(id: Int64($0), lat: 45 + Double($0) * 1e-6,
-                               lon: 33, tags: [])
-            })
-        }, file: url)
+        let out = try roundTrip(
+            { writer in
+                writer.nodes(
+                    (1...40_000).map {
+                        PBFWriter.Node(
+                            id: Int64($0),
+                            lat: 45 + Double($0) * 1e-6,
+                            lon: 33,
+                            tags: []
+                        )
+                    }
+                )
+            },
+            file: url
+        )
         XCTAssertEqual(out.nodes.count, 40_000)
         XCTAssertEqual(out.nodes.first?.id, 1)
         XCTAssertEqual(out.nodes.last?.id, 40_000)
@@ -233,8 +300,10 @@ final class PBFWriterTests: XCTestCase {
 
     func testTheHeaderIsTheFirstBlobAndTheOnlyOne() throws {
         let url = path("header.osm.pbf")
-        try roundTrip({ $0.nodes([PBFWriter.Node(id: 1, lat: 0, lon: 0, tags: [])]) },
-                      file: url)
+        try roundTrip(
+            { $0.nodes([PBFWriter.Node(id: 1, lat: 0, lon: 0, tags: [])]) },
+            file: url
+        )
         let kinds = try blobKinds(of: url)
         XCTAssertEqual(kinds.first, "OSMHeader")
         XCTAssertEqual(kinds.filter { $0 == "OSMHeader" }.count, 1)
@@ -243,8 +312,12 @@ final class PBFWriterTests: XCTestCase {
     func testABoundingBoxIsWrittenAsTheFileSaysItCovers() throws {
         let url = path("bbox.osm.pbf")
         let writer = try PBFWriter(to: url)
-        writer.header(bbox: (minLat: 44.1341, minLon: 32.1505,
-                             maxLat: 46.2812, maxLon: 36.6835))
+        writer.header(
+            bbox: (
+                minLat: 44.1341, minLon: 32.1505,
+                maxLat: 46.2812, maxLon: 36.6835
+            )
+        )
         writer.nodes([PBFWriter.Node(id: 1, lat: 45, lon: 33, tags: [])])
         try writer.finish()
 
@@ -282,15 +355,23 @@ final class PBFWriterTests: XCTestCase {
         // Four megabytes are buffered before the writer touches the disk; this crosses
         // that threshold several times.
         let url = path("streamed.osm.pbf")
-        let out = try roundTrip({ writer in
-            for batch in 0..<12 {
-                writer.nodes((0..<20_000).map { i in
-                    PBFWriter.Node(id: Int64(batch * 20_000 + i + 1),
-                                   lat: 45 + Double(i) * 1e-5, lon: 33,
-                                   tags: [("name", "node \(batch)-\(i)")])
-                })
-            }
-        }, file: url)
+        let out = try roundTrip(
+            { writer in
+                for batch in 0..<12 {
+                    writer.nodes(
+                        (0..<20_000).map { i in
+                            PBFWriter.Node(
+                                id: Int64(batch * 20_000 + i + 1),
+                                lat: 45 + Double(i) * 1e-5,
+                                lon: 33,
+                                tags: [("name", "node \(batch)-\(i)")]
+                            )
+                        }
+                    )
+                }
+            },
+            file: url
+        )
         XCTAssertEqual(out.nodes.count, 240_000)
         XCTAssertEqual(out.nodes.last?.id, 240_000)
     }

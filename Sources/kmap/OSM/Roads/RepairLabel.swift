@@ -15,8 +15,11 @@ enum RepairLabel {
         let key = "repair." + (what.isEmpty ? "obstacle" : what)
         var name = words(StyleWords.knows(key) ? key : "repair.obstacle")
         if height.isFinite {
-            name += String(format: language == "ru" ? " высотой %.1f %@" : " %.1f %@ high",
-                           height, unit)
+            name += String(
+                format: language == "ru" ? " высотой %.1f %@" : " %.1f %@ high",
+                height,
+                unit
+            )
         }
         return String(format: "%@, %.2f %@", name, metres, unit)
     }

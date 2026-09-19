@@ -54,8 +54,10 @@ enum GarminGrid {
     }
 
     private static func unpack(_ cell: UInt64) -> (lat: Double, lon: Double) {
-        (Double(Int32(bitPattern: UInt32(cell >> 32))),
-         Double(Int32(bitPattern: UInt32(cell & 0xFFFF_FFFF))))
+        (
+            Double(Int32(bitPattern: UInt32(cell >> 32))),
+            Double(Int32(bitPattern: UInt32(cell & 0xFFFF_FFFF)))
+        )
     }
 
     /// The cell as a zoomed-out level stores it: each coordinate rounded to the
@@ -65,8 +67,10 @@ enum GarminGrid {
         guard shift > 0 else { return cell }
         let half = Int32(1 << (shift - 1))
         func snap(_ v: Int32) -> Int32 { ((v &+ half) >> shift) << shift }
-        return pack(latUnit: snap(Int32(bitPattern: UInt32(cell >> 32))),
-                    lonUnit: snap(Int32(bitPattern: UInt32(cell & 0xFFFF_FFFF))))
+        return pack(
+            latUnit: snap(Int32(bitPattern: UInt32(cell >> 32))),
+            lonUnit: snap(Int32(bitPattern: UInt32(cell & 0xFFFF_FFFF)))
+        )
     }
 
     /// The one edge of a two-vertex way, hashed apart from the triples.

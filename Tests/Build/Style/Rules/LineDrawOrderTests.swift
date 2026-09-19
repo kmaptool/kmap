@@ -1,28 +1,37 @@
 import XCTest
+
 @testable import kmap
 
 /// Which line covers which: the ranks kmap reads out of a style's own road rules and
 /// hands to mkgmap. A wrong rank is not a crash — it is a river drawn over a motorway.
 final class LineDrawOrderTests: XCTestCase {
-
     /// Indexes a `lines` file written into a throwaway directory.
-    private func index(_ lines: String,
-                       file: StaticString = #filePath, line: UInt = #line) throws -> RuleSetIndex {
+    private func index(
+        _ lines: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> RuleSetIndex {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("draworder-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
         try lines.write(to: dir.appendingPathComponent("lines"), atomically: true, encoding: .utf8)
-        return try XCTUnwrap(RuleSetIndex.read(styleDirectory: dir), "nothing parsed",
-                             file: file, line: line)
+        return try XCTUnwrap(
+            RuleSetIndex.read(styleDirectory: dir),
+            "nothing parsed",
+            file: file,
+            line: line
+        )
     }
 
     func testARoadRanksAboveTheWaterItCrosses() throws {
-        let index = try index("""
-        waterway=river [0x1f resolution 24]
-        highway=motorway [0x0100 resolution 20-24]
-        highway=residential [0x0600 resolution 24]
-        """)
+        let index = try index(
+            """
+            waterway=river [0x1f resolution 24]
+            highway=motorway [0x0100 resolution 20-24]
+            highway=residential [0x0600 resolution 24]
+            """
+        )
         let ranks = LineDrawOrder.ranks(in: index)
         XCTAssertNil(ranks[0x1f], "water is not named, so it stays at the bottom")
         XCTAssertEqual(ranks[0x0600], 2)
@@ -33,10 +42,12 @@ final class LineDrawOrderTests: XCTestCase {
     func testTheHighestClaimOnACodeWins() throws {
         // One code drawn for two roads at once: it is drawn the same either way, so it
         // takes the rank of the more important of them.
-        let index = try index("""
-        highway=track [0x0a resolution 24]
-        highway=primary | highway=secondary [0x0a resolution 24]
-        """)
+        let index = try index(
+            """
+            highway=track [0x0a resolution 24]
+            highway=primary | highway=secondary [0x0a resolution 24]
+            """
+        )
         XCTAssertEqual(LineDrawOrder.ranks(in: index)[0x0a], 5)
     }
 
@@ -47,13 +58,17 @@ final class LineDrawOrderTests: XCTestCase {
     }
 
     func testTheOptionNamesEveryRankedCode() throws {
-        let index = try index("""
-        highway=path [0x10a05 resolution 24]
-        highway=trunk [0x02 resolution 24]
-        """)
-        XCTAssertEqual(LineDrawOrder.option(in: index),
-                       "--x-line-draw-order=0x02:6,0x10a05:1",
-                       "sorted by code, each with its rank, as the patched mkgmap reads it")
+        let index = try index(
+            """
+            highway=path [0x10a05 resolution 24]
+            highway=trunk [0x02 resolution 24]
+            """
+        )
+        XCTAssertEqual(
+            LineDrawOrder.option(in: index),
+            "--x-line-draw-order=0x02:6,0x10a05:1",
+            "sorted by code, each with its rank, as the patched mkgmap reads it"
+        )
     }
 
     /// A rule that narrows a road with a second condition still names the road.
@@ -67,14 +82,16 @@ final class LineDrawOrderTests: XCTestCase {
     private let contours: Set<Int> = [0x20, 0x21, 0x22]
 
     private func mapWithContours() throws -> RuleSetIndex {
-        try index("""
-        contour=elevation & contour_ext=elevation_minor [0x20 resolution 23]
-        contour=elevation & contour_ext=elevation_major [0x22 resolution 21]
-        boundary=protected_area [0x19 resolution 21]
-        waterway=river [0x1f resolution 20]
-        highway=path [0x16 resolution 23]
-        highway=motorway [0x01 resolution 16]
-        """)
+        try index(
+            """
+            contour=elevation & contour_ext=elevation_minor [0x20 resolution 23]
+            contour=elevation & contour_ext=elevation_major [0x22 resolution 21]
+            boundary=protected_area [0x19 resolution 21]
+            waterway=river [0x1f resolution 20]
+            highway=path [0x16 resolution 23]
+            highway=motorway [0x01 resolution 16]
+            """
+        )
     }
 
     func testContoursStayAtTheBottomAndEverythingElseIsLiftedOverThem() throws {
@@ -95,8 +112,10 @@ final class LineDrawOrderTests: XCTestCase {
     }
 
     func testTheOptionForAMapWithContoursNamesEveryLineButThem() throws {
-        XCTAssertEqual(LineDrawOrder.option(in: try mapWithContours(), overContours: contours),
-                       "--x-line-draw-order=0x01:8,0x16:2,0x19:1,0x1f:1")
+        XCTAssertEqual(
+            LineDrawOrder.option(in: try mapWithContours(), overContours: contours),
+            "--x-line-draw-order=0x01:8,0x16:2,0x19:1,0x1f:1"
+        )
     }
 
     func testAMapWithoutContoursIsOrderedAsItAlwaysWas() throws {
@@ -104,8 +123,10 @@ final class LineDrawOrderTests: XCTestCase {
         // subdivisions and buy nothing.
         let index = try mapWithContours()
         XCTAssertEqual(LineDrawOrder.option(in: index), "--x-line-draw-order=0x01:7,0x16:1")
-        XCTAssertEqual(LineDrawOrder.option(in: index, overContours: []),
-                       LineDrawOrder.option(in: index))
+        XCTAssertEqual(
+            LineDrawOrder.option(in: index, overContours: []),
+            LineDrawOrder.option(in: index)
+        )
     }
 
     func testAStyleWithoutRoadsIsLeftAloneEvenWithContours() throws {

@@ -5,7 +5,6 @@ import Foundation
 /// the build performs always agree: each region's own boxes, trimmed to the region
 /// outlines where they can be had.
 enum ElevationFootprint {
-
     /// How far past a cell's rectangle an outline may pass and still keep the cell.
     static let margin = 0.1
 
@@ -44,26 +43,33 @@ enum ElevationFootprint {
     /// Cuts the cells lying wholly outside every outline out of the list. A region whose
     /// rings are nil keeps every cell of its own boxes, as one square ring per cell,
     /// erring towards fetching ground rather than clipping it away.
-    static func trim(_ all: [(lat: Int, lon: Int)],
-                     ringsPerRegion: [(region: Region, rings: [RegionOutline.Ring]?)])
-        -> [(lat: Int, lon: Int)] {
+    static func trim(
+        _ all: [(lat: Int, lon: Int)],
+        ringsPerRegion: [(region: Region, rings: [RegionOutline.Ring]?)]
+    )
+        -> [(lat: Int, lon: Int)]
+    {
         var rings: [RegionOutline.Ring] = []
         for (region, some) in ringsPerRegion {
             if let some {
                 rings.append(contentsOf: some.filter { !$0.subtract })
             } else {
-                let keep = Set(region.boxes.flatMap { cellOrigins(of: $0) }
-                    .map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) })
+                let keep = Set(
+                    region.boxes.flatMap { cellOrigins(of: $0) }
+                        .map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) }
+                )
                 rings.append(contentsOf: squareRings(covering: keep, from: all))
             }
         }
         guard !rings.isEmpty else { return all }
         return all.filter { cell in
-            RegionOutline.rectTouches(rings,
-                                      minLon: Double(cell.lon) - margin,
-                                      minLat: Double(cell.lat) - margin,
-                                      maxLon: Double(cell.lon) + 1 + margin,
-                                      maxLat: Double(cell.lat) + 1 + margin)
+            RegionOutline.rectTouches(
+                rings,
+                minLon: Double(cell.lon) - margin,
+                minLat: Double(cell.lat) - margin,
+                maxLon: Double(cell.lon) + 1 + margin,
+                maxLat: Double(cell.lat) + 1 + margin
+            )
         }
     }
 
@@ -81,14 +87,19 @@ enum ElevationFootprint {
 
     /// One square ring per named cell: how a region without an outline keeps its ground
     /// through the trim.
-    private static func squareRings(covering names: Set<String>,
-                                    from all: [(lat: Int, lon: Int)]) -> [RegionOutline.Ring] {
+    private static func squareRings(
+        covering names: Set<String>,
+        from all: [(lat: Int, lon: Int)]
+    ) -> [RegionOutline.Ring] {
         all.filter { names.contains(CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon)) }
             .map { cell in
                 let lon = Double(cell.lon), lat = Double(cell.lat)
-                return RegionOutline.Ring(subtract: false, points: [
-                    (lon, lat), (lon + 1, lat), (lon + 1, lat + 1), (lon, lat + 1), (lon, lat)
-                ])
+                return RegionOutline.Ring(
+                    subtract: false,
+                    points: [
+                        (lon, lat), (lon + 1, lat), (lon + 1, lat + 1), (lon, lat + 1), (lon, lat)
+                    ]
+                )
             }
     }
 }

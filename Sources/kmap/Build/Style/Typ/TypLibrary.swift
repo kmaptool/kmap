@@ -2,7 +2,6 @@ import Foundation
 
 /// A TYP kmap could take a copy of.
 enum TypLibrary {
-
     static var directory: URL { Paths.root.appendingPathComponent("typ", isDirectory: true) }
 
     /// Where builds used to drop TYPs lifted out of `.img` containers. Skipped when
@@ -17,10 +16,14 @@ enum TypLibrary {
     ///
     /// - Parameter directory: passed only by tests, to point at a throwaway folder.
     static func contents(in directory: URL = TypLibrary.directory) -> [URL] {
-        let found = (try? FileManager.default.contentsOfDirectory(
-            at: directory, includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles])) ?? []
-        return found
+        let found =
+            (try? FileManager.default.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )) ?? []
+        return
+            found
             .filter { ["typ", "txt"].contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
@@ -45,12 +48,16 @@ enum TypLibrary {
     /// Writes edited TYP source back over a library file.
     ///
     /// - Throws: `ImportError.failed` for any destination outside the library.
-    static func save(_ text: String, to url: URL,
-                     library: URL = TypLibrary.directory) throws {
+    static func save(
+        _ text: String,
+        to url: URL,
+        library: URL = TypLibrary.directory
+    ) throws {
         guard mayWrite(to: url, library: library) else {
             throw ImportError.failed(
                 "\(Paths.display(url)) is outside kmap's TYP library, which is the only "
-                + "place kmap writes a TYP — take an editable copy first")
+                    + "place kmap writes a TYP — take an editable copy first"
+            )
         }
         do {
             try text.write(to: url, atomically: true, encoding: .utf8)
@@ -63,8 +70,11 @@ enum TypLibrary {
     /// Makes editable a style that cannot be edited where it lies, such as the built-in
     /// working copy, which every build rewrites from the embedded asset.
     @discardableResult
-    static func adopt(source text: String, named name: String,
-                      into directory: URL = TypLibrary.directory) throws -> URL {
+    static func adopt(
+        source text: String,
+        named name: String,
+        into directory: URL = TypLibrary.directory
+    ) throws -> URL {
         Paths.ensure(directory)
         let destination = freeName(FileTools.slugify(name), extension: "txt", in: directory)
         do {
@@ -100,8 +110,11 @@ enum TypLibrary {
     /// The id is made from the name, so renaming changes it and a style that was the
     /// default stops being found by it.
     @discardableResult
-    static func rename(_ url: URL, to name: String,
-                       library: URL = TypLibrary.directory) throws -> URL {
+    static func rename(
+        _ url: URL,
+        to name: String,
+        library: URL = TypLibrary.directory
+    ) throws -> URL {
         guard mayWrite(to: url, library: library) else {
             throw ImportError.failed("\(Paths.display(url)) is not in kmap's TYP library")
         }
@@ -117,17 +130,20 @@ enum TypLibrary {
         // The kept original follows its source, so the pair stays a pair.
         let originals = originalsDirectory(in: library)
         let was = originals.appendingPathComponent(
-            url.deletingPathExtension().lastPathComponent + ".typ")
+            url.deletingPathExtension().lastPathComponent + ".typ"
+        )
         if FileTools.exists(was) {
             let now = originals.appendingPathComponent(
-                destination.deletingPathExtension().lastPathComponent + ".typ")
+                destination.deletingPathExtension().lastPathComponent + ".typ"
+            )
             FileTools.removeIfPresent(now)
             try? FileManager.default.moveItem(at: was, to: now)
         }
         // The recovered sheet follows its source as well.
         if let kept = sheet(of: url, library: library) {
             let now = sheetsDirectory(in: library).appendingPathComponent(
-                destination.deletingPathExtension().lastPathComponent + ".txt")
+                destination.deletingPathExtension().lastPathComponent + ".txt"
+            )
             FileTools.removeIfPresent(now)
             try? FileManager.default.moveItem(at: kept, to: now)
         }
@@ -138,9 +154,13 @@ enum TypLibrary {
     /// is left to the device, and every code the style does not cover is listed on the
     /// coverage screen.
     @discardableResult
-    static func create(named name: String, familyID: Int = 6324, productID: Int = 1,
-                       codePage: Int = CodePage.westernEuropean,
-                       into library: URL = TypLibrary.directory) throws -> URL {
+    static func create(
+        named name: String,
+        familyID: Int = 6324,
+        productID: Int = 1,
+        codePage: Int = CodePage.westernEuropean,
+        into library: URL = TypLibrary.directory
+    ) throws -> URL {
         let base = FileTools.slugify(name)
         guard !base.isEmpty else { throw ImportError.failed("a style needs a name") }
         Paths.ensure(library)
@@ -180,8 +200,11 @@ enum TypLibrary {
 
     /// A second copy of an entry, under a dated name, with its original copied along.
     @discardableResult
-    static func duplicate(_ url: URL, library: URL = TypLibrary.directory,
-                          on day: Date = Date()) throws -> URL {
+    static func duplicate(
+        _ url: URL,
+        library: URL = TypLibrary.directory,
+        on day: Date = Date()
+    ) throws -> URL {
         guard mayWrite(to: url, library: library) else {
             throw ImportError.failed("\(Paths.display(url)) is not in kmap's TYP library")
         }
@@ -196,15 +219,16 @@ enum TypLibrary {
         // restored, and would read as never imported.
         if let kept = original(of: url, library: library) {
             let beside = originalsDirectory(in: library).appendingPathComponent(
-                destination.deletingPathExtension().lastPathComponent + ".typ")
+                destination.deletingPathExtension().lastPathComponent + ".typ"
+            )
             try? FileManager.default.copyItem(at: kept, to: beside)
         }
         if let kept = sheet(of: url, library: library) {
             let beside = sheetsDirectory(in: library).appendingPathComponent(
-                destination.deletingPathExtension().lastPathComponent + ".txt")
+                destination.deletingPathExtension().lastPathComponent + ".txt"
+            )
             try? FileManager.default.copyItem(at: kept, to: beside)
         }
         return destination
     }
-
 }

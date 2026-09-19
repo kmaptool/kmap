@@ -31,14 +31,26 @@ final class RecipeScreen: Screen {
 
     private var recipe: BuildRecipe { form.recipe }
 
-    convenience init(region: Region, index: RegionIndex? = nil, settings: SettingsStore,
-                     hasSeamPatch: Bool) {
-        self.init(regions: [region], index: index, settings: settings,
-                  hasSeamPatch: hasSeamPatch)
+    convenience init(
+        region: Region,
+        index: RegionIndex? = nil,
+        settings: SettingsStore,
+        hasSeamPatch: Bool
+    ) {
+        self.init(
+            regions: [region],
+            index: index,
+            settings: settings,
+            hasSeamPatch: hasSeamPatch
+        )
     }
 
-    init(regions: [Region], index: RegionIndex? = nil, settings store: SettingsStore,
-         hasSeamPatch: Bool) {
+    init(
+        regions: [Region],
+        index: RegionIndex? = nil,
+        settings store: SettingsStore,
+        hasSeamPatch: Bool
+    ) {
         precondition(!regions.isEmpty, "a map needs at least one region")
         self.regions = regions
         let region = regions[0]
@@ -53,37 +65,52 @@ final class RecipeScreen: Screen {
             region: region,
             extraRegions: Array(regions.dropFirst()),
             // A stand-in until the catalogue answers, which it does on the first tick.
-            style: MapStyle(id: "plain", name: "Plain", summary: "",
-                            origin: .builtin,
-                            styleDirectory: StyleCatalog.baseStyleDirectory,
-                            typURL: nil, familyID: 6324, productID: 1),
+            style: MapStyle(
+                id: "plain",
+                name: "Plain",
+                summary: "",
+                origin: .builtin,
+                styleDirectory: StyleCatalog.baseStyleDirectory,
+                typURL: nil,
+                familyID: 6324,
+                productID: 1
+            ),
             familyID: store.familyID(for: BuildRecipe.identityKey(regions)),
             countryOf: RecipeScreen.countries(of: regions, in: index),
             outputDirectory: settings.outputURL,
             workRoot: settings.workURL,
             maxNodesPerTile: settings.maxNodesPerTile,
             heapGB: settings.resolvedHeapGB,
-            downloadConnections: settings.downloadConnections)
+            downloadConnections: settings.downloadConnections
+        )
         recipe.apply(profile.choices, style: nil, regionCodePage: regionCodePage)
 
-        self.form = RecipeForm(mode: .build, recipe: recipe,
-                               regionCodePage: regionCodePage,
-                               askedStyleID: profile.choices.styleID,
-                               hasSeamPatch: hasSeamPatch)
+        self.form = RecipeForm(
+            mode: .build,
+            recipe: recipe,
+            regionCodePage: regionCodePage,
+            askedStyleID: profile.choices.styleID,
+            hasSeamPatch: hasSeamPatch
+        )
         form.profiles = store.profiles
         form.currentProfileID = profile.id
     }
 
     /// Maps region id to country id, for the per-country split. Walks each region's parent
     /// chain up to the last ancestor whose own parent is not the continent root.
-    private static func countries(of regions: [Region], in index: RegionIndex?)
-        -> [String: String] {
+    private static func countries(
+        of regions: [Region],
+        in index: RegionIndex?
+    )
+        -> [String: String]
+    {
         guard let index else { return [:] }
         var out: [String: String] = [:]
         for region in regions {
             var current = region
             while let parentID = current.parentID, let parent = index.region(parentID),
-                  parent.parentID != nil {
+                parent.parentID != nil
+            {
                 current = parent
             }
             out[region.id] = current.id
@@ -120,11 +147,16 @@ final class RecipeScreen: Screen {
             form.message = t("this region has no downloadable extract")
             return .none
         }
-        if recipe.needsElevationData, recipe.demSources.contains("srtm")
-            || recipe.demSources.contains("alos"),
-           ctx.toolchain.findPyhgtmap() == nil {
-            form.message = t("%@ needs pyhgtmap — open Toolchain to install it, or pick"
-                           + " copernicus1/copernicus3 or view1/view3", recipe.demSources)
+        if recipe.needsElevationData,
+            recipe.demSources.contains("srtm")
+                || recipe.demSources.contains("alos"),
+            ctx.toolchain.findPyhgtmap() == nil
+        {
+            form.message = t(
+                "%@ needs pyhgtmap — open Toolchain to install it, or pick"
+                    + " copernicus1/copernicus3 or view1/view3",
+                recipe.demSources
+            )
             return .none
         }
         // A machine kmap was just installed on has no Java and no mkgmap. Rather than
@@ -132,14 +164,18 @@ final class RecipeScreen: Screen {
         guard ctx.toolchain.canBuild else {
             let missing = Toolchain.missingRequirements(in: ctx.tools)
             guard !missing.isEmpty else {
-                form.message = t("the toolchain is incomplete — open Toolchain to finish"
-                               + " setting it up")
+                form.message = t(
+                    "the toolchain is incomplete — open Toolchain to finish"
+                        + " setting it up"
+                )
                 return .none
             }
-            return .push(SetupScreen(missing: missing) { [weak self] ctx in
-                guard let self else { return .pop }
-                return .replace(self.buildScreen(ctx))
-            })
+            return .push(
+                SetupScreen(missing: missing) { [weak self] ctx in
+                    guard let self else { return .pop }
+                    return .replace(self.buildScreen(ctx))
+                }
+            )
         }
         return .push(buildScreen(ctx))
     }
@@ -148,9 +184,13 @@ final class RecipeScreen: Screen {
     private func buildScreen(_ ctx: AppContext) -> BuildScreen {
         // The interface keeps the detail rather than dropping it: the build screen hides
         // it behind a key, so it is there the moment it is wanted.
-        let pipeline = BuildPipeline(recipe: recipe, settings: ctx.settings,
-                                     toolchain: ctx.toolchain, styles: ctx.styles,
-                                     showing: .debug)
+        let pipeline = BuildPipeline(
+            recipe: recipe,
+            settings: ctx.settings,
+            toolchain: ctx.toolchain,
+            styles: ctx.styles,
+            showing: .debug
+        )
         return BuildScreen(pipeline: pipeline)
     }
 
@@ -173,7 +213,8 @@ final class RecipeScreen: Screen {
         for service in ElevationLogins.Service.allCases {
             let login = ElevationLogins.load(service)
             guard !login.user.isEmpty, !login.password.isEmpty,
-                  ElevationLogins.check(service) == nil else { continue }
+                ElevationLogins.check(service) == nil
+            else { continue }
             Task { _ = await ElevationLogins.verify(service) }
         }
     }
@@ -257,9 +298,13 @@ final class RecipeScreen: Screen {
 
         mutating func caption(_ text: String) {
             guard y < rect.maxY else { return }
-            s.sectionRule(rect, y, text,
-                          labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                          ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+            s.sectionRule(
+                rect,
+                y,
+                text,
+                labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+                ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+            )
             y += 2
         }
 
@@ -296,18 +341,27 @@ final class RecipeScreen: Screen {
             }
             // Total of the known sizes, marked "+" while any size is still outstanding.
             let known = regions.compactMap { extractSizes[$0.id] }
-            let total = Fmt.bytes(known.reduce(Int64(0), +))
+            let total =
+                Fmt.bytes(known.reduce(Int64(0), +))
                 + (known.count < regions.count ? "+" : "")
             if regions.count > 8 {
-                column.line(t("and %d more", regions.count - 8) + "  ·  "
-                     + t("%@ in all", total), tone: theme.faint)
+                column.line(
+                    t("and %d more", regions.count - 8) + "  ·  "
+                        + t("%@ in all", total),
+                    tone: theme.faint
+                )
             } else if !known.isEmpty {
                 column.line(t("%@ in all", total), tone: theme.faint)
             }
             if recipe.coverage.isValid {
                 column.line(recipe.coverage.display, tone: theme.dim)
-                column.line(t("bounds around them all — the map itself covers only the regions"
-                     + " themselves"), tone: theme.faint)
+                column.line(
+                    t(
+                        "bounds around them all — the map itself covers only the regions"
+                            + " themselves"
+                    ),
+                    tone: theme.faint
+                )
             }
         }
         column.gap()
@@ -324,44 +378,68 @@ final class RecipeScreen: Screen {
             // Spinner alone while the estimate runs: the previous figure belongs to the
             // previous source.
             if elevationCosting || elevationCost.isEmpty {
-                column.line(t("%@ working out what this costs to fetch",
-                       String(Widgets.spinner(ctx.frame))), tone: theme.faint)
+                column.line(
+                    t(
+                        "%@ working out what this costs to fetch",
+                        String(Widgets.spinner(ctx.frame))
+                    ),
+                    tone: theme.faint
+                )
             }
             let costs = elevationCosting ? [] : elevationCost
             if let first = costs.first {
                 let cached = costs.map(\.cached).max() ?? 0
-                column.line(tn("elevation: %d cell(s) after the outline trim", first.cells)
-                     + (cached > 0 ? "  ·  " + t("%d already in the cache", cached) : ""),
-                     tone: theme.faint)
+                column.line(
+                    tn("elevation: %d cell(s) after the outline trim", first.cells)
+                        + (cached > 0 ? "  ·  " + t("%d already in the cache", cached) : ""),
+                    tone: theme.faint
+                )
             }
             for cost in costs {
-                column.line(costLine(cost),
-                     tone: (cost.bytes ?? 0) > 2_000_000_000 ? theme.warn : theme.dim)
+                column.line(
+                    costLine(cost),
+                    tone: (cost.bytes ?? 0) > 2_000_000_000 ? theme.warn : theme.dim
+                )
             }
             // The chain's sum, when more than one link actually fetches.
             let fetching = costs.filter { ($0.bytes ?? 0) > 0 }
             if fetching.count > 1 {
                 let total = fetching.reduce(Int64(0)) { $0 + ($1.bytes ?? 0) }
-                column.line(t("%@ to download in all", Fmt.bytes(total)),
-                     tone: total > 2_000_000_000 ? theme.warn : theme.faint)
+                column.line(
+                    t("%@ to download in all", Fmt.bytes(total)),
+                    tone: total > 2_000_000_000 ? theme.warn : theme.faint
+                )
             }
             let tiles = regions.reduce(0) { $0 + $1.demTileCount }
             if recipe.contours && recipe.contourInterval <= 10 && tiles > 60 {
-                column.line(t("a %d m interval over this many tiles makes a large map and a long"
-                     + " build", recipe.contourInterval), tone: theme.warn)
+                column.line(
+                    t(
+                        "a %d m interval over this many tiles makes a large map and a long"
+                            + " build",
+                        recipe.contourInterval
+                    ),
+                    tone: theme.warn
+                )
             }
         }
         switch recipe.splitMode {
         case .fitCard:
-            column.line(t("written as one file when it fits a FAT32 card, several"
-                 + " when it does not"), tone: theme.dim)
+            column.line(
+                t(
+                    "written as one file when it fits a FAT32 card, several"
+                        + " when it does not"
+                ),
+                tone: theme.dim
+            )
         case .perRegion:
             column.line(t("one file per region, so a region can be left off the card"), tone: theme.dim)
         case .perCountry:
             column.line(t("one file per country, its regions gathered together"), tone: theme.dim)
         case .count(let n):
-            column.line(tn("%d file(s) of equal weight, whatever that means for the card", n),
-                 tone: theme.dim)
+            column.line(
+                tn("%d file(s) of equal weight, whatever that means for the card", n),
+                tone: theme.dim
+            )
         }
         if recipe.codePage == CodePage.cyrillic {
             column.line(t("code page 1251 — Cyrillic names"), tone: theme.dim)
@@ -384,9 +462,11 @@ final class RecipeScreen: Screen {
             said += cost.note ?? t("nothing to fetch")
         case let bytes?:
             said += t("about %@ to download", Fmt.bytes(bytes))
-            said += "  ·  " + (cost.archives > 0
-                ? tn("%d zone archive(s)", cost.archives)
-                : tn("%d tile(s)", cost.published))
+            said +=
+                "  ·  "
+                + (cost.archives > 0
+                    ? tn("%d zone archive(s)", cost.archives)
+                    : tn("%d tile(s)", cost.published))
             if let note = cost.note {
                 said += "  ·  " + note
             } else if cost.exact {
@@ -414,13 +494,26 @@ final class RecipeScreen: Screen {
             notes.append((t("no TYP — the device picks the colours"), theme.warn))
         }
         if recipe.codePage == CodePage.westernEuropean, recipe.coverage.isValid,
-           recipe.coverage.minLon > CodePage.cyrillicMeridian {
-            notes.append((t("code page 1252 cannot hold Cyrillic — set 1251 if the names"
-                          + " here are in it"), theme.warn))
+            recipe.coverage.minLon > CodePage.cyrillicMeridian
+        {
+            notes.append(
+                (
+                    t(
+                        "code page 1252 cannot hold Cyrillic — set 1251 if the names"
+                            + " here are in it"
+                    ), theme.warn
+                )
+            )
         }
         if form.isModified, form.currentProfile != nil {
-            notes.append((t("changed on this screen — the map is built with what is on it,"
-                          + " and the profile is left as it was"), theme.dim))
+            notes.append(
+                (
+                    t(
+                        "changed on this screen — the map is built with what is on it,"
+                            + " and the profile is left as it was"
+                    ), theme.dim
+                )
+            )
         }
         if !notes.isEmpty {
             column.caption(t("worth knowing"))
@@ -444,51 +537,79 @@ final class RecipeScreen: Screen {
     }
 
     /// Explanatory lines for the selected row, each with the colour it is drawn in.
-    private func explanation(_ field: RecipeForm.Field,
-                             _ ctx: AppContext) -> [(String, Color)] {
+    private func explanation(
+        _ field: RecipeForm.Field,
+        _ ctx: AppContext
+    ) -> [(String, Color)] {
         let theme = ctx.theme
         switch field {
         case .profile:
             guard let profile = form.currentProfile else { return [] }
-            return [(profile.name, theme.text),
-                    (t("a saved set of the choices on this screen"), theme.faint)]
+            return [
+                (profile.name, theme.text),
+                (t("a saved set of the choices on this screen"), theme.faint)
+            ]
         case .style:
             var out: [(String, Color)] = [(t(recipe.style.summary), theme.faint)]
             out.append((t("family id %d", recipe.style.familyID), theme.dim))
             return out
         case .zoomPlan:
-            var out: [(String, Color)] = [(recipe.levels.note, theme.faint),
-                                          (recipe.levels.levels, theme.dim)]
+            var out: [(String, Color)] = [
+                (recipe.levels.note, theme.faint),
+                (recipe.levels.levels, theme.dim)
+            ]
             if recipe.zoomPlan.movesAnything {
-                out.append((tn("%d family(ies) moved", recipe.zoomPlan.windows.count),
-                            theme.ok))
+                out.append(
+                    (
+                        tn("%d family(ies) moved", recipe.zoomPlan.windows.count),
+                        theme.ok
+                    )
+                )
             }
             out.append((t("edit these on the Zoom plans screen"), theme.faint))
             return out
         case .healRoads:
             return [
-                (t("Two roads can meet on screen without sharing a point — to the router "
-                 + "that is a dead end. kmap joins forgotten road ends closer than %d m, "
-                 + "and only where there is no way round at all.",
-                 Int(recipe.healRadius)), theme.faint),
-                (t("It never joins through a building, a fence or a hedge: whether a plot "
-                 + "can be crossed is OSM's to say. Where the gap crosses a kerb or a "
-                 + "step, kmap adds a thin dotted line, and the map shows that the gap "
-                 + "was mended for you."), theme.dim),
+                (
+                    t(
+                        "Two roads can meet on screen without sharing a point — to the router "
+                            + "that is a dead end. kmap joins forgotten road ends closer than %d m, "
+                            + "and only where there is no way round at all.",
+                        Int(recipe.healRadius)
+                    ), theme.faint
+                ),
+                (
+                    t(
+                        "It never joins through a building, a fence or a hedge: whether a plot "
+                            + "can be crossed is OSM's to say. Where the gap crosses a kerb or a "
+                            + "step, kmap adds a thin dotted line, and the map shows that the gap "
+                            + "was mended for you."
+                    ), theme.dim
+                )
             ]
         case .customPOIs:
             return [
-                (t("A .gpi beside the map, holding every object that has an OSM description. "
-                 + "The only Garmin format with a real description field."), theme.faint),
-                (t("Copy it to Garmin/POI on the device; it opens under Custom POIs."),
-                 theme.dim),
+                (
+                    t(
+                        "A .gpi beside the map, holding every object that has an OSM description. "
+                            + "The only Garmin format with a real description field."
+                    ), theme.faint
+                ),
+                (
+                    t("Copy it to Garmin/POI on the device; it opens under Custom POIs."),
+                    theme.dim
+                )
             ]
         case .descriptions:
             guard recipe.descriptions != .off else { return [] }
-            return [(recipe.descriptions == .inName
-                     ? t("OSM description text is appended to the object's own name.")
-                     : t("OSM description text is shown when an object is opened, never on the map."),
-                     theme.faint)]
+            return [
+                (
+                    recipe.descriptions == .inName
+                        ? t("OSM description text is appended to the object's own name.")
+                        : t("OSM description text is shown when an object is opened, never on the map."),
+                    theme.faint
+                )
+            ]
         case .hide:
             guard !recipe.hidden.isEmpty else { return [] }
             let names = recipe.hidden.compactMap { HideableFeature.feature(id: $0)?.localizedName }
@@ -496,7 +617,5 @@ final class RecipeScreen: Screen {
         default:
             return []
         }
-
     }
-
 }

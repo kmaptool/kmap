@@ -1,24 +1,28 @@
 import XCTest
+
 @testable import kmap
 
 /// Where a Copernicus tile is fetched from, and what it is called once it is here. A wrong
 /// name is the quiet failure: the tile lands under a name nothing looks for, is fetched
 /// again on every build, and the ground it covers stays flat.
 final class CopernicusDEMTests: XCTestCase {
-
     func testTheCellNameIsTheSameRuleEveryOtherSourceUses() {
         for (lat, lon) in [(44, 33), (-34, -71), (0, 0), (50, -1), (-9, 116), (89, 179)] {
-            XCTAssertEqual(CopernicusDEM.cellName(lat: lat, lon: lon),
-                           HGTName.of(lat: lat, lon: lon))
+            XCTAssertEqual(
+                CopernicusDEM.cellName(lat: lat, lon: lon),
+                HGTName.of(lat: lat, lon: lon)
+            )
         }
         XCTAssertEqual(CopernicusDEM.cellName(lat: 44, lon: 34), "N44E034")
     }
 
     func testTheBucketURLCarriesTheCornerInTheBucketsOwnSpelling() {
-        XCTAssertEqual(CopernicusDEM.tileURL(lat: 44, lon: 34)?.absoluteString,
-                       "https://copernicus-dem-30m.s3.amazonaws.com/"
-                       + "Copernicus_DSM_COG_10_N44_00_E034_00_DEM/"
-                       + "Copernicus_DSM_COG_10_N44_00_E034_00_DEM.tif")
+        XCTAssertEqual(
+            CopernicusDEM.tileURL(lat: 44, lon: 34)?.absoluteString,
+            "https://copernicus-dem-30m.s3.amazonaws.com/"
+                + "Copernicus_DSM_COG_10_N44_00_E034_00_DEM/"
+                + "Copernicus_DSM_COG_10_N44_00_E034_00_DEM.tif"
+        )
     }
 
     func testTheURLIsRightBelowTheEquatorAndWestOfGreenwich() {
@@ -42,10 +46,14 @@ final class CopernicusDEMTests: XCTestCase {
         // the per-build work directory that cleanup removes.
         let tif = CopernicusDEM.downloadedTif(lat: 44, lon: 34)
         XCTAssertEqual(tif.lastPathComponent, "N44E034.tif")
-        XCTAssertTrue(tif.path.hasPrefix(Paths.cache.path),
-                      "the tif cache must survive the build's own cleanup")
-        XCTAssertFalse(tif.path.contains("/work/"),
-                       "a work path is deleted with the build, and the resume with it")
+        XCTAssertTrue(
+            tif.path.hasPrefix(Paths.cache.path),
+            "the tif cache must survive the build's own cleanup"
+        )
+        XCTAssertFalse(
+            tif.path.contains("/work/"),
+            "a work path is deleted with the build, and the resume with it"
+        )
         XCTAssertEqual(CopernicusDEM.tifCacheDirectory.lastPathComponent, "copernicus-tif")
     }
 
@@ -54,7 +62,9 @@ final class CopernicusDEMTests: XCTestCase {
             .appendingPathComponent("kmap-clip-\(UUID().uuidString).poly")
         defer { try? FileManager.default.removeItem(at: url) }
         try CopernicusDEM.writeClipPolygon(
-            BBox(minLon: 5.5, minLat: 49.5, maxLon: 6.5, maxLat: 50.5), to: url)
+            BBox(minLon: 5.5, minLat: 49.5, maxLon: 6.5, maxLat: 50.5),
+            to: url
+        )
         let lines = try String(contentsOf: url, encoding: .utf8)
             .split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
         XCTAssertEqual(lines.first, "kmap-clip")
@@ -82,10 +92,12 @@ final class CopernicusDEMTests: XCTestCase {
 
     func testTheNinetyMetreBucketAndNamingAreTheirOwn() throws {
         let url = try XCTUnwrap(CopernicusDEM.glo90.tileURL(lat: 62, lon: -7))
-        XCTAssertEqual(url.absoluteString,
-                       "https://copernicus-dem-90m.s3.amazonaws.com/"
-                       + "Copernicus_DSM_COG_30_N62_00_W007_00_DEM/"
-                       + "Copernicus_DSM_COG_30_N62_00_W007_00_DEM.tif")
+        XCTAssertEqual(
+            url.absoluteString,
+            "https://copernicus-dem-90m.s3.amazonaws.com/"
+                + "Copernicus_DSM_COG_30_N62_00_W007_00_DEM/"
+                + "Copernicus_DSM_COG_30_N62_00_W007_00_DEM.tif"
+        )
         // And the 30 m spelling is untouched by the flavor split.
         let old = try XCTUnwrap(CopernicusDEM.tileURL(lat: 44, lon: 34))
         XCTAssertTrue(old.absoluteString.contains("copernicus-dem-30m"))
@@ -104,19 +116,21 @@ final class CopernicusDEMTests: XCTestCase {
         XCTAssertEqual(CopernicusDEM.canonicalSourceID("copernicus"), "copernicus1")
         XCTAssertEqual(CopernicusDEM.canonicalSourceID("copernicus90"), "copernicus3")
         XCTAssertEqual(CopernicusDEM.canonicalSourceID("view1"), "view1")
-        XCTAssertEqual(CopernicusDEM.canonicalSourceList("Copernicus, view3"),
-                       "copernicus1,view3")
+        XCTAssertEqual(
+            CopernicusDEM.canonicalSourceList("Copernicus, view3"),
+            "copernicus1,view3"
+        )
     }
 
     func testTheTileListReadsItsCRLFLinesAndYieldsCellNames() {
         // The bucket's list comes with CRLF endings, and "\r\n" is one Swift character
         // that splitting on "\n" alone does not divide — the whole file once collapsed
         // into a single line and one cell.
-        let text = "Copernicus_DSM_COG_10_N44_00_E034_00_DEM\r\n"
+        let text =
+            "Copernicus_DSM_COG_10_N44_00_E034_00_DEM\r\n"
             + "Copernicus_DSM_COG_10_S09_00_W140_00_DEM\r\n"
             + "not-a-stem\r\n"
         let cells = CopernicusDEM.parseTileList(text)
         XCTAssertEqual(cells, ["N44E034", "S09W140"])
     }
-
 }

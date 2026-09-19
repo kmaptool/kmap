@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The matcher against a small ground of its own: what names an element, what refuses.
 final class MatcherTests: XCTestCase {
-
     private var folder: URL!
 
     override func setUpWithError() throws {
@@ -27,19 +27,26 @@ final class MatcherTests: XCTestCase {
         return GarminGrid.cell(lat: at.lat, lon: at.lon)
     }
 
-    private func ground(nodes: [Int64], ways: [(id: Int64, refs: [Int64], tags: Tags)],
-                        relations: [PBFWriter.Relation] = []) throws -> GroundIndex {
+    private func ground(
+        nodes: [Int64],
+        ways: [(id: Int64, refs: [Int64], tags: Tags)],
+        relations: [PBFWriter.Relation] = []
+    ) throws -> GroundIndex {
         let url = folder.appendingPathComponent("ground.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
-        writer.nodes(nodes.map {
-            PBFWriter.Node(id: $0, lat: spot($0).lat, lon: spot($0).lon, tags: [])
-        })
+        writer.nodes(
+            nodes.map {
+                PBFWriter.Node(id: $0, lat: spot($0).lat, lon: spot($0).lon, tags: [])
+            }
+        )
         writer.ways(ways.map { PBFWriter.Way(id: $0.id, refs: $0.refs, tags: $0.tags) })
         writer.relations(relations)
         try writer.finish()
-        return try GroundIndex(extract: url,
-                               frame: BBox(minLon: 33, minLat: 44, maxLon: 35, maxLat: 45))
+        return try GroundIndex(
+            extract: url,
+            frame: BBox(minLon: 33, minLat: 44, maxLon: 35, maxLat: 45)
+        )
     }
 
     private func named(_ cells: [Int64], in index: GroundIndex, ring: Bool = false) -> Int64? {
@@ -51,19 +58,25 @@ final class MatcherTests: XCTestCase {
 
     func testAFiveVertexBuildingNamesItsWay() throws {
         // Two houses sharing a wall.
-        let index = try ground(nodes: [1, 2, 3, 4, 5, 6], ways: [
-            (10, [1, 2, 3, 4, 1], [("building", "yes")]),
-            (11, [3, 4, 5, 6, 3], [("building", "yes")]),
-        ])
+        let index = try ground(
+            nodes: [1, 2, 3, 4, 5, 6],
+            ways: [
+                (10, [1, 2, 3, 4, 1], [("building", "yes")]),
+                (11, [3, 4, 5, 6, 3], [("building", "yes")])
+            ]
+        )
         XCTAssertEqual(named([1, 2, 3, 4, 1], in: index, ring: true), 10)
         XCTAssertEqual(named([3, 4, 5, 6, 3], in: index, ring: true), 11)
     }
 
     func testATwoVertexWayIsNamedByItsEdge() throws {
-        let index = try ground(nodes: [1, 2, 3], ways: [
-            (10, [1, 2], [("highway", "service")]),
-            (11, [2, 3], [("highway", "footway")]),
-        ])
+        let index = try ground(
+            nodes: [1, 2, 3],
+            ways: [
+                (10, [1, 2], [("highway", "service")]),
+                (11, [2, 3], [("highway", "footway")])
+            ]
+        )
         XCTAssertEqual(named([1, 2], in: index), 10)
         XCTAssertEqual(named([3, 2], in: index), 11, "written the other way round")
         XCTAssertNil(named([1, 3], in: index), "no such edge")
@@ -75,10 +88,13 @@ final class MatcherTests: XCTestCase {
         // Two farmland polygons with a long common edge 3...10.
         let a: [Int64] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1]
         let b: [Int64] = [3, 4, 5, 6, 7, 8, 9, 10, 21, 22, 23, 24, 3]
-        let index = try ground(nodes: Array(1...24), ways: [
-            (10, a, [("landuse", "farmland")]),
-            (11, b, [("landuse", "farmland")]),
-        ])
+        let index = try ground(
+            nodes: Array(1...24),
+            ways: [
+                (10, a, [("landuse", "farmland")]),
+                (11, b, [("landuse", "farmland")])
+            ]
+        )
         XCTAssertEqual(named(a, in: index, ring: true), 10)
         XCTAssertEqual(named(b, in: index, ring: true), 11)
     }
@@ -86,10 +102,13 @@ final class MatcherTests: XCTestCase {
     func testAPolygonTracedWholeIsNotConfusedByANeighbourOfAnotherKind() throws {
         let wood: [Int64] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1]
         let field: [Int64] = [3, 4, 5, 6, 7, 8, 9, 10, 21, 22, 23, 24, 3]
-        let index = try ground(nodes: Array(1...24), ways: [
-            (10, wood, [("natural", "wood")]),
-            (11, field, [("landuse", "farmland")]),
-        ])
+        let index = try ground(
+            nodes: Array(1...24),
+            ways: [
+                (10, wood, [("natural", "wood")]),
+                (11, field, [("landuse", "farmland")])
+            ]
+        )
         XCTAssertEqual(named(wood, in: index, ring: true), 10)
         XCTAssertEqual(named(field, in: index, ring: true), 11)
     }
@@ -101,41 +120,58 @@ final class MatcherTests: XCTestCase {
         let forest = PBFWriter.Relation(
             id: 100,
             members: [.init(kind: 1, ref: 10, role: "outer"), .init(kind: 1, ref: 11, role: "inner")],
-            tags: [("type", "multipolygon"), ("landuse", "forest")])
-        let index = try ground(nodes: Array(1...10) + Array(31...36), ways: [
-            (10, outer, []),
-            (11, lake, [("natural", "water")]),
-        ], relations: [forest])
+            tags: [("type", "multipolygon"), ("landuse", "forest")]
+        )
+        let index = try ground(
+            nodes: Array(1...10) + Array(31...36),
+            ways: [
+                (10, outer, []),
+                (11, lake, [("natural", "water")])
+            ],
+            relations: [forest]
+        )
         // mkgmap cuts the fill through the hole: one piece traces both rings.
         let piece = Array(outer.dropLast()) + lake + [1]
         XCTAssertEqual(named(piece, in: index, ring: true), 10)
-        XCTAssertEqual(index.ways.first { $0.id == 10 }?.tags["landuse"], "forest",
-                       "lifted from the relation")
+        XCTAssertEqual(
+            index.ways.first { $0.id == 10 }?.tags["landuse"],
+            "forest",
+            "lifted from the relation"
+        )
         XCTAssertEqual(named(lake, in: index, ring: true), 11, "the lake itself is still the lake")
     }
 
     // MARK: An older map
 
     func testAWaySplitSinceTheMapWasMadeIsStillNamed() throws {
-        let index = try ground(nodes: Array(1...10), ways: [
-            (10, [1, 2, 3, 4, 5], [("highway", "residential")]),
-            (11, [5, 6, 7, 8, 9, 10], [("highway", "residential")]),
-        ])
+        let index = try ground(
+            nodes: Array(1...10),
+            ways: [
+                (10, [1, 2, 3, 4, 5], [("highway", "residential")]),
+                (11, [5, 6, 7, 8, 9, 10], [("highway", "residential")])
+            ]
+        )
         XCTAssertNotNil(named(Array(1...10), in: index))
     }
 
     func testAWaySplitIntoThingsOfTwoKindsNamesNeither() throws {
-        let index = try ground(nodes: Array(1...10), ways: [
-            (10, [1, 2, 3, 4, 5], [("highway", "residential")]),
-            (11, [5, 6, 7, 8, 9, 10], [("waterway", "stream")]),
-        ])
+        let index = try ground(
+            nodes: Array(1...10),
+            ways: [
+                (10, [1, 2, 3, 4, 5], [("highway", "residential")]),
+                (11, [5, 6, 7, 8, 9, 10], [("waterway", "stream")])
+            ]
+        )
         XCTAssertNil(named(Array(1...10), in: index))
     }
 
     func testANodeMovedSinceBreaksTheRunNotTheName() throws {
-        let index = try ground(nodes: Array(1...15) + [91, 92], ways: [
-            (10, Array(1...15), [("highway", "track")]),
-        ])
+        let index = try ground(
+            nodes: Array(1...15) + [91, 92],
+            ways: [
+                (10, Array(1...15), [("highway", "track")])
+            ]
+        )
         // Two nodes moved: no run of half the element is left, most of it still aligns.
         var drawn: [Int64] = Array(1...15)
         drawn[5] = 91
@@ -144,9 +180,12 @@ final class MatcherTests: XCTestCase {
     }
 
     func testARingMayStartAnywhere() throws {
-        let index = try ground(nodes: Array(1...6), ways: [
-            (10, [1, 2, 3, 4, 5, 6, 1], [("landuse", "grass")]),
-        ])
+        let index = try ground(
+            nodes: Array(1...6),
+            ways: [
+                (10, [1, 2, 3, 4, 5, 6, 1], [("landuse", "grass")])
+            ]
+        )
         XCTAssertEqual(named([4, 5, 6, 1, 2, 3, 4], in: index, ring: true), 10)
     }
 
@@ -159,11 +198,19 @@ final class MatcherTests: XCTestCase {
         let writer = try PBFWriter(to: url)
         writer.header()
         let at = spot(7)
-        writer.nodes([PBFWriter.Node(id: 70, lat: at.lat, lon: at.lon,
-                                    tags: [("place", "village"), ("name", "Село")])])
+        writer.nodes([
+            PBFWriter.Node(
+                id: 70,
+                lat: at.lat,
+                lon: at.lon,
+                tags: [("place", "village"), ("name", "Село")]
+            )
+        ])
         try writer.finish()
-        let index = try GroundIndex(extract: url,
-                                    frame: BBox(minLon: 33, minLat: 44, maxLon: 35, maxLat: 45))
+        let index = try GroundIndex(
+            extract: url,
+            frame: BBox(minLon: 33, minLat: 44, maxLon: 35, maxLat: 45)
+        )
         // The point as resolution 22 stores it: snapped to a lattice four units wide.
         var dump = ElementDumper.Dump()
         dump.cells = [GarminGrid.onLattice(cell(7), shift: 2)]
@@ -180,26 +227,40 @@ final class MatcherTests: XCTestCase {
 
     func testABorderSharedByTwoDistrictsIsIndexed() throws {
         let west = PBFWriter.Relation(
-            id: 100, members: [.init(kind: 1, ref: 10, role: "outer")],
-            tags: [("type", "boundary"), ("boundary", "administrative"), ("admin_level", "6")])
+            id: 100,
+            members: [.init(kind: 1, ref: 10, role: "outer")],
+            tags: [("type", "boundary"), ("boundary", "administrative"), ("admin_level", "6")]
+        )
         let east = PBFWriter.Relation(
-            id: 101, members: [.init(kind: 1, ref: 10, role: "outer")],
-            tags: [("type", "boundary"), ("boundary", "administrative"), ("admin_level", "4")])
-        let index = try ground(nodes: Array(1...6), ways: [(10, Array(1...6), [])],
-                               relations: [west, east])
+            id: 101,
+            members: [.init(kind: 1, ref: 10, role: "outer")],
+            tags: [("type", "boundary"), ("boundary", "administrative"), ("admin_level", "4")]
+        )
+        let index = try ground(
+            nodes: Array(1...6),
+            ways: [(10, Array(1...6), [])],
+            relations: [west, east]
+        )
         XCTAssertEqual(named(Array(1...6), in: index), 10)
         XCTAssertEqual(index.ways.first?.tags["admin_level"], "4", "the wider boundary")
     }
 
     func testAWaySharedByAWoodAndABorderIsNobodys() throws {
         let wood = PBFWriter.Relation(
-            id: 100, members: [.init(kind: 1, ref: 10, role: "outer")],
-            tags: [("type", "multipolygon"), ("landuse", "forest")])
+            id: 100,
+            members: [.init(kind: 1, ref: 10, role: "outer")],
+            tags: [("type", "multipolygon"), ("landuse", "forest")]
+        )
         let border = PBFWriter.Relation(
-            id: 101, members: [.init(kind: 1, ref: 10, role: "outer")],
-            tags: [("type", "boundary"), ("boundary", "administrative")])
-        let index = try ground(nodes: Array(1...6), ways: [(10, Array(1...6), [])],
-                               relations: [wood, border])
+            id: 101,
+            members: [.init(kind: 1, ref: 10, role: "outer")],
+            tags: [("type", "boundary"), ("boundary", "administrative")]
+        )
+        let index = try ground(
+            nodes: Array(1...6),
+            ways: [(10, Array(1...6), [])],
+            relations: [wood, border]
+        )
         XCTAssertTrue(index.ways.isEmpty)
     }
 

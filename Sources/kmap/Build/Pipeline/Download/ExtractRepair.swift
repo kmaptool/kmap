@@ -39,8 +39,10 @@ extension BuildPipeline {
             return nil
         }
         for extract in damaged {
-            log.warn("the downloaded map data in \(extract.lastPathComponent) was damaged on"
-                     + " disk — downloading it again")
+            log.warn(
+                "the downloaded map data in \(extract.lastPathComponent) was damaged on"
+                    + " disk — downloading it again"
+            )
             FileTools.removeIfPresent(extract)
             CacheStamp.remove(besides: extract)
         }

@@ -10,7 +10,7 @@ struct OSMCensus: OSMSink {
         "motorway", "trunk", "primary", "secondary", "tertiary", "unclassified",
         "residential", "service", "track", "path", "footway", "cycleway", "bridleway",
         "living_street", "road", "steps", "motorway_link", "trunk_link", "primary_link",
-        "secondary_link", "tertiary_link", "pedestrian", "construction",
+        "secondary_link", "tertiary_link", "pedestrian", "construction"
     ]
     static let enclosing: Set<String> = ["fence", "wall", "hedge", "city_wall", "hedge_bank"]
 
@@ -24,8 +24,13 @@ struct OSMCensus: OSMSink {
     /// built from. Numbers are search data, not labels drawn on the map.
     var addresses = 0
 
-    mutating func node(id: Int64, lat: Double, lon: Double,
-                       tags: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func node(
+        id: Int64,
+        lat: Double,
+        lon: Double,
+        tags: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         nodes += 1
         var at = tags.startIndex
         while at + 1 < tags.endIndex {
@@ -34,8 +39,13 @@ struct OSMCensus: OSMSink {
         }
     }
 
-    mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                      keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func way(
+        id: Int64,
+        refs: ArraySlice<Int64>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         ways += 1
         var highway: String?
         var barrier: String?
@@ -64,8 +74,13 @@ struct OSMCensus: OSMSink {
             roadPoints += refs.count
             return
         }
-        if Self.obstacleKind(barrier: barrier, natural: natural, waterway: waterway,
-                             manMade: manMade, building: building) != nil {
+        if Self.obstacleKind(
+            barrier: barrier,
+            natural: natural,
+            waterway: waterway,
+            manMade: manMade,
+            building: building
+        ) != nil {
             obstacles += 1
             obstaclePoints += refs.count
         }
@@ -73,11 +88,22 @@ struct OSMCensus: OSMSink {
 
     /// The same ladder the loader walks, answering in the Python tool's words so the two
     /// censuses can be compared line for line. The ladder itself lives in one place.
-    static func obstacleKind(barrier: String?, natural: String?, waterway: String?,
-                             manMade: String?, building: Bool) -> String? {
-        guard let kind = RoadNetworkLoader.obstacleKind(
-            barrier: barrier, natural: natural, waterway: waterway,
-            manMade: manMade, building: building) else { return nil }
+    static func obstacleKind(
+        barrier: String?,
+        natural: String?,
+        waterway: String?,
+        manMade: String?,
+        building: Bool
+    ) -> String? {
+        guard
+            let kind = RoadNetworkLoader.obstacleKind(
+                barrier: barrier,
+                natural: natural,
+                waterway: waterway,
+                manMade: manMade,
+                building: building
+            )
+        else { return nil }
         // The census reports the barrier's own word where the loader reports its class:
         // a kerb counts as a kerb here and as a crossable barrier there.
         if kind == .barrier, let barrier { return barrier }

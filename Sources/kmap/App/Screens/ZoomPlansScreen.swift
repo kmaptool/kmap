@@ -14,12 +14,14 @@ final class ZoomPlansScreen: Screen {
         if naming != nil {
             return [Hint(key: Glyph.enter, label: t("accept")), Hint(key: "esc", label: t("cancel"))]
         }
-        return [Hint(key: "↑↓", label: t("move")),
-                Hint(key: Glyph.enter, label: t("open")),
-                Hint(key: "c", label: t("copy")),
-                Hint(key: "r", label: t("rename")),
-                Hint(key: "d", label: t("delete")),
-                Hint(key: "esc", label: t("back"))]
+        return [
+            Hint(key: "↑↓", label: t("move")),
+            Hint(key: Glyph.enter, label: t("open")),
+            Hint(key: "c", label: t("copy")),
+            Hint(key: "r", label: t("rename")),
+            Hint(key: "d", label: t("delete")),
+            Hint(key: "esc", label: t("back"))
+        ]
     }
 
     private enum Naming {
@@ -100,8 +102,10 @@ final class ZoomPlansScreen: Screen {
             case .copy(let source):
                 // Every new plan is a copy: a plan records only what it moves against an
                 // existing arrangement.
-                let made = ctx.settings.copyZoomPlan(source,
-                                                     named: wanted.isEmpty ? source.name : wanted)
+                let made = ctx.settings.copyZoomPlan(
+                    source,
+                    named: wanted.isEmpty ? source.name : wanted
+                )
                 plans = ctx.settings.zoomPlans
                 select(made.id)
                 return .push(ZoomPlanEditScreen(plan: made, settings: ctx.settings))
@@ -150,11 +154,15 @@ final class ZoomPlansScreen: Screen {
         let theme = ctx.theme
         var y = rect.y
 
-        let intro = t("A device shows the map at several zoom levels. A zoom plan sets "
-                    + "the level where each kind of feature appears: trails, roads, "
-                    + "woodland and so on.")
-        let howTo = t("Plans marked · come with kmap and cannot be edited. Copy one, "
-                    + "and the copy is yours to change.")
+        let intro = t(
+            "A device shows the map at several zoom levels. A zoom plan sets "
+                + "the level where each kind of feature appears: trails, roads, "
+                + "woodland and so on."
+        )
+        let howTo = t(
+            "Plans marked · come with kmap and cannot be edited. Copy one, "
+                + "and the copy is yours to change."
+        )
         for chunk in wrapText(intro, width: rect.w) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
@@ -176,19 +184,30 @@ final class ZoomPlansScreen: Screen {
             // The ladder is shown on every row: a plan's numbers are rungs of one ladder
             // and cannot be carried to another.
             let ladder = LevelsProfile.all.first { $0.id == plan.levelsID }?.name ?? ""
-            let moved = plan.movesAnything
+            let moved =
+                plan.movesAnything
                 ? tn("%d family(ies) moved", plan.windows.count)
                 : t("as it comes")
-            Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1), y: y,
-                        text: t(plan.name) + "   " + ladder,
-                        trailing: moved,
-                        theme: theme, selected: index == list.selected,
-                        leading: plan.isBuiltin ? "\(Glyph.dot) " : "  ")
+            Widgets.row(
+                s,
+                rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
+                y: y,
+                text: t(plan.name) + "   " + ladder,
+                trailing: moved,
+                theme: theme,
+                selected: index == list.selected,
+                leading: plan.isBuiltin ? "\(Glyph.dot) " : "  "
+            )
             y += 1
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
-                           offset: list.offset, count: plans.count,
-                           visible: listHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
+            offset: list.offset,
+            count: plans.count,
+            visible: listHeight,
+            theme: theme
+        )
 
         if let naming {
             guard y + 1 < rect.maxY else { return }
@@ -204,14 +223,22 @@ final class ZoomPlansScreen: Screen {
         }
 
         if let plan = confirming, y + 1 < rect.maxY {
-            s.text(rect.x, y + 1, t("delete %@?", t(plan.name)),
-                   Style(fg: theme.warn, bg: theme.appBg, bold: true))
+            s.text(
+                rect.x,
+                y + 1,
+                t("delete %@?", t(plan.name)),
+                Style(fg: theme.warn, bg: theme.appBg, bold: true)
+            )
             return
         }
 
         if let message, y + 1 < rect.maxY {
-            s.text(rect.x, y + 1, truncate(message, to: rect.w),
-                   Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y + 1,
+                truncate(message, to: rect.w),
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg)
+            )
         }
     }
 }

@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The two shapes the command line answers in, and the flags that choose between them.
 final class CLIOptionsTests: XCTestCase {
-
     func testTheSharedFlagsAreTakenOutOfTheArguments() {
         // `kmap regions --json austria` searches for austria, not for "--json".
         let (rest, options) = CLIOptions.take(from: ["regions", "--json", "austria"])
@@ -13,8 +13,10 @@ final class CLIOptionsTests: XCTestCase {
     }
 
     func testACommandsOwnFlagsAreLeftAlone() {
-        let (rest, _) = CLIOptions.take(from: ["build", "austria", "--parts=2",
-                                              "--verbose"])
+        let (rest, _) = CLIOptions.take(from: [
+            "build", "austria", "--parts=2",
+            "--verbose"
+        ])
         XCTAssertEqual(rest, ["build", "austria", "--parts=2"])
     }
 
@@ -26,7 +28,6 @@ final class CLIOptionsTests: XCTestCase {
 
 /// The JSON stream: one object per line, in the order things happened.
 final class CLIOutputTests: XCTestCase {
-
     override func tearDown() {
         CLIOutput.begin(CLIOptions(), command: "test")
         super.tearDown()
@@ -102,8 +103,15 @@ final class CLIOutputTests: XCTestCase {
 
     func testALogEventCarriesItsSeverityKindStageAndFields() throws {
         let lines = try stream {
-            CLIOutput.log(LogEvent(text: "7 tile(s)", severity: .info, kind: .ok,
-                                   stage: "split", fields: ["tiles": 7]))
+            CLIOutput.log(
+                LogEvent(
+                    text: "7 tile(s)",
+                    severity: .info,
+                    kind: .ok,
+                    stage: "split",
+                    fields: ["tiles": 7]
+                )
+            )
         }
         let event = lines[1]
         XCTAssertEqual(event["event"] as? String, "log")
@@ -135,7 +143,6 @@ final class CLIOutputTests: XCTestCase {
 
 /// The values a payload is built from, which have to render the same way every time.
 final class JSONValueTests: XCTestCase {
-
     func testKeysAreSortedSoTheSameValueIsAlwaysTheSameBytes() {
         let value: JSONValue = ["b": 2, "a": 1, "c": ["z": true, "y": nil]]
         XCTAssertEqual(value.line(), #"{"a":1,"b":2,"c":{"y":null,"z":true}}"#)
@@ -155,7 +162,6 @@ final class JSONValueTests: XCTestCase {
 
 /// Which polls of a running stage earn a progress event in the JSON stream.
 final class ProgressGateTests: XCTestCase {
-
     func testAStageBarMovingByAPercentSpeaks() {
         var gate = CLI.ProgressGate()
         XCTAssertTrue(gate.speaks(stage: "compile", fraction: 0, overall: 0.7, detail: "0/13"))
@@ -165,24 +171,46 @@ final class ProgressGateTests: XCTestCase {
     func testAnUnchangedPollStaysSilent() {
         var gate = CLI.ProgressGate()
         _ = gate.speaks(stage: "split", fraction: nil, overall: 0.6, detail: "reading ways")
-        XCTAssertFalse(gate.speaks(stage: "split", fraction: nil, overall: 0.6,
-                                   detail: "reading ways"))
+        XCTAssertFalse(
+            gate.speaks(
+                stage: "split",
+                fraction: nil,
+                overall: 0.6,
+                detail: "reading ways"
+            )
+        )
     }
 
     func testADetailChangeAloneSpeaks() {
         // Verifying a cached extract and splitting into tiles have no percentage;
         // their detail line is the only sign of life, and the stream must carry it.
         var gate = CLI.ProgressGate()
-        _ = gate.speaks(stage: "download", fraction: nil, overall: 0.09,
-                        detail: "verifying cached copy · 10%")
-        XCTAssertTrue(gate.speaks(stage: "download", fraction: nil, overall: 0.09,
-                                  detail: "verifying cached copy · 20%"))
+        _ = gate.speaks(
+            stage: "download",
+            fraction: nil,
+            overall: 0.09,
+            detail: "verifying cached copy · 10%"
+        )
+        XCTAssertTrue(
+            gate.speaks(
+                stage: "download",
+                fraction: nil,
+                overall: 0.09,
+                detail: "verifying cached copy · 20%"
+            )
+        )
     }
 
     func testTheWholeBuildsBarMovingSpeaks() {
         var gate = CLI.ProgressGate()
         _ = gate.speaks(stage: "download", fraction: nil, overall: 0.09, detail: "starting")
-        XCTAssertTrue(gate.speaks(stage: "download", fraction: nil, overall: 0.24,
-                                  detail: "starting"))
+        XCTAssertTrue(
+            gate.speaks(
+                stage: "download",
+                fraction: nil,
+                overall: 0.24,
+                detail: "starting"
+            )
+        )
     }
 }

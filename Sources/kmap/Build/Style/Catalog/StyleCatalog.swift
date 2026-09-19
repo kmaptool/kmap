@@ -70,7 +70,9 @@ final class StyleCatalog: Sendable {
     static func stagingDirectory(for what: String) -> URL {
         Paths.ensure(Paths.styles)
         return Paths.styles.appendingPathComponent(
-            ".\(what)-build-\(UUID().uuidString.prefix(8))", isDirectory: true)
+            ".\(what)-build-\(UUID().uuidString.prefix(8))",
+            isDirectory: true
+        )
     }
 
     /// Puts a finished build where the style lives, in one step.
@@ -78,8 +80,11 @@ final class StyleCatalog: Sendable {
     /// The marker is written before the swap, so `dir` holds either a complete stamped
     /// style or the previous one.
     private func install(_ build: URL, as dir: URL, marker wanted: String) throws {
-        try wanted.write(to: build.appendingPathComponent("kmap-version"),
-                         atomically: true, encoding: .utf8)
+        try wanted.write(
+            to: build.appendingPathComponent("kmap-version"),
+            atomically: true,
+            encoding: .utf8
+        )
         try holdingStyles {
             FileTools.removeIfPresent(dir)
             try FileManager.default.moveItem(at: build, to: dir)
@@ -109,8 +114,11 @@ final class StyleCatalog: Sendable {
             + RuleReassignments.fingerprint()
     }
 
-    private func materializeBaseStyle(_ choices: StyleChoices, log: Log,
-                                      runner: ProcessRunner) async throws {
+    private func materializeBaseStyle(
+        _ choices: StyleChoices,
+        log: Log,
+        runner: ProcessRunner
+    ) async throws {
         let dir = StyleCatalog.baseStyleDirectory
         let marker = dir.appendingPathComponent("kmap-version")
         let wanted = materializedIdentity(choices)
@@ -118,10 +126,11 @@ final class StyleCatalog: Sendable {
         // Read under the lock, so a swap in progress is seen whole or not at all.
         let current = holdingStyles { try? String(contentsOf: marker, encoding: .utf8) }
         if let current, current.trimmingCharacters(in: .whitespacesAndNewlines) == wanted,
-           FileTools.exists(dir.appendingPathComponent("lines")),
-           // The hide catalogue is made from these rules and kept beside them; without it
-           // the style is unpacked again.
-           FileTools.exists(HideableCatalogue.url) {
+            FileTools.exists(dir.appendingPathComponent("lines")),
+            // The hide catalogue is made from these rules and kept beside them; without it
+            // the style is unpacked again.
+            FileTools.exists(HideableCatalogue.url)
+        {
             return
         }
 
@@ -129,8 +138,13 @@ final class StyleCatalog: Sendable {
         // across the unpack, which awaits a child process.
         let build = StyleCatalog.stagingDirectory(for: "base")
         defer { FileTools.removeIfPresent(build) }
-        try await materializeRules(into: build, descriptions: choices.descriptions,
-                                   cyrillicLabels: choices.cyrillic, log: log, runner: runner)
+        try await materializeRules(
+            into: build,
+            descriptions: choices.descriptions,
+            cyrillicLabels: choices.cyrillic,
+            log: log,
+            runner: runner
+        )
         // Recorded here, where the rules are complete and no build choice has touched
         // them: the call below shifts resolutions and applies hides.
         let listed = HideableCatalogue.record(pointsAt: build.appendingPathComponent("points"))
@@ -178,7 +192,10 @@ final class StyleCatalog: Sendable {
         let incDir = dir.appendingPathComponent("inc", isDirectory: true)
         Paths.ensure(incDir)
         try StyleAssets.contourLinesMetric.write(
-            to: incDir.appendingPathComponent("contour_lines"), atomically: true, encoding: .utf8)
+            to: incDir.appendingPathComponent("contour_lines"),
+            atomically: true,
+            encoding: .utf8
+        )
     }
 
     /// The rule set before any build choice: the unpack from mkgmap, kmap's own rules, the
@@ -196,21 +213,32 @@ final class StyleCatalog: Sendable {
     /// The caller owns the returned directory.
     func neutralRulesForRecovery(log: Log, runner: ProcessRunner) async throws -> URL {
         let dir = StyleCatalog.stagingDirectory(for: "neutral")
-        try await materializeRules(into: dir, descriptions: .off, cyrillicLabels: false,
-                                   log: log, runner: runner)
+        try await materializeRules(
+            into: dir,
+            descriptions: .off,
+            cyrillicLabels: false,
+            log: log,
+            runner: runner
+        )
         return dir
     }
 
-    func materializeRules(into dir: URL,
-                          descriptions: BuildRecipe.DescriptionCarrier,
-                          cyrillicLabels: Bool,
-                          log: Log, runner: ProcessRunner) async throws {
+    func materializeRules(
+        into dir: URL,
+        descriptions: BuildRecipe.DescriptionCarrier,
+        cyrillicLabels: Bool,
+        log: Log,
+        runner: ProcessRunner
+    ) async throws {
         try await unpackStockStyle(into: dir, log: log, runner: runner)
 
         try applyRulePasses(in: dir, cyrillicLabels: cyrillicLabels, log: log)
 
         try StyleAssets.styleInfo.write(
-            to: dir.appendingPathComponent("info"), atomically: true, encoding: .utf8)
+            to: dir.appendingPathComponent("info"),
+            atomically: true,
+            encoding: .utf8
+        )
 
         let redirects = try StyleCatalog.applySubstitutions(StyleAssets.iconRedirects, in: dir)
         if redirects.applied > 0 {
@@ -283,14 +311,20 @@ final class StyleCatalog: Sendable {
     /// Builds the rule set for a style whose codes were recovered from its map: the base
     /// rules with the sheet's reassignments applied. The sheet's hash is part of the
     /// materialized identity, so recovering again rebuilds the rules.
-    private func materializeRecoveredStyle(_ style: MapStyle, choices: StyleChoices,
-                                           log: Log, runner: ProcessRunner) async throws {
+    private func materializeRecoveredStyle(
+        _ style: MapStyle,
+        choices: StyleChoices,
+        log: Log,
+        runner: ProcessRunner
+    ) async throws {
         try await materializeBaseStyle(choices, log: log, runner: runner)
         guard let typ = style.typURL, let dir = style.styleDirectory,
-              let sheetURL = TypLibrary.sheet(of: typ),
-              let sheet = try? String(contentsOf: sheetURL, encoding: .utf8) else { return }
+            let sheetURL = TypLibrary.sheet(of: typ),
+            let sheet = try? String(contentsOf: sheetURL, encoding: .utf8)
+        else { return }
 
-        let wanted = materializedIdentity(choices)
+        let wanted =
+            materializedIdentity(choices)
             + "+sheet-\(TypLibrary.fingerprint(Data(sheet.utf8)))"
         if isMaterialized(dir, as: wanted) { return }
 
@@ -302,9 +336,13 @@ final class StyleCatalog: Sendable {
         // the condition-and-type fallback sees through.
         let build = StyleCatalog.stagingDirectory(for: "recovered")
         defer { FileTools.removeIfPresent(build) }
-        try await materializeRules(into: build, descriptions: choices.descriptions,
-                                   cyrillicLabels: choices.cyrillic, log: log,
-                                   runner: runner)
+        try await materializeRules(
+            into: build,
+            descriptions: choices.descriptions,
+            cyrillicLabels: choices.cyrillic,
+            log: log,
+            runner: runner
+        )
         try materializeChoices(in: build, choices: choices, log: log)
         let result = try StyleCatalog.applySubstitutions(sheet, in: build)
         let ladder = StyleCatalog.rungs(of: choices.zoom.levels)
@@ -318,8 +356,10 @@ final class StyleCatalog: Sendable {
         try install(build, as: dir, marker: wanted)
         log.ok("recovered rule set ready — \(result.applied) reassignment(s) applied")
         if result.hidden > 0 {
-            log.append("\(result.hidden) reassignment(s) aimed at rules this build hides"
-                       + " — nothing to retarget")
+            log.append(
+                "\(result.hidden) reassignment(s) aimed at rules this build hides"
+                    + " — nothing to retarget"
+            )
         }
         for miss in result.missed {
             log.warn("recovered reassignment did not match this mkgmap's style — \(miss)")
@@ -327,24 +367,39 @@ final class StyleCatalog: Sendable {
     }
 
     /// Prepares whatever the chosen style needs before a build.
-    func prepare(_ style: MapStyle, log: Log, runner: ProcessRunner,
-                 descriptions: BuildRecipe.DescriptionCarrier = .off,
-                 hidden: Set<String> = [],
-                 zoom: (plan: ZoomPlan, levels: LevelsProfile) = (.asMeasured, .smooth),
-                 cyrillicLabels: Bool = false) async throws {
-        let choices = StyleChoices(descriptions: descriptions, hidden: hidden,
-                                   zoom: zoom, cyrillic: cyrillicLabels)
+    func prepare(
+        _ style: MapStyle,
+        log: Log,
+        runner: ProcessRunner,
+        descriptions: BuildRecipe.DescriptionCarrier = .off,
+        hidden: Set<String> = [],
+        zoom: (plan: ZoomPlan, levels: LevelsProfile) = (.asMeasured, .smooth),
+        cyrillicLabels: Bool = false
+    ) async throws {
+        let choices = StyleChoices(
+            descriptions: descriptions,
+            hidden: hidden,
+            zoom: zoom,
+            cyrillic: cyrillicLabels
+        )
         if style.styleDirectory?.lastPathComponent.hasPrefix("recovered-") == true {
-            try await materializeRecoveredStyle(style, choices: choices,
-                                                log: log, runner: runner)
+            try await materializeRecoveredStyle(
+                style,
+                choices: choices,
+                log: log,
+                runner: runner
+            )
         }
         // Written unconditionally, keeping the file in step with the binary's palette
         // without a version marker.
         if let shipped = StyleCatalog.shippedPalette(id: style.id) {
             try holdingStyles {
                 try StyleCatalog.shippedTypText(of: shipped)
-                    .write(to: StyleCatalog.shippedTypURL(of: shipped),
-                           atomically: true, encoding: .utf8)
+                    .write(
+                        to: StyleCatalog.shippedTypURL(of: shipped),
+                        atomically: true,
+                        encoding: .utf8
+                    )
             }
         }
         if style.styleDirectory == StyleCatalog.baseStyleDirectory {

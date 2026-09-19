@@ -5,7 +5,6 @@ import Foundation
 /// `URL.path` is POSIX-shaped, so on Windows it yields `/E:/dir/file` rather than a path
 /// any program there can open. On the Unixes it equals `.path` byte for byte.
 extension URL {
-
     /// This file's path in the platform's file-system spelling.
     ///
     /// Required wherever a path leaves kmap: child-process arguments, files other tools

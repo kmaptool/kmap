@@ -10,7 +10,6 @@ import Foundation
 /// entries for one of them and one entry for the other. One parser, and the listing is
 /// the application.
 enum SubstitutionSheet {
-
     /// One substitution: a run of lines as the rule file has them, and what they become.
     struct Entry: Equatable {
         /// Which rule file the lines live in: `points`, `lines` or `polygons`.

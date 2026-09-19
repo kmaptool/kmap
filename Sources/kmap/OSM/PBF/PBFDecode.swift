@@ -13,8 +13,11 @@ extension PBFReader {
 
     /// Decodes one inflated PrimitiveBlock into a sink. The same decoder serves every pass
     /// and the rewriter, so they cannot disagree about deltas, tag runs or coordinates.
-    static func decodeBlock<Sink: OSMSink>(_ bytes: UnsafeRawBufferPointer, into sink: inout Sink,
-                                           fields: inout Scratch) throws {
+    static func decodeBlock<Sink: OSMSink>(
+        _ bytes: UnsafeRawBufferPointer,
+        into sink: inout Sink,
+        fields: inout Scratch
+    ) throws {
         var block = OSMBlock()
         var words: [UnsafeRawBufferPointer] = []
         var groups: [UnsafeRawBufferPointer] = []
@@ -50,18 +53,30 @@ extension PBFReader {
                 case PBFSchema.groupDense:
                     sink.sawGroup(.nodes)
                     guard wanted.contains(.nodes) else { reader.skip(wire: field.wire); break }
-                    decodeDense(reader.lengthDelimited(), block: block, into: &sink,
-                                fields: &fields)
+                    decodeDense(
+                        reader.lengthDelimited(),
+                        block: block,
+                        into: &sink,
+                        fields: &fields
+                    )
                 case PBFSchema.groupWays:
                     sink.sawGroup(.ways)
                     guard wanted.contains(.ways) else { reader.skip(wire: field.wire); break }
-                    decodeWay(reader.lengthDelimited(), block: block, into: &sink,
-                              fields: &fields)
+                    decodeWay(
+                        reader.lengthDelimited(),
+                        block: block,
+                        into: &sink,
+                        fields: &fields
+                    )
                 case PBFSchema.groupRelations:
                     sink.sawGroup(.relations)
                     guard wanted.contains(.relations) else { reader.skip(wire: field.wire); break }
-                    decodeRelation(reader.lengthDelimited(), block: block, into: &sink,
-                                   fields: &fields)
+                    decodeRelation(
+                        reader.lengthDelimited(),
+                        block: block,
+                        into: &sink,
+                        fields: &fields
+                    )
                 default: reader.skip(wire: field.wire)
                 }
             }
@@ -70,9 +85,12 @@ extension PBFReader {
 
     /// Dense nodes are packed and delta-encoded, with every node's tags in one flat run of
     /// key/value indices, each node's run closed by a zero.
-    private static func decodeDense<Sink: OSMSink>(_ bytes: UnsafeRawBufferPointer, block: OSMBlock,
-                                            into sink: inout Sink,
-                                            fields: inout Scratch) {
+    private static func decodeDense<Sink: OSMSink>(
+        _ bytes: UnsafeRawBufferPointer,
+        block: OSMBlock,
+        into sink: inout Sink,
+        fields: inout Scratch
+    ) {
         fields.ids.removeAll(keepingCapacity: true)
         fields.lats.removeAll(keepingCapacity: true)
         fields.lons.removeAll(keepingCapacity: true)
@@ -103,14 +121,23 @@ extension PBFReader {
             let start = cursor
             while cursor + 1 < tags.count && tags[cursor] != 0 { cursor += 2 }
             let end = min(cursor, tags.count)
-            if cursor < tags.count { cursor += 1 }              // step over the terminator
-            sink.node(id: id, lat: block.latitude(lat), lon: block.longitude(lon),
-                      tags: tags[start..<end], block: block)
+            if cursor < tags.count { cursor += 1 }  // step over the terminator
+            sink.node(
+                id: id,
+                lat: block.latitude(lat),
+                lon: block.longitude(lon),
+                tags: tags[start..<end],
+                block: block
+            )
         }
     }
 
-    private static func decodeWay<Sink: OSMSink>(_ bytes: UnsafeRawBufferPointer, block: OSMBlock,
-                                          into sink: inout Sink, fields: inout Scratch) {
+    private static func decodeWay<Sink: OSMSink>(
+        _ bytes: UnsafeRawBufferPointer,
+        block: OSMBlock,
+        into sink: inout Sink,
+        fields: inout Scratch
+    ) {
         var id: Int64 = 0
         // Emptied, not replaced: assigning a new array would discard the kept capacity.
         fields.refs.removeAll(keepingCapacity: true)
@@ -134,13 +161,21 @@ extension PBFReader {
             default: reader.skip(wire: field.wire)
             }
         }
-        sink.way(id: id, refs: fields.refs[...], keys: fields.keys[...],
-                 values: fields.values[...], block: block)
+        sink.way(
+            id: id,
+            refs: fields.refs[...],
+            keys: fields.keys[...],
+            values: fields.values[...],
+            block: block
+        )
     }
 
-    private static func decodeRelation<Sink: OSMSink>(_ bytes: UnsafeRawBufferPointer,
-                                               block: OSMBlock, into sink: inout Sink,
-                                               fields: inout Scratch) {
+    private static func decodeRelation<Sink: OSMSink>(
+        _ bytes: UnsafeRawBufferPointer,
+        block: OSMBlock,
+        into sink: inout Sink,
+        fields: inout Scratch
+    ) {
         var id: Int64 = 0
         fields.refs.removeAll(keepingCapacity: true)
         fields.keys.removeAll(keepingCapacity: true)
@@ -169,9 +204,15 @@ extension PBFReader {
             default: reader.skip(wire: field.wire)
             }
         }
-        sink.relation(id: id, memberKinds: fields.kinds[...], memberIDs: fields.refs[...],
-                      memberRoles: fields.roles[...], keys: fields.keys[...],
-                      values: fields.values[...], block: block)
+        sink.relation(
+            id: id,
+            memberKinds: fields.kinds[...],
+            memberIDs: fields.refs[...],
+            memberRoles: fields.roles[...],
+            keys: fields.keys[...],
+            values: fields.values[...],
+            block: block
+        )
     }
 
     /// Appends into a buffer the caller owns and keeps. The reserve is half the byte

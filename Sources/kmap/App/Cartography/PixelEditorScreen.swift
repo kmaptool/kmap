@@ -5,22 +5,25 @@ import Foundation
 /// at an entry, and changing that entry repaints every pixel using it. Nothing is written
 /// until it is saved.
 final class PixelEditorScreen: Screen {
-
     var page: Page {
-        Page(style.name,
-             subject: TypeMeaning.hex(code) + " · " + (showingNight ? t("night") : t("day"))
-                 + (dirty ? " ·" : ""),
-             keys: keys)
+        Page(
+            style.name,
+            subject: TypeMeaning.hex(code) + " · " + (showingNight ? t("night") : t("day"))
+                + (dirty ? " ·" : ""),
+            keys: keys
+        )
     }
 
     var wantsMouse: Bool { true }
 
     private var keys: [Hint] {
         if picker != nil {
-            return [Hint(key: "↑↓←→", label: t("move")),
-                    Hint(key: Glyph.tab, label: t("grid · sliders · style")),
-                    Hint(key: Glyph.enter, label: t("take it")),
-                    Hint(key: "esc", label: t("back to typing"))]
+            return [
+                Hint(key: "↑↓←→", label: t("move")),
+                Hint(key: Glyph.tab, label: t("grid · sliders · style")),
+                Hint(key: Glyph.enter, label: t("take it")),
+                Hint(key: "esc", label: t("back to typing"))
+            ]
         }
         if prompt != nil {
             var hints = [Hint(key: Glyph.enter, label: t("apply"))]
@@ -29,25 +32,31 @@ final class PixelEditorScreen: Screen {
             return hints
         }
         if focus == .palette {
-            return [Hint(key: "↑↓", label: t("the colour you paint with")),
-                    Hint(key: Glyph.tab, label: t("back to the picture")),
-                    Hint(key: "a", label: t("add colour")),
-                    Hint(key: "c", label: t("change colour")),
-                    Hint(key: "esc", label: t("back"))]
+            return [
+                Hint(key: "↑↓", label: t("the colour you paint with")),
+                Hint(key: Glyph.tab, label: t("back to the picture")),
+                Hint(key: "a", label: t("add colour")),
+                Hint(key: "c", label: t("change colour")),
+                Hint(key: "esc", label: t("back"))
+            ]
         }
-        var hints = [Hint(key: "↑↓←→", label: t("move")),
-                     Hint(key: "space", label: t("paint")),
-                     Hint(key: Glyph.tab, label: t("choose a colour")),
-                     Hint(key: "i", label: t("pick")),
-                     Hint(key: "a", label: t("add colour")),
-                     Hint(key: "c", label: t("change colour"))]
+        var hints = [
+            Hint(key: "↑↓←→", label: t("move")),
+            Hint(key: "space", label: t("paint")),
+            Hint(key: Glyph.tab, label: t("choose a colour")),
+            Hint(key: "i", label: t("pick")),
+            Hint(key: "a", label: t("add colour")),
+            Hint(key: "c", label: t("change colour"))
+        ]
         if canResize { hints.append(Hint(key: "s", label: t("size"))) }
         if kind == .point {
             hints.append(Hint(key: "n", label: showingNight ? t("day") : t("night")))
         }
-        hints.append(contentsOf: [Hint(key: "u", label: t("undo")),
-                                  Hint(key: "^S", label: t("save")),
-                                  Hint(key: "esc", label: t("back"))])
+        hints.append(contentsOf: [
+            Hint(key: "u", label: t("undo")),
+            Hint(key: "^S", label: t("save")),
+            Hint(key: "esc", label: t("back"))
+        ])
         return hints
     }
 
@@ -133,8 +142,10 @@ final class PixelEditorScreen: Screen {
     init?(style: MapStyle, kind: MapElementKind, code: Int, onSaved: @escaping () -> Void) {
         let document = StyleDocument.load(style)
         guard let section = document.source?.section(kind, code) else { return nil }
-        guard let picture = section.picture
-                ?? PixelEditorScreen.pattern(startingFrom: section) else { return nil }
+        guard
+            let picture = section.picture
+                ?? PixelEditorScreen.pattern(startingFrom: section)
+        else { return nil }
         self.style = style
         self.kind = kind
         self.code = code
@@ -172,8 +183,14 @@ final class PixelEditorScreen: Screen {
             (key: "3", colour: night), (key: "4", colour: nil)
         ]
         let rows = Array(repeating: String(repeating: "!", count: width), count: height)
-        return XpmBlock(width: width, height: height, declaredColours: palette.count,
-                        charsPerPixel: 1, palette: palette, rows: rows)
+        return XpmBlock(
+            width: width,
+            height: height,
+            declaredColours: palette.count,
+            charsPerPixel: 1,
+            palette: palette,
+            rows: rows
+        )
     }
 
     // MARK: Editing
@@ -181,7 +198,8 @@ final class PixelEditorScreen: Screen {
     /// Points a pixel at a palette entry. Records the state first, so it can be undone.
     func paint(x: Int, y: Int, with index: Int) {
         guard x >= 0, x < block.width, y >= 0, y < block.height,
-              shown.palette.indices.contains(index) else { return }
+            shown.palette.indices.contains(index)
+        else { return }
         guard !showingNight else {
             message = t("night shares the day drawing — change its colours, not its pixels")
             messageIsError = false
@@ -206,7 +224,8 @@ final class PixelEditorScreen: Screen {
             var line: [Int] = []
             var index = row.startIndex
             while index < row.endIndex, line.count < picture.width {
-                let next = row.index(index, offsetBy: width, limitedBy: row.endIndex)
+                let next =
+                    row.index(index, offsetBy: width, limitedBy: row.endIndex)
                     ?? row.endIndex
                 line.append(lookup[String(row[index..<next])] ?? 0)
                 index = next
@@ -226,9 +245,14 @@ final class PixelEditorScreen: Screen {
             line.map { palette[min($0, palette.count - 1)].key }.joined()
         }
         _ = width
-        return XpmBlock(width: block.width, height: block.height,
-                        declaredColours: palette.count, charsPerPixel: block.charsPerPixel,
-                        palette: palette, rows: text)
+        return XpmBlock(
+            width: block.width,
+            height: block.height,
+            declaredColours: palette.count,
+            charsPerPixel: block.charsPerPixel,
+            palette: palette,
+            rows: text
+        )
     }
 
     private func remember() {
@@ -261,9 +285,10 @@ final class PixelEditorScreen: Screen {
             return
         }
         let used = Set(shown.palette.map(\.key))
-        guard let key = PixelEditorScreen.alphabet
-            .map({ String($0) })
-            .first(where: { !used.contains($0) && $0.count == shown.charsPerPixel })
+        guard
+            let key = PixelEditorScreen.alphabet
+                .map({ String($0) })
+                .first(where: { !used.contains($0) && $0.count == shown.charsPerPixel })
         else {
             message = t("this picture has no room for another colour")
             messageIsError = true
@@ -272,9 +297,14 @@ final class PixelEditorScreen: Screen {
         remember()
         var palette = shown.palette
         palette.append((key: key, colour: colour))
-        shown = XpmBlock(width: shown.width, height: shown.height,
-                         declaredColours: palette.count, charsPerPixel: shown.charsPerPixel,
-                         palette: palette, rows: shown.rows)
+        shown = XpmBlock(
+            width: shown.width,
+            height: shown.height,
+            declaredColours: palette.count,
+            charsPerPixel: shown.charsPerPixel,
+            palette: palette,
+            rows: shown.rows
+        )
         selected = palette.count - 1
         message = t("added %@ — it paints nothing until you use it", colour ?? t("none"))
         messageIsError = false
@@ -324,8 +354,10 @@ final class PixelEditorScreen: Screen {
         nightBlock = nightBlock?.resized(width: width, height: height)
         cursor = (min(cursor.x, width - 1), min(cursor.y, height - 1))
         selected = min(selected, shown.palette.count - 1)
-        message = shrinking ? t("cropped to %@ — u puts it back", "\(width)×\(height)")
-                            : t("grown to %@, the new ground clear", "\(width)×\(height)")
+        message =
+            shrinking
+            ? t("cropped to %@ — u puts it back", "\(width)×\(height)")
+            : t("grown to %@, the new ground clear", "\(width)×\(height)")
         messageIsError = false
     }
 
@@ -353,7 +385,8 @@ final class PixelEditorScreen: Screen {
                 nightBlock = TypSource.parse(edited).section(.point, code)?.nightXpm
                 showingNight = nightBlock != nil
                 selected = 0
-                message = showingNight
+                message =
+                    showingNight
                     ? t("night started from the day drawing — change its colours, then save")
                     : t("could not start a night version")
                 messageIsError = !showingNight
@@ -379,8 +412,13 @@ final class PixelEditorScreen: Screen {
             return
         }
         do {
-            var edited = try TypEdit.setPicture(in: source, kind: kind, code: code, to: block,
-                                                tag: kind == .point ? "DayXpm" : nil)
+            var edited = try TypEdit.setPicture(
+                in: source,
+                kind: kind,
+                code: code,
+                to: block,
+                tag: kind == .point ? "DayXpm" : nil
+            )
             if let nightBlock {
                 // The night block may not be in the file yet, so it is added before it is
                 // written. Both halves land in one save, keeping the two shapes identical.
@@ -389,8 +427,13 @@ final class PixelEditorScreen: Screen {
                     edited = try TypEdit.addNightPicture(in: next, code: code)
                     next = TypSource.parse(edited)
                 }
-                edited = try TypEdit.setPicture(in: next, kind: kind, code: code,
-                                                to: nightBlock, tag: "NightXpm")
+                edited = try TypEdit.setPicture(
+                    in: next,
+                    kind: kind,
+                    code: code,
+                    to: nightBlock,
+                    tag: "NightXpm"
+                )
             }
             try TypLibrary.save(edited, to: url)
             document = StyleDocument.load(style)

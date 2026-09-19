@@ -9,7 +9,7 @@ struct PBFRewriter {
 
         var description: String {
             "a block holds relations as well as the ways being repaired, which this writer"
-            + " does not rebuild -- report the extract, it is not the usual layout"
+                + " does not rebuild -- report the extract, it is not the usual layout"
         }
     }
 
@@ -55,8 +55,10 @@ struct PBFRewriter {
         // A cheap rejection test in front of the tables. Nodes and ways are filtered
         // separately: a node id and a way id may be the same number.
         let nodeFilter = IDFilter(Array(plan.moves.keys) + Array(barriers.keys))
-        let wayFilter = IDFilter(Array(plan.inserts.keys.map { network.wayID[Int($0)] })
-                                 + Array(duplicateVenues))
+        let wayFilter = IDFilter(
+            Array(plan.inserts.keys.map { network.wayID[Int($0)] })
+                + Array(duplicateVenues)
+        )
         let mergeFilter = IDFilter(Array(plan.merges.keys))
         let moveFilter = IDFilter(Array(plan.moves.keys))
         let moved: [Int64: (lat: Double, lon: Double)] = plan.moves
@@ -86,8 +88,11 @@ struct PBFRewriter {
         var decoded = [Block?](repeating: nil, count: width)
         var prepared = [Rebuilt?](repeating: nil, count: width)
         var failures = [Error?](repeating: nil, count: width)
-        var batch: [(header: UnsafeRawBufferPointer, blob: UnsafeRawBufferPointer,
-                     isData: Bool)] = []
+        var batch:
+            [(
+                header: UnsafeRawBufferPointer, blob: UnsafeRawBufferPointer,
+                isData: Bool
+            )] = []
         batch.reserveCapacity(width)
 
         try data.withUnsafeBytes { file in
@@ -100,11 +105,15 @@ struct PBFRewriter {
                             try PBFReader.acrossCores(items.count, failures: &failures) { i in
                                 blocks[i] = nil
                                 guard items[i].isData else { return }
-                                let size = try PBFReader.inflate(items[i].blob,
-                                                                 into: &buffers[i])
+                                let size = try PBFReader.inflate(
+                                    items[i].blob,
+                                    into: &buffers[i]
+                                )
                                 blocks[i] = try buffers[i].withUnsafeBytes {
-                                    try Block(UnsafeRawBufferPointer(rebasing: $0[0..<size]),
-                                              fields: &fields[i])
+                                    try Block(
+                                        UnsafeRawBufferPointer(rebasing: $0[0..<size]),
+                                        fields: &fields[i]
+                                    )
                                 }
                             }
                         }
@@ -116,9 +125,15 @@ struct PBFRewriter {
                     try PBFReader.acrossCores(items.count, failures: &failures) { i in
                         slots[i] = nil
                         guard let block = decoded[i] else { return }
-                        slots[i] = try rebuild(block, moved: moved, inserts: inserts,
-                                               nodeFilter: nodeFilter, wayFilter: wayFilter,
-                                               mergeFilter: mergeFilter, moveFilter: moveFilter)
+                        slots[i] = try rebuild(
+                            block,
+                            moved: moved,
+                            inserts: inserts,
+                            nodeFilter: nodeFilter,
+                            wayFilter: wayFilter,
+                            mergeFilter: mergeFilter,
+                            moveFilter: moveFilter
+                        )
                     }
                 }
                 for i in 0..<items.count {
@@ -128,10 +143,17 @@ struct PBFRewriter {
                         tally.copied += 1
                         continue
                     }
-                    try write(prepared[i], of: block, header: items[i].header,
-                              blob: items[i].blob, writer: writer, tally: &tally,
-                              scratch: &scratch, addedNodes: &addedNodes,
-                              addedWays: &addedWays)
+                    try write(
+                        prepared[i],
+                        of: block,
+                        header: items[i].header,
+                        blob: items[i].blob,
+                        writer: writer,
+                        tally: &tally,
+                        scratch: &scratch,
+                        addedNodes: &addedNodes,
+                        addedWays: &addedWays
+                    )
                 }
                 batch.removeAll(keepingCapacity: true)
             }
@@ -174,13 +196,18 @@ struct PBFRewriter {
     /// Returns the block with repairs, barrier tags and tidied descriptions applied, or an
     /// untouched result if it needs none.
     /// - Throws: `Trouble.mixedBlock` when the block holds relations as well as ways.
-    private func rebuild(_ block: Block,
-                         moved: [Int64: (lat: Double, lon: Double)],
-                         inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
-                         nodeFilter: IDFilter, wayFilter: IDFilter,
-                         mergeFilter: IDFilter, moveFilter: IDFilter) throws -> Rebuilt {
+    private func rebuild(
+        _ block: Block,
+        moved: [Int64: (lat: Double, lon: Double)],
+        inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
+        nodeFilter: IDFilter,
+        wayFilter: IDFilter,
+        mergeFilter: IDFilter,
+        moveFilter: IDFilter
+    ) throws -> Rebuilt {
         var out = Rebuilt()
-        let touched = block.nodeIDs.contains {
+        let touched =
+            block.nodeIDs.contains {
                 nodeFilter.mayContain($0) && (moved[$0] != nil || barriers[$0] != nil)
             }
             || block.wayIDs.contains {
@@ -220,10 +247,17 @@ struct PBFRewriter {
 
     /// Writes one prepared block. Runs in file order: it inserts this pass's own objects
     /// and updates the running totals.
-    private mutating func write(_ ready: Rebuilt?, of block: Block,
-                       header: UnsafeRawBufferPointer, blob: UnsafeRawBufferPointer,
-                       writer: PBFWriter, tally: inout Tally, scratch: inout [UInt8],
-                       addedNodes: inout Bool, addedWays: inout Bool) throws {
+    private mutating func write(
+        _ ready: Rebuilt?,
+        of block: Block,
+        header: UnsafeRawBufferPointer,
+        blob: UnsafeRawBufferPointer,
+        writer: PBFWriter,
+        tally: inout Tally,
+        scratch: inout [UInt8],
+        addedNodes: inout Bool,
+        addedWays: inout Bool
+    ) throws {
         // A PBF is ordered nodes, ways, relations: new nodes go in before the first way,
         // new ways before the first relation.
         if block.hasWays && !addedNodes {

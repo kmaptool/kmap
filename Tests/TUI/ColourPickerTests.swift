@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Covers choosing a colour without typing its hex, and reaching a command whatever
 /// alphabet the keyboard is in.
 final class ColourPickerTests: XCTestCase {
-
     // MARK: The spread
 
     func testEverySwatchIsARealColour() {
@@ -18,16 +18,23 @@ final class ColourPickerTests: XCTestCase {
 
     func testTheLastRowIsGreyAndRunsFromBlackToWhite() {
         for column in 0..<24 {
-            let colour = ColourPicker.colour(row: ColourPicker.levels, column: column,
-                                             hues: 24)
+            let colour = ColourPicker.colour(
+                row: ColourPicker.levels,
+                column: column,
+                hues: 24
+            )
             let hex = colour.dropFirst()
             XCTAssertEqual(String(hex.prefix(2)), String(hex.dropFirst(2).prefix(2)), colour)
             XCTAssertEqual(String(hex.dropFirst(2).prefix(2)), String(hex.suffix(2)), colour)
         }
-        XCTAssertEqual(ColourPicker.colour(row: ColourPicker.levels, column: 0, hues: 24),
-                       "#000000")
-        XCTAssertEqual(ColourPicker.colour(row: ColourPicker.levels, column: 23, hues: 24),
-                       "#FFFFFF")
+        XCTAssertEqual(
+            ColourPicker.colour(row: ColourPicker.levels, column: 0, hues: 24),
+            "#000000"
+        )
+        XCTAssertEqual(
+            ColourPicker.colour(row: ColourPicker.levels, column: 23, hues: 24),
+            "#FFFFFF"
+        )
     }
 
     func testLowerRowsAreDarker() {
@@ -40,7 +47,8 @@ final class ColourPickerTests: XCTestCase {
             XCTAssertGreaterThan(
                 luminance(ColourPicker.colour(row: row, column: 6, hues: 24)),
                 luminance(ColourPicker.colour(row: row + 1, column: 6, hues: 24)),
-                "row \(row) should be lighter than row \(row + 1)")
+                "row \(row) should be lighter than row \(row + 1)"
+            )
         }
     }
 
@@ -65,11 +73,11 @@ final class ColourPickerTests: XCTestCase {
     /// The sliders reach colours the grid does not; one step is 0.01.
     func testASliderMovesOneStepAtATime() {
         var picker = ColourPicker(start: "#808080")
-        _ = picker.handle(.tab)                      // onto the sliders
+        _ = picker.handle(.tab)  // onto the sliders
         XCTAssertEqual(picker.pane, .sliders)
 
         let before = picker.lightnessForTests
-        _ = picker.handle(.down)                     // hue -> saturation -> lightness
+        _ = picker.handle(.down)  // hue -> saturation -> lightness
         _ = picker.handle(.down)
         _ = picker.handle(.right)
         XCTAssertEqual(picker.lightnessForTests, before + 0.01, accuracy: 0.0001)
@@ -86,7 +94,7 @@ final class ColourPickerTests: XCTestCase {
     func testASliderStopsAtTheEndsRatherThanWrappingPast() {
         var picker = ColourPicker(start: "#808080")
         _ = picker.handle(.tab)
-        _ = picker.handle(.down)                     // saturation
+        _ = picker.handle(.down)  // saturation
         for _ in 0..<200 { _ = picker.handle(.left) }
         XCTAssertEqual(picker.saturationForTests, 0, accuracy: 0.0001)
         for _ in 0..<400 { _ = picker.handle(.right) }
@@ -104,8 +112,10 @@ final class ColourPickerTests: XCTestCase {
 
     /// A hex converted to HSL and back comes out as the same hex.
     func testAnyColourSurvivesTheRoundTripThroughHSL() {
-        for hex in ["#000000", "#FFFFFF", "#68B0F8", "#A0D070", "#D40000", "#123456",
-                    "#7F7F7F", "#FF00FF", "#010203"] {
+        for hex in [
+            "#000000", "#FFFFFF", "#68B0F8", "#A0D070", "#D40000", "#123456",
+            "#7F7F7F", "#FF00FF", "#010203"
+        ] {
             XCTAssertEqual(ColourPicker(start: hex).current, hex, hex)
         }
     }
@@ -115,8 +125,8 @@ final class ColourPickerTests: XCTestCase {
     /// Colours already used by the style are offered as a pane and chosen exactly.
     func testTheStylesOwnColoursAreOfferedAndChosenExactly() {
         var picker = ColourPicker(start: "#000000", palette: ["#A0D070", "#204020"])
-        _ = picker.handle(.tab)                      // sliders
-        _ = picker.handle(.tab)                      // the style's colours
+        _ = picker.handle(.tab)  // sliders
+        _ = picker.handle(.tab)  // the style's colours
         XCTAssertEqual(picker.pane, .palette)
 
         guard case .chose(let first) = picker.handle(.enter) else {
@@ -187,12 +197,16 @@ final class ColourPickerTests: XCTestCase {
 
     /// Every letter a command is bound to is reachable from a Cyrillic layout.
     func testEveryCommandLetterHasACyrillicKeyThatReachesIt() {
-        let commands: Set<Character> = ["a", "c", "d", "i", "l", "m", "n", "r", "s", "u",
-                                        "x", "y"]
+        let commands: Set<Character> = [
+            "a", "c", "d", "i", "l", "m", "n", "r", "s", "u",
+            "x", "y"
+        ]
         let reachable = Set("йцукенгшщзхъфывапролджэячсмитьбю".map(Keys.latin))
         for command in commands {
-            XCTAssertTrue(reachable.contains(command),
-                          "\(command) cannot be typed on a Russian layout")
+            XCTAssertTrue(
+                reachable.contains(command),
+                "\(command) cannot be typed on a Russian layout"
+            )
         }
     }
 }

@@ -1,13 +1,19 @@
 import XCTest
+
 @testable import kmap
 
 /// The footprint both the build and the cost estimate fetch: box cells trimmed to the
 /// region outlines, so the figure quoted and the fetch performed always agree.
 final class ElevationFootprintTests: XCTestCase {
-
     private func region(_ id: String, _ boxes: [BBox]) -> Region {
-        Region(id: id, name: id, parentID: nil, pbfURL: nil,
-               bbox: boxes[0], boxes: boxes)
+        Region(
+            id: id,
+            name: id,
+            parentID: nil,
+            pbfURL: nil,
+            bbox: boxes[0],
+            boxes: boxes
+        )
     }
 
     func testTheOutlineCutsTheCellsTheRegionNeverTouches() {
@@ -15,11 +21,16 @@ final class ElevationFootprintTests: XCTestCase {
         let box = BBox(minLon: 30, minLat: 40, maxLon: 33, maxLat: 43)
         let all = ElevationFootprint.cellOrigins(of: box)
         XCTAssertEqual(all.count, 9)
-        let corner = RegionOutline.Ring(subtract: false, points: [
-            (30.2, 40.2), (30.8, 40.2), (30.8, 40.8), (30.2, 40.8), (30.2, 40.2),
-        ])
-        let kept = ElevationFootprint.trim(all,
-                                           ringsPerRegion: [(region("r", [box]), [corner])])
+        let corner = RegionOutline.Ring(
+            subtract: false,
+            points: [
+                (30.2, 40.2), (30.8, 40.2), (30.8, 40.8), (30.2, 40.8), (30.2, 40.2)
+            ]
+        )
+        let kept = ElevationFootprint.trim(
+            all,
+            ringsPerRegion: [(region("r", [box]), [corner])]
+        )
         XCTAssertEqual(kept.count, 1)
         XCTAssertEqual(kept.first?.lat, 40)
         XCTAssertEqual(kept.first?.lon, 30)
@@ -28,8 +39,10 @@ final class ElevationFootprintTests: XCTestCase {
     func testARegionWithoutAnOutlineKeepsEveryCellOfItsBoxes() {
         let box = BBox(minLon: 30, minLat: 40, maxLon: 32, maxLat: 42)
         let all = ElevationFootprint.cellOrigins(of: box)
-        let kept = ElevationFootprint.trim(all,
-                                           ringsPerRegion: [(region("r", [box]), nil)])
+        let kept = ElevationFootprint.trim(
+            all,
+            ringsPerRegion: [(region("r", [box]), nil)]
+        )
         XCTAssertEqual(kept.count, all.count, "no outline, no trim")
     }
 
@@ -39,11 +52,19 @@ final class ElevationFootprintTests: XCTestCase {
         let west = region("w", [BBox(minLon: 30, minLat: 40, maxLon: 31, maxLat: 41)])
         let east = region("e", [BBox(minLon: 50, minLat: 40, maxLon: 51, maxLat: 41)])
         let all = ElevationFootprint.boxCells(of: [west, east])
-        let ring = RegionOutline.Ring(subtract: false, points: [
-            (30.2, 40.2), (30.8, 40.2), (30.8, 40.8), (30.2, 40.8), (30.2, 40.2),
-        ])
-        let kept = ElevationFootprint.trim(all, ringsPerRegion: [(west, [ring]),
-                                                                 (east, nil)])
+        let ring = RegionOutline.Ring(
+            subtract: false,
+            points: [
+                (30.2, 40.2), (30.8, 40.2), (30.8, 40.8), (30.2, 40.8), (30.2, 40.2)
+            ]
+        )
+        let kept = ElevationFootprint.trim(
+            all,
+            ringsPerRegion: [
+                (west, [ring]),
+                (east, nil)
+            ]
+        )
         XCTAssertEqual(kept.count, 2)
     }
 }

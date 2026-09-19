@@ -77,8 +77,12 @@ struct BBox: Codable, Equatable {
     var maxLon: Double
     var maxLat: Double
 
-    static let empty = BBox(minLon: .infinity, minLat: .infinity,
-                            maxLon: -.infinity, maxLat: -.infinity)
+    static let empty = BBox(
+        minLon: .infinity,
+        minLat: .infinity,
+        maxLon: -.infinity,
+        maxLat: -.infinity
+    )
 
     var isValid: Bool { minLon <= maxLon && minLat <= maxLat && minLon.isFinite && maxLat.isFinite }
 
@@ -92,10 +96,12 @@ struct BBox: Codable, Equatable {
     /// Returns the box grown by `margin` and snapped outwards to whole degrees, as DEM
     /// tile fetching requires.
     func snappedOutward(margin: Double = 0.0) -> BBox {
-        BBox(minLon: (minLon - margin).rounded(.down),
-             minLat: (minLat - margin).rounded(.down),
-             maxLon: (maxLon + margin).rounded(.up),
-             maxLat: (maxLat + margin).rounded(.up))
+        BBox(
+            minLon: (minLon - margin).rounded(.down),
+            minLat: (minLat - margin).rounded(.down),
+            maxLon: (maxLon + margin).rounded(.up),
+            maxLat: (maxLat + margin).rounded(.up)
+        )
     }
 
     /// pyhgtmap's `--area` format: minlon:minlat:maxlon:maxlat.
@@ -106,7 +112,7 @@ struct BBox: Codable, Equatable {
     var display: String {
         guard isValid else { return "—" }
         return "\(Fmt.coord(minLat, lat: true)) \(Fmt.coord(minLon, lat: false))  →  "
-             + "\(Fmt.coord(maxLat, lat: true)) \(Fmt.coord(maxLon, lat: false))"
+            + "\(Fmt.coord(maxLat, lat: true)) \(Fmt.coord(maxLon, lat: false))"
     }
 
     func contains(lat: Double, lon: Double) -> Bool {
@@ -131,10 +137,12 @@ struct BBox: Codable, Equatable {
 
     /// The overlap of the two boxes, `.empty` where they only touch or miss.
     func intersection(_ other: BBox) -> BBox {
-        let box = BBox(minLon: Swift.max(minLon, other.minLon),
-                       minLat: Swift.max(minLat, other.minLat),
-                       maxLon: Swift.min(maxLon, other.maxLon),
-                       maxLat: Swift.min(maxLat, other.maxLat))
+        let box = BBox(
+            minLon: Swift.max(minLon, other.minLon),
+            minLat: Swift.max(minLat, other.minLat),
+            maxLon: Swift.min(maxLon, other.maxLon),
+            maxLat: Swift.min(maxLat, other.maxLat)
+        )
         return box.isValid ? box : .empty
     }
 

@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -6,7 +7,6 @@ import FoundationNetworking
 /// Downloads one file over several connections, resuming whatever a previous run left in
 /// `.partN` files. The ranges go through a `RangeSession`; the files are `PartFiles`.
 final class Downloader: Sendable {
-
     let progress = DownloadProgress()
     private let log: Log
     private let session: RangeSession
@@ -37,8 +37,12 @@ final class Downloader: Sendable {
     @discardableResult
     func download(url: URL, to destination: URL, connections: Int) async throws -> Int64 {
         do {
-            return try await download(url: url, to: destination, connections: connections,
-                                      ranged: nil)
+            return try await download(
+                url: url,
+                to: destination,
+                connections: connections,
+                ranged: nil
+            )
         } catch DownloadError.rangesIgnored {
             // HEAD promised ranges and GET ignored them, so the parts were laid out for
             // ranges that will not be served: start over on one connection.
@@ -46,14 +50,22 @@ final class Downloader: Sendable {
             let files = PartFiles(destination: destination)
             files.removeParts()
             FileTools.removeIfPresent(files.layout)
-            return try await download(url: url, to: destination, connections: 1,
-                                      ranged: false)
+            return try await download(
+                url: url,
+                to: destination,
+                connections: 1,
+                ranged: false
+            )
         }
     }
 
     /// - Parameter ranged: Overrides the probe's range support; nil trusts the probe.
-    private func download(url: URL, to destination: URL, connections: Int,
-                          ranged: Bool?) async throws -> Int64 {
+    private func download(
+        url: URL,
+        to destination: URL,
+        connections: Int,
+        ranged: Bool?
+    ) async throws -> Int64 {
         progress.setStage("probing")
         var info = try await Downloader.probeRetrying(url)
         if let ranged { info.acceptsRanges = ranged }
@@ -130,11 +142,14 @@ final class Downloader: Sendable {
                 if written > before { failures = 0 }
                 // Without ranges there is no picking up, only starting over.
                 guard ranged, written < part.length,
-                      failures < Self.retriesPerPart, Self.worthRetrying(error) else { throw error }
+                    failures < Self.retriesPerPart, Self.worthRetrying(error)
+                else { throw error }
                 failures += 1
                 if failures == 1 {
-                    log.warn("connection dropped with \(Fmt.bytes(part.length - written))"
-                             + " left of part \(part.index + 1) — picking it up again")
+                    log.warn(
+                        "connection dropped with \(Fmt.bytes(part.length - written))"
+                            + " left of part \(part.index + 1) — picking it up again"
+                    )
                 }
                 try await Self.backOff(after: failures)
             }
@@ -150,8 +165,8 @@ final class Downloader: Sendable {
         guard let url = error as? URLError else { return false }
         switch url.code {
         case .timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost,
-             .dnsLookupFailed, .notConnectedToInternet, .resourceUnavailable,
-             .badServerResponse, .zeroByteResource:
+            .dnsLookupFailed, .notConnectedToInternet, .resourceUnavailable,
+            .badServerResponse, .zeroByteResource:
             return true
         default:
             return false

@@ -6,7 +6,6 @@ import Foundation
 /// offered and what the button at the end commits.
 @MainActor
 final class RecipeForm {
-
     /// Which screen is showing the form.
     enum Mode {
         /// A map about to be built: the profile row at the top, the family id, the folder,
@@ -30,7 +29,7 @@ final class RecipeForm {
     enum Field: Int, CaseIterable {
         case profile
         case style, contours, interval, dem, fixSummits, demSource, zoomPlan, language, codePage,
-             familyID
+            familyID
         case routable, healRoads, index, houseNumbers, sea, descriptions
         case customPOIs, hide
         case splitMode, parts, output
@@ -111,11 +110,18 @@ final class RecipeForm {
     var fieldRows: [Field: Int] = [:]
 
     let intervals = [5, 10, 20, 25, 50]
-    private let codePages = [CodePage.westernEuropean, CodePage.cyrillic,
-                             CodePage.centralEuropean, CodePage.utf8]
+    private let codePages = [
+        CodePage.westernEuropean, CodePage.cyrillic,
+        CodePage.centralEuropean, CodePage.utf8
+    ]
 
-    init(mode: Mode, recipe: BuildRecipe, regionCodePage: Int = 0, askedStyleID: String? = nil,
-         hasSeamPatch: Bool = false) {
+    init(
+        mode: Mode,
+        recipe: BuildRecipe,
+        regionCodePage: Int = 0,
+        askedStyleID: String? = nil,
+        hasSeamPatch: Bool = false
+    ) {
         self.mode = mode
         self.hasSeamPatch = hasSeamPatch
         self.recipe = recipe
@@ -160,13 +166,17 @@ final class RecipeForm {
             return hints
         }
         if picking != nil {
-            return [Hint(key: "↑↓", label: t("choose")),
-                    Hint(key: Glyph.enter, label: t("take it")),
-                    Hint(key: "esc", label: t("leave as is"))]
+            return [
+                Hint(key: "↑↓", label: t("choose")),
+                Hint(key: Glyph.enter, label: t("take it")),
+                Hint(key: "esc", label: t("leave as is"))
+            ]
         }
-        return [Hint(key: "↑↓", label: t("field")),
-                Hint(key: "←→", label: t("change")),
-                Hint(key: Glyph.enter, label: mode == .build ? t("open · build") : t("open · save"))]
+        return [
+            Hint(key: "↑↓", label: t("field")),
+            Hint(key: "←→", label: t("change")),
+            Hint(key: Glyph.enter, label: mode == .build ? t("open · build") : t("open · save"))
+        ]
     }
 
     // MARK: The profile at the top
@@ -182,9 +192,11 @@ final class RecipeForm {
     /// edited form builds this map differently and leaves the profile unchanged.
     var isModified: Bool {
         guard let profile = currentProfile else { return false }
-        return !recipe.matches(profile.choices,
-                               regionCodePage: regionCodePage,
-                               askedStyleID: wantedStyleID ?? recipe.style.id)
+        return !recipe.matches(
+            profile.choices,
+            regionCodePage: regionCodePage,
+            askedStyleID: wantedStyleID ?? recipe.style.id
+        )
     }
 
     /// Fills the whole form in from a profile, leaving the map's own things alone.
@@ -192,9 +204,11 @@ final class RecipeForm {
         currentProfileID = profile.id
         wantedStyleID = profile.choices.styleID
         refreshStyles(ctx)
-        recipe.apply(profile.choices,
-                     style: styleChoices.first { $0.id == profile.choices.styleID },
-                     regionCodePage: regionCodePage)
+        recipe.apply(
+            profile.choices,
+            style: styleChoices.first { $0.id == profile.choices.styleID },
+            regionCodePage: regionCodePage
+        )
         // Follows the profile, not the choices: editing a field afterwards leaves the name.
         message = nil
     }
@@ -223,9 +237,11 @@ final class RecipeForm {
     private func handleOutput(_ key: KeyEvent) -> Outcome {
         switch key {
         case .ctrl("o"):
-            if let chosen = FilePicker.choose(.directory,
-                                              startingAt: Paths.expand(outputDraft),
-                                              prompt: t("Output folder")) {
+            if let chosen = FilePicker.choose(
+                .directory,
+                startingAt: Paths.expand(outputDraft),
+                prompt: t("Output folder")
+            ) {
                 outputDraft = chosen.path
             }
         case .enter, .esc:
@@ -253,7 +269,8 @@ final class RecipeForm {
         case .enter, .char(" "):
             picking = nil
             if let choice = choice(for: open.field, ctx), open.at != choice.current,
-               open.at < choice.options.count {
+                open.at < choice.options.count
+            {
                 return choice.choose(open.at)
             }
         case .esc, .left, .char("h"), .ctrl("c"):
@@ -273,19 +290,26 @@ final class RecipeForm {
             outputDraft = recipe.outputDirectory.path
             return .none
         case .hide:
-            return .route(.push(HideScreen(hidden: recipe.hidden) { [weak self] picked in
-                // Reaches this build only; the profile it came from stays as it was.
-                self?.recipe.hidden = picked
-            }))
+            return .route(
+                .push(
+                    HideScreen(hidden: recipe.hidden) { [weak self] picked in
+                        // Reaches this build only; the profile it came from stays as it was.
+                        self?.recipe.hidden = picked
+                    }
+                )
+            )
         case .style:
             // A dedicated screen: TYPs found inside maps make the list too long to cycle.
             refreshStyles(ctx)
-            return .route(.push(
-                StylePickerScreen(styles: styleChoices, current: recipe.style) {
-                    [weak self] picked in
-                    self?.recipe.style = picked
-                    self?.wantedStyleID = picked.id
-                }))
+            return .route(
+                .push(
+                    StylePickerScreen(styles: styleChoices, current: recipe.style) {
+                        [weak self] picked in
+                        self?.recipe.style = picked
+                        self?.wantedStyleID = picked.id
+                    }
+                )
+            )
         case .zoomPlan where ctx.settings.zoomPlans.count < 2:
             // Nothing to cycle: only the plan that ships. ⏎ opens where a second is made.
             return .route(.push(ZoomPlansScreen()))
@@ -311,7 +335,8 @@ final class RecipeForm {
             refreshStyles(ctx)
             guard !styleChoices.isEmpty else { return .none }
             let at = styleChoices.firstIndex { $0.id == recipe.style.id } ?? 0
-            let next = ((at + delta) % styleChoices.count + styleChoices.count)
+            let next =
+                ((at + delta) % styleChoices.count + styleChoices.count)
                 % styleChoices.count
             recipe.style = styleChoices[next]
             wantedStyleID = recipe.style.id
@@ -334,8 +359,10 @@ final class RecipeForm {
     /// The elevation sources on offer. Copernicus and Viewfinder are fetched directly;
     /// SRTM and ALOS need pyhgtmap and a stored login, and appear only when both are there.
     func sourceChoices(_ ctx: AppContext) -> [String] {
-        var choices = [BuildRecipe.recommendedDEMSources, "copernicus1", "copernicus3",
-                       "view1,view3", "view1", "view3"]
+        var choices = [
+            BuildRecipe.recommendedDEMSources, "copernicus1", "copernicus3",
+            "view1,view3", "view1", "view3"
+        ]
         // A source with no usable login downloads nothing and fails late in the build.
         if ctx.toolchain.findPyhgtmap() != nil {
             if ElevationLogins.usable(.srtm) { choices.append("srtm1,view3") }

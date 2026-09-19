@@ -24,17 +24,32 @@ protocol OSMSink: LaneSafeMetatype {
     var wantedParts: OSMParts { get }
 
     /// `tags` alternates key and value indices into the block's string table.
-    mutating func node(id: Int64, lat: Double, lon: Double,
-                       tags: ArraySlice<Int32>, block: OSMBlock)
+    mutating func node(
+        id: Int64,
+        lat: Double,
+        lon: Double,
+        tags: ArraySlice<Int32>,
+        block: OSMBlock
+    )
     /// Ways keep their keys and values in two parallel runs instead.
-    mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                      keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock)
+    mutating func way(
+        id: Int64,
+        refs: ArraySlice<Int64>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    )
     /// Members arrive as parallel runs of kind (0 node, 1 way, 2 relation), id and role;
     /// the role is a string-table index, as tags are.
-    mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                           memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                           keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                           block: OSMBlock)
+    mutating func relation(
+        id: Int64,
+        memberKinds: ArraySlice<Int32>,
+        memberIDs: ArraySlice<Int64>,
+        memberRoles: ArraySlice<Int32>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    )
     /// Reports a group of this kind in the block, whether or not it was asked for.
     mutating func sawGroup(_ part: OSMParts)
     /// The block's string table is ready and its groups are about to be read.
@@ -46,12 +61,27 @@ extension OSMSink {
     mutating func sawGroup(_ part: OSMParts) {}
     mutating func begin(_ block: OSMBlock) {}
 
-    mutating func node(id: Int64, lat: Double, lon: Double,
-                       tags: ArraySlice<Int32>, block: OSMBlock) {}
-    mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                      keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {}
-    mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                           memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                           keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                           block: OSMBlock) {}
+    mutating func node(
+        id: Int64,
+        lat: Double,
+        lon: Double,
+        tags: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {}
+    mutating func way(
+        id: Int64,
+        refs: ArraySlice<Int64>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {}
+    mutating func relation(
+        id: Int64,
+        memberKinds: ArraySlice<Int32>,
+        memberIDs: ArraySlice<Int64>,
+        memberRoles: ArraySlice<Int32>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {}
 }

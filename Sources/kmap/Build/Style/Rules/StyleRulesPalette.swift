@@ -11,14 +11,13 @@ import Foundation
 /// and be drawn as something else. A `continue` layer keeps its actions and loses only
 /// its type. Routing is never touched.
 extension StyleCatalog {
-
     /// Numbers kmap manufactures rather than draws from OSM: contours, sea, background
     /// and the land beneath. They are the ground the map stands on and answer to the
     /// build, not to a palette. And the settlements, which the receiver draws itself.
     private static let paletteExempt: [MapElementKind: Set<Int>] = [
         .line: [0x20, 0x21, 0x22],
         .polygon: [0x27, 0x32, 0x4a, 0x4b],
-        .point: GarminStandard.cityTypes,
+        .point: GarminStandard.cityTypes
     ]
 
     /// Silences every rule the palette cannot paint, and says how many. Rules, not
@@ -27,9 +26,12 @@ extension StyleCatalog {
     /// - Parameter chosen: numbers a person aimed a rule at by hand. Never silenced -
     ///   an unpainted number is exactly where someone goes on to draw one.
     @discardableResult
-    static func keepOnlyWhatThePaletteDraws(in directory: URL, palette: TypSource,
-                                            chosen: [MapElementKind: Set<Int>] = [:],
-                                            log: Log) throws -> Int {
+    static func keepOnlyWhatThePaletteDraws(
+        in directory: URL,
+        palette: TypSource,
+        chosen: [MapElementKind: Set<Int>] = [:],
+        log: Log
+    ) throws -> Int {
         var quieted = 0
         for kind in MapElementKind.allCases {
             let url = directory.appendingPathComponent(kind.ruleFile)
@@ -45,7 +47,8 @@ extension StyleCatalog {
                     // A comment or a blank line between rules belongs to the file, not
                     // to the rule being gathered.
                     if line.trimmingCharacters(in: .whitespaces).isEmpty
-                        || line.trimmingCharacters(in: .whitespaces).hasPrefix("#") {
+                        || line.trimmingCharacters(in: .whitespaces).hasPrefix("#")
+                    {
                         out.append(contentsOf: pending)
                         pending.removeAll()
                         out.append(line)
@@ -61,7 +64,8 @@ extension StyleCatalog {
                 if painted.contains(code) || paletteExempt[kind]?.contains(code) == true
                     || chosen[kind]?.contains(code) == true
                     || rule.contains(where: { $0.contains("road_class=") })
-                    || rule.contains(where: { $0.contains(TypAugment.repairTag) }) {
+                    || rule.contains(where: { $0.contains(TypAugment.repairTag) })
+                {
                     out.append(contentsOf: rule)
                     continue
                 }
@@ -90,8 +94,10 @@ extension StyleCatalog {
             try out.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
         }
         if quieted > 0 {
-            log.append("\(quieted) rule(s) draw nothing — this palette paints no picture"
-                       + " for the number they emit")
+            log.append(
+                "\(quieted) rule(s) draw nothing — this palette paints no picture"
+                    + " for the number they emit"
+            )
         }
         return quieted
     }
@@ -117,8 +123,9 @@ extension StyleCatalog {
         let whole = (rule.joined(separator: " ")).components(separatedBy: "[0x").first ?? ""
         let keys = Set(whole.allMatches("[a-z_:]+=").map { String($0.dropLast()) })
         guard !keys.isEmpty, keys.count <= 3,
-              !whole.contains("!="), !whole.contains("~"),
-              !whole.contains("|") || (keys.count == 1 && !routable) else {
+            !whole.contains("!="), !whole.contains("~"),
+            !whole.contains("|") || (keys.count == 1 && !routable)
+        else {
             return nil
         }
         let removals = keys.sorted().map { "delete \($0)" }.joined(separator: "; ")

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// A path spelled the way the machine's own programs read it.
@@ -6,7 +7,6 @@ import XCTest
 /// The accessor differs from `URL.path` on exactly one platform: on the Unixes it must
 /// be `.path` byte for byte, and on Windows the same path with native separators.
 final class NativePathTests: XCTestCase {
-
     /// `/home/user/x` on the Unixes, `\home\k\x` on Windows: the same path, spelled twice.
     private func native(_ posix: String) -> String {
         #if os(Windows)
@@ -32,8 +32,10 @@ final class NativePathTests: XCTestCase {
     }
 
     func testEveryNameKmapMeetsSurvivesTheJourney() {
-        for path in ["/tmp/x", "/tmp/with space/x.img", "/tmp/ü/ß/x",
-                     "/tmp/日本語/x.typ", "/tmp/a.b.c/d"] {
+        for path in [
+            "/tmp/x", "/tmp/with space/x.img", "/tmp/ü/ß/x",
+            "/tmp/日本語/x.typ", "/tmp/a.b.c/d"
+        ] {
             XCTAssertEqual(URL(fileURLWithPath: path).nativePath, native(path), path)
         }
     }
@@ -42,8 +44,11 @@ final class NativePathTests: XCTestCase {
     func testItIsWhatPathAlwaysSaidHereAndNothingNew() {
         // On the Unixes the accessor must not change a single answer.
         for path in ["/", "/tmp/x", "/tmp/with space/x.img", "/tmp/日本語/x.typ"] {
-            XCTAssertEqual(URL(fileURLWithPath: path).nativePath,
-                           URL(fileURLWithPath: path).path, path)
+            XCTAssertEqual(
+                URL(fileURLWithPath: path).nativePath,
+                URL(fileURLWithPath: path).path,
+                path
+            )
         }
     }
     #endif

@@ -8,11 +8,13 @@ final class HideScreen: Screen {
     }
 
     private var keys: [Hint] {
-        [Hint(key: "space", label: t("toggle")),
-         Hint(key: "type", label: t("filter")),
-         Hint(key: "^A", label: t("hide all shown")),
-         Hint(key: "^N", label: t("show all")),
-         Hint(key: "esc", label: t("done"))]
+        [
+            Hint(key: "space", label: t("toggle")),
+            Hint(key: "type", label: t("filter")),
+            Hint(key: "^A", label: t("hide all shown")),
+            Hint(key: "^N", label: t("show all")),
+            Hint(key: "esc", label: t("done"))
+        ]
     }
 
     /// A flattened row: either a category heading or a feature.
@@ -117,18 +119,26 @@ final class HideScreen: Screen {
         let x = s.text(rect.x, y, t("filter") + ": ", Style(fg: theme.dim, bg: theme.appBg))
         let end = s.text(x, y, query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
         s.put(end, y, "▏", Style(fg: theme.accent, bg: theme.appBg))
-        s.textRight(rect.maxX, y,
-                    hidden.isEmpty ? tn("%d feature(s)", HideableFeature.all.count)
-                                   : tn("%d hidden", hidden.count),
-                    Style(fg: hidden.isEmpty ? theme.faint : theme.warn, bg: theme.appBg))
+        s.textRight(
+            rect.maxX,
+            y,
+            hidden.isEmpty
+                ? tn("%d feature(s)", HideableFeature.all.count)
+                : tn("%d hidden", hidden.count),
+            Style(fg: hidden.isEmpty ? theme.faint : theme.warn, bg: theme.appBg)
+        )
         y += 1
         s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
         y += 1
 
         let visible = max(1, rect.maxY - y - 1)
         guard !rows.isEmpty else {
-            s.text(rect.x, y, t("nothing matches \"%@\"", query),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("nothing matches \"%@\"", query),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             return
         }
         list.clamp(count: rows.count, visible: visible)
@@ -142,9 +152,13 @@ final class HideScreen: Screen {
             case .heading(let name):
                 // The catalogue is generated from mkgmap rule lines and is in English; the
                 // display names are translated beside it, keyed by id. See HideableNames.
-                s.sectionRule(rect, ry, HideableNames.category(name),
-                              labelStyle: Style(fg: theme.dim, bg: theme.appBg, bold: true),
-                              ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+                s.sectionRule(
+                    rect,
+                    ry,
+                    HideableNames.category(name),
+                    labelStyle: Style(fg: theme.dim, bg: theme.appBg, bold: true),
+                    ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+                )
 
             case .feature(let feature):
                 let selected = index == list.selected
@@ -152,27 +166,49 @@ final class HideScreen: Screen {
                 let bg = selected ? theme.selectionBg : theme.appBg
                 s.fill(Rect(x: rect.x, y: ry, w: rect.w, h: 1), Style(fg: theme.text, bg: bg))
 
-                s.text(rect.x + 2, ry, isHidden ? "[\(Glyph.check)]" : "[ ]",
-                       Style(fg: isHidden ? theme.warn : theme.faint, bg: bg, bold: isHidden))
+                s.text(
+                    rect.x + 2,
+                    ry,
+                    isHidden ? "[\(Glyph.check)]" : "[ ]",
+                    Style(fg: isHidden ? theme.warn : theme.faint, bg: bg, bold: isHidden)
+                )
                 // The name owns its column and stops before the note's, so a long name
                 // cannot run into the note.
                 let noteX = rect.x + 38
-                s.text(rect.x + 6, ry, feature.localizedName,
-                       Style(fg: isHidden ? theme.warn : theme.text, bg: bg, bold: selected),
-                       limit: noteX - rect.x - 8)
+                s.text(
+                    rect.x + 6,
+                    ry,
+                    feature.localizedName,
+                    Style(fg: isHidden ? theme.warn : theme.text, bg: bg, bold: selected),
+                    limit: noteX - rect.x - 8
+                )
                 if !feature.note.isEmpty {
-                    s.text(noteX, ry, truncate(t(feature.note), to: max(0, rect.maxX - noteX)),
-                           Style(fg: theme.faint, bg: bg))
+                    s.text(
+                        noteX,
+                        ry,
+                        truncate(t(feature.note), to: max(0, rect.maxX - noteX)),
+                        Style(fg: theme.faint, bg: bg)
+                    )
                 }
             }
         }
 
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: y, w: rect.w, h: visible),
-                           offset: list.offset, count: rows.count, visible: visible, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: y, w: rect.w, h: visible),
+            offset: list.offset,
+            count: rows.count,
+            visible: visible,
+            theme: theme
+        )
 
         guard rect.maxY - 1 > y else { return }
-        s.text(rect.x, rect.maxY - 1,
-               t("kept until you change it · applies to the map and to the custom POI file"),
-               Style(fg: theme.faint, bg: theme.appBg), limit: rect.w)
+        s.text(
+            rect.x,
+            rect.maxY - 1,
+            t("kept until you change it · applies to the map and to the custom POI file"),
+            Style(fg: theme.faint, bg: theme.appBg),
+            limit: rect.w
+        )
     }
 }

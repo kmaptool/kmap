@@ -47,8 +47,9 @@ struct GroundIndex {
         // the widest one. Walked in id order, so the slots are the same every run.
         for wayID in sink.bareOuterOf.keys.sorted() {
             guard let seen = sink.bareOuterOf[wayID],
-                  let cells = sink.bareCells[wayID],
-                  var tags = Self.lifted(from: seen, in: sink.relationTags) else { continue }
+                let cells = sink.bareCells[wayID],
+                var tags = Self.lifted(from: seen, in: sink.relationTags)
+            else { continue }
             tags[DefaultRuleBook.relationTypeKey] = nil
             sink.appendWay(id: wayID, cells: cells, tags: tags)
         }
@@ -84,11 +85,14 @@ struct GroundIndex {
     /// The tags a bare outer way inherits from its relations, or nil where they
     /// disagree on what it means. The lowest admin level wins: mkgmap draws a border
     /// as the widest boundary it belongs to.
-    static func lifted(from relations: Set<Int64>,
-                       in tags: [Int64: [String: String]]) -> [String: String]? {
+    static func lifted(
+        from relations: Set<Int64>,
+        in tags: [Int64: [String: String]]
+    ) -> [String: String]? {
         let held = relations.sorted().compactMap { tags[$0] }
         guard !held.isEmpty,
-              Set(held.map { DefaultRuleBook.meaning(of: $0) }).count == 1 else { return nil }
+            Set(held.map { DefaultRuleBook.meaning(of: $0) }).count == 1
+        else { return nil }
         let key = DefaultRuleBook.adminLevelKey
         return held.min { a, b in
             (Int(a[key] ?? "") ?? Int.max) < (Int(b[key] ?? "") ?? Int.max)
@@ -128,8 +132,13 @@ struct GroundIndex {
             return coordCells[low]
         }
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             guard frame.contains(lat: lat, lon: lon) else { return }
             let cell = GarminGrid.cell(lat: lat, lon: lon)
             if let last = coordIDs.last, id <= last { ascending = false }
@@ -141,9 +150,13 @@ struct GroundIndex {
             nodesByCell[cell, default: []].append(slot)
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                          block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             if !ascending { sortCoords() }
             var cells: [UInt64] = []
             cells.reserveCapacity(refs.count)
@@ -161,10 +174,15 @@ struct GroundIndex {
             appendWay(id: id, cells: cells, tags: tags)
         }
 
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             let tags = decode(keys: keys, values: values, block)
             let kind = tags[DefaultRuleBook.relationTypeKey]
             guard kind == GroundIndex.multipolygonType || kind == GroundIndex.boundaryType
@@ -207,8 +225,11 @@ struct GroundIndex {
             return out
         }
 
-        private func decode(keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                            _ block: OSMBlock) -> [String: String] {
+        private func decode(
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            _ block: OSMBlock
+        ) -> [String: String] {
             var out: [String: String] = [:]
             for (k, v) in zip(keys, values) {
                 out[block.text(Int(k))] = block.text(Int(v))

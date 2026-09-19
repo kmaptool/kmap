@@ -28,10 +28,14 @@ struct TilePacker {
     func groups(_ tiles: [Tile], upTo limit: Int64) -> [Group] {
         // Ordered along the map's longer side, so each file holds ground that joins up.
         let order = tiles.indices.sorted { a, b in
-            let first = axis == .longitude ? (tiles[a].bbox.minLon + tiles[a].bbox.maxLon)
-                                           : (tiles[a].bbox.minLat + tiles[a].bbox.maxLat)
-            let second = axis == .longitude ? (tiles[b].bbox.minLon + tiles[b].bbox.maxLon)
-                                            : (tiles[b].bbox.minLat + tiles[b].bbox.maxLat)
+            let first =
+                axis == .longitude
+                ? (tiles[a].bbox.minLon + tiles[a].bbox.maxLon)
+                : (tiles[a].bbox.minLat + tiles[a].bbox.maxLat)
+            let second =
+                axis == .longitude
+                ? (tiles[b].bbox.minLon + tiles[b].bbox.maxLon)
+                : (tiles[b].bbox.minLat + tiles[b].bbox.maxLat)
             if first == second { return tiles[a].id < tiles[b].id }
             return first < second
         }
@@ -40,8 +44,10 @@ struct TilePacker {
         func named(_ chunks: [[Int]]) -> [Group] {
             let names = partNames(count: chunks.count)
             return chunks.enumerated().map { index, chunk in
-                Group(name: index < names.count ? names[index] : "\(slug)-part\(index + 1)",
-                      members: chunk)
+                Group(
+                    name: index < names.count ? names[index] : "\(slug)-part\(index + 1)",
+                    members: chunk
+                )
             }
         }
 
@@ -79,8 +85,9 @@ struct TilePacker {
     func partNames(count: Int) -> [String] {
         guard count > 1 else { return [slug] }
         if count == 2 {
-            return axis == .longitude ? ["\(slug)-west", "\(slug)-east"]
-                                      : ["\(slug)-south", "\(slug)-north"]
+            return axis == .longitude
+                ? ["\(slug)-west", "\(slug)-east"]
+                : ["\(slug)-south", "\(slug)-north"]
         }
         return (1...count).map { "\(slug)-part\($0)" }
     }

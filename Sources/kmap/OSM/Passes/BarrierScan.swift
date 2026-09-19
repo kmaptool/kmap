@@ -7,15 +7,19 @@ import Foundation
 struct BarrierScan: OSMSink {
     static let kinds: Set<String> = [
         "gate", "lift_gate", "swing_gate", "kissing_gate", "bollard",
-        "block", "cycle_barrier", "stile", "bus_trap", "chain", "gate_lock",
+        "block", "cycle_barrier", "stile", "bus_trap", "chain", "gate_lock"
     ]
     private static let pathLike: Set<String> = ["path", "footway", "track", "bridleway", "cycleway", "steps"]
-    private static let minorLike: Set<String> = ["service", "residential", "living_street",
-                                         "unclassified", "driveway"]
+    private static let minorLike: Set<String> = [
+        "service", "residential", "living_street",
+        "unclassified", "driveway"
+    ]
     /// Ways that enclose a plot rather than lead anywhere; a gate set into one of these is
     /// a private entrance, and most gates on no road at all stand on one.
-    private static let enclosure: Set<String> = ["fence", "wall", "hedge", "retaining_wall",
-                                         "city_wall", "guard_rail"]
+    private static let enclosure: Set<String> = [
+        "fence", "wall", "hedge", "retaining_wall",
+        "city_wall", "guard_rail"
+    ]
 
     /// What a barrier stands on. Ordered by which wins where a node belongs to several
     /// ways: `fence` sits just above `none`, so any road or path the gate also stands on
@@ -48,12 +52,18 @@ struct BarrierScan: OSMSink {
         wayKinds.removeAll(keepingCapacity: true)
     }
 
-    mutating func node(id: Int64, lat: Double, lon: Double,
-                       tags: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func node(
+        id: Int64,
+        lat: Double,
+        lon: Double,
+        tags: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         var at = tags.startIndex
         while at + 1 < tags.endIndex {
             if block.text(Int(tags[at])) == "barrier",
-               Self.kinds.contains(block.text(Int(tags[at + 1]))) {
+                Self.kinds.contains(block.text(Int(tags[at + 1])))
+            {
                 foundBarriers.append(id)
                 return
             }
@@ -61,8 +71,13 @@ struct BarrierScan: OSMSink {
         }
     }
 
-    mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                      keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func way(
+        id: Int64,
+        refs: ArraySlice<Int64>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         var highway: String?
         var barrier: String?
         for (i, key) in keys.enumerated() {
@@ -76,8 +91,10 @@ struct BarrierScan: OSMSink {
 
         let kind: Kind
         if let highway {
-            kind = Self.pathLike.contains(highway) ? .path
-                 : Self.minorLike.contains(highway) ? .minor : .major
+            kind =
+                Self.pathLike.contains(highway)
+                ? .path
+                : Self.minorLike.contains(highway) ? .minor : .major
         } else if let barrier, Self.enclosure.contains(barrier) {
             kind = .fence
         } else {

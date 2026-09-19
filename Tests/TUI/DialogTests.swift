@@ -1,16 +1,21 @@
 import XCTest
+
 @testable import kmap
 
 /// The modal question and the friction it carries: the confirming answer is never the
 /// one under the cursor when the dialog opens.
 final class DialogTests: XCTestCase {
-
     private func rights() -> Dialog {
-        Dialog(title: "Important",
-               body: ["I confirm that the copyright is mine.",
-                      "The copy stays on this machine."],
-               detail: [("file", "style.typ"), ("from", "/Volumes/Disk/Garmin")],
-               confirm: "I confirm", cancel: "cancel")
+        Dialog(
+            title: "Important",
+            body: [
+                "I confirm that the copyright is mine.",
+                "The copy stays on this machine."
+            ],
+            detail: [("file", "style.typ"), ("from", "/Volumes/Disk/Garmin")],
+            confirm: "I confirm",
+            cancel: "cancel"
+        )
     }
 
     private func surface(_ w: Int = 100, _ h: Int = 30) -> Surface {
@@ -123,8 +128,11 @@ final class DialogTests: XCTestCase {
             let area = Rect(x: 0, y: 0, w: width, h: 30)
             rights().render(into: s, rect: area, theme: .strict)
             for y in 0..<30 {
-                XCTAssertEqual(s.cell(width - 1, y)?.style.bg, Color.xterm(233),
-                               "the box reached the edge of a \(width) column window")
+                XCTAssertEqual(
+                    s.cell(width - 1, y)?.style.bg,
+                    Color.xterm(233),
+                    "the box reached the edge of a \(width) column window"
+                )
             }
         }
     }
@@ -133,10 +141,14 @@ final class DialogTests: XCTestCase {
     func testAClippedDialogSaysThatItWasClipped() {
         let wordy = Dialog(
             title: "Important",
-            body: (1...6).map { "Paragraph \($0), long enough to wrap across the box more"
-                              + " than once and push what follows below the fold." },
+            body: (1...6).map {
+                "Paragraph \($0), long enough to wrap across the box more"
+                    + " than once and push what follows below the fold."
+            },
             detail: [("file", "style.typ")],
-            confirm: "I confirm", cancel: "cancel")
+            confirm: "I confirm",
+            cancel: "cancel"
+        )
         let s = surface(80, 12)
         wordy.render(into: s, rect: Rect(x: 0, y: 0, w: 80, h: 12), theme: .strict)
         let shown = (0..<12).map { rowText(s, $0) }.joined(separator: "\n")

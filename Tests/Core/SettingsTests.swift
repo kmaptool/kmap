@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Reading the settings file, including ones written by older builds.
@@ -6,7 +7,6 @@ import XCTest
 /// Swift's synthesized decoder throws on a missing key even where the property has a
 /// default, so an added field would make every existing file undecodable.
 final class SettingsTests: XCTestCase {
-
     private func data(_ object: [String: Any]) throws -> Data {
         try JSONSerialization.data(withJSONObject: object)
     }
@@ -32,8 +32,10 @@ final class SettingsTests: XCTestCase {
 
     func testAFileFromAnOlderBuildKeepsWhatItSaysAndTakesTheRestFromTheDefaults() throws {
         // What a file written before half these fields existed looks like.
-        let old = try data(["outputDirectory": "/old/maps",
-                            "keepWorkFiles": true])
+        let old = try data([
+            "outputDirectory": "/old/maps",
+            "keepWorkFiles": true
+        ])
         let decoded = try XCTUnwrap(SettingsStore.decode(old))
         XCTAssertEqual(decoded.outputDirectory, "/old/maps")
         XCTAssertTrue(decoded.keepWorkFiles)
@@ -79,10 +81,14 @@ final class SettingsTests: XCTestCase {
         // so a stored file carrying it carries no decision.
         var stored = Settings.default
         stored.maxNodesPerTile = 3_500_000
-        XCTAssertEqual(SettingsStore.migrated(stored).maxNodesPerTile,
-                       Settings.default.maxNodesPerTile)
-        XCTAssertEqual(SettingsStore.decode(try JSONEncoder().encode(stored))?.maxNodesPerTile,
-                       Settings.default.maxNodesPerTile)
+        XCTAssertEqual(
+            SettingsStore.migrated(stored).maxNodesPerTile,
+            Settings.default.maxNodesPerTile
+        )
+        XCTAssertEqual(
+            SettingsStore.decode(try JSONEncoder().encode(stored))?.maxNodesPerTile,
+            Settings.default.maxNodesPerTile
+        )
     }
 
     func testAValueTheUserActuallyChoseIsLeftAlone() throws {
@@ -137,13 +143,17 @@ final class SettingsTests: XCTestCase {
     func testTheLoginFileIsPyhgtmapsAndNotKmapsOwn() {
         // Credentials stay in pyhgtmap's own file; a copy in settings.json would be a
         // second place to leak them from.
-        XCTAssertTrue(ElevationLogins.configFile.path.hasSuffix("/.pyhgtmap/config.yaml"),
-                      ElevationLogins.configFile.path)
+        XCTAssertTrue(
+            ElevationLogins.configFile.path.hasSuffix("/.pyhgtmap/config.yaml"),
+            ElevationLogins.configFile.path
+        )
         let encoded = try? JSONEncoder().encode(Settings.default)
         let text = String(data: encoded ?? Data(), encoding: .utf8) ?? ""
         for word in ["password", "srtmUser", "srtm-user", "alosPassword"] {
-            XCTAssertFalse(text.lowercased().contains(word.lowercased()),
-                           "settings.json has grown a \(word) field")
+            XCTAssertFalse(
+                text.lowercased().contains(word.lowercased()),
+                "settings.json has grown a \(word) field"
+            )
         }
     }
 }

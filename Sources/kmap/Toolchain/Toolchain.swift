@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 // URLSession lives in a separate module outside Apple's platforms.
 import FoundationNetworking
@@ -9,7 +10,6 @@ import FoundationNetworking
 /// `cacheLock`: the probe caches are the only state that changes, and they are read and
 /// written only under it.
 final class Toolchain: @unchecked Sendable {
-
     let settings: SettingsStore
     init(settings: SettingsStore) { self.settings = settings }
 
@@ -43,8 +43,10 @@ final class Toolchain: @unchecked Sendable {
         return statusCache != nil
     }
 
-    private func cached<T>(_ keyPath: ReferenceWritableKeyPath<Toolchain, T??>,
-                           compute: () -> T?) -> T? {
+    private func cached<T>(
+        _ keyPath: ReferenceWritableKeyPath<Toolchain, T??>,
+        compute: () -> T?
+    ) -> T? {
         cacheLock.lock()
         if let hit = self[keyPath: keyPath] {
             cacheLock.unlock()
@@ -85,14 +87,15 @@ final class Toolchain: @unchecked Sendable {
     /// Option sets tried in order when probing a JVM, each a workaround for a platform that
     /// otherwise refuses to start one.
     private static let javaRescueOptions: [[String]] = [
-        [],                                     // the ordinary case, tried first
-        ["-XX:-UseCompressedClassPointers"]     // WSL1, which cannot make the reservation
+        [],  // the ordinary case, tried first
+        ["-XX:-UseCompressedClassPointers"]  // WSL1, which cannot make the reservation
     ]
 
     private func probeJava(compilerNeeded: Bool = false) -> JavaRuntime? {
         for candidate in javaCandidates() where FileTools.isExecutable(candidate) {
             if compilerNeeded,
-               !FileTools.isExecutable(ToolLocations.companion("javac", of: candidate)) {
+                !FileTools.isExecutable(ToolLocations.companion("javac", of: candidate))
+            {
                 continue
             }
             for options in Toolchain.javaRescueOptions {
@@ -103,7 +106,8 @@ final class Toolchain: @unchecked Sendable {
                 guard output.lowercased().contains("version") else { continue }
                 // The first line that names the version, not the first line there is: a
                 // JVM with _JAVA_OPTIONS set prints "Picked up _JAVA_OPTIONS: …" first.
-                let version = output
+                let version =
+                    output
                     .split(separator: "\n")
                     .first { $0.lowercased().contains("version") }
                     .map { String($0).trimmingCharacters(in: .whitespaces) } ?? "unknown"
@@ -123,8 +127,10 @@ final class Toolchain: @unchecked Sendable {
             guard let manager = PackageManager.detect() else {
                 return Installability(manager: nil, unattended: false)
             }
-            return Installability(manager: manager,
-                                  unattended: Privilege.forInstalling(with: manager).canRunUnattended)
+            return Installability(
+                manager: manager,
+                unattended: Privilege.forInstalling(with: manager).canRunUnattended
+            )
         }
 
         /// Whether kmap can install this itself: the package manager knows it and the
@@ -156,7 +162,6 @@ final class Toolchain: @unchecked Sendable {
         Installability.detect().canInstall(what)
     }
 
-
     /// Where a patched jar is written, and the marker that says a jar carries the patch.
     static let patchedMkgmapName = "mkgmap-patched.jar"
     static let patchMarker = "kmap-patch.properties"
@@ -179,12 +184,16 @@ final class Toolchain: @unchecked Sendable {
         guard FileTools.exists(jar), let archive = Archive.current else { return 0 }
         let list = archive.listing(of: jar)
         guard let listing = ProcessProbe.capture(list.executable, list.arguments),
-              listing.contains(patchMarker) else { return 0 }
+            listing.contains(patchMarker)
+        else { return 0 }
         let read = archive.read(patchMarker, from: jar)
         guard let body = ProcessProbe.capture(read.executable, read.arguments),
-              let line = body.split(separator: "\n").first(where: { $0.hasPrefix("patch-version:") }),
-              let version = Int(line.dropFirst("patch-version:".count)
-                                    .trimmingCharacters(in: .whitespaces)) else { return 1 }
+            let line = body.split(separator: "\n").first(where: { $0.hasPrefix("patch-version:") }),
+            let version = Int(
+                line.dropFirst("patch-version:".count)
+                    .trimmingCharacters(in: .whitespaces)
+            )
+        else { return 1 }
         return version
     }
 
@@ -213,8 +222,11 @@ final class Toolchain: @unchecked Sendable {
     private func probeMkgmap() -> (url: URL, version: String)? {
         guard let java = findJava() else { return nil }
         for candidate in mkgmapCandidates() where FileTools.exists(candidate) {
-            let output = ProcessProbe.capture(java.path,
-                                               java.command(["-jar", candidate.path, "--version"])) ?? ""
+            let output =
+                ProcessProbe.capture(
+                    java.path,
+                    java.command(["-jar", candidate.path, "--version"])
+                ) ?? ""
             let version = output.split(separator: "\n")
                 .first { $0.lowercased().contains("mkgmap") }
                 .map { String($0).trimmingCharacters(in: .whitespaces) }
@@ -272,15 +284,25 @@ final class Toolchain: @unchecked Sendable {
         if let mkgmap {
             out.append(patchStatus(of: mkgmap.url, canCompile: findJavaKit() != nil))
         }
-        out.append(dataStatus(
-            DataPack.sea, name: t("coastline data"),
-            detail: t("correct sea and shorelines (optional, 344 MB)"),
-            missingNote: t("without it, coastlines are derived from the extract and can flood"
-                         + " inland at low zoom")))
-        out.append(dataStatus(
-            DataPack.bounds, name: t("boundary data"),
-            detail: t("city/region for address search (optional, 2.5 GB)"),
-            missingNote: t("without it, the city and region on an address are a best guess")))
+        out.append(
+            dataStatus(
+                DataPack.sea,
+                name: t("coastline data"),
+                detail: t("correct sea and shorelines (optional, 344 MB)"),
+                missingNote: t(
+                    "without it, coastlines are derived from the extract and can flood"
+                        + " inland at low zoom"
+                )
+            )
+        )
+        out.append(
+            dataStatus(
+                DataPack.bounds,
+                name: t("boundary data"),
+                detail: t("city/region for address search (optional, 2.5 GB)"),
+                missingNote: t("without it, the city and region on an address are a best guess")
+            )
+        )
         if includeContours {
             out.append(pyhgtmapStatus(installs: installs))
             if let archiver = archiverStatus(installs: installs) { out.append(archiver) }
@@ -300,15 +322,20 @@ final class Toolchain: @unchecked Sendable {
             state: java == nil ? .missing : .ready,
             path: java?.path,
             version: java?.version,
-            note: java == nil ? installs.note(.java)
-                : kit == nil ? t("a runtime without javac — only the seam patch needs more")
-                : nil,
+            note: java == nil
+                ? installs.note(.java)
+                : kit == nil
+                    ? t("a runtime without javac — only the seam patch needs more")
+                    : nil,
             installable: installs.canProvide(.java) && (java == nil || kit == nil),
-            moreToInstall: java != nil && kit == nil && installs.canProvide(.java))
+            moreToInstall: java != nil && kit == nil && installs.canProvide(.java)
+        )
     }
 
-    private func mkgmapStatus(_ mkgmap: (url: URL, version: String)?,
-                              java: JavaRuntime?) -> ToolStatus {
+    private func mkgmapStatus(
+        _ mkgmap: (url: URL, version: String)?,
+        java: JavaRuntime?
+    ) -> ToolStatus {
         ToolStatus(
             id: "mkgmap",
             name: "mkgmap",
@@ -317,31 +344,40 @@ final class Toolchain: @unchecked Sendable {
             path: mkgmap.map { Paths.display($0.url) },
             version: mkgmap?.version,
             note: java == nil ? t("needs Java first") : nil,
-            installable: java != nil)
+            installable: java != nil
+        )
     }
 
     private func patchStatus(of jar: URL, canCompile: Bool) -> ToolStatus {
         let found = Toolchain.patchVersion(of: jar)
         let patched = found >= Toolchain.patchVersion
         return ToolStatus(
-                id: "mkgmap-patch",
-                name: t("mkgmap seam patch"),
-                detail: t("experimental — hides the seams between tiles and decides what covers what"),
-                state: patched ? .ready : .missing,
-                path: patched ? Paths.display(jar) : nil,
-                version: patched ? t("applied (v%d)", found) : nil,
-                note: patched ? nil
-                    : !canCompile ? t("built here from source — install a full JDK first")
-                    : found > 0 ? t("an older patch — reinstall to pick up the new edits")
-                    : t("without it tiles meet on a line and it shows"),
-                installable: canCompile,
-                isOptional: true,
-                removable: patched || found > 0)
+            id: "mkgmap-patch",
+            name: t("mkgmap seam patch"),
+            detail: t("experimental — hides the seams between tiles and decides what covers what"),
+            state: patched ? .ready : .missing,
+            path: patched ? Paths.display(jar) : nil,
+            version: patched ? t("applied (v%d)", found) : nil,
+            note: patched
+                ? nil
+                : !canCompile
+                    ? t("built here from source — install a full JDK first")
+                    : found > 0
+                        ? t("an older patch — reinstall to pick up the new edits")
+                        : t("without it tiles meet on a line and it shows"),
+            installable: canCompile,
+            isOptional: true,
+            removable: patched || found > 0
+        )
     }
 
     /// A downloadable data set: installed when the file is there and plausibly whole.
-    private func dataStatus(_ pack: DataPack, name: String, detail: String,
-                            missingNote: String) -> ToolStatus {
+    private func dataStatus(
+        _ pack: DataPack,
+        name: String,
+        detail: String,
+        missingNote: String
+    ) -> ToolStatus {
         let file = pack.file
         let installed = pack.isInstalled
         return ToolStatus(
@@ -353,7 +389,8 @@ final class Toolchain: @unchecked Sendable {
             version: installed ? "\(Fmt.bytes(FileTools.size(of: file)))" : nil,
             note: installed ? nil : missingNote,
             installable: true,
-            isOptional: true)
+            isOptional: true
+        )
     }
 
     /// Contour tracing and GeoTIFF reading are kmap's own, so pyhgtmap is needed only
@@ -362,20 +399,23 @@ final class Toolchain: @unchecked Sendable {
         let python = findPython3()
         let pyhgtmap = findPyhgtmap()
         return ToolStatus(
-                id: "pyhgtmap",
-                name: "pyhgtmap",
-                detail: t("adds the srtm1 and alos1 elevation sources, which need an"
-                        + " account"),
-                state: pyhgtmap == nil ? .missing : .ready,
-                path: pyhgtmap.map { Paths.display($0.url) },
-                version: pyhgtmap?.version,
-                note: python == nil
-                    ? t("needs python3 — %@", installs.note(.python))
-                    : (pyhgtmap == nil
-                       ? t("not needed for copernicus, view1 or view3") : nil),
-                // Where python3 is missing but installable, kmap installs it first.
-                installable: python != nil || installs.canInstall(.python),
-                isOptional: true)
+            id: "pyhgtmap",
+            name: "pyhgtmap",
+            detail: t(
+                "adds the srtm1 and alos1 elevation sources, which need an"
+                    + " account"
+            ),
+            state: pyhgtmap == nil ? .missing : .ready,
+            path: pyhgtmap.map { Paths.display($0.url) },
+            version: pyhgtmap?.version,
+            note: python == nil
+                ? t("needs python3 — %@", installs.note(.python))
+                : (pyhgtmap == nil
+                    ? t("not needed for copernicus, view1 or view3") : nil),
+            // Where python3 is missing but installable, kmap installs it first.
+            installable: python != nil || installs.canInstall(.python),
+            isOptional: true
+        )
     }
 
     /// The platform's archiver, listed only while it is missing.
@@ -390,7 +430,8 @@ final class Toolchain: @unchecked Sendable {
             path: nil,
             version: nil,
             note: Archive.missingNote(),
-            installable: installs.canInstall(.unzip))
+            installable: installs.canInstall(.unzip)
+        )
     }
 
     /// True when a build can run. The tile split is kmap's own, so only Java and mkgmap are
@@ -427,7 +468,7 @@ final class Toolchain: @unchecked Sendable {
 
     /// Every tool id `install` accepts. Listed rather than derived from `status()`, which
     /// reports only what is missing on this machine and so cannot validate a name.
-    static let installableIDs = ["mkgmap", "mkgmap-patch", "pyhgtmap"]
+    static let installableIDs =
+        ["mkgmap", "mkgmap-patch", "pyhgtmap"]
         + DataPack.all.map(\.id) + ["java", "python", "unzip"]
-
 }

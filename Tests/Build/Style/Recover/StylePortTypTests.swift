@@ -1,20 +1,36 @@
 import XCTest
+
 @testable import kmap
 
 /// The TYP of a ported look: their drawings on kmap's numbers, and the ground kmap lays
 /// under a style that paints none.
 final class StylePortTypTests: XCTestCase {
-
     private func ported(_ kind: MapElementKind, ours: Int, theirs: Int) -> StylePort.Ported {
-        StylePort.Ported(ours: ours, theirs: theirs, kind: kind, meaning: "test",
-                         witnesses: 10, width: nil)
+        StylePort.Ported(
+            ours: ours,
+            theirs: theirs,
+            kind: kind,
+            meaning: "test",
+            witnesses: 10,
+            width: nil
+        )
     }
 
-    private func typ(_ source: String, ported: [StylePort.Ported] = [],
-                     familyID: Int? = nil, productID: Int? = nil, codePage: Int? = nil) -> [String] {
-        StylePort.typ(from: TypSource.parse(source), ported: ported, familyID: familyID,
-                      productID: productID, codePage: codePage)
-            .components(separatedBy: "\n")
+    private func typ(
+        _ source: String,
+        ported: [StylePort.Ported] = [],
+        familyID: Int? = nil,
+        productID: Int? = nil,
+        codePage: Int? = nil
+    ) -> [String] {
+        StylePort.typ(
+            from: TypSource.parse(source),
+            ported: ported,
+            familyID: familyID,
+            productID: productID,
+            codePage: codePage
+        )
+        .components(separatedBy: "\n")
     }
 
     // MARK: Brightness and the two questions asked of a style
@@ -23,8 +39,11 @@ final class StylePortTypTests: XCTestCase {
         XCTAssertEqual(StylePort.brightness(of: "#000000"), 0, accuracy: 1e-9)
         XCTAssertEqual(StylePort.brightness(of: "#FFFFFF"), 1, accuracy: 1e-9)
         XCTAssertEqual(StylePort.brightness(of: "ffffff"), 1, accuracy: 1e-9, "the # is optional")
-        XCTAssertLessThan(StylePort.brightness(of: "#0000FF"), StylePort.brightness(of: "#00FF00"),
-                          "green reads brighter than blue")
+        XCTAssertLessThan(
+            StylePort.brightness(of: "#0000FF"),
+            StylePort.brightness(of: "#00FF00"),
+            "green reads brighter than blue"
+        )
     }
 
     func testAnUnreadableColourCountsAsLight() {

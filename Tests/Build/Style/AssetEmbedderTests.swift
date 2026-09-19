@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Folding Assets/ back into the source that carries them.
@@ -6,7 +7,6 @@ import XCTest
 /// The generated file is committed, so a payload that could close its own delimiter ends
 /// the literal early and breaks the build rather than the map.
 final class AssetEmbedderTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -16,7 +16,9 @@ final class AssetEmbedderTests: XCTestCase {
         for asset in AssetEmbedder.assets {
             let url = directory.appendingPathComponent(asset.path)
             try FileManager.default.createDirectory(
-                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
             try "payload of \(asset.property)\nsecond line\n"
                 .write(to: url, atomically: true, encoding: .utf8)
         }
@@ -46,7 +48,8 @@ final class AssetEmbedderTests: XCTestCase {
 
     func testAMissingAssetIsNamed() throws {
         try FileManager.default.removeItem(
-            at: directory.appendingPathComponent(AssetEmbedder.assets[0].path))
+            at: directory.appendingPathComponent(AssetEmbedder.assets[0].path)
+        )
         XCTAssertThrowsError(try AssetEmbedder.render(from: directory)) { error in
             XCTAssertTrue("\(error)".contains("missing asset"))
         }
@@ -65,17 +68,21 @@ final class AssetEmbedderTests: XCTestCase {
     /// The committed source must match what rendering Assets/ produces.
     func testTheCommittedSourceMatchesTheAssetsItWasMadeFrom() throws {
         let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()   // Style
-            .deletingLastPathComponent()   // Build
-            .deletingLastPathComponent()   // Tests
-            .deletingLastPathComponent()   // repository
+            .deletingLastPathComponent()  // Style
+            .deletingLastPathComponent()  // Build
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // repository
         let assets = root.appendingPathComponent("Assets")
         try XCTSkipUnless(FileTools.exists(assets), "not a working copy")
         let generated = try AssetEmbedder.render(from: assets)
         let committed = try String(
             contentsOf: root.appendingPathComponent("Sources/kmap/Build/Style/StyleAssets.swift"),
-            encoding: .utf8)
-        XCTAssertEqual(generated, committed,
-                       "Assets/ and StyleAssets.swift disagree — run `make assets`")
+            encoding: .utf8
+        )
+        XCTAssertEqual(
+            generated,
+            committed,
+            "Assets/ and StyleAssets.swift disagree — run `make assets`"
+        )
     }
 }

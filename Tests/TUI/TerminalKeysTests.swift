@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Keys read from a stream that a fixed-size read cuts wherever it likes.
@@ -7,7 +8,6 @@ import XCTest
 /// The tail used to be parsed as its own key: a bare `ESC` left the screen, and a Cyrillic
 /// letter lost its second byte.
 final class TerminalKeysTests: XCTestCase {
-
     /// Bytes waiting to be read, handed over a read at a time.
     private final class Script: InputSource {
         var queued: [UInt8]

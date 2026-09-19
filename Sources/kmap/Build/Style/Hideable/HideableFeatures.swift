@@ -29,45 +29,64 @@ struct HideableFeature: Equatable {
     /// Hand-written entries for rules the generator cannot express: those spanning several
     /// lines, or whose actions must survive the type being dropped.
     private static let curated: [HideableFeature] = [
-        contextual(id: "barriers-fence",
-                   name: "Gates in fences and walls around plots",
-                   note: "somebody's front gate — the bulk of village clutter",
-                   context: "fence"),
+        contextual(
+            id: "barriers-fence",
+            name: "Gates in fences and walls around plots",
+            note: "somebody's front gate — the bulk of village clutter",
+            context: "fence"
+        ),
 
-        contextual(id: "barriers-minor",
-                   name: "Gates on drives and service roads",
-                   note: "the drive itself is mapped as a road",
-                   context: "minor"),
+        contextual(
+            id: "barriers-minor",
+            name: "Gates on drives and service roads",
+            note: "the drive itself is mapped as a road",
+            context: "minor"
+        ),
 
-        contextual(id: "barriers-path",
-                   name: "Barriers on paths and tracks",
-                   note: "a gate here may be locked — usually worth keeping",
-                   context: "path"),
+        contextual(
+            id: "barriers-path",
+            name: "Barriers on paths and tracks",
+            note: "a gate here may be locked — usually worth keeping",
+            context: "path"
+        ),
 
-        contextual(id: "barriers-other",
-                   name: "Barriers elsewhere",
-                   note: "on major roads, or standing on no way at all",
-                   context: nil)
+        contextual(
+            id: "barriers-other",
+            name: "Barriers elsewhere",
+            note: "on major roads, or standing on no way at all",
+            context: nil
+        )
     ]
 
     /// Barriers split by the kind of way they stand on: one substitution per group,
     /// each naming the line `StyleCatalog.splitBarrierRule` writes, byte for byte,
     /// from the same definitions.
-    private static func contextual(id: String, name: String, note: String,
-                                   context: String?) -> HideableFeature {
-        let hiddenAction = "    {add name='${barrier|subst:\"_=> \"}'}"
-                         + "  # kmap: hidden — actions kept, type dropped"
+    private static func contextual(
+        id: String,
+        name: String,
+        note: String,
+        context: String?
+    ) -> HideableFeature {
+        let hiddenAction =
+            "    {add name='${barrier|subst:\"_=> \"}'}"
+            + "  # kmap: hidden — actions kept, type dropped"
         return HideableFeature(
-            id: id, name: name, category: "Barriers and gates", note: note,
+            id: id,
+            name: name,
+            category: "Barriers and gates",
+            note: note,
             // The .gpi carries no notion of which way a barrier stands on, so any barrier
             // choice drops barriers from it wholesale.
             tag: "barrier=*",
             substitutions: StyleCatalog.barrierGroups.map { group in
                 let condition = StyleCatalog.barrierCondition(group.barriers, context: context)
-                return (file: "points",
-                        old: condition + "\n" + StyleCatalog.barrierAction(code: group.code),
-                        new: condition + "\n" + hiddenAction)
-            })
+                return (
+                    file: "points",
+                    old: condition + "\n" + StyleCatalog.barrierAction(code: group.code),
+                    new: condition + "\n" + hiddenAction
+                )
+            }
+        )
     }
 
     /// The curated entries plus the generated catalogue. Parsed once and cached, and
@@ -112,9 +131,16 @@ struct HideableFeature: Equatable {
 
         func flush() {
             guard let id = pendingID, let name = pendingName, !pendingRules.isEmpty else { return }
-            out.append(HideableFeature(id: id, name: name, category: category,
-                                       note: "", tag: pendingTag,
-                                       substitutions: pendingRules))
+            out.append(
+                HideableFeature(
+                    id: id,
+                    name: name,
+                    category: category,
+                    note: "",
+                    tag: pendingTag,
+                    substitutions: pendingRules
+                )
+            )
             pendingID = nil; pendingName = nil; pendingTag = nil; pendingRules = []
         }
 

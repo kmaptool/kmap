@@ -101,8 +101,11 @@ extension StyleRecovery {
     /// all three belong in the sheet as layers.
     struct ClaimedRule {
         let lines: [DefaultRuleBook.Line]
-        var codes: [(type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int],
-                     resolutions: [Int: Int])] = []
+        var codes:
+            [(
+                type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int],
+                resolutions: [Int: Int]
+            )] = []
     }
 
     /// A rule the style does not have, to be written for a code that needs one.
@@ -130,10 +133,13 @@ extension StyleRecovery {
     /// out as the sheet.
     /// - Parameter ground: how many things carrying each meaning the compared ground
     ///   holds, so a claim can be weighed against what there was to draw.
-    static func derive(_ evidence: Evidence, into report: inout Report,
-                       rules: DefaultRuleBook = .load(),
-                       typDefined: [ElementDumper.Kind: Set<Int>] = [:],
-                       ground: [String: Int] = [:]) {
+    static func derive(
+        _ evidence: Evidence,
+        into report: inout Report,
+        rules: DefaultRuleBook = .load(),
+        typDefined: [ElementDumper.Kind: Set<Int>] = [:],
+        ground: [String: Int] = [:]
+    ) {
         let read = readCodes(evidence, into: &report, rules: rules)
 
         // A meaning belongs to the code that mostly draws it, so every claim on it is
@@ -158,8 +164,10 @@ extension StyleRecovery {
                     bucketFinest[bucket] = max(bucketFinest[bucket] ?? 0, finest)
                 }
                 for (tag, count) in meaning.tags {
-                    tagLeader["\(entry.code.kind.rawValue)@\(tag)"]
-                        = max(tagLeader["\(entry.code.kind.rawValue)@\(tag)"] ?? 0, count)
+                    tagLeader["\(entry.code.kind.rawValue)@\(tag)"] = max(
+                        tagLeader["\(entry.code.kind.rawValue)@\(tag)"] ?? 0,
+                        count
+                    )
                     guard entry.code.kind == .area else { continue }
                     let key = "\(entry.code.kind.rawValue)@\(tag)"
                     if meaning.isBuilt {
@@ -192,8 +200,12 @@ extension StyleRecovery {
                 for line in meaning.lines where line.emits(entry.code.type) {
                     let slot = line.file + ":" + line.text
                     var claim = claimed[slot] ?? ClaimedRule(lines: [line])
-                    claim.codes.append((entry.code.type, meaning.count, meaning.ids,
-                                        meaning.tags, meaning.resolutions))
+                    claim.codes.append(
+                        (
+                            entry.code.type, meaning.count, meaning.ids,
+                            meaning.tags, meaning.resolutions
+                        )
+                    )
                     claimed[slot] = claim
                 }
             }
@@ -209,15 +221,24 @@ extension StyleRecovery {
 
         var verdicts: [String: CodeVerdict] = [:]
         for entry in read {
-            var outcome = resolve(entry, leader: leader, classLeader: classLeader,
-                                  tagLeader: tagLeader, builtTags: builtTags,
-                                  openTags: openTags,
-                                  bucketFinest: bucketFinest, ground: ground,
-                                  claimed: &claimed, narrowed: &narrowed,
-                                  additions: &additions, readByCode: readByCode,
-                                  verdicts: &verdicts)
+            var outcome = resolve(
+                entry,
+                leader: leader,
+                classLeader: classLeader,
+                tagLeader: tagLeader,
+                builtTags: builtTags,
+                openTags: openTags,
+                bucketFinest: bucketFinest,
+                ground: ground,
+                claimed: &claimed,
+                narrowed: &narrowed,
+                additions: &additions,
+                readByCode: readByCode,
+                verdicts: &verdicts
+            )
             if !entry.foreign {
-                outcome.meaning = outcome.meaning.isEmpty
+                outcome.meaning =
+                    outcome.meaning.isEmpty
                     ? "a default code" : outcome.meaning + " — a default code too"
             }
             report.outcomes[entry.key] = outcome
@@ -230,7 +251,8 @@ extension StyleRecovery {
             for (_, bucket) in entry.buckets where bucket.count >= fewestWitnesses {
                 for line in bucket.lines {
                     witnessedSlots.insert(
-                        "\(entry.code.kind.rawValue):\(line.file):\(line.text)")
+                        "\(entry.code.kind.rawValue):\(line.file):\(line.text)"
+                    )
                 }
             }
         }
@@ -252,15 +274,25 @@ extension StyleRecovery {
             claimed[slot] = ClaimedRule(lines: [line])
         }
         sheet.append(contentsOf: additionSheet(additions, claimed: claimed, rules: rules))
-        sheet.append(contentsOf: silencedRuleSheet(verdicts: verdicts,
-                                                   witnessedSlots: witnessedSlots,
-                                                   typDefined: typDefined,
-                                                   claimed: claimed, rules: rules))
+        sheet.append(
+            contentsOf: silencedRuleSheet(
+                verdicts: verdicts,
+                witnessedSlots: witnessedSlots,
+                typDefined: typDefined,
+                claimed: claimed,
+                rules: rules
+            )
+        )
         // Every anchor already spoken for: a rule is rewritten once, or the second
         // substitution finds nothing to stand on.
         let already = Set(sheet.filter { $0.hasPrefix("- ") }.map { String($0.dropFirst(2)) })
-        sheet.append(contentsOf: siblingRuleSheet(ladders: ladders, already: already,
-                                                  rules: rules))
+        sheet.append(
+            contentsOf: siblingRuleSheet(
+                ladders: ladders,
+                already: already,
+                rules: rules
+            )
+        )
         report.sheet = sheet.joined(separator: "\n")
     }
 

@@ -10,17 +10,21 @@ final class ZoomPlanEditScreen: Screen {
 
     private var keys: [Hint] {
         if picking != nil {
-            return [Hint(key: "↑↓", label: t("move")),
-                    Hint(key: Glyph.enter, label: t("take it")),
-                    Hint(key: "esc", label: t("cancel"))]
+            return [
+                Hint(key: "↑↓", label: t("move")),
+                Hint(key: Glyph.enter, label: t("take it")),
+                Hint(key: "esc", label: t("cancel"))
+            ]
         }
         if plan.isBuiltin {
             return [Hint(key: "↑↓", label: t("move")), Hint(key: "esc", label: t("back"))]
         }
-        return [Hint(key: "↑↓←→", label: t("move")),
-                Hint(key: "space", label: t("add / remove")),
-                Hint(key: "0", label: t("as it comes")),
-                Hint(key: "esc", label: t("back"))]
+        return [
+            Hint(key: "↑↓←→", label: t("move")),
+            Hint(key: "space", label: t("add / remove")),
+            Hint(key: "0", label: t("as it comes")),
+            Hint(key: "esc", label: t("back"))
+        ]
     }
 
     /// What the screen lists, the ladder first: every row under it is counted in its rungs.
@@ -151,7 +155,8 @@ final class ZoomPlanEditScreen: Screen {
         // A window matching the style's own spread is stored as nil, so the plan holds only
         // deliberate changes.
         if let spread = survey?.spread(family),
-           next.rungs.lowerBound == spread.finest, next.rungs.upperBound == spread.coarsest {
+            next.rungs.lowerBound == spread.finest, next.rungs.upperBound == spread.coarsest
+        {
             plan.setWindow(nil, for: family)
         } else {
             plan.setWindow(next, for: family)
@@ -194,12 +199,17 @@ final class ZoomPlanEditScreen: Screen {
         let (formRect, panel) = Layout.split(rect)
         var y = formRect.y
 
-        let intro = plan.isBuiltin
-            ? t("This plan comes with kmap and cannot be edited. Copy it on the plans "
-              + "page, and the copy is yours to change.")
-            : t("Choose the zoom levels where each kind of feature is shown. Arrows "
-              + "move the cursor, space turns a level on or off; the range is always "
-              + "continuous.")
+        let intro =
+            plan.isBuiltin
+            ? t(
+                "This plan comes with kmap and cannot be edited. Copy it on the plans "
+                    + "page, and the copy is yours to change."
+            )
+            : t(
+                "Choose the zoom levels where each kind of feature is shown. Arrows "
+                    + "move the cursor, space turns a level on or off; the range is always "
+                    + "continuous."
+            )
         for chunk in wrapText(intro, width: formRect.w) {
             s.text(formRect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
@@ -207,16 +217,24 @@ final class ZoomPlanEditScreen: Screen {
         y += 1
 
         fieldRows[Row.ladder.key] = y
-        Widgets.field(s, rect: Rect(x: formRect.x, y: y, w: formRect.w, h: 1), y: y,
-                      label: t("Zoom levels"), value: levels.name,
-                      theme: theme, labelWidth: Layout.fieldLabel,
-                      selected: list.selected == 0)
+        Widgets.field(
+            s,
+            rect: Rect(x: formRect.x, y: y, w: formRect.w, h: 1),
+            y: y,
+            label: t("Zoom levels"),
+            value: levels.name,
+            theme: theme,
+            labelWidth: Layout.fieldLabel,
+            selected: list.selected == 0
+        )
         y += 2
 
         let rungs = self.rungs
-        let grid = Grid(x: formRect.x + 2 + Layout.fieldLabel,
-                        width: formRect.maxX - (formRect.x + 2 + Layout.fieldLabel),
-                        count: rungs.bits.count)
+        let grid = Grid(
+            x: formRect.x + 2 + Layout.fieldLabel,
+            width: formRect.maxX - (formRect.x + 2 + Layout.fieldLabel),
+            count: rungs.bits.count
+        )
         renderHeader(s, grid: grid, rungs: rungs, y: y, theme: theme)
         y += 1
 
@@ -225,26 +243,50 @@ final class ZoomPlanEditScreen: Screen {
             fieldRows[row.key] = y
             let selected = i == list.selected
             let bg = selected ? theme.selectionBg : theme.appBg
-            s.fill(Rect(x: formRect.x, y: y, w: formRect.w, h: 1),
-                   Style(fg: theme.text, bg: bg))
-            s.text(formRect.x, y, selected ? "\(Glyph.arrowRight) " : "  ",
-                   Style(fg: theme.accent, bg: bg))
-            s.text(formRect.x + 2, y, family.name,
-                   Style(fg: selected ? theme.selectionFg : theme.text, bg: bg),
-                   limit: Layout.fieldLabel)
-            renderBar(s, family: family, grid: grid, rungs: rungs, y: y,
-                      theme: theme, bg: bg, cursorHere: selected)
+            s.fill(
+                Rect(x: formRect.x, y: y, w: formRect.w, h: 1),
+                Style(fg: theme.text, bg: bg)
+            )
+            s.text(
+                formRect.x,
+                y,
+                selected ? "\(Glyph.arrowRight) " : "  ",
+                Style(fg: theme.accent, bg: bg)
+            )
+            s.text(
+                formRect.x + 2,
+                y,
+                family.name,
+                Style(fg: selected ? theme.selectionFg : theme.text, bg: bg),
+                limit: Layout.fieldLabel
+            )
+            renderBar(
+                s,
+                family: family,
+                grid: grid,
+                rungs: rungs,
+                y: y,
+                theme: theme,
+                bg: bg,
+                cursorHere: selected
+            )
             y += 1
         }
 
         // Shown once under the grid rather than in every row.
-        let note = survey?.isEmpty == false ? message
+        let note =
+            survey?.isEmpty == false
+            ? message
             : (message ?? t("no rule set on disk yet — build once and this fills in"))
         if let note, y + 1 < formRect.maxY {
             for chunk in wrapText(note, width: formRect.w - 2) {
                 guard y + 1 < formRect.maxY else { break }
-                s.text(formRect.x + 2, y + 1, chunk,
-                       Style(fg: theme.warn, bg: theme.appBg))
+                s.text(
+                    formRect.x + 2,
+                    y + 1,
+                    chunk,
+                    Style(fg: theme.warn, bg: theme.appBg)
+                )
                 y += 1
             }
         }
@@ -255,9 +297,14 @@ final class ZoomPlanEditScreen: Screen {
 
     func renderOverlay(into s: Surface, rect: Rect, ctx: AppContext) {
         guard picking != nil, let at = fieldRows[Row.ladder.key] else { return }
-        Widgets.optionList(s, within: Layout.split(rect).form, anchorRow: at,
-                           options: LevelsProfile.all.map(\.name), at: picking ?? 0,
-                           theme: ctx.theme)
+        Widgets.optionList(
+            s,
+            within: Layout.split(rect).form,
+            anchorRow: at,
+            options: LevelsProfile.all.map(\.name),
+            at: picking ?? 0,
+            theme: ctx.theme
+        )
     }
 
     /// Where the columns of the grid sit.
@@ -270,20 +317,40 @@ final class ZoomPlanEditScreen: Screen {
 
     /// Draws the rungs across the top: each one's map scale, or its index where there is no
     /// scale for it.
-    private func renderHeader(_ s: Surface, grid: Grid, rungs: ZoomRungs, y: Int,
-                              theme: Theme) {
+    private func renderHeader(
+        _ s: Surface,
+        grid: Grid,
+        rungs: ZoomRungs,
+        y: Int,
+        theme: Theme
+    ) {
         for (rung, bits) in rungs.bits.enumerated() {
             let head = ZoomRungs.shortScale(bits: bits) ?? "\(rung)"
-            s.text(grid.column(rung), y, head,
-                   Style(fg: rung == column ? theme.accent : theme.faint, bg: theme.appBg,
-                         bold: rung == column))
+            s.text(
+                grid.column(rung),
+                y,
+                head,
+                Style(
+                    fg: rung == column ? theme.accent : theme.faint,
+                    bg: theme.appBg,
+                    bold: rung == column
+                )
+            )
         }
     }
 
     /// Draws one family's bar: the rungs it occupies, with the style's own spread shaded
     /// behind where the plan has changed them.
-    private func renderBar(_ s: Surface, family: ZoomFamily, grid: Grid, rungs: ZoomRungs,
-                           y: Int, theme: Theme, bg: Color, cursorHere: Bool) {
+    private func renderBar(
+        _ s: Surface,
+        family: ZoomFamily,
+        grid: Grid,
+        rungs: ZoomRungs,
+        y: Int,
+        theme: Theme,
+        bg: Color,
+        cursorHere: Bool
+    ) {
         guard let survey, let spread = survey.spread(family) else {
             // Nothing read from disk: empty rungs, with the explanation under the grid.
             for rung in rungs.bits.indices {
@@ -310,9 +377,16 @@ final class ZoomPlanEditScreen: Screen {
                 colour = theme.rule
             }
             let onCursor = cursorHere && rung == column
-            s.text(grid.column(rung), y, glyph,
-                   Style(fg: onCursor ? theme.strong : colour,
-                         bg: onCursor ? theme.raisedBg : bg, bold: onCursor))
+            s.text(
+                grid.column(rung),
+                y,
+                glyph,
+                Style(
+                    fg: onCursor ? theme.strong : colour,
+                    bg: onCursor ? theme.raisedBg : bg,
+                    bold: onCursor
+                )
+            )
         }
     }
 
@@ -321,8 +395,13 @@ final class ZoomPlanEditScreen: Screen {
         var y = rect.y
         func caption(_ text: String) {
             guard y < rect.maxY else { return }
-            s.sectionRule(rect, y, text, labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                          ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+            s.sectionRule(
+                rect,
+                y,
+                text,
+                labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+                ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+            )
             y += 2
         }
         func line(_ text: String, tone: Color? = nil) {
@@ -345,13 +424,20 @@ final class ZoomPlanEditScreen: Screen {
                     }
                 }
                 if plan.window(family) != nil {
-                    line(t("as it comes: %@",
-                           survey.rungLabel(spread.coarsest)), tone: theme.faint)
+                    line(
+                        t(
+                            "as it comes: %@",
+                            survey.rungLabel(spread.coarsest)
+                        ),
+                        tone: theme.faint
+                    )
                 }
                 line(tn("%d rule(s) in the style", spread.rules), tone: theme.faint)
             } else {
-                line(t("no rule set on disk yet — build once and this fills in"),
-                     tone: theme.faint)
+                line(
+                    t("no rule set on disk yet — build once and this fills in"),
+                    tone: theme.faint
+                )
             }
             y += 1
         }
@@ -360,8 +446,12 @@ final class ZoomPlanEditScreen: Screen {
         for (i, bits) in rungs.bits.enumerated() {
             guard y < rect.maxY else { return }
             let scale = ZoomRungs.scale(bits: bits).map { "  ·  " + $0 } ?? ""
-            s.text(rect.x, y, t("level %d", i) + scale,
-                   Style(fg: i == column ? theme.text : theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("level %d", i) + scale,
+                Style(fg: i == column ? theme.text : theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
     }

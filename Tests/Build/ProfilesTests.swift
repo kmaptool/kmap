@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// What a profile carries, what it does not, and that applying one changes the recipe only.
 final class ProfilesTests: XCTestCase {
-
     private var store: SettingsStore!
 
     override func setUp() {
@@ -13,7 +13,9 @@ final class ProfilesTests: XCTestCase {
         let profiles = store.settings.profiles
         let last = store.settings.lastProfileID
         addTeardownBlock { [store] in
-            store?.update { $0.profiles = profiles; $0.lastProfileID = last }
+            store?.update {
+                $0.profiles = profiles; $0.lastProfileID = last
+            }
         }
         // Known state: exactly one profile.
         store.update {
@@ -23,20 +25,35 @@ final class ProfilesTests: XCTestCase {
     }
 
     private var region: Region {
-        Region(id: "continent/inland-region", name: "Inland Region", parentID: "continent",
-               pbfURL: URL(string: "https://example.invalid/inland-region.osm.pbf"),
-               bbox: BBox(minLon: 9, minLat: 46, maxLon: 17, maxLat: 49), boxes: [])
+        Region(
+            id: "continent/inland-region",
+            name: "Inland Region",
+            parentID: "continent",
+            pbfURL: URL(string: "https://example.invalid/inland-region.osm.pbf"),
+            bbox: BBox(minLon: 9, minLat: 46, maxLon: 17, maxLat: 49),
+            boxes: []
+        )
     }
 
     private var style: MapStyle {
-        MapStyle(id: "plain", name: "Plain", summary: "", origin: .builtin,
-                 styleDirectory: StyleCatalog.baseStyleDirectory,
-                 typURL: nil, familyID: 6324, productID: 1)
+        MapStyle(
+            id: "plain",
+            name: "Plain",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: StyleCatalog.baseStyleDirectory,
+            typURL: nil,
+            familyID: 6324,
+            productID: 1
+        )
     }
 
     private func recipe() -> BuildRecipe {
-        BuildRecipe(region: region, style: style,
-                    outputDirectory: URL(fileURLWithPath: "/maps"))
+        BuildRecipe(
+            region: region,
+            style: style,
+            outputDirectory: URL(fileURLWithPath: "/maps")
+        )
     }
 
     // MARK: A profile meeting a recipe
@@ -101,8 +118,10 @@ final class ProfilesTests: XCTestCase {
     func testHiddenFeaturesInAnyOrderAreTheSameChoice() {
         // The recipe holds a set, so the same features in any order are the same profile.
         var choices = BuildChoices()
-        choices.hiddenFeatures = ["power-tower", "barriers-fence", "amenity-public_building",
-                                  "barriers-fence"]
+        choices.hiddenFeatures = [
+            "power-tower", "barriers-fence", "amenity-public_building",
+            "barriers-fence"
+        ]
 
         var map = recipe()
         map.apply(choices, style: style, regionCodePage: 1252)
@@ -118,8 +137,13 @@ final class ProfilesTests: XCTestCase {
         var map = recipe()
         map.apply(choices, style: nil, regionCodePage: 1252)
         XCTAssertEqual(map.style.id, "plain", "the stand-in stays until the scan lands")
-        XCTAssertTrue(map.matches(choices, regionCodePage: 1252,
-                                  askedStyleID: "typ:borrowed"))
+        XCTAssertTrue(
+            map.matches(
+                choices,
+                regionCodePage: 1252,
+                askedStyleID: "typ:borrowed"
+            )
+        )
     }
 
     func testAnEditedFormReadsAsEditedAndTheProfileIsUntouched() {
@@ -129,10 +153,18 @@ final class ProfilesTests: XCTestCase {
         XCTAssertTrue(map.matches(profile.choices, regionCodePage: 1252, askedStyleID: "plain"))
 
         map.contourInterval = 50
-        XCTAssertFalse(map.matches(profile.choices, regionCodePage: 1252,
-                                   askedStyleID: "plain"))
-        XCTAssertEqual(profile.choices.contourInterval, 10,
-                       "a change on the build form must not reach the profile")
+        XCTAssertFalse(
+            map.matches(
+                profile.choices,
+                regionCodePage: 1252,
+                askedStyleID: "plain"
+            )
+        )
+        XCTAssertEqual(
+            profile.choices.contourInterval,
+            10,
+            "a change on the build form must not reach the profile"
+        )
     }
 
     // MARK: The order they are offered in
@@ -142,8 +174,10 @@ final class ProfilesTests: XCTestCase {
         let sorted = names.map { BuildProfile(name: $0) }
             .sorted(by: BuildProfile.precedes)
             .map(\.name)
-        XCTAssertEqual(sorted,
-                       ["Alpha", "garmin 67", "Zumo", "Авто", "Едем", "Ёлка", "Ястреб", "яхта"])
+        XCTAssertEqual(
+            sorted,
+            ["Alpha", "garmin 67", "Zumo", "Авто", "Едем", "Ёлка", "Ястреб", "яхта"]
+        )
     }
 
     func testTheOrderDoesNotDependOnWhichLanguageTheInterfaceIsSpeaking() {
@@ -163,7 +197,9 @@ final class ProfilesTests: XCTestCase {
 
     func testTheFirstRunMakesAProfileToOpenOn() {
         // The build screen's choices live in a profile from first launch onwards.
-        store.update { $0.profiles = []; $0.lastProfileID = "" }
+        store.update {
+            $0.profiles = []; $0.lastProfileID = ""
+        }
         store.ensureProfile()
         XCTAssertEqual(store.profiles.count, 1)
         XCTAssertEqual(store.currentProfile.id, store.profiles[0].id)
@@ -187,8 +223,11 @@ final class ProfilesTests: XCTestCase {
     func testRenamingKeepsTheProfilesOwnNameAvailableToIt() {
         let profile = store.addProfile(named: "Etrex")
         store.renameProfile(profile.id, to: "Etrex")
-        XCTAssertEqual(store.profile(profile.id)?.name, "Etrex",
-                       "renaming a profile to what it is already called is not a clash")
+        XCTAssertEqual(
+            store.profile(profile.id)?.name,
+            "Etrex",
+            "renaming a profile to what it is already called is not a clash"
+        )
     }
 
     func testWhichProfileTheBuildScreenOpensOnIsRemembered() {
@@ -208,8 +247,10 @@ final class ProfilesTests: XCTestCase {
     }
 
     func testTheLastProfileStaysBecauseTheBuildScreenOpensOnOne() {
-        store.update { $0.profiles = [BuildProfile(id: "only", name: "Only")]
-                       $0.lastProfileID = "only" }
+        store.update {
+            $0.profiles = [BuildProfile(id: "only", name: "Only")]
+            $0.lastProfileID = "only"
+        }
         XCTAssertFalse(store.deleteProfile("only"))
         XCTAssertEqual(store.profiles.count, 1)
     }
@@ -234,8 +275,8 @@ final class ProfilesTests: XCTestCase {
         XCTAssertEqual(choices.hiddenFeatures, ["barriers-fence", "power-tower"])
 
         let json = """
-        {"hiddenFeatures": ["z-last", "a-first", "a-first"]}
-        """
+            {"hiddenFeatures": ["z-last", "a-first", "a-first"]}
+            """
         let decoded = try JSONDecoder().decode(BuildChoices.self, from: Data(json.utf8))
         XCTAssertEqual(decoded.hiddenFeatures, ["a-first", "z-last"])
     }

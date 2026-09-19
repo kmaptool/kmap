@@ -1,13 +1,19 @@
 import XCTest
+
 @testable import kmap
 
 /// Working out what a map's elevation will cost to fetch. Only the arithmetic is
 /// exercised; the measurement itself needs HEAD requests to a public bucket.
 final class ElevationCostTests: XCTestCase {
-
     private func region(_ id: String, _ boxes: [BBox]) -> Region {
-        Region(id: id, name: id, parentID: nil, pbfURL: nil,
-               bbox: boxes[0], boxes: boxes)
+        Region(
+            id: id,
+            name: id,
+            parentID: nil,
+            pbfURL: nil,
+            bbox: boxes[0],
+            boxes: boxes
+        )
     }
 
     func testCellsAreTheDegreesTheRegionsActuallyCover() {
@@ -30,8 +36,13 @@ final class ElevationCostTests: XCTestCase {
     /// A region is a set of boxes rather than the box around them, which may enclose
     /// ground the region does not cover.
     func testTheBoxesAreUsedRatherThanTheBoxAroundThem() {
-        let split = region("s", [BBox(minLon: 30.0, minLat: 44.0, maxLon: 31.0, maxLat: 45.0),
-                                 BBox(minLon: 40.0, minLat: 44.0, maxLon: 41.0, maxLat: 45.0)])
+        let split = region(
+            "s",
+            [
+                BBox(minLon: 30.0, minLat: 44.0, maxLon: 31.0, maxLat: 45.0),
+                BBox(minLon: 40.0, minLat: 44.0, maxLon: 41.0, maxLat: 45.0)
+            ]
+        )
         XCTAssertEqual(ElevationFootprint.boxCells(of: [split]).count, 2)
         // The box around both would be eleven degrees wide.
         XCTAssertEqual(split.bbox.demTileCount, 1)
@@ -47,7 +58,6 @@ final class ElevationCostTests: XCTestCase {
 /// ones listed before it leave behind, coverage comes from the sources' own lists, and
 /// a small fetch has every file asked its size.
 final class ElevationCostChainTests: XCTestCase {
-
     private var probe: ((URL) async throws -> Int64)!
     private var coverage: ((CopernicusDEM.Flavor) async -> Set<String>?)!
     private var viewIndex: ((Int) async -> ViewfinderDEM.Index?)!
@@ -68,7 +78,7 @@ final class ElevationCostChainTests: XCTestCase {
 
     /// Mid-Pacific cells, so no developer's real cache can hold them.
     private let cells: [(lat: Int, lon: Int)] = [
-        (-9, -140), (-9, -139), (-10, -140), (-10, -139),
+        (-9, -140), (-9, -139), (-10, -140), (-10, -139)
     ]
 
     func testLaterSourcesPayOnlyForTheGapsEarlierOnesLeave() async {
@@ -80,8 +90,10 @@ final class ElevationCostChainTests: XCTestCase {
         }
         ElevationCost.probeSize = { _ in 10 }
 
-        let out = await ElevationCost.estimate(sources: "copernicus1,copernicus3",
-                                               cells: cells)
+        let out = await ElevationCost.estimate(
+            sources: "copernicus1,copernicus3",
+            cells: cells
+        )
         XCTAssertEqual(out.count, 2)
         XCTAssertEqual(out[0].published, 2, "GLO-30 fetches the two cells it publishes")
         XCTAssertEqual(out[0].bytes, 20)
@@ -93,7 +105,9 @@ final class ElevationCostChainTests: XCTestCase {
 
     func testACellNoSourcePublishesCostsNothing() async {
         ElevationCost.copernicusCoverage = { _ in [] }
-        ElevationCost.probeSize = { _ in XCTFail("nothing should be probed"); return 1 }
+        ElevationCost.probeSize = { _ in
+            XCTFail("nothing should be probed"); return 1
+        }
         let out = await ElevationCost.estimate(sources: "copernicus1", cells: cells)
         XCTAssertEqual(out.first?.bytes, 0)
         XCTAssertEqual(out.first?.published, 0)
@@ -109,7 +123,9 @@ final class ElevationCostChainTests: XCTestCase {
         }
         // Counted under a lock: the probes run six lanes at once.
         let probes = Counter()
-        ElevationCost.probeSize = { _ in probes.increment(); return 30 }
+        ElevationCost.probeSize = { _ in
+            probes.increment(); return 30
+        }
         let out = await ElevationCost.estimate(sources: "copernicus1", cells: many)
         XCTAssertEqual(out.first?.bytes, 3000, "mean of the sample times every cell")
         XCTAssertEqual(out.first?.exact, false)
@@ -130,8 +146,10 @@ final class ElevationCostChainTests: XCTestCase {
         // One archive claims three of the cells; the fourth is unpublished.
         ElevationCost.viewfinderIndex = { _ in
             var index = ViewfinderDEM.Index()
-            index.entries = ["https://example.org/DEM/zone.zip":
-                                ["S09W140", "S09W139", "S10W140"]]
+            index.entries = [
+                "https://example.org/DEM/zone.zip":
+                    ["S09W140", "S09W139", "S10W140"]
+            ]
             return index
         }
         ElevationCost.probeSize = { _ in 500 }
@@ -145,8 +163,10 @@ final class ElevationCostChainTests: XCTestCase {
         ElevationCost.copernicusCoverage = { _ in ["S09W140", "S09W139"] }
         ElevationCost.viewfinderIndex = { _ in
             var index = ViewfinderDEM.Index()
-            index.entries = ["https://example.org/DEM/zone.zip":
-                                ["S09W140", "S09W139", "S10W140"]]
+            index.entries = [
+                "https://example.org/DEM/zone.zip":
+                    ["S09W140", "S09W139", "S10W140"]
+            ]
             return index
         }
         ElevationCost.probeSize = { _ in 500 }

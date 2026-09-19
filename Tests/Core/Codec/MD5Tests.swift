@@ -1,5 +1,7 @@
 import XCTest
+
 @testable import kmap
+
 #if canImport(CryptoKit)
 import CryptoKit
 #endif
@@ -9,7 +11,6 @@ import CryptoKit
 /// Checked against RFC 1321, against the same bytes fed in arbitrary pieces, and where
 /// CryptoKit is available against CryptoKit itself.
 final class MD5Tests: XCTestCase {
-
     // MARK: RFC 1321
 
     /// The suite printed in the appendix of the RFC itself.
@@ -20,11 +21,15 @@ final class MD5Tests: XCTestCase {
             ("abc", "900150983cd24fb0d6963f7d28e17f72"),
             ("message digest", "f96b697d7cb7938d525a2f31aaf161d0"),
             ("abcdefghijklmnopqrstuvwxyz", "c3fcd3d76192e4007dfb496cca67e13b"),
-            ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-             "d174ab98d277d9f5a5611c2c9f419d9f"),
-            ("12345678901234567890123456789012345678901234567890"
-             + "123456789012345678901234567890",
-             "57edf4a22be3c955ac49da2e2107b67a")
+            (
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+                "d174ab98d277d9f5a5611c2c9f419d9f"
+            ),
+            (
+                "12345678901234567890123456789012345678901234567890"
+                    + "123456789012345678901234567890",
+                "57edf4a22be3c955ac49da2e2107b67a"
+            )
         ]
         for (input, expected) in cases {
             XCTAssertEqual(MD5.hex(of: Array(input.utf8)), expected, "for \"\(input)\"")
@@ -47,8 +52,11 @@ final class MD5Tests: XCTestCase {
         // 63/64/65 is the block itself.
         for count in [0, 1, 54, 55, 56, 57, 63, 64, 65, 119, 120, 127, 128, 129] {
             let payload = (0..<count).map { UInt8($0 % 251) }
-            XCTAssertEqual(MD5.hex(of: payload), reference(payload),
-                           "for \(count) bytes")
+            XCTAssertEqual(
+                MD5.hex(of: payload),
+                reference(payload),
+                "for \(count) bytes"
+            )
         }
     }
 
@@ -165,10 +173,10 @@ final class MD5Tests: XCTestCase {
                 var f: UInt32
                 var g: Int
                 switch i {
-                case 0..<16:  f = (b & c) | (~b & d); g = i
+                case 0..<16: f = (b & c) | (~b & d); g = i
                 case 16..<32: f = (d & b) | (~d & c); g = (5 * i + 1) % 16
-                case 32..<48: f = b ^ c ^ d;          g = (3 * i + 5) % 16
-                default:      f = c ^ (b | ~d);       g = (7 * i) % 16
+                case 32..<48: f = b ^ c ^ d; g = (3 * i + 5) % 16
+                default: f = c ^ (b | ~d); g = (7 * i) % 16
                 }
                 f = f &+ a &+ k[i] &+ m[g]
                 a = d; d = c; c = b

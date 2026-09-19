@@ -35,8 +35,12 @@ extension TileSplitter {
             set.contains(v) ? v + TileSplitter.grain : v
         }
         return areas.map {
-            Area(minLat: moved($0.minLat, lats), minLon: moved($0.minLon, lons),
-                 maxLat: moved($0.maxLat, lats), maxLon: moved($0.maxLon, lons))
+            Area(
+                minLat: moved($0.minLat, lats),
+                minLon: moved($0.minLon, lons),
+                maxLat: moved($0.maxLat, lats),
+                maxLon: moved($0.maxLon, lons)
+            )
         }
     }
 
@@ -58,15 +62,39 @@ extension TileSplitter {
                 continue
             }
             if tall {
-                out.append(Area(minLat: area.minLat, minLon: area.minLon,
-                                maxLat: cut, maxLon: area.maxLon))
-                out.append(Area(minLat: cut, minLon: area.minLon,
-                                maxLat: area.maxLat, maxLon: area.maxLon))
+                out.append(
+                    Area(
+                        minLat: area.minLat,
+                        minLon: area.minLon,
+                        maxLat: cut,
+                        maxLon: area.maxLon
+                    )
+                )
+                out.append(
+                    Area(
+                        minLat: cut,
+                        minLon: area.minLon,
+                        maxLat: area.maxLat,
+                        maxLon: area.maxLon
+                    )
+                )
             } else {
-                out.append(Area(minLat: area.minLat, minLon: area.minLon,
-                                maxLat: area.maxLat, maxLon: cut))
-                out.append(Area(minLat: area.minLat, minLon: cut,
-                                maxLat: area.maxLat, maxLon: area.maxLon))
+                out.append(
+                    Area(
+                        minLat: area.minLat,
+                        minLon: area.minLon,
+                        maxLat: area.maxLat,
+                        maxLon: cut
+                    )
+                )
+                out.append(
+                    Area(
+                        minLat: area.minLat,
+                        minLon: cut,
+                        maxLat: area.maxLat,
+                        maxLon: area.maxLon
+                    )
+                )
             }
         }
         return out
@@ -91,12 +119,23 @@ extension TileSplitter {
         // inside any of them.
         for input in options.inputs {
             guard let bbox = try reader(input).headerBBox() else { continue }
-            density.clips.append((minLatCell: Self.mapUnits(bbox.minLat) >> TileSplitter.gridShift,
-                                  minLonCell: Self.mapUnits(bbox.minLon) >> TileSplitter.gridShift,
-                                  maxLatCell: (Self.mapUnits(bbox.maxLat) + TileSplitter.gridMask) >> TileSplitter.gridShift,
-                                  maxLonCell: (Self.mapUnits(bbox.maxLon) + TileSplitter.gridMask) >> TileSplitter.gridShift))
-            log(String(format: "covers %.4f..%.4f / %.4f..%.4f",
-                       bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon))
+            density.clips.append(
+                (
+                    minLatCell: Self.mapUnits(bbox.minLat) >> TileSplitter.gridShift,
+                    minLonCell: Self.mapUnits(bbox.minLon) >> TileSplitter.gridShift,
+                    maxLatCell: (Self.mapUnits(bbox.maxLat) + TileSplitter.gridMask) >> TileSplitter.gridShift,
+                    maxLonCell: (Self.mapUnits(bbox.maxLon) + TileSplitter.gridMask) >> TileSplitter.gridShift
+                )
+            )
+            log(
+                String(
+                    format: "covers %.4f..%.4f / %.4f..%.4f",
+                    bbox.minLat,
+                    bbox.maxLat,
+                    bbox.minLon,
+                    bbox.maxLon
+                )
+            )
         }
         density.prepare()
         for input in options.inputs {

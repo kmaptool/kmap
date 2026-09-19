@@ -35,7 +35,8 @@ enum RegionOutline {
             }
             let parts = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
             if current != nil, parts.count >= 2,
-               let lon = Double(parts[0]), let lat = Double(parts[1]) {
+                let lon = Double(parts[0]), let lat = Double(parts[1])
+            {
                 current?.points.append((lon, lat))
             } else if current == nil {
                 current = Ring(subtract: line.hasPrefix("!"), points: [])

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Repairing the dead outer row or column a warped .hgt tile is left with.
@@ -6,7 +7,6 @@ import XCTest
 /// A zeroed last column sits at the same longitude as the next tile's real data, so the
 /// ground drops to sea level and back within one grid step, drawing a seam of contours.
 final class FixHGTEdgesTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
     private let side = 3601
 
@@ -72,7 +72,8 @@ final class FixHGTEdgesTests: XCTestCase {
 
     func testATileThatNeedsNothingIsNotRewritten() throws {
         let url = try HGTFixture.rowConstant(
-            at: directory.appendingPathComponent("N44E035.hgt")) { row in
+            at: directory.appendingPathComponent("N44E035.hgt")
+        ) { row in
             Int16(200 + row % 30)
         }
         let before = try Data(contentsOf: url)
@@ -123,5 +124,4 @@ final class FixHGTEdgesTests: XCTestCase {
         let last = ((n - 1) * n) * 2
         XCTAssertEqual(repaired[last + 1], 7, "the dead southern row must take its neighbour's value")
     }
-
 }

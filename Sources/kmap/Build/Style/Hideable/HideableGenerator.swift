@@ -27,7 +27,7 @@ enum HideableGenerator {
         ("waterway", "Waterways"),
         ("office", "Offices"),
         ("craft", "Craft"),
-        ("landuse", "Land use"),
+        ("landuse", "Land use")
     ]
 
     /// Keys never offered, since hiding them would empty the map.
@@ -67,8 +67,9 @@ enum HideableGenerator {
         at = line.index(after: at)
         _ = take { $0 == " " }
         let value = take {
-            $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == ":"
-                           || $0 == "." || $0 == "-")
+            $0.isASCII
+                && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == ":"
+                    || $0 == "." || $0 == "-")
         }
         guard !value.isEmpty else { return nil }
 
@@ -124,7 +125,7 @@ enum HideableGenerator {
             "# The quoted 'points:' lines are mkgmap's own, from its default style, and are",
             "# GPL v2 like the rest of it. They are here because a substitution has to name",
             "# the line it replaces exactly. See NOTICE.md.",
-            "",
+            ""
         ]
 
         var count = 0
@@ -144,8 +145,11 @@ enum HideableGenerator {
             }
             lines.append("")
         }
-        return Result(text: lines.joined(separator: "\n") + "\n",
-                      features: count, keys: keysSeen.count)
+        return Result(
+            text: lines.joined(separator: "\n") + "\n",
+            features: count,
+            keys: keysSeen.count
+        )
     }
 
     private static func valueOf(_ pair: String) -> String {

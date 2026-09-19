@@ -3,14 +3,16 @@ import Foundation
 /// Locations of removable volumes: one directory on macOS, several on Linux depending
 /// on the mounting desktop, and drive letters on Windows.
 extension Platform {
-
     /// Returns the directories removable volumes are mounted under. Under WSL these are
     /// the Windows drives, which WSL exposes below `/mnt`.
     ///
     /// Callers stat one known subdirectory per entry; the roots are never walked.
-    static func mediaRoots(_ platform: Platform = Platform.current,
-                           environment: [String: String] = ProcessInfo.processInfo.environment)
-        -> [String] {
+    static func mediaRoots(
+        _ platform: Platform = Platform.current,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    )
+        -> [String]
+    {
         switch platform {
         case .macOS:
             return ["/Volumes"]

@@ -25,11 +25,15 @@ enum HideableNames {
         var categories: [String: String] = [:]
         var features: [String: String] = [:]
         for raw in StyleAssets.hideableRussianNames
-            .split(separator: "\n", omittingEmptySubsequences: true) {
+            .split(separator: "\n", omittingEmptySubsequences: true)
+        {
             let line = raw.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty, !line.hasPrefix("#") else { continue }
-            let parts = line.split(separator: "|", maxSplits: 2,
-                                   omittingEmptySubsequences: false).map(String.init)
+            let parts = line.split(
+                separator: "|",
+                maxSplits: 2,
+                omittingEmptySubsequences: false
+            ).map(String.init)
             if parts.count == 3, parts[0] == "category" {
                 categories[parts[1]] = parts[2]
             } else if parts.count == 2 {

@@ -6,7 +6,6 @@ import Foundation
 /// lines are replaced, and every other line arrives at the other end byte for byte.
 /// Comments in the source carry provenance the binary format cannot hold.
 enum TypEdit {
-
     enum EditError: LocalizedError {
         case noSuchSection(MapElementKind, Int)
         case noPicture(Int)
@@ -23,12 +22,17 @@ enum TypEdit {
             case .notALevel(let level):
                 return t("%d is not a draw-order level — the lowest is 1", level)
             case .noNightForm(let code):
-                return t("%@ has no night form: a pattern needs an ink and a background"
-                         + " before night can be added — give it a background first",
-                         TypeMeaning.hex(code))
+                return t(
+                    "%@ has no night form: a pattern needs an ink and a background"
+                        + " before night can be added — give it a background first",
+                    TypeMeaning.hex(code)
+                )
             case .noSuchSection(let kind, let code):
-                return t("this TYP has no %1$@ section for %2$@",
-                         kind.rawValue, TypeMeaning.hex(code))
+                return t(
+                    "this TYP has no %1$@ section for %2$@",
+                    kind.rawValue,
+                    TypeMeaning.hex(code)
+                )
             case .noPicture(let code):
                 return t("%@ has no Xpm block to change", TypeMeaning.hex(code))
             case .noSuchColour(let code, let index):
@@ -50,22 +54,32 @@ enum TypEdit {
     /// - Parameter tag: which `Xpm` block, for a point that keeps a night picture in a
     ///   second one. Nil takes whichever comes first.
     /// - Throws: `EditError.noSuchSection`, `.noSuchColour` or `.notAColour`.
-    static func setColour(in source: TypSource, kind: MapElementKind, code: Int,
-                          colourIndex: Int, to colour: String?,
-                          tag: String? = nil) throws -> String {
+    static func setColour(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int,
+        colourIndex: Int,
+        to colour: String?,
+        tag: String? = nil
+    ) throws -> String {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
         let value = try normalize(colour)
 
         guard let paletteLines = paletteLineNumbers(in: source, section: section, tag: tag),
-              colourIndex >= 0, colourIndex < paletteLines.count else {
+            colourIndex >= 0, colourIndex < paletteLines.count
+        else {
             throw EditError.noSuchColour(code, colourIndex)
         }
         let lineNumber = paletteLines[colourIndex]
         let original = source.lines[lineNumber]
-        guard let key = paletteKey(of: original,
-                                   charsPerPixel: charsPerPixel(of: section, tag: tag)) else {
+        guard
+            let key = paletteKey(
+                of: original,
+                charsPerPixel: charsPerPixel(of: section, tag: tag)
+            )
+        else {
             throw EditError.noSuchColour(code, colourIndex)
         }
 
@@ -81,8 +95,13 @@ enum TypEdit {
     ///
     /// A new line goes immediately after the last `String=` in the section, keeping the
     /// labels together.
-    static func setLabel(in source: TypSource, kind: MapElementKind, code: Int,
-                         language: Int, to text: String) throws -> String {
+    static func setLabel(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int,
+        language: Int,
+        to text: String
+    ) throws -> String {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
@@ -96,15 +115,20 @@ enum TypEdit {
             // place rather than doubled by a plain `String=`.
             let lowered = line.lowercased()
             guard let eq = line.firstIndex(of: "="),
-                  lowered.hasPrefix("string"),
-                  line[line.startIndex..<eq].dropFirst("string".count)
-                      .allSatisfy(\.isNumber) else { continue }
+                lowered.hasPrefix("string"),
+                line[line.startIndex..<eq].dropFirst("string".count)
+                    .allSatisfy(\.isNumber)
+            else { continue }
             lastLabelLine = number
             let value = line[line.index(after: eq)...]
             guard let comma = value.firstIndex(of: ","),
-                  let parsed = Int(value[value.startIndex..<comma]
-                    .trimmingCharacters(in: .whitespaces).dropFirst(2), radix: 16),
-                  parsed == language else { continue }
+                let parsed = Int(
+                    value[value.startIndex..<comma]
+                        .trimmingCharacters(in: .whitespaces).dropFirst(2),
+                    radix: 16
+                ),
+                parsed == language
+            else { continue }
             lines[number] = indentation(of: lines[number]) + "String=\(wanted),\(text)"
             return lines.joined(separator: "\n")
         }
@@ -121,8 +145,12 @@ enum TypEdit {
     ///
     /// The tag absent leaves the size to the receiver, which is a different instruction
     /// from naming the default size.
-    static func setFontStyle(in source: TypSource, kind: MapElementKind, code: Int,
-                             to style: String?) throws -> String {
+    static func setFontStyle(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int,
+        to style: String?
+    ) throws -> String {
         try setTag("FontStyle", in: source, kind: kind, code: code, to: style)
     }
 
@@ -130,8 +158,13 @@ enum TypEdit {
     ///
     /// Not the colour the element is drawn in. Without this tag the label is coloured by
     /// the receiver, which differs from naming the element's own colour.
-    static func setLabelColour(in source: TypSource, kind: MapElementKind, code: Int,
-                               night: Bool, to colour: String?) throws -> String {
+    static func setLabelColour(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int,
+        night: Bool,
+        to colour: String?
+    ) throws -> String {
         // Nil removes the tag; anything else must be a real colour, since the TYP
         // compiler rejects the tag otherwise.
         var value: String?
@@ -140,8 +173,13 @@ enum TypEdit {
             guard normalized != "none" else { throw EditError.notAColour(colour) }
             value = normalized
         }
-        return try setTag(night ? "NightCustomColor" : "DayCustomColor",
-                          in: source, kind: kind, code: code, to: value)
+        return try setTag(
+            night ? "NightCustomColor" : "DayCustomColor",
+            in: source,
+            kind: kind,
+            code: code,
+            to: value
+        )
     }
 
     /// Replaces a single-value tag in a section, adds it where there is none, or takes it
@@ -149,8 +187,13 @@ enum TypEdit {
     ///
     /// A new tag is added before `[end]` rather than at the top, leaving the section's
     /// opening comments in place.
-    private static func setTag(_ tag: String, in source: TypSource, kind: MapElementKind,
-                               code: Int, to value: String?) throws -> String {
+    private static func setTag(
+        _ tag: String,
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int,
+        to value: String?
+    ) throws -> String {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
@@ -181,8 +224,11 @@ enum TypEdit {
         var errorDescription: String? {
             switch self {
             case .alreadyThere(let kind, let code):
-                return t("this TYP already has a %1$@ section for %2$@",
-                         kind.rawValue, TypeMeaning.hex(code))
+                return t(
+                    "this TYP already has a %1$@ section for %2$@",
+                    kind.rawValue,
+                    TypeMeaning.hex(code)
+                )
             }
         }
     }
@@ -195,9 +241,14 @@ enum TypEdit {
     ///
     /// A code without a section is drawn by the receiver as it likes. A polygon also gets
     /// a `[_drawOrder]` entry: a polygon absent from that table is not drawn at all.
-    static func addSection(in source: TypSource, kind: MapElementKind, code: Int,
-                           colour: String = placeholderColour, label: String? = nil,
-                           drawOrderLevel: Int? = nil) throws -> String {
+    static func addSection(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int,
+        colour: String = placeholderColour,
+        label: String? = nil,
+        drawOrderLevel: Int? = nil
+    ) throws -> String {
         guard source.section(kind, code) == nil else {
             throw AddError.alreadyThere(kind, code)
         }
@@ -208,19 +259,31 @@ enum TypEdit {
         }
 
         if let last = lines.last, !last.isEmpty { lines.append("") }
-        lines.append(contentsOf: newSection(kind: kind, code: code, colour: colour,
-                                            label: label))
+        lines.append(
+            contentsOf: newSection(
+                kind: kind,
+                code: code,
+                colour: colour,
+                label: label
+            )
+        )
         lines.append("")
         return lines.joined(separator: "\n")
     }
 
     /// A deliberately conspicuous starting section: magenta, and for a point a hollow
     /// square rather than an icon.
-    private static func newSection(kind: MapElementKind, code: Int, colour: String,
-                                   label: String?) -> [String] {
+    private static func newSection(
+        kind: MapElementKind,
+        code: Int,
+        colour: String,
+        label: String?
+    ) -> [String] {
         var out = [kind.typSection, "Type=\(TypeMeaning.hex(code))"]
-        out.append("; Added by kmap. Magenta until it is drawn: a new section is not a "
-                   + "finished one.")
+        out.append(
+            "; Added by kmap. Magenta until it is drawn: a new section is not a "
+                + "finished one."
+        )
 
         let quote = "\""
         switch kind {
@@ -261,8 +324,13 @@ enum TypEdit {
     /// no double gap is left. Comments above the header stay: a divider like
     /// `; --- water ---` cannot be told from a note about the section. A polygon's
     /// `[_drawOrder]` entries go with it.
-    static func removeSection(in source: TypSource, kind: MapElementKind, code: Int) throws
-        -> String {
+    static func removeSection(
+        in source: TypSource,
+        kind: MapElementKind,
+        code: Int
+    ) throws
+        -> String
+    {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
@@ -289,8 +357,11 @@ enum TypEdit {
     // MARK: Finding things inside a section
 
     /// Line numbers of the palette entries of a section's picture, in declaration order.
-    private static func paletteLineNumbers(in source: TypSource, section: TypSection,
-                                           tag: String? = nil) -> [Int]? {
+    private static func paletteLineNumbers(
+        in source: TypSource,
+        section: TypSection,
+        tag: String? = nil
+    ) -> [Int]? {
         guard let extent = pictureLineRange(in: source, section: section, tag: tag) else {
             return nil
         }
@@ -305,8 +376,11 @@ enum TypEdit {
     }
 
     /// The full extent of an `Xpm=` block: the tag line and every quoted line under it.
-    static func pictureLineRange(in source: TypSource, section: TypSection,
-                                         tag wanted: String? = nil) -> Range<Int>? {
+    static func pictureLineRange(
+        in source: TypSource,
+        section: TypSection,
+        tag wanted: String? = nil
+    ) -> Range<Int>? {
         var start: Int?
         for number in section.lines {
             guard let found = pictureTag(of: source.lines[number]) else { continue }
@@ -320,7 +394,8 @@ enum TypEdit {
 
         var end = start + 1
         while end < section.lines.upperBound,
-              source.lines[end].trimmingCharacters(in: .whitespaces).hasPrefix("\"") {
+            source.lines[end].trimmingCharacters(in: .whitespaces).hasPrefix("\"")
+        {
             end += 1
         }
         return start..<end
@@ -329,8 +404,10 @@ enum TypEdit {
     /// `Xpm`, `DayXpm` or `NightXpm` where the line opens one, otherwise nil.
     static func pictureTag(of line: String) -> String? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
-        for tag in ["DayXpm", "NightXpm", "Xpm"] where trimmed.lowercased()
-            .hasPrefix(tag.lowercased() + "=") {
+        for tag in ["DayXpm", "NightXpm", "Xpm"]
+        where trimmed.lowercased()
+            .hasPrefix(tag.lowercased() + "=")
+        {
             return tag
         }
         return nil

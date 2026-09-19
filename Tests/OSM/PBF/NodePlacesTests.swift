@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Finding where a wanted set of nodes are.
@@ -6,7 +7,6 @@ import XCTest
 /// A PBF puts its nodes before the ways that name them, so a pass working with way
 /// geometry reads the file twice and picks its nodes out of the second read.
 final class NodePlacesTests: XCTestCase {
-
     private func block(_ pairs: [(Int64, Double, Double)]) -> BlockNodes {
         var out = BlockNodes()
         for (id, lat, lon) in pairs {
@@ -19,13 +19,17 @@ final class NodePlacesTests: XCTestCase {
 
     func testItPicksTheWantedNodesOutOfAFileHoldingManyMore() {
         var places = NodePlaces(wanted: [2, 5, 9])
-        places.take(block([(1, 1, 1), (2, 20, 30), (3, 3, 3), (5, 50, 60),
-                           (7, 7, 7), (9, 90, 100)]))
+        places.take(
+            block([
+                (1, 1, 1), (2, 20, 30), (3, 3, 3), (5, 50, 60),
+                (7, 7, 7), (9, 90, 100)
+            ])
+        )
         XCTAssertEqual(places.place(of: 2)?.lat, 20)
         XCTAssertEqual(places.place(of: 5)?.lon, 60)
         XCTAssertEqual(places.place(of: 9)?.lat, 90)
-        XCTAssertNil(places.place(of: 3))          // in the file, never asked for
-        XCTAssertNil(places.place(of: 4))          // in neither
+        XCTAssertNil(places.place(of: 3))  // in the file, never asked for
+        XCTAssertNil(places.place(of: 4))  // in neither
     }
 
     func testANodeTheFileDoesNotCarryStaysUnknownRatherThanBecomingZero() {
@@ -51,7 +55,7 @@ final class NodePlacesTests: XCTestCase {
         // first step backwards, so it starts the walk over instead.
         var places = NodePlaces(wanted: [2, 5, 9])
         places.take(block([(5, 50, 60), (9, 90, 100)]))
-        places.take(block([(2, 20, 30)]))          // back down
+        places.take(block([(2, 20, 30)]))  // back down
         XCTAssertEqual(places.place(of: 2)?.lat, 20)
         XCTAssertEqual(places.place(of: 5)?.lat, 50)
         XCTAssertEqual(places.place(of: 9)?.lat, 90)
@@ -90,8 +94,11 @@ final class NodePlacesTests: XCTestCase {
             places.take(block(wanted.map { ($0, Double($0), Double($0) + 0.5) }))
             for probe in [0, 1, count / 2, count - 1] {
                 XCTAssertEqual(places.index(of: wanted[probe]), probe, "\(count) at \(probe)")
-                XCTAssertEqual(places.place(of: wanted[probe])?.lat,
-                               Double(wanted[probe]), "\(count) at \(probe)")
+                XCTAssertEqual(
+                    places.place(of: wanted[probe])?.lat,
+                    Double(wanted[probe]),
+                    "\(count) at \(probe)"
+                )
             }
             // Between two wanted ids, before the first and after the last.
             XCTAssertNil(places.index(of: wanted[count / 2] + 1), "\(count)")

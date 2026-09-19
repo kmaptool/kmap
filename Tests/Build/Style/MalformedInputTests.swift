@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Readers fed foreign files, broken on purpose.
@@ -6,7 +7,6 @@ import XCTest
 /// A malformed file traps rather than throwing, so every read is bounds-checked and every
 /// size taken off the wire is a claim, not a fact. The assertion is that the reader returns.
 final class MalformedInputTests: XCTestCase {
-
     /// Deterministic noise, so that a failure reproduces.
     private struct Noise: RandomNumberGenerator {
         var state: UInt64
@@ -87,8 +87,11 @@ final class MalformedInputTests: XCTestCase {
             // Whatever it found, reading it must stay inside the file it came from.
             for file in files.prefix(4) {
                 let data = ImgContainer.read(file, from: url)
-                XCTAssertLessThanOrEqual(data?.count ?? 0, bytes.count,
-                                         "a subfile cannot be bigger than the file holding it")
+                XCTAssertLessThanOrEqual(
+                    data?.count ?? 0,
+                    bytes.count,
+                    "a subfile cannot be bigger than the file holding it"
+                )
             }
             _ = ImgContainer.typIdentity(in: url)
         }
@@ -105,8 +108,13 @@ final class MalformedInputTests: XCTestCase {
         let url = folder.appendingPathComponent("small.img")
         try Data([UInt8](repeating: 0, count: 0x1000)).write(to: url)
 
-        let liar = ImgContainer.SubFile(name: "LIAR", ext: "TYP", size: Int(UInt32.max),
-                                        blocks: [1, 2], blockSize: 512)
+        let liar = ImgContainer.SubFile(
+            name: "LIAR",
+            ext: "TYP",
+            size: Int(UInt32.max),
+            blocks: [1, 2],
+            blockSize: 512
+        )
         let data = ImgContainer.read(liar, from: url)
         XCTAssertLessThanOrEqual(data?.count ?? 0, 0x1000)
     }
@@ -117,13 +125,13 @@ final class MalformedInputTests: XCTestCase {
         let bad = [
             "",
             "[_point]",
-            "[_point]\nType=0x2a00\n",                       // no [end]
+            "[_point]\nType=0x2a00\n",  // no [end]
             "[_point]\nType=not a number\n[end]",
-            "[_point]\nXpm=\"999999 999999 99 9\"\n[end]",   // sizes that are not sizes
-            "[_point]\nXpm=\"4 4 2 1\"\n\"! c #FF0000\"\n\"##\"\n[end]",   // short rows
+            "[_point]\nXpm=\"999999 999999 99 9\"\n[end]",  // sizes that are not sizes
+            "[_point]\nXpm=\"4 4 2 1\"\n\"! c #FF0000\"\n\"##\"\n[end]",  // short rows
             "[_polygon]\nXpm=\"0 0 -1 -1\"\n[end]",
             "[_line]\nXpm=\"2 2 1 1\"\n\"! c none\"\n\"!!!!!!!!!!!!\"\n[end]",  // long rows
-            String(repeating: "[_point]\n", count: 500),
+            String(repeating: "[_point]\n", count: 500)
         ]
         for text in bad {
             let source = TypSource.parse(text)

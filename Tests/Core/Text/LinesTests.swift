@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Covers splitting text into lines.
@@ -6,7 +7,6 @@ import XCTest
 /// Swift treats `\r\n` as one `Character`, so `split(separator: "\n")` returns a CRLF file
 /// as a single line, as does `components(separatedBy:)` on Linux.
 final class LinesTests: XCTestCase {
-
     func testUnixLineEndings() {
         XCTAssertEqual(Lines.of("a\nb\nc"), ["a", "b", "c"])
     }
@@ -71,8 +71,11 @@ final class LinesTests: XCTestCase {
     func testWhyThisExistsAtAll() {
         // Pins the standard library behaviour this helper exists for.
         let windows = "[_id]\r\nFID=1540\r\n[end]\r\n"
-        XCTAssertEqual(windows.split(separator: "\n").count, 1,
-                       "`split` sees one line, because \\r\\n is one Character")
+        XCTAssertEqual(
+            windows.split(separator: "\n").count,
+            1,
+            "`split` sees one line, because \\r\\n is one Character"
+        )
         XCTAssertEqual(Lines.of(windows), ["[_id]", "FID=1540", "[end]"])
     }
 }

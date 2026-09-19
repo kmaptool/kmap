@@ -7,7 +7,6 @@ import Foundation
 /// and whichever of zenity, kdialog or qarma a Linux desktop has. `isAvailable` is false
 /// where there is none, so callers can omit the action.
 enum FilePicker {
-
     enum Wanted: Equatable {
         /// A file, optionally narrowed to these extensions.
         case file(extensions: [String])
@@ -49,8 +48,11 @@ enum FilePicker {
     ///
     /// - Returns: The chosen path, or nil when cancelled, when no helper exists, or
     ///   under test.
-    static func choose(_ wanted: Wanted, startingAt start: URL? = nil,
-                       prompt: String) -> URL? {
+    static func choose(
+        _ wanted: Wanted,
+        startingAt start: URL? = nil,
+        prompt: String
+    ) -> URL? {
         // Never under test: an unattended dialog blocks until it is closed.
         guard !underTest else { return nil }
         // The console is remembered and taken back around every dialog: on the Unixes and
@@ -65,18 +67,27 @@ enum FilePicker {
         let chosen: String?
         switch wanted {
         case .file(let extensions):
-            chosen = WindowsFileDialog.file(extensions: extensions, startingAt: start,
-                                            title: prompt)
+            chosen = WindowsFileDialog.file(
+                extensions: extensions,
+                startingAt: start,
+                title: prompt
+            )
         case .directory:
             chosen = WindowsFileDialog.directory(startingAt: start, title: prompt)
         }
         return chosen.map { URL(fileURLWithPath: $0) }
         #else
         guard let helper = helper() else { return nil }
-        let output = ProcessProbe.capture(helper.path,
-                                           arguments(for: helper.kind, wanted: wanted,
-                                                     startingAt: start, prompt: prompt),
-                                           timeout: 600)
+        let output = ProcessProbe.capture(
+            helper.path,
+            arguments(
+                for: helper.kind,
+                wanted: wanted,
+                startingAt: start,
+                prompt: prompt
+            ),
+            timeout: 600
+        )
         return output.flatMap {
             path(from: $0, kind: helper.kind, translating: helper.answersInForeignPaths)
         }
@@ -97,10 +108,13 @@ enum FilePicker {
     /// Returns the first dialog helper this platform has, or nil. What a native Windows
     /// build answers here is not used: it shows the dialogs itself. Its entry stands for
     /// the WSL side, which asks the same PowerShell for the same dialog.
-    static func helper(platform: Platform = Platform.current,
-                       environment: [String: String] = ProcessInfo.processInfo.environment,
-                       exists: (String) -> Bool = { FileTools.isExecutable($0) })
-        -> Helper? {
+    static func helper(
+        platform: Platform = Platform.current,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        exists: (String) -> Bool = { FileTools.isExecutable($0) }
+    )
+        -> Helper?
+    {
         switch platform {
         case .macOS:
             return exists("/usr/bin/osascript")
@@ -109,18 +123,30 @@ enum FilePicker {
         case .wsl:
             // The Windows dialog is present whenever interop is on, and can see the
             // drives removable media is mounted on.
-            if let powershell = Platform.which("powershell.exe", environment: environment,
-                                               on: platform, exists: exists) {
-                return Helper(path: powershell, kind: .powershell,
-                              answersInForeignPaths: true)
+            if let powershell = Platform.which(
+                "powershell.exe",
+                environment: environment,
+                on: platform,
+                exists: exists
+            ) {
+                return Helper(
+                    path: powershell,
+                    kind: .powershell,
+                    answersInForeignPaths: true
+                )
             }
             // Interop off; WSLg may still provide a Linux desktop.
             return linuxHelper(platform: platform, environment: environment, exists: exists)
 
         case .windows:
             // The same dialog, with no translation on the way back.
-            guard let powershell = Platform.which("powershell.exe", environment: environment,
-                                                  on: platform, exists: exists)
+            guard
+                let powershell = Platform.which(
+                    "powershell.exe",
+                    environment: environment,
+                    on: platform,
+                    exists: exists
+                )
             else { return nil }
             return Helper(path: powershell, kind: .powershell)
 
@@ -129,16 +155,22 @@ enum FilePicker {
         }
     }
 
-    private static func linuxHelper(platform: Platform = .linux,
-                                    environment: [String: String],
-                                    exists: (String) -> Bool) -> Helper? {
+    private static func linuxHelper(
+        platform: Platform = .linux,
+        environment: [String: String],
+        exists: (String) -> Bool
+    ) -> Helper? {
         // Without a display these helpers hang and then fail.
         guard environment["DISPLAY"] != nil || environment["WAYLAND_DISPLAY"] != nil else {
             return nil
         }
         for (name, kind) in [("zenity", Kind.zenity), ("kdialog", .kdialog), ("qarma", .qarma)] {
-            if let found = Platform.which(name, environment: environment, on: platform,
-                                          exists: exists) {
+            if let found = Platform.which(
+                name,
+                environment: environment,
+                on: platform,
+                exists: exists
+            ) {
                 return Helper(path: found, kind: kind)
             }
         }
@@ -146,10 +178,15 @@ enum FilePicker {
     }
 
     /// Returns the arguments that put up one dialog in `kind`'s dialect.
-    static func arguments(for kind: Kind, wanted: Wanted, startingAt start: URL?,
-                          prompt: String,
-                          windowsPath: (URL) -> String? = { Platform.windowsPath(for: $0) })
-        -> [String] {
+    static func arguments(
+        for kind: Kind,
+        wanted: Wanted,
+        startingAt start: URL?,
+        prompt: String,
+        windowsPath: (URL) -> String? = { Platform.windowsPath(for: $0) }
+    )
+        -> [String]
+    {
         // The prompt is arbitrary text and lands inside quoted strings, so quotes and
         // newlines are removed.
         let title = prompt.replacingOccurrences(of: "\"", with: "'")
@@ -175,9 +212,16 @@ enum FilePicker {
             return ["-e", "POSIX path of (\(script))"]
 
         case .powershell:
-            return ["-NoProfile", "-NonInteractive", "-Sta", "-EncodedCommand",
-                    encoded(powershellScript(wanted: wanted, title: title,
-                                             startingAt: start.flatMap(windowsPath)))]
+            return [
+                "-NoProfile", "-NonInteractive", "-Sta", "-EncodedCommand",
+                encoded(
+                    powershellScript(
+                        wanted: wanted,
+                        title: title,
+                        startingAt: start.flatMap(windowsPath)
+                    )
+                )
+            ]
 
         case .zenity, .qarma:
             var out = ["--file-selection", "--title=\(title)"]
@@ -199,7 +243,8 @@ enum FilePicker {
             case .directory:
                 return ["--getexistingdirectory", location, "--title", title]
             case .file(let extensions):
-                let patterns = extensions.isEmpty
+                let patterns =
+                    extensions.isEmpty
                     ? "*" : extensions.map { "*.\($0)" }.joined(separator: " ")
                 return ["--getopenfilename", location, patterns, "--title", title]
             }
@@ -236,14 +281,18 @@ enum FilePicker {
                 lines.append("$d.Filter = \(quoted("Supported|\(patterns)|All files|*.*"))")
             }
             if let start { lines.append("$d.InitialDirectory = \(quoted(start))") }
-            lines.append("if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK)"
-                         + " { [Console]::Out.Write($d.FileName) }")
+            lines.append(
+                "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK)"
+                    + " { [Console]::Out.Write($d.FileName) }"
+            )
         case .directory:
             lines.append("$d = New-Object System.Windows.Forms.FolderBrowserDialog")
             lines.append("$d.Description = \(quoted(title))")
             if let start { lines.append("$d.SelectedPath = \(quoted(start))") }
-            lines.append("if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK)"
-                         + " { [Console]::Out.Write($d.SelectedPath) }")
+            lines.append(
+                "if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK)"
+                    + " { [Console]::Out.Write($d.SelectedPath) }"
+            )
         }
         return lines.joined(separator: "\n")
     }
@@ -279,12 +328,16 @@ enum FilePicker {
     ///
     /// - Returns: The path, or nil for anything that is not one: a cancellation, reported
     ///   differently by each helper, or a failed helper.
-    static func path(from output: String, kind: Kind = .osascript,
-                     translating: Bool = false,
-                     toLinux: (String) -> String? = Platform.linuxPath(for:)) -> URL? {
+    static func path(
+        from output: String,
+        kind: Kind = .osascript,
+        translating: Bool = false,
+        toLinux: (String) -> String? = Platform.linuxPath(for:)
+    ) -> URL? {
         // Stripping follows the dialect; translating the answer follows the platform.
         let cleaned = kind == .powershell ? withoutSerialisedObjects(output) : output
-        let line = Lines.of(cleaned)
+        let line =
+            Lines.of(cleaned)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { !$0.isEmpty } ?? ""
         guard !line.isEmpty else { return nil }

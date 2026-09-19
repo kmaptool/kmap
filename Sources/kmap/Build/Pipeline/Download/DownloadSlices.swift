@@ -13,7 +13,8 @@ extension BuildPipeline {
         init(sizes: [Int64]) {
             let total = sizes.reduce(0, +)
             let sized = total > 0 && !sizes.contains { $0 <= 0 }
-            widths = sized
+            widths =
+                sized
                 ? sizes.map { Double($0) / Double(total) }
                 : Array(repeating: 1 / Double(max(1, sizes.count)), count: sizes.count)
             var start = 0.0
@@ -37,8 +38,11 @@ extension BuildPipeline {
     /// Seconds until the whole stage is done: what is left of this file and every byte
     /// still to be fetched after it, at the rate this file is arriving. Nil while the
     /// file's own estimate has not settled.
-    static func stageSecondsLeft(fileSecondsLeft: Double, rate: Double,
-                                 bytesAfterThisFile: Int64) -> Double? {
+    static func stageSecondsLeft(
+        fileSecondsLeft: Double,
+        rate: Double,
+        bytesAfterThisFile: Int64
+    ) -> Double? {
         guard fileSecondsLeft.isFinite, rate > 0 else { return nil }
         return fileSecondsLeft + Double(max(0, bytesAfterThisFile)) / rate
     }

@@ -7,12 +7,17 @@ extension PixelEditorScreen {
         var y = rect.y
 
         let picture = shown
-        var facts = "\(picture.width)×\(picture.height), "
+        var facts =
+            "\(picture.width)×\(picture.height), "
             + tn("%d colour(s)", picture.palette.count)
         if showingNight { facts += "  ·  " + t("night — same drawing, its own colours") }
         if dirty { facts += "  ·  " + t("unsaved") }
-        s.text(rect.x, y, facts,
-               Style(fg: dirty ? theme.warn : theme.dim, bg: theme.appBg))
+        s.text(
+            rect.x,
+            y,
+            facts,
+            Style(fg: dirty ? theme.warn : theme.dim, bg: theme.appBg)
+        )
         y += 1
 
         canvasOrigin = (rect.x + 3, y + 1)
@@ -30,14 +35,32 @@ extension PixelEditorScreen {
         if let rows = grid() {
             let index = rows[min(cursor.y, rows.count - 1)][min(cursor.x, shown.width - 1)]
             let entry = shown.palette[safe: index]
-            var x = s.text(rect.x, y, String(format: "%3d,%-3d ", cursor.x, cursor.y),
-                           Style(fg: theme.dim, bg: theme.appBg))
-            x = Widgets.swatch(s, x: x, y: y, colour: entry?.colour.flatMap { $0 },
-                               width: 3, theme: theme)
-            x = s.text(x + 1, y, entry?.colour.flatMap { $0 } ?? t("clear"),
-                       Style(fg: theme.text, bg: theme.appBg))
-            s.text(x + 2, y, t("colour %d of %d", index + 1, shown.palette.count),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            var x = s.text(
+                rect.x,
+                y,
+                String(format: "%3d,%-3d ", cursor.x, cursor.y),
+                Style(fg: theme.dim, bg: theme.appBg)
+            )
+            x = Widgets.swatch(
+                s,
+                x: x,
+                y: y,
+                colour: entry?.colour.flatMap { $0 },
+                width: 3,
+                theme: theme
+            )
+            x = s.text(
+                x + 1,
+                y,
+                entry?.colour.flatMap { $0 } ?? t("clear"),
+                Style(fg: theme.text, bg: theme.appBg)
+            )
+            s.text(
+                x + 2,
+                y,
+                t("colour %d of %d", index + 1, shown.palette.count),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
         guard y < rect.maxY else { return }
@@ -49,8 +72,12 @@ extension PixelEditorScreen {
             return
         }
         if let message {
-            s.text(rect.x, y, truncate(message, to: rect.w),
-                   Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(message, to: rect.w),
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg)
+            )
         }
     }
 
@@ -62,12 +89,20 @@ extension PixelEditorScreen {
 
         // A ruler along the top and down the left, outside the canvas: every fifth pixel.
         for x in stride(from: 0, to: shown.width, by: 5) {
-            s.text(canvasOrigin.x + x * 2, canvasOrigin.y - 1, String(format: "%-2d", x),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                canvasOrigin.x + x * 2,
+                canvasOrigin.y - 1,
+                String(format: "%-2d", x),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
         }
         for y in stride(from: 0, to: shown.height, by: 5) {
-            s.textRight(canvasOrigin.x - 1, canvasOrigin.y + y, "\(y)",
-                        Style(fg: theme.faint, bg: theme.appBg))
+            s.textRight(
+                canvasOrigin.x - 1,
+                canvasOrigin.y + y,
+                "\(y)",
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
         }
 
         for y in 0..<shown.height {
@@ -86,19 +121,27 @@ extension PixelEditorScreen {
                 } else {
                     background = (x + y) % 2 == 0 ? theme.rule : theme.panelBg
                 }
-                s.fill(Rect(x: cellX, y: cellY, w: 2, h: 1),
-                       Style(fg: background, bg: background))
+                s.fill(
+                    Rect(x: cellX, y: cellY, w: 2, h: 1),
+                    Style(fg: background, bg: background)
+                )
 
                 // A tick every fifth pixel, dim enough to read past.
                 if !onCursor, x % 5 == 0, y % 5 == 0 {
-                    s.put(cellX, cellY, Glyph.dot,
-                          Style(fg: contrast(with: colour, theme: theme), bg: background))
+                    s.put(
+                        cellX,
+                        cellY,
+                        Glyph.dot,
+                        Style(fg: contrast(with: colour, theme: theme), bg: background)
+                    )
                 }
 
                 if onCursor {
                     // Over the colour, not instead of it: the pixel stays visible.
-                    let ink = focus == .canvas ? contrast(with: colour, theme: theme)
-                                               : theme.faint
+                    let ink =
+                        focus == .canvas
+                        ? contrast(with: colour, theme: theme)
+                        : theme.faint
                     s.put(cellX, cellY, "▏", Style(fg: ink, bg: background, bold: true))
                     s.put(cellX + 1, cellY, "▕", Style(fg: ink, bg: background, bold: true))
                 }
@@ -109,7 +152,8 @@ extension PixelEditorScreen {
     /// Black or white, whichever reads against the colour underneath, chosen by luminance.
     private func contrast(with colour: String?, theme: Theme) -> Color {
         guard let colour, let parsed = Color.hex(colour),
-              case .rgb(let r, let g, let b) = parsed.kind else { return theme.strong }
+            case .rgb(let r, let g, let b) = parsed.kind
+        else { return theme.strong }
         // Rec. 601 weights: green contributes most of the perceived brightness, blue least.
         let luminance = (299 * Int(r) + 587 * Int(g) + 114 * Int(b)) / 1000
         return luminance > 140 ? .rgb(0, 0, 0) : .rgb(255, 255, 255)
@@ -123,16 +167,29 @@ extension PixelEditorScreen {
             let rowY = y + index
             let isSelected = index == selected
             let bg = isSelected ? theme.selectionBg : theme.appBg
-            s.fill(Rect(x: x, y: rowY, w: min(right - x, 22), h: 1),
-                   Style(fg: theme.text, bg: bg))
+            s.fill(
+                Rect(x: x, y: rowY, w: min(right - x, 22), h: 1),
+                Style(fg: theme.text, bg: bg)
+            )
 
-            var cx = s.text(x, rowY, isSelected ? "\(Glyph.arrowRight) " : "  ",
-                            Style(fg: focus == .palette ? theme.accent : theme.faint,
-                                  bg: bg, bold: focus == .palette && isSelected))
+            var cx = s.text(
+                x,
+                rowY,
+                isSelected ? "\(Glyph.arrowRight) " : "  ",
+                Style(
+                    fg: focus == .palette ? theme.accent : theme.faint,
+                    bg: bg,
+                    bold: focus == .palette && isSelected
+                )
+            )
             cx = Widgets.swatch(s, x: cx, y: rowY, colour: entry.colour, width: 3, theme: theme)
             cx += 1
-            s.text(cx, rowY, entry.colour ?? t("none"),
-                   Style(fg: entry.colour == nil ? theme.faint : theme.text, bg: bg))
+            s.text(
+                cx,
+                rowY,
+                entry.colour ?? t("none"),
+                Style(fg: entry.colour == nil ? theme.faint : theme.text, bg: bg)
+            )
         }
     }
 
@@ -144,8 +201,12 @@ extension PixelEditorScreen {
             label = t("Colour %d becomes:", index + 1)
         case .size: label = t("Size:")
         case .confirmDiscard:
-            s.text(rect.x, y, t("unsaved changes — leave anyway? (y/n)"),
-                   Style(fg: theme.warn, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("unsaved changes — leave anyway? (y/n)"),
+                Style(fg: theme.warn, bg: theme.appBg)
+            )
             return
         }
         let x = s.text(rect.x, y, label + " ", Style(fg: theme.text, bg: theme.appBg))
@@ -154,8 +215,12 @@ extension PixelEditorScreen {
         if case .size = prompt {
             s.textRight(rect.maxX, y, sizeRule, Style(fg: theme.faint, bg: theme.appBg))
         } else {
-            s.textRight(rect.maxX, y, t("#RRGGBB or none"),
-                        Style(fg: theme.faint, bg: theme.appBg))
+            s.textRight(
+                rect.maxX,
+                y,
+                t("#RRGGBB or none"),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
         }
     }
 }

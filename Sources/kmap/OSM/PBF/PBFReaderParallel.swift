@@ -6,8 +6,10 @@ extension PBFReader {
     /// Decodes batches of blocks across every core, then calls `apply` once per block in
     /// file order. `apply` must empty the sink it is given: the same sinks are reused for
     /// the next batch.
-    func readInOrder<Sink: OSMSink>(make: () -> Sink,
-                                    apply: (inout Sink) throws -> Void) throws {
+    func readInOrder<Sink: OSMSink>(
+        make: () -> Sink,
+        apply: (inout Sink) throws -> Void
+    ) throws {
         let data = try Data(contentsOf: url, options: .alwaysMapped)
         let width = Machine.readers
 
@@ -22,7 +24,7 @@ extension PBFReader {
                 blobs.append(blob)
             }
             guard !blobs.isEmpty else { return }
-            
+
             nonisolated(unsafe) let batch = blobs
 
             let group = DispatchGroup()
@@ -37,25 +39,29 @@ extension PBFReader {
                     half.sinks.withUnsafeMutableBufferPointer { targets in
                         half.scratches.withUnsafeMutableBufferPointer { buffers in
                             half.failures.withUnsafeMutableBufferPointer { errors in
-                            half.fieldSets.withUnsafeMutableBufferPointer { fields in
-                                nonisolated(unsafe) let targets = targets
-                                nonisolated(unsafe) let buffers = buffers
-                                nonisolated(unsafe) let errors = errors
-                                nonisolated(unsafe) let fields = fields
-                                DispatchQueue.concurrentPerform(iterations: range.count) { i in
-                                    do {
-                                        let size = try Self.inflate(batch[range.lowerBound + i],
-                                                                    into: &buffers[i])
-                                        try buffers[i].withUnsafeBytes { payload in
-                                            try Self.decodeBlock(
-                                                UnsafeRawBufferPointer(rebasing: payload[0..<size]),
-                                                into: &targets[i], fields: &fields[i])
+                                half.fieldSets.withUnsafeMutableBufferPointer { fields in
+                                    nonisolated(unsafe) let targets = targets
+                                    nonisolated(unsafe) let buffers = buffers
+                                    nonisolated(unsafe) let errors = errors
+                                    nonisolated(unsafe) let fields = fields
+                                    DispatchQueue.concurrentPerform(iterations: range.count) { i in
+                                        do {
+                                            let size = try Self.inflate(
+                                                batch[range.lowerBound + i],
+                                                into: &buffers[i]
+                                            )
+                                            try buffers[i].withUnsafeBytes { payload in
+                                                try Self.decodeBlock(
+                                                    UnsafeRawBufferPointer(rebasing: payload[0..<size]),
+                                                    into: &targets[i],
+                                                    fields: &fields[i]
+                                                )
+                                            }
+                                        } catch {
+                                            errors[i] = error
                                         }
-                                    } catch {
-                                        errors[i] = error
                                     }
                                 }
-                            }
                             }
                         }
                     }
@@ -115,10 +121,14 @@ extension PBFReader {
     /// Reads the file with one sink per worker and returns them for the caller to combine.
     /// Only for order-independent work: each worker takes a contiguous run of blocks, so
     /// merging the sinks in worker order reproduces the file's own order.
-    func readConcurrently<Sink: OSMSink>(workers: Int = 0,
-                                         make: () -> Sink) throws -> [Sink] {
+    func readConcurrently<Sink: OSMSink>(
+        workers: Int = 0,
+        make: () -> Sink
+    ) throws -> [Sink] {
         let data = try Data(contentsOf: url, options: .alwaysMapped)
-        let width = workers > 0 ? workers
+        let width =
+            workers > 0
+            ? workers
             : Machine.readers
 
         var sinks = (0..<width).map { _ in make() }
@@ -146,7 +156,9 @@ extension PBFReader {
                         try scratch.withUnsafeBytes { payload in
                             try Self.decodeBlock(
                                 UnsafeRawBufferPointer(rebasing: payload[0..<size]),
-                                into: &targets[worker], fields: &fields)
+                                into: &targets[worker],
+                                fields: &fields
+                            )
                         }
                     }
                 }

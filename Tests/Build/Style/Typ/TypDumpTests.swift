@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// The command that prints what a compiled TYP holds: what it accepts, what it refuses,
 /// and that a map is opened by lifting its TYP out rather than being read as one.
 final class TypDumpTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {

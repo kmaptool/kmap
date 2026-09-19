@@ -108,7 +108,8 @@ struct WaterMask {
             var previous: (point: (lat: Double, lon: Double), wet: Bool)?
             func close() {
                 if run.count >= Self.fewestLinePoints,
-                   !(fromShore && Self.length(of: run) < Self.shortestBetweenShores) {
+                    !(fromShore && Self.length(of: run) < Self.shortestBetweenShores)
+                {
                     out.append(Contours.Line(elevation: line.elevation, points: run, closed: false))
                 }
                 run.removeAll(keepingCapacity: true)
@@ -116,8 +117,10 @@ struct WaterMask {
             for point in line.points {
                 let wet = isWater(lat: point.lat, lon: point.lon)
                 if let previous, previous.wet != wet {
-                    let shore = self.shore(dry: wet ? previous.point : point,
-                                           wet: wet ? point : previous.point)
+                    let shore = self.shore(
+                        dry: wet ? previous.point : point,
+                        wet: wet ? point : previous.point
+                    )
                     run.append(shore)
                     if wet { close() } else { fromShore = true }
                 }
@@ -125,8 +128,13 @@ struct WaterMask {
                 previous = (point, wet)
             }
             if run.count >= Self.fewestLinePoints {
-                out.append(Contours.Line(elevation: line.elevation, points: run,
-                                         closed: line.closed && !cut))
+                out.append(
+                    Contours.Line(
+                        elevation: line.elevation,
+                        points: run,
+                        closed: line.closed && !cut
+                    )
+                )
             }
         }
         return out
@@ -143,8 +151,10 @@ struct WaterMask {
     }
 
     /// Where the segment from dry ground to water meets the shore, by halving.
-    private func shore(dry: (lat: Double, lon: Double),
-                       wet: (lat: Double, lon: Double)) -> (lat: Double, lon: Double) {
+    private func shore(
+        dry: (lat: Double, lon: Double),
+        wet: (lat: Double, lon: Double)
+    ) -> (lat: Double, lon: Double) {
         var dry = dry, wet = wet
         for _ in 0..<Self.bisections {
             let middle = (lat: (dry.lat + wet.lat) / 2, lon: (dry.lon + wet.lon) / 2)

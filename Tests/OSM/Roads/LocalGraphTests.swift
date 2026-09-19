@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The routing graph built around the gaps, and the shortest-path search over it.
@@ -6,7 +7,6 @@ import XCTest
 /// Answers how far a route would have to go round if a gap were left open, which decides
 /// whether the gap is repaired.
 final class LocalGraphTests: XCTestCase {
-
     private let metre = 1 / RoadRepair.metresPerDegree
 
     /// A graph of named nodes joined by hand, in metres.
@@ -23,8 +23,10 @@ final class LocalGraphTests: XCTestCase {
     }
 
     func testTheShorterOfTwoWaysRoundIsTheAnswer() {
-        var g = graph([(1, 2, 10), (2, 4, 10),          // twenty
-                       (1, 3, 3), (3, 4, 4)])           // seven
+        var g = graph([
+            (1, 2, 10), (2, 4, 10),  // twenty
+            (1, 3, 3), (3, 4, 4)
+        ])  // seven
         XCTAssertEqual(g.detour(from: 1, to: (4, 4), cap: 100) ?? 0, 7, accuracy: 0.001)
     }
 
@@ -78,7 +80,7 @@ final class LocalGraphTests: XCTestCase {
 
     func testANodeMergedIntoAnotherTakesItsConnectionsAlong() {
         var g = graph([(1, 2, 10), (3, 4, 10)])
-        g.adopt(3, into: 2)                     // node 3 is gone; node 2 stands for it
+        g.adopt(3, into: 2)  // node 3 is gone; node 2 stands for it
         XCTAssertEqual(g.detour(from: 1, to: (4, 4), cap: 1000) ?? 0, 20, accuracy: 0.001)
     }
 
@@ -94,8 +96,11 @@ final class LocalGraphTests: XCTestCase {
         for i in Int64(1)..<1_000 { edges.append((i, i + 1, 10)) }
         edges.append((1, 999, 15))
         var g = graph(edges)
-        XCTAssertEqual(g.detour(from: 1, to: (1000, 1000), cap: 10_000) ?? 0, 25,
-                       accuracy: 0.001)
+        XCTAssertEqual(
+            g.detour(from: 1, to: (1000, 1000), cap: 10_000) ?? 0,
+            25,
+            accuracy: 0.001
+        )
     }
 
     // MARK: Building it from a network
@@ -115,7 +120,7 @@ final class LocalGraphTests: XCTestCase {
         }
         addWay(10, [(45, 33), (45, 33.001)], refs: [1, 2])
         addWay(11, [(45, 33.001), (45, 33.002)], refs: [2, 3])
-        addWay(12, [(50, 40), (50, 40.001)], refs: [4, 5])     // far away
+        addWay(12, [(50, 40), (50, 40.001)], refs: [4, 5])  // far away
 
         let candidate = RoadRepair.Candidate(way: 0, atEnd: false)
         var g = LocalGraph(network: network, around: [candidate])
@@ -131,8 +136,10 @@ final class LocalGraphTests: XCTestCase {
         network.wayID = [10]
         network.level = [0]
         network.start = [0, 2]
-        var g = LocalGraph(network: network,
-                           around: [RoadRepair.Candidate(way: 0, atEnd: false)])
+        var g = LocalGraph(
+            network: network,
+            around: [RoadRepair.Candidate(way: 0, atEnd: false)]
+        )
         XCTAssertEqual(g.detour(from: 1, to: (2, 2), cap: 1000) ?? 0, 100, accuracy: 0.5)
     }
 }

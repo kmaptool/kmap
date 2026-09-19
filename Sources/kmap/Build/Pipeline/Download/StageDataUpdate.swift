@@ -5,7 +5,6 @@ import Foundation
 /// quietly stale. Preflight asks the mirror; this stage fetches what it found, since
 /// 2 GB is not a check.
 extension BuildPipeline {
-
     /// The packs this build reads: the coastlines only where it generates the sea, the
     /// boundaries only where it writes an index, since that is what passes `--bounds`.
     /// What is not installed is not installed — the toolchain screen decides that.
@@ -80,14 +79,20 @@ extension BuildPipeline {
                 // other stage the axe fell on.
                 try rethrowIfCancelled(error)
                 kept = true
-                log.warn("could not update \(pack.what) — \(error.localizedDescription)."
-                         + " Building with the pack already here")
+                log.warn(
+                    "could not update \(pack.what) — \(error.localizedDescription)."
+                        + " Building with the pack already here"
+                )
             }
         }
         pendingPackUpdates.removeAll()
-        set(.dataUpdate, .done,
-            done.isEmpty ? t("kept what was already here")
-                : done.joined(separator: " · ") + (kept ? " · " + t("one kept") : ""))
+        set(
+            .dataUpdate,
+            .done,
+            done.isEmpty
+                ? t("kept what was already here")
+                : done.joined(separator: " · ") + (kept ? " · " + t("one kept") : "")
+        )
     }
 
     private func fetchDataPack(_ pack: DataPack, _ news: DataPack.News) async throws {
@@ -101,15 +106,21 @@ extension BuildPipeline {
         let monitor = Task {
             while !Task.isCancelled {
                 let p = downloader.progress
-                board.detail(.dataUpdate, "\(what) · " + p.line(secondsLeft: p.eta),
-                             fraction: p.fraction)
+                board.detail(
+                    .dataUpdate,
+                    "\(what) · " + p.line(secondsLeft: p.eta),
+                    fraction: p.fraction
+                )
                 try? await Task.sleep(nanoseconds: BuildPipeline.progressTick)
             }
         }
         defer { monitor.cancel() }
 
-        try await pack.fetch(using: downloader, connections: recipe.downloadConnections,
-                             lastModified: news.lastModified)
+        try await pack.fetch(
+            using: downloader,
+            connections: recipe.downloadConnections,
+            lastModified: news.lastModified
+        )
         log.ok("\(pack.what) updated — \(Fmt.bytes(FileTools.size(of: pack.file)))")
     }
 }

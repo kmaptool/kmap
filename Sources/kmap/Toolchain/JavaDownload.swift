@@ -12,7 +12,6 @@ import Foundation
 /// Everything here but `install` is pure, so the address built for any platform can be
 /// tested from any other.
 enum JavaDownload {
-
     /// Which Java to ask for. A long-term release rather than the newest: mkgmap is old
     /// code, and this is the version it is tested against.
     static let feature = 21
@@ -46,23 +45,28 @@ enum JavaDownload {
     }
 
     /// Whether a JDK can be fetched for this machine at all.
-    static func isAvailable(on platform: Platform = Platform.current,
-                            architecture: String = JavaDownload.architecture) -> Bool {
+    static func isAvailable(
+        on platform: Platform = Platform.current,
+        architecture: String = JavaDownload.architecture
+    ) -> Bool {
         operatingSystem(platform) != nil && architecture != "unknown"
     }
 
     /// The API call that names the current release for this machine.
-    static func assetsURL(on platform: Platform = Platform.current,
-                          architecture: String = JavaDownload.architecture,
-                          feature: Int = JavaDownload.feature) -> URL? {
+    static func assetsURL(
+        on platform: Platform = Platform.current,
+        architecture: String = JavaDownload.architecture,
+        feature: Int = JavaDownload.feature
+    ) -> URL? {
         guard let os = operatingSystem(platform) else { return nil }
         var components = URLComponents(
-            string: "https://api.adoptium.net/v3/assets/latest/\(feature)/hotspot")
+            string: "https://api.adoptium.net/v3/assets/latest/\(feature)/hotspot"
+        )
         components?.queryItems = [
             URLQueryItem(name: "architecture", value: architecture),
             URLQueryItem(name: "image_type", value: "jdk"),
             URLQueryItem(name: "os", value: os),
-            URLQueryItem(name: "vendor", value: "eclipse"),
+            URLQueryItem(name: "vendor", value: "eclipse")
         ]
         return components?.url
     }
@@ -87,11 +91,17 @@ enum JavaDownload {
             case .unsupportedMachine:
                 return t("no Java build is published for this kind of machine")
             case .noRelease:
-                return t("Adoptium listed no Java %d build for this machine",
-                         JavaDownload.feature)
+                return t(
+                    "Adoptium listed no Java %d build for this machine",
+                    JavaDownload.feature
+                )
             case .badChecksum(let expected, let got):
-                return t("the download does not match its published checksum"
-                         + " (expected %1$@, got %2$@)", expected, got)
+                return t(
+                    "the download does not match its published checksum"
+                        + " (expected %1$@, got %2$@)",
+                    expected,
+                    got
+                )
             case .noJavaInside:
                 return t("the downloaded archive holds no java")
             }
@@ -107,16 +117,21 @@ enum JavaDownload {
         let listed = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         for entry in listed ?? [] {
             guard let binary = entry["binary"] as? [String: Any],
-                  let package = binary["package"] as? [String: Any],
-                  let name = package["name"] as? String,
-                  let address = package["link"] as? String,
-                  let link = URL(string: address),
-                  let checksum = package["checksum"] as? String, !checksum.isEmpty
+                let package = binary["package"] as? [String: Any],
+                let name = package["name"] as? String,
+                let address = package["link"] as? String,
+                let link = URL(string: address),
+                let checksum = package["checksum"] as? String, !checksum.isEmpty
             else { continue }
             let release = entry["release_name"] as? String ?? name
             let bytes = package["size"] as? Int ?? 0
-            return Release(name: release, fileName: name, link: link,
-                           checksum: checksum.lowercased(), bytes: bytes)
+            return Release(
+                name: release,
+                fileName: name,
+                link: link,
+                checksum: checksum.lowercased(),
+                bytes: bytes
+            )
         }
         throw Trouble.noRelease
     }
@@ -131,17 +146,30 @@ enum JavaDownload {
     ///
     /// Temurin unpacks to a single version-named folder. On macOS a JDK is a bundle, so
     /// the runtime sits under `Contents/Home`; elsewhere it is directly inside.
-    static func javaBinary(under root: URL, on platform: Platform = Platform.current,
-                           contents: (URL) -> [String] = Self.namesInDirectory,
-                           exists: (URL) -> Bool = { FileTools.isExecutable($0.path) })
-        -> URL? {
+    static func javaBinary(
+        under root: URL,
+        on platform: Platform = Platform.current,
+        contents: (URL) -> [String] = Self.namesInDirectory,
+        exists: (URL) -> Bool = { FileTools.isExecutable($0.path) }
+    )
+        -> URL?
+    {
         let leaf = platform.usesWindowsPaths ? "java.exe" : "java"
         var roots = [root]
-        roots += contents(root).sorted().map { root.appendingPathComponent($0,
-                                                                          isDirectory: true) }
+        roots += contents(root).sorted().map {
+            root.appendingPathComponent(
+                $0,
+                isDirectory: true
+            )
+        }
         for base in roots {
-            for inner in [base, base.appendingPathComponent("Contents/Home",
-                                                            isDirectory: true)] {
+            for inner in [
+                base,
+                base.appendingPathComponent(
+                    "Contents/Home",
+                    isDirectory: true
+                )
+            ] {
                 let candidate = inner.appendingPathComponent("bin", isDirectory: true)
                     .appendingPathComponent(leaf)
                 if exists(candidate) { return candidate }

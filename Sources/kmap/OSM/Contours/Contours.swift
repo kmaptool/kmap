@@ -55,14 +55,14 @@ struct Contours {
         let bounds = clipBounds()
         var lowest = Int.max, highest = Int.min
         ContourTiming.measure("range") {
-        for row in bounds.rows {
-            for column in bounds.columns {
-                let value = grid.value(row, column)
-                guard value > Self.void, !outside(row, column) else { continue }
-                lowest = min(lowest, value)
-                highest = max(highest, value)
+            for row in bounds.rows {
+                for column in bounds.columns {
+                    let value = grid.value(row, column)
+                    guard value > Self.void, !outside(row, column) else { continue }
+                    lowest = min(lowest, value)
+                    highest = max(highest, value)
+                }
             }
-        }
         }
         guard lowest <= highest else { return [] }
 
@@ -82,9 +82,9 @@ struct Contours {
 
         var lines: [Line] = []
         ContourTiming.measure("assemble") {
-        for (index, level) in levels.enumerated() {
-            lines.append(contentsOf: assemble(&sweep[index], level: level))
-        }
+            for (index, level) in levels.enumerated() {
+                lines.append(contentsOf: assemble(&sweep[index], level: level))
+            }
         }
         return lines
     }
@@ -152,19 +152,25 @@ struct Contours {
         mutating func join(_ first: Int32, _ second: Int32) {
             // Both second slots must still be free: only the two cells sharing a crossing's
             // edge can join it, and each joins it once.
-            assert(linkB[Int(first)] < 0 && linkB[Int(second)] < 0,
-                   "a crossing joined three ways — an edge is shared by at most two cells")
-            if linkA[Int(first)] < 0 { linkA[Int(first)] = second }
-            else { linkB[Int(first)] = second }
-            if linkA[Int(second)] < 0 { linkA[Int(second)] = first }
-            else { linkB[Int(second)] = first }
+            assert(
+                linkB[Int(first)] < 0 && linkB[Int(second)] < 0,
+                "a crossing joined three ways — an edge is shared by at most two cells"
+            )
+            if linkA[Int(first)] < 0 { linkA[Int(first)] = second } else { linkB[Int(first)] = second }
+            if linkA[Int(second)] < 0 { linkA[Int(second)] = first } else { linkB[Int(second)] = first }
         }
     }
 
     /// Marching squares over every cell, filing each crossing under the level it belongs
     /// to. Which levels a cell can hold follows from its lowest and highest corner.
-    private func collect(into sweep: inout [Level], base: Int, bounds: (rows: Range<Int>,
-                                                                       columns: Range<Int>)) {
+    private func collect(
+        into sweep: inout [Level],
+        base: Int,
+        bounds: (
+            rows: Range<Int>,
+            columns: Range<Int>
+        )
+    ) {
         let n = grid.n
         let clipping = clip != nil
 
@@ -175,7 +181,8 @@ struct Contours {
                 let bottomLeft = grid.value(row + 1, column)
                 let bottomRight = grid.value(row + 1, column + 1)
                 guard topLeft > Self.void, topRight > Self.void,
-                      bottomLeft > Self.void, bottomRight > Self.void else { continue }
+                    bottomLeft > Self.void, bottomRight > Self.void
+                else { continue }
 
                 // A level crosses an edge only when one corner is above it and the other is
                 // not, so the levels run from the cell's lowest corner to just under its
@@ -187,13 +194,23 @@ struct Contours {
                 let last = min(sweep.count - 1, Self.stepsUp(high - base, step) - 1)
                 guard first <= last else { continue }
 
-                if clipping, outside(row, column) || outside(row, column + 1)
-                    || outside(row + 1, column) || outside(row + 1, column + 1) { continue }
+                if clipping,
+                    outside(row, column) || outside(row, column + 1)
+                        || outside(row + 1, column) || outside(row + 1, column + 1)
+                {
+                    continue
+                }
 
                 for index in first...last {
-                    cell(row: row, column: column, n: n, level: base + index * step,
-                         corners: (topLeft, topRight, bottomLeft, bottomRight),
-                         into: &sweep, at: index)
+                    cell(
+                        row: row,
+                        column: column,
+                        n: n,
+                        level: base + index * step,
+                        corners: (topLeft, topRight, bottomLeft, bottomRight),
+                        into: &sweep,
+                        at: index
+                    )
                 }
             }
         }
@@ -206,8 +223,15 @@ struct Contours {
     }
 
     /// One cell at one level: where the contour cuts its edges, and what joins to what.
-    private func cell(row: Int, column: Int, n: Int, level: Int,
-                      corners: (Int, Int, Int, Int), into sweep: inout [Level], at index: Int) {
+    private func cell(
+        row: Int,
+        column: Int,
+        n: Int,
+        level: Int,
+        corners: (Int, Int, Int, Int),
+        into sweep: inout [Level],
+        at index: Int
+    ) {
         let (topLeft, topRight, bottomLeft, bottomRight) = corners
 
         func cut(_ a: Int, _ b: Int) -> Double? {
@@ -218,25 +242,40 @@ struct Contours {
             return Double(level - a) / Double(b - a)
         }
 
-
         // Named rather than collected into a list: which edge is which decides how a saddle
         // is joined, and pairing by key order would cross the two arcs.
         var top: Int32?, bottom: Int32?, left: Int32?, right: Int32?
         if let t = cut(topLeft, topRight) {
-            top = sweep[index].east(row: Int32(row), column: column,
-                                    key: edgeKey(row, column, south: false), at: t)
+            top = sweep[index].east(
+                row: Int32(row),
+                column: column,
+                key: edgeKey(row, column, south: false),
+                at: t
+            )
         }
         if let t = cut(bottomLeft, bottomRight) {
-            bottom = sweep[index].east(row: Int32(row + 1), column: column,
-                                       key: edgeKey(row + 1, column, south: false), at: t)
+            bottom = sweep[index].east(
+                row: Int32(row + 1),
+                column: column,
+                key: edgeKey(row + 1, column, south: false),
+                at: t
+            )
         }
         if let t = cut(topLeft, bottomLeft) {
-            left = sweep[index].south(row: Int32(row), column: column,
-                                      key: edgeKey(row, column, south: true), at: t)
+            left = sweep[index].south(
+                row: Int32(row),
+                column: column,
+                key: edgeKey(row, column, south: true),
+                at: t
+            )
         }
         if let t = cut(topRight, bottomRight) {
-            right = sweep[index].south(row: Int32(row), column: column + 1,
-                                       key: edgeKey(row, column + 1, south: true), at: t)
+            right = sweep[index].south(
+                row: Int32(row),
+                column: column + 1,
+                key: edgeKey(row, column + 1, south: true),
+                at: t
+            )
         }
 
         // Two or four, never one or three: round the four corners, the number of edges where
@@ -302,8 +341,11 @@ struct Contours {
         var lines: [Line] = []
 
         func detach(_ from: Int32, _ what: Int32) {
-            if linkA[Int(from)] == what { linkA[Int(from)] = -1 }
-            else if linkB[Int(from)] == what { linkB[Int(from)] = -1 }
+            if linkA[Int(from)] == what {
+                linkA[Int(from)] = -1
+            } else if linkB[Int(from)] == what {
+                linkB[Int(from)] = -1
+            }
         }
 
         func walk(from start: Int32) -> [Int32] {
@@ -345,16 +387,20 @@ struct Contours {
                 // an exact zero cross product, which floating-point crossings never give.
                 while tidy, kept.count >= 2 {
                     let a = kept[kept.count - 2], b = kept[kept.count - 1]
-                    let cross = (b.lon - a.lon) * (point.lat - a.lat)
+                    let cross =
+                        (b.lon - a.lon) * (point.lat - a.lat)
                         - (b.lat - a.lat) * (point.lon - a.lon)
-                    let span = ((point.lat - a.lat) * (point.lat - a.lat)
-                                + (point.lon - a.lon) * (point.lon - a.lon)).squareRoot()
+                    let span =
+                        ((point.lat - a.lat) * (point.lat - a.lat)
+                        + (point.lon - a.lon) * (point.lon - a.lon)).squareRoot()
                     if span == 0 || abs(cross) / span > flatness { break }
                     // Collinear is not enough: the middle point must lie between the other
                     // two, or dropping it would cut the tip off a spike that doubles back.
-                    let along = (b.lat - a.lat) * (point.lat - a.lat)
+                    let along =
+                        (b.lat - a.lat) * (point.lat - a.lat)
                         + (b.lon - a.lon) * (point.lon - a.lon)
-                    let reach = (b.lat - a.lat) * (b.lat - a.lat)
+                    let reach =
+                        (b.lat - a.lat) * (b.lat - a.lat)
                         + (b.lon - a.lon) * (b.lon - a.lon)
                     if along <= 0 || reach > span * span { break }
                     kept.removeLast()
@@ -362,8 +408,13 @@ struct Contours {
                 kept.append(point)
             }
             guard kept.count >= 2 else { return }
-            lines.append(Line(elevation: level, points: kept,
-                              closed: path.first == path.last))
+            lines.append(
+                Line(
+                    elevation: level,
+                    points: kept,
+                    closed: path.first == path.last
+                )
+            )
         }
 
         // Loose ends first, so an open contour is walked from one of its ends and comes out

@@ -19,8 +19,13 @@ final class StageBoard: Sendable {
     private let state: Locked<State>
 
     init() {
-        state = Locked(State(stages: Dictionary(
-            uniqueKeysWithValues: StageID.allCases.map { ($0, Stage(id: $0)) })))
+        state = Locked(
+            State(
+                stages: Dictionary(
+                    uniqueKeysWithValues: StageID.allCases.map { ($0, Stage(id: $0)) }
+                )
+            )
+        )
     }
 
     // MARK: Reading

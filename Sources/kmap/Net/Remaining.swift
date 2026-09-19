@@ -6,7 +6,6 @@ import Foundation
 /// arriving at a steady rate the answer counts down, which an average over finished parts
 /// would not.
 enum Remaining {
-
     /// Below this there is not enough of a sample to say anything: the connections are
     /// still opening and a rate taken here swings by orders of magnitude.
     static let settlesAfter: TimeInterval = 1
@@ -19,8 +18,12 @@ enum Remaining {
     ///   - elapsed: how long this transfer has been running.
     ///   - alreadyOnDisk: bytes resumed rather than fetched. They count towards what is
     ///     left to do but not towards the rate, which a resume would otherwise overstate.
-    static func seconds(received: Int64, total: Int64, elapsed: TimeInterval,
-                        alreadyOnDisk: Int64 = 0) -> Double? {
+    static func seconds(
+        received: Int64,
+        total: Int64,
+        elapsed: TimeInterval,
+        alreadyOnDisk: Int64 = 0
+    ) -> Double? {
         guard elapsed > settlesAfter else { return nil }
         let fetched = Double(received - alreadyOnDisk)
         guard fetched > 0 else { return nil }
@@ -37,7 +40,6 @@ enum Remaining {
 /// so parts landing in batches are divided by the time between batches. Nothing is
 /// reported until the window holds a real sample.
 struct Pace {
-
     /// How far back the rate is measured. Long enough to span the gap between two batches
     /// landing, short enough to follow a link that has genuinely changed speed.
     let window: TimeInterval

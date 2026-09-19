@@ -73,8 +73,10 @@ extension PixelEditorScreen {
             // Seeded with the picture's own colours as well as the spread: a new colour is
             // usually a neighbour of one already in the icon.
             if wantsColour {
-                picker = ColourPicker(start: draft,
-                                      palette: shown.palette.compactMap { $0.colour })
+                picker = ColourPicker(
+                    start: draft,
+                    palette: shown.palette.compactMap { $0.colour }
+                )
             }
         case .backspace:
             if !draft.isEmpty { draft.removeLast() }

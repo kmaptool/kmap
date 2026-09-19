@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// The base style materialized from the real stock style, where this machine has mkgmap.
 /// The stock rules are mkgmap's and not in the repository, so everywhere else this skips;
 /// here it is what notices that a new mkgmap moved a rule kmap anchors on.
 final class MaterializedStyleTests: XCTestCase {
-
     private struct Prepared {
         let catalog: StyleCatalog
         let plain: MapStyle
@@ -15,10 +15,14 @@ final class MaterializedStyleTests: XCTestCase {
 
     private func prepared() throws -> Prepared {
         // The real jar, read-only, copied into the test root so the toolchain finds it.
-        let realJar = URL(fileURLWithPath: ("~/.kmap/tools/mkgmap/mkgmap.jar" as NSString)
-            .expandingTildeInPath)
-        try XCTSkipUnless(FileManager.default.fileExists(atPath: realJar.path),
-                          "no mkgmap.jar on this machine")
+        let realJar = URL(
+            fileURLWithPath: ("~/.kmap/tools/mkgmap/mkgmap.jar" as NSString)
+                .expandingTildeInPath
+        )
+        try XCTSkipUnless(
+            FileManager.default.fileExists(atPath: realJar.path),
+            "no mkgmap.jar on this machine"
+        )
         let jar = Paths.tools.appendingPathComponent("mkgmap/mkgmap.jar")
         Paths.ensure(jar.deletingLastPathComponent())
         if !FileManager.default.fileExists(atPath: jar.path) {
@@ -28,15 +32,20 @@ final class MaterializedStyleTests: XCTestCase {
         let toolchain = Toolchain(settings: settings)
         try XCTSkipUnless(toolchain.findMkgmap() != nil, "mkgmap could not be probed")
         let catalog = StyleCatalog(settings: settings, toolchain: toolchain)
-        return Prepared(catalog: catalog, plain: try XCTUnwrap(catalog.style(id: "plain")),
-                        log: Log(showing: .info))
+        return Prepared(
+            catalog: catalog,
+            plain: try XCTUnwrap(catalog.style(id: "plain")),
+            log: Log(showing: .info)
+        )
     }
 
     private func ruleFiles() throws -> [String: String] {
         var out: [String: String] = [:]
         for name in ["points", "lines", "polygons", "relations"] {
             out[name] = try String(
-                contentsOf: StyleCatalog.baseStyleDirectory.appendingPathComponent(name), encoding: .utf8)
+                contentsOf: StyleCatalog.baseStyleDirectory.appendingPathComponent(name),
+                encoding: .utf8
+            )
         }
         return out
     }
@@ -74,8 +83,10 @@ final class MaterializedStyleTests: XCTestCase {
         let it = try prepared()
         let cyrillic: (String) -> Bool = { $0.unicodeScalars.contains { (0x400...0x4FF).contains($0.value) } }
         try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner, cyrillicLabels: false)
-        XCTAssertFalse(cyrillic(try XCTUnwrap(try ruleFiles()["points"])),
-                       "a Latin build must not carry Russian labels")
+        XCTAssertFalse(
+            cyrillic(try XCTUnwrap(try ruleFiles()["points"])),
+            "a Latin build must not carry Russian labels"
+        )
         try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner, cyrillicLabels: true)
         XCTAssertTrue(cyrillic(try XCTUnwrap(try ruleFiles()["points"])))
     }

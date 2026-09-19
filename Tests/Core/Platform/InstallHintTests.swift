@@ -1,20 +1,28 @@
 import XCTest
+
 @testable import kmap
 
 /// The line kmap prints when it cannot install something itself.
 ///
 /// The command named is the one that machine's own package manager understands.
 final class InstallHintTests: XCTestCase {
-
     func testTheInstallAdviceNamesTheManagerThisMachineActuallyHas() {
-        XCTAssertEqual(Platform.installHint(.java, manager: .homebrew, privilege: .direct),
-                       "brew install openjdk")
-        XCTAssertEqual(Platform.installHint(.java, manager: .apt, privilege: .wouldAsk),
-                       "sudo apt install -y --no-install-recommends default-jdk")
-        XCTAssertEqual(Platform.installHint(.java, manager: .pacman, privilege: .wouldAsk),
-                       "sudo pacman -S --needed --noconfirm jdk-openjdk")
-        XCTAssertFalse(Platform.installHint(.python, manager: .apt, privilege: .wouldAsk)
-                           .contains("brew"))
+        XCTAssertEqual(
+            Platform.installHint(.java, manager: .homebrew, privilege: .direct),
+            "brew install openjdk"
+        )
+        XCTAssertEqual(
+            Platform.installHint(.java, manager: .apt, privilege: .wouldAsk),
+            "sudo apt install -y --no-install-recommends default-jdk"
+        )
+        XCTAssertEqual(
+            Platform.installHint(.java, manager: .pacman, privilege: .wouldAsk),
+            "sudo pacman -S --needed --noconfirm jdk-openjdk"
+        )
+        XCTAssertFalse(
+            Platform.installHint(.python, manager: .apt, privilege: .wouldAsk)
+                .contains("brew")
+        )
     }
 
     func testWindowsAdviceIsAWingetLineWithNoSudoInFrontOfIt() {

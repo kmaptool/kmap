@@ -52,7 +52,8 @@ extension StyleCatalog {
             "military=range [0x04 resolution 20]"
         ]
         for rule in restricted where out.contains(rule) {
-            let lifted = rule
+            let lifted =
+                rule
                 .replacingOccurrences(of: "resolution 19]", with: "resolution 18]")
                 .replacingOccurrences(of: "resolution 20]", with: "resolution 18]")
             out = out.replacingOccurrences(of: rule, with: lifted)
@@ -64,19 +65,24 @@ extension StyleCatalog {
     static func overviewDiet(in text: String, cyrillic: Bool) -> (text: String, moved: Int) {
         var out = text
         var moved = 0
-        let lighter = forestTypeRuleLines(cyrillic: cyrillic, resolution: 18) + [
-            "landuse=forest | landuse=wood [0x50 resolution 18]",
-            "natural=scrub [0x4f resolution 18]",
-            "natural=wood [0x50 resolution 18]",
-            "natural=scree | natural=shingle [0x54 resolution 18]",
-            "natural=bare_rock | natural=rock & area=yes | natural=stone [0x56 resolution 18]",
-            "natural=grassland [0x55 resolution 18]",
-            "waterway=river [0x1f resolution 18]"
-        ]
+        let lighter =
+            forestTypeRuleLines(cyrillic: cyrillic, resolution: 18) + [
+                "landuse=forest | landuse=wood [0x50 resolution 18]",
+                "natural=scrub [0x4f resolution 18]",
+                "natural=wood [0x50 resolution 18]",
+                "natural=scree | natural=shingle [0x54 resolution 18]",
+                "natural=bare_rock | natural=rock & area=yes | natural=stone [0x56 resolution 18]",
+                "natural=grassland [0x55 resolution 18]",
+                "waterway=river [0x1f resolution 18]"
+            ]
         for rule in lighter where out.contains(rule) {
             out = out.replacingOccurrences(
-                of: rule, with: rule.replacingOccurrences(of: "resolution 18]",
-                                                          with: "resolution 19]"))
+                of: rule,
+                with: rule.replacingOccurrences(
+                    of: "resolution 18]",
+                    with: "resolution 19]"
+                )
+            )
             moved += 1
         }
 
@@ -84,8 +90,12 @@ extension StyleCatalog {
         // for resolution 22, where the paths arrive. The floor 0x59 stays at 18.
         for rule in Self.woodedIconRules(cyrillic: cyrillic) where out.contains(rule) {
             out = out.replacingOccurrences(
-                of: rule, with: rule.replacingOccurrences(of: "resolution 19]",
-                                                          with: "resolution 22]"))
+                of: rule,
+                with: rule.replacingOccurrences(
+                    of: "resolution 19]",
+                    with: "resolution 22]"
+                )
+            )
             moved += 1
         }
         return (out, moved)
@@ -98,22 +108,36 @@ extension StyleCatalog {
         var out = text
         var moved = 0
         let lowered = [
-            ("highway=motorway & mkgmap:fast_road=yes [0x01 road_class=4 road_speed=7 resolution 14]",
-             "highway=motorway & mkgmap:fast_road=yes [0x01 road_class=4 road_speed=7 resolution 13]"),
-            ("highway=motorway [0x01 road_class=4 road_speed=7 resolution 15]",
-             "highway=motorway [0x01 road_class=4 road_speed=7 resolution 14]"),
-            ("highway=trunk & mkgmap:fast_road=yes [0x02 road_class=4 road_speed=5 resolution 15]",
-             "highway=trunk & mkgmap:fast_road=yes [0x02 road_class=4 road_speed=5 resolution 14]"),
-            ("highway=trunk [0x02 road_class=4 road_speed=5 resolution 18]",
-             "highway=trunk [0x02 road_class=4 road_speed=5 resolution 15]"),
-            ("highway=primary & mkgmap:fast_road=yes [0x03 road_class=4 road_speed=4 resolution 17]",
-             "highway=primary & mkgmap:fast_road=yes [0x03 road_class=4 road_speed=4 resolution 15]"),
-            ("highway=primary [0x03 road_class=3 road_speed=4 resolution 19]",
-             "highway=primary [0x03 road_class=3 road_speed=4 resolution 16]"),
+            (
+                "highway=motorway & mkgmap:fast_road=yes [0x01 road_class=4 road_speed=7 resolution 14]",
+                "highway=motorway & mkgmap:fast_road=yes [0x01 road_class=4 road_speed=7 resolution 13]"
+            ),
+            (
+                "highway=motorway [0x01 road_class=4 road_speed=7 resolution 15]",
+                "highway=motorway [0x01 road_class=4 road_speed=7 resolution 14]"
+            ),
+            (
+                "highway=trunk & mkgmap:fast_road=yes [0x02 road_class=4 road_speed=5 resolution 15]",
+                "highway=trunk & mkgmap:fast_road=yes [0x02 road_class=4 road_speed=5 resolution 14]"
+            ),
+            (
+                "highway=trunk [0x02 road_class=4 road_speed=5 resolution 18]",
+                "highway=trunk [0x02 road_class=4 road_speed=5 resolution 15]"
+            ),
+            (
+                "highway=primary & mkgmap:fast_road=yes [0x03 road_class=4 road_speed=4 resolution 17]",
+                "highway=primary & mkgmap:fast_road=yes [0x03 road_class=4 road_speed=4 resolution 15]"
+            ),
+            (
+                "highway=primary [0x03 road_class=3 road_speed=4 resolution 19]",
+                "highway=primary [0x03 road_class=3 road_speed=4 resolution 16]"
+            ),
             // The state border is the one line a person orients the far view by; at 17 it
             // never reached the submap.
-            ("boundary=national [0x1e resolution 17]",
-             "boundary=national [0x1e resolution 14]")
+            (
+                "boundary=national [0x1e resolution 17]",
+                "boundary=national [0x1e resolution 14]"
+            )
         ]
         for (old, new) in lowered where out.contains(old) {
             out = out.replacingOccurrences(of: old, with: new)
@@ -137,7 +161,8 @@ extension StyleCatalog {
             for substitution in feature.substitutions {
                 let url = directory.appendingPathComponent(substitution.file)
                 guard var text = try? String(contentsOf: url, encoding: .utf8),
-                      text.contains(substitution.old) else { continue }
+                    text.contains(substitution.old)
+                else { continue }
                 text = text.replacingOccurrences(of: substitution.old, with: substitution.new)
                 try text.write(to: url, atomically: true, encoding: .utf8)
                 ok = true

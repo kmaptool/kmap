@@ -2,7 +2,6 @@ import Foundation
 
 /// Turning a typed character into the command it stands for.
 enum Keys {
-
     /// Returns the Latin letter on the same physical key, mapping ЙЦУКЕН onto QWERTY
     /// position for position so key bindings survive a layout switch. Any other character
     /// is returned lowercased.
@@ -51,7 +50,7 @@ enum KeyEvent: Equatable {
     case mouse(MouseEvent)
     case char(Character)
     case enter
-    case newline        // Ctrl+J — insert a line break without submitting
+    case newline  // Ctrl+J — insert a line break without submitting
     case backspace
     case tab
     case backTab

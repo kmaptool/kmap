@@ -37,7 +37,8 @@ enum HideableCatalogue {
     /// The catalogue text: what the last style produced, or what the binary carries.
     static func text() -> String {
         if let text = held.withLock({ $0 }) { return text }
-        let found = (try? String(contentsOf: url, encoding: .utf8))
+        let found =
+            (try? String(contentsOf: url, encoding: .utf8))
             ?? StyleAssets.hideableCatalogue
         held.withLock { $0 = found }
         return found

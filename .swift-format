@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "indentation": {
+    "spaces": 4
+  },
+  "tabWidth": 4,
+  "lineLength": 120,
+  "maximumBlankLines": 1,
+  "respectsExistingLineBreaks": true,
+  "indentConditionalCompilationBlocks": false,
+  "indentSwitchCaseLabels": false,
+  "lineBreakBeforeControlFlowKeywords": false,
+  "lineBreakBeforeEachArgument": true,
+  "multiElementCollectionTrailingCommas": false,
+  "reflowMultilineStringLiterals": "never",
+  "rules": {
+    "AlwaysUseLowerCamelCase": false,
+    "AvoidRetroactiveConformances": true,
+    "DoNotUseSemicolons": false,
+    "FileScopedDeclarationPrivacy": false,
+    "NoAccessLevelOnExtensionDeclaration": false,
+    "NoBlockComments": false,
+    "NoEmptyTrailingClosureParentheses": true,
+    "NoParensAroundConditions": true,
+    "NoVoidReturnOnFunctionSignature": true,
+    "OneCasePerLine": false,
+    "OneVariableDeclarationPerLine": false,
+    "OnlyOneTrailingClosureArgument": false,
+    "OrderedImports": true,
+    "ReplaceForEachWithForLoop": false,
+    "ReturnVoidInsteadOfEmptyTuple": false,
+    "UseExplicitNilCheckInConditions": false,
+    "UseLetInEveryBoundCaseVariable": false,
+    "UseSynthesizedInitializer": false,
+    "NoEmptyLinesOpeningClosingBraces": true
+  },
+  "prioritizeKeepingFunctionOutputTogether": true
+}

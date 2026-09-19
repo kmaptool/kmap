@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// What the build asks the machine about itself.
@@ -6,7 +7,6 @@ import XCTest
 /// Each count sizes a parallel pass, so a zero or a negative is a `concurrentPerform`
 /// with a nonsense iteration count: the floors matter more than the values.
 final class MachineTests: XCTestCase {
-
     func testEveryCountIsAtLeastOne() {
         XCTAssertGreaterThanOrEqual(Machine.cores, 1)
         XCTAssertGreaterThanOrEqual(Machine.fastCores, 1)

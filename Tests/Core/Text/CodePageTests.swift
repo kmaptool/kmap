@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The single-byte Windows code pages, which decide whether a Cyrillic map is a Cyrillic
@@ -6,7 +7,6 @@ import XCTest
 /// `CodePage` to agree with Foundation; they run on Apple platforms only, since elsewhere
 /// there is no second implementation to compare against. The rest run everywhere.
 final class CodePageTests: XCTestCase {
-
     /// A six-letter Cyrillic name as Windows-1251.
     private let moscow1251: [UInt8] = [0xCC, 0xEE, 0xF1, 0xEA, 0xE2, 0xE0]
 
@@ -87,16 +87,21 @@ final class CodePageTests: XCTestCase {
         for page in CodePage.supported {
             for byte in 0...255 {
                 guard let text = CodePage.decode([UInt8(byte)], codePage: page) else { continue }
-                XCTAssertEqual(CodePage.encode(text, codePage: page), [UInt8(byte)],
-                               "byte 0x\(String(byte, radix: 16)) in \(page)")
+                XCTAssertEqual(
+                    CodePage.encode(text, codePage: page),
+                    [UInt8(byte)],
+                    "byte 0x\(String(byte, radix: 16)) in \(page)"
+                )
             }
         }
     }
 
     func testACharacterThePageCannotHoldIsRefusedOrMarked() {
         XCTAssertNil(CodePage.encode("Москва", codePage: 1252))
-        XCTAssertEqual(CodePage.encode("Москва", codePage: 1252, lossy: true),
-                       Array(repeating: 0x3F, count: 6))
+        XCTAssertEqual(
+            CodePage.encode("Москва", codePage: 1252, lossy: true),
+            Array(repeating: 0x3F, count: 6)
+        )
         XCTAssertEqual(CodePage.encode("a☃b", codePage: 1251, lossy: true), [0x61, 0x3F, 0x62])
     }
 
@@ -104,8 +109,10 @@ final class CodePageTests: XCTestCase {
         // An accented letter is often written as base + combining mark, which is not in
         // 1252 as written; the encoder composes first.
         let decomposed = "Cre\u{301}che"
-        XCTAssertEqual(CodePage.encode(decomposed, codePage: 1252),
-                       [0x43, 0x72, 0xE9, 0x63, 0x68, 0x65])
+        XCTAssertEqual(
+            CodePage.encode(decomposed, codePage: 1252),
+            [0x43, 0x72, 0xE9, 0x63, 0x68, 0x65]
+        )
     }
 
     func testWhetherAPageCanHoldANameIsAskableWithoutEncodingIt() {
@@ -131,9 +138,11 @@ final class CodePageTests: XCTestCase {
         for (page, encoding) in pages {
             for byte in 0...255 {
                 let bytes = [UInt8(byte)]
-                XCTAssertEqual(CodePage.decode(bytes, codePage: page),
-                               String(bytes: bytes, encoding: encoding),
-                               "byte 0x\(String(format: "%02X", byte)) in \(page)")
+                XCTAssertEqual(
+                    CodePage.decode(bytes, codePage: page),
+                    String(bytes: bytes, encoding: encoding),
+                    "byte 0x\(String(format: "%02X", byte)) in \(page)"
+                )
             }
         }
     }
@@ -147,30 +156,39 @@ final class CodePageTests: XCTestCase {
             for byte in 0...255 {
                 guard let text = String(bytes: [UInt8(byte)], encoding: encoding) else { continue }
                 let theirs = text.data(using: encoding).map(Array.init)
-                XCTAssertEqual(CodePage.encode(text, codePage: page), theirs,
-                               "U+\(String(format: "%04X", text.unicodeScalars.first!.value)) in \(page)")
+                XCTAssertEqual(
+                    CodePage.encode(text, codePage: page),
+                    theirs,
+                    "U+\(String(format: "%04X", text.unicodeScalars.first!.value)) in \(page)"
+                )
             }
         }
     }
 
     func testRealNamesEncodeTheWayFoundationEncodesThem() {
-        let names = ["Москва", "Симферополь", "Ялта", "Севастополь",
-                     "Wien", "Zürich", "Kraków", "Ostrów Wielkopolski",
-                     "İstanbul", "Şişli", "Αθήνα", "Θεσσαλονίκη",
-                     "Straße", "Œuvre", "naïve", "señor", "—", "€5"]
+        let names = [
+            "Москва", "Симферополь", "Ялта", "Севастополь",
+            "Wien", "Zürich", "Kraków", "Ostrów Wielkopolski",
+            "İstanbul", "Şişli", "Αθήνα", "Θεσσαλονίκη",
+            "Straße", "Œuvre", "naïve", "señor", "—", "€5"
+        ]
         let pages: [(Int, String.Encoding)] = [
             (1250, .windowsCP1250), (1251, .windowsCP1251), (1252, .windowsCP1252),
             (1253, .windowsCP1253), (1254, .windowsCP1254)
         ]
         for (page, encoding) in pages {
             for name in names {
-                XCTAssertEqual(CodePage.encode(name, codePage: page),
-                               name.data(using: encoding).map(Array.init),
-                               "\"\(name)\" strict in \(page)")
-                XCTAssertEqual(CodePage.encode(name, codePage: page, lossy: true),
-                               name.data(using: encoding, allowLossyConversion: true)
-                                   .map(Array.init),
-                               "\"\(name)\" lossy in \(page)")
+                XCTAssertEqual(
+                    CodePage.encode(name, codePage: page),
+                    name.data(using: encoding).map(Array.init),
+                    "\"\(name)\" strict in \(page)"
+                )
+                XCTAssertEqual(
+                    CodePage.encode(name, codePage: page, lossy: true),
+                    name.data(using: encoding, allowLossyConversion: true)
+                        .map(Array.init),
+                    "\"\(name)\" lossy in \(page)"
+                )
             }
         }
     }

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Drawing a TYP's own pictures on a screen made of characters.
@@ -6,7 +7,6 @@ import XCTest
 /// A picture is painted as cell background with no glyph in it, so the assertions read
 /// cells rather than `compose()`'s text.
 final class PictureTests: XCTestCase {
-
     private func surface(_ w: Int = 60, _ h: Int = 30) -> Surface {
         let s = Surface()
         s.resize(w, h)
@@ -15,11 +15,20 @@ final class PictureTests: XCTestCase {
     }
 
     /// A picture built by hand, one character per pixel.
-    private func block(_ rows: [String], palette: [(key: String, colour: String?)])
-        -> XpmBlock {
-        XpmBlock(width: rows.first?.count ?? 0, height: rows.count,
-                 declaredColours: palette.count, charsPerPixel: 1,
-                 palette: palette, rows: rows)
+    private func block(
+        _ rows: [String],
+        palette: [(key: String, colour: String?)]
+    )
+        -> XpmBlock
+    {
+        XpmBlock(
+            width: rows.first?.count ?? 0,
+            height: rows.count,
+            declaredColours: palette.count,
+            charsPerPixel: 1,
+            palette: palette,
+            rows: rows
+        )
     }
 
     private let red = "#FF0000", blue = "#0000FF", black = "#000000", white = "#FFFFFF"
@@ -27,17 +36,22 @@ final class PictureTests: XCTestCase {
     // MARK: The stripes
 
     func testAPictureIsPaintedWithNoGlyphAnywhereInIt() {
-        let picture = block(["rrbb", "brrb", "bbrr", "rbbr"],
-                            palette: [("r", red), ("b", blue)])
+        let picture = block(
+            ["rrbb", "brrb", "bbrr", "rbbr"],
+            palette: [("r", red), ("b", blue)]
+        )
         let s = surface()
         let rows = Widgets.picture(s, x: 2, y: 1, picture, background: .rgb(0, 0, 0))
         XCTAssertEqual(rows, 4)
 
         for y in 1..<5 {
             for x in 2..<(2 + 4 * Widgets.cellsPerPixel) {
-                XCTAssertEqual(s.cell(x, y)?.ch, " ",
-                               "a picture cell at \(x),\(y) is carrying a glyph; a glyph is"
-                                   + " what put stripes through every icon")
+                XCTAssertEqual(
+                    s.cell(x, y)?.ch,
+                    " ",
+                    "a picture cell at \(x),\(y) is carrying a glyph; a glyph is"
+                        + " what put stripes through every icon"
+                )
             }
         }
     }
@@ -77,9 +91,14 @@ final class PictureTests: XCTestCase {
     // MARK: Fitting it in
 
     func testAPictureThatFitsIsDrawnPixelForPixel() {
-        let fit = Widgets.pictureFit(block(Array(repeating: "rr", count: 2),
-                                           palette: [("r", red)]),
-                                     maxColumns: 40, maxRows: 20)
+        let fit = Widgets.pictureFit(
+            block(
+                Array(repeating: "rr", count: 2),
+                palette: [("r", red)]
+            ),
+            maxColumns: 40,
+            maxRows: 20
+        )
         XCTAssertEqual(fit.scale, 1)
         XCTAssertEqual(fit.columns, 4)
         XCTAssertEqual(fit.rows, 2)
@@ -88,8 +107,10 @@ final class PictureTests: XCTestCase {
 
     func testAPictureTallerThanItsBoxIsReducedByAWholeStep() {
         // Reduction goes by whole steps, so every cell stands for the same block of pixels.
-        let picture = block(Array(repeating: String(repeating: "r", count: 20), count: 20),
-                            palette: [("r", red)])
+        let picture = block(
+            Array(repeating: String(repeating: "r", count: 20), count: 20),
+            palette: [("r", red)]
+        )
         let fit = Widgets.pictureFit(picture, maxColumns: 60, maxRows: 10)
         XCTAssertEqual(fit.scale, 2)
         XCTAssertEqual(fit.rows, 10)
@@ -98,8 +119,10 @@ final class PictureTests: XCTestCase {
     }
 
     func testAPictureNeverDrawsOutsideTheBoxItWasGiven() {
-        let picture = block(Array(repeating: String(repeating: "r", count: 32), count: 32),
-                            palette: [("r", red)])
+        let picture = block(
+            Array(repeating: String(repeating: "r", count: 32), count: 32),
+            palette: [("r", red)]
+        )
         for rows in 1...16 {
             for columns in stride(from: 4, through: 64, by: 6) {
                 let fit = Widgets.pictureFit(picture, maxColumns: columns, maxRows: rows)
@@ -113,8 +136,15 @@ final class PictureTests: XCTestCase {
         // Averaged rather than nearest-neighbour, which drops a one-pixel outline entirely.
         let picture = block(["wb", "bw"], palette: [("w", white), ("b", black)])
         let s = surface()
-        Widgets.picture(s, x: 0, y: 0, picture, background: .rgb(0, 0, 0),
-                        maxColumns: 2, maxRows: 1)
+        Widgets.picture(
+            s,
+            x: 0,
+            y: 0,
+            picture,
+            background: .rgb(0, 0, 0),
+            maxColumns: 2,
+            maxRows: 1
+        )
         XCTAssertEqual(s.cell(0, 0)?.style.bg, Color.rgb(127, 127, 127))
     }
 
@@ -140,9 +170,15 @@ final class PictureTests: XCTestCase {
     func testASolidLineIsDrawnAtItsOwnThicknessWithItsCasing() {
         // Fill and casing are drawn at the widths given, not as one square of colour.
         let s = surface()
-        let rows = Widgets.lineSample(s, rect: Rect(x: 0, y: 0, w: 6, h: 7),
-                                      fill: red, casing: blue, width: 3, border: 1,
-                                      background: .rgb(0, 0, 0))
+        let rows = Widgets.lineSample(
+            s,
+            rect: Rect(x: 0, y: 0, w: 6, h: 7),
+            fill: red,
+            casing: blue,
+            width: 3,
+            border: 1,
+            background: .rgb(0, 0, 0)
+        )
         XCTAssertEqual(rows, 5)
         XCTAssertEqual(s.cell(0, 1)?.style.bg, Color.hex(blue), "casing above")
         XCTAssertEqual(s.cell(0, 2)?.style.bg, Color.hex(red))
@@ -153,9 +189,15 @@ final class PictureTests: XCTestCase {
 
     func testALineWithNoCasingIsJustItsOwnWidth() {
         let s = surface()
-        let rows = Widgets.lineSample(s, rect: Rect(x: 0, y: 0, w: 6, h: 5),
-                                      fill: red, casing: nil, width: 2, border: nil,
-                                      background: .rgb(0, 0, 0))
+        let rows = Widgets.lineSample(
+            s,
+            rect: Rect(x: 0, y: 0, w: 6, h: 5),
+            fill: red,
+            casing: nil,
+            width: 2,
+            border: nil,
+            background: .rgb(0, 0, 0)
+        )
         XCTAssertEqual(rows, 2)
         XCTAssertEqual(s.cell(0, 1)?.style.bg, Color.hex(red))
         XCTAssertEqual(s.cell(0, 2)?.style.bg, Color.hex(red))
@@ -165,9 +207,15 @@ final class PictureTests: XCTestCase {
         // Too little room: the casing is kept and the fill gives up rows, because a cased
         // line drawn without its casing reads as a different line.
         let s = surface()
-        let rows = Widgets.lineSample(s, rect: Rect(x: 0, y: 0, w: 12, h: 3),
-                                      fill: red, casing: blue, width: 4, border: 1,
-                                      background: .rgb(0, 0, 0))
+        let rows = Widgets.lineSample(
+            s,
+            rect: Rect(x: 0, y: 0, w: 12, h: 3),
+            fill: red,
+            casing: blue,
+            width: 4,
+            border: 1,
+            background: .rgb(0, 0, 0)
+        )
         XCTAssertEqual(rows, 3)
         XCTAssertEqual(s.cell(0, 0)?.style.bg, Color.hex(blue))
         XCTAssertEqual(s.cell(0, 1)?.style.bg, Color.hex(red))
@@ -176,9 +224,15 @@ final class PictureTests: XCTestCase {
 
     func testALineThickerThanTheRoomIsClippedRatherThanDrawnOverTheRowBelow() {
         let s = surface()
-        let rows = Widgets.lineSample(s, rect: Rect(x: 0, y: 2, w: 6, h: 2),
-                                      fill: red, casing: blue, width: 9, border: 3,
-                                      background: .rgb(0, 0, 0))
+        let rows = Widgets.lineSample(
+            s,
+            rect: Rect(x: 0, y: 2, w: 6, h: 2),
+            fill: red,
+            casing: blue,
+            width: 9,
+            border: 3,
+            background: .rgb(0, 0, 0)
+        )
         XCTAssertLessThanOrEqual(rows, 2)
         XCTAssertNotEqual(s.cell(0, 4)?.style.bg, Color.hex(red))
     }
@@ -232,8 +286,13 @@ final class PictureTests: XCTestCase {
         // without costing a blank line.
         let ground = Color.rgb(9, 9, 9)
         let s = surface()
-        Widgets.halfRow(s, x: 1, y: 1, colours: [Color.hex(red), nil, Color.hex(blue)],
-                        background: ground)
+        Widgets.halfRow(
+            s,
+            x: 1,
+            y: 1,
+            colours: [Color.hex(red), nil, Color.hex(blue)],
+            background: ground
+        )
         XCTAssertEqual(s.cell(1, 1)?.ch, Glyph.lowerHalf)
         XCTAssertEqual(s.cell(1, 1)?.style.fg, Color.hex(red))
         XCTAssertEqual(s.cell(1, 1)?.style.bg, ground, "the gap is the row's own ground")

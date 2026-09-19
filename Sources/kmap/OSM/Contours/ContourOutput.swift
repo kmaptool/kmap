@@ -19,9 +19,14 @@ enum ContourOutput {
     static let nodeIDSlice: Int64 = 200_000_000
     static let wayIDSlice: Int64 = 50_000_000
 
-    static func write(_ lines: [Contours.Line], to url: URL,
-                      nodeStart: Int64, wayStart: Int64,
-                      major: Int, medium: Int) throws -> (nodes: Int, ways: Int) {
+    static func write(
+        _ lines: [Contours.Line],
+        to url: URL,
+        nodeStart: Int64,
+        wayStart: Int64,
+        major: Int,
+        medium: Int
+    ) throws -> (nodes: Int, ways: Int) {
         let writer = try PBFWriter(to: url)
         writer.header()
 
@@ -49,11 +54,17 @@ enum ContourOutput {
                 refs[refs.count - 1] = refs[0]
                 id -= 1
             }
-            ways.append(PBFWriter.Way(id: wayID, refs: refs, tags: [
-                ("contour", "elevation"),
-                ("ele", "\(line.elevation)"),
-                ("contour_ext", extra(line.elevation, major: major, medium: medium)),
-            ]))
+            ways.append(
+                PBFWriter.Way(
+                    id: wayID,
+                    refs: refs,
+                    tags: [
+                        ("contour", "elevation"),
+                        ("ele", "\(line.elevation)"),
+                        ("contour_ext", extra(line.elevation, major: major, medium: medium))
+                    ]
+                )
+            )
             wayID += 1
 
             if nodes.count >= Self.nodesPerBatch {

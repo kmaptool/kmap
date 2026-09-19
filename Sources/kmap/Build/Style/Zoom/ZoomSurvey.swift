@@ -24,14 +24,20 @@ struct ZoomSurvey {
         guard !rungs.isEmpty else { return }
 
         for file in Set(ZoomFamily.all.flatMap(\.files)).sorted() {
-            guard let text = try? String(contentsOf: directory.appendingPathComponent(file),
-                                         encoding: .utf8) else { continue }
+            guard
+                let text = try? String(
+                    contentsOf: directory.appendingPathComponent(file),
+                    encoding: .utf8
+                )
+            else { continue }
             for rule in ZoomRuleScan.rules(in: text.components(separatedBy: "\n")) {
-                guard let family = ZoomFamily.all.first(where: {
-                          $0.claims(rule.condition, in: file)
-                      }),
-                      let found = ZoomRuleScan.resolution(in: rule.type),
-                      let rung = rungs.rung(forResolution: found.value) else { continue }
+                guard
+                    let family = ZoomFamily.all.first(where: {
+                        $0.claims(rule.condition, in: file)
+                    }),
+                    let found = ZoomRuleScan.resolution(in: rule.type),
+                    let rung = rungs.rung(forResolution: found.value)
+                else { continue }
 
                 var spread = spreads[family.id] ?? Spread(finest: rung, coarsest: rung, rules: 0)
                 spread.finest = min(spread.finest, rung)
@@ -80,6 +86,4 @@ struct ZoomSurvey {
     private func clamp(_ rung: Int) -> Int {
         max(0, min(rungs.bits.count - 1, rung))
     }
-
-
 }

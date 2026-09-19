@@ -19,7 +19,7 @@ struct DefaultRuleBook {
             // The type is read out of whichever line carries it.
             let carrier = continuation ?? text
             guard let open = carrier.firstIndex(of: "["),
-                  let found = carrier.range(of: "0x", range: open..<carrier.endIndex)
+                let found = carrier.range(of: "0x", range: open..<carrier.endIndex)
             else { return nil }
             var end = found.upperBound
             while end < carrier.endIndex, carrier[end].isHexDigit {
@@ -45,8 +45,11 @@ struct DefaultRuleBook {
         /// Rewritten keeping the original token's width, so 0x0b00 does not come back
         /// as 0xb00. mkgmap reads either; the sheet is compared as text.
         func rewritten(to type: Int) -> String {
-            let width = carrier.distance(from: typeRange.lowerBound,
-                                         to: typeRange.upperBound) - 2
+            let width =
+                carrier.distance(
+                    from: typeRange.lowerBound,
+                    to: typeRange.upperBound
+                ) - 2
             let hex = String(type, radix: 16)
             let padded = String(repeating: "0", count: max(0, width - hex.count)) + hex
             return carrier.replacingCharacters(in: typeRange, with: "0x" + padded)
@@ -65,7 +68,8 @@ struct DefaultRuleBook {
         func leadingGroup() -> (pairs: [String], span: String)? {
             // The alternatives end where actions or the type begin.
             let condition = text
-            let cut = condition.firstIndex(of: "{") ?? condition.firstIndex(of: "[")
+            let cut =
+                condition.firstIndex(of: "{") ?? condition.firstIndex(of: "[")
                 ?? condition.endIndex
             var span = String(condition[..<cut])
             if span.hasPrefix("(") {
@@ -80,8 +84,12 @@ struct DefaultRuleBook {
             var pairs: [String] = []
             for alternative in inner.split(separator: "|") {
                 let pair = alternative.trimmingCharacters(in: .whitespaces)
-                guard pair.range(of: "^[a-z_:]+=[a-z_0-9]+$",
-                                 options: .regularExpression) != nil else { return nil }
+                guard
+                    pair.range(
+                        of: "^[a-z_:]+=[a-z_0-9]+$",
+                        options: .regularExpression
+                    ) != nil
+                else { return nil }
                 pairs.append(pair)
             }
             guard pairs.count > 1 else { return nil }
@@ -95,9 +103,11 @@ struct DefaultRuleBook {
             let cut = text.firstIndex(of: "{") ?? text.firstIndex(of: "[") ?? text.endIndex
             let condition = text[..<cut].trimmingCharacters(in: .whitespaces)
             guard !condition.isEmpty, !condition.contains(DefaultRuleBook.buildingKey),
-                  !condition.contains("|") || leadingGroup() != nil else { return nil }
+                !condition.contains("|") || leadingGroup() != nil
+            else { return nil }
             let rest = text[cut...]
-            let narrowed = condition + " & " + DefaultRuleBook.openGroundOnly
+            let narrowed =
+                condition + " & " + DefaultRuleBook.openGroundOnly
                 + (rest.isEmpty ? "" : " " + rest)
             return continuation.map { [narrowed, $0] } ?? [narrowed]
         }
@@ -111,8 +121,13 @@ struct DefaultRuleBook {
         /// The rule rewritten around a subset of its alternatives and a new type, in as
         /// many lines as the original used: the whole replacement with the type swapped,
         /// its alternatives narrowed to the ones given.
-        func replacementSplitting(group: [String], span: String, to type: Int)
-            -> [String] {
+        func replacementSplitting(
+            group: [String],
+            span: String,
+            to type: Int
+        )
+            -> [String]
+        {
             var lines = replacement(to: type)
             guard !lines.isEmpty else { return lines }
             let narrowed = "(" + group.joined(separator: " | ") + ")"
@@ -183,7 +198,7 @@ struct DefaultRuleBook {
         "leisure", "amenity", "shop", "tourism", "historic", "military", "power",
         "man_made", "barrier", "boundary", "place", "route", "water", "wetland",
         "piste:type", "sport", "office", "craft", "emergency", "healthcare",
-        "leaf_type", "public_transport", "ford", "building",
+        "leaf_type", "public_transport", "ford", "building"
     ]
     /// The same set, for asking whether a key means anything at all.
     static let meaningful = Set(meaningKeys)
@@ -200,8 +215,12 @@ struct DefaultRuleBook {
     static func load(from directory: URL = StyleCatalog.baseStyleDirectory) -> DefaultRuleBook {
         var book = DefaultRuleBook()
         for file in ["lines", "polygons", "points"] {
-            guard let text = try? String(contentsOf: directory.appendingPathComponent(file),
-                                         encoding: .utf8) else { continue }
+            guard
+                let text = try? String(
+                    contentsOf: directory.appendingPathComponent(file),
+                    encoding: .utf8
+                )
+            else { continue }
             // The main file pulls parts of itself from inc/; the book reads them as the
             // build does, or every rule living there looks foreign to its own map. A
             // line keeps its real path, so a sheet substitution lands in the right file.
@@ -209,11 +228,15 @@ struct DefaultRuleBook {
             for row in text.components(separatedBy: "\n") {
                 let trimmed = row.trimmingCharacters(in: .whitespaces)
                 guard trimmed.hasPrefix("include '"),
-                      let close = trimmed.dropFirst(9).firstIndex(of: "'") else { continue }
+                    let close = trimmed.dropFirst(9).firstIndex(of: "'")
+                else { continue }
                 let name = String(trimmed.dropFirst(9)[..<close])
-                guard let sub = try? String(
-                    contentsOf: directory.appendingPathComponent(name),
-                    encoding: .utf8) else { continue }
+                guard
+                    let sub = try? String(
+                        contentsOf: directory.appendingPathComponent(name),
+                        encoding: .utf8
+                    )
+                else { continue }
                 sources.append((name, sub))
             }
             for (name, text) in sources {
@@ -227,64 +250,69 @@ struct DefaultRuleBook {
     /// code is emitted *as* - and `name` the file the lines actually live in.
     private mutating func read(name: String, kindFile file: String, text: String) {
         filesOf[file, default: []].insert(name)
-            // The emitted-code set reads every rule, split-line ones included: a rule
-            // carrying its type on its own line would otherwise look foreign.
-            for rule in ZoomRuleScan.rules(in: text.components(separatedBy: "\n")) {
-                if let open = rule.type.range(of: "0x"),
-                   let value = Int(rule.type[open.upperBound...].prefix(while: \.isHexDigit),
-                                   radix: 16) {
-                    emitted.insert(file + ":" + String(value, radix: 16))
-                }
+        // The emitted-code set reads every rule, split-line ones included: a rule
+        // carrying its type on its own line would otherwise look foreign.
+        for rule in ZoomRuleScan.rules(in: text.components(separatedBy: "\n")) {
+            if let open = rule.type.range(of: "0x"),
+                let value = Int(
+                    rule.type[open.upperBound...].prefix(while: \.isHexDigit),
+                    radix: 16
+                )
+            {
+                emitted.insert(file + ":" + String(value, radix: 16))
             }
-            // Raw lines, because the sheet substitutes raw lines.
-            let rows = text.components(separatedBy: "\n")
-            // How often each line reads exactly the same, so a two-line rule is anchored
-            // on its type line only where that line is unique in the file.
-            var seen: [String: Int] = [:]
-            for row in rows {
-                seen[row.trimmingCharacters(in: .whitespaces), default: 0] += 1
-            }
-            var pendingCondition: String?
-            for raw in rows {
-                let trimmed = raw.trimmingCharacters(in: .whitespaces)
-                guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else {
-                    pendingCondition = nil
-                    continue
-                }
-                // A condition with no type of its own: the type is on the next line.
-                guard let open = trimmed.firstIndex(of: "[") else {
-                    pendingCondition = trimmed.contains("=") ? trimmed : nil
-                    continue
-                }
-                // The type line of a two-line rule may open with actions of its own, as in
-                // `{add name='${barrier}'} [0x3200 resolution 24]`; reading those as a
-                // condition would index the rule under nothing.
-                let before = Self.withoutActions(String(trimmed[..<open]))
-                    .trimmingCharacters(in: .whitespaces)
-                let onItsOwn = before.isEmpty
-                let condition = onItsOwn ? (pendingCondition ?? "") : String(trimmed[..<open])
+        }
+        // Raw lines, because the sheet substitutes raw lines.
+        let rows = text.components(separatedBy: "\n")
+        // How often each line reads exactly the same, so a two-line rule is anchored
+        // on its type line only where that line is unique in the file.
+        var seen: [String: Int] = [:]
+        for row in rows {
+            seen[row.trimmingCharacters(in: .whitespaces), default: 0] += 1
+        }
+        var pendingCondition: String?
+        for raw in rows {
+            let trimmed = raw.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else {
                 pendingCondition = nil
-                guard condition.contains("=") else { continue }
-                // The two-line form is anchored on its condition, which has to be the only
-                // line of its kind for the substitution to name one rule.
-                if onItsOwn, seen[condition] != 1 { continue }
-                guard let line = onItsOwn
+                continue
+            }
+            // A condition with no type of its own: the type is on the next line.
+            guard let open = trimmed.firstIndex(of: "[") else {
+                pendingCondition = trimmed.contains("=") ? trimmed : nil
+                continue
+            }
+            // The type line of a two-line rule may open with actions of its own, as in
+            // `{add name='${barrier}'} [0x3200 resolution 24]`; reading those as a
+            // condition would index the rule under nothing.
+            let before = Self.withoutActions(String(trimmed[..<open]))
+                .trimmingCharacters(in: .whitespaces)
+            let onItsOwn = before.isEmpty
+            let condition = onItsOwn ? (pendingCondition ?? "") : String(trimmed[..<open])
+            pendingCondition = nil
+            guard condition.contains("=") else { continue }
+            // The two-line form is anchored on its condition, which has to be the only
+            // line of its kind for the substitution to name one rule.
+            if onItsOwn, seen[condition] != 1 { continue }
+            guard
+                let line = onItsOwn
                     ? Line(file: name, text: condition, continuation: raw)
-                    : Line(file: name, text: trimmed) else { continue }
-                // Indexed under its LEADING tag pair: the discriminating one, the way
-                // rules are written. `landuse=forest | landuse=wood` indexes under both.
-                emitted.insert(file + ":" + line.code)
-                if name == file, (firstRules[file]?.count ?? 0) < 64 {
-                    firstRules[file, default: []].append(line.text)
-                }
-                let resolution = Self.resolution(of: onItsOwn ? trimmed : line.text)
-                for pair in Self.leadingPairs(of: condition) {
-                    byTag[pair, default: []].append(line)
-                    if let resolution, let key = pair.split(separator: "=").first {
-                        resolutions[file + ":" + key, default: []].append(resolution)
-                    }
+                    : Line(file: name, text: trimmed)
+            else { continue }
+            // Indexed under its LEADING tag pair: the discriminating one, the way
+            // rules are written. `landuse=forest | landuse=wood` indexes under both.
+            emitted.insert(file + ":" + line.code)
+            if name == file, (firstRules[file]?.count ?? 0) < 64 {
+                firstRules[file, default: []].append(line.text)
+            }
+            let resolution = Self.resolution(of: onItsOwn ? trimmed : line.text)
+            for pair in Self.leadingPairs(of: condition) {
+                byTag[pair, default: []].append(line)
+                if let resolution, let key = pair.split(separator: "=").first {
+                    resolutions[file + ":" + key, default: []].append(resolution)
                 }
             }
+        }
     }
 
     /// Every rule line the book indexed for one kind - the main file and its includes -
@@ -367,8 +395,13 @@ struct DefaultRuleBook {
         var out = ""
         var depth = 0
         for c in condition {
-            if c == "{" { depth += 1 } else if c == "}" { depth = max(0, depth - 1) }
-            else if depth == 0 { out.append(c) }
+            if c == "{" {
+                depth += 1
+            } else if c == "}" {
+                depth = max(0, depth - 1)
+            } else if depth == 0 {
+                out.append(c)
+            }
         }
         return out
     }
@@ -384,7 +417,8 @@ struct DefaultRuleBook {
             let key = String(pair[..<eq])
             let value = String(pair[pair.index(after: eq)...])
             guard meaningful.contains(key), !value.isEmpty,
-                  !value.contains("!") else { continue }
+                !value.contains("!")
+            else { continue }
             // A bare `key=*` is a family rule and is indexed as one; a value merely
             // containing a wildcard names nothing and is skipped.
             if value.contains("*") {

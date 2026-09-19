@@ -3,8 +3,11 @@ import Foundation
 /// What the write pass needs to know beyond which tile a point is in: which tiles each
 /// spanning way and each relation must be written to, and which nodes go with them.
 extension TileSplitter {
-    func planProblems(assignment: Assignment, lookup: AreaLookup,
-                              areas: [Area]) throws -> Plan {
+    func planProblems(
+        assignment: Assignment,
+        lookup: AreaLookup,
+        areas: [Area]
+    ) throws -> Plan {
         var mark = Date()
         func took(_ what: String) {
             if let line = Measured.line("  " + what, since: mark, atLeast: 0.05) { log(line) }
@@ -22,8 +25,10 @@ extension TileSplitter {
 
             try sweep(held, assignment: assignment)
             took("swept for spanning ways and relations")
-            log("\(held.problemWays.count) way(s) span tiles, \(held.relations.count) relation(s) held,"
-                + " \(held.sets.count - 1) distinct tile set(s) between them")
+            log(
+                "\(held.problemWays.count) way(s) span tiles, \(held.relations.count) relation(s) held,"
+                    + " \(held.sets.count - 1) distinct tile set(s) between them"
+            )
 
             // A spanning way is written whole to every tile it touches.
             plan.wayTiles = held.problemWays
@@ -176,8 +181,10 @@ extension TileSplitter {
         if Measured.reported {
             var total = 0, room = 0
             for list in s.refs.refs.values { total += list.count; room += list.capacity }
-            log("    \(s.refs.refs.count) way(s) held, \(total) ref(s) in all,"
-                + " room for \(room)")
+            log(
+                "    \(s.refs.refs.count) way(s) held, \(total) ref(s) in all,"
+                    + " room for \(room)"
+            )
         }
     }
 
@@ -195,9 +202,9 @@ extension TileSplitter {
             for input in options.inputs {
                 try reader(input).readInOrder(
                     make: { NodeCoords(wanted: wantedNodes) }) { part in
-                    s.coords.coords.merge(part.coords) { first, _ in first }
-                    part.coords.removeAll(keepingCapacity: true)
-                }
+                        s.coords.coords.merge(part.coords) { first, _ in first }
+                        part.coords.removeAll(keepingCapacity: true)
+                    }
             }
         }
     }
@@ -210,8 +217,11 @@ extension TileSplitter {
         }
         for rel in s.fillRelations {
             guard let record = s.relations[rel] else { continue }
-            let rings = RingBuilder.rings(of: record.memberWays, refs: s.refs.refs,
-                                          coords: s.coords.coords)
+            let rings = RingBuilder.rings(
+                of: record.memberWays,
+                refs: s.refs.refs,
+                coords: s.coords.coords
+            )
             var claimed = s.carriedTiles[rel] ?? []
             for (index, area) in areas.enumerated() {
                 let tile = UInt16(index)
@@ -230,7 +240,8 @@ extension TileSplitter {
     private func carryMembers(_ s: ProblemScaffold, plan: inout Plan) {
         for rel in s.carriedRelations {
             guard let record = s.relations[rel],
-                  let touched = s.carriedTiles[rel], !touched.isEmpty else { continue }
+                let touched = s.carriedTiles[rel], !touched.isEmpty
+            else { continue }
             for way in record.memberWays {
                 let already = plan.wayTiles[way].map { Set(s.sets[$0]) } ?? []
                 plan.wayTiles[way] = s.sets.intern(already.union(touched))
@@ -253,7 +264,9 @@ extension TileSplitter {
         let laneCount = max(1, min(Machine.workers, spanning.count))
         if laneCount > 1 {
             var lanes = [(pool: [[UInt16]], pairs: [(id: Int64, set: Int32)])](
-                repeating: ([], []), count: laneCount)
+                repeating: ([], []),
+                count: laneCount
+            )
             let chunk = (spanning.count + laneCount - 1) / laneCount
             lanes.withUnsafeMutableBufferPointer { slots in
                 // Each lane fills only its own slot, which no type can say: nothing is shared.
@@ -305,8 +318,12 @@ extension TileSplitter {
     /// Places every relation. A carried type takes its computed tiles, or every tile when
     /// it is incomplete; any other follows its member ways to wherever those were written.
     /// Member relations contribute nothing.
-    private func placeRelations(_ s: ProblemScaffold, plan: inout Plan,
-                                assignment: Assignment, areas: [Area]) {
+    private func placeRelations(
+        _ s: ProblemScaffold,
+        plan: inout Plan,
+        assignment: Assignment,
+        areas: [Area]
+    ) {
         // Incompleteness spreads upward: a relation is incomplete when a direct member
         // is absent from the extract, or when a member relation is itself incomplete.
         func isIncomplete(_ id: Int64, _ visited: inout Set<Int64>) -> Bool {
@@ -334,8 +351,9 @@ extension TileSplitter {
             if record.carriesMembers {
                 touched = s.carriedTiles[id] ?? record.directTiles
                 var visited: Set<Int64> = []
-                if (record.directTiles.count > 1 || !record.memberRelations.isEmpty),
-                   isIncomplete(id, &visited) {
+                if record.directTiles.count > 1 || !record.memberRelations.isEmpty,
+                    isIncomplete(id, &visited)
+                {
                     touched = everyTile
                 }
             } else {

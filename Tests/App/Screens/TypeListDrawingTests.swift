@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Each list entry shows its own drawing, day and night, in the room a colour block had:
@@ -7,7 +8,6 @@ import XCTest
 /// synchronous main-actor method.
 @MainActor
 final class TypeListDrawingTests: XCTestCase {
-
     private var ctx: AppContext!
     private var style: MapStyle!
 
@@ -23,16 +23,20 @@ final class TypeListDrawingTests: XCTestCase {
 
             ctx = AppContext()
             let originals = TypLibrary.originalsDirectory()
-            let before = Set((TypLibrary.contents() + TypLibrary.contents(in: originals))
-                .map(\.lastPathComponent))
+            let before = Set(
+                (TypLibrary.contents() + TypLibrary.contents(in: originals))
+                    .map(\.lastPathComponent)
+            )
             addTeardownBlock {
                 for url in TypLibrary.contents() + TypLibrary.contents(in: originals)
                 where !before.contains(url.lastPathComponent) {
                     try? FileManager.default.removeItem(at: url)
                 }
             }
-            let url = try TypLibrary.adopt(source: TypFixture.source,
-                                           named: "zz-list-drawing-\(UUID().uuidString.prefix(8))")
+            let url = try TypLibrary.adopt(
+                source: TypFixture.source,
+                named: "zz-list-drawing-\(UUID().uuidString.prefix(8))"
+            )
             style = try XCTUnwrap(StyleCatalog.libraryStyle(at: url))
         }
     }
@@ -84,7 +88,8 @@ final class TypeListDrawingTests: XCTestCase {
     private func painted(_ s: Surface, from x: Int, width: Int) -> [Color] {
         (x..<(x + width)).compactMap { column -> Color? in
             guard let cell = s.cell(column, rect.y + 3),
-                  cell.ch == Glyph.lowerHalf else { return nil }
+                cell.ch == Glyph.lowerHalf
+            else { return nil }
             return cell.style.fg
         }
     }
@@ -97,8 +102,11 @@ final class TypeListDrawingTests: XCTestCase {
         // The search narrowed the list to one entry, so the row under it belongs to
         // nothing: an entry is one row.
         XCTAssertTrue(painted(s, from: rect.x + 2, width: 2).count == 2)
-        XCTAssertNotEqual(s.cell(rect.x + 2, rect.y + 4)?.ch, Glyph.lowerHalf,
-                          "the drawing spilled onto the row below")
+        XCTAssertNotEqual(
+            s.cell(rect.x + 2, rect.y + 4)?.ch,
+            Glyph.lowerHalf,
+            "the drawing spilled onto the row below"
+        )
     }
 
     func testTheWholeDrawingIsScaledIntoItRatherThanACornerOfIt() async throws {
@@ -112,8 +120,11 @@ final class TypeListDrawingTests: XCTestCase {
         let (s, _) = showing(.point, code: "2a00")
         let shown = try XCTUnwrap(day(s, width: 2).first)
         if let corner, let cropped = Color.hex(corner) {
-            XCTAssertNotEqual(shown, cropped,
-                              "this is the corner pixel, not the whole drawing scaled")
+            XCTAssertNotEqual(
+                shown,
+                cropped,
+                "this is the corner pixel, not the whole drawing scaled"
+            )
         }
     }
 
@@ -123,8 +134,11 @@ final class TypeListDrawingTests: XCTestCase {
         let (s, _) = showing(.polygon, code: "0x51")
         XCTAssertFalse(day(s, width: 2).isEmpty)
         XCTAssertFalse(night(s, width: 2).isEmpty, "a night pair has to be drawn")
-        XCTAssertNotEqual(day(s, width: 2), night(s, width: 2),
-                          "day and night differ in this file, so they differ on screen")
+        XCTAssertNotEqual(
+            day(s, width: 2),
+            night(s, width: 2),
+            "day and night differ in this file, so they differ on screen"
+        )
     }
 
     func testNightIsBlankWhereTheFileSaysNothingAboutIt() async {
@@ -147,16 +161,20 @@ final class TypeListDrawingTests: XCTestCase {
         // the drawing needs and leaves the rest to the list.
         let text = draw(browser(.point, code: "2a00")).compose()
         XCTAssertTrue(text.contains("20×20"))
-        XCTAssertFalse(text.contains("1:2"),
-                       "there was room to draw it properly and it was reduced anyway")
+        XCTAssertFalse(
+            text.contains("1:2"),
+            "there was room to draw it properly and it was reduced anyway"
+        )
     }
 
     func testAndSaysSoWhenTheyAreNot() async {
         // On a short screen the drawing is reduced, and the ratio is labelled.
         let text = draw(browser(.point, code: "2a00"), height: 22).compose()
         XCTAssertTrue(text.contains("20×20"))
-        XCTAssertTrue(text.contains("1:2") || text.contains("1:3"),
-                      "a reduced drawing has to say it is reduced")
+        XCTAssertTrue(
+            text.contains("1:2") || text.contains("1:3"),
+            "a reduced drawing has to say it is reduced"
+        )
     }
 
     func testNothingIsDrawnForATypeTheTypDoesNotStyle() async {
@@ -169,8 +187,10 @@ final class TypeListDrawingTests: XCTestCase {
         _ = screen.handle(.enter, ctx: ctx)
         let s = draw(screen)
         guard s.compose().contains("0x66") else { return }
-        XCTAssertTrue(day(s, width: 2).isEmpty && night(s, width: 2).isEmpty,
-                      "an unstyled type has nothing to draw")
+        XCTAssertTrue(
+            day(s, width: 2).isEmpty && night(s, width: 2).isEmpty,
+            "an unstyled type has nothing to draw"
+        )
     }
 
     // MARK: The screen for one type
@@ -188,8 +208,11 @@ final class TypeListDrawingTests: XCTestCase {
             }
         }
         XCTAssertGreaterThan(found.count, 20, "a solid line has to be drawn, not just named")
-        XCTAssertGreaterThanOrEqual(Set(found.map(String.init(describing:))).count, 2,
-                                    "its casing is a colour of its own")
+        XCTAssertGreaterThanOrEqual(
+            Set(found.map(String.init(describing:))).count,
+            2,
+            "its casing is a colour of its own"
+        )
         XCTAssertTrue(s.compose().contains("width"), "and the numbers beside it")
     }
 
@@ -228,9 +251,12 @@ final class TypeListDrawingTests: XCTestCase {
                 for _ in 0..<steps { _ = screen.handle(.down, ctx: ctx) }
                 let s = draw(screen)
                 let last = lastRowUsed(s, height: rect.h)
-                XCTAssertGreaterThan(last, rect.y + rect.h - 4,
-                                     "\(kind) at row \(steps) leaves the bottom of the"
-                                         + " screen empty")
+                XCTAssertGreaterThan(
+                    last,
+                    rect.y + rect.h - 4,
+                    "\(kind) at row \(steps) leaves the bottom of the"
+                        + " screen empty"
+                )
             }
         }
     }
@@ -242,8 +268,10 @@ final class TypeListDrawingTests: XCTestCase {
         for c in "2a00" { _ = screen.handle(.char(c), ctx: ctx) }
         _ = screen.handle(.enter, ctx: ctx)
 
-        XCTAssertFalse(draw(screen).compose().contains("20×20"),
-                       "nothing of the pane should be on screen before it is opened")
+        XCTAssertFalse(
+            draw(screen).compose().contains("20×20"),
+            "nothing of the pane should be on screen before it is opened"
+        )
         _ = screen.handle(.char("p"), ctx: ctx)
         XCTAssertTrue(draw(screen).compose().contains("20×20"), "p opens it")
         _ = screen.handle(.char("p"), ctx: ctx)
@@ -253,15 +281,21 @@ final class TypeListDrawingTests: XCTestCase {
     func testTheListIsLongerWithThePaneClosed() async throws {
         // The pane's height counts the rule conditions behind the selected type, which come
         // from the materialized rule set: without it the pane sits at its minimum.
-        try XCTSkipUnless(FileTools.exists(
-            StyleCatalog.baseStyleDirectory.appendingPathComponent("points")),
-                          "no materialized rule set — build once first")
+        try XCTSkipUnless(
+            FileTools.exists(
+                StyleCatalog.baseStyleDirectory.appendingPathComponent("points")
+            ),
+            "no materialized rule set — build once first"
+        )
         let screen = TypeBrowserScreen(document: StyleDocument.load(style), kind: .point)
         _ = draw(screen)
         let whole = entryRows(draw(screen))
         _ = screen.handle(.char("p"), ctx: ctx)
-        XCTAssertGreaterThan(whole, entryRows(draw(screen)),
-                             "the rows the pane takes come off the list")
+        XCTAssertGreaterThan(
+            whole,
+            entryRows(draw(screen)),
+            "the rows the pane takes come off the list"
+        )
     }
 
     /// How many rows of the area carry a list entry — counted by its code, which every

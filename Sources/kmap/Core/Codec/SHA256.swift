@@ -7,12 +7,13 @@ import Foundation
 /// so that every platform computes the digest with the same code and no dependency is
 /// needed.
 struct SHA256 {
-
     /// The eight words of state: the first thirty-two bits of the fractional parts of the
     /// square roots of the first eight primes.
     private var h: (UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32) =
-        (0x6a09_e667, 0xbb67_ae85, 0x3c6e_f372, 0xa54f_f53a,
-         0x510e_527f, 0x9b05_688c, 0x1f83_d9ab, 0x5be0_cd19)
+        (
+            0x6a09_e667, 0xbb67_ae85, 0x3c6e_f372, 0xa54f_f53a,
+            0x510e_527f, 0x9b05_688c, 0x1f83_d9ab, 0x5be0_cd19
+        )
 
     /// Bytes seen so far; the padding needs this as a bit count.
     private var length: UInt64 = 0
@@ -44,7 +45,7 @@ struct SHA256 {
         0x19a4_c116, 0x1e37_6c08, 0x2748_774c, 0x34b0_bcb5,
         0x391c_0cb3, 0x4ed8_aa4a, 0x5b9c_ca4f, 0x682e_6ff3,
         0x748f_82ee, 0x78a5_636f, 0x84c8_7814, 0x8cc7_0208,
-        0x90be_fffa, 0xa450_6ceb, 0xbef9_a3f7, 0xc671_78f2,
+        0x90be_fffa, 0xa450_6ceb, 0xbef9_a3f7, 0xc671_78f2
     ]
 
     /// One round constant, for the test that derives them again from the primes.
@@ -76,8 +77,12 @@ struct SHA256 {
         }
 
         if offset < bytes.count {
-            tail.append(contentsOf: UnsafeRawBufferPointer(start: base + offset,
-                                                           count: bytes.count - offset))
+            tail.append(
+                contentsOf: UnsafeRawBufferPointer(
+                    start: base + offset,
+                    count: bytes.count - offset
+                )
+            )
         }
     }
 
@@ -171,8 +176,12 @@ struct SHA256 {
         // The message schedule: sixteen words from the block, then forty-eight derived.
         var w = [UInt32](repeating: 0, count: 64)
         for i in 0..<16 {
-            w[i] = UInt32(bigEndian: block.loadUnaligned(fromByteOffset: i * 4,
-                                                          as: UInt32.self))
+            w[i] = UInt32(
+                bigEndian: block.loadUnaligned(
+                    fromByteOffset: i * 4,
+                    as: UInt32.self
+                )
+            )
         }
         for i in 16..<64 {
             let s0 = rotated(w[i - 15], 7) ^ rotated(w[i - 15], 18) ^ (w[i - 15] >> 3)
@@ -197,7 +206,9 @@ struct SHA256 {
             a = temp1 &+ temp2
         }
 
-        h = (h.0 &+ a, h.1 &+ b, h.2 &+ c, h.3 &+ d,
-             h.4 &+ e, h.5 &+ f, h.6 &+ g, h.7 &+ hh)
+        h = (
+            h.0 &+ a, h.1 &+ b, h.2 &+ c, h.3 &+ d,
+            h.4 &+ e, h.5 &+ f, h.6 &+ g, h.7 &+ hh
+        )
     }
 }

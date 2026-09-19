@@ -6,7 +6,6 @@ import Foundation
 /// All mutable state is guarded by `lock` and read through `snapshot()`, so the render
 /// loop never blocks on the work.
 final class BuildPipeline: Sendable {
-
     let log: Log
     let recipe: BuildRecipe
     let downloadProgress = DownloadProgress()
@@ -85,8 +84,13 @@ final class BuildPipeline: Sendable {
 
     /// - Parameter showing: the lowest severity the caller wants to be shown. The log
     ///   file beside the build keeps everything whatever this says.
-    init(recipe: BuildRecipe, settings: SettingsStore, toolchain: Toolchain,
-         styles: StyleCatalog, showing: LogSeverity = .info) {
+    init(
+        recipe: BuildRecipe,
+        settings: SettingsStore,
+        toolchain: Toolchain,
+        styles: StyleCatalog,
+        showing: LogSeverity = .info
+    ) {
         self.recipe = recipe
         self.settings = settings
         self.toolchain = toolchain
@@ -150,7 +154,8 @@ final class BuildPipeline: Sendable {
         if error is CancellationError
             || isRunnerCancellation(error)
             || (error as? URLError)?.code == .cancelled
-            || isCancelled || Task.isCancelled {
+            || isCancelled || Task.isCancelled
+        {
             throw CancellationError()
         }
     }
@@ -222,7 +227,7 @@ final class BuildPipeline: Sendable {
             try stopIfCancelled()
             do {
                 try await buildMap(from: extracts)
-            } catch where Self.readsLikeADamagedExtract(error) {
+            } catch  where Self.readsLikeADamagedExtract(error) {
                 // An extract would not decode. If one was damaged on disk it is fetched
                 // again and the build carries on; this is tried once.
                 guard let fetched = try await refetchDamagedExtracts(among: extracts) else {
@@ -256,9 +261,12 @@ final class BuildPipeline: Sendable {
         var areas: [TileSplitter.Area]? = nil
         var rounds = 0
         while true {
-            let tiles = try await splitIntoTiles(extracts: extracts,
-                                                 contours: elevationTask,
-                                                 maxNodes: cap, areas: areas)
+            let tiles = try await splitIntoTiles(
+                extracts: extracts,
+                contours: elevationTask,
+                maxNodes: cap,
+                areas: areas
+            )
             try stopIfCancelled()
             do {
                 try await compile(tiles: tiles)
@@ -274,15 +282,19 @@ final class BuildPipeline: Sendable {
                     guard next.count > current.count else {
                         throw BuildError.tileTooDense(atCap, failed: failed)
                     }
-                    log.warn("\(indexes.count) tile(s) held more detail than Garmin's"
-                             + " 16 MB drawing section takes — cutting just those in half")
+                    log.warn(
+                        "\(indexes.count) tile(s) held more detail than Garmin's"
+                            + " 16 MB drawing section takes — cutting just those in half"
+                    )
                     areas = next
                     continue
                 }
                 let next = cap / 2
                 guard next >= 200_000 else { throw BuildError.tileTooDense(cap, failed: []) }
-                log.warn("a tile held more detail than Garmin's 16 MB drawing section takes"
-                         + " — re-splitting at \(next / 1000)k nodes per tile")
+                log.warn(
+                    "a tile held more detail than Garmin's 16 MB drawing section takes"
+                        + " — re-splitting at \(next / 1000)k nodes per tile"
+                )
                 cap = next
                 areas = nil
             }
@@ -304,10 +316,12 @@ final class BuildPipeline: Sendable {
         // Copernicus and Viewfinder are read and converted in-process; pyhgtmap is needed
         // only by the sources that require an account.
         if recipe.needsElevationData, !credentialedSources.isEmpty,
-           toolchain.findPyhgtmap() == nil {
+            toolchain.findPyhgtmap() == nil
+        {
             throw BuildError.missingTool(
                 "pyhgtmap — needed for \(credentialedSources.joined(separator: ", "))."
-                + " Install it from the Toolchain screen, or pick copernicus or view1/view3")
+                    + " Install it from the Toolchain screen, or pick copernicus or view1/view3"
+            )
         }
 
         Paths.bootstrap()
@@ -322,23 +336,31 @@ final class BuildPipeline: Sendable {
 
         log.append("region:  \(recipe.mapName)  [\(recipe.regions.map(\.id).joined(separator: ", "))]")
         log.append("bbox:    \(recipe.coverage.display)")
-        log.append("style:   \(recipe.style.name) · code page \(recipe.codePage)"
-                   + (recipe.effectiveNameTagList.isEmpty ? "" : " · labels \(recipe.effectiveNameTagList)"))
+        log.append(
+            "style:   \(recipe.style.name) · code page \(recipe.codePage)"
+                + (recipe.effectiveNameTagList.isEmpty ? "" : " · labels \(recipe.effectiveNameTagList)")
+        )
         if recipe.codePage == CodePage.westernEuropean, recipe.coverage.isValid,
-           recipe.coverage.minLon > CodePage.cyrillicMeridian {
-            log.warn("code page 1252 cannot hold Cyrillic — names would be transliterated to Latin."
-                     + " Set 1251 if this region's names are in Cyrillic.")
+            recipe.coverage.minLon > CodePage.cyrillicMeridian
+        {
+            log.warn(
+                "code page 1252 cannot hold Cyrillic — names would be transliterated to Latin."
+                    + " Set 1251 if this region's names are in Cyrillic."
+            )
         }
         log.append("product: family \(recipe.familyID) · tiles from \(recipe.mapIDBase)")
-        log.append("options: contours=\(recipe.contours ? "\(recipe.contourInterval) m" : "off")"
-                   + "  dem=\(recipe.demLayer ? "on" : "off")"
-                   + "  routable=\(recipe.routable)  index=\(recipe.searchIndex)")
+        log.append(
+            "options: contours=\(recipe.contours ? "\(recipe.contourInterval) m" : "off")"
+                + "  dem=\(recipe.demLayer ? "on" : "off")"
+                + "  routable=\(recipe.routable)  index=\(recipe.searchIndex)"
+        )
         log.append("levels:  \(recipe.levels.name) — \(recipe.levels.levels)")
         log.append("work:    \(Paths.display(workDirectory))")
         log.append("output:  \(recipe.splitMode.label) → \(Paths.display(recipe.destinationDirectory))")
         // Unfinished downloads leave parts behind; nothing else removes them. The tools
         // folder too: a half-fetched data pack is the largest of them.
-        let freed = PartFiles.sweepAbandoned(in: Paths.cache)
+        let freed =
+            PartFiles.sweepAbandoned(in: Paths.cache)
             + PartFiles.sweepAbandoned(in: Paths.tools)
         if freed > 0 {
             log.append("cleared \(Fmt.bytes(freed)) left by downloads that were never finished")
@@ -350,5 +372,4 @@ final class BuildPipeline: Sendable {
     }
 
     var workDirectory: URL { recipe.workDirectory }
-
 }

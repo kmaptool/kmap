@@ -10,9 +10,12 @@ extension CLI {
     static func tif2hgt(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["dir", "out"])
         guard let cell = flags.positionals.first, let directory = flags.value("dir"),
-              let out = flags.value("out") else {
+            let out = flags.value("out")
+        else {
             return CLIOutput.failure(
-                "usage: kmap tif2hgt <cell> --dir <tiles> --out <file.hgt>", code: 2)
+                "usage: kmap tif2hgt <cell> --dir <tiles> --out <file.hgt>",
+                code: 2
+            )
         }
         let sign = cell.hasPrefix("S") ? -1 : 1
         let east = cell.dropFirst().firstIndex(where: { $0 == "E" || $0 == "W" })
@@ -26,17 +29,23 @@ extension CLI {
         let root = URL(fileURLWithPath: directory)
         let mosaic = HGTConversion.Mosaic { lat, lon in
             let file = root.appendingPathComponent(
-                "\(CopernicusDEM.cellName(lat: lat, lon: lon)).tif")
+                "\(CopernicusDEM.cellName(lat: lat, lon: lon)).tif"
+            )
             return FileTools.exists(file) ? file : nil
         }
         do {
             let started = Date()
-            let count = try HGTConversion.write(cell: (lat: lat, lon: lon), from: mosaic,
-                                                to: URL(fileURLWithPath: out))
+            let count = try HGTConversion.write(
+                cell: (lat: lat, lon: lon),
+                from: mosaic,
+                to: URL(fileURLWithPath: out)
+            )
             let seconds = Date().timeIntervalSince(started)
             CLILog.line("\(count) node(s) written in " + String(format: "%.1f s", seconds))
-            CLIOutput.result(["out": .string(out), "cell": .string(cell),
-                              "nodes": .int(count), "seconds": .double(seconds)])
+            CLIOutput.result([
+                "out": .string(out), "cell": .string(cell),
+                "nodes": .int(count), "seconds": .double(seconds)
+            ])
             return 0
         } catch {
             return CLIOutput.failure("\(error)")
@@ -49,8 +58,10 @@ extension CLI {
     static func tif(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["dump"])
         guard let path = flags.positionals.first else {
-            return CLIOutput.failure("usage: kmap tif <file.tif> [--dump <out.f32>]",
-                                     code: 2)
+            return CLIOutput.failure(
+                "usage: kmap tif <file.tif> [--dump <out.f32>]",
+                code: 2
+            )
         }
         do {
             let started = Date()
@@ -72,12 +83,14 @@ extension CLI {
             }
             let seconds = Date().timeIntervalSince(started)
             CLILog.line(String(format: "read in %.1f s", seconds))
-            CLIOutput.result(["width": .int(tiff.width), "height": .int(tiff.height),
-                              "originLon": .double(tiff.originLon),
-                              "originLat": .double(tiff.originLat),
-                              "stepLon": .double(tiff.stepLon),
-                              "stepLat": .double(tiff.stepLat),
-                              "seconds": .double(seconds)])
+            CLIOutput.result([
+                "width": .int(tiff.width), "height": .int(tiff.height),
+                "originLon": .double(tiff.originLon),
+                "originLat": .double(tiff.originLat),
+                "stepLon": .double(tiff.stepLon),
+                "stepLat": .double(tiff.stepLat),
+                "seconds": .double(seconds)
+            ])
             return 0
         } catch {
             return CLIOutput.failure("\(error)")
@@ -91,12 +104,15 @@ extension CLI {
     static func fetchDEM(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["source"])
         guard let area = flags.positionals.first else {
-            return CLIOutput.failure("usage: kmap fetch-dem <area> [--source view1|view3]",
-                                     code: 2)
+            return CLIOutput.failure(
+                "usage: kmap fetch-dem <area> [--source view1|view3]",
+                code: 2
+            )
         }
         let source = flags.value("source") ?? "view3"
         guard source.hasPrefix("view"), let resolution = Int(source.dropFirst(4)),
-              resolution == 1 || resolution == 3 else {
+            resolution == 1 || resolution == 3
+        else {
             return CLIOutput.failure("unknown source: \(source)", code: 2)
         }
 
@@ -107,16 +123,24 @@ extension CLI {
             var index = try await ViewfinderDEM.index(resolution, downloader: downloader) {
                 CLILog.line($0)
             }
-            CLILog.line("index: \(index.entries.count) archive(s),"
-                  + " \(index.urls(for: area).count) claim \(area)")
-            let file = try await ViewfinderDEM.fetch(area, resolution: resolution,
-                                                     index: &index, downloader: downloader,
-                                                     runner: runner) { CLILog.line($0) }
+            CLILog.line(
+                "index: \(index.entries.count) archive(s),"
+                    + " \(index.urls(for: area).count) claim \(area)"
+            )
+            let file = try await ViewfinderDEM.fetch(
+                area,
+                resolution: resolution,
+                index: &index,
+                downloader: downloader,
+                runner: runner
+            ) { CLILog.line($0) }
             CLILog.line("\(file.path)  \(FileTools.size(of: file)) bytes")
-            CLIOutput.result(["area": .string(area), "source": .string(source),
-                              "file": .string(file.path),
-                              "bytes": .int(Int(FileTools.size(of: file))),
-                              "archives": .int(index.entries.count)])
+            CLIOutput.result([
+                "area": .string(area), "source": .string(source),
+                "file": .string(file.path),
+                "bytes": .int(Int(FileTools.size(of: file))),
+                "archives": .int(index.entries.count)
+            ])
             return 0
         } catch {
             return CLIOutput.failure("\(error)")
@@ -130,8 +154,11 @@ extension CLI {
     static func demCost(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["sources"])
         guard let regionID = flags.positionals.first else {
-            return CLIOutput.failure("usage: kmap dem-cost <region>[+<region>…]"
-                                     + " [--sources=<list>]", code: 2)
+            return CLIOutput.failure(
+                "usage: kmap dem-cost <region>[+<region>…]"
+                    + " [--sources=<list>]",
+                code: 2
+            )
         }
         let sources = flags.value("sources") ?? BuildRecipe.recommendedDEMSources
 
@@ -144,8 +171,11 @@ extension CLI {
         var chosen: [Region] = []
         for id in regionID.split(separator: "+").map(String.init) {
             guard let found = index.region(id) else {
-                return CLIOutput.failure("no region with id \"\(id)\""
-                                         + " — try `kmap regions \(id)`", code: 2)
+                return CLIOutput.failure(
+                    "no region with id \"\(id)\""
+                        + " — try `kmap regions \(id)`",
+                    code: 2
+                )
             }
             chosen.append(found)
         }
@@ -153,8 +183,10 @@ extension CLI {
         let started = Date()
         let cells = await ElevationCost.cells(of: chosen)
         let estimates = await ElevationCost.estimate(sources: sources, cells: cells)
-        CLILog.line("\(chosen.map(\.name).joined(separator: " + ")):"
-                    + " \(cells.count) cell(s) after the outline trim")
+        CLILog.line(
+            "\(chosen.map(\.name).joined(separator: " + ")):"
+                + " \(cells.count) cell(s) after the outline trim"
+        )
         for e in estimates {
             var line = "\(e.source): "
             if e.cached > 0 { line += "\(e.cached) cached · " }
@@ -162,8 +194,10 @@ extension CLI {
                 line += "nothing to fetch — cached or already covered"
             } else if let bytes = e.bytes, bytes > 0 {
                 line += "about \(Fmt.bytes(bytes)) — "
-                line += e.archives > 0 ? "\(e.archives) zone archive(s)"
-                                       : "\(e.published) tile(s)"
+                line +=
+                    e.archives > 0
+                    ? "\(e.archives) zone archive(s)"
+                    : "\(e.published) tile(s)"
                 line += e.exact ? ", every size asked" : ", measured on \(e.sampled)"
                 if let note = e.note { line += " · \(note)" }
             } else if e.bytes == 0 {
@@ -182,22 +216,24 @@ extension CLI {
             "sources": .string(sources),
             "cells": .int(cells.count),
             "totalBytes": .int(Int(total)),
-            "estimates": .array(estimates.map { e in
-                var fields: [String: JSONValue] = [
-                    "source": .string(e.source),
-                    "cells": .int(e.cells),
-                    "cached": .int(e.cached),
-                    "wanted": .int(e.wanted),
-                    "published": .int(e.published),
-                    "exact": .bool(e.exact),
-                    "sampled": .int(e.sampled),
-                    "archives": .int(e.archives),
-                ]
-                fields["bytes"] = e.bytes.map { .int(Int($0)) } ?? .null
-                if let note = e.note { fields["note"] = .string(note) }
-                return .object(fields)
-            }),
-            "seconds": .double(Date().timeIntervalSince(started)),
+            "estimates": .array(
+                estimates.map { e in
+                    var fields: [String: JSONValue] = [
+                        "source": .string(e.source),
+                        "cells": .int(e.cells),
+                        "cached": .int(e.cached),
+                        "wanted": .int(e.wanted),
+                        "published": .int(e.published),
+                        "exact": .bool(e.exact),
+                        "sampled": .int(e.sampled),
+                        "archives": .int(e.archives)
+                    ]
+                    fields["bytes"] = e.bytes.map { .int(Int($0)) } ?? .null
+                    if let note = e.note { fields["note"] = .string(note) }
+                    return .object(fields)
+                }
+            ),
+            "seconds": .double(Date().timeIntervalSince(started))
         ])
         return 0
     }

@@ -15,11 +15,25 @@ enum InstallProgressRow {
     }
 
     /// The status line at `y`, the bar at `y + 1`, both `width` wide.
-    static func draw(_ s: Surface, x: Int, y: Int, width: Int, progress: InstallProgress,
-                     theme: Theme, bg: Color? = nil) {
+    static func draw(
+        _ s: Surface,
+        x: Int,
+        y: Int,
+        width: Int,
+        progress: InstallProgress,
+        theme: Theme,
+        bg: Color? = nil
+    ) {
         let ground = bg ?? theme.appBg
         s.text(x, y, truncate(status(progress), to: width), Style(fg: theme.dim, bg: ground))
-        Widgets.progressBar(s, x: x, y: y + 1, width: width, fraction: progress.fraction,
-                            theme: theme, bg: ground)
+        Widgets.progressBar(
+            s,
+            x: x,
+            y: y + 1,
+            width: width,
+            fraction: progress.fraction,
+            theme: theme,
+            bg: ground
+        )
     }
 }

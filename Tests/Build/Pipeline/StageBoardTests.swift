@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The stages of a build, written by the run and by progress monitors on their own tasks.
 final class StageBoardTests: XCTestCase {
-
     func testEveryStageStartsPendingInTheOrderTheyRun() {
         let board = StageBoard()
         XCTAssertEqual(board.stages.map(\.id), BuildPipeline.StageID.allCases)
@@ -82,15 +82,34 @@ final class StageBoardTests: XCTestCase {
     func testThePipelineReadsAndWritesThroughItsBoard() {
         let settings = SettingsStore()
         let toolchain = Toolchain(settings: settings)
-        let region = Region(id: "continent/small-region", name: "Small Region",
-                            parentID: nil, pbfURL: nil, bbox: .empty, boxes: [])
-        let style = MapStyle(id: "plain", name: "Plain", summary: "", origin: .builtin,
-                             styleDirectory: nil, typURL: nil, familyID: 6300, productID: 1)
+        let region = Region(
+            id: "continent/small-region",
+            name: "Small Region",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: .empty,
+            boxes: []
+        )
+        let style = MapStyle(
+            id: "plain",
+            name: "Plain",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: nil,
+            typURL: nil,
+            familyID: 6300,
+            productID: 1
+        )
         let build = BuildPipeline(
-            recipe: BuildRecipe(region: region, style: style,
-                                outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory())),
-            settings: settings, toolchain: toolchain,
-            styles: StyleCatalog(settings: settings, toolchain: toolchain))
+            recipe: BuildRecipe(
+                region: region,
+                style: style,
+                outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory())
+            ),
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
         build.set(.download, .running, "from the pipeline")
         XCTAssertEqual(build.board.detail(of: .download), "from the pipeline")
         build.board.detail(.download, "from a monitor", fraction: 0.5)

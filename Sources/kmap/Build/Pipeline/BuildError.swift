@@ -20,8 +20,11 @@ enum BuildError: Error, LocalizedError {
         case .noBoundingBox(let name):
             return t("no bounding box known for %@, so elevation data cannot be fetched", name)
         case .noContours(let area):
-            return t("no contour data was produced for %@ — the elevation source may not"
-                   + " cover it", area)
+            return t(
+                "no contour data was produced for %@ — the elevation source may not"
+                    + " cover it",
+                area
+            )
         case .noElevationTiles:
             return t("no .hgt elevation tiles were downloaded, so the DEM layer cannot be built")
         case .splitterOutput(let detail):
@@ -29,9 +32,11 @@ enum BuildError: Error, LocalizedError {
         case .noTiles:
             return t("splitter produced no tiles")
         case .tileTooDense(let nodes, _):
-            return t("a tile still overflows Garmin's 16 MB drawing section at %dk"
-                   + " nodes per tile — lower Nodes per tile in Settings and build again",
-                   nodes / 1000)
+            return t(
+                "a tile still overflows Garmin's 16 MB drawing section at %dk"
+                    + " nodes per tile — lower Nodes per tile in Settings and build again",
+                nodes / 1000
+            )
         case .noOutput(let name):
             return t("mkgmap did not produce gmapsupp.img for %@", name)
         }

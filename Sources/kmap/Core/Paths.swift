@@ -8,8 +8,10 @@ enum Paths {
     /// Where kmap keeps everything. `KMAP_ROOT` moves it; a test run uses `testRoot`.
     static var root: URL {
         if let told = ProcessInfo.processInfo.environment["KMAP_ROOT"], !told.isEmpty {
-            return URL(fileURLWithPath: (told as NSString).expandingTildeInPath,
-                       isDirectory: true)
+            return URL(
+                fileURLWithPath: (told as NSString).expandingTildeInPath,
+                isDirectory: true
+            )
         }
         // Decided here rather than per test, so no test can write the real settings.
         if isATestRun { return testRoot }
@@ -28,19 +30,25 @@ enum Paths {
 
     /// One directory per run of the suite, so nothing survives into the next run.
     static let testRoot: URL = FileManager.default.temporaryDirectory
-        .appendingPathComponent("kmap-tests-\(ProcessInfo.processInfo.processIdentifier)",
-                                isDirectory: true)
+        .appendingPathComponent(
+            "kmap-tests-\(ProcessInfo.processInfo.processIdentifier)",
+            isDirectory: true
+        )
 
     /// The default root: `~/.kmap` on the Unixes, and `%LOCALAPPDATA%\kmap` on Windows,
     /// which is not copied around a domain network as the roaming profile is. The layout
     /// beneath it is the same on every platform.
-    static func defaultRoot(_ platform: Platform = Platform.current,
-                            environment: [String: String] = ProcessInfo.processInfo.environment)
-        -> URL {
+    static func defaultRoot(
+        _ platform: Platform = Platform.current,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    )
+        -> URL
+    {
         guard platform == .windows else {
             return home.appendingPathComponent(".kmap", isDirectory: true)
         }
-        let local = environment.variable("LOCALAPPDATA", on: platform)
+        let local =
+            environment.variable("LOCALAPPDATA", on: platform)
             .flatMap { $0.isEmpty ? nil : $0 }
             .map { URL(fileURLWithPath: $0, isDirectory: true) }
             ?? home.appendingPathComponent("AppData/Local", isDirectory: true)
@@ -78,13 +86,17 @@ enum Paths {
     /// anyone looks for files they made.
     static var defaultOutput: URL { defaultOutput() }
 
-    static func defaultOutput(_ platform: Platform = Platform.current,
-                              environment: [String: String] = ProcessInfo.processInfo.environment)
-        -> URL {
+    static func defaultOutput(
+        _ platform: Platform = Platform.current,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    )
+        -> URL
+    {
         guard platform == .windows else {
             return home.appendingPathComponent("kmap", isDirectory: true)
         }
-        let profile = environment.variable("USERPROFILE", on: platform)
+        let profile =
+            environment.variable("USERPROFILE", on: platform)
             .flatMap { $0.isEmpty ? nil : $0 }
             .map { URL(fileURLWithPath: $0, isDirectory: true) } ?? home
         return profile.appendingPathComponent("Documents", isDirectory: true)
@@ -118,7 +130,6 @@ enum Paths {
         return URL(fileURLWithPath: trimmed)
     }
 }
-
 
 extension URL {
     /// Whether two URLs name the same file, resolving symlinks first. `==` alone treats

@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// Managing profiles from the shell: create, change, copy, rename, delete, choose.
 final class CLIProfileCommandTests: XCTestCase {
-
     private var store: SettingsStore!
 
     override func setUp() {
@@ -12,7 +12,9 @@ final class CLIProfileCommandTests: XCTestCase {
         let profiles = store.settings.profiles
         let last = store.settings.lastProfileID
         addTeardownBlock { [store] in
-            store?.update { $0.profiles = profiles; $0.lastProfileID = last }
+            store?.update {
+                $0.profiles = profiles; $0.lastProfileID = last
+            }
         }
         store.update {
             $0.profiles = [BuildProfile(id: "one", name: "Handheld")]
@@ -39,25 +41,34 @@ final class CLIProfileCommandTests: XCTestCase {
     }
 
     func testNewRefusesATakenName() {
-        XCTAssertEqual(run(["new", "handheld"]).code, 2,
-                       "matching is case-insensitive, like --profile")
+        XCTAssertEqual(
+            run(["new", "handheld"]).code,
+            2,
+            "matching is case-insensitive, like --profile"
+        )
     }
 
     func testSetChangesOnlyWhatItIsGiven() {
         _ = run(["set", "Handheld", "--interval=50"])
         let held = SettingsStore().profiles.first { $0.name == "Handheld" }
         XCTAssertEqual(held?.choices.contourInterval, 50)
-        XCTAssertEqual(held?.choices.demLayer, BuildChoices().demLayer,
-                       "an unnamed field keeps its value")
+        XCTAssertEqual(
+            held?.choices.demLayer,
+            BuildChoices().demLayer,
+            "an unnamed field keeps its value"
+        )
     }
 
     func testATypoRefusesTheWholeChange() {
         let refused = run(["set", "Handheld", "--intreval=50"])
         XCTAssertEqual(refused.code, 2)
         XCTAssertTrue(refused.error.contains("--intreval"), refused.error)
-        XCTAssertEqual(SettingsStore().profiles.first { $0.name == "Handheld" }?
-            .choices.contourInterval, BuildChoices().contourInterval,
-                       "nothing may change when anything was refused")
+        XCTAssertEqual(
+            SettingsStore().profiles.first { $0.name == "Handheld" }?
+                .choices.contourInterval,
+            BuildChoices().contourInterval,
+            "nothing may change when anything was refused"
+        )
     }
 
     func testAPerBuildFlagIsRefusedWithAWordToThatEffect() {
@@ -96,8 +107,11 @@ final class CLIProfileCommandTests: XCTestCase {
     }
 
     func testRenamingToACaseChangeOfItsOwnNameIsAllowed() {
-        XCTAssertEqual(run(["rename", "Handheld", "handheld"]).code, 0,
-                       "a clash with itself is no clash")
+        XCTAssertEqual(
+            run(["rename", "Handheld", "handheld"]).code,
+            0,
+            "a clash with itself is no clash"
+        )
         XCTAssertEqual(SettingsStore().profiles.first?.name, "handheld")
     }
 
@@ -106,7 +120,10 @@ final class CLIProfileCommandTests: XCTestCase {
         XCTAssertEqual(refused.code, 2)
         XCTAssertTrue(refused.error.contains("nonsense-id"), refused.error)
         XCTAssertEqual(run(["set", "Handheld", "--hide=power-tower"]).code, 0)
-        XCTAssertEqual(SettingsStore().profiles.first { $0.name == "Handheld" }?
-            .choices.hiddenFeatures, ["power-tower"])
+        XCTAssertEqual(
+            SettingsStore().profiles.first { $0.name == "Handheld" }?
+                .choices.hiddenFeatures,
+            ["power-tower"]
+        )
     }
 }

@@ -35,7 +35,7 @@ struct ToolStatus {
 
     let id: String
     let name: String
-    let detail: String          // what it is used for
+    let detail: String  // what it is used for
     var state: State
     var path: String?
     var version: String?

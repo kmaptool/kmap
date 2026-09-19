@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The version probes the toolchain screen and `doctor` run.
 final class ProcessProbeTests: XCTestCase {
-
     func testCaptureReturnsWhatTheToolPrinted() {
         let echo = TestShell.echo("mkgmap 4917")
         let out = ProcessProbe.capture(echo.executable, echo.arguments)

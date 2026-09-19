@@ -56,9 +56,13 @@ final class AppContext {
             static func sample(_ root: URL = Paths.hgtCache) -> Elevation {
                 var out = Elevation()
                 var sources: Set<String> = []
-                guard let walker = FileManager.default.enumerator(
-                    at: root, includingPropertiesForKeys: nil,
-                    options: [.skipsHiddenFiles]) else { return out }
+                guard
+                    let walker = FileManager.default.enumerator(
+                        at: root,
+                        includingPropertiesForKeys: nil,
+                        options: [.skipsHiddenFiles]
+                    )
+                else { return out }
                 for case let url as URL in walker where url.pathExtension.lowercased() == "hgt" {
                     out.tiles += 1
                     out.bytes += FileTools.size(of: url)
@@ -156,8 +160,11 @@ final class AppContext {
         let (sample, ticks) = MachineLoad.read(since: loadTicks)
         loadTicks = ticks
         // A reading with no rate yet keeps the previous CPU figure rather than showing 0.
-        load = MachineLoad(cpu: sample.cpu ?? load.cpu,
-                           usedMemory: sample.usedMemory, totalMemory: sample.totalMemory)
+        load = MachineLoad(
+            cpu: sample.cpu ?? load.cpu,
+            usedMemory: sample.usedMemory,
+            totalMemory: sample.totalMemory
+        )
     }
 
     /// Re-counts cached extracts and built maps off the render loop. `force` bypasses the
@@ -178,14 +185,16 @@ final class AppContext {
             for entry in FileTools.contents(of: outputURL) {
                 var isDir: ObjCBool = false
                 guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir),
-                      isDir.boolValue else { continue }
+                    isDir.boolValue
+                else { continue }
                 built += FileTools.contents(of: entry, extension: "img").count
             }
             let snapshot = Overview(
                 cachedExtracts: extracts.count,
                 cachedBytes: bytes,
                 builtMaps: built,
-                elevation: walkElevation ? Overview.Elevation.sample() : previousElevation)
+                elevation: walkElevation ? Overview.Elevation.sample() : previousElevation
+            )
             await MainActor.run { self.overview = snapshot }
         }
     }

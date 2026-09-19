@@ -7,8 +7,11 @@ enum ProcessProbe {
 
     /// Runs a command for its exit code alone, discarding its output. Returns nil if the
     /// executable is missing or the command had to be killed at `timeout`.
-    static func exitCode(_ executable: String, _ arguments: [String],
-                         timeout: TimeInterval = defaultTimeout) -> Int32? {
+    static func exitCode(
+        _ executable: String,
+        _ arguments: [String],
+        timeout: TimeInterval = defaultTimeout
+    ) -> Int32? {
         guard FileTools.isExecutable(executable) else { return nil }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
@@ -27,8 +30,11 @@ enum ProcessProbe {
 
     /// Runs a command to capture its combined output, for version probes. Returns nil if the
     /// executable is missing or the output is not UTF-8.
-    static func capture(_ executable: String, _ arguments: [String],
-                        timeout: TimeInterval = defaultTimeout) -> String? {
+    static func capture(
+        _ executable: String,
+        _ arguments: [String],
+        timeout: TimeInterval = defaultTimeout
+    ) -> String? {
         guard FileTools.isExecutable(executable) else { return nil }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)

@@ -1,33 +1,36 @@
 import XCTest
+
 @testable import kmap
 
 /// One reading of the sheet, for the build that applies it and the screen that lists it.
 final class SubstitutionSheetTests: XCTestCase {
-
     private let sheet = """
-    # prose before anything
-    @@ points
-    - sport=airport [0x2d0b resolution 24]
+        # prose before anything
+        @@ points
+        - sport=airport [0x2d0b resolution 24]
 
-    # a bare deletion, then prose, then the next entry
-    - amenity=prison [0x3007 resolution 24]
-    + amenity=prison [0x661a resolution 24]
-    - two=lines [0x10 resolution 24]
-    -     [0x11 resolution 22]
-    + two=lines [0x12 resolution 24]
-    @@ lines
-    - highway=path [0x16 resolution 22]
-    + highway=path [0x16 resolution 23]
-    + highway=path [0x10016 resolution 23 continue]
-    """
+        # a bare deletion, then prose, then the next entry
+        - amenity=prison [0x3007 resolution 24]
+        + amenity=prison [0x661a resolution 24]
+        - two=lines [0x10 resolution 24]
+        -     [0x11 resolution 22]
+        + two=lines [0x12 resolution 24]
+        @@ lines
+        - highway=path [0x16 resolution 22]
+        + highway=path [0x16 resolution 23]
+        + highway=path [0x10016 resolution 23 continue]
+        """
 
     func testEveryShapeASheetCanTakeReadsAsItsOwnEntry() {
         let entries = SubstitutionSheet.parse(sheet)
         XCTAssertEqual(entries.map(\.file), ["points", "points", "points", "lines"])
         XCTAssertEqual(entries[0].old, ["sport=airport [0x2d0b resolution 24]"])
         XCTAssertEqual(entries[0].new, [], "a - with no + deletes the rule")
-        XCTAssertEqual(entries[1].old, ["amenity=prison [0x3007 resolution 24]"],
-                       "prose between entries keeps them apart")
+        XCTAssertEqual(
+            entries[1].old,
+            ["amenity=prison [0x3007 resolution 24]"],
+            "prose between entries keeps them apart"
+        )
         XCTAssertEqual(entries[2].old.count, 2, "adjacent - lines are one two-line anchor")
         XCTAssertEqual(entries[3].new.count, 2, "one - may become several +")
     }

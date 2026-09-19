@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Where kmap keeps things.
@@ -6,23 +7,26 @@ import XCTest
 /// Everything lives under ~/.kmap except finished maps. Checked by shape rather than by
 /// value: the tests must not create or move anything in a real home directory.
 final class PathsTests: XCTestCase {
-
     func testEverythingKmapOwnsSitsUnderOneRoot() {
         // The root's name does not matter; a test run gets one of its own. See
         // `Paths.isATestRun`.
         let root = Paths.root.path
         XCTAssertFalse(root.isEmpty)
-        for url in [Paths.settingsFile, Paths.cache, Paths.indexCache, Paths.pbfCache,
-                    Paths.hgtCache, Paths.tools, Paths.venv,
-                    Paths.seaData, Paths.boundsData, Paths.styles, Paths.work, Paths.logs] {
+        for url in [
+            Paths.settingsFile, Paths.cache, Paths.indexCache, Paths.pbfCache,
+            Paths.hgtCache, Paths.tools, Paths.venv,
+            Paths.seaData, Paths.boundsData, Paths.styles, Paths.work, Paths.logs
+        ] {
             XCTAssertTrue(url.path.hasPrefix(root + "/"), url.path)
         }
     }
 
     /// The root a real run uses, which is not this process's test root.
     func testTheRealRootIsTheDotDirectoryInTheHome() {
-        XCTAssertEqual(Paths.home.appendingPathComponent(".kmap").path,
-                       Paths.home.path + "/.kmap")
+        XCTAssertEqual(
+            Paths.home.appendingPathComponent(".kmap").path,
+            Paths.home.path + "/.kmap"
+        )
         #if !os(Windows)
         XCTAssertEqual(Paths.defaultRoot().path, Paths.home.path + "/.kmap")
         #endif
@@ -33,13 +37,17 @@ final class PathsTests: XCTestCase {
     func testWindowsPutsItInLocalAppDataRatherThanADotDirectory() {
         // Local rather than Roaming: the caches must not be copied around a domain
         // network at every login.
-        let root = Paths.defaultRoot(.windows,
-                                     environment: ["LOCALAPPDATA": #"C:\Users\k\AppData\Local"#])
+        let root = Paths.defaultRoot(
+            .windows,
+            environment: ["LOCALAPPDATA": #"C:\Users\k\AppData\Local"#]
+        )
         // Compared by its tail: from a Mac a drive letter is a relative name, so the URL
         // picks up the working directory in front of it.
-        XCTAssertTrue(root.nativePath.hasSuffix(#"C:\Users\k\AppData\Local"# + "/kmap")
-                      || root.nativePath.hasSuffix(#"C:\Users\k\AppData\Local\kmap"#),
-                      root.nativePath)
+        XCTAssertTrue(
+            root.nativePath.hasSuffix(#"C:\Users\k\AppData\Local"# + "/kmap")
+                || root.nativePath.hasSuffix(#"C:\Users\k\AppData\Local\kmap"#),
+            root.nativePath
+        )
     }
 
     func testWindowsWithoutTheVariableFallsBackToWhereItAlwaysIs() {
@@ -53,9 +61,14 @@ final class PathsTests: XCTestCase {
     func testEveryUnixKeepsTheDotDirectoryItAlwaysHad() {
         // Including WSL, where it is the Linux home that matters and not the Windows one.
         for platform in [Platform.macOS, .linux, .wsl] {
-            XCTAssertEqual(Paths.defaultRoot(platform,
-                                             environment: ["LOCALAPPDATA": #"C:\x"#]).path,
-                           Paths.home.path + "/.kmap", "\(platform)")
+            XCTAssertEqual(
+                Paths.defaultRoot(
+                    platform,
+                    environment: ["LOCALAPPDATA": #"C:\x"#]
+                ).path,
+                Paths.home.path + "/.kmap",
+                "\(platform)"
+            )
         }
     }
 
@@ -101,8 +114,10 @@ final class PathsTests: XCTestCase {
     }
 
     func testDisplayShortensTheHomeDirectoryAndLeavesTheRestAlone() {
-        XCTAssertEqual(Paths.display(Paths.home.appendingPathComponent("Garmin/kmap")),
-                       "~/Garmin/kmap")
+        XCTAssertEqual(
+            Paths.display(Paths.home.appendingPathComponent("Garmin/kmap")),
+            "~/Garmin/kmap"
+        )
         XCTAssertEqual(Paths.display(URL(fileURLWithPath: "/Volumes/Card")), "/Volumes/Card")
     }
 

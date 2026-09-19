@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Naming of elevation tiles: a tile is named for its south-west corner, in all four
 /// quadrants.
 final class HGTNameTests: XCTestCase {
-
     func testTheFourQuadrantsAreNamedFromTheirCorner() {
         XCTAssertEqual(HGTName.of(lat: 44, lon: 33), "N44E033")
         XCTAssertEqual(HGTName.of(lat: -34, lon: -71), "S34W071")
@@ -45,8 +45,10 @@ final class HGTNameTests: XCTestCase {
 
     func testSomethingThatIsNotATileNameIsRefusedRatherThanGuessedAt() {
         // A tile directory also holds index files and stray downloads.
-        for wrong in ["", "N44", "X44E033", "N44X033", "NAAE033", "N44E0AA",
-                      "viewfinderHgtIndex_1.txt", "N44E33"] {
+        for wrong in [
+            "", "N44", "X44E033", "N44X033", "NAAE033", "N44E0AA",
+            "viewfinderHgtIndex_1.txt", "N44E33"
+        ] {
             XCTAssertNil(HGTName.corner(of: wrong), wrong)
         }
     }

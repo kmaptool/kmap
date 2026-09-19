@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// Whether the plan reaches the style a build compiles, through the path a build takes.
 final class ZoomWiringTests: XCTestCase {
-
     /// The materialized style's identity changes with the plan; otherwise a second build
     /// finds the marker matching and reuses the rules from the first.
     @MainActor
@@ -36,13 +36,30 @@ final class ZoomWiringTests: XCTestCase {
         choices.levelsID = LevelsProfile.smooth.id
         choices.zoomPlanID = saved.id
 
-        let region = Region(id: "x", name: "X", parentID: nil, pbfURL: nil,
-                            bbox: BBox(minLon: 0, minLat: 0, maxLon: 1, maxLat: 1),
-                            boxes: [], childIDs: [])
-        let style = MapStyle(id: "plain", name: "Plain", summary: "", origin: .builtin,
-                             styleDirectory: nil, typURL: nil, familyID: 1, productID: 1)
-        var recipe = BuildRecipe(region: region, style: style,
-                                 outputDirectory: URL(fileURLWithPath: "/tmp/out"))
+        let region = Region(
+            id: "x",
+            name: "X",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: BBox(minLon: 0, minLat: 0, maxLon: 1, maxLat: 1),
+            boxes: [],
+            childIDs: []
+        )
+        let style = MapStyle(
+            id: "plain",
+            name: "Plain",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: nil,
+            typURL: nil,
+            familyID: 1,
+            productID: 1
+        )
+        var recipe = BuildRecipe(
+            region: region,
+            style: style,
+            outputDirectory: URL(fileURLWithPath: "/tmp/out")
+        )
         recipe.apply(choices, style: nil, regionCodePage: 0, plans: settings.zoomPlans)
         XCTAssertEqual(recipe.zoomPlan.id, saved.id)
         XCTAssertEqual(recipe.zoomPlan.window(ZoomFamily.named("woodland")!)?.rungs, 1...3)

@@ -1,13 +1,16 @@
 import XCTest
+
 @testable import kmap
 
 /// The two numbers the header bar reports: CPU rate and memory in use.
 final class MachineLoadTests: XCTestCase {
-
     func testTheMachineReportsItsMemory() {
         let (load, _) = MachineLoad.read(since: nil)
-        XCTAssertGreaterThan(load.totalMemory, 1_000_000_000,
-                             "a machine running this has at least a gigabyte")
+        XCTAssertGreaterThan(
+            load.totalMemory,
+            1_000_000_000,
+            "a machine running this has at least a gigabyte"
+        )
         XCTAssertGreaterThan(load.usedMemory, 0)
         XCTAssertLessThanOrEqual(load.usedMemory, load.totalMemory)
         XCTAssertTrue((0...1).contains(load.memoryFraction))
@@ -28,8 +31,11 @@ final class MachineLoadTests: XCTestCase {
         try await Task.sleep(nanoseconds: 300_000_000)
 
         let (load, _) = MachineLoad.read(since: first)
-        let cpu = try XCTUnwrap(load.cpu, "two readings a third of a second apart should"
-                                + " give a rate")
+        let cpu = try XCTUnwrap(
+            load.cpu,
+            "two readings a third of a second apart should"
+                + " give a rate"
+        )
         XCTAssertTrue((0...1).contains(cpu), "\(cpu) is not a fraction")
     }
 
@@ -38,40 +44,59 @@ final class MachineLoadTests: XCTestCase {
     func testAPairOfReadingsThatSaysNothingAnswersNothing() {
         let now = MachineLoad.Ticks(busy: 500, total: 1_000)
         XCTAssertNil(MachineLoad.rate(from: now, to: now), "no time passed")
-        XCTAssertNil(MachineLoad.rate(from: now, to: .init(busy: 400, total: 900)),
-                     "counters that went backwards")
-        XCTAssertNil(MachineLoad.rate(from: now, to: .init(busy: 400, total: 1_100)),
-                     "busy went backwards while total did not")
+        XCTAssertNil(
+            MachineLoad.rate(from: now, to: .init(busy: 400, total: 900)),
+            "counters that went backwards"
+        )
+        XCTAssertNil(
+            MachineLoad.rate(from: now, to: .init(busy: 400, total: 1_100)),
+            "busy went backwards while total did not"
+        )
     }
 
     func testTheRateIsBusyOverElapsed() {
         let was = MachineLoad.Ticks(busy: 1_000, total: 4_000)
-        XCTAssertEqual(MachineLoad.rate(from: was, to: .init(busy: 1_050, total: 4_100)),
-                       0.5)
-        XCTAssertEqual(MachineLoad.rate(from: was, to: .init(busy: 1_000, total: 4_100)),
-                       0.0, "idle is a real answer, unlike no answer at all")
+        XCTAssertEqual(
+            MachineLoad.rate(from: was, to: .init(busy: 1_050, total: 4_100)),
+            0.5
+        )
+        XCTAssertEqual(
+            MachineLoad.rate(from: was, to: .init(busy: 1_000, total: 4_100)),
+            0.0,
+            "idle is a real answer, unlike no answer at all"
+        )
         // Busy beyond the elapsed time is clamped to full.
-        XCTAssertEqual(MachineLoad.rate(from: was, to: .init(busy: 1_500, total: 4_100)),
-                       1.0)
+        XCTAssertEqual(
+            MachineLoad.rate(from: was, to: .init(busy: 1_500, total: 4_100)),
+            1.0
+        )
     }
 
     func testMemoryReadsAsUsedOutOfTotal() {
-        XCTAssertEqual(Fmt.memory(used: 12_884_901_888, total: 68_719_476_736),
-                       "12.0/64 GB")
+        XCTAssertEqual(
+            Fmt.memory(used: 12_884_901_888, total: 68_719_476_736),
+            "12.0/64 GB"
+        )
         XCTAssertEqual(Fmt.memory(used: 0, total: 17_179_869_184), "0.0/16 GB")
     }
 }
 
 /// What the header bar drops as the width it is given shrinks.
 final class HeaderRightTests: XCTestCase {
-
-    private let load = MachineLoad(cpu: 0.42, usedMemory: 25_769_803_776,
-                                   totalMemory: 51_539_607_552)
+    private let load = MachineLoad(
+        cpu: 0.42,
+        usedMemory: 25_769_803_776,
+        totalMemory: 51_539_607_552
+    )
 
     /// Paints the header pieces into a single row of the given width.
     private func drawn(width: Int, title: String) -> String {
-        let pieces = Widgets.headerRight(width: width, titleEnds: 9 + title.count,
-                                         clock: "22:21:54", load: load)
+        let pieces = Widgets.headerRight(
+            width: width,
+            titleEnds: 9 + title.count,
+            clock: "22:21:54",
+            load: load
+        )
         var row = Array(repeating: Character(" "), count: width)
         for piece in pieces {
             let start = piece.endsAt - piece.text.count
@@ -106,9 +131,16 @@ final class HeaderRightTests: XCTestCase {
     }
 
     func testNoReadingMeansNoNumbers() {
-        let pieces = Widgets.headerRight(width: 120, titleEnds: 20, clock: "22:21:54",
-                                         load: MachineLoad(cpu: nil, usedMemory: 0,
-                                                           totalMemory: 0))
+        let pieces = Widgets.headerRight(
+            width: 120,
+            titleEnds: 20,
+            clock: "22:21:54",
+            load: MachineLoad(
+                cpu: nil,
+                usedMemory: 0,
+                totalMemory: 0
+            )
+        )
         XCTAssertEqual(pieces.count, 1)
     }
 }

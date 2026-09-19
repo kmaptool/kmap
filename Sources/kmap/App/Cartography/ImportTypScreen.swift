@@ -5,7 +5,6 @@ import Foundation
 /// Two ways in: a scan of the Garmin folders on every mounted volume, and a typed path.
 /// Either way the file is copied into the library; the original is never written to.
 final class ImportTypScreen: Screen {
-
     var page: Page {
         Page(t("import a TYP"), subject: mode == .found ? nil : t("by path"), keys: keys)
     }
@@ -16,11 +15,13 @@ final class ImportTypScreen: Screen {
         if let asking { return asking.footerHints }
         switch mode {
         case .found:
-            return [Hint(key: "↑↓", label: t("move")),
-                    Hint(key: Glyph.enter, label: t("import")),
-                    Hint(key: "type", label: t("filter")),
-                    Hint(key: Glyph.tab, label: t("type a path")),
-                    Hint(key: "esc", label: t("back"))]
+            return [
+                Hint(key: "↑↓", label: t("move")),
+                Hint(key: Glyph.enter, label: t("import")),
+                Hint(key: "type", label: t("filter")),
+                Hint(key: Glyph.tab, label: t("type a path")),
+                Hint(key: "esc", label: t("back"))
+            ]
         case .path:
             var hints = [Hint(key: Glyph.enter, label: t("import"))]
             if FilePicker.isAvailable { hints.append(Hint(key: "^O", label: t("browse"))) }
@@ -204,9 +205,11 @@ final class ImportTypScreen: Screen {
         switch key {
         case .ctrl("o"):
             // The system's own file dialog, for paths too long to type.
-            if let chosen = FilePicker.choose(.file(extensions: ["typ", "img"]),
-                                              startingAt: startingPoint(),
-                                              prompt: t("import a TYP")) {
+            if let chosen = FilePicker.choose(
+                .file(extensions: ["typ", "img"]),
+                startingAt: startingPoint(),
+                prompt: t("import a TYP")
+            ) {
                 path = chosen.path
                 message = nil
             }
@@ -240,7 +243,7 @@ final class ImportTypScreen: Screen {
     private func ask(about url: URL, candidate: TypCandidate?) {
         var detail: [(label: String, value: String)] = [
             (t("file"), url.lastPathComponent),
-            (t("from"), Paths.display(url.deletingLastPathComponent())),
+            (t("from"), Paths.display(url.deletingLastPathComponent()))
         ]
         if let candidate {
             detail.append((t("size"), Fmt.bytes(candidate.size)))
@@ -249,8 +252,14 @@ final class ImportTypScreen: Screen {
         // Already held byte for byte: another identical copy adds nothing, so the existing
         // entry is named instead.
         if let name = held.exact[TypLibrary.fingerprint(ofTypAt: url)] {
-            say(t("already in the library as %@ · in styles: c copies it, o brings back the"
-                + " original", name), error: false)
+            say(
+                t(
+                    "already in the library as %@ · in styles: c copies it, o brings back the"
+                        + " original",
+                    name
+                ),
+                error: false
+            )
             return
         }
 
@@ -262,16 +271,23 @@ final class ImportTypScreen: Screen {
         if !ImgContainer.isImg(url) {
             warning = Dialog(
                 title: t("Only the drawing"),
-                body: [t("A TYP file holds the drawing: colours, patterns, icons. Which"
-                       + " code stands for a forest or a trunk road is not in it — that is"
-                       + " read out of the map itself."),
-                       t("So recovering the style is not available for a TYP on its own."
-                       + " If you have the .img this file came from, import that instead:"
-                       + " kmap takes the TYP out of it and can work the codes out too.")],
+                body: [
+                    t(
+                        "A TYP file holds the drawing: colours, patterns, icons. Which"
+                            + " code stands for a forest or a trunk road is not in it — that is"
+                            + " read out of the map itself."
+                    ),
+                    t(
+                        "So recovering the style is not available for a TYP on its own."
+                            + " If you have the .img this file came from, import that instead:"
+                            + " kmap takes the TYP out of it and can work the codes out too."
+                    )
+                ],
                 detail: detail,
                 confirm: t("import anyway"),
                 cancel: t("cancel"),
-                tone: .plain)
+                tone: .plain
+            )
             return
         }
         askAboutRights()
@@ -281,15 +297,22 @@ final class ImportTypScreen: Screen {
     private func askAboutRights() {
         asking = Dialog(
             title: t("Important"),
-            body: [t("I confirm that the copyright in the files being imported is mine, or"
-                   + " that their author has given me permission, or that they are open"
-                   + " source and copying and editing them is allowed."),
-                   t("The copy stays on this machine. kmap does not publish it and does not"
-                   + " send it anywhere; what is done with it afterwards is yours to answer"
-                   + " for.")],
+            body: [
+                t(
+                    "I confirm that the copyright in the files being imported is mine, or"
+                        + " that their author has given me permission, or that they are open"
+                        + " source and copying and editing them is allowed."
+                ),
+                t(
+                    "The copy stays on this machine. kmap does not publish it and does not"
+                        + " send it anywhere; what is done with it afterwards is yours to answer"
+                        + " for."
+                )
+            ],
             detail: pendingDetail,
             confirm: t("I confirm"),
-            cancel: t("cancel"))
+            cancel: t("cancel")
+        )
     }
 
     /// Copies a TYP into the library, lifting it out of a `.img` and decompiling it where
@@ -299,9 +322,12 @@ final class ImportTypScreen: Screen {
             let result = try TypLibrary.take(at: url)
             // What was taken, from where, and that the rights were confirmed, recorded
             // beside the copy.
-            TypLibrary.recordImport(from: url, to: result.url,
-                                    fingerprint: result.fingerprint,
-                                    note: "rights confirmed by the user")
+            TypLibrary.recordImport(
+                from: url,
+                to: result.url,
+                fingerprint: result.fingerprint,
+                note: "rights confirmed by the user"
+            )
             message = describe(result, from: url)
             messageIsError = false
             path = ""
@@ -314,15 +340,20 @@ final class ImportTypScreen: Screen {
                 recoverable = (img: url, typ: result.url)
                 offering = Dialog(
                     title: t("Recover the style?"),
-                    body: [t("A TYP records how type codes are drawn. The map records the"
-                           + " other half: which code stands for a forest or a trunk road."
-                           + " kmap can read that out of the map — builds with this style"
-                           + " then look the same as the original."),
-                           t("The whole map is read, which takes a few minutes.")],
+                    body: [
+                        t(
+                            "A TYP records how type codes are drawn. The map records the"
+                                + " other half: which code stands for a forest or a trunk road."
+                                + " kmap can read that out of the map — builds with this style"
+                                + " then look the same as the original."
+                        ),
+                        t("The whole map is read, which takes a few minutes.")
+                    ],
                     detail: [(t("map"), url.lastPathComponent)],
                     confirm: t("recover"),
                     cancel: t("not now"),
-                    tone: .plain)
+                    tone: .plain
+                )
             }
         } catch {
             message = error.localizedDescription
@@ -353,9 +384,11 @@ final class ImportTypScreen: Screen {
         let theme = ctx.theme
         var y = rect.y
 
-        let intro = t("kmap works with a copy in its own folder and does not touch the "
-                    + "original again. The style keeps working even if the source file "
-                    + "was on a removable drive.")
+        let intro = t(
+            "kmap works with a copy in its own folder and does not touch the "
+                + "original again. The style keeps working even if the source file "
+                + "was on a removable drive."
+        )
         for chunk in wrapText(intro, width: rect.w) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
@@ -368,8 +401,12 @@ final class ImportTypScreen: Screen {
         }
 
         if let message, y < rect.maxY {
-            s.text(rect.x, rect.maxY - 1, truncate(message, to: rect.w),
-                   Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                rect.maxY - 1,
+                truncate(message, to: rect.w),
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg)
+            )
         }
 
         // Drawn last: a dialog covers everything else while it is up.
@@ -379,14 +416,23 @@ final class ImportTypScreen: Screen {
     }
 
     private func drawPathEntry(into s: Surface, rect: Rect, y: inout Int, theme: Theme) {
-        s.text(rect.x, y, t("Path to a .typ or a Garmin .img:"),
-               Style(fg: theme.text, bg: theme.appBg))
+        s.text(
+            rect.x,
+            y,
+            t("Path to a .typ or a Garmin .img:"),
+            Style(fg: theme.text, bg: theme.appBg)
+        )
         y += 1
         let end = s.text(rect.x, y, path, Style(fg: theme.strong, bg: theme.appBg, bold: true))
         s.put(end, y, "▏", Style(fg: theme.accent, bg: theme.appBg))
         y += 2
-        for chunk in wrapText(t("A .img has its TYP lifted out here — there is no need to "
-                              + "unpack it first. `~` is expanded."), width: rect.w) {
+        for chunk in wrapText(
+            t(
+                "A .img has its TYP lifted out here — there is no need to "
+                    + "unpack it first. `~` is expanded."
+            ),
+            width: rect.w
+        ) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
         }
@@ -399,24 +445,38 @@ final class ImportTypScreen: Screen {
         let end = s.text(x, y, query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
         s.put(end, y, "▏", Style(fg: theme.accent, bg: theme.appBg))
         if scanning {
-            s.textRight(rect.maxX, y, t("%@ searching your drives…",
-                                        String(Widgets.spinner(frame))),
-                        Style(fg: theme.dim, bg: theme.appBg))
+            s.textRight(
+                rect.maxX,
+                y,
+                t(
+                    "%@ searching your drives…",
+                    String(Widgets.spinner(frame))
+                ),
+                Style(fg: theme.dim, bg: theme.appBg)
+            )
         } else {
-            s.textRight(rect.maxX, y, t("%d of %d", shown.count, candidates.count),
-                        Style(fg: theme.faint, bg: theme.appBg))
+            s.textRight(
+                rect.maxX,
+                y,
+                t("%d of %d", shown.count, candidates.count),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
         }
         y += 1
         s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
         y += 1
 
         guard !shown.isEmpty else {
-            s.text(rect.x, y, scanning
+            s.text(
+                rect.x,
+                y,
+                scanning
                     ? t("looking…")
                     : (candidates.isEmpty
                         ? t("nothing found — press ⇥ and type a path instead")
                         : t("nothing matches \"%@\"", query)),
-                   Style(fg: theme.faint, bg: theme.appBg))
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
             return
         }
@@ -428,17 +488,34 @@ final class ImportTypScreen: Screen {
         for i in 0..<min(listHeight, shown.count - list.offset) {
             let index = list.offset + i
             guard let candidate = shown[safe: index] else { break }
-            draw(candidate, into: s, rect: rect, y: y, theme: theme,
-                 selected: index == list.selected)
+            draw(
+                candidate,
+                into: s,
+                rect: rect,
+                y: y,
+                theme: theme,
+                selected: index == list.selected
+            )
             y += 1
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
-                           offset: list.offset, count: shown.count,
-                           visible: listHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
+            offset: list.offset,
+            count: shown.count,
+            visible: listHeight,
+            theme: theme
+        )
     }
 
-    private func draw(_ candidate: TypCandidate, into s: Surface, rect: Rect, y: Int,
-                      theme: Theme, selected: Bool) {
+    private func draw(
+        _ candidate: TypCandidate,
+        into s: Surface,
+        rect: Rect,
+        y: Int,
+        theme: Theme,
+        selected: Bool
+    ) {
         // Only an exact fingerprint match is dimmed: several distinct TYPs share one family
         // id, and holding one of them says nothing about the others.
         let holding = TypLibrary.holding(of: candidate, in: held)
@@ -452,14 +529,18 @@ final class ImportTypScreen: Screen {
         case .none: trailing = Fmt.bytes(candidate.size)
         }
 
-        Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1), y: y,
-                    text: candidate.name + "  ·  " + t("family %d", candidate.familyID)
-                        + "  ·  " + candidate.location,
-                    trailing: trailing,
-                    theme: theme,
-                    selected: selected,
-                    dimmed: alreadyHeld,
-                    leading: candidate.isEmbedded ? "img " : "typ ",
-                    leadingColor: candidate.isEmbedded ? theme.accentDim : theme.faint)
+        Widgets.row(
+            s,
+            rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
+            y: y,
+            text: candidate.name + "  ·  " + t("family %d", candidate.familyID)
+                + "  ·  " + candidate.location,
+            trailing: trailing,
+            theme: theme,
+            selected: selected,
+            dimmed: alreadyHeld,
+            leading: candidate.isEmbedded ? "img " : "typ ",
+            leadingColor: candidate.isEmbedded ? theme.accentDim : theme.faint
+        )
     }
 }

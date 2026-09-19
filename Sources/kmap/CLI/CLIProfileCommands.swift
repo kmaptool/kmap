@@ -4,7 +4,6 @@ import Foundation
 /// same vocabulary the build command speaks — every choice a profile holds has the same
 /// flag on either command.
 extension CLI {
-
     /// The verbs after `kmap profiles`; bare, it lists what there is.
     static func profiles(_ arguments: [String]) -> Int32 {
         guard let verb = arguments.first, !verb.hasPrefix("--") else {
@@ -13,17 +12,19 @@ extension CLI {
         let rest = Array(arguments.dropFirst())
         let store = SettingsStore()
         switch verb {
-        case "show":    return showProfile(rest, store: store)
-        case "new":     return newProfile(rest, store: store)
-        case "set":     return setProfile(rest, store: store)
-        case "copy":    return copyProfile(rest, store: store)
-        case "rename":  return renameProfile(rest, store: store)
-        case "delete":  return deleteProfile(rest, store: store)
-        case "use":     return useProfile(rest, store: store)
+        case "show": return showProfile(rest, store: store)
+        case "new": return newProfile(rest, store: store)
+        case "set": return setProfile(rest, store: store)
+        case "copy": return copyProfile(rest, store: store)
+        case "rename": return renameProfile(rest, store: store)
+        case "delete": return deleteProfile(rest, store: store)
+        case "use": return useProfile(rest, store: store)
         default:
             return CLIOutput.failure(
                 "unknown profiles verb \"\(verb)\" — one of: show, new, set, copy,"
-                + " rename, delete, use; bare `kmap profiles` lists them", code: 2)
+                    + " rename, delete, use; bare `kmap profiles` lists them",
+                code: 2
+            )
         }
     }
 
@@ -56,7 +57,7 @@ extension CLI {
             ("custom-pois", c.customPOIs ? "on" : "off"),
             ("theme", c.theme),
             ("split", c.splitMode + (c.splitMode == "custom" ? " · \(c.parts) file(s)" : "")),
-            ("overlap", "\(c.shapeOverlap) · land \(c.landOverlap)"),
+            ("overlap", "\(c.shapeOverlap) · land \(c.landOverlap)")
         ]
         if !c.hiddenFeatures.isEmpty {
             rows.append(("hide", c.hiddenFeatures.joined(separator: ",")))
@@ -71,12 +72,16 @@ extension CLI {
     private static func newProfile(_ arguments: [String], store: SettingsStore) -> Int32 {
         guard let name = arguments.first, !name.hasPrefix("--") else {
             return CLIOutput.failure(
-                "usage: kmap profiles new <name> [build options]", code: 2)
+                "usage: kmap profiles new <name> [build options]",
+                code: 2
+            )
         }
         guard named(name, in: store) == nil else {
             return CLIOutput.failure(
                 "a profile called \"\(name)\" already exists — `kmap profiles set` changes"
-                + " it, `kmap profiles copy` starts another from it", code: 2)
+                    + " it, `kmap profiles copy` starts another from it",
+                code: 2
+            )
         }
         var choices = BuildChoices()
         let refused = apply(Flags(Array(arguments.dropFirst())), to: &choices, store: store)
@@ -95,7 +100,9 @@ extension CLI {
         guard !flags.names.isEmpty else {
             return CLIOutput.failure(
                 "nothing to change — give `kmap profiles set` the same build options"
-                + " `kmap build` takes, e.g. --interval=25 --no-dem", code: 2)
+                    + " `kmap build` takes, e.g. --interval=25 --no-dem",
+                code: 2
+            )
         }
         let refused = apply(flags, to: &profile.choices, store: store)
         guard refused.isEmpty else { return refuse(refused) }
@@ -113,8 +120,10 @@ extension CLI {
             return missingProfile(arguments[0])
         }
         guard named(arguments[1], in: store) == nil else {
-            return CLIOutput.failure("a profile called \"\(arguments[1])\" already exists",
-                                     code: 2)
+            return CLIOutput.failure(
+                "a profile called \"\(arguments[1])\" already exists",
+                code: 2
+            )
         }
         let made = store.addProfile(named: arguments[1], choices: source.choices)
         CLILog.line("\(source.name) → \(made.name)")
@@ -131,8 +140,10 @@ extension CLI {
         }
         // A clash with itself is no clash: renaming Watch to watch is a case change.
         if let taken = named(arguments[1], in: store), taken.id != profile.id {
-            return CLIOutput.failure("a profile called \"\(arguments[1])\" already exists",
-                                     code: 2)
+            return CLIOutput.failure(
+                "a profile called \"\(arguments[1])\" already exists",
+                code: 2
+            )
         }
         store.renameProfile(profile.id, to: arguments[1])
         let renamed = store.profile(profile.id) ?? profile
@@ -148,7 +159,9 @@ extension CLI {
         guard store.deleteProfile(profile.id) else {
             return CLIOutput.failure(
                 "\"\(profile.name)\" is the last profile — the build form needs one, so"
-                + " make another before deleting it", code: 2)
+                    + " make another before deleting it",
+                code: 2
+            )
         }
         CLILog.line("deleted \(profile.name)")
         CLIOutput.result(["deleted": .string(profile.name)])
@@ -181,7 +194,9 @@ extension CLI {
             return CLIOutput.failure("which profile? — `kmap profiles` lists them", code: 2)
         }
         return CLIOutput.failure(
-            "no profile called \"\(name)\" — see `kmap profiles`", code: 2)
+            "no profile called \"\(name)\" — see `kmap profiles`",
+            code: 2
+        )
     }
 
     private static func refuse(_ lines: [String]) -> Int32 {
@@ -192,16 +207,22 @@ extension CLI {
         return 2
     }
 
-    private static func profileAsData(_ profile: BuildProfile,
-                                      store: SettingsStore) -> JSONValue {
-        ["id": .string(profile.id), "name": .string(profile.name),
-         "current": .bool(profile.id == store.currentProfile.id),
-         "summary": .string(describe(profile.choices)),
-         "choices": choicesAsData(profile.choices)]
+    private static func profileAsData(
+        _ profile: BuildProfile,
+        store: SettingsStore
+    ) -> JSONValue {
+        [
+            "id": .string(profile.id), "name": .string(profile.name),
+            "current": .bool(profile.id == store.currentProfile.id),
+            "summary": .string(describe(profile.choices)),
+            "choices": choicesAsData(profile.choices)
+        ]
     }
 
-    private static func zoomPlanName(_ choices: BuildChoices,
-                                     store: SettingsStore) -> String {
+    private static func zoomPlanName(
+        _ choices: BuildChoices,
+        store: SettingsStore
+    ) -> String {
         if let plan = store.settings.zoomPlans.first(where: { $0.id == choices.zoomPlanID }) {
             return plan.name
         }
@@ -222,23 +243,28 @@ extension CLI {
         "custom-pois", "no-custom-pois",
         "style", "interval", "sources", "levels", "labels", "code-page",
         "zoom-plan", "descriptions", "theme", "hide", "split", "parts",
-        "overlap", "land-overlap",
+        "overlap", "land-overlap"
     ]
     private static let perRunOptions: Set<String> = [
         "profile", "out", "work", "keep-work", "heap", "connections", "memory",
-        "max-nodes", "family-id", "repair-radius", "json", "verbose",
+        "max-nodes", "family-id", "repair-radius", "json", "verbose"
     ]
 
     /// Applies build options to a profile's choices, collecting every refusal so one run
     /// reports everything wrong with it. The vocabulary and the validation are the build
     /// command's own.
-    private static func apply(_ flags: Flags, to choices: inout BuildChoices,
-                              store: SettingsStore) -> [String] {
+    private static func apply(
+        _ flags: Flags,
+        to choices: inout BuildChoices,
+        store: SettingsStore
+    ) -> [String] {
         var refused: [String] = []
         for name in flags.names.subtracting(profileOptions).sorted() {
-            refused.append(perRunOptions.contains(name)
-                ? "--\(name) belongs to one build, not to a profile"
-                : "--\(name) is not a build option — see `kmap --help`")
+            refused.append(
+                perRunOptions.contains(name)
+                    ? "--\(name) belongs to one build, not to a profile"
+                    : "--\(name) is not a build option — see `kmap --help`"
+            )
         }
 
         func switched(_ name: String, _ current: Bool) -> Bool {
@@ -252,7 +278,8 @@ extension CLI {
         choices.routable = switched("route", choices.routable)
         choices.healRoadEnds = switched("repair-ends", choices.healRoadEnds)
         choices.searchIndex = switched("index", choices.searchIndex)
-        choices.splitNameIndex = flags.has("lean-index")
+        choices.splitNameIndex =
+            flags.has("lean-index")
             ? false : switched("word-index", choices.splitNameIndex)
         choices.houseNumbers = switched("house-numbers", choices.houseNumbers)
         choices.generateSea = switched("sea", choices.generateSea)
@@ -261,8 +288,10 @@ extension CLI {
         func number(_ name: String, in range: ClosedRange<Int>) -> Int? {
             guard let raw = flags.value(name) else { return nil }
             guard let value = Int(raw), range.contains(value) else {
-                refused.append("--\(name)=\(raw) wants a number,"
-                               + " \(range.lowerBound)-\(range.upperBound)")
+                refused.append(
+                    "--\(name)=\(raw) wants a number,"
+                        + " \(range.lowerBound)-\(range.upperBound)"
+                )
                 return nil
             }
             return value
@@ -278,8 +307,10 @@ extension CLI {
         if let land = number("land-overlap", in: 0...BuildChoices.overlapCeiling) {
             let saned = BuildChoices.sane(land)
             if saned > choices.shapeOverlap {
-                refused.append("--land-overlap=\(saned) is past --overlap="
-                               + "\(choices.shapeOverlap)")
+                refused.append(
+                    "--land-overlap=\(saned) is past --overlap="
+                        + "\(choices.shapeOverlap)"
+                )
             } else {
                 choices.landOverlap = saned
             }
@@ -289,7 +320,9 @@ extension CLI {
             guard let raw = flags.value(name) else { return nil }
             if let match = options.first(where: {
                 $0.caseInsensitiveCompare(raw) == .orderedSame
-            }) { return match }
+            }) {
+                return match
+            }
             refused.append("--\(name)=\(raw) — one of " + options.joined(separator: ", "))
             return nil
         }
@@ -307,13 +340,17 @@ extension CLI {
         }
 
         if let style = flags.value("style") {
-            let catalog = StyleCatalog(settings: store,
-                                       toolchain: Toolchain(settings: store))
+            let catalog = StyleCatalog(
+                settings: store,
+                toolchain: Toolchain(settings: store)
+            )
             if catalog.availableStyles().contains(where: { $0.id == style }) {
                 choices.styleID = style
             } else {
-                refused.append("--style=\(style) is not a style kmap can find"
-                               + " — see `kmap styles`")
+                refused.append(
+                    "--style=\(style) is not a style kmap can find"
+                        + " — see `kmap styles`"
+                )
             }
         }
         if let sources = flags.value("sources") {
@@ -334,9 +371,11 @@ extension CLI {
             if spelled == "off" || BuildRecipe.DescriptionCarrier(rawValue: spelled) != nil {
                 choices.descriptions = spelled
             } else {
-                refused.append("--descriptions=\(raw) — one of "
-                    + (BuildRecipe.DescriptionCarrier.allCases.map(\.rawValue) + ["in-name"])
-                        .joined(separator: ", "))
+                refused.append(
+                    "--descriptions=\(raw) — one of "
+                        + (BuildRecipe.DescriptionCarrier.allCases.map(\.rawValue) + ["in-name"])
+                        .joined(separator: ", ")
+                )
             }
         }
         if let asked = flags.value("hide") {
@@ -347,23 +386,28 @@ extension CLI {
             if unknown.isEmpty {
                 choices.hiddenFeatures = ids
             } else {
-                refused.append("unknown --hide id(s): \(unknown.joined(separator: ", "))"
-                               + " — see `kmap hideable`")
+                refused.append(
+                    "unknown --hide id(s): \(unknown.joined(separator: ", "))"
+                        + " — see `kmap hideable`"
+                )
             }
         }
         if let wanted = flags.value("zoom-plan") {
             // A plan is matched by name, among the plans made for the (possibly just
             // changed) ladder, the built-in included.
-            let plans = [ZoomPlan.builtin(forLevels: choices.levelsID)]
+            let plans =
+                [ZoomPlan.builtin(forLevels: choices.levelsID)]
                 + store.settings.zoomPlans.filter { $0.levelsID == choices.levelsID }
             if let plan = plans.first(where: {
                 $0.name.caseInsensitiveCompare(wanted) == .orderedSame
             }) {
                 choices.zoomPlanID = plan.isBuiltin ? "" : plan.id
             } else {
-                refused.append("--zoom-plan=\(wanted) — the plans for the"
-                               + " \(choices.levelsID) ladder are: "
-                               + plans.map(\.name).joined(separator: ", "))
+                refused.append(
+                    "--zoom-plan=\(wanted) — the plans for the"
+                        + " \(choices.levelsID) ladder are: "
+                        + plans.map(\.name).joined(separator: ", ")
+                )
             }
         }
         return refused

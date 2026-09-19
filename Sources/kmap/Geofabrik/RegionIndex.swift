@@ -47,7 +47,8 @@ struct Region {
             for i in 0..<ring.count {
                 let a = ring[i], b = ring[j]
                 if (a.lat > lat) != (b.lat > lat),
-                   lon < (b.lon - a.lon) * (lat - a.lat) / (b.lat - a.lat) + a.lon {
+                    lon < (b.lon - a.lon) * (lat - a.lat) / (b.lat - a.lat) + a.lon
+                {
                     inside.toggle()
                 }
                 j = i
@@ -100,10 +101,11 @@ final class RegionIndex: Sendable {
         Paths.bootstrap()
         let cached = Paths.indexCache
         if !forceRefresh,
-           let attrs = try? FileManager.default.attributesOfItem(atPath: cached.path),
-           let modified = attrs[.modificationDate] as? Date,
-           Date().timeIntervalSince(modified) < maxCacheAge,
-           let data = try? Data(contentsOf: cached), data.count > 1024 {
+            let attrs = try? FileManager.default.attributesOfItem(atPath: cached.path),
+            let modified = attrs[.modificationDate] as? Date,
+            Date().timeIntervalSince(modified) < maxCacheAge,
+            let data = try? Data(contentsOf: cached), data.count > 1024
+        {
             return data
         }
 
@@ -142,8 +144,10 @@ final class RegionIndex: Sendable {
             default: if !insideTag { out.append(ch) }
             }
         }
-        for (entity, character) in [("&amp;", "&"), ("&nbsp;", " "), ("&quot;", "\""),
-                                    ("&#39;", "'"), ("&lt;", "<"), ("&gt;", ">")] {
+        for (entity, character) in [
+            ("&amp;", "&"), ("&nbsp;", " "), ("&quot;", "\""),
+            ("&#39;", "'"), ("&lt;", "<"), ("&gt;", ">")
+        ] {
             out = out.replacingOccurrences(of: entity, with: character)
         }
         return out.split(separator: " ", omittingEmptySubsequences: true)
@@ -158,28 +162,32 @@ final class RegionIndex: Sendable {
     static func tables(from data: Data) throws -> (regions: [String: Region], roots: [String]) {
         let root = try JSONSerialization.jsonObject(with: data)
         guard let dict = root as? [String: Any],
-              let features = dict["features"] as? [[String: Any]] else {
+            let features = dict["features"] as? [[String: Any]]
+        else {
             throw LoadError.malformed("no features array")
         }
 
         var parsed: [String: Region] = [:]
         for feature in features {
             guard let props = feature["properties"] as? [String: Any],
-                  let id = props["id"] as? String,
-                  let rawName = props["name"] as? String else { continue }
+                let id = props["id"] as? String,
+                let rawName = props["name"] as? String
+            else { continue }
             let name = RegionIndex.plainName(rawName)
 
             let parent = props["parent"] as? String
             var pbf: URL? = nil
             if let urls = props["urls"] as? [String: Any],
-               let pbfString = urls["pbf"] as? String {
+                let pbfString = urls["pbf"] as? String
+            {
                 pbf = URL(string: pbfString)
             }
 
             var boxes: [BBox] = []
             var rings: [[(lon: Double, lat: Double)]] = []
             if let geometry = feature["geometry"] as? [String: Any],
-               let coords = geometry["coordinates"] {
+                let coords = geometry["coordinates"]
+            {
                 RegionIndex.walkRings(coords, into: &boxes, rings: &rings)
             }
             var box = BBox.empty
@@ -188,9 +196,15 @@ final class RegionIndex: Sendable {
                 box.extend(lon: b.maxLon, lat: b.maxLat)
             }
 
-            parsed[id] = Region(id: id, name: name, parentID: parent,
-                                pbfURL: pbf, bbox: box.isValid ? box : .empty,
-                                boxes: boxes, rings: rings)
+            parsed[id] = Region(
+                id: id,
+                name: name,
+                parentID: parent,
+                pbfURL: pbf,
+                bbox: box.isValid ? box : .empty,
+                boxes: boxes,
+                rings: rings
+            )
         }
 
         // Wire up children, then sort each list by display name.
@@ -222,8 +236,11 @@ final class RegionIndex: Sendable {
     /// Descends GeoJSON coordinate nesting, which differs in depth between Polygon and
     /// MultiPolygon, to each ring of [lon, lat] pairs and takes a box around every ring
     /// separately: one box over all rings of a region crossing 180 deg would span the globe.
-    private static func walkRings(_ node: Any, into boxes: inout [BBox],
-                                  rings: inout [[(lon: Double, lat: Double)]]) {
+    private static func walkRings(
+        _ node: Any,
+        into boxes: inout [BBox],
+        rings: inout [[(lon: Double, lat: Double)]]
+    ) {
         guard let array = node as? [Any], !array.isEmpty else { return }
         if point(array) != nil { return }
         if let first = array[0] as? [Any], point(first) != nil {

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Reading a PBF: blobs off the file, blocks out of the blobs, elements out of the blocks.
@@ -6,7 +7,6 @@ import XCTest
 /// Several tests build the file by hand, blob framing and all, so a block can be malformed
 /// in one particular way. Malformed input is refused or read, never fatal.
 final class PBFReaderTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -28,8 +28,13 @@ final class PBFReaderTests: XCTestCase {
         var ways: [(id: Int64, refs: [Int64], tags: [(String, String)])] = []
         var relations: [(id: Int64, kinds: [Int32], ids: [Int64], roles: [String])] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var pairs: [(String, String)] = []
             var i = tags.startIndex
             while i + 1 < tags.endIndex {
@@ -39,18 +44,36 @@ final class PBFReaderTests: XCTestCase {
             nodes.append((id, lat, lon, pairs))
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                          values: ArraySlice<Int32>, block: OSMBlock) {
-            ways.append((id, Array(refs),
-                         zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }))
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
+            ways.append(
+                (
+                    id, Array(refs),
+                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
+                )
+            )
         }
 
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {
-            relations.append((id, Array(memberKinds), Array(memberIDs),
-                              memberRoles.map { block.text(Int($0)) }))
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
+            relations.append(
+                (
+                    id, Array(memberKinds), Array(memberIDs),
+                    memberRoles.map { block.text(Int($0)) }
+                )
+            )
         }
     }
 
@@ -66,7 +89,7 @@ final class PBFReaderTests: XCTestCase {
     /// A blob carrying its payload uncompressed, as the format allows.
     private func rawBlob(kind: String, payload: [UInt8]) -> [UInt8] {
         var blob = ProtoWriter()
-        blob.bytesField(1, payload)                    // raw
+        blob.bytesField(1, payload)  // raw
         var header = ProtoWriter()
         header.stringField(1, kind)
         header.varintField(3, Int64(blob.bytes.count))
@@ -114,12 +137,16 @@ final class PBFReaderTests: XCTestCase {
         writer.header()
         writer.nodes([
             PBFWriter.Node(id: 1, lat: 44.5, lon: 33.5, tags: [("barrier", "gate")]),
-            PBFWriter.Node(id: 2, lat: 44.6, lon: 33.6, tags: []),
+            PBFWriter.Node(id: 2, lat: 44.6, lon: 33.6, tags: [])
         ])
         writer.ways([PBFWriter.Way(id: 10, refs: [1, 2], tags: [("highway", "track")])])
-        writer.relations([PBFWriter.Relation(
-            id: 20, members: [.init(kind: 1, ref: 10, role: "outer")],
-            tags: [("type", "multipolygon")])])
+        writer.relations([
+            PBFWriter.Relation(
+                id: 20,
+                members: [.init(kind: 1, ref: 10, role: "outer")],
+                tags: [("type", "multipolygon")]
+            )
+        ])
         try writer.finish()
 
         let out = try read(url)
@@ -134,8 +161,10 @@ final class PBFReaderTests: XCTestCase {
     func testAnUncompressedBlobIsReadAsHappilyAsACompressedOne() throws {
         let url = path("raw.osm.pbf")
         var file = rawBlob(kind: "OSMHeader", payload: [])
-        file += rawBlob(kind: "OSMData",
-                        payload: blockWithDenseTags([1, 2, 0], strings: ["", "a", "b"]))
+        file += rawBlob(
+            kind: "OSMData",
+            payload: blockWithDenseTags([1, 2, 0], strings: ["", "a", "b"])
+        )
         try write(file, to: url)
 
         let out = try read(url)
@@ -149,9 +178,11 @@ final class PBFReaderTests: XCTestCase {
         let writer = try PBFWriter(to: url)
         writer.header()
         for batch in 0..<4 {
-            writer.nodes((0..<1000).map {
-                PBFWriter.Node(id: Int64(batch * 1000 + $0 + 1), lat: 0, lon: 0, tags: [])
-            })
+            writer.nodes(
+                (0..<1000).map {
+                    PBFWriter.Node(id: Int64(batch * 1000 + $0 + 1), lat: 0, lon: 0, tags: [])
+                }
+            )
         }
         try writer.finish()
         let out = try read(url)
@@ -164,10 +195,16 @@ final class PBFReaderTests: XCTestCase {
         let writer = try PBFWriter(to: url)
         writer.header()
         for batch in 0..<40 {
-            writer.nodes((0..<2000).map { i in
-                PBFWriter.Node(id: Int64(batch * 2000 + i + 1), lat: 45, lon: 33,
-                               tags: [("block", "\(batch)")])
-            })
+            writer.nodes(
+                (0..<2000).map { i in
+                    PBFWriter.Node(
+                        id: Int64(batch * 2000 + i + 1),
+                        lat: 45,
+                        lon: 33,
+                        tags: [("block", "\(batch)")]
+                    )
+                }
+            )
         }
         try writer.finish()
         let out = try read(url)
@@ -202,7 +239,7 @@ final class PBFReaderTests: XCTestCase {
         writer.nodes([
             PBFWriter.Node(id: 1, lat: 44.5, lon: 33.5, tags: []),
             PBFWriter.Node(id: 2, lat: 44.7, lon: 33.9, tags: []),
-            PBFWriter.Node(id: 3, lat: 44.6, lon: 33.1, tags: []),
+            PBFWriter.Node(id: 3, lat: 44.6, lon: 33.1, tags: [])
         ])
         // A way names nodes it does not carry: its place comes from them.
         writer.ways([PBFWriter.Way(id: 10, refs: [1, 2, 3], tags: [("highway", "track")])])
@@ -236,8 +273,10 @@ final class PBFReaderTests: XCTestCase {
     func testAFileCutOffMidBlobIsRefusedNotGuessedAt() throws {
         let url = path("cut.osm.pbf")
         var file = rawBlob(kind: "OSMHeader", payload: [])
-        file += rawBlob(kind: "OSMData",
-                        payload: blockWithDenseTags([1, 2, 0], strings: ["", "a", "b"]))
+        file += rawBlob(
+            kind: "OSMData",
+            payload: blockWithDenseTags([1, 2, 0], strings: ["", "a", "b"])
+        )
         try write(Array(file.dropLast(20)), to: url)
         XCTAssertThrowsError(try read(url))
     }
@@ -247,9 +286,11 @@ final class PBFReaderTests: XCTestCase {
         let source = path("full.osm.pbf")
         let writer = try PBFWriter(to: source)
         writer.header()
-        writer.nodes((1...500).map {
-            PBFWriter.Node(id: Int64($0), lat: 45, lon: 33, tags: [("name", "n\($0)")])
-        })
+        writer.nodes(
+            (1...500).map {
+                PBFWriter.Node(id: Int64($0), lat: 45, lon: 33, tags: [("name", "n\($0)")])
+            }
+        )
         writer.ways([PBFWriter.Way(id: 1, refs: Array(1...500), tags: [])])
         try writer.finish()
 
@@ -271,7 +312,7 @@ final class PBFReaderTests: XCTestCase {
         // raw_size is a number in the file. Believing it means asking for the memory.
         let url = path("huge.osm.pbf")
         var blob = ProtoWriter()
-        blob.varintField(2, 1 << 40)                  // raw_size
+        blob.varintField(2, 1 << 40)  // raw_size
         blob.bytesField(3, [0x78, 0x9C, 0x03, 0x00])  // an empty zlib stream
         var header = ProtoWriter()
         header.stringField(1, "OSMData")
@@ -300,7 +341,7 @@ final class PBFReaderTests: XCTestCase {
         let url = path("stub.osm.pbf")
         var blob = ProtoWriter()
         blob.varintField(2, 100)
-        blob.bytesField(3, [0x78])                    // one byte of a two-byte header
+        blob.bytesField(3, [0x78])  // one byte of a two-byte header
         var header = ProtoWriter()
         header.stringField(1, "OSMData")
         header.varintField(3, Int64(blob.bytes.count))
@@ -313,8 +354,10 @@ final class PBFReaderTests: XCTestCase {
         // whatever is there.
         let url = path("oddtags.osm.pbf")
         var file = rawBlob(kind: "OSMHeader", payload: [])
-        file += rawBlob(kind: "OSMData",
-                        payload: blockWithDenseTags([1], strings: ["", "a"]))
+        file += rawBlob(
+            kind: "OSMData",
+            payload: blockWithDenseTags([1], strings: ["", "a"])
+        )
         try write(file, to: url)
         let out = try read(url)
         XCTAssertEqual(out.nodes.map(\.id), [1])
@@ -323,8 +366,10 @@ final class PBFReaderTests: XCTestCase {
     func testADenseTagRunWithNoTerminatorAtAllDoesNotCrash() throws {
         let url = path("noterm.osm.pbf")
         var file = rawBlob(kind: "OSMHeader", payload: [])
-        file += rawBlob(kind: "OSMData",
-                        payload: blockWithDenseTags([1, 2], strings: ["", "a", "b"]))
+        file += rawBlob(
+            kind: "OSMData",
+            payload: blockWithDenseTags([1, 2], strings: ["", "a", "b"])
+        )
         try write(file, to: url)
         let out = try read(url)
         XCTAssertEqual(out.nodes.map(\.id), [1])
@@ -357,8 +402,10 @@ final class PBFReaderTests: XCTestCase {
     func testAStringIndexPastTheTableReadsAsEmpty() throws {
         let url = path("badindex.osm.pbf")
         var file = rawBlob(kind: "OSMHeader", payload: [])
-        file += rawBlob(kind: "OSMData",
-                        payload: blockWithDenseTags([50, 60, 0], strings: ["", "a"]))
+        file += rawBlob(
+            kind: "OSMData",
+            payload: blockWithDenseTags([50, 60, 0], strings: ["", "a"])
+        )
         try write(file, to: url)
         let out = try read(url)
         XCTAssertEqual(out.nodes[0].tags.map(\.0), [""])
@@ -370,8 +417,8 @@ final class PBFReaderTests: XCTestCase {
         let url = path("granular.osm.pbf")
         var block = ProtoWriter()
         block.message(1) { $0.stringField(1, "") }
-        block.varintField(17, 1000)                 // granularity
-        block.varintField(19, 1_000_000_000)        // lat offset, nanodegrees
+        block.varintField(17, 1000)  // granularity
+        block.varintField(19, 1_000_000_000)  // lat offset, nanodegrees
         block.message(2) { group in
             group.message(2) { dense in
                 var ids = ProtoWriter(); ids.zigzag(1)
@@ -421,7 +468,9 @@ final class PBFReaderTests: XCTestCase {
         let url = try threeBlobs()
         var asked = 0
         var reader = PBFReader(url: url)
-        reader.shouldStop = { asked += 1; return asked > 1 }
+        reader.shouldStop = {
+            asked += 1; return asked > 1
+        }
         var collected = Collected()
         XCTAssertThrowsError(try reader.read(into: &collected))
         XCTAssertEqual(asked, 2, "the first blob went through, the second was refused")

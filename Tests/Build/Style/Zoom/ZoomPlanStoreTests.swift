@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Zoom plans as the settings keep them: the two that ship cannot be touched, and a name
 /// is never held twice.
 final class ZoomPlanStoreTests: XCTestCase {
-
     private func store() -> SettingsStore {
         let store = SettingsStore()
         for plan in store.zoomPlans where !plan.isBuiltin { store.deleteZoomPlan(plan.id) }
@@ -46,8 +46,11 @@ final class ZoomPlanStoreTests: XCTestCase {
         XCTAssertEqual(first.name, "Hiking")
         XCTAssertEqual(second.name, "hiking 2")
         XCTAssertEqual(settings.uniqueZoomPlanName("  "), "Zoom plan")
-        XCTAssertEqual(settings.uniqueZoomPlanName("Hiking", ignoring: first.id), "Hiking",
-                       "a plan may keep its own name")
+        XCTAssertEqual(
+            settings.uniqueZoomPlanName("Hiking", ignoring: first.id),
+            "Hiking",
+            "a plan may keep its own name"
+        )
     }
 
     func testRenamingKeepsNamesUniqueAndIgnoresABlank() {
@@ -67,10 +70,14 @@ final class ZoomPlanStoreTests: XCTestCase {
         let settings = store()
         let smooth = settings.copyZoomPlan(.asMeasured, named: "Smooth one")
         XCTAssertEqual(settings.zoomPlan(smooth.id, forLevels: LevelsProfile.smooth.id).id, smooth.id)
-        XCTAssertEqual(settings.zoomPlan(smooth.id, forLevels: LevelsProfile.standard.id).id,
-                       ZoomPlan.standard.id)
-        XCTAssertEqual(settings.zoomPlan("deleted-since", forLevels: LevelsProfile.smooth.id).id,
-                       ZoomPlan.asMeasured.id)
+        XCTAssertEqual(
+            settings.zoomPlan(smooth.id, forLevels: LevelsProfile.standard.id).id,
+            ZoomPlan.standard.id
+        )
+        XCTAssertEqual(
+            settings.zoomPlan("deleted-since", forLevels: LevelsProfile.smooth.id).id,
+            ZoomPlan.asMeasured.id
+        )
         XCTAssertEqual(ZoomPlan.builtin(forLevels: "no-such-ladder").id, ZoomPlan.asMeasured.id)
     }
 

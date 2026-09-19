@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(Darwin)
 import Darwin
 #elseif os(Windows)
@@ -28,8 +29,10 @@ struct MachineLoad {
         let ticks = readTicks()
         let memory = readMemory()
         let cpu = previous.flatMap { was in ticks.flatMap { rate(from: was, to: $0) } }
-        return (MachineLoad(cpu: cpu, usedMemory: memory.used, totalMemory: memory.total),
-                ticks)
+        return (
+            MachineLoad(cpu: cpu, usedMemory: memory.used, totalMemory: memory.total),
+            ticks
+        )
     }
 
     /// Returns the busy fraction between two readings, or nil where the counters did not
@@ -52,8 +55,10 @@ struct MachineLoad {
     #if canImport(Darwin)
     private static func readTicks() -> Ticks? {
         var info = host_cpu_load_info()
-        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.size
-                                           / MemoryLayout<integer_t>.size)
+        var count = mach_msg_type_number_t(
+            MemoryLayout<host_cpu_load_info>.size
+                / MemoryLayout<integer_t>.size
+        )
         let result = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
                 host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
@@ -71,8 +76,10 @@ struct MachineLoad {
     private static func readMemory() -> (used: UInt64, total: UInt64) {
         let total = ProcessInfo.processInfo.physicalMemory
         var stats = vm_statistics64()
-        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size
-                                           / MemoryLayout<integer_t>.size)
+        var count = mach_msg_type_number_t(
+            MemoryLayout<vm_statistics64>.size
+                / MemoryLayout<integer_t>.size
+        )
         let result = withUnsafeMutablePointer(to: &stats) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
                 host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
@@ -120,7 +127,7 @@ struct MachineLoad {
     #else
     private static func readTicks() -> Ticks? {
         guard let text = try? String(contentsOfFile: "/proc/stat", encoding: .utf8),
-              let line = text.split(separator: "\n").first(where: { $0.hasPrefix("cpu ") })
+            let line = text.split(separator: "\n").first(where: { $0.hasPrefix("cpu ") })
         else { return nil }
         let fields = line.split(separator: " ").dropFirst().compactMap { UInt64($0) }
         // user nice system idle iowait irq softirq steal …
@@ -139,7 +146,7 @@ struct MachineLoad {
         for line in text.split(separator: "\n") {
             let parts = line.split(separator: ":")
             guard parts.count == 2,
-                  let kilobytes = UInt64(parts[1].split(separator: " ").first ?? "")
+                let kilobytes = UInt64(parts[1].split(separator: " ").first ?? "")
             else { continue }
             values[String(parts[0])] = kilobytes * 1024
         }

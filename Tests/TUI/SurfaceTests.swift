@@ -1,24 +1,28 @@
 import XCTest
+
 @testable import kmap
 
 /// The text helpers every screen is drawn through. `stripControlSequences` matters
 /// beyond looks: mkgmap, Java and pyhgtmap all print escape sequences, and the log they
 /// land in is painted onto a terminal already in raw mode.
 final class SurfaceTests: XCTestCase {
-
     // MARK: Wrapping
 
     func testTextIsBrokenOnSpacesWhenItCan() {
-        XCTAssertEqual(wrapText("the quick brown fox", width: 10),
-                       ["the quick", "brown fox"])
+        XCTAssertEqual(
+            wrapText("the quick brown fox", width: 10),
+            ["the quick", "brown fox"]
+        )
         XCTAssertEqual(wrapText("short", width: 10), ["short"])
         XCTAssertEqual(wrapText("exactly-10", width: 10), ["exactly-10"])
     }
 
     func testAWordLongerThanTheColumnIsCutRatherThanLost() {
         // A URL or a path in a warning: it has to appear, even broken.
-        XCTAssertEqual(wrapText("supercalifragilistic", width: 8),
-                       ["supercal", "ifragili", "stic"])
+        XCTAssertEqual(
+            wrapText("supercalifragilistic", width: 8),
+            ["supercal", "ifragili", "stic"]
+        )
     }
 
     func testExplicitLineBreaksAreKeptIncludingTheEmptyOnes() {
@@ -88,8 +92,10 @@ final class SurfaceTests: XCTestCase {
 
     func testLettersOutsideASCIISurviveWhateverAlphabetTheyAreIn() {
         // Names arrive in their own script, and the log carries them.
-        XCTAssertEqual(stripControlSequences("Прибрежный административный округ"),
-                       "Прибрежный административный округ")
+        XCTAssertEqual(
+            stripControlSequences("Прибрежный административный округ"),
+            "Прибрежный административный округ"
+        )
         XCTAssertEqual(stripControlSequences("Küsten-Größenregion"), "Küsten-Größenregion")
         XCTAssertEqual(stripControlSequences("地図 · 地域"), "地図 · 地域")
         XCTAssertEqual(stripControlSequences("→ ✓ ✗"), "→ ✓ ✗")

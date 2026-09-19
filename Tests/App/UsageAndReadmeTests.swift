@@ -1,15 +1,15 @@
 import XCTest
+
 @testable import kmap
 
 /// Holds `kmap --help` and the README to the same set of commands and flags: neither may
 /// omit what the other names, and the README may name nothing the usage does not.
 final class UsageAndReadmeTests: XCTestCase {
-
     private func readme(_ name: String = "README.md") throws -> String {
         let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()   // App
-            .deletingLastPathComponent()   // Tests
-            .deletingLastPathComponent()   // repository
+            .deletingLastPathComponent()  // App
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // repository
         let url = root.appendingPathComponent(name)
         try XCTSkipUnless(FileManager.default.fileExists(atPath: url.path), "not a working copy")
         return try String(contentsOf: url, encoding: .utf8)
@@ -56,15 +56,20 @@ final class UsageAndReadmeTests: XCTestCase {
         // runtime.
         XCTAssertTrue(usageCommands.contains("build"))
         XCTAssertTrue(usageCommands.contains("verify"))
-        XCTAssertGreaterThan(usageCommands.count, 15,
-                             "the usage used to list six of twenty-two commands")
+        XCTAssertGreaterThan(
+            usageCommands.count,
+            15,
+            "the usage used to list six of twenty-two commands"
+        )
     }
 
     func testTheReadmeDocumentsEveryBuildFlag() throws {
         let text = try readme()
         let missing = usageFlags.filter { !text.contains($0) }.sorted()
-        XCTAssertTrue(missing.isEmpty,
-                      "not in README.md: " + missing.joined(separator: ", "))
+        XCTAssertTrue(
+            missing.isEmpty,
+            "not in README.md: " + missing.joined(separator: ", ")
+        )
     }
 
     /// The two READMEs are one document in two languages: a command or a flag named in
@@ -73,22 +78,28 @@ final class UsageAndReadmeTests: XCTestCase {
         let english = try readme()
         let russian = try readme("README.ru.md")
         let commands = usageCommands.filter { english.contains("kmap \($0)") }
-        XCTAssertTrue(commands.allSatisfy { russian.contains("kmap \($0)") },
-                      "not in README.ru.md: "
-                      + commands.filter { !russian.contains("kmap \($0)") }
-                          .sorted().joined(separator: ", "))
+        XCTAssertTrue(
+            commands.allSatisfy { russian.contains("kmap \($0)") },
+            "not in README.ru.md: "
+                + commands.filter { !russian.contains("kmap \($0)") }
+                .sorted().joined(separator: ", ")
+        )
         let flags = usageFlags.filter { english.contains($0) }
-        XCTAssertTrue(flags.allSatisfy { russian.contains($0) },
-                      "not in README.ru.md: "
-                      + flags.filter { !russian.contains($0) }
-                          .sorted().joined(separator: ", "))
+        XCTAssertTrue(
+            flags.allSatisfy { russian.contains($0) },
+            "not in README.ru.md: "
+                + flags.filter { !russian.contains($0) }
+                .sorted().joined(separator: ", ")
+        )
     }
 
     func testTheReadmeDocumentsEveryCommand() throws {
         let text = try readme()
         let missing = usageCommands.filter { !text.contains("kmap \($0)") }.sorted()
-        XCTAssertTrue(missing.isEmpty,
-                      "not in README.md: " + missing.joined(separator: ", "))
+        XCTAssertTrue(
+            missing.isEmpty,
+            "not in README.md: " + missing.joined(separator: ", ")
+        )
     }
 
     /// Fails when the README documents a flag the usage does not name.
@@ -106,7 +117,9 @@ final class UsageAndReadmeTests: XCTestCase {
             }
         }
         let invented = claimed.filter { !usageFlags.contains($0) }.sorted()
-        XCTAssertTrue(invented.isEmpty,
-                      "README names flags the program does not: " + invented.joined(separator: ", "))
+        XCTAssertTrue(
+            invented.isEmpty,
+            "README names flags the program does not: " + invented.joined(separator: ", ")
+        )
     }
 }

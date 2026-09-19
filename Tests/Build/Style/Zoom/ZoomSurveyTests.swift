@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// Where each family of features starts and stops, read from a style's own rules.
 final class ZoomSurveyTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -19,13 +19,15 @@ final class ZoomSurveyTests: XCTestCase {
     /// A family and two rules of its own, at the finest rung and one further out.
     private func surveyed() throws -> (ZoomSurvey, ZoomFamily, far: Int) {
         let rungs = ZoomRungs(levels: LevelsProfile.smooth.levels)
-        let family = try XCTUnwrap(ZoomFamily.all.first { $0.claims("highway=path", in: "lines") },
-                                   "no family claims a path")
+        let family = try XCTUnwrap(
+            ZoomFamily.all.first { $0.claims("highway=path", in: "lines") },
+            "no family claims a path"
+        )
         let far = rungs.bits[2]
         try """
-            highway=path [0x16 resolution \(rungs.bits[0])]
-            highway=path & bicycle=yes [0x16 resolution \(far)]
-            """.write(to: directory.appendingPathComponent("lines"), atomically: true, encoding: .utf8)
+        highway=path [0x16 resolution \(rungs.bits[0])]
+        highway=path & bicycle=yes [0x16 resolution \(far)]
+        """.write(to: directory.appendingPathComponent("lines"), atomically: true, encoding: .utf8)
         return (ZoomSurvey(styleAt: directory, levels: .smooth), family, far)
     }
 

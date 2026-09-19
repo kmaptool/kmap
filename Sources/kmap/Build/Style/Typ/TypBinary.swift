@@ -6,7 +6,6 @@ import Foundation
 /// element must end exactly where the next one in its index begins; one that does not is
 /// kept with `exact` false rather than dropped.
 struct TypBinary {
-
     struct Element {
         let kind: MapElementKind
         let type: Int
@@ -113,29 +112,45 @@ struct TypBinary {
         let polygonIndex = (header.u4(), header.u2(), header.u4())
         let drawOrderSection = (header.u4(), header.u2(), header.u4())
 
-        func read(_ kind: MapElementKind,
-                  _ index: (Int, Int, Int),
-                  _ section: (Int, Int)) -> [Element] {
+        func read(
+            _ kind: MapElementKind,
+            _ index: (Int, Int, Int),
+            _ section: (Int, Int)
+        ) -> [Element] {
             entries(in: data, index: index, section: section).compactMap { entry in
-                decodeElement(kind, data, at: entry.offset, length: entry.length,
-                              type: entry.type, subtype: entry.subtype, codePage: codePage)
+                decodeElement(
+                    kind,
+                    data,
+                    at: entry.offset,
+                    length: entry.length,
+                    type: entry.type,
+                    subtype: entry.subtype,
+                    codePage: codePage
+                )
             }
         }
 
         return TypBinary(
-            codePage: codePage, familyID: familyID, productID: productID,
+            codePage: codePage,
+            familyID: familyID,
+            productID: productID,
             polygons: read(.polygon, polygonIndex, polygonData),
             lines: read(.line, lineIndex, lineData),
             points: read(.point, pointIndex, pointData),
-            drawOrder: decodeDrawOrder(data, drawOrderSection))
+            drawOrder: decodeDrawOrder(data, drawOrderSection)
+        )
     }
 
     /// Index entries resolved to absolute offsets and lengths. An entry holds
     /// `type << 5 | subtype` and an offset of `itemSize - 2` bytes; lengths come from the
     /// gap to the next entry once they are in offset order.
-    private static func entries(in data: [UInt8], index: (Int, Int, Int),
-                                section: (Int, Int))
-        -> [(type: Int, subtype: Int, offset: Int, length: Int)] {
+    private static func entries(
+        in data: [UInt8],
+        index: (Int, Int, Int),
+        section: (Int, Int)
+    )
+        -> [(type: Int, subtype: Int, offset: Int, length: Int)]
+    {
         let (position, itemSize, length) = index
         guard itemSize >= 3, length > 0 else { return [] }
         let pointerSize = itemSize - 2
@@ -157,8 +172,10 @@ struct TypBinary {
         }
     }
 
-    private static func decodeDrawOrder(_ data: [UInt8],
-                                        _ section: (Int, Int, Int)) -> [(code: Int, level: Int)] {
+    private static func decodeDrawOrder(
+        _ data: [UInt8],
+        _ section: (Int, Int, Int)
+    ) -> [(code: Int, level: Int)] {
         let (position, itemSize, length) = section
         guard itemSize > 0, length > 0 else { return [] }
         var out: [(code: Int, level: Int)] = []
@@ -184,8 +201,10 @@ struct TypBinary {
 
     // MARK: Labels
 
-    static func decodeLabels(_ blob: [UInt8],
-                                     codePage: Int) -> [(language: Int, text: String)] {
+    static func decodeLabels(
+        _ blob: [UInt8],
+        codePage: Int
+    ) -> [(language: Int, text: String)] {
         var out: [(language: Int, text: String)] = []
         var i = 0
         while i < blob.count {
@@ -208,8 +227,10 @@ struct TypBinary {
         static let none = FontInfo(style: nil, day: nil, night: nil)
     }
 
-    fileprivate static let fontStyles = [0: "Default", 1: "NoLabel", 2: "SmallFont",
-                                         3: "NormalFont", 4: "LargeFont"]
+    fileprivate static let fontStyles = [
+        0: "Default", 1: "NoLabel", 2: "SmallFont",
+        3: "NormalFont", 4: "LargeFont"
+    ]
 
     // MARK: A little-endian cursor
 
@@ -310,8 +331,11 @@ struct TypBinary {
                     let green = (value >> 8) & 0xFF
                     let red = (value >> 16) & 0xFF
                     let alpha = (value >> 24) & 0xF
-                    palette.append(alpha == 0 ? nil
-                                   : String(format: "#%02X%02X%02X", red, green, blue))
+                    palette.append(
+                        alpha == 0
+                            ? nil
+                            : String(format: "#%02X%02X%02X", red, green, blue)
+                    )
                 }
             } else if mode == 0x10 {
                 for _ in 0..<solidCount { palette.append(try rgb()) }
@@ -328,8 +352,12 @@ struct TypBinary {
             if bitsPerPixel == 1 {
                 pixels = pixels.map { $0.map { 1 - $0 } }
             }
-            return TypBinary.PointImage(width: width, height: height,
-                                        palette: palette, pixels: pixels)
+            return TypBinary.PointImage(
+                width: width,
+                height: height,
+                palette: palette,
+                pixels: pixels
+            )
         }
 
         mutating func labelBlock() throws -> [UInt8] {

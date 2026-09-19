@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 // URLSession lives in a separate module outside Apple's platforms, where this module
 // does not exist.
@@ -38,9 +39,12 @@ final class DownloadProgress: @unchecked Sendable {
     /// Seconds still to come, or infinity while there is not enough to estimate from.
     var eta: Double {
         lock.withLock {
-            Remaining.seconds(received: _received, total: _total,
-                              elapsed: Date().timeIntervalSince(_startedAt),
-                              alreadyOnDisk: _resumedBytes) ?? .infinity
+            Remaining.seconds(
+                received: _received,
+                total: _total,
+                elapsed: Date().timeIntervalSince(_startedAt),
+                alreadyOnDisk: _resumedBytes
+            ) ?? .infinity
         }
     }
 

@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// What a command-line build starts from: `CLI.bare`, or the choices of the profile named
 /// by `--profile`. A flag overrides either, in both directions.
 final class CLIProfileTests: XCTestCase {
-
     private var store: SettingsStore!
 
     override func setUp() {
@@ -13,15 +13,19 @@ final class CLIProfileTests: XCTestCase {
         let profiles = store.settings.profiles
         let last = store.settings.lastProfileID
         addTeardownBlock { [store] in
-            store?.update { $0.profiles = profiles; $0.lastProfileID = last }
+            store?.update {
+                $0.profiles = profiles; $0.lastProfileID = last
+            }
         }
         var coarse = BuildChoices()
         coarse.contourInterval = 50
         coarse.styleID = "typ:borrowed"
         coarse.demLayer = false
         store.update {
-            $0.profiles = [BuildProfile(id: "a", name: "Handheld", choices: coarse),
-                           BuildProfile(id: "b", name: "Оregon")]
+            $0.profiles = [
+                BuildProfile(id: "a", name: "Handheld", choices: coarse),
+                BuildProfile(id: "b", name: "Оregon")
+            ]
             $0.lastProfileID = "b"
         }
     }
@@ -86,36 +90,42 @@ final class CLIProfileTests: XCTestCase {
         // Read off the type rather than listed by hand: a choice added to `BuildChoices`
         // with no flag to move it fails here.
         let covered: Set<String> = [
-            "styleID",           // --style
-            "contours",          // --contours / --no-contours
-            "contourInterval",   // --interval
-            "demLayer",          // --dem / --no-dem
-            "fixSummits",        // --summits / --no-summits
-            "demSources",        // --sources
-            "levelsID",          // --levels
-            "labelLanguageID",   // --labels
-            "codePage",          // --code-page, =auto to hand it back to the region
-            "routable",          // --route / --no-route
-            "healRoadEnds",      // --repair-ends / --no-repair-ends
-            "searchIndex",       // --index / --no-index
-            "splitNameIndex",    // --word-index / --no-word-index
-            "houseNumbers",      // --house-numbers / --no-house-numbers
-            "generateSea",       // --sea / --no-sea
-            "zoomPlanID",        // --zoom-plan=<name>
-            "descriptions",      // --descriptions[=carrier], =off to turn it back off
-            "customPOIs",        // --custom-pois / --no-custom-pois
-            "hiddenFeatures",    // --hide=a,b,c, or --hide= for none
-            "splitMode",         // --split
-            "parts",             // --parts
-            "theme",             // --theme
-            "shapeOverlap",      // --overlap
-            "landOverlap",       // --land-overlap
+            "styleID",  // --style
+            "contours",  // --contours / --no-contours
+            "contourInterval",  // --interval
+            "demLayer",  // --dem / --no-dem
+            "fixSummits",  // --summits / --no-summits
+            "demSources",  // --sources
+            "levelsID",  // --levels
+            "labelLanguageID",  // --labels
+            "codePage",  // --code-page, =auto to hand it back to the region
+            "routable",  // --route / --no-route
+            "healRoadEnds",  // --repair-ends / --no-repair-ends
+            "searchIndex",  // --index / --no-index
+            "splitNameIndex",  // --word-index / --no-word-index
+            "houseNumbers",  // --house-numbers / --no-house-numbers
+            "generateSea",  // --sea / --no-sea
+            "zoomPlanID",  // --zoom-plan=<name>
+            "descriptions",  // --descriptions[=carrier], =off to turn it back off
+            "customPOIs",  // --custom-pois / --no-custom-pois
+            "hiddenFeatures",  // --hide=a,b,c, or --hide= for none
+            "splitMode",  // --split
+            "parts",  // --parts
+            "theme",  // --theme
+            "shapeOverlap",  // --overlap
+            "landOverlap"  // --land-overlap
         ]
         let carried = Set(Mirror(reflecting: BuildChoices()).children.compactMap(\.label))
-        XCTAssertEqual(carried.subtracting(covered), [],
-                       "a profile choice with no flag to override it")
-        XCTAssertEqual(covered.subtracting(carried), [],
-                       "a flag for a choice that no longer exists")
+        XCTAssertEqual(
+            carried.subtracting(covered),
+            [],
+            "a profile choice with no flag to override it"
+        )
+        XCTAssertEqual(
+            covered.subtracting(carried),
+            [],
+            "a flag for a choice that no longer exists"
+        )
     }
 
     /// A command-line build reads profiles and writes none of them: neither their choices
@@ -139,9 +149,11 @@ extension CLIProfileTests {
     /// A numeric flag outside the range it allows, or not a number at all, is refused with
     /// exit code 2 rather than clamped.
     func testAnImpossibleNumberIsRefused() async {
-        for bad in ["--heap=0", "--heap=99999", "--connections=0", "--connections=17",
-                    "--repair-radius=-1", "--repair-radius=500", "--memory=0",
-                    "--heap=lots", "--connections=some"] {
+        for bad in [
+            "--heap=0", "--heap=99999", "--connections=0", "--connections=17",
+            "--repair-radius=-1", "--repair-radius=500", "--memory=0",
+            "--heap=lots", "--connections=some"
+        ] {
             let code = await CLI.run(["build", "region-a", bad])
             XCTAssertEqual(code, 2, "\(bad) should be refused")
         }
@@ -170,7 +182,10 @@ extension CLIProfileTests {
         let reread = SettingsStore()
         XCTAssertEqual(reread.settings.outputDirectory, stored, "the file kept its own")
         XCTAssertEqual(reread.settings.familyIDs[key], allocated, "the durable change landed")
-        XCTAssertEqual(store.settings.outputDirectory, "/tmp/kmap-one-off",
-                       "and the override still stands in this run after the save")
+        XCTAssertEqual(
+            store.settings.outputDirectory,
+            "/tmp/kmap-one-off",
+            "and the override still stands in this run after the save"
+        )
     }
 }

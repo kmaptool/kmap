@@ -51,13 +51,15 @@ struct DataPack: Equatable {
         id: "sea",
         url: URL(string: "https://www.thkukuk.de/osm/data/sea-latest.zip")!,
         file: Paths.seaData,
-        what: "coastline data")
+        what: "coastline data"
+    )
 
     static let bounds = DataPack(
         id: "bounds",
         url: URL(string: "https://www.thkukuk.de/osm/data/bounds-latest.zip")!,
         file: Paths.boundsData,
-        what: "boundary data")
+        what: "boundary data"
+    )
 
     static let all: [DataPack] = [sea, bounds]
 
@@ -91,9 +93,11 @@ extension DataPack {
     /// The pack the server publishes, when it is newer than the one here. Nil for
     /// everything else: an uninstalled pack, an unreachable server, or a server that says
     /// neither a date nor a different size — none of which is worth 2 GB of traffic.
-    func newer(probe: (URL) async throws -> Downloader.RemoteInfo = {
-        try await Downloader.probeRetrying($0)
-    }) async -> News? {
+    func newer(
+        probe: (URL) async throws -> Downloader.RemoteInfo = {
+            try await Downloader.probeRetrying($0)
+        }
+    ) async -> News? {
         guard isInstalled, let remote = try? await probe(url) else { return nil }
         let published = remote.lastModified.flatMap(Self.date(of:))
         let stamp = CacheStamp.read(besides: file)
@@ -115,8 +119,11 @@ extension DataPack {
     /// Fetches the pack and puts it in place, stamped with what the server said. Written
     /// beside the one it replaces and moved over it only when whole, so an update stopped
     /// halfway leaves the old pack rather than none.
-    func fetch(using downloader: Downloader, connections: Int = 4,
-               lastModified: String? = nil) async throws {
+    func fetch(
+        using downloader: Downloader,
+        connections: Int = 4,
+        lastModified: String? = nil
+    ) async throws {
         let staging = file.appendingPathExtension(Self.stagingSuffix)
         try await downloader.download(url: url, to: staging, connections: connections)
         var stamped = lastModified

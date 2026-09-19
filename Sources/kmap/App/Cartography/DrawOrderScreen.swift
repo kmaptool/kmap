@@ -10,8 +10,10 @@ final class DrawOrderScreen: Screen {
 
     private var keys: [Hint] {
         if typing {
-            return [Hint(key: Glyph.enter, label: t("move it there")),
-                    Hint(key: "esc", label: t("cancel"))]
+            return [
+                Hint(key: Glyph.enter, label: t("move it there")),
+                Hint(key: "esc", label: t("cancel"))
+            ]
         }
         var hints = [Hint(key: "↑↓", label: t("move"))]
         if document.isEditable {
@@ -186,7 +188,8 @@ final class DrawOrderScreen: Screen {
     /// Rewrites the entry, re-reads the file and keeps the cursor on the polygon.
     private func moveLevel(of code: Int, to wanted: Int) {
         guard document.isEditable, let source = document.source,
-              let url = document.sourceURL else {
+            let url = document.sourceURL
+        else {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return
         }
@@ -215,14 +218,20 @@ final class DrawOrderScreen: Screen {
         let theme = ctx.theme
         let rows = self.rows
         guard let source = document.source, !rows.isEmpty else {
-            s.text(rect.x, rect.y, t("this TYP declares no draw order"),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                rect.y,
+                t("this TYP declares no draw order"),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             return
         }
 
         var y = rect.y
-        let intro = t("Polygons are painted level by level: level 1 first, every later"
-                    + " level on top of it. Within a level the order does not matter.")
+        let intro = t(
+            "Polygons are painted level by level: level 1 first, every later"
+                + " level on top of it. Within a level the order does not matter."
+        )
         for chunk in wrapText(intro, width: rect.w) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
@@ -238,59 +247,121 @@ final class DrawOrderScreen: Screen {
             let line = y + i
             switch row {
             case .caption(let caption):
-                s.sectionRule(rect, line, caption,
-                              labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                              ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+                s.sectionRule(
+                    rect,
+                    line,
+                    caption,
+                    labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+                    ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+                )
             case .polygon(let code, let level):
-                draw(code: code, drawn: level != nil, in: source, into: s,
-                     rect: Rect(x: rect.x, y: rect.y, w: rect.w - 1, h: rect.h), y: line,
-                     theme: theme, selected: list.offset + i == list.selected)
+                draw(
+                    code: code,
+                    drawn: level != nil,
+                    in: source,
+                    into: s,
+                    rect: Rect(x: rect.x, y: rect.y, w: rect.w - 1, h: rect.h),
+                    y: line,
+                    theme: theme,
+                    selected: list.offset + i == list.selected
+                )
             }
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: y, w: rect.w, h: visible),
-                           offset: list.offset, count: rows.count,
-                           visible: visible, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: y, w: rect.w, h: visible),
+            offset: list.offset,
+            count: rows.count,
+            visible: visible,
+            theme: theme
+        )
 
         let bottom = rect.maxY - 1
         if typing {
-            let x = s.text(rect.x, bottom, t("move to level") + ": ",
-                           Style(fg: theme.text, bg: theme.appBg))
-            let end = s.text(x, bottom, level.text,
-                             Style(fg: theme.strong, bg: theme.appBg, bold: true))
+            let x = s.text(
+                rect.x,
+                bottom,
+                t("move to level") + ": ",
+                Style(fg: theme.text, bg: theme.appBg)
+            )
+            let end = s.text(
+                x,
+                bottom,
+                level.text,
+                Style(fg: theme.strong, bg: theme.appBg, bold: true)
+            )
             s.put(end, bottom, "▏", Style(fg: theme.accent, bg: theme.appBg))
         } else if let message {
-            s.text(rect.x, bottom, truncate(message, to: rect.w),
-                   Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                bottom,
+                truncate(message, to: rect.w),
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg)
+            )
         }
     }
 
     /// Code, day colour, name, and at the right the tag the rules draw it for.
-    private func draw(code: Int, drawn: Bool, in source: TypSource, into s: Surface,
-                      rect: Rect, y: Int, theme: Theme, selected: Bool) {
+    private func draw(
+        code: Int,
+        drawn: Bool,
+        in source: TypSource,
+        into s: Surface,
+        rect: Rect,
+        y: Int,
+        theme: Theme,
+        selected: Bool
+    ) {
         let bg = selected ? theme.selectionBg : theme.appBg
         s.fill(Rect(x: rect.x, y: y, w: rect.w, h: 1), Style(fg: theme.text, bg: bg))
-        s.text(rect.x, y, selected ? "\(Glyph.arrowRight) " : "  ",
-               Style(fg: theme.accent, bg: bg))
+        s.text(
+            rect.x,
+            y,
+            selected ? "\(Glyph.arrowRight) " : "  ",
+            Style(fg: theme.accent, bg: bg)
+        )
 
-        var x = s.text(rect.x + 2, y, String(format: "0x%02x", code),
-                       Style(fg: theme.dim, bg: bg))
+        var x = s.text(
+            rect.x + 2,
+            y,
+            String(format: "0x%02x", code),
+            Style(fg: theme.dim, bg: bg)
+        )
         let section = source.section(.polygon, code)
-        x = Widgets.swatch(s, x: x + 2, y: y, colour: section?.representativeColours.day,
-                           width: 3, theme: theme)
+        x = Widgets.swatch(
+            s,
+            x: x + 2,
+            y: y,
+            colour: section?.representativeColours.day,
+            width: 3,
+            theme: theme
+        )
 
-        let name = (L10n.current == .ru ? section?.russianLabel : nil)
+        let name =
+            (L10n.current == .ru ? section?.russianLabel : nil)
             ?? section?.englishLabel
-        let text = name ?? (drawn ? t("not styled by this TYP — the device draws its own")
-                                  : t("no name"))
+        let text =
+            name
+            ?? (drawn
+                ? t("not styled by this TYP — the device draws its own")
+                : t("no name"))
         var limit = rect.maxX - x - 2
         if let tag = tagsByCode[code], rect.w > 60 {
             let width = min(tag.count, rect.w / 3)
-            s.textRight(rect.maxX, y, truncate(tag, to: width),
-                        Style(fg: theme.faint, bg: bg))
+            s.textRight(
+                rect.maxX,
+                y,
+                truncate(tag, to: width),
+                Style(fg: theme.faint, bg: bg)
+            )
             limit -= width + 2
         }
-        s.text(x + 2, y, text,
-               Style(fg: name == nil ? theme.faint : theme.text, bg: bg),
-               limit: max(0, limit))
+        s.text(
+            x + 2,
+            y,
+            text,
+            Style(fg: name == nil ? theme.faint : theme.text, bg: bg),
+            limit: max(0, limit)
+        )
     }
 }

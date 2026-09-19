@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// Colour handling: the interface palette stays at 256 entries, while a colour read out of
 /// a TYP is emitted exactly where the terminal supports true colour and folded onto the
 /// palette where it does not.
 final class ColorTests: XCTestCase {
-
     // MARK: Reading a TYP colour
 
     func testAHexColourIsReadTheWayATypWritesIt() {
@@ -69,7 +69,9 @@ final class ColorTests: XCTestCase {
 
     /// Two colours far enough apart do not collapse onto one palette entry.
     func testDistinctColoursStayDistinctThroughTheFold() {
-        XCTAssertNotEqual(Color.hex("#68B0F8")?.paletteApproximation,
-                          Color.hex("#A0D070")?.paletteApproximation)
+        XCTAssertNotEqual(
+            Color.hex("#68B0F8")?.paletteApproximation,
+            Color.hex("#A0D070")?.paletteApproximation
+        )
     }
 }

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Sorting the ids a pass has gathered, across the cores.
@@ -6,7 +7,6 @@ import XCTest
 /// Everything downstream walks the file once against this list and assumes it ascends
 /// with no repeats.
 final class IDSortTests: XCTestCase {
-
     private func shuffled(_ count: Int, seed: UInt64) -> [Int64] {
         var state = seed
         return (0..<count).map { _ in
@@ -17,10 +17,12 @@ final class IDSortTests: XCTestCase {
 
     func testItSortsPastTheThresholdWhereItSplits() {
         // Either side of the size where it stops sorting in one piece.
-        for count in [IDSort.leastWorthSplitting - 1,
-                      IDSort.leastWorthSplitting,
-                      IDSort.leastWorthSplitting + 1,
-                      IDSort.leastWorthSplitting * 4 + 7] {
+        for count in [
+            IDSort.leastWorthSplitting - 1,
+            IDSort.leastWorthSplitting,
+            IDSort.leastWorthSplitting + 1,
+            IDSort.leastWorthSplitting * 4 + 7
+        ] {
             var ids = shuffled(count, seed: 99)
             let expected = ids.sorted()
             IDSort.sort(&ids)

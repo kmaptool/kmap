@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The list of things a user can leave off the map.
@@ -6,7 +7,6 @@ import XCTest
 /// Hiding rewrites mkgmap's own rule text, so a feature whose `old` no longer matches does
 /// nothing. The ids are stored in settings, so renaming one un-hides the user's choice.
 final class HideableFeaturesTests: XCTestCase {
-
     func testTheShippedCatalogueParsesIntoRealEntries() {
         XCTAssertGreaterThan(HideableFeature.all.count, 10)
         for feature in HideableFeature.all {
@@ -70,9 +70,11 @@ final class HideableFeaturesTests: XCTestCase {
 
     func testTheFourBarrierRulesCoverEveryBarrierBetweenThem() {
         // Three contexts and an "everything else" that must exclude exactly those three.
-        let byContext = ["barriers-fence": "kmap:on=fence",
-                         "barriers-minor": "kmap:on=minor",
-                         "barriers-path": "kmap:on=path"]
+        let byContext = [
+            "barriers-fence": "kmap:on=fence",
+            "barriers-minor": "kmap:on=minor",
+            "barriers-path": "kmap:on=path"
+        ]
         for (id, condition) in byContext {
             let rule = HideableFeature.feature(id: id)!.substitutions[0].old
             XCTAssertTrue(rule.contains(condition), id)

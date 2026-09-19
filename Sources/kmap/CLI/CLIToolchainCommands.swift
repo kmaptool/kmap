@@ -57,16 +57,22 @@ extension CLI {
         CLILog.line("cache   \(Paths.display(Paths.pbfCache))")
         CLIOutput.result([
             "ready": .bool(allReady),
-            "tools": .array(tools.map { tool in
-                ["id": .string(tool.id), "name": .string(tool.name),
-                 "ready": .bool(tool.isReady), "installable": .bool(tool.installable),
-                 "optional": .bool(tool.isOptional),
-                 "version": .of(tool.version), "note": .of(tool.note),
-                 "path": .of(tool.path)]
-            }),
-            "folders": ["output": .string(settings.settings.outputURL.path),
-                        "work": .string(settings.settings.workURL.path),
-                        "cache": .string(Paths.pbfCache.path)],
+            "tools": .array(
+                tools.map { tool in
+                    [
+                        "id": .string(tool.id), "name": .string(tool.name),
+                        "ready": .bool(tool.isReady), "installable": .bool(tool.installable),
+                        "optional": .bool(tool.isOptional),
+                        "version": .of(tool.version), "note": .of(tool.note),
+                        "path": .of(tool.path)
+                    ]
+                }
+            ),
+            "folders": [
+                "output": .string(settings.settings.outputURL.path),
+                "work": .string(settings.settings.workURL.path),
+                "cache": .string(Paths.pbfCache.path)
+            ]
         ])
         return allReady ? 0 : 1
     }
@@ -91,8 +97,10 @@ extension CLI {
         }
         let names = arguments.filter { !$0.hasPrefix("-") }
         if downloading, names != ["java"] {
-            return refuse("--download is for java, which is the one thing kmap can fetch"
-                          + " for itself as well as install")
+            return refuse(
+                "--download is for java, which is the one thing kmap can fetch"
+                    + " for itself as well as install"
+            )
         }
         if names.count > 1 {
             return refuse("kmap install takes one tool at a time, not \(names.count)")
@@ -115,7 +123,8 @@ extension CLI {
         // --download is asked for on purpose, so it applies to a Java that is already
         // there: the point is to have kmap's own rather than the machine's.
         if downloading, targets.isEmpty,
-           let java = toolchain.status().first(where: { $0.id == "java" }) {
+            let java = toolchain.status().first(where: { $0.id == "java" })
+        {
             targets = [java]
         }
 
@@ -149,8 +158,12 @@ extension CLI {
             CLILog.line("── installing \(tool.name)")
             let runner = ProcessRunner()
             let work = Task {
-                try await toolchain.install(tool.id, log: log, runner: runner,
-                                            downloading: downloading)
+                try await toolchain.install(
+                    tool.id,
+                    log: log,
+                    runner: runner,
+                    downloading: downloading
+                )
             }
 
             // Polled, so the slower installs report progress as they go.

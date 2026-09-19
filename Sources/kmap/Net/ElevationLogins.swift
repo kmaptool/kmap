@@ -59,8 +59,10 @@ enum ElevationLogins {
 
     static func load(_ service: Service) -> (user: String, password: String) {
         let values = parse()
-        return (values["\(service.rawValue)-user"] ?? "",
-                values["\(service.rawValue)-password"] ?? "")
+        return (
+            values["\(service.rawValue)-user"] ?? "",
+            values["\(service.rawValue)-password"] ?? ""
+        )
     }
 
     static func save(_ service: Service, user: String, password: String) {
@@ -75,8 +77,10 @@ enum ElevationLogins {
         }
         try? yaml.write(to: configFile, atomically: true, encoding: .utf8)
         // Mode 0600: the file holds passwords.
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600],
-                                               ofItemAtPath: configFile.path)
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o600],
+            ofItemAtPath: configFile.path
+        )
         // The stored verdict belongs to the previous credentials.
         forget(service)
     }

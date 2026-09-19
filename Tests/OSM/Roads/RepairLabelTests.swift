@@ -1,20 +1,24 @@
 import XCTest
+
 @testable import kmap
 
 /// The name a repaired link carries: what it crosses, its height where OSM gives one, and
 /// how far it reaches, in both alphabets.
 final class RepairLabelTests: XCTestCase {
-
     func testTheSignNamesWhatIsCrossedAndHowFar() {
         XCTAssertEqual(RepairLabel.sign("kerb", 1.5, .nan, "en"), "Kerb, 1.50 m")
         XCTAssertEqual(RepairLabel.sign("kerb", 1.5, .nan, "ru"), "Бордюр, 1.50 м")
     }
 
     func testAHeightIsAddedWhenOSMKnowsOne() {
-        XCTAssertEqual(RepairLabel.sign("retaining_wall", 2, 1.2, "en"),
-                       "Retaining wall 1.2 m high, 2.00 m")
-        XCTAssertEqual(RepairLabel.sign("retaining_wall", 2, 1.2, "ru"),
-                       "Подпорная стенка высотой 1.2 м, 2.00 м")
+        XCTAssertEqual(
+            RepairLabel.sign("retaining_wall", 2, 1.2, "en"),
+            "Retaining wall 1.2 m high, 2.00 m"
+        )
+        XCTAssertEqual(
+            RepairLabel.sign("retaining_wall", 2, 1.2, "ru"),
+            "Подпорная стенка высотой 1.2 м, 2.00 м"
+        )
     }
 
     func testNoHeightMeansNoHeightInTheName() {
@@ -41,8 +45,10 @@ final class RepairLabelTests: XCTestCase {
 
     func testTheLinkLowercasesTheFirstLetterInCyrillicToo() {
         // Only the word inside the brackets is lowercased, not the sentence.
-        XCTAssertEqual(RepairLabel.link("kerb", 1.5, .nan, "ru"),
-                       "Перемычка (достроена, бордюр, 1.50 м)")
+        XCTAssertEqual(
+            RepairLabel.link("kerb", 1.5, .nan, "ru"),
+            "Перемычка (достроена, бордюр, 1.50 м)"
+        )
     }
 
     func testTheGroundsOwnReasonsAreNamedToo() {
@@ -57,10 +63,12 @@ final class RepairLabelTests: XCTestCase {
         let english = RepairLabel.sign("kerb", 1, .nan, "en")
         let russian = RepairLabel.sign("kerb", 1, .nan, "ru")
         XCTAssertNotEqual(english, russian)
-        for word in ["kerb", "retaining_wall", "guard_rail", "ditch", "chain", "bollard",
-                     "block", "handrail", "jersey_barrier", "gate", "cliff", "ravine",
-                     "water", "river", "canal", "embankment", "pier", "breakwater",
-                     "drop", "face"] {
+        for word in [
+            "kerb", "retaining_wall", "guard_rail", "ditch", "chain", "bollard",
+            "block", "handrail", "jersey_barrier", "gate", "cliff", "ravine",
+            "water", "river", "canal", "embankment", "pier", "breakwater",
+            "drop", "face"
+        ] {
             let ru = RepairLabel.sign(word, 1, .nan, "ru")
             XCTAssertFalse(ru.hasPrefix("Преграда"), "\(word) has no Russian word")
             let en = RepairLabel.sign(word, 1, .nan, "en")

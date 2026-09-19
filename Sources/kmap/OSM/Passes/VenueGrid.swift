@@ -49,13 +49,17 @@ extension VenueScan {
             base = max(smallest, span / Double(1 << Self.mostLevels))
             x0 = minX; y0 = minY
 
-            let levels = min(Self.mostLevels,
-                             max(1, Int((log2(span / base)).rounded(.up)) + 1))
+            let levels = min(
+                Self.mostLevels,
+                max(1, Int((log2(span / base)).rounded(.up)) + 1)
+            )
             var filed = [[(key: Int64, index: Int32)]](repeating: [], count: levels)
             for (index, area) in group.enumerated() {
                 let extent = max(area.box.x1 - area.box.x0, area.box.y1 - area.box.y0)
-                let level = min(levels - 1,
-                                max(0, Int((log2(max(extent, base) / base)).rounded(.up))))
+                let level = min(
+                    levels - 1,
+                    max(0, Int((log2(max(extent, base) / base)).rounded(.up)))
+                )
                 let side = base * Double(1 << level)
                 let c0 = column(area.box.x0, side), r0 = row(area.box.y0, side)
                 let c1 = column(area.box.x1, side), r1 = row(area.box.y1, side)

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The rights question gates the import: ⏎ on a candidate copies nothing, and the copy is
@@ -7,7 +8,6 @@ import XCTest
 /// main-actor method.
 @MainActor
 final class ImportConsentTests: XCTestCase {
-
     private var ctx: AppContext!
 
     override func setUp() {
@@ -31,8 +31,10 @@ final class ImportConsentTests: XCTestCase {
     /// The screen in path mode with `path` typed in, which depends on nothing plugged into
     /// this machine. A lone TYP is asked about itself first; `pastTheFirstQuestion` answers
     /// that one, leaving the rights question on screen.
-    private func screenAsking(_ path: String,
-                              pastTheFirstQuestion: Bool = true) -> ImportTypScreen {
+    private func screenAsking(
+        _ path: String,
+        pastTheFirstQuestion: Bool = true
+    ) -> ImportTypScreen {
         let screen = ImportTypScreen(onImported: {})
         _ = frame(screen)
         _ = screen.handle(.tab, ctx: ctx)
@@ -50,8 +52,10 @@ final class ImportConsentTests: XCTestCase {
     func testALoneTypIsToldWhatTakingItAloneCosts() async {
         let screen = screenAsking("/tmp/does-not-exist.typ", pastTheFirstQuestion: false)
         let drawn = frame(screen)
-        XCTAssertTrue(drawn.contains(t("Only the drawing").uppercased()),
-                      "the first question is about the file, not about copyright")
+        XCTAssertTrue(
+            drawn.contains(t("Only the drawing").uppercased()),
+            "the first question is about the file, not about copyright"
+        )
         XCTAssertFalse(drawn.contains("IMPORTANT"), "the rights question comes after it")
     }
 
@@ -72,8 +76,10 @@ final class ImportConsentTests: XCTestCase {
         let screen = screenAsking("/tmp/does-not-exist.typ")
         let drawn = frame(screen)
         XCTAssertTrue(drawn.contains("IMPORTANT"), "⏎ has to put the question up")
-        XCTAssertTrue(drawn.contains("does-not-exist.typ"),
-                      "and name the file it is about")
+        XCTAssertTrue(
+            drawn.contains("does-not-exist.typ"),
+            "and name the file it is about"
+        )
         // Not the import's own error, which is what would be on screen had it gone ahead.
         XCTAssertFalse(drawn.contains("no such file"))
     }
@@ -108,8 +114,10 @@ final class ImportConsentTests: XCTestCase {
         _ = screen.handle(.enter, ctx: ctx)
         let drawn = frame(screen)
         XCTAssertFalse(drawn.contains("IMPORTANT"))
-        XCTAssertTrue(drawn.contains("does-not-exist.typ"),
-                      "the import ran and said what it could not find")
+        XCTAssertTrue(
+            drawn.contains("does-not-exist.typ"),
+            "the import ran and said what it could not find"
+        )
     }
 
     func testTheQuestionIsAskedInTheLanguageOnScreen() async {
@@ -120,8 +128,10 @@ final class ImportConsentTests: XCTestCase {
         let russian = screenAsking("/tmp/a.typ")
         XCTAssertTrue(frame(russian).contains("ВАЖНО"))
         _ = russian.handle(.right, ctx: ctx)
-        XCTAssertTrue(russian.footerHints.contains { $0.label == "подтверждаю" },
-                      "the confirming answer has to be readable to whoever is agreeing")
+        XCTAssertTrue(
+            russian.footerHints.contains { $0.label == "подтверждаю" },
+            "the confirming answer has to be readable to whoever is agreeing"
+        )
 
         L10n.use(.en)
         let english = screenAsking("/tmp/a.typ")
@@ -152,8 +162,10 @@ final class ImportConsentTests: XCTestCase {
         // Both folders: an original is not a style, but the import list compares
         // against it.
         let originals = TypLibrary.originalsDirectory()
-        let before = Set((TypLibrary.contents() + TypLibrary.contents(in: originals))
-            .map(\.lastPathComponent))
+        let before = Set(
+            (TypLibrary.contents() + TypLibrary.contents(in: originals))
+                .map(\.lastPathComponent)
+        )
         addTeardownBlock {
             for url in TypLibrary.contents() + TypLibrary.contents(in: originals)
             where !before.contains(url.lastPathComponent) {
@@ -177,10 +189,14 @@ final class ImportConsentTests: XCTestCase {
         let screen = screenAsking(source.path)
         let drawn = frame(screen)
 
-        XCTAssertFalse(drawn.contains("IMPORTANT"),
-                       "nothing to ask about — it is already here")
-        XCTAssertTrue(drawn.contains(taken.url.deletingPathExtension().lastPathComponent),
-                      "the refusal names the entry it is already in")
+        XCTAssertFalse(
+            drawn.contains("IMPORTANT"),
+            "nothing to ask about — it is already here"
+        )
+        XCTAssertTrue(
+            drawn.contains(taken.url.deletingPathExtension().lastPathComponent),
+            "the refusal names the entry it is already in"
+        )
         XCTAssertEqual(Set(TypLibrary.contents()), held, "and nothing was copied")
     }
 }

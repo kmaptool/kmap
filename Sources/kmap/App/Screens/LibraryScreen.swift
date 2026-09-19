@@ -8,9 +8,11 @@ final class LibraryScreen: Screen {
         var hints = [Hint(key: "↑↓", label: t("move"))]
         // Omitted where the platform has no file manager to open.
         if Platform.canReveal { hints.append(Hint(key: "o", label: Platform.revealLabel())) }
-        hints += [Hint(key: "d", label: t("delete")),
-                  Hint(key: "r", label: t("rescan")),
-                  Hint(key: "esc", label: t("back"))]
+        hints += [
+            Hint(key: "d", label: t("delete")),
+            Hint(key: "r", label: t("rescan")),
+            Hint(key: "esc", label: t("back"))
+        ]
         return hints
     }
 
@@ -35,7 +37,8 @@ final class LibraryScreen: Screen {
         for entry in FileTools.contents(of: root) {
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir),
-                  isDir.boolValue else { continue }
+                isDir.boolValue
+            else { continue }
             found.append(contentsOf: FileTools.contents(of: entry, extension: "img"))
         }
         files = found.sorted {
@@ -64,8 +67,10 @@ final class LibraryScreen: Screen {
         case .char("d"):
             guard let file = files[safe: list.selected] else { return .none }
             pendingDelete = file
-            message = t("delete %@? press ⏎ to confirm, any other key to cancel",
-                        file.lastPathComponent)
+            message = t(
+                "delete %@? press ⏎ to confirm, any other key to cancel",
+                file.lastPathComponent
+            )
         case .enter:
             if let target = pendingDelete {
                 FileTools.removeIfPresent(target)
@@ -95,19 +100,30 @@ final class LibraryScreen: Screen {
         let theme = ctx.theme
         var y = rect.y
 
-        s.text(rect.x, y, Paths.display(ctx.settings.settings.outputURL),
-               Style(fg: theme.dim, bg: theme.appBg))
+        s.text(
+            rect.x,
+            y,
+            Paths.display(ctx.settings.settings.outputURL),
+            Style(fg: theme.dim, bg: theme.appBg)
+        )
         y += 1
         s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
         y += 1
 
         if files.isEmpty {
-            s.text(rect.x, y + 1, t("no maps built yet"),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y + 1,
+                t("no maps built yet"),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             for (i, chunk) in wrapText(
-                t("Build one from the main menu. Finished maps land here as .img files; "
-                + "copy one to Garmin/ on the device or its SD card to install it."),
-                width: rect.w).enumerated() {
+                t(
+                    "Build one from the main menu. Finished maps land here as .img files; "
+                        + "copy one to Garmin/ on the device or its SD card to install it."
+                ),
+                width: rect.w
+            ).enumerated() {
                 s.text(rect.x, y + 3 + i, chunk, Style(fg: theme.faint, bg: theme.appBg))
             }
             return
@@ -122,21 +138,33 @@ final class LibraryScreen: Screen {
             let index = list.offset + i
             guard let file = files[safe: index] else { break }
             let modified = FileTools.modified(of: file).map { Fmt.timestamp($0) } ?? ""
-            Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
-                        y: y,
-                        text: displayName(file, root: ctx.settings.settings.outputURL),
-                        trailing: "\(Fmt.bytes(FileTools.size(of: file)))   \(modified)",
-                        theme: theme,
-                        selected: index == list.selected)
+            Widgets.row(
+                s,
+                rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
+                y: y,
+                text: displayName(file, root: ctx.settings.settings.outputURL),
+                trailing: "\(Fmt.bytes(FileTools.size(of: file)))   \(modified)",
+                theme: theme,
+                selected: index == list.selected
+            )
             y += 1
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
-                           offset: list.offset, count: files.count,
-                           visible: listHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
+            offset: list.offset,
+            count: files.count,
+            visible: listHeight,
+            theme: theme
+        )
 
         if let message {
-            s.text(rect.x, rect.maxY - 1, truncate(message, to: rect.w),
-                   Style(fg: pendingDelete != nil ? theme.danger : theme.dim, bg: theme.appBg))
+            s.text(
+                rect.x,
+                rect.maxY - 1,
+                truncate(message, to: rect.w),
+                Style(fg: pendingDelete != nil ? theme.danger : theme.dim, bg: theme.appBg)
+            )
         }
     }
 }

@@ -6,7 +6,6 @@ import Foundation
 /// instruments, each reading the traced lines from one angle. They exist so a change to
 /// the tracer can be judged in numbers rather than by staring at a map.
 extension CLI {
-
     /// What `--major` and `--medium` mean when not given: every tenth and fifth line.
     /// With the default 20 m step that is a major every 200 m and a medium every 100 m.
     private static let majorEverySteps = 10
@@ -16,9 +15,14 @@ extension CLI {
     private static let defaultStepMetres = 20
 
     static func contours(_ arguments: [String]) -> Int32 {
-        let flags = Flags(arguments, valued: ["step", "clip", "flatness", "dump-paths", "out",
-                                              "major", "medium", "start-node-id",
-                                              "start-way-id"])
+        let flags = Flags(
+            arguments,
+            valued: [
+                "step", "clip", "flatness", "dump-paths", "out",
+                "major", "medium", "start-node-id",
+                "start-way-id"
+            ]
+        )
         guard let path = flags.positionals.first else {
             return CLIOutput.failure("usage: kmap contours <tile.hgt> [--step 20]", code: 2)
         }
@@ -53,8 +57,11 @@ extension CLI {
     }
 
     /// `--clip S,W,N,E`, or nil for anything that does not parse as four numbers.
-    private static func parseClip(_ text: String)
-        -> (minLat: Double, minLon: Double, maxLat: Double, maxLon: Double)? {
+    private static func parseClip(
+        _ text: String
+    )
+        -> (minLat: Double, minLon: Double, maxLat: Double, maxLon: Double)?
+    {
         let parts = text.split(separator: ",").compactMap { Double($0) }
         guard parts.count == 4 else { return nil }
         return (minLat: parts[0], minLon: parts[1], maxLat: parts[2], maxLon: parts[3])
@@ -71,17 +78,22 @@ extension CLI {
             longest = max(longest, line.points.count)
             for i in 1..<line.points.count
             where line.points[i].lat == line.points[i - 1].lat
-                && line.points[i].lon == line.points[i - 1].lon {
+                && line.points[i].lon == line.points[i - 1].lon
+            {
                 repeats += 1
             }
         }
-        CLILog.line("lines \(lines.count), vertices \(vertices), closed \(closed),"
-              + " levels \(levels), repeated \(repeats), longest \(longest)")
+        CLILog.line(
+            "lines \(lines.count), vertices \(vertices), closed \(closed),"
+                + " levels \(levels), repeated \(repeats), longest \(longest)"
+        )
         CLILog.line(String(format: "traced in %.1f s", seconds))
-        CLIOutput.result(["lines": .int(lines.count), "vertices": .int(vertices),
-                          "closed": .int(closed), "levels": .int(levels),
-                          "repeated": .int(repeats), "longest": .int(longest),
-                          "step": .int(step), "seconds": .double(seconds)])
+        CLIOutput.result([
+            "lines": .int(lines.count), "vertices": .int(vertices),
+            "closed": .int(closed), "levels": .int(levels),
+            "repeated": .int(repeats), "longest": .int(longest),
+            "step": .int(step), "seconds": .double(seconds)
+        ])
     }
 
     /// `--dump-paths FILE`: every line as `elevation lat lon lat lon …`, for diffing two
@@ -110,30 +122,43 @@ extension CLI {
             for i in 1..<(full.points.count - 1) {
                 let a = full.points[i - 1], b = full.points[i], c = full.points[i + 1]
                 let cross = (c.lon - a.lon) * (b.lat - a.lat) - (c.lat - a.lat) * (b.lon - a.lon)
-                let span = ((c.lat - a.lat) * (c.lat - a.lat)
-                            + (c.lon - a.lon) * (c.lon - a.lon)).squareRoot()
+                let span =
+                    ((c.lat - a.lat) * (c.lat - a.lat)
+                    + (c.lon - a.lon) * (c.lon - a.lon)).squareRoot()
                 if span > 0 {
                     let off = abs(cross) / span
                     if off < Contours.defaultFlatness { worst = max(worst, off) }
                 }
             }
         }
-        CLILog.line(String(format: "largest deviation of a removed point: %.3e degrees (%.6f mm)",
-                     worst, worst * RoadRepair.metresPerDegree * 1000))
+        CLILog.line(
+            String(
+                format: "largest deviation of a removed point: %.3e degrees (%.6f mm)",
+                worst,
+                worst * RoadRepair.metresPerDegree * 1000
+            )
+        )
     }
 
     /// `--out FILE`: the lines as OSM XML, the same shape the pipeline feeds the splitter.
-    private static func writeAsOSM(_ lines: [Contours.Line], to out: String, step: Int,
-                                   flags: Flags) throws {
+    private static func writeAsOSM(
+        _ lines: [Contours.Line],
+        to out: String,
+        step: Int,
+        flags: Flags
+    ) throws {
         let major = flags.int("major") ?? step * majorEverySteps
         let medium = flags.int("medium") ?? step * mediumEverySteps
         let counts = try ContourOutput.write(
-            lines, to: URL(fileURLWithPath: out),
+            lines,
+            to: URL(fileURLWithPath: out),
             nodeStart: flags.value("start-node-id").flatMap { Int64($0) }
                 ?? ContourOutput.nodeIDBase,
             wayStart: flags.value("start-way-id").flatMap { Int64($0) }
                 ?? ContourOutput.wayIDBase,
-            major: major, medium: medium)
+            major: major,
+            medium: medium
+        )
         CLILog.line("wrote \(counts.nodes) node(s) and \(counts.ways) way(s)")
     }
 
@@ -161,10 +186,16 @@ extension CLI {
             return
         }
         segments.sort()
-        CLILog.line(String(format: "%d triple(s), %d collinear (%.2f%%); segment median %.2f m, share under 1 m %.1f%%",
-                     checked, flat, 100.0 * Double(flat) / Double(max(1, checked)),
-                     segments[segments.count / 2],
-                     100.0 * Double(segments.filter { $0 < 1 }.count) / Double(segments.count)))
+        CLILog.line(
+            String(
+                format: "%d triple(s), %d collinear (%.2f%%); segment median %.2f m, share under 1 m %.1f%%",
+                checked,
+                flat,
+                100.0 * Double(flat) / Double(max(1, checked)),
+                segments[segments.count / 2],
+                100.0 * Double(segments.filter { $0 < 1 }.count) / Double(segments.count)
+            )
+        )
     }
 
     /// `--lengths`: total drawn length per elevation, as `LEN <level> <metres>` lines a
@@ -198,8 +229,10 @@ extension CLI {
 
     /// Ground distance of one segment, flat-earth at this latitude — exact enough for
     /// statistics over metres-long segments.
-    private static func metres(_ a: (lat: Double, lon: Double),
-                               _ b: (lat: Double, lon: Double)) -> Double {
+    private static func metres(
+        _ a: (lat: Double, lon: Double),
+        _ b: (lat: Double, lon: Double)
+    ) -> Double {
         let kx = RoadRepair.metresPerDegree * cos(a.lat * .pi / 180)
         let dx = (b.lon - a.lon) * kx, dy = (b.lat - a.lat) * RoadRepair.metresPerDegree
         return (dx * dx + dy * dy).squareRoot()

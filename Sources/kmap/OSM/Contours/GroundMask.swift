@@ -126,15 +126,25 @@ struct GroundMask {
                 } else {
                     cut = true
                     if run.count >= Self.fewestLinePoints {
-                        out.append(Contours.Line(elevation: line.elevation,
-                                                 points: run, closed: false))
+                        out.append(
+                            Contours.Line(
+                                elevation: line.elevation,
+                                points: run,
+                                closed: false
+                            )
+                        )
                     }
                     run.removeAll(keepingCapacity: true)
                 }
             }
             if run.count >= Self.fewestLinePoints {
-                out.append(Contours.Line(elevation: line.elevation, points: run,
-                                         closed: line.closed && !cut))
+                out.append(
+                    Contours.Line(
+                        elevation: line.elevation,
+                        points: run,
+                        closed: line.closed && !cut
+                    )
+                )
             }
         }
         return out

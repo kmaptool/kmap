@@ -11,8 +11,11 @@ extension PBFRewriter {
     /// Passes the node blocks, or the way blocks, of every contour file straight through,
     /// still deflated. The files are read in the order given, which is the order their id
     /// ranges were handed out, so ids still ascend.
-    mutating func copyContours(_ part: Part, into writer: PBFWriter,
-                              scratch: inout [UInt8]) throws -> Int {
+    mutating func copyContours(
+        _ part: Part,
+        into writer: PBFWriter,
+        scratch: inout [UInt8]
+    ) throws -> Int {
         if contourKinds.count != contours.count {
             contourKinds = [[UInt8]](repeating: [], count: contours.count)
         }
@@ -57,20 +60,39 @@ extension PBFRewriter {
         var batch: [PBFWriter.Node] = []
         for bridge in plan.bridges {
             batch.append(PBFWriter.Node(id: bridge.node, lat: bridge.lat, lon: bridge.lon, tags: []))
-            batch.append(PBFWriter.Node(
-                id: bridge.node + 1, lat: bridge.middle.lat, lon: bridge.middle.lon,
-                tags: [(Self.repairTag, bridge.word),
-                       ("name", RepairLabel.sign(bridge.word, bridge.length, bridge.height, language))]))
+            batch.append(
+                PBFWriter.Node(
+                    id: bridge.node + 1,
+                    lat: bridge.middle.lat,
+                    lon: bridge.middle.lon,
+                    tags: [
+                        (Self.repairTag, bridge.word),
+                        ("name", RepairLabel.sign(bridge.word, bridge.length, bridge.height, language))
+                    ]
+                )
+            )
         }
         return batch
     }
 
     func inventedWays() -> [PBFWriter.Way] {
         plan.bridges.map { bridge in
-            PBFWriter.Way(id: bridge.node, refs: [bridge.end, bridge.node],
-                          tags: [("highway", "path"), (Self.repairTag, bridge.word),
-                                 ("name", RepairLabel.link(bridge.word, bridge.length,
-                                                           bridge.height, language))])
+            PBFWriter.Way(
+                id: bridge.node,
+                refs: [bridge.end, bridge.node],
+                tags: [
+                    ("highway", "path"), (Self.repairTag, bridge.word),
+                    (
+                        "name",
+                        RepairLabel.link(
+                            bridge.word,
+                            bridge.length,
+                            bridge.height,
+                            language
+                        )
+                    )
+                ]
+            )
         }
     }
 }

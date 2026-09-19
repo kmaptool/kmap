@@ -76,8 +76,11 @@ struct LocalGraph {
     }
 
     /// Shortest distance from one node to either of two others, or nil past the cap.
-    mutating func detour(from source: Int64, to targets: (Int64, Int64),
-                         cap: Double) -> Double? {
+    mutating func detour(
+        from source: Int64,
+        to targets: (Int64, Int64),
+        cap: Double
+    ) -> Double? {
         guard let start = index[source] else { return nil }
         let first = index[targets.0], second = index[targets.1]
         guard first != nil || second != nil else { return nil }

@@ -8,7 +8,6 @@ import Glibc
 
 /// `ConsoleBackend` on Unix: termios raw mode, `poll` for input, and signal handlers.
 enum POSIXConsole: ConsoleBackend {
-
     // Read from signal handlers, where no lock may be taken: a handler that interrupts the
     // thread holding it would wait for ever. Both are written before the handlers exist.
     nonisolated(unsafe) private static var original = termios()
@@ -37,7 +36,7 @@ enum POSIXConsole: ConsoleBackend {
         raw.c_cflag |= tcflag_t(CS8)
         withUnsafeMutablePointer(to: &raw.c_cc) { ptr in
             ptr.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { cc in
-                cc[Int(VMIN)] = 0   // non-blocking-ish read
+                cc[Int(VMIN)] = 0  // non-blocking-ish read
                 cc[Int(VTIME)] = 1  // 100ms poll timeout
             }
         }
@@ -63,8 +62,11 @@ enum POSIXConsole: ConsoleBackend {
             guard let base = ptr.baseAddress else { return }
             var written = 0
             while written < ptr.count {
-                let n = Glibcish.write(STDOUT_FILENO, base.advanced(by: written),
-                                       ptr.count - written)
+                let n = Glibcish.write(
+                    STDOUT_FILENO,
+                    base.advanced(by: written),
+                    ptr.count - written
+                )
                 if n > 0 { written += n; continue }
                 // A frame is resent only when it changes, so a partial write is never
                 // repaired later: EINTR and EAGAIN must be retried, not abandoned.

@@ -5,7 +5,6 @@ import Foundation
 /// Each rule emits a code the style already uses for something of the same kind, so an
 /// imported TYP draws it as it stands; a new code would need a TYP entry of its own.
 extension StyleCatalog {
-
     static let foundPointMarker = "# --- kmap: drawn nowhere until now (points)"
 
     /// Points nothing drew: pylons, water towers, trig points, a lighthouse. One tag to a
@@ -49,8 +48,14 @@ extension StyleCatalog {
         """
 
     func addFoundPointRules(in directory: URL, log: Log) throws {
-        guard try spliceRules(StyleCatalog.foundPointRules, marked: StyleCatalog.foundPointMarker,
-                              intoFile: "points", in: directory) else { return }
+        guard
+            try spliceRules(
+                StyleCatalog.foundPointRules,
+                marked: StyleCatalog.foundPointMarker,
+                intoFile: "points",
+                in: directory
+            )
+        else { return }
         log.append("pylons, trig points and eight other point kinds added to the rule set")
     }
 
@@ -84,8 +89,14 @@ extension StyleCatalog {
         """
 
     func addFoundLineRules(in directory: URL, log: Log) throws {
-        guard try spliceRules(StyleCatalog.foundLineRules, marked: StyleCatalog.foundLineMarker,
-                              intoFile: "lines", in: directory) else { return }
+        guard
+            try spliceRules(
+                StyleCatalog.foundLineRules,
+                marked: StyleCatalog.foundLineMarker,
+                intoFile: "lines",
+                in: directory
+            )
+        else { return }
         log.append("ditches, tree rows, dams and abandoned railways added to the rule set")
     }
 
@@ -125,8 +136,14 @@ extension StyleCatalog {
         """
 
     func addFoundPolygonRules(in directory: URL, log: Log) throws {
-        guard try spliceRules(StyleCatalog.foundPolygonRules, marked: StyleCatalog.foundPolygonMarker,
-                              intoFile: "polygons", in: directory) else { return }
+        guard
+            try spliceRules(
+                StyleCatalog.foundPolygonRules,
+                marked: StyleCatalog.foundPolygonMarker,
+                intoFile: "polygons",
+                in: directory
+            )
+        else { return }
         log.append("aprons, platforms, piers and six other polygon kinds added to the rule set")
     }
 }

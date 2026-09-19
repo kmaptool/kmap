@@ -1,20 +1,32 @@
 import XCTest
+
 @testable import kmap
 
 /// What the elevation download reports while it runs: tiles done, bytes received, and,
 /// once there is enough to go on, a rate and a time left.
 final class StageElevationTests: XCTestCase {
-
-    private func line(done: Int = 0, of total: Int = 100, received: Int64 = 0,
-                      elapsed: TimeInterval = 10, secondsLeft: Double? = nil) -> String {
-        BuildPipeline.fetchLine(done: done, of: total, received: received,
-                                elapsed: elapsed, secondsLeft: secondsLeft)
+    private func line(
+        done: Int = 0,
+        of total: Int = 100,
+        received: Int64 = 0,
+        elapsed: TimeInterval = 10,
+        secondsLeft: Double? = nil
+    ) -> String {
+        BuildPipeline.fetchLine(
+            done: done,
+            of: total,
+            received: received,
+            elapsed: elapsed,
+            secondsLeft: secondsLeft
+        )
     }
 
     func testItAlwaysSaysHowManyTilesAndHowMuchHasComeDown() {
         XCTAssertEqual(line(done: 20, of: 125, received: 0, elapsed: 0), "Copernicus 20/125 · 0 B")
-        XCTAssertTrue(line(done: 20, of: 125, received: 240_000_000)
-                        .hasPrefix("Copernicus 20/125 · 240.0 MB"))
+        XCTAssertTrue(
+            line(done: 20, of: 125, received: 240_000_000)
+                .hasPrefix("Copernicus 20/125 · 240.0 MB")
+        )
     }
 
     func testNothingIsSaidAboutSpeedForTheFirstSecond() {
@@ -31,8 +43,15 @@ final class StageElevationTests: XCTestCase {
 
     func testTheTimeLeftIsWhateverThePaceWorkedOut() {
         // `Pace` supplies the estimate, from how fast tiles have been finishing lately.
-        XCTAssertTrue(line(done: 10, of: 100, received: 100_000_000, elapsed: 10,
-                           secondsLeft: 90).contains("1m 30s left"))
+        XCTAssertTrue(
+            line(
+                done: 10,
+                of: 100,
+                received: 100_000_000,
+                elapsed: 10,
+                secondsLeft: 90
+            ).contains("1m 30s left")
+        )
     }
 
     func testNothingIsSaidAboutTimeWhileThePaceIsStillWatching() {
@@ -49,7 +68,6 @@ final class StageElevationTests: XCTestCase {
 
 /// Adding up what several lanes are pulling down at once.
 final class FlightTests: XCTestCase {
-
     func testItStartsAtNothing() {
         XCTAssertEqual(Flight().received, 0)
     }

@@ -25,7 +25,8 @@ extension BuildPipeline {
     var viewfinderResolutions: [Int] {
         demSourceList.compactMap { source in
             guard source.hasPrefix("view"), let resolution = Int(source.dropFirst(4)),
-                  resolution == 1 || resolution == 3 else { return nil }
+                resolution == 1 || resolution == 3
+            else { return nil }
             return resolution
         }
     }
@@ -50,8 +51,12 @@ extension BuildPipeline {
                 out.append(ViewfinderDEM.cacheDirectory(resolution))
             } else {
                 // pyhgtmap names its directories after the source, upper-cased.
-                out.append(Paths.hgtCache.appendingPathComponent(id.uppercased(),
-                                                                 isDirectory: true))
+                out.append(
+                    Paths.hgtCache.appendingPathComponent(
+                        id.uppercased(),
+                        isDirectory: true
+                    )
+                )
             }
         }
         return out

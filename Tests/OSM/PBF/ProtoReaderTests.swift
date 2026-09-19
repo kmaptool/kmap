@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// The reader: a written value reads back the same across each type's whole range, and a
 /// malformed message is refused.
 final class ProtoReaderTests: XCTestCase {
-
     // MARK: Reading a buffer
 
     /// Runs `body` on a reader over `bytes`. The reader does not own its memory, so the
@@ -33,13 +33,17 @@ final class ProtoReaderTests: XCTestCase {
         XCTAssertEqual(written { $0.varint(300) }, [0xAC, 0x02])
         XCTAssertEqual(written { $0.varint(16383) }, [0xFF, 0x7F])
         XCTAssertEqual(written { $0.varint(16384) }, [0x80, 0x80, 0x01])
-        XCTAssertEqual(written { $0.varint(UInt64.max) },
-                       [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01])
+        XCTAssertEqual(
+            written { $0.varint(UInt64.max) },
+            [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
+        )
     }
 
     func testVarintRoundTripsEveryBoundary() {
-        var values: [UInt64] = [0, 1, 2, 127, 128, 129, 255, 256, 16383, 16384,
-                                UInt64(UInt32.max), UInt64(UInt32.max) + 1, UInt64.max]
+        var values: [UInt64] = [
+            0, 1, 2, 127, 128, 129, 255, 256, 16383, 16384,
+            UInt64(UInt32.max), UInt64(UInt32.max) + 1, UInt64.max
+        ]
         // Varints change length at multiples of seven bits, so every bit position and its
         // neighbours are covered.
         for bit in 0..<64 {
@@ -57,8 +61,11 @@ final class ProtoReaderTests: XCTestCase {
     func testVarintLengthGrowsEverySevenBits() {
         for length in 1...10 {
             let value = length == 10 ? UInt64.max : (UInt64(1) << (7 * length)) - 1
-            XCTAssertEqual(written { $0.varint(value) }.count, length,
-                           "\(value) should take \(length) byte(s)")
+            XCTAssertEqual(
+                written { $0.varint(value) }.count,
+                length,
+                "\(value) should take \(length) byte(s)"
+            )
         }
     }
 
@@ -151,11 +158,13 @@ final class ProtoReaderTests: XCTestCase {
         // Assembled by hand: the writer emits no fixed-width fields, since an OSM PBF has
         // none, but the reader must still step over them.
         var bytes: [UInt8] = []
-        bytes += written { w in w.key(1, 0); w.varint(300) }       // varint
-        bytes += written { $0.key(2, 1) } + [UInt8](repeating: 7, count: 8)   // fixed64
-        bytes += written { $0.bytesField(3, [1, 2, 3]) }           // length-delimited
-        bytes += written { $0.key(4, 5) } + [UInt8](repeating: 9, count: 4)   // fixed32
-        bytes += written { $0.varintField(5, 99) }                 // the one to land on
+        bytes += written { w in
+            w.key(1, 0); w.varint(300)
+        }  // varint
+        bytes += written { $0.key(2, 1) } + [UInt8](repeating: 7, count: 8)  // fixed64
+        bytes += written { $0.bytesField(3, [1, 2, 3]) }  // length-delimited
+        bytes += written { $0.key(4, 5) } + [UInt8](repeating: 9, count: 4)  // fixed32
+        bytes += written { $0.varintField(5, 99) }  // the one to land on
         let value = read(bytes) { reader -> Int64? in
             while let field = reader.nextField() {
                 if field.number == 5 { return Int64(bitPattern: reader.varint()) }
@@ -237,7 +246,7 @@ final class ProtoReaderTests: XCTestCase {
 
     func testSkippingFixedWidthFieldsPastTheEndDoesNotOverrun() {
         for wire in [1, 5] {
-            let bytes = written { $0.key(1, wire) }      // key, then nothing
+            let bytes = written { $0.key(1, wire) }  // key, then nothing
             let atEnd = read(bytes) { reader -> Bool in
                 guard let field = reader.nextField() else { return false }
                 reader.skip(wire: field.wire)

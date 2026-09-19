@@ -58,7 +58,8 @@ final class LogFile: LogSink {
     deinit { try? handle?.close() }
 
     func receive(_ event: LogEvent) {
-        let stamp = Self.stamped
+        let stamp =
+            Self.stamped
             ? String(format: "%8.2f ", event.at.timeIntervalSince(born)) : ""
         guard let data = (stamp + event.text + "\n").data(using: .utf8) else { return }
         lock.lock()

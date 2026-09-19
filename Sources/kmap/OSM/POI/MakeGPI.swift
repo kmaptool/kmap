@@ -8,8 +8,10 @@ import Foundation
 struct MakeGPI {
     private static let descriptionKeys = ["description:ru", "description", "description:en"]
     /// Tags that make an object worth carrying as a POI at all.
-    private static let poiKeys = ["natural", "amenity", "tourism", "historic", "shop", "leisure",
-                          "man_made", "waterway", "mountain_pass", "information"]
+    private static let poiKeys = [
+        "natural", "amenity", "tourism", "historic", "shop", "leisure",
+        "man_made", "waterway", "mountain_pass", "information"
+    ]
 
     var source: URL
     var destination: URL
@@ -55,13 +57,18 @@ struct MakeGPI {
         }
         let file = GPIFile.data(
             points: points.map {
-                GPIFile.Point(lat: $0.lat, lon: $0.lon, name: encoded($0.name),
-                              description: encoded($0.description))
+                GPIFile.Point(
+                    lat: $0.lat,
+                    lon: $0.lon,
+                    name: encoded($0.name),
+                    description: encoded($0.description)
+                )
             },
             category: encoded(category),
             codePage: page,
             fileName: destination.lastPathComponent,
-            icon: showOnMap ? GPIFile.Icon.dot : nil)
+            icon: showOnMap ? GPIFile.Icon.dot : nil
+        )
         try file.write(to: destination)
 
         var report = Report()
@@ -122,7 +129,6 @@ struct MakeGPI {
     }
 }
 
-
 extension MakeGPI {
     /// First pass: the objects worth carrying, and the node ids the closed ways need.
     struct Scan: OSMSink {
@@ -159,8 +165,13 @@ extension MakeGPI {
         var areaStart: [Int32] = [0]
         var areaRefs: [Int64] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var pairs: [String: String] = [:]
             var at = tags.startIndex
             while at + 1 < tags.endIndex {
@@ -168,13 +179,24 @@ extension MakeGPI {
                 at += 2
             }
             if let taken = take(pairs) {
-                points.append(Point(lat: lat, lon: lon, name: taken.name,
-                                    description: taken.description))
+                points.append(
+                    Point(
+                        lat: lat,
+                        lon: lon,
+                        name: taken.name,
+                        description: taken.description
+                    )
+                )
             }
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             guard refs.count >= 4, refs.first == refs.last else { return }
             var pairs: [String: String] = [:]
             for (i, key) in keys.enumerated() where i < values.count {
@@ -196,9 +218,11 @@ extension MakeGPI {
                 order.remove(at: at)
                 order.insert(wanted, at: 0)
             }
-            guard let description = order.compactMap({ tags[$0] })
-                .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
-                .first(where: { !$0.isEmpty }) else { return nil }
+            guard
+                let description = order.compactMap({ tags[$0] })
+                    .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+                    .first(where: { !$0.isEmpty })
+            else { return nil }
 
             // Hidden on the map means hidden here. Counted after the description check,
             // so the tally means described entries dropped.
@@ -246,11 +270,16 @@ extension MakeGPI {
                     minLon = min(minLon, point.lon); maxLon = max(maxLon, point.lon)
                 }
                 guard minLat.isFinite, minLon.isFinite else { continue }
-                out.append(Point(lat: (minLat + maxLat) / 2, lon: (minLon + maxLon) / 2,
-                                 name: areaName[i], description: areaDescription[i]))
+                out.append(
+                    Point(
+                        lat: (minLat + maxLat) / 2,
+                        lon: (minLon + maxLon) / 2,
+                        name: areaName[i],
+                        description: areaDescription[i]
+                    )
+                )
             }
             return out
         }
     }
-
 }

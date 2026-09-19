@@ -19,7 +19,6 @@ import Foundation
 /// header included. A record whose flags carry 8 states, in a further `u32`, how much of
 /// its payload is its own before the records nested at the end of it.
 enum GPIFile {
-
     struct Point {
         var lat: Double
         var lon: Double
@@ -60,9 +59,14 @@ enum GPIFile {
     ///
     /// Points are written in name order, which is the order a device lists them in;
     /// two of the same name keep the order they were given in.
-    static func data(points: [Point], category: [UInt8], codePage: Int,
-                     fileName: String, icon: Icon? = nil,
-                     madeAt: Date = Date()) -> Data {
+    static func data(
+        points: [Point],
+        category: [UInt8],
+        codePage: Int,
+        fileName: String,
+        icon: Icon? = nil,
+        madeAt: Date = Date()
+    ) -> Data {
         let points = sorted(points)
         var out = Data()
         out += record(0, payload: header(fileName: fileName, madeAt: madeAt))
@@ -112,8 +116,11 @@ enum GPIFile {
         return out
     }
 
-    private static func categoryRecord(points: [Point], category: [UInt8],
-                                       icon: Icon?) -> Data {
+    private static func categoryRecord(
+        points: [Point],
+        category: [UInt8],
+        icon: Icon?
+    ) -> Data {
         var own = strings(category)
         for group in groups(of: points) {
             own += groupRecord(points: group, drawn: icon != nil)
@@ -181,8 +188,14 @@ enum GPIFile {
         var payload = own
         // Which bitmap draws it. There is one, so it is the first.
         if drawn { payload += record(4, payload: u16(0)) }
-        payload += record(10, payload: strings(point.description.isEmpty ? point.name
-                                                                        : point.description))
+        payload += record(
+            10,
+            payload: strings(
+                point.description.isEmpty
+                    ? point.name
+                    : point.description
+            )
+        )
         return record(2, payload: payload, ownSize: own.count)
     }
 
@@ -270,11 +283,16 @@ extension GPIFile.Icon {
             }
         }
         return GPIFile.Icon(
-            width: side, height: side, pixels: pixels,
+            width: side,
+            height: side,
+            pixels: pixels,
             // 0 is the colour the device draws nothing for, and has to be the one named
             // as transparent below.
-            palette: [(red: 0xff, green: 0x00, blue: 0xff),
-                      (red: 0x1f, green: 0x6f, blue: 0xd0),
-                      (red: 0xff, green: 0xff, blue: 0xff)])
+            palette: [
+                (red: 0xff, green: 0x00, blue: 0xff),
+                (red: 0x1f, green: 0x6f, blue: 0xd0),
+                (red: 0xff, green: 0xff, blue: 0xff)
+            ]
+        )
     }
 }

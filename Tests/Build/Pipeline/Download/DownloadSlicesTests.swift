@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The download bar over a multi-region build: one stage, several files.
 final class DownloadSlicesTests: XCTestCase {
-
     func testEachRegionOwnsItsSliceOfTheBar() {
         // Three regions: the second's halfway point is half of the middle third.
         XCTAssertEqual(BuildPipeline.DownloadSlices.equal(3).fraction(region: 0, at: 0), 0)
@@ -43,13 +43,17 @@ final class DownloadSlicesTests: XCTestCase {
     func testANewPieceOfWorkStartsTheBarAgain() {
         var stage = BuildPipeline.Stage(id: .download)
         stage.status = .running
-        stage.advance(to: 1)                       // the cached copy was verified
+        stage.advance(to: 1)  // the cached copy was verified
         XCTAssertEqual(stage.fraction, 1)
 
-        stage.fraction = nil                       // what beginPhase does
-        stage.advance(to: 0.01)                    // the fresh download starts
-        XCTAssertEqual(stage.fraction ?? 1, 0.01, accuracy: 0.001,
-                       "a new piece of work counts from its own beginning")
+        stage.fraction = nil  // what beginPhase does
+        stage.advance(to: 0.01)  // the fresh download starts
+        XCTAssertEqual(
+            stage.fraction ?? 1,
+            0.01,
+            accuracy: 0.001,
+            "a new piece of work counts from its own beginning"
+        )
     }
 
     func testWithinOnePieceOfWorkItStillOnlyAdvances() {
@@ -65,14 +69,35 @@ final class DownloadSlicesTests: XCTestCase {
     private func pipeline() -> BuildPipeline {
         let settings = SettingsStore()
         let toolchain = Toolchain(settings: settings)
-        let region = Region(id: "continent/small-region", name: "Small Region",
-                            parentID: nil, pbfURL: nil, bbox: .empty, boxes: [])
-        let style = MapStyle(id: "plain", name: "Plain", summary: "", origin: .builtin,
-                             styleDirectory: nil, typURL: nil, familyID: 6300, productID: 1)
-        let recipe = BuildRecipe(region: region, style: style,
-                                 outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory()))
-        return BuildPipeline(recipe: recipe, settings: settings, toolchain: toolchain,
-                             styles: StyleCatalog(settings: settings, toolchain: toolchain))
+        let region = Region(
+            id: "continent/small-region",
+            name: "Small Region",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: .empty,
+            boxes: []
+        )
+        let style = MapStyle(
+            id: "plain",
+            name: "Plain",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: nil,
+            typURL: nil,
+            familyID: 6300,
+            productID: 1
+        )
+        let recipe = BuildRecipe(
+            region: region,
+            style: style,
+            outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory())
+        )
+        return BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
     }
 
     private func downloadBar(_ build: BuildPipeline) -> Double? {
@@ -89,8 +114,12 @@ final class DownloadSlicesTests: XCTestCase {
 
         build.set(.download, .running, "starting")
         build.detail(.download, "verifying cached copy")
-        XCTAssertEqual(downloadBar(build) ?? 0, 1.0 / 3, accuracy: 1e-9,
-                       "the second region begins where the first ended")
+        XCTAssertEqual(
+            downloadBar(build) ?? 0,
+            1.0 / 3,
+            accuracy: 1e-9,
+            "the second region begins where the first ended"
+        )
 
         build.detail(.download, "2/3", fraction: BuildPipeline.DownloadSlices.equal(3).fraction(region: 1, at: 0.5))
         XCTAssertEqual(downloadBar(build) ?? 0, 0.5, accuracy: 1e-9)
@@ -153,20 +182,40 @@ final class DownloadSlicesTests: XCTestCase {
 
     func testTheTimeLeftCoversTheRegionsStillToCome() {
         // 43.7 MB of this file and 313.6 MB after it, at 2.6 MB/s: about 137 s, not 17.
-        let left = BuildPipeline.stageSecondsLeft(fileSecondsLeft: 43.7 / 2.6, rate: 2.6e6,
-                                                  bytesAfterThisFile: 313_600_000)
+        let left = BuildPipeline.stageSecondsLeft(
+            fileSecondsLeft: 43.7 / 2.6,
+            rate: 2.6e6,
+            bytesAfterThisFile: 313_600_000
+        )
         XCTAssertEqual(left ?? 0, (43.7 + 313.6) / 2.6, accuracy: 0.01)
     }
 
     func testTheLastRegionsTimeLeftIsItsOwn() {
-        XCTAssertEqual(BuildPipeline.stageSecondsLeft(fileSecondsLeft: 65, rate: 4e6,
-                                                      bytesAfterThisFile: 0) ?? 0, 65, accuracy: 1e-9)
+        XCTAssertEqual(
+            BuildPipeline.stageSecondsLeft(
+                fileSecondsLeft: 65,
+                rate: 4e6,
+                bytesAfterThisFile: 0
+            ) ?? 0,
+            65,
+            accuracy: 1e-9
+        )
     }
 
     func testNothingIsSaidBeforeTheRateSettles() {
-        XCTAssertNil(BuildPipeline.stageSecondsLeft(fileSecondsLeft: .infinity, rate: 0,
-                                                    bytesAfterThisFile: 100))
-        XCTAssertNil(BuildPipeline.stageSecondsLeft(fileSecondsLeft: 10, rate: 0,
-                                                    bytesAfterThisFile: 100))
+        XCTAssertNil(
+            BuildPipeline.stageSecondsLeft(
+                fileSecondsLeft: .infinity,
+                rate: 0,
+                bytesAfterThisFile: 100
+            )
+        )
+        XCTAssertNil(
+            BuildPipeline.stageSecondsLeft(
+                fileSecondsLeft: 10,
+                rate: 0,
+                bytesAfterThisFile: 100
+            )
+        )
     }
 }

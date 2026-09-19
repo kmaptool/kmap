@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The region suggestion against real maps and the cached Geofabrik index.
@@ -9,7 +10,6 @@ import XCTest
 /// and live outside the repository; see `LocalTestMaps`. The class skips where they
 /// are absent.
 final class RealMapSuggestionTests: XCTestCase {
-
     private static var index: RegionIndex?
 
     /// The index the application fetched. A test run gives `Paths` a sandbox of its
@@ -38,18 +38,27 @@ final class RealMapSuggestionTests: XCTestCase {
             let drawn = RegionSuggestion.drawnGround(of: url)
             let offered = RegionSuggestion.suggestedRegions(on: drawn, index: index)
             let listed = offered.map {
-                String(format: "%@ (share %.0f%%, inside %.0f%%)",
-                       $0.region.id, $0.share * 100, $0.inside * 100)
+                String(
+                    format: "%@ (share %.0f%%, inside %.0f%%)",
+                    $0.region.id,
+                    $0.share * 100,
+                    $0.inside * 100
+                )
             }.joined(separator: ", ")
 
             XCTAssertFalse(offered.isEmpty, "\(url.lastPathComponent): nothing offered")
             if !expectation.first.isEmpty {
-                XCTAssertEqual(offered.first?.region.id, expectation.first,
-                               "\(url.lastPathComponent): \(listed)")
+                XCTAssertEqual(
+                    offered.first?.region.id,
+                    expectation.first,
+                    "\(url.lastPathComponent): \(listed)"
+                )
             }
             for banned in expectation.never {
-                XCTAssertFalse(offered.contains { $0.region.id == banned },
-                               "\(url.lastPathComponent) offered \(banned): \(listed)")
+                XCTAssertFalse(
+                    offered.contains { $0.region.id == banned },
+                    "\(url.lastPathComponent) offered \(banned): \(listed)"
+                )
             }
         }
         try XCTSkipUnless(seen > 0, "none of the listed maps is on this machine")

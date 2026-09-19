@@ -42,9 +42,14 @@ enum CLIOutput {
         // Under --json standard output is the stream, and the prose is not printed.
         CLILog.proseSuppressed = options.json
         guard options.json else { return }
-        emit("start", ["command": .string(command),
-                       "version": .string(Version.full),
-                       "schema": .int(schema)])
+        emit(
+            "start",
+            [
+                "command": .string(command),
+                "version": .string(Version.full),
+                "schema": .int(schema)
+            ]
+        )
     }
 
     /// Writes the closing line and answers with the code the run earned, so a caller can
@@ -79,7 +84,7 @@ enum CLIOutput {
         var fields: [String: JSONValue] = [
             "severity": .string(event.severity.name),
             "kind": .string(event.kind.rawValue),
-            "text": .string(event.text),
+            "text": .string(event.text)
         ]
         if let stage = event.stage { fields["stage"] = .string(stage) }
         if !event.fields.isEmpty { fields["fields"] = .object(event.fields) }
@@ -89,17 +94,23 @@ enum CLIOutput {
     /// A stage changing state: pending to running, running to done.
     static func stage(_ id: String, _ status: String, title: String, detail: String) {
         guard isJSON else { return }
-        var fields: [String: JSONValue] = ["stage": .string(id),
-                                           "status": .string(status),
-                                           "title": .string(title)]
+        var fields: [String: JSONValue] = [
+            "stage": .string(id),
+            "status": .string(status),
+            "title": .string(title)
+        ]
         if !detail.isEmpty { fields["detail"] = .string(detail) }
         emit("stage", fields)
     }
 
     /// How far along the run is: `overall` for the whole of it, `fraction` for the stage
     /// named, where that stage counts its own work.
-    static func progress(stage id: String?, fraction: Double?, overall: Double,
-                         detail: String = "") {
+    static func progress(
+        stage id: String?,
+        fraction: Double?,
+        overall: Double,
+        detail: String = ""
+    ) {
         guard isJSON else { return }
         var fields: [String: JSONValue] = ["overall": .double(rounded(overall))]
         if let id { fields["stage"] = .string(id) }

@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Flag parsing: `--out file` and `--out=file` are equivalent, and a flag's value is
 /// never taken for a positional argument.
 final class CLIFlagsTests: XCTestCase {
-
     func testBothSpellingsOfAValueRead() {
         let equals = CLI.Flags(["--out=sheet.txt"], valued: ["out"])
         let spaced = CLI.Flags(["--out", "sheet.txt"], valued: ["out"])
@@ -23,8 +23,10 @@ final class CLIFlagsTests: XCTestCase {
     }
 
     func testARepeatedFlagKeepsEveryValue() {
-        let flags = CLI.Flags(["map.img", "--extract", "a.pbf", "--extract=b.pbf"],
-                              valued: ["extract"])
+        let flags = CLI.Flags(
+            ["map.img", "--extract", "a.pbf", "--extract=b.pbf"],
+            valued: ["extract"]
+        )
         XCTAssertEqual(flags.values("extract"), ["a.pbf", "b.pbf"])
         XCTAssertEqual(flags.value("extract"), "b.pbf", "the last one where one is asked for")
         XCTAssertEqual(flags.positionals, ["map.img"])

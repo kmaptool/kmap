@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// Renders every screen in both languages and asks the surface what it had to cut short.
 /// A string clipped in Russian but not in English is a translation that needs shortening
 /// or a column that needs widening; the drawing loop reports neither on its own.
 final class RussianFitsTests: XCTestCase {
-
     private var ctx: AppContext!
 
     @MainActor
@@ -24,8 +24,11 @@ final class RussianFitsTests: XCTestCase {
             surface.resize(width, height)
             surface.clear(ctx.theme.base)
             screen.tick(ctx)
-            screen.render(into: surface,
-                          rect: Rect(x: 2, y: 2, w: width - 4, h: height - 4), ctx: ctx)
+            screen.render(
+                into: surface,
+                rect: Rect(x: 2, y: 2, w: width - 4, h: height - 4),
+                ctx: ctx
+            )
         }
         return found
     }
@@ -33,31 +36,54 @@ final class RussianFitsTests: XCTestCase {
     /// Every screen that draws without being handed something first.
     @MainActor
     private var screens: [(String, () -> Screen)] {
-        [("main menu", { MainMenuScreen() }),
-         ("settings", { SettingsScreen() }),
-         ("toolchain", { ToolchainScreen() }),
-         ("profiles", { ProfilesScreen() }),
-         ("styles", { StyleListScreen() }),
-         ("hide", { HideScreen(hidden: [], onChange: { _ in }) }),
-         ("help", { HelpScreen() }),
-         ("library", { LibraryScreen() }),
-         // The screens that need something handed to them; the region is made up, since
-         // what is measured is the layout and not the data.
-         ("new map", { [ctx] in
-             RecipeScreen(region: Self.somewhere, settings: ctx!.settings,
-                          hasSeamPatch: true) }),
-         ("profile", { [ctx] in
-             ProfileEditScreen(profile: BuildProfile(id: "test", name: "Профиль",
-                                                     choices: BuildChoices()),
-                               settings: ctx!.settings, hasSeamPatch: true) })]
+        [
+            ("main menu", { MainMenuScreen() }),
+            ("settings", { SettingsScreen() }),
+            ("toolchain", { ToolchainScreen() }),
+            ("profiles", { ProfilesScreen() }),
+            ("styles", { StyleListScreen() }),
+            ("hide", { HideScreen(hidden: [], onChange: { _ in }) }),
+            ("help", { HelpScreen() }),
+            ("library", { LibraryScreen() }),
+            // The screens that need something handed to them; the region is made up, since
+            // what is measured is the layout and not the data.
+            (
+                "new map",
+                { [ctx] in
+                    RecipeScreen(
+                        region: Self.somewhere,
+                        settings: ctx!.settings,
+                        hasSeamPatch: true
+                    )
+                }
+            ),
+            (
+                "profile",
+                { [ctx] in
+                    ProfileEditScreen(
+                        profile: BuildProfile(
+                            id: "test",
+                            name: "Профиль",
+                            choices: BuildChoices()
+                        ),
+                        settings: ctx!.settings,
+                        hasSeamPatch: true
+                    )
+                }
+            )
+        ]
     }
 
     /// A region whose name is long enough to be worth drawing.
     private static let somewhere = Region(
-        id: "large-region", name: "Large Inland Region",
-        parentID: nil, pbfURL: nil,
+        id: "large-region",
+        name: "Large Inland Region",
+        parentID: nil,
+        pbfURL: nil,
         bbox: BBox(minLon: 32.15, minLat: 43.18, maxLon: 36.68, maxLat: 46.25),
-        boxes: [], childIDs: [])
+        boxes: [],
+        childIDs: []
+    )
 
     @MainActor
     func testNothingIsCutShortInRussianThatFitsInEnglish() async {
@@ -79,8 +105,10 @@ final class RussianFitsTests: XCTestCase {
                 }
             }
         }
-        XCTAssertTrue(complaints.isEmpty,
-                      "cut short in Russian:\n  " + complaints.joined(separator: "\n  "))
+        XCTAssertTrue(
+            complaints.isEmpty,
+            "cut short in Russian:\n  " + complaints.joined(separator: "\n  ")
+        )
     }
 }
 
@@ -104,11 +132,16 @@ extension RussianFitsTests {
                 let file = URL(fileURLWithPath: NSTemporaryDirectory())
                     .appendingPathComponent("kmap-screens")
                 try? FileManager.default.createDirectory(
-                    at: file, withIntermediateDirectories: true)
+                    at: file,
+                    withIntermediateDirectories: true
+                )
                 try? surface.asText().write(
                     to: file.appendingPathComponent(
-                        "\(name.replacingOccurrences(of: " ", with: "-"))-\(language.rawValue).txt"),
-                    atomically: true, encoding: .utf8)
+                        "\(name.replacingOccurrences(of: " ", with: "-"))-\(language.rawValue).txt"
+                    ),
+                    atomically: true,
+                    encoding: .utf8
+                )
             }
         }
     }
@@ -117,7 +150,6 @@ extension RussianFitsTests {
 /// Every screen declares one `Page`, and its title and keys are the ones the screen
 /// itself reports.
 final class PageTests: XCTestCase {
-
     private var ctx: AppContext!
 
     @MainActor
@@ -132,7 +164,7 @@ final class PageTests: XCTestCase {
             ("toolchain", ToolchainScreen()), ("profiles", ProfilesScreen()),
             ("styles", StyleListScreen()), ("help", HelpScreen()),
             ("library", LibraryScreen()),
-            ("hide", HideScreen(hidden: [], onChange: { _ in })),
+            ("hide", HideScreen(hidden: [], onChange: { _ in }))
         ]
         for (name, screen) in screens {
             XCTAssertFalse(screen.page.name.isEmpty, "\(name) has no name")
@@ -148,7 +180,10 @@ final class PageTests: XCTestCase {
         XCTAssertEqual(Page("styles").title, "styles")
         XCTAssertEqual(Page("styles", subject: "search").title, "styles · search")
         XCTAssertEqual(Page("styles", subject: nil).title, "styles")
-        XCTAssertEqual(Page("styles", subject: "").title, "styles",
-                       "an empty subject is no subject, not a trailing dot")
+        XCTAssertEqual(
+            Page("styles", subject: "").title,
+            "styles",
+            "an empty subject is no subject, not a trailing dot"
+        )
     }
 }

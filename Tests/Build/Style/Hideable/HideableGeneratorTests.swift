@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// Building the catalogue of what can be left off the map, from the rule lines it is
 /// applied to. The catalogue is a set of exact lines to substitute, so an entry whose line
 /// has drifted hides nothing and only warns.
 final class HideableGeneratorTests: XCTestCase {
-
     private func catalogue(_ points: String) -> String {
         HideableGenerator.catalogue(fromPoints: points).text
     }
@@ -29,18 +29,32 @@ final class HideableGeneratorTests: XCTestCase {
     }
 
     func testSeveralRulesForOneValueAllRideUnderOneEntry() {
-        let made = catalogue("""
-        amenity=fuel [0x2f01 resolution 24]
-        amenity=fuel & fuel:diesel=yes [0x2f16 resolution 23]
-        """)
-        XCTAssertEqual(entries(made.isEmpty ? "" : """
-        amenity=fuel [0x2f01 resolution 24]
-        amenity=fuel & fuel:diesel=yes [0x2f16 resolution 23]
-        """).count, 1)
-        XCTAssertEqual(rules("""
-        amenity=fuel [0x2f01 resolution 24]
-        amenity=fuel & fuel:diesel=yes [0x2f16 resolution 23]
-        """).count, 2)
+        let made = catalogue(
+            """
+            amenity=fuel [0x2f01 resolution 24]
+            amenity=fuel & fuel:diesel=yes [0x2f16 resolution 23]
+            """
+        )
+        XCTAssertEqual(
+            entries(
+                made.isEmpty
+                    ? ""
+                    : """
+                    amenity=fuel [0x2f01 resolution 24]
+                    amenity=fuel & fuel:diesel=yes [0x2f16 resolution 23]
+                    """
+            ).count,
+            1
+        )
+        XCTAssertEqual(
+            rules(
+                """
+                amenity=fuel [0x2f01 resolution 24]
+                amenity=fuel & fuel:diesel=yes [0x2f16 resolution 23]
+                """
+            ).count,
+            2
+        )
     }
 
     func testAValueWithAColonKeepsItInTheTagAndLosesItInTheIdentifier() {
@@ -50,19 +64,23 @@ final class HideableGeneratorTests: XCTestCase {
     }
 
     func testEntriesComeOutInOrderOfTheirValue() {
-        let made = entries("""
-        amenity=zoo [0x1 resolution 24]
-        amenity=bank [0x2 resolution 24]
-        amenity=cafe [0x3 resolution 24]
-        """)
+        let made = entries(
+            """
+            amenity=zoo [0x1 resolution 24]
+            amenity=bank [0x2 resolution 24]
+            amenity=cafe [0x3 resolution 24]
+            """
+        )
         XCTAssertEqual(made, ["[amenity-bank] Bank", "[amenity-cafe] Cafe", "[amenity-zoo] Zoo"])
     }
 
     func testCategoriesComeOutInTheOrderTheCatalogueDeclares() {
-        let made = catalogue("""
-        shop=bakery [0x1 resolution 24]
-        amenity=cafe [0x2 resolution 24]
-        """)
+        let made = catalogue(
+            """
+            shop=bakery [0x1 resolution 24]
+            amenity=cafe [0x2 resolution 24]
+            """
+        )
         let amenities = made.range(of: "@@ Amenities")!
         let shops = made.range(of: "@@ Shops")!
         XCTAssertLessThan(amenities.lowerBound, shops.lowerBound)

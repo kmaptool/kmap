@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Finding the areas that merely repeat a venue already on the map: a site and the
@@ -6,7 +7,6 @@ import XCTest
 ///
 /// A style rule sees one object at a time, so the geometry is compared here instead.
 final class VenueScanTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -32,8 +32,10 @@ final class VenueScanTests: XCTestCase {
 
     func testAConcaveRingIsNotFooledByItsBoundingBox() {
         // An L: the corner cut out of the bounding box is outside the shape.
-        let ell: [(x: Double, y: Double)] = [(0, 0), (10, 0), (10, 4), (4, 4), (4, 10),
-                                             (0, 10), (0, 0)]
+        let ell: [(x: Double, y: Double)] = [
+            (0, 0), (10, 0), (10, 4), (4, 4), (4, 10),
+            (0, 10), (0, 0)
+        ]
         XCTAssertTrue(VenueScan.inside((2, 2), ell))
         XCTAssertTrue(VenueScan.inside((8, 2), ell))
         XCTAssertFalse(VenueScan.inside((8, 8), ell))
@@ -41,78 +43,141 @@ final class VenueScanTests: XCTestCase {
 
     // MARK: Marking
 
-    private func area(_ id: Int64, _ box: (Double, Double, Double, Double),
-                      tag: String = "amenity=cafe", named: Bool = false,
-                      seen: Int = 0) -> VenueScan.Area {
-        let ring: [(x: Double, y: Double)] = [(box.0, box.1), (box.2, box.1),
-                                              (box.2, box.3), (box.0, box.3), (box.0, box.1)]
-        return VenueScan.Area(id: id, seen: seen, tag: tag, ring: ring,
-                              box: (box.0, box.1, box.2, box.3),
-                              size: (box.2 - box.0) * (box.3 - box.1), named: named)
+    private func area(
+        _ id: Int64,
+        _ box: (Double, Double, Double, Double),
+        tag: String = "amenity=cafe",
+        named: Bool = false,
+        seen: Int = 0
+    ) -> VenueScan.Area {
+        let ring: [(x: Double, y: Double)] = [
+            (box.0, box.1), (box.2, box.1),
+            (box.2, box.3), (box.0, box.3), (box.0, box.1)
+        ]
+        return VenueScan.Area(
+            id: id,
+            seen: seen,
+            tag: tag,
+            ring: ring,
+            box: (box.0, box.1, box.2, box.3),
+            size: (box.2 - box.0) * (box.3 - box.1),
+            named: named
+        )
     }
 
     func testTheInnerOfTwoAreasSayingTheSameThingIsMarked() {
         // The outer area carries the name and the inner one is anonymous.
-        let marked = VenueScan.mark([area(1, (0, 0, 10, 10), named: true),
-                                     area(2, (2, 2, 4, 4), seen: 1)], nodes: [])
+        let marked = VenueScan.mark(
+            [
+                area(1, (0, 0, 10, 10), named: true),
+                area(2, (2, 2, 4, 4), seen: 1)
+            ],
+            nodes: []
+        )
         XCTAssertEqual(marked, [2])
     }
 
     func testTheNamedOneSurvivesWhereTheNamingRunsTheOtherWay() {
         // A named inner area inside a larger unnamed one: the inner one is kept.
-        let marked = VenueScan.mark([area(1, (0, 0, 10, 10), named: false),
-                                     area(2, (2, 2, 4, 4), named: true, seen: 1)], nodes: [])
+        let marked = VenueScan.mark(
+            [
+                area(1, (0, 0, 10, 10), named: false),
+                area(2, (2, 2, 4, 4), named: true, seen: 1)
+            ],
+            nodes: []
+        )
         XCTAssertEqual(marked, [1])
     }
 
     func testAreasSayingDifferentThingsAreBothKept() {
-        let marked = VenueScan.mark([area(1, (0, 0, 10, 10), tag: "amenity=cafe"),
-                                     area(2, (2, 2, 4, 4), tag: "shop=bakery", seen: 1)],
-                                    nodes: [])
+        let marked = VenueScan.mark(
+            [
+                area(1, (0, 0, 10, 10), tag: "amenity=cafe"),
+                area(2, (2, 2, 4, 4), tag: "shop=bakery", seen: 1)
+            ],
+            nodes: []
+        )
         XCTAssertTrue(marked.isEmpty)
     }
 
     func testTwoAreasSideBySideAreBothKept() {
-        let marked = VenueScan.mark([area(1, (0, 0, 4, 4)),
-                                     area(2, (6, 6, 10, 10), seen: 1)], nodes: [])
+        let marked = VenueScan.mark(
+            [
+                area(1, (0, 0, 4, 4)),
+                area(2, (6, 6, 10, 10), seen: 1)
+            ],
+            nodes: []
+        )
         XCTAssertTrue(marked.isEmpty)
     }
 
     func testAnAreaOverlappingWithoutEnclosingIsKept() {
-        let marked = VenueScan.mark([area(1, (0, 0, 10, 10)),
-                                     area(2, (8, 8, 14, 14), seen: 1)], nodes: [])
+        let marked = VenueScan.mark(
+            [
+                area(1, (0, 0, 10, 10)),
+                area(2, (8, 8, 14, 14), seen: 1)
+            ],
+            nodes: []
+        )
         XCTAssertTrue(marked.isEmpty)
     }
 
     func testAnAreaDrawnRoundAPOINodeThatAlreadySaysSoIsMarked() {
         // The area's own point repeats the node already inside it.
-        let marked = VenueScan.mark([area(1, (0, 0, 10, 10))],
-                                    nodes: [(tag: "amenity=cafe", x: 5, y: 5)])
+        let marked = VenueScan.mark(
+            [area(1, (0, 0, 10, 10))],
+            nodes: [(tag: "amenity=cafe", x: 5, y: 5)]
+        )
         XCTAssertEqual(marked, [1])
     }
 
     func testANodeOutsideTheAreaOrSayingSomethingElseChangesNothing() {
-        XCTAssertTrue(VenueScan.mark([area(1, (0, 0, 10, 10))],
-                                     nodes: [(tag: "amenity=cafe", x: 50, y: 50)]).isEmpty)
-        XCTAssertTrue(VenueScan.mark([area(1, (0, 0, 10, 10))],
-                                     nodes: [(tag: "shop=bakery", x: 5, y: 5)]).isEmpty)
+        XCTAssertTrue(
+            VenueScan.mark(
+                [area(1, (0, 0, 10, 10))],
+                nodes: [(tag: "amenity=cafe", x: 50, y: 50)]
+            ).isEmpty
+        )
+        XCTAssertTrue(
+            VenueScan.mark(
+                [area(1, (0, 0, 10, 10))],
+                nodes: [(tag: "shop=bakery", x: 5, y: 5)]
+            ).isEmpty
+        )
     }
 
     func testThreeNestedAreasLeaveOnlyTheOutermost() {
-        let marked = VenueScan.mark([area(1, (0, 0, 10, 10)),
-                                     area(2, (2, 2, 8, 8), seen: 1),
-                                     area(3, (3, 3, 5, 5), seen: 2)], nodes: [])
+        let marked = VenueScan.mark(
+            [
+                area(1, (0, 0, 10, 10)),
+                area(2, (2, 2, 8, 8), seen: 1),
+                area(3, (3, 3, 5, 5), seen: 2)
+            ],
+            nodes: []
+        )
         XCTAssertEqual(marked, [2, 3])
     }
 
     func testTwoAreasOfTheSameSizeAreOrderedByWhereTheyStoodInTheFile() {
         // The sort is not stable, so equal sizes are ordered by file position.
-        let first = VenueScan.mark([area(1, (0, 0, 10, 10), seen: 0),
-                                    area(2, (0, 0, 10, 10), seen: 1)], nodes: [])
+        let first = VenueScan.mark(
+            [
+                area(1, (0, 0, 10, 10), seen: 0),
+                area(2, (0, 0, 10, 10), seen: 1)
+            ],
+            nodes: []
+        )
         for _ in 0..<5 {
-            XCTAssertEqual(VenueScan.mark([area(1, (0, 0, 10, 10), seen: 0),
-                                           area(2, (0, 0, 10, 10), seen: 1)], nodes: []),
-                           first)
+            XCTAssertEqual(
+                VenueScan.mark(
+                    [
+                        area(1, (0, 0, 10, 10), seen: 0),
+                        area(2, (0, 0, 10, 10), seen: 1)
+                    ],
+                    nodes: []
+                ),
+                first
+            )
         }
     }
 
@@ -131,12 +196,15 @@ final class VenueScanTests: XCTestCase {
             PBFWriter.Node(id: 5, lat: 44.002, lon: 33.002, tags: []),
             PBFWriter.Node(id: 6, lat: 44.002, lon: 33.004, tags: []),
             PBFWriter.Node(id: 7, lat: 44.004, lon: 33.004, tags: []),
-            PBFWriter.Node(id: 8, lat: 44.004, lon: 33.002, tags: []),
+            PBFWriter.Node(id: 8, lat: 44.004, lon: 33.002, tags: [])
         ])
         writer.ways([
-            PBFWriter.Way(id: 100, refs: [1, 2, 3, 4, 1],
-                          tags: [("amenity", "school"), ("name", "Школа")]),
-            PBFWriter.Way(id: 200, refs: [5, 6, 7, 8, 5], tags: [("amenity", "school")]),
+            PBFWriter.Way(
+                id: 100,
+                refs: [1, 2, 3, 4, 1],
+                tags: [("amenity", "school"), ("name", "Школа")]
+            ),
+            PBFWriter.Way(id: 200, refs: [5, 6, 7, 8, 5], tags: [("amenity", "school")])
         ])
         try writer.finish()
 
@@ -152,10 +220,15 @@ final class VenueScanTests: XCTestCase {
             PBFWriter.Node(id: 1, lat: 44.0, lon: 33.0, tags: []),
             PBFWriter.Node(id: 2, lat: 44.0, lon: 33.01, tags: []),
             PBFWriter.Node(id: 3, lat: 44.01, lon: 33.01, tags: []),
-            PBFWriter.Node(id: 4, lat: 44.01, lon: 33.0, tags: []),
+            PBFWriter.Node(id: 4, lat: 44.01, lon: 33.0, tags: [])
         ])
-        writer.ways([PBFWriter.Way(id: 100, refs: [1, 2, 3, 4, 1],
-                                   tags: [("landuse", "meadow")])])
+        writer.ways([
+            PBFWriter.Way(
+                id: 100,
+                refs: [1, 2, 3, 4, 1],
+                tags: [("landuse", "meadow")]
+            )
+        ])
         try writer.finish()
         XCTAssertTrue(try VenueScan.duplicates(in: url).isEmpty)
     }
@@ -164,8 +237,10 @@ final class VenueScanTests: XCTestCase {
 
     /// The unindexed reference implementation of `mark`: every pair of every group,
     /// compared. The indexed answer must equal this one.
-    private func markBySweeping(_ areas: [VenueScan.Area],
-                                nodes: [(tag: String, x: Double, y: Double)]) -> Set<Int64> {
+    private func markBySweeping(
+        _ areas: [VenueScan.Area],
+        nodes: [(tag: String, x: Double, y: Double)]
+    ) -> Set<Int64> {
         var byTag: [String: [VenueScan.Area]] = [:]
         for area in areas { byTag[area.tag, default: []].append(area) }
         var marked = Set<Int64>()
@@ -174,8 +249,10 @@ final class VenueScanTests: XCTestCase {
         for (tag, group) in byTag {
             guard let here = nodesByTag[tag] else { continue }
             for area in group {
-                for point in here where point.x >= area.box.x0 && point.x <= area.box.x1
-                    && point.y >= area.box.y0 && point.y <= area.box.y1 {
+                for point in here
+                where point.x >= area.box.x0 && point.x <= area.box.x1
+                    && point.y >= area.box.y0 && point.y <= area.box.y1
+                {
                     if VenueScan.inside(point, area.ring) { marked.insert(area.id); break }
                 }
             }
@@ -185,9 +262,12 @@ final class VenueScanTests: XCTestCase {
             for (i, outer) in group.enumerated() {
                 for inner in group[(i + 1)...] {
                     guard inner.box.x0 >= outer.box.x0, inner.box.y0 >= outer.box.y0,
-                          inner.box.x1 <= outer.box.x1, inner.box.y1 <= outer.box.y1 else { continue }
-                    let centre = ((inner.box.x0 + inner.box.x1) / 2,
-                                  (inner.box.y0 + inner.box.y1) / 2)
+                        inner.box.x1 <= outer.box.x1, inner.box.y1 <= outer.box.y1
+                    else { continue }
+                    let centre = (
+                        (inner.box.x0 + inner.box.x1) / 2,
+                        (inner.box.y0 + inner.box.y1) / 2
+                    )
                     guard VenueScan.inside(centre, outer.ring) else { continue }
                     marked.insert(inner.named && !outer.named ? outer.id : inner.id)
                 }
@@ -198,11 +278,15 @@ final class VenueScanTests: XCTestCase {
 
     /// Areas shaped like the real input: mostly small, a few large, clustered together
     /// with empty ground between the clusters.
-    private func scatter(_ count: Int, seed: UInt64,
-                         tags: [String] = ["amenity=cafe", "shop=bakery"])
-    -> (areas: [VenueScan.Area], nodes: [(tag: String, x: Double, y: Double)]) {
+    private func scatter(
+        _ count: Int,
+        seed: UInt64,
+        tags: [String] = ["amenity=cafe", "shop=bakery"]
+    )
+        -> (areas: [VenueScan.Area], nodes: [(tag: String, x: Double, y: Double)])
+    {
         var state = seed
-        func next() -> Double {                       // xorshift, so the case is repeatable
+        func next() -> Double {  // xorshift, so the case is repeatable
             state ^= state << 13; state ^= state >> 7; state ^= state << 17
             return Double(state % 1_000_000) / 1_000_000
         }
@@ -215,8 +299,15 @@ final class VenueScanTests: XCTestCase {
             // One area in twelve is large enough to enclose others.
             let size = next() < 0.08 ? next() * 0.15 + 0.02 : next() * 0.004 + 0.0002
             let tag = tags[i % tags.count]
-            areas.append(area(Int64(i + 1), (x, y, x + size, y + size),
-                              tag: tag, named: next() < 0.4, seen: i))
+            areas.append(
+                area(
+                    Int64(i + 1),
+                    (x, y, x + size, y + size),
+                    tag: tag,
+                    named: next() < 0.4,
+                    seen: i
+                )
+            )
             if next() < 0.3 { nodes.append((tag, x + size / 2, y + size / 2)) }
         }
         return (areas, nodes)
@@ -225,20 +316,27 @@ final class VenueScanTests: XCTestCase {
     func testTheIndexedAnswerIsTheSweptAnswer() {
         for seed in [1, 7, 99, 4242] as [UInt64] {
             let (areas, nodes) = scatter(400, seed: seed)
-            XCTAssertEqual(VenueScan.mark(areas, nodes: nodes),
-                           markBySweeping(areas, nodes: nodes),
-                           "seed \(seed)")
+            XCTAssertEqual(
+                VenueScan.mark(areas, nodes: nodes),
+                markBySweeping(areas, nodes: nodes),
+                "seed \(seed)"
+            )
         }
     }
 
     func testTheIndexedAnswerHoldsWhereTheGroupIsBigEnoughToIndex() {
         // Past `leastWorthIndexing` the grid is built; below it the group is walked whole.
-        for count in [VenueScan.Grid.leastWorthIndexing - 1,
-                      VenueScan.Grid.leastWorthIndexing,
-                      VenueScan.Grid.leastWorthIndexing + 1, 900] {
+        for count in [
+            VenueScan.Grid.leastWorthIndexing - 1,
+            VenueScan.Grid.leastWorthIndexing,
+            VenueScan.Grid.leastWorthIndexing + 1, 900
+        ] {
             let (areas, nodes) = scatter(count, seed: 31)
-            XCTAssertEqual(VenueScan.mark(areas, nodes: nodes),
-                           markBySweeping(areas, nodes: nodes), "\(count) area(s)")
+            XCTAssertEqual(
+                VenueScan.mark(areas, nodes: nodes),
+                markBySweeping(areas, nodes: nodes),
+                "\(count) area(s)"
+            )
         }
     }
 
@@ -286,9 +384,12 @@ final class VenueScanTests: XCTestCase {
                 grid.candidates(at: point) { offered.insert($0) }
                 for (i, area) in group.enumerated()
                 where point.x >= area.box.x0 && point.x <= area.box.x1
-                    && point.y >= area.box.y0 && point.y <= area.box.y1 {
-                    XCTAssertTrue(offered.contains(i),
-                                  "area \(area.id) covers \(point) and was not offered")
+                    && point.y >= area.box.y0 && point.y <= area.box.y1
+                {
+                    XCTAssertTrue(
+                        offered.contains(i),
+                        "area \(area.id) covers \(point) and was not offered"
+                    )
                 }
             }
         }

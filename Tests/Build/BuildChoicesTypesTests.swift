@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The choice types: the split mode and the level ladder.
 final class BuildChoicesTypesTests: RecipeTestCase {
-
     // MARK: How the map is cut into files
 
     func testTheSplitModeSurvivesBeingStoredAsAWordAndANumber() {
@@ -52,8 +52,11 @@ final class BuildChoicesTypesTests: RecipeTestCase {
                 XCTAssertEqual(Set(dists).count, dists.count, "\(where_): a repeated rung is a wasted level")
                 XCTAssertLessThanOrEqual(dists.count, profile.levelCount, "\(where_): more rungs than levels")
                 XCTAssertTrue(dists.allSatisfy { $0 % 16 == 0 }, "\(where_): mkgmap rounds to 16s")
-                XCTAssertEqual(Array(dists.suffix(3)), [26496, 52992, 106048],
-                               "\(where_): the measured coarse end must survive whole")
+                XCTAssertEqual(
+                    Array(dists.suffix(3)),
+                    [26496, 52992, 106048],
+                    "\(where_): the measured coarse end must survive whole"
+                )
             }
         }
     }

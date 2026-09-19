@@ -7,7 +7,6 @@ import Foundation
 /// the same pixels. `IconImport` falls back to the system decoder only for formats stb
 /// declines.
 enum Raster {
-
     /// Straight (not premultiplied) 8-bit RGBA, row-major, top row first.
     struct Bitmap: Equatable {
         let width: Int
@@ -24,8 +23,11 @@ enum Raster {
         }
 
         init(width: Int, height: Int) {
-            self.init(width: width, height: height,
-                      rgba: [UInt8](repeating: 0, count: max(0, width * height * 4)))
+            self.init(
+                width: width,
+                height: height,
+                rgba: [UInt8](repeating: 0, count: max(0, width * height * 4))
+            )
         }
 
         subscript(x: Int, y: Int) -> (r: UInt8, g: UInt8, b: UInt8, a: UInt8) {
@@ -48,22 +50,39 @@ enum Raster {
         // `stbi_info` reads the header only, so an oversized declared size costs no
         // allocation.
         let describable = bytes.withUnsafeBufferPointer { buffer in
-            stbi_info_from_memory(buffer.baseAddress, Int32(buffer.count),
-                                  &width, &height, &channels) == 1
+            stbi_info_from_memory(
+                buffer.baseAddress,
+                Int32(buffer.count),
+                &width,
+                &height,
+                &channels
+            ) == 1
         }
         guard describable, width > 0, height > 0,
-              Int(width) * Int(height) <= maximumPixels else { return nil }
+            Int(width) * Int(height) <= maximumPixels
+        else { return nil }
 
         // 4 requests RGBA whatever the file holds: greyscale, palette, no alpha.
-        guard let pixels = bytes.withUnsafeBufferPointer({ buffer in
-            stbi_load_from_memory(buffer.baseAddress, Int32(buffer.count),
-                                  &width, &height, &channels, 4)
-        }) else { return nil }
+        guard
+            let pixels = bytes.withUnsafeBufferPointer({ buffer in
+                stbi_load_from_memory(
+                    buffer.baseAddress,
+                    Int32(buffer.count),
+                    &width,
+                    &height,
+                    &channels,
+                    4
+                )
+            })
+        else { return nil }
         defer { stbi_image_free(pixels) }
 
         let count = Int(width) * Int(height) * 4
-        return Bitmap(width: Int(width), height: Int(height),
-                      rgba: Array(UnsafeBufferPointer(start: pixels, count: count)))
+        return Bitmap(
+            width: Int(width),
+            height: Int(height),
+            rgba: Array(UnsafeBufferPointer(start: pixels, count: count))
+        )
     }
 
     static func decode(contentsOf url: URL) -> Bitmap? {
@@ -75,8 +94,13 @@ enum Raster {
     static func dimensions(_ bytes: [UInt8]) -> (width: Int, height: Int)? {
         var width: Int32 = 0, height: Int32 = 0, channels: Int32 = 0
         let ok = bytes.withUnsafeBufferPointer { buffer in
-            stbi_info_from_memory(buffer.baseAddress, Int32(buffer.count),
-                                  &width, &height, &channels) == 1
+            stbi_info_from_memory(
+                buffer.baseAddress,
+                Int32(buffer.count),
+                &width,
+                &height,
+                &channels
+            ) == 1
         }
         guard ok, width > 0, height > 0 else { return nil }
         return (Int(width), Int(height))

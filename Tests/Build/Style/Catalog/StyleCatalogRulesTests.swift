@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// The rule text a materialized style is shaped from: substitutions, and ladders fitted
 /// to the levels a build draws at.
 final class StyleCatalogRulesTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -30,7 +30,9 @@ final class StyleCatalogRulesTests: XCTestCase {
     func testAnExactLineIsReplaced() throws {
         try write("a=b [0x10 resolution 24]\nc=d [0x20 resolution 24]\n", to: "points")
         let result = try StyleCatalog.applySubstitutions(
-            "@@ points\n- a=b [0x10 resolution 24]\n+ a=b [0x11 resolution 24]\n", in: directory)
+            "@@ points\n- a=b [0x10 resolution 24]\n+ a=b [0x11 resolution 24]\n",
+            in: directory
+        )
         XCTAssertEqual(result.applied, 1)
         XCTAssertTrue(result.missed.isEmpty)
         XCTAssertEqual(try read("points"), "a=b [0x11 resolution 24]\nc=d [0x20 resolution 24]\n")
@@ -41,7 +43,8 @@ final class StyleCatalogRulesTests: XCTestCase {
         try write(stock, to: "points")
         let result = try StyleCatalog.applySubstitutions(
             "@@ points\n- nothing=like-this [0x10 resolution 24]\n+ x=y [0x11 resolution 24]\n",
-            in: directory)
+            in: directory
+        )
         XCTAssertEqual(result.applied, 0)
         XCTAssertEqual(result.missed.count, 1)
         XCTAssertTrue(result.missed[0].hasPrefix("points:"))
@@ -51,7 +54,9 @@ final class StyleCatalogRulesTests: XCTestCase {
     func testARuleTheHidePassSilencedIsBookkeepingNotAMiss() throws {
         try write("a=b [0x00 resolution 24] # kmap: hidden\n", to: "points")
         let result = try StyleCatalog.applySubstitutions(
-            "@@ points\n- a=b [0x10 resolution 24]\n+ a=b [0x11 resolution 24]\n", in: directory)
+            "@@ points\n- a=b [0x10 resolution 24]\n+ a=b [0x11 resolution 24]\n",
+            in: directory
+        )
         XCTAssertEqual(result.hidden, 1)
         XCTAssertTrue(result.missed.isEmpty)
     }
@@ -62,7 +67,9 @@ final class StyleCatalogRulesTests: XCTestCase {
         try write("ford=yes { name 'Brod' } [0x10 resolution 21]\n", to: "points")
         let result = try StyleCatalog.applySubstitutions(
             "@@ points\n- ford=yes { name 'Ford' } [0x10 resolution 22]\n"
-            + "+ ford=yes { name 'Ford' } [0x11 resolution 22]\n", in: directory)
+                + "+ ford=yes { name 'Ford' } [0x11 resolution 22]\n",
+            in: directory
+        )
         XCTAssertEqual(result.applied, 1, "\(result.missed)")
         let text = try read("points")
         XCTAssertTrue(text.contains("[0x11"))
@@ -75,14 +82,18 @@ final class StyleCatalogRulesTests: XCTestCase {
         try write(stock, to: "lines")
         let result = try StyleCatalog.applySubstitutions(
             "@@ lines\n- highway=motorway { name 'x' } [0x01 resolution 18]\n"
-            + "+ highway=motorway { name 'x' } [0x02 resolution 18]\n", in: directory)
+                + "+ highway=motorway { name 'x' } [0x02 resolution 18]\n",
+            in: directory
+        )
         XCTAssertEqual(result.applied, 0)
         XCTAssertEqual(try read("lines"), stock)
     }
 
     func testAFileTheStyleDoesNotHaveIsSkipped() throws {
         let result = try StyleCatalog.applySubstitutions(
-            "@@ relations\n- a=b [0x10]\n+ a=b [0x11]\n", in: directory)
+            "@@ relations\n- a=b [0x10]\n+ a=b [0x11]\n",
+            in: directory
+        )
         XCTAssertEqual(result.applied, 0)
         XCTAssertTrue(result.missed.isEmpty)
     }

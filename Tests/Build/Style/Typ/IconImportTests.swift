@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Turning a picture on disk into a TYP drawing.
@@ -6,7 +7,6 @@ import XCTest
 /// A TYP icon is a palette of at most 256 colours with one transparent slot and no alpha,
 /// on a grid twenty pixels across. What has to be given up to fit is reported.
 final class IconImportTests: XCTestCase {
-
     private var folder: URL!
 
     override func setUpWithError() throws {
@@ -56,22 +56,38 @@ final class IconImportTests: XCTestCase {
     // MARK: What is given up, and said
 
     func testScalingIsReportedRatherThanDoneQuietly() throws {
-        let result = try IconImport.load(try makeCornerPNG("big.png", size: 64,
-                                                           block: 13), size: 20)
+        let result = try IconImport.load(
+            try makeCornerPNG(
+                "big.png",
+                size: 64,
+                block: 13
+            ),
+            size: 20
+        )
         XCTAssertFalse(result.wasExactSize)
         XCTAssertEqual(result.sourceWidth, 64)
-        XCTAssertTrue(result.warnings.contains { $0.contains("scaled from 64×64") },
-                      "\(result.warnings)")
+        XCTAssertTrue(
+            result.warnings.contains { $0.contains("scaled from 64×64") },
+            "\(result.warnings)"
+        )
     }
 
     /// A TYP has one transparent colour and no alpha, so an antialiased rim is forced solid
     /// or clear; the number of pixels forced is reported.
     func testPartTransparentPixelsAreCountedAndForced() throws {
-        let result = try IconImport.load(try makeCornerPNG("soft.png", size: 64,
-                                                           block: 13), size: 20)
+        let result = try IconImport.load(
+            try makeCornerPNG(
+                "soft.png",
+                size: 64,
+                block: 13
+            ),
+            size: 20
+        )
         XCTAssertGreaterThan(result.softEdgePixels, 0)
-        XCTAssertTrue(result.warnings.contains { $0.contains("part-transparent") },
-                      "\(result.warnings)")
+        XCTAssertTrue(
+            result.warnings.contains { $0.contains("part-transparent") },
+            "\(result.warnings)"
+        )
 
         // Every pixel is now solid or clear.
         for row in try XCTUnwrap(result.block.pixels()) {
@@ -118,7 +134,8 @@ final class IconImportTests: XCTestCase {
     func testTheDrawingWritesIntoATypAndReadsBackTheSame() throws {
         let result = try IconImport.load(try makeCornerPNG("round.png", size: 20), size: 20)
 
-        let source = TypSource.parse("""
+        let source = TypSource.parse(
+            """
             [_point]
             Type=0x2a00
             DayXpm="1 1 1 1"
@@ -126,9 +143,14 @@ final class IconImportTests: XCTestCase {
             "a"
             String=0x00,Something
             [end]
-            """)
-        let edited = try TypEdit.setPicture(in: source, kind: .point, code: 0x2a00,
-                                            to: result.block)
+            """
+        )
+        let edited = try TypEdit.setPicture(
+            in: source,
+            kind: .point,
+            code: 0x2a00,
+            to: result.block
+        )
         let after = try XCTUnwrap(TypSource.parse(edited).section(.point, 0x2a00))
 
         XCTAssertEqual(after.picture?.pixels(), result.block.pixels())
@@ -138,23 +160,31 @@ final class IconImportTests: XCTestCase {
     // MARK: Refusing
 
     func testAFileThatIsNotThereSaysSo() {
-        XCTAssertThrowsError(try IconImport.load(folder.appendingPathComponent("ghost.png"),
-                                                 size: 20))
+        XCTAssertThrowsError(
+            try IconImport.load(
+                folder.appendingPathComponent("ghost.png"),
+                size: 20
+            )
+        )
     }
 
     func testAFileThatIsNotAPictureIsRefused() throws {
         let url = folder.appendingPathComponent("notes.txt")
         try Data("hello".utf8).write(to: url)
         XCTAssertThrowsError(try IconImport.load(url, size: 20)) { error in
-            XCTAssertTrue(error.localizedDescription.contains("could not be read"),
-                          error.localizedDescription)
+            XCTAssertTrue(
+                error.localizedDescription.contains("could not be read"),
+                error.localizedDescription
+            )
         }
     }
 
     func testANonsenseSizeIsRefusedRatherThanAttempted() throws {
         let url = try makeCornerPNG("size.png", size: 20)
         XCTAssertThrowsError(try IconImport.load(url, size: 0))
-        XCTAssertThrowsError(try IconImport.load(url, size: 300),
-                             "a point image stores its width in one byte")
+        XCTAssertThrowsError(
+            try IconImport.load(url, size: 300),
+            "a point image stores its width in one byte"
+        )
     }
 }

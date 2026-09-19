@@ -17,8 +17,10 @@ enum Lang: String, CaseIterable, Codable {
     /// matched on their base subtag.
     static func fromSystem(_ preferred: [String] = Locale.preferredLanguages) -> Lang {
         for tag in preferred {
-            guard let base = tag.split(whereSeparator: { $0 == "-" || $0 == "_" })
-                .first?.lowercased() else { continue }
+            guard
+                let base = tag.split(whereSeparator: { $0 == "-" || $0 == "_" })
+                    .first?.lowercased()
+            else { continue }
             if let match = Lang(rawValue: base) { return match }
         }
         return .en
@@ -29,7 +31,6 @@ enum Lang: String, CaseIterable, Codable {
 /// entries: a key is its own English text, so an untranslated string reads as English. The
 /// tables are compiled in, in `Strings`.
 enum L10n {
-
     /// The current language. Read from any thread and written from the main one.
     private static let chosen = Locked(Lang.en)
 
@@ -42,9 +43,12 @@ enum L10n {
     /// Resolves the language for this run from a stored value and the system list.
     ///
     /// - Returns: The language, and whether it must be written to settings.
-    static func resolve(stored: String,
-                        system: [String] = Locale.preferredLanguages)
-        -> (language: Lang, store: Bool) {
+    static func resolve(
+        stored: String,
+        system: [String] = Locale.preferredLanguages
+    )
+        -> (language: Lang, store: Bool)
+    {
         if let known = Lang(rawValue: stored) { return (known, false) }
         // Nothing stored, or an unknown value: the system list decides, and is stored.
         return (Lang.fromSystem(system), true)
@@ -87,7 +91,7 @@ enum L10n {
     static func keyNames(in text: String) -> String {
         guard text.contains("⏎") || text.contains("⇥") else { return text }
         return text.replacingOccurrences(of: "⏎", with: "Enter")
-                   .replacingOccurrences(of: "⇥", with: "Tab")
+            .replacingOccurrences(of: "⇥", with: "Tab")
     }
 
     /// Returns the form of `key` that goes with `count`, falling back to the "other"

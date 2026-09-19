@@ -18,7 +18,6 @@ import Foundation
 /// what the code it emits means - so a borrowed style, a shipped one and a recovered one
 /// are all ordered by the same rule without knowing anything about their numbering.
 enum LineDrawOrder {
-
     /// The importance of one `highway` value: what the road carries, not how it is drawn.
     /// A larger number is painted later, hence on top.
     private static let rankByHighway: [String: Int] = [
@@ -29,7 +28,7 @@ enum LineDrawOrder {
         "secondary": 4, "secondary_link": 4,
         "primary": 5, "primary_link": 5,
         "trunk": 6, "trunk_link": 6,
-        "motorway": 7, "motorway_link": 7,
+        "motorway": 7, "motorway_link": 7
     ]
 
     /// The rank of each line code the style's road rules emit, highest claim wins: one code
@@ -70,8 +69,10 @@ enum LineDrawOrder {
     ///   for a map without them, whose order is then the roads' alone.
     static func option(in index: RuleSetIndex, overContours contours: Set<Int> = []) -> String? {
         guard !ranks(in: index).isEmpty else { return nil }
-        let ranks = contours.isEmpty ? ranks(in: index)
-                                     : ranks(in: index, overContours: contours)
+        let ranks =
+            contours.isEmpty
+            ? ranks(in: index)
+            : ranks(in: index, overContours: contours)
         let list = ranks.sorted { $0.key < $1.key }
             .map { "\(TypeMeaning.hex($0.key)):\($0.value)" }
         return "--x-line-draw-order=" + list.joined(separator: ",")

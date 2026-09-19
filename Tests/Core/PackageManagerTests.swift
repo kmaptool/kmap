@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// How this machine installs system software, and whether kmap may do it.
@@ -6,14 +7,16 @@ import XCTest
 /// A package name has to be right for each distribution, and no install may stop for a
 /// password: a prompt behind a full-screen interface never appears.
 final class PackageManagerTests: XCTestCase {
-
     // MARK: Finding it
 
     func testTheDistributionsOwnManagerIsPreferredOverAnythingElseInstalled() {
         // Homebrew may be present on Linux; the distribution's own manager still wins.
-        let found = PackageManager.detect(on: .linux, which: {
-            ["apt-get", "brew"].contains($0) ? "/usr/bin/" + $0 : nil
-        })
+        let found = PackageManager.detect(
+            on: .linux,
+            which: {
+                ["apt-get", "brew"].contains($0) ? "/usr/bin/" + $0 : nil
+            }
+        )
         XCTAssertEqual(found, .apt)
     }
 
@@ -26,18 +29,26 @@ final class PackageManagerTests: XCTestCase {
         // winget is excluded: it installs Windows software, reachable from Linux only
         // through a WSL interop path.
         for manager in PackageManager.allCases where manager != .winget {
-            let found = PackageManager.detect(on: .linux,
-                                              which: { $0 == manager.binary ? "/usr/bin/" + $0 : nil })
+            let found = PackageManager.detect(
+                on: .linux,
+                which: { $0 == manager.binary ? "/usr/bin/" + $0 : nil }
+            )
             XCTAssertEqual(found, manager, "looking for \(manager.binary)")
         }
-        XCTAssertNil(PackageManager.detect(on: .linux,
-                                           which: { $0 == "winget" ? "/mnt/c/winget.exe" : nil }))
+        XCTAssertNil(
+            PackageManager.detect(
+                on: .linux,
+                which: { $0 == "winget" ? "/mnt/c/winget.exe" : nil }
+            )
+        )
     }
 
     func testWslIsJustLinuxHere() {
         // A WSL install carries an ordinary distribution package manager.
-        let found = PackageManager.detect(on: .wsl,
-                                          which: { $0 == "pacman" ? "/usr/bin/pacman" : nil })
+        let found = PackageManager.detect(
+            on: .wsl,
+            which: { $0 == "pacman" ? "/usr/bin/pacman" : nil }
+        )
         XCTAssertEqual(found, .pacman)
     }
 
@@ -58,8 +69,11 @@ final class PackageManagerTests: XCTestCase {
         // The virtualenv for pyhgtmap needs a separate package on Debian; python3 alone
         // fails at the first `-m venv`.
         XCTAssertEqual(PackageManager.apt.packages(for: .python), ["python3", "python3-venv"])
-        XCTAssertEqual(PackageManager.pacman.packages(for: .python), ["python"],
-                       "and Arch ships venv inside python itself")
+        XCTAssertEqual(
+            PackageManager.pacman.packages(for: .python),
+            ["python"],
+            "and Arch ships venv inside python itself"
+        )
     }
 
     func testEveryManagerHasANameForEveryThingKmapNeeds() {
@@ -71,8 +85,10 @@ final class PackageManagerTests: XCTestCase {
                     XCTAssertNil(manager.packages(for: need))
                     continue
                 }
-                XCTAssertNotNil(manager.packages(for: need),
-                                "\(manager.binary) has no name for \(need)")
+                XCTAssertNotNil(
+                    manager.packages(for: need),
+                    "\(manager.binary) has no name for \(need)"
+                )
             }
         }
     }
@@ -82,9 +98,13 @@ final class PackageManagerTests: XCTestCase {
     func testWindowsHasTheOneManagerAndDoesNotGoLookingForApt() {
         XCTAssertEqual(PackageManager.detect(on: .windows, which: { _ in "found" }), .winget)
         // Other managers on PATH do not change the answer on Windows.
-        XCTAssertEqual(PackageManager.detect(on: .windows,
-                                             which: { $0 == "winget" ? #"C:\w\winget.exe"# : "x" }),
-                       .winget)
+        XCTAssertEqual(
+            PackageManager.detect(
+                on: .windows,
+                which: { $0 == "winget" ? #"C:\w\winget.exe"# : "x" }
+            ),
+            .winget
+        )
     }
 
     func testAWindowsWithoutWingetSaysSoRatherThanNamingSomethingElse() {
@@ -94,8 +114,12 @@ final class PackageManagerTests: XCTestCase {
     }
 
     func testWingetInstallsWithoutRootBecauseThereIsNoSuchThingOnWindows() {
-        let privilege = Privilege.forInstalling(with: .winget, isRoot: false,
-                                                hasSudo: false, sudoIsPasswordless: false)
+        let privilege = Privilege.forInstalling(
+            with: .winget,
+            isRoot: false,
+            hasSudo: false,
+            sudoIsPasswordless: false
+        )
         XCTAssertEqual(privilege, .direct)
         let command = PackageManager.winget.command(for: .java, privilege: privilege)
         XCTAssertEqual(command?.executable, "winget")
@@ -112,10 +136,14 @@ final class PackageManagerTests: XCTestCase {
         XCTAssertNil(PackageManager.winget.packages(for: .unzip))
         for need in [PackageManager.Need.java, .python] {
             let arguments = PackageManager.winget.installArguments(
-                PackageManager.winget.packages(for: need) ?? [])
+                PackageManager.winget.packages(for: need) ?? []
+            )
             XCTAssertEqual(arguments.last, PackageManager.winget.packages(for: need)?.first)
-            XCTAssertEqual(arguments[arguments.count - 2], "--id",
-                           "the id has to be introduced as one, or winget searches names")
+            XCTAssertEqual(
+                arguments[arguments.count - 2],
+                "--id",
+                "the id has to be introduced as one, or winget searches names"
+            )
         }
     }
 
@@ -123,8 +151,10 @@ final class PackageManagerTests: XCTestCase {
         // Children run with stdin on /dev/null, so the installer's own prompt and the
         // source agreement would each hang.
         let arguments = PackageManager.winget.installArguments(["Microsoft.OpenJDK.21"])
-        for flag in ["--silent", "--disable-interactivity",
-                     "--accept-package-agreements", "--accept-source-agreements"] {
+        for flag in [
+            "--silent", "--disable-interactivity",
+            "--accept-package-agreements", "--accept-source-agreements"
+        ] {
             XCTAssertTrue(arguments.contains(flag), "winget is missing \(flag)")
         }
     }
@@ -140,16 +170,22 @@ final class PackageManagerTests: XCTestCase {
             .apk: "--no-cache", .xbps: "-Sy"
         ]
         for (manager, flag) in confirmations {
-            XCTAssertTrue(manager.installArguments(["x"]).contains(flag),
-                          "\(manager.binary) is missing \(flag)")
+            XCTAssertTrue(
+                manager.installArguments(["x"]).contains(flag),
+                "\(manager.binary) is missing \(flag)"
+            )
         }
     }
 
     // MARK: Whether kmap may run it
 
     func testHomebrewNeedsNothingSpecialBecauseItRefusesToBeRoot() {
-        let privilege = Privilege.forInstalling(with: .homebrew, isRoot: false,
-                                                hasSudo: false, sudoIsPasswordless: false)
+        let privilege = Privilege.forInstalling(
+            with: .homebrew,
+            isRoot: false,
+            hasSudo: false,
+            sudoIsPasswordless: false
+        )
         XCTAssertEqual(privilege, .direct)
         let command = PackageManager.homebrew.command(for: .java, privilege: privilege)
         XCTAssertEqual(command?.executable, "brew")
@@ -158,13 +194,24 @@ final class PackageManagerTests: XCTestCase {
 
     func testAlreadyBeingRootIsEnough() {
         // The case inside a container.
-        XCTAssertEqual(Privilege.forInstalling(with: .apt, isRoot: true, hasSudo: false,
-                                               sudoIsPasswordless: false), .direct)
+        XCTAssertEqual(
+            Privilege.forInstalling(
+                with: .apt,
+                isRoot: true,
+                hasSudo: false,
+                sudoIsPasswordless: false
+            ),
+            .direct
+        )
     }
 
     func testPasswordlessSudoIsUsedAndSaysSoInTheCommand() {
-        let privilege = Privilege.forInstalling(with: .apt, isRoot: false, hasSudo: true,
-                                                sudoIsPasswordless: true)
+        let privilege = Privilege.forInstalling(
+            with: .apt,
+            isRoot: false,
+            hasSudo: true,
+            sudoIsPasswordless: true
+        )
         XCTAssertEqual(privilege, .passwordlessSudo)
         let command = PackageManager.apt.command(for: .java, privilege: privilege)
         XCTAssertEqual(command?.executable, "sudo")
@@ -175,17 +222,30 @@ final class PackageManagerTests: XCTestCase {
     func testSudoThatWouldAskIsNotRunAtAll() {
         // The prompt would be invisible behind the interface, so it is ruled out before
         // anything starts.
-        let privilege = Privilege.forInstalling(with: .apt, isRoot: false, hasSudo: true,
-                                                sudoIsPasswordless: false)
+        let privilege = Privilege.forInstalling(
+            with: .apt,
+            isRoot: false,
+            hasSudo: true,
+            sudoIsPasswordless: false
+        )
         XCTAssertEqual(privilege, .wouldAsk)
         XCTAssertFalse(privilege.canRunUnattended)
-        XCTAssertFalse(PackageManager.apt.command(for: .java, privilege: privilege)?.runnable
-                       ?? true)
+        XCTAssertFalse(
+            PackageManager.apt.command(for: .java, privilege: privilege)?.runnable
+                ?? true
+        )
     }
 
     func testNoSudoAtAllIsTheSameAsSudoThatWouldAsk() {
-        XCTAssertEqual(Privilege.forInstalling(with: .dnf, isRoot: false, hasSudo: false,
-                                               sudoIsPasswordless: true), .wouldAsk)
+        XCTAssertEqual(
+            Privilege.forInstalling(
+                with: .dnf,
+                isRoot: false,
+                hasSudo: false,
+                sudoIsPasswordless: true
+            ),
+            .wouldAsk
+        )
     }
 
     func testTheSudoProbeItselfCannotBecomeThePromptItIsCheckingFor() {
@@ -201,27 +261,39 @@ final class PackageManagerTests: XCTestCase {
     // MARK: The line a person is shown when kmap cannot do it
 
     func testTheSpokenCommandIsWhatSomebodyWouldActuallyType() {
-        XCTAssertEqual(PackageManager.apt.spokenCommand(for: .java, privilege: .wouldAsk),
-                       "sudo apt install -y --no-install-recommends default-jdk")
-        XCTAssertEqual(PackageManager.homebrew.spokenCommand(for: .python, privilege: .direct),
-                       "brew install python")
-        XCTAssertEqual(PackageManager.apk.spokenCommand(for: .unzip, privilege: .direct),
-                       "apk add --no-cache unzip")
+        XCTAssertEqual(
+            PackageManager.apt.spokenCommand(for: .java, privilege: .wouldAsk),
+            "sudo apt install -y --no-install-recommends default-jdk"
+        )
+        XCTAssertEqual(
+            PackageManager.homebrew.spokenCommand(for: .python, privilege: .direct),
+            "brew install python"
+        )
+        XCTAssertEqual(
+            PackageManager.apk.spokenCommand(for: .unzip, privilege: .direct),
+            "apk add --no-cache unzip"
+        )
     }
 
     func testItSaysAptRatherThanAptGetBecauseThatIsWhatPeopleType() {
         // apt-get is run for its stable interface; apt is the name shown.
         XCTAssertEqual(PackageManager.apt.binary, "apt-get")
         XCTAssertEqual(PackageManager.apt.spokenName, "apt")
-        XCTAssertTrue(PackageManager.apt.spokenCommand(for: .unzip, privilege: .direct)?
-                        .hasPrefix("apt install") == true)
+        XCTAssertTrue(
+            PackageManager.apt.spokenCommand(for: .unzip, privilege: .direct)?
+                .hasPrefix("apt install") == true
+        )
     }
 
     func testRootIsNotSuggestedWhereItIsNotNeeded() {
-        XCTAssertFalse(PackageManager.homebrew.spokenCommand(for: .java, privilege: .direct)?
-                        .contains("sudo") ?? true)
-        XCTAssertFalse(PackageManager.apt.spokenCommand(for: .java, privilege: .direct)?
-                        .contains("sudo") ?? true,
-                       "already root, so nothing to elevate")
+        XCTAssertFalse(
+            PackageManager.homebrew.spokenCommand(for: .java, privilege: .direct)?
+                .contains("sudo") ?? true
+        )
+        XCTAssertFalse(
+            PackageManager.apt.spokenCommand(for: .java, privilege: .direct)?
+                .contains("sudo") ?? true,
+            "already root, so nothing to elevate"
+        )
     }
 }

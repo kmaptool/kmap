@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -10,12 +11,11 @@ import FoundationNetworking
 /// The part's file is the record of how far it has got: a request picks up at the file's
 /// length, and nothing else keeps count.
 final class RangeSession: Sendable {
-
     /// One range of the file and where it is kept.
     struct Part: Sendable {
         let index: Int
         let start: Int64
-        let end: Int64             // inclusive
+        let end: Int64  // inclusive
         let url: URL
 
         var length: Int64 { end - start + 1 }
@@ -60,8 +60,10 @@ final class RangeSession: Sendable {
         if isCancelled { throw DownloadError.cancelled }
         var request = URLRequest(url: url)
         if ranged {
-            request.setValue("bytes=\(part.start + part.written)-\(part.end)",
-                             forHTTPHeaderField: "Range")
+            request.setValue(
+                "bytes=\(part.start + part.written)-\(part.end)",
+                forHTTPHeaderField: "Range"
+            )
         } else {
             FileTools.removeIfPresent(part.url)
         }
@@ -89,7 +91,6 @@ final class RangeSession: Sendable {
 /// The session's delegate: writes each task's bytes to its part and wakes whoever awaits
 /// it. It holds no reference back to the session that owns it, so the two make no cycle.
 private final class Receiver: NSObject, URLSessionDataDelegate, Sendable {
-
     /// One request in flight.
     private struct Transfer {
         let part: Int
@@ -115,11 +116,18 @@ private final class Receiver: NSObject, URLSessionDataDelegate, Sendable {
 
     var isCancelled: Bool { state.withLock { $0.cancelled } }
 
-    func expect(_ task: URLSessionTask, part: Int, into handle: FileHandle,
-                resuming continuation: CheckedContinuation<Void, Error>) {
+    func expect(
+        _ task: URLSessionTask,
+        part: Int,
+        into handle: FileHandle,
+        resuming continuation: CheckedContinuation<Void, Error>
+    ) {
         state.withLock {
-            $0.transfers[task.taskIdentifier] = Transfer(part: part, handle: handle,
-                                                         continuation: continuation)
+            $0.transfers[task.taskIdentifier] = Transfer(
+                part: part,
+                handle: handle,
+                continuation: continuation
+            )
         }
     }
 
@@ -143,9 +151,12 @@ private final class Receiver: NSObject, URLSessionDataDelegate, Sendable {
         }
     }
 
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask,
-                    didReceive response: URLResponse,
-                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    func urlSession(
+        _ session: URLSession,
+        dataTask: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
         guard let http = response as? HTTPURLResponse else { return completionHandler(.allow) }
         if !(200...299).contains(http.statusCode) {
             fail(dataTask, with: DownloadError.badStatus(http.statusCode))
@@ -154,15 +165,19 @@ private final class Receiver: NSObject, URLSessionDataDelegate, Sendable {
         // A ranged request answered 200 sends the whole file; appending it would make an
         // oversized part, so it is refused before the transfer.
         if http.statusCode == 200,
-           dataTask.originalRequest?.value(forHTTPHeaderField: "Range") != nil {
+            dataTask.originalRequest?.value(forHTTPHeaderField: "Range") != nil
+        {
             fail(dataTask, with: DownloadError.rangesIgnored)
             return completionHandler(.cancel)
         }
         completionHandler(.allow)
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask,
-                    didCompleteWithError error: Error?) {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+    ) {
         let (transfer, wasCancelled) = state.withLock {
             ($0.transfers.removeValue(forKey: task.taskIdentifier), $0.cancelled)
         }

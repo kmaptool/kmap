@@ -4,7 +4,6 @@ import Foundation
 /// input waiting and reading, and interrupt notification. Escape sequences, key parsing
 /// and drawing are portable and live above it.
 protocol ConsoleBackend {
-
     /// Turns off line editing and echo, and asks for VT sequences in both directions.
     /// Returns false when there is no console, such as a pipe or a redirected stream.
     static func enterRawMode() -> Bool

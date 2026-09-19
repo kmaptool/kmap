@@ -6,26 +6,31 @@ import Foundation
 /// and same-as-day are different facts about the file. Each change rewrites one line of the
 /// file in place, leaving the rest byte for byte as it was; there is no save step.
 final class TypeEditScreen: Screen {
-
     var page: Page { Page(style.name, subject: TypeMeaning.hex(code), keys: keys) }
 
     private var keys: [Hint] {
         if picker != nil {
-            return [Hint(key: "↑↓←→", label: t("move")),
-                    Hint(key: Glyph.enter, label: t("take it")),
-                    Hint(key: "esc", label: t("back to typing"))]
+            return [
+                Hint(key: "↑↓←→", label: t("move")),
+                Hint(key: Glyph.enter, label: t("take it")),
+                Hint(key: "esc", label: t("back to typing"))
+            ]
         }
         if editing != nil {
-            return [Hint(key: Glyph.enter, label: t("apply")),
-                    Hint(key: "^P", label: t("pick a colour")),
-                    Hint(key: "esc", label: t("cancel"))]
+            return [
+                Hint(key: Glyph.enter, label: t("apply")),
+                Hint(key: "^P", label: t("pick a colour")),
+                Hint(key: "esc", label: t("cancel"))
+            ]
         }
         var hints = [Hint(key: "↑↓", label: t("move"))]
         if case .colourPair = fields[safe: list.selected] {
             hints.append(Hint(key: "←→", label: t("day / night")))
         }
-        hints.append(contentsOf: [Hint(key: Glyph.enter, label: t("change")),
-                                  Hint(key: "esc", label: t("back"))])
+        hints.append(contentsOf: [
+            Hint(key: Glyph.enter, label: t("change")),
+            Hint(key: "esc", label: t("back"))
+        ])
         return hints
     }
 
@@ -36,8 +41,11 @@ final class TypeEditScreen: Screen {
         /// The same block, opened in the pixel editor.
         case drawPicture
         /// One role, with the colour it takes by day and the one it takes after dark.
-        case colourPair(role: String, day: TypSection.ColourSlot,
-                        night: TypSection.ColourSlot?)
+        case colourPair(
+            role: String,
+            day: TypSection.ColourSlot,
+            night: TypSection.ColourSlot?
+        )
         /// A point with no night picture at all, offering to start one from its day.
         case addNight
         /// A `String=` name, by language index.
@@ -66,8 +74,12 @@ final class TypeEditScreen: Screen {
     var message: String?
     var messageIsError = false
 
-    init(style: MapStyle, kind: MapElementKind, code: Int,
-         onEdited: @escaping () -> Void) {
+    init(
+        style: MapStyle,
+        kind: MapElementKind,
+        code: Int,
+        onEdited: @escaping () -> Void
+    ) {
         self.style = style
         self.kind = kind
         self.code = code
@@ -86,8 +98,13 @@ final class TypeEditScreen: Screen {
 
         let slots = section.colourSlots
         for (index, day) in slots.day.enumerated() {
-            out.append(.colourPair(role: day.role, day: day,
-                                   night: slots.night[safe: index]))
+            out.append(
+                .colourPair(
+                    role: day.role,
+                    day: day,
+                    night: slots.night[safe: index]
+                )
+            )
         }
         if section.kind == .point, section.dayXpm != nil, section.nightXpm == nil {
             out.append(.addNight)

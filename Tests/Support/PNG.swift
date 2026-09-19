@@ -1,4 +1,5 @@
 import Foundation
+
 @testable import kmap
 
 /// A PNG writer, for making test pictures. It shares no code with the decoder under
@@ -6,7 +7,6 @@ import Foundation
 ///
 /// The simplest PNG the format allows: 8-bit RGBA, no interlace, one IDAT, filter 0.
 enum PNG {
-
     /// `width` × `height` straight RGBA, top row first.
     static func encode(width: Int, height: Int, rgba: [UInt8]) -> Data {
         precondition(rgba.count == width * height * 4)
@@ -14,14 +14,14 @@ enum PNG {
         var raw = [UInt8]()
         raw.reserveCapacity(height * (1 + width * 4))
         for row in 0..<height {
-            raw.append(0)                                  // filter: none
+            raw.append(0)  // filter: none
             raw.append(contentsOf: rgba[(row * width * 4)..<((row + 1) * width * 4)])
         }
 
         var header = [UInt8]()
         header.append(contentsOf: be32(UInt32(width)))
         header.append(contentsOf: be32(UInt32(height)))
-        header.append(contentsOf: [8, 6, 0, 0, 0])         // 8 bits, truecolour + alpha
+        header.append(contentsOf: [8, 6, 0, 0, 0])  // 8 bits, truecolour + alpha
 
         var out = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
         out.append(chunk("IHDR", header))
@@ -60,8 +60,10 @@ enum PNG {
     }
 
     private static func be32(_ value: UInt32) -> [UInt8] {
-        [UInt8(value >> 24 & 0xFF), UInt8(value >> 16 & 0xFF),
-         UInt8(value >> 8 & 0xFF), UInt8(value & 0xFF)]
+        [
+            UInt8(value >> 24 & 0xFF), UInt8(value >> 16 & 0xFF),
+            UInt8(value >> 8 & 0xFF), UInt8(value & 0xFF)
+        ]
     }
 
     /// CRC-32 as PNG specifies it, written out rather than taken from zlib.

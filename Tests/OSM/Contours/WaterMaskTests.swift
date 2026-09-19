@@ -1,16 +1,24 @@
 import XCTest
+
 @testable import kmap
 
 /// Contours stop at the water's edge: a lake's surface is level, and a topographic map
 /// does not draw a line across it.
 final class WaterMaskTests: XCTestCase {
-
     /// A square ring, corner to corner, closed.
-    private func square(_ lat: Double, _ lon: Double, side: Double,
-                        island: Bool = false, standalone: Bool = true) -> WaterBodies.Ring {
+    private func square(
+        _ lat: Double,
+        _ lon: Double,
+        side: Double,
+        island: Bool = false,
+        standalone: Bool = true
+    ) -> WaterBodies.Ring {
         let corners = [(lat, lon), (lat, lon + side), (lat + side, lon + side), (lat + side, lon), (lat, lon)]
-        return WaterBodies.Ring(points: corners.flatMap { [Float($0.0), Float($0.1)] },
-                                island: island, standalone: standalone)
+        return WaterBodies.Ring(
+            points: corners.flatMap { [Float($0.0), Float($0.1)] },
+            island: island,
+            standalone: standalone
+        )
     }
 
     private func water(_ rings: WaterBodies.Ring...) -> WaterBodies {
@@ -27,8 +35,10 @@ final class WaterMaskTests: XCTestCase {
 
     func testACellWithoutWaterBuildsNothing() {
         XCTAssertNil(WaterMask(cellAt: 44, 34, water: WaterBodies()))
-        XCTAssertNil(WaterMask(cellAt: 50, 50, water: water(square(44.4, 34.4, side: 0.1))),
-                     "the lake is in another cell")
+        XCTAssertNil(
+            WaterMask(cellAt: 50, 50, water: water(square(44.4, 34.4, side: 0.1))),
+            "the lake is in another cell"
+        )
     }
 
     func testALakeIsWetInsideAndDryOutside() throws {
@@ -68,8 +78,14 @@ final class WaterMaskTests: XCTestCase {
     func testAContourStopsAtOneShoreAndResumesAtTheOther() throws {
         let mask = try XCTUnwrap(WaterMask(cellAt: 44, 34, water: water(square(44.4, 34.4, side: 0.1))))
         // West to east across the lake: two vertices on each side, two in the water.
-        let crossing = line((44.45, 34.30), (44.45, 34.38), (44.45, 34.42), (44.45, 34.48),
-                            (44.45, 34.52), (44.45, 34.60))
+        let crossing = line(
+            (44.45, 34.30),
+            (44.45, 34.38),
+            (44.45, 34.42),
+            (44.45, 34.48),
+            (44.45, 34.52),
+            (44.45, 34.60)
+        )
         let pieces = mask.clip([crossing])
         XCTAssertEqual(pieces.count, 2)
         let west = try XCTUnwrap(pieces.first), east = try XCTUnwrap(pieces.last)
@@ -106,8 +122,14 @@ final class WaterMaskTests: XCTestCase {
 
     func testARingCutByTheShoreIsOpenFromThenOn() throws {
         let mask = try XCTUnwrap(WaterMask(cellAt: 44, 34, water: water(square(44.4, 34.4, side: 0.1))))
-        let ring = line((44.45, 34.30), (44.45, 34.45), (44.60, 34.45), (44.60, 34.30), (44.45, 34.30),
-                        closed: true)
+        let ring = line(
+            (44.45, 34.30),
+            (44.45, 34.45),
+            (44.60, 34.45),
+            (44.60, 34.30),
+            (44.45, 34.30),
+            closed: true
+        )
         let pieces = mask.clip([ring])
         XCTAssertFalse(pieces.isEmpty)
         XCTAssertTrue(pieces.allSatisfy { !$0.closed })
@@ -149,8 +171,15 @@ final class WaterMaskTests: XCTestCase {
         let west = square(44.40, 34.40, side: 0.05)
         let east = square(44.40, 34.45 + gap, side: 0.05)
         let mask = try XCTUnwrap(WaterMask(cellAt: 44, 34, water: water(west, east)))
-        return mask.clip([line((44.425, 34.30), (44.425, 34.42), (44.425, 34.45 + gap / 2),
-                               (44.425, 34.48), (44.425, 34.60))])
+        return mask.clip([
+            line(
+                (44.425, 34.30),
+                (44.425, 34.42),
+                (44.425, 34.45 + gap / 2),
+                (44.425, 34.48),
+                (44.425, 34.60)
+            )
+        ])
     }
 
     func testAScrapBetweenTwoShoresIsDropped() throws {

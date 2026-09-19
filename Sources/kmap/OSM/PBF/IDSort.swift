@@ -18,8 +18,10 @@ enum IDSort {
             for run in runs {
                 run.withUnsafeBufferPointer { source in
                     guard let from = source.baseAddress, source.count > 0 else { return }
-                    target.advanced(by: at).update(from: from,
-                                                   count: source.count)
+                    target.advanced(by: at).update(
+                        from: from,
+                        count: source.count
+                    )
                 }
                 at += run.count
             }
@@ -61,7 +63,7 @@ enum IDSort {
         }
 
         var scratch = [Int64](repeating: 0, count: total)
-        var settled = true                      // whether the ordered data is in `ids`
+        var settled = true  // whether the ordered data is in `ids`
         while step < total {
             let pairs = (total + 2 * step - 1) / (2 * step)
             let width = step
@@ -85,9 +87,13 @@ enum IDSort {
     }
 
     /// Merges two neighbouring sorted runs into `into`.
-    private static func merge(_ from: UnsafeMutableBufferPointer<Int64>,
-                              low: Int, middle: Int, high: Int,
-                              into: UnsafeMutableBufferPointer<Int64>) {
+    private static func merge(
+        _ from: UnsafeMutableBufferPointer<Int64>,
+        low: Int,
+        middle: Int,
+        high: Int,
+        into: UnsafeMutableBufferPointer<Int64>
+    ) {
         guard low < high else { return }
         var left = low, right = middle, at = low
         while left < middle && right < high {

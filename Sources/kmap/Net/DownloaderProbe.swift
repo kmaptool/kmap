@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -52,10 +53,12 @@ extension Downloader {
         let size = http.expectedContentLength
         guard size > 0 else { throw DownloadError.noContentLength }
         let ranges = (http.value(forHTTPHeaderField: "Accept-Ranges") ?? "").lowercased().contains("bytes")
-        return RemoteInfo(finalURL: http.url ?? url,
-                          size: size,
-                          acceptsRanges: ranges,
-                          lastModified: http.value(forHTTPHeaderField: "Last-Modified"))
+        return RemoteInfo(
+            finalURL: http.url ?? url,
+            size: size,
+            acceptsRanges: ranges,
+            lastModified: http.value(forHTTPHeaderField: "Last-Modified")
+        )
     }
 
     /// Streams `url` through MD5 block by block, so no whole file is held in memory. The
@@ -80,8 +83,7 @@ extension Downloader {
         while let block = current, !block.isEmpty {
             let ready = DispatchSemaphore(value: 0)
             queue.async {
-                do { handoff.block = try handle.read(upToCount: hashBlock) }
-                catch { handoff.failure = error }
+                do { handoff.block = try handle.read(upToCount: hashBlock) } catch { handoff.failure = error }
                 ready.signal()
             }
             hasher.update(block)
@@ -101,7 +103,8 @@ extension Downloader {
         let token = text.split(separator: " ").first.map(String.init)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let token, token.count == 32,
-              token.allSatisfy({ $0.isHexDigit }) else { return nil }
+            token.allSatisfy({ $0.isHexDigit })
+        else { return nil }
         return token.lowercased()
     }
 }

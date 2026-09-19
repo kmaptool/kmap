@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The osmosis `.poly` dialect: what is read, what is refused, what is written back.
 final class RegionOutlineTests: XCTestCase {
-
     func testAPlainPolygonParses() throws {
         let rings = try XCTUnwrap(RegionOutline.parse(PolyFixture.square))
         XCTAssertEqual(rings.count, 1)
@@ -15,21 +15,21 @@ final class RegionOutlineTests: XCTestCase {
 
     func testAHoleIsMarkedByItsBang() throws {
         let poly = """
-        with-hole
-        1
-           10.0 40.0
-           11.0 40.0
-           11.0 41.0
-           10.0 41.0
-        END
-        !2
-           10.35 40.35
-           10.65 40.35
-           10.65 40.65
-           10.35 40.65
-        END
-        END
-        """
+            with-hole
+            1
+               10.0 40.0
+               11.0 40.0
+               11.0 41.0
+               10.0 41.0
+            END
+            !2
+               10.35 40.35
+               10.65 40.35
+               10.65 40.65
+               10.35 40.65
+            END
+            END
+            """
         let rings = try XCTUnwrap(RegionOutline.parse(poly))
         XCTAssertEqual(rings.map(\.subtract), [false, true])
     }
@@ -48,7 +48,7 @@ final class RegionOutlineTests: XCTestCase {
         // must agree.
         let sections = [
             [(lon: 10.0, lat: 49.7), (lon: 10.3, lat: 50.0), (lon: 9.7, lat: 50.0)],
-            [(lon: 34.0, lat: 44.0), (lon: 35.0, lat: 44.0), (lon: 35.0, lat: 45.0)],
+            [(lon: 34.0, lat: 44.0), (lon: 35.0, lat: 44.0), (lon: 35.0, lat: 45.0)]
         ]
         let text = RegionOutline.polyText(name: "kmap-elevation", sections: sections)
         let rings = try XCTUnwrap(RegionOutline.parse(text))

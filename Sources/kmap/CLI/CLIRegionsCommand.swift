@@ -15,8 +15,12 @@ extension CLI {
     /// Chooses the listing for a query. Opening by exact id comes before searching, so
     /// `kmap regions europe` walks into Europe rather than finding it; a leaf's id still
     /// searches, which finds the leaf itself.
-    static func regionListing(for query: String, in index: RegionIndex)
-        -> (listing: RegionListing, regions: [Region]) {
+    static func regionListing(
+        for query: String,
+        in index: RegionIndex
+    )
+        -> (listing: RegionListing, regions: [Region])
+    {
         let q = query.trimmingCharacters(in: .whitespaces)
         if q.isEmpty { return (.roots, index.children(of: nil)) }
         if let region = index.region(q) ?? index.region(q.lowercased()), region.hasChildren {
@@ -57,8 +61,10 @@ extension CLI {
                 CLILog.line("    \(box.display)   \(box.demTileCount) cell(s)")
             }
             if region.boxes.count > 1 {
-                CLILog.line("    \(region.demTileCount) cell(s) in all — the box around both"
-                      + " would be \(region.bbox.demTileCount)")
+                CLILog.line(
+                    "    \(region.demTileCount) cell(s) in all — the box around both"
+                        + " would be \(region.bbox.demTileCount)"
+                )
             }
         }
         // A search that matched nothing said nothing at all and exited 0, which reads
@@ -76,17 +82,25 @@ extension CLI {
         }
         CLIOutput.result([
             "in": .of(opened?.id),
-            "regions": .array(regions.map { region in
-                ["id": .string(region.id), "name": .string(region.name),
-                 "parent": .of(region.parentID),
-                 "downloadable": .bool(region.pbfURL != nil),
-                 "subRegions": .int(region.childIDs.count),
-                 "demCells": .int(region.demTileCount),
-                 "boxes": .array(region.boxes.map {
-                     ["minLat": .double($0.minLat), "minLon": .double($0.minLon),
-                      "maxLat": .double($0.maxLat), "maxLon": .double($0.maxLon)]
-                 })]
-            }),
+            "regions": .array(
+                regions.map { region in
+                    [
+                        "id": .string(region.id), "name": .string(region.name),
+                        "parent": .of(region.parentID),
+                        "downloadable": .bool(region.pbfURL != nil),
+                        "subRegions": .int(region.childIDs.count),
+                        "demCells": .int(region.demTileCount),
+                        "boxes": .array(
+                            region.boxes.map {
+                                [
+                                    "minLat": .double($0.minLat), "minLon": .double($0.minLon),
+                                    "maxLat": .double($0.maxLat), "maxLon": .double($0.maxLon)
+                                ]
+                            }
+                        )
+                    ]
+                }
+            )
         ])
         return 0
     }

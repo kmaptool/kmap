@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// kmap's Garmin Custom POI file against gpsbabel's, byte for byte.
@@ -8,7 +9,6 @@ import XCTest
 /// being handed something it was not handed before. Skipped where it is not installed,
 /// which is every machine kmap is shipped to.
 final class GPIAgainstGPSBabelTests: XCTestCase {
-
     private var work: URL!
 
     override func setUpWithError() throws {
@@ -36,8 +36,11 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
     /// - Parameter codePage: the page the text is encoded in. gpsbabel is handed the
     ///   bytes labelled Latin-1, which passes them through untouched, and the page is
     ///   stamped into the result afterwards — which is exactly what kmap used to do.
-    private func babelled(_ points: [Waypoint], category: String,
-                          codePage: Int = 1252) throws -> Data {
+    private func babelled(
+        _ points: [Waypoint],
+        category: String,
+        codePage: Int = 1252
+    ) throws -> Data {
         var gpx = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
         gpx += "<gpx version=\"1.1\" creator=\"kmap\""
         gpx += " xmlns=\"http://www.topografix.com/GPX/1/1\">\n"
@@ -56,9 +59,11 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
         let out = work.appendingPathComponent("babel.gpi")
         let task = Process()
         task.executableURL = URL(fileURLWithPath: try XCTUnwrap(gpsbabel))
-        task.arguments = ["-i", "gpx", "-f", source.path,
-                          "-o", "garmin_gpi,category=\(encoded(category)),unique=0,hide",
-                          "-F", out.path]
+        task.arguments = [
+            "-i", "gpx", "-f", source.path,
+            "-o", "garmin_gpi,category=\(encoded(category)),unique=0,hide",
+            "-F", out.path
+        ]
         task.standardError = Pipe()
         try task.run()
         waitForExit(task)
@@ -73,8 +78,12 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
     }
 
     /// The same points through kmap, stamped with the time gpsbabel stamped its own with.
-    private func kmapped(_ points: [Waypoint], category: String, when: Data,
-                         codePage: Int = 1252) throws -> Data {
+    private func kmapped(
+        _ points: [Waypoint],
+        category: String,
+        when: Data,
+        codePage: Int = 1252
+    ) throws -> Data {
         // The header carries the moment the file was made, which cannot match by luck.
         let stamp = when[16..<20].withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
         func encoded(_ text: String) -> [UInt8] {
@@ -82,26 +91,38 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
         }
         return GPIFile.data(
             points: points.map {
-                GPIFile.Point(lat: $0.lat, lon: $0.lon, name: encoded($0.name),
-                              description: encoded($0.note))
+                GPIFile.Point(
+                    lat: $0.lat,
+                    lon: $0.lon,
+                    name: encoded($0.name),
+                    description: encoded($0.note)
+                )
             },
             category: encoded(category),
             codePage: codePage,
             fileName: "my.gpi",
-            madeAt: GPIFile.epoch.addingTimeInterval(Double(UInt32(littleEndian: stamp))))
+            madeAt: GPIFile.epoch.addingTimeInterval(Double(UInt32(littleEndian: stamp)))
+        )
     }
 
-    private func check(_ points: [Waypoint], category: String = "kmap",
-                       codePage: Int = 1252,
-                       file: StaticString = #filePath, line: UInt = #line) throws {
+    private func check(
+        _ points: [Waypoint],
+        category: String = "kmap",
+        codePage: Int = 1252,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
         let theirs = try babelled(points, category: category, codePage: codePage)
         let ours = try kmapped(points, category: category, when: theirs, codePage: codePage)
         if ours != theirs {
             let at = zip(ours, theirs).enumerated().first { $0.element.0 != $0.element.1 }?
                 .offset
-            XCTFail("differs at byte \(at.map(String.init) ?? "the end")"
+            XCTFail(
+                "differs at byte \(at.map(String.init) ?? "the end")"
                     + " — \(ours.count) bytes against \(theirs.count)",
-                    file: file, line: line)
+                file: file,
+                line: line
+            )
         }
     }
 
@@ -110,35 +131,48 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
     }
 
     func testSeveralPointsKeepTheirOrderAndTheirBox() throws {
-        try check([Waypoint(lat: 45, lon: 34, name: "AB", note: "CD"),
-                   Waypoint(lat: 46, lon: 35, name: "EFG", note: "HIJK"),
-                   Waypoint(lat: 44.5, lon: 33.25, name: "third", note: "a longer note")])
+        try check([
+            Waypoint(lat: 45, lon: 34, name: "AB", note: "CD"),
+            Waypoint(lat: 46, lon: 35, name: "EFG", note: "HIJK"),
+            Waypoint(lat: 44.5, lon: 33.25, name: "third", note: "a longer note")
+        ])
     }
 
     func testTheSouthernAndWesternHemispheres() throws {
-        try check([Waypoint(lat: -33.9, lon: 18.4, name: "south", note: "below the line"),
-                   Waypoint(lat: 40.7, lon: -74.0, name: "west", note: "left of it"),
-                   Waypoint(lat: -41.3, lon: 174.8, name: "far", note: "both at once")])
+        try check([
+            Waypoint(lat: -33.9, lon: 18.4, name: "south", note: "below the line"),
+            Waypoint(lat: 40.7, lon: -74.0, name: "west", note: "left of it"),
+            Waypoint(lat: -41.3, lon: 174.8, name: "far", note: "both at once")
+        ])
     }
 
     func testALongerNameAndNoteThanTheHeaderHasRoomToRound() throws {
-        try check([Waypoint(lat: 45.123456, lon: 34.654321,
-                            name: String(repeating: "n", count: 60),
-                            note: String(repeating: "d", count: 200))])
+        try check([
+            Waypoint(
+                lat: 45.123456,
+                lon: 34.654321,
+                name: String(repeating: "n", count: 60),
+                note: String(repeating: "d", count: 200)
+            )
+        ])
     }
 
     func testTheyComeOutInNameOrderWhateverOrderTheyWentIn() throws {
         // A device lists them by name, and the file is written that way; the bytes of
         // the code page decide, not the letters.
-        try check([Waypoint(lat: 1, lon: 1, name: "apple", note: "one one"),
-                   Waypoint(lat: 2, lon: 2, name: "Banana", note: "two two"),
-                   Waypoint(lat: 3, lon: 3, name: "_under", note: "three three"),
-                   Waypoint(lat: 4, lon: 4, name: "apple", note: "four four")])
+        try check([
+            Waypoint(lat: 1, lon: 1, name: "apple", note: "one one"),
+            Waypoint(lat: 2, lon: 2, name: "Banana", note: "two two"),
+            Waypoint(lat: 3, lon: 3, name: "_under", note: "three three"),
+            Waypoint(lat: 4, lon: 4, name: "apple", note: "four four")
+        ])
     }
 
     func testACategoryOfItsOwn() throws {
-        try check([Waypoint(lat: 45, lon: 34, name: "AB", note: "CD")],
-                  category: "kmap points")
+        try check(
+            [Waypoint(lat: 45, lon: 34, name: "AB", note: "CD")],
+            category: "kmap points"
+        )
     }
 
     func testEnoughPointsToBeCutIntoGroups() throws {
@@ -157,25 +191,46 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
         for i in 0..<1500 {
             // Two clusters, so the tree is not a regular grid.
             let base = i % 3 == 0 ? (44.0, 33.0) : (46.5, 35.5)
-            points.append(Waypoint(lat: base.0 + next(), lon: base.1 + next(),
-                                   name: "point \(i)", note: "note for point \(i)"))
+            points.append(
+                Waypoint(
+                    lat: base.0 + next(),
+                    lon: base.1 + next(),
+                    name: "point \(i)",
+                    note: "note for point \(i)"
+                )
+            )
         }
         try check(points)
     }
 
     func testCyrillicInTheCodePageARussianMapIsBuiltWith() throws {
-        try check([Waypoint(lat: 44.5, lon: 34.1, name: "Родник",
-                            note: "Вода круглый год, слева от тропы"),
-                   Waypoint(lat: 44.6, lon: 34.2, name: "Стоянка",
-                            note: "Ровное место на четыре палатки")],
-                  // An ASCII category: gpsbabel takes it as a command-line argument,
-                  // which cannot carry code-page bytes the way the file can.
-                  category: "kmap", codePage: 1251)
+        try check(
+            [
+                Waypoint(
+                    lat: 44.5,
+                    lon: 34.1,
+                    name: "Родник",
+                    note: "Вода круглый год, слева от тропы"
+                ),
+                Waypoint(
+                    lat: 44.6,
+                    lon: 34.2,
+                    name: "Стоянка",
+                    note: "Ровное место на четыре палатки"
+                )
+            ],
+            // An ASCII category: gpsbabel takes it as a command-line argument,
+            // which cannot carry code-page bytes the way the file can.
+            category: "kmap",
+            codePage: 1251
+        )
     }
 
     func testALetterTheCodePageHasNoRoomForBecomesAQuestionMarkInBoth() throws {
         // Lossy on purpose: one letter must not cost the whole point.
-        try check([Waypoint(lat: 45, lon: 34, name: "Grüße 東京", note: "mixed scripts")],
-                  codePage: 1251)
+        try check(
+            [Waypoint(lat: 45, lon: 34, name: "Grüße 東京", note: "mixed scripts")],
+            codePage: 1251
+        )
     }
 }

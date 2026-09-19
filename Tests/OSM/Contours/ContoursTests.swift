@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Tracing contour lines across a .hgt tile by marching squares. A contour separates ground
 /// above the level from ground below, so every line closes or leaves the tile, and none cross.
 final class ContoursTests: XCTestCase {
-
     /// A grid given row by row, north edge first, as a .hgt stores it.
     private func grid(_ rows: [[Int]], lat: Int = 44, lon: Int = 33) -> Contours.Grid {
         let n = rows.count
@@ -17,9 +17,14 @@ final class ContoursTests: XCTestCase {
         return Contours.Grid(samples: samples, n: n, lat: lat, lon: lon)
     }
 
-    private func trace(_ rows: [[Int]], step: Int = 10,
-                       clip: (minLat: Double, minLon: Double,
-                              maxLat: Double, maxLon: Double)? = nil) -> [Contours.Line] {
+    private func trace(
+        _ rows: [[Int]],
+        step: Int = 10,
+        clip: (
+            minLat: Double, minLon: Double,
+            maxLat: Double, maxLon: Double
+        )? = nil
+    ) -> [Contours.Line] {
         var tracer = Contours(grid: grid(rows), step: step)
         tracer.clip = clip
         return tracer.trace()
@@ -29,7 +34,7 @@ final class ContoursTests: XCTestCase {
 
     func testRowZeroIsTheNorthEdge() {
         let g = grid([[0, 0], [0, 0]])
-        XCTAssertEqual(g.latitude(0), 45)          // the top row of tile N44
+        XCTAssertEqual(g.latitude(0), 45)  // the top row of tile N44
         XCTAssertEqual(g.latitude(1), 44)
         XCTAssertEqual(g.longitude(0), 33)
         XCTAssertEqual(g.longitude(1), 34)
@@ -63,19 +68,22 @@ final class ContoursTests: XCTestCase {
 
     func testNoLevelIsTracedOutsideTheGroundsOwnRange() {
         let lines = trace([[12, 18], [12, 18]], step: 10)
-        XCTAssertEqual(Set(lines.map(\.elevation)), [])   // nothing between 12 and 18
+        XCTAssertEqual(Set(lines.map(\.elevation)), [])  // nothing between 12 and 18
         let crossing = trace([[8, 18], [8, 18]], step: 10)
         XCTAssertEqual(Set(crossing.map(\.elevation)), [10])
     }
 
     func testAHillGivesAClosedRing() {
-        let lines = trace([
-            [0, 0, 0, 0, 0],
-            [0, 5, 5, 5, 0],
-            [0, 5, 30, 5, 0],
-            [0, 5, 5, 5, 0],
-            [0, 0, 0, 0, 0],
-        ], step: 10)
+        let lines = trace(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 5, 5, 5, 0],
+                [0, 5, 30, 5, 0],
+                [0, 5, 5, 5, 0],
+                [0, 0, 0, 0, 0]
+            ],
+            step: 10
+        )
         XCTAssertFalse(lines.isEmpty)
         for line in lines {
             XCTAssertTrue(line.closed, "a ring inside the tile must close")
@@ -101,11 +109,14 @@ final class ContoursTests: XCTestCase {
     }
 
     func testGroundBesideAVoidIsStillTraced() {
-        let lines = trace([
-            [-32768, -32768, -32768],
-            [-32768, 0, 20],
-            [-32768, 0, 20],
-        ], step: 10)
+        let lines = trace(
+            [
+                [-32768, -32768, -32768],
+                [-32768, 0, 20],
+                [-32768, 0, 20]
+            ],
+            step: 10
+        )
         // The 0 m line runs along the samples that sit exactly on it, and the 10 m line
         // through the slope; 20 does not cross, since nothing is above it.
         XCTAssertEqual(Set(lines.map(\.elevation)), [0, 10])
@@ -177,16 +188,22 @@ final class ContoursTests: XCTestCase {
         let whole = trace(rows, step: 10)
         XCTAssertFalse(whole.isEmpty)
         // A box over the flat western half only.
-        let clipped = trace(rows, step: 10,
-                            clip: (minLat: 44.0, minLon: 33.0, maxLat: 45.0, maxLon: 33.4))
+        let clipped = trace(
+            rows,
+            step: 10,
+            clip: (minLat: 44.0, minLon: 33.0, maxLat: 45.0, maxLon: 33.4)
+        )
         XCTAssertTrue(clipped.isEmpty)
     }
 
     func testAClipCoveringEverythingChangesNothing() {
         let rows = [[0, 10, 20], [0, 10, 20], [0, 10, 20]]
         let whole = trace(rows, step: 10)
-        let clipped = trace(rows, step: 10,
-                            clip: (minLat: 44.0, minLon: 33.0, maxLat: 45.0, maxLon: 34.0))
+        let clipped = trace(
+            rows,
+            step: 10,
+            clip: (minLat: 44.0, minLon: 33.0, maxLat: 45.0, maxLon: 34.0)
+        )
         XCTAssertEqual(whole.count, clipped.count)
         XCTAssertEqual(whole.map(\.elevation).sorted(), clipped.map(\.elevation).sorted())
         for (a, b) in zip(whole, clipped) {
@@ -195,8 +212,11 @@ final class ContoursTests: XCTestCase {
     }
 
     func testAClipOutsideTheTileTracesNothing() {
-        let lines = trace([[0, 20], [0, 20]], step: 10,
-                          clip: (minLat: 10, minLon: 10, maxLat: 11, maxLon: 11))
+        let lines = trace(
+            [[0, 20], [0, 20]],
+            step: 10,
+            clip: (minLat: 10, minLon: 10, maxLat: 11, maxLon: 11)
+        )
         XCTAssertTrue(lines.isEmpty)
     }
 
@@ -211,8 +231,10 @@ final class ContoursTests: XCTestCase {
         let line = Contours.Line(elevation: 100, points: points, closed: false)
         let pieces = Contours.split([line])
         XCTAssertGreaterThan(pieces.count, 1)
-        XCTAssertEqual(pieces.reduce(0) { $0 + $1.points.count } - (pieces.count - 1),
-                       points.count)
+        XCTAssertEqual(
+            pieces.reduce(0) { $0 + $1.points.count } - (pieces.count - 1),
+            points.count
+        )
         for i in 1..<pieces.count {
             XCTAssertEqual(pieces[i - 1].points.last?.lat, pieces[i].points.first?.lat)
             XCTAssertEqual(pieces[i - 1].points.last?.lon, pieces[i].points.first?.lon)
@@ -221,20 +243,26 @@ final class ContoursTests: XCTestCase {
     }
 
     func testAShortLineIsLeftWhole() {
-        let line = Contours.Line(elevation: 100,
-                                 points: [(44, 33), (44.1, 33.1)], closed: false)
+        let line = Contours.Line(
+            elevation: 100,
+            points: [(44, 33), (44.1, 33.1)],
+            closed: false
+        )
         XCTAssertEqual(Contours.split([line]).count, 1)
     }
 
     // MARK: What the lines look like
 
     func testEveryPointOfEveryLineIsInsideTheTile() {
-        let lines = trace([
-            [0, 10, 20, 30],
-            [5, 15, 25, 35],
-            [10, 20, 30, 40],
-            [15, 25, 35, 45],
-        ], step: 10)
+        let lines = trace(
+            [
+                [0, 10, 20, 30],
+                [5, 15, 25, 35],
+                [10, 20, 30, 40],
+                [15, 25, 35, 45]
+            ],
+            step: 10
+        )
         XCTAssertFalse(lines.isEmpty)
         for line in lines {
             for point in line.points {
@@ -249,26 +277,34 @@ final class ContoursTests: XCTestCase {
     func testNoLineRepeatsAPointItJustPassed() {
         // A crossing landing exactly on a grid node belongs to both edges meeting there,
         // so the same position can arrive twice in a row.
-        let lines = trace([
-            [0, 10, 20],
-            [10, 20, 30],
-            [20, 30, 40],
-        ], step: 10)
+        let lines = trace(
+            [
+                [0, 10, 20],
+                [10, 20, 30],
+                [20, 30, 40]
+            ],
+            step: 10
+        )
         for line in lines {
             for i in 1..<line.points.count {
-                XCTAssertFalse(line.points[i].lat == line.points[i - 1].lat
-                               && line.points[i].lon == line.points[i - 1].lon,
-                               "a point repeats at \(line.elevation) m")
+                XCTAssertFalse(
+                    line.points[i].lat == line.points[i - 1].lat
+                        && line.points[i].lon == line.points[i - 1].lon,
+                    "a point repeats at \(line.elevation) m"
+                )
             }
         }
     }
 
     func testEveryLineHasAtLeastTwoPoints() {
-        let lines = trace([
-            [0, 10, 20],
-            [10, 20, 30],
-            [20, 30, 40],
-        ], step: 10)
+        let lines = trace(
+            [
+                [0, 10, 20],
+                [10, 20, 30],
+                [20, 30, 40]
+            ],
+            step: 10
+        )
         for line in lines {
             XCTAssertGreaterThanOrEqual(line.points.count, 2)
         }

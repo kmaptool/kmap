@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)
@@ -18,7 +19,6 @@ extension TimeInterval {
 }
 
 enum LocalTime {
-
     /// The zone to show times in: `TimeZone.current` everywhere but Windows.
     static let zone: TimeZone = resolve()
 

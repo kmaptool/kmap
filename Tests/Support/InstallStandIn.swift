@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+
 @testable import kmap
 
 /// Stands in for `Toolchain.install`: an install holds until it is released, failed or
@@ -59,9 +60,13 @@ func settles(within seconds: Double = 3, _ condition: () -> Bool) async -> Bool 
 
 /// `settles`, as an assertion: fails on the caller's line when the condition never holds.
 @MainActor
-func expectSettled(_ message: String = "", within seconds: Double = 3,
-                   file: StaticString = #filePath, line: UInt = #line,
-                   _ condition: () -> Bool) async {
+func expectSettled(
+    _ message: String = "",
+    within seconds: Double = 3,
+    file: StaticString = #filePath,
+    line: UInt = #line,
+    _ condition: () -> Bool
+) async {
     let held = await settles(within: seconds, condition)
     XCTAssertTrue(held, message, file: file, line: line)
 }

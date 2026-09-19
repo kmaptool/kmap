@@ -39,7 +39,7 @@ struct ZoomRungs {
     /// - Returns: nil when the result is the resolution it already had.
     func moved(_ resolution: Int, by steps: Int) -> Int? {
         guard steps != 0, let from = rung(forResolution: resolution),
-              let to = self.resolution(atRung: from + steps), to != resolution
+            let to = self.resolution(atRung: from + steps), to != resolution
         else { return nil }
         return to
     }

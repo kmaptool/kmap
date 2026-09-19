@@ -24,7 +24,14 @@ enum Layout {
         let width = min(formWidth, rect.w - (hasPanel ? panelWidth : 0))
         let form = Rect(x: rect.x, y: rect.y, w: width, h: rect.h)
         guard hasPanel else { return (form, nil) }
-        return (form, Rect(x: rect.x + width + gutter, y: rect.y,
-                           w: rect.w - width - gutter, h: rect.h))
+        return (
+            form,
+            Rect(
+                x: rect.x + width + gutter,
+                y: rect.y,
+                w: rect.w - width - gutter,
+                h: rect.h
+            )
+        )
     }
 }

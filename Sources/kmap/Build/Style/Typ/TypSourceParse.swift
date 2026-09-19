@@ -59,11 +59,16 @@ extension TypSource {
             case "[_draworder]":
                 drawOrder = parseDrawOrder(body)
             case "[_point]", "[_line]", "[_polygon]":
-                let kind: MapElementKind = line.lowercased() == "[_point]" ? .point
+                let kind: MapElementKind =
+                    line.lowercased() == "[_point]"
+                    ? .point
                     : (line.lowercased() == "[_line]" ? .line : .polygon)
-                if let section = parseSection(kind: kind, body: body,
-                                              lines: index..<(end + 1),
-                                              leadingComments: pendingComments) {
+                if let section = parseSection(
+                    kind: kind,
+                    body: body,
+                    lines: index..<(end + 1),
+                    leadingComments: pendingComments
+                ) {
                     sections.append(section)
                 }
             default:
@@ -74,23 +79,32 @@ extension TypSource {
             index = end + 1
         }
 
-        return TypSource(lines: lines, familyID: familyID, productID: productID,
-                         codePage: codePage, sections: sections, drawOrder: drawOrder,
-                         deliberatelyUnstyled: unstyled)
+        return TypSource(
+            lines: lines,
+            familyID: familyID,
+            productID: productID,
+            codePage: codePage,
+            sections: sections,
+            drawOrder: drawOrder,
+            deliberatelyUnstyled: unstyled
+        )
     }
 
     /// Parses `; kmap:unstyled lines 0x01 0x02 - why`; returns nil for any other comment.
     /// Text after the codes is ignored, and a malformed marker is treated as an ordinary
     /// comment rather than guessed at.
-    private static func parseUnstyledMarker(_ line: String)
-        -> (kind: MapElementKind, codes: Set<Int>)? {
+    private static func parseUnstyledMarker(
+        _ line: String
+    )
+        -> (kind: MapElementKind, codes: Set<Int>)?
+    {
         let body = line.drop { $0 == ";" }.trimmingCharacters(in: .whitespaces)
         guard body.lowercased().hasPrefix("kmap:unstyled") else { return nil }
 
         let words = body.dropFirst("kmap:unstyled".count)
             .split(separator: " ", omittingEmptySubsequences: true).map(String.init)
         guard let first = words.first,
-              let kind = MapElementKind(rawValue: singular(first.lowercased()))
+            let kind = MapElementKind(rawValue: singular(first.lowercased()))
         else { return nil }
 
         var codes: Set<Int> = []
@@ -116,9 +130,12 @@ extension TypSource {
         return nil
     }
 
-    private static func parseSection(kind: MapElementKind, body: [String],
-                                     lines: Range<Int>,
-                                     leadingComments: [String]) -> TypSection? {
+    private static func parseSection(
+        kind: MapElementKind,
+        body: [String],
+        lines: Range<Int>,
+        leadingComments: [String]
+    ) -> TypSection? {
         var code: Int?
         var comments = leadingComments
         var labels: [(language: Int, text: String)] = []
@@ -177,18 +194,31 @@ extension TypSource {
         }
 
         guard let code else { return nil }
-        return TypSection(kind: kind, code: code, lines: lines, comments: comments,
-                          labels: labels, fontStyle: fontStyle,
-                          dayLabelColour: dayLabelColour, nightLabelColour: nightLabelColour,
-                          lineWidth: lineWidth, borderWidth: borderWidth,
-                          usesOrientation: usesOrientation,
-                          xpm: xpm, dayXpm: dayXpm, nightXpm: nightXpm)
+        return TypSection(
+            kind: kind,
+            code: code,
+            lines: lines,
+            comments: comments,
+            labels: labels,
+            fontStyle: fontStyle,
+            dayLabelColour: dayLabelColour,
+            nightLabelColour: nightLabelColour,
+            lineWidth: lineWidth,
+            borderWidth: borderWidth,
+            usesOrientation: usesOrientation,
+            xpm: xpm,
+            dayXpm: dayXpm,
+            nightXpm: nightXpm
+        )
     }
 
     /// Reads an Xpm header and the quoted lines under it. Returns the block and the index
     /// of the first line that is no longer part of it.
-    private static func parseXpm(header: String, following body: [String],
-                                 from start: Int) -> (XpmBlock?, Int) {
+    private static func parseXpm(
+        header: String,
+        following body: [String],
+        from start: Int
+    ) -> (XpmBlock?, Int) {
         let numbers = unquote(header).split(separator: " ").map(String.init)
         guard numbers.count >= 4 else { return (nil, start) }
         // Some files write a line bitmap's height as a letter ("32 h 4 1"); an unreadable
@@ -214,15 +244,25 @@ extension TypSource {
             i += 1
         }
 
-        return (XpmBlock(width: width, height: height, declaredColours: declared,
-                         charsPerPixel: perPixel, palette: palette, rows: rows), i)
+        return (
+            XpmBlock(
+                width: width,
+                height: height,
+                declaredColours: declared,
+                charsPerPixel: perPixel,
+                palette: palette,
+                rows: rows
+            ), i
+        )
     }
 
     /// Parses `"a c #F8FCF8"` or `". c none"`. The key is taken by width rather than by
     /// splitting: it is `keyLength` characters wide and may hold a space, a semicolon or a
     /// quote mark.
-    private static func parsePaletteEntry(_ content: String,
-                                          keyLength: Int) -> (key: String, colour: String?)? {
+    private static func parsePaletteEntry(
+        _ content: String,
+        keyLength: Int
+    ) -> (key: String, colour: String?)? {
         let width = max(1, keyLength)
         guard content.count >= width + 2 else { return nil }
         let key = String(content.prefix(width))
@@ -277,8 +317,9 @@ extension TypSource {
     private static func stripComment(_ text: String) -> String {
         var inQuotes = false
         for (offset, ch) in text.enumerated() {
-            if ch == "\"" { inQuotes.toggle() }
-            else if ch == ";" && !inQuotes {
+            if ch == "\"" {
+                inQuotes.toggle()
+            } else if ch == ";" && !inQuotes {
                 return String(text.prefix(offset))
             }
         }

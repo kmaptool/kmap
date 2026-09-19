@@ -31,7 +31,8 @@ struct TypInfo {
         let bytes = [UInt8](head)
         // The signature follows the 2-byte header length.
         guard bytes.count > 2 + signature.count,
-              Array(bytes[2..<(2 + signature.count)]) == signature else { return nil }
+            Array(bytes[2..<(2 + signature.count)]) == signature
+        else { return nil }
 
         let family = Int(bytes[familyIDOffset]) | (Int(bytes[familyIDOffset + 1]) << 8)
         let product = Int(bytes[productIDOffset]) | (Int(bytes[productIDOffset + 1]) << 8)
@@ -47,7 +48,8 @@ struct TypInfo {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard let eq = line.firstIndex(of: "=") else { continue }
             let key = line[line.startIndex..<eq].trimmingCharacters(in: .whitespaces).uppercased()
-            let value = line[line.index(after: eq)...]
+            let value =
+                line[line.index(after: eq)...]
                 .trimmingCharacters(in: .whitespaces)
                 .split(separator: ";").first.map(String.init) ?? ""
             switch key {

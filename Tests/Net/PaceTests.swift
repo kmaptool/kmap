@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// The time-left figure for a job made of many small parts. The rate is taken over a
 /// moving window, so a burst of parts landing together does not read as a fast link.
 final class PaceTests: XCTestCase {
-
     private let start = Date(timeIntervalSince1970: 1_700_000_000)
     private func at(_ seconds: TimeInterval) -> Date { start.addingTimeInterval(seconds) }
 
@@ -15,8 +15,10 @@ final class PaceTests: XCTestCase {
         pace.note(done: 0, at: at(0))
         pace.note(done: 6, at: at(1.5))
         XCTAssertNil(pace.rate(at: at(1.5)))
-        XCTAssertNil(pace.secondsLeft(1_400, at: at(1.5)),
-                     "six tiles in a second and a half says nothing about a job of 1400")
+        XCTAssertNil(
+            pace.secondsLeft(1_400, at: at(1.5)),
+            "six tiles in a second and a half says nothing about a job of 1400"
+        )
     }
 
     func testItSaysNothingUntilEnoughPartsHaveFinished() {
@@ -59,20 +61,24 @@ final class PaceTests: XCTestCase {
         // Six every twelve seconds is one every two, so fourteen hundred is about
         // forty-six minutes; what is checked is the order of magnitude.
         XCTAssertGreaterThan(left ?? 0, 1_500, "a burst still says the job is nearly done")
-        XCTAssertEqual(left ?? 0, 2_800, accuracy: 700,
-                       "the window edge falls between batches, which is worth a batch either way")
+        XCTAssertEqual(
+            left ?? 0,
+            2_800,
+            accuracy: 700,
+            "the window edge falls between batches, which is worth a batch either way"
+        )
     }
 
     func testItFollowsALinkThatSpeedsUp() {
         // An average since the start would carry the slow beginning for the rest of the run.
         var pace = Pace()
         var done = 0
-        for second in stride(from: 0, through: 60, by: 3) {           // one every 3s
+        for second in stride(from: 0, through: 60, by: 3) {  // one every 3s
             pace.note(done: done, at: at(TimeInterval(second)))
             done += 1
         }
         let slow = pace.secondsLeft(600, at: at(60)) ?? 0
-        for tenth in stride(from: 60.5, through: 130, by: 0.5) {      // one every half second
+        for tenth in stride(from: 60.5, through: 130, by: 0.5) {  // one every half second
             done += 1
             pace.note(done: done, at: at(tenth))
         }

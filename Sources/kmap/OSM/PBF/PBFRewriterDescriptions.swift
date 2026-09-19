@@ -27,13 +27,17 @@ extension PBFRewriter {
     /// The name a description is measured against, folded for comparison.
     private static func comparableName(_ tags: [(String, String)]) -> String? {
         guard let name = tags.first(where: { nameKeys.contains($0.0) })?.1,
-              !name.isEmpty else { return nil }
+            !name.isEmpty
+        else { return nil }
         let folded = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return folded.isEmpty ? nil : folded
     }
 
-    private static func saysNothingNew(_ key: String, _ value: String,
-                                       beside name: String) -> Bool {
+    private static func saysNothingNew(
+        _ key: String,
+        _ value: String,
+        beside name: String
+    ) -> Bool {
         guard descriptionKeys.contains(key) else { return false }
         let described = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if described.isEmpty || described == name { return true }

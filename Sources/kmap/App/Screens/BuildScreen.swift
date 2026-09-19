@@ -6,9 +6,11 @@ final class BuildScreen: Screen {
     // overflow the bar.
     var page: Page {
         let extra = pipeline.recipe.extraRegions.count
-        return Page(t("build"),
-                    subject: pipeline.recipe.region.name + (extra > 0 ? " +\(extra)" : ""),
-                    keys: keys)
+        return Page(
+            t("build"),
+            subject: pipeline.recipe.region.name + (extra > 0 ? " +\(extra)" : ""),
+            keys: keys
+        )
     }
 
     private var keys: [Hint] {
@@ -16,14 +18,18 @@ final class BuildScreen: Screen {
         if snapshot.finished {
             var hints = [Hint(key: Glyph.enter, label: t("done"))]
             if Platform.canReveal { hints.append(Hint(key: "o", label: Platform.revealLabel())) }
-            hints += [Hint(key: "l", label: t("library")),
-                      Hint(key: "↑↓", label: t("scroll log")),
-                      Hint(key: "v", label: showingDetail ? t("hide detail") : t("detail"))]
+            hints += [
+                Hint(key: "l", label: t("library")),
+                Hint(key: "↑↓", label: t("scroll log")),
+                Hint(key: "v", label: showingDetail ? t("hide detail") : t("detail"))
+            ]
             return hints
         }
-        return [Hint(key: "^C", label: t("cancel build")),
-                Hint(key: "↑↓", label: t("scroll log")),
-                Hint(key: "v", label: showingDetail ? t("hide detail") : t("detail"))]
+        return [
+            Hint(key: "^C", label: t("cancel build")),
+            Hint(key: "↑↓", label: t("scroll log")),
+            Hint(key: "v", label: showingDetail ? t("hide detail") : t("detail"))
+        ]
     }
 
     private let pipeline: BuildPipeline
@@ -62,7 +68,8 @@ final class BuildScreen: Screen {
             // Reveal rather than open: the build drops the .img in a dated folder beside
             // earlier ones, and the next step is copying it to the device.
             if snapshot.finished, let first = snapshot.outputs.first,
-               let command = Platform.revealCommand(for: first.url) {
+                let command = Platform.revealCommand(for: first.url)
+            {
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: command.executable)
                 process.arguments = command.arguments
@@ -93,8 +100,14 @@ final class BuildScreen: Screen {
     }
 
     /// The headline, the wall clock, and the whole build's bar.
-    private func renderOverallBar(_ snapshot: BuildPipeline.Snapshot, into s: Surface,
-                                  rect: Rect, ctx: AppContext, theme: Theme, y: inout Int) {
+    private func renderOverallBar(
+        _ snapshot: BuildPipeline.Snapshot,
+        into s: Surface,
+        rect: Rect,
+        ctx: AppContext,
+        theme: Theme,
+        y: inout Int
+    ) {
         let elapsed = (snapshot.finishedAt ?? Date()).timeIntervalSince(snapshot.startedAt)
 
         let headline: String
@@ -117,14 +130,27 @@ final class BuildScreen: Screen {
         s.text(rect.x, y, headline, Style(fg: tone, bg: theme.appBg, bold: true))
         s.textRight(rect.maxX, y, Fmt.duration(elapsed), Style(fg: theme.dim, bg: theme.appBg))
         y += 1
-        Widgets.progressBar(s, x: rect.x, y: y, width: rect.w,
-                            fraction: snapshot.overall, theme: theme, fillColor: tone)
+        Widgets.progressBar(
+            s,
+            x: rect.x,
+            y: y,
+            width: rect.w,
+            fraction: snapshot.overall,
+            theme: theme,
+            fillColor: tone
+        )
         y += 2
     }
 
     /// One row per stage: marker, title, and either its bar or its detail line.
-    private func renderStages(_ snapshot: BuildPipeline.Snapshot, into s: Surface,
-                              rect: Rect, ctx: AppContext, theme: Theme, y: inout Int) {
+    private func renderStages(
+        _ snapshot: BuildPipeline.Snapshot,
+        into s: Surface,
+        rect: Rect,
+        ctx: AppContext,
+        theme: Theme,
+        y: inout Int
+    ) {
         for stage in snapshot.stages {
             guard y < rect.maxY - 4 else { break }
             let marker: String
@@ -145,30 +171,55 @@ final class BuildScreen: Screen {
             }
             s.text(rect.x + indent, y, marker, Style(fg: markerTone, bg: theme.appBg))
             let titleTone = stage.status == .pending || stage.status == .skipped ? theme.faint : theme.text
-            s.text(rect.x + indent + 2, y, stage.id.title,
-                   Style(fg: titleTone, bg: theme.appBg,
-                         bold: stage.status == .running),
-                   limit: max(0, 24 - indent))
+            s.text(
+                rect.x + indent + 2,
+                y,
+                stage.id.title,
+                Style(
+                    fg: titleTone,
+                    bg: theme.appBg,
+                    bold: stage.status == .running
+                ),
+                limit: max(0, 24 - indent)
+            )
 
             let detailX = rect.x + 26
             if stage.status == .running, let fraction = stage.fraction, rect.w > 60 {
                 let barWidth = min(24, max(10, rect.w - detailX - 30))
-                Widgets.progressBar(s, x: detailX, y: y, width: barWidth,
-                                    fraction: fraction, theme: theme)
-                s.text(detailX + barWidth + 2, y,
-                       truncate(stage.detail, to: max(0, rect.maxX - detailX - barWidth - 2)),
-                       Style(fg: theme.dim, bg: theme.appBg))
+                Widgets.progressBar(
+                    s,
+                    x: detailX,
+                    y: y,
+                    width: barWidth,
+                    fraction: fraction,
+                    theme: theme
+                )
+                s.text(
+                    detailX + barWidth + 2,
+                    y,
+                    truncate(stage.detail, to: max(0, rect.maxX - detailX - barWidth - 2)),
+                    Style(fg: theme.dim, bg: theme.appBg)
+                )
             } else if !stage.detail.isEmpty {
-                s.text(detailX, y, truncate(stage.detail, to: max(0, rect.maxX - detailX)),
-                       Style(fg: stage.status == .running ? theme.dim : theme.faint, bg: theme.appBg))
+                s.text(
+                    detailX,
+                    y,
+                    truncate(stage.detail, to: max(0, rect.maxX - detailX)),
+                    Style(fg: stage.status == .running ? theme.dim : theme.faint, bg: theme.appBg)
+                )
             }
             y += 1
         }
     }
 
     /// The failure, or the finished outputs and where they landed.
-    private func renderResult(_ snapshot: BuildPipeline.Snapshot, into s: Surface,
-                              rect: Rect, theme: Theme, y: inout Int) {
+    private func renderResult(
+        _ snapshot: BuildPipeline.Snapshot,
+        into s: Surface,
+        rect: Rect,
+        theme: Theme,
+        y: inout Int
+    ) {
         if let failure = snapshot.failure {
             for chunk in wrapText(failure, width: rect.w) {
                 guard y < rect.maxY - 2 else { break }
@@ -177,20 +228,32 @@ final class BuildScreen: Screen {
             }
             y += 1
         } else if snapshot.finished && !snapshot.outputs.isEmpty {
-            s.sectionRule(rect, y, t("output"),
-                          labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                          ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+            s.sectionRule(
+                rect,
+                y,
+                t("output"),
+                labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+                ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+            )
             y += 1
             for output in snapshot.outputs {
                 guard y < rect.maxY - 2 else { break }
                 s.text(rect.x, y, output.name, Style(fg: theme.ok, bg: theme.appBg, bold: true))
-                s.textRight(rect.maxX, y, Fmt.bytes(output.size),
-                            Style(fg: theme.dim, bg: theme.appBg))
+                s.textRight(
+                    rect.maxX,
+                    y,
+                    Fmt.bytes(output.size),
+                    Style(fg: theme.dim, bg: theme.appBg)
+                )
                 y += 1
             }
             guard y < rect.maxY - 1 else { return }
-            s.text(rect.x, y, Paths.display(pipeline.recipe.destinationDirectory),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                Paths.display(pipeline.recipe.destinationDirectory),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 2
         }
     }
@@ -198,11 +261,15 @@ final class BuildScreen: Screen {
     /// The running log, scrolled back however far the user has gone.
     private func renderLog(into s: Surface, rect: Rect, theme: Theme, y: inout Int) {
         guard y < rect.maxY - 1 else { return }
-        s.sectionRule(rect, y, logScroll > 0
-                        ? t("output") + " · " + t("scrolled back %d", logScroll)
-                        : t("output"),
-                      labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                      ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+        s.sectionRule(
+            rect,
+            y,
+            logScroll > 0
+                ? t("output") + " · " + t("scrolled back %d", logScroll)
+                : t("output"),
+            labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+            ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+        )
         y += 1
 
         let logRect = Rect(x: rect.x, y: y, w: rect.w, h: max(0, rect.maxY - y))

@@ -35,11 +35,13 @@ struct ZoomRuleScan {
                 continue
             }
             guard let open = line.firstIndex(of: "["),
-                  let close = line[open...].firstIndex(of: "]") else {
+                let close = line[open...].firstIndex(of: "]")
+            else {
                 // No type: a condition awaiting one on a later line, unless it is an
                 // `include`, a `<finalize>` marker or a standalone action block.
-                pending = trimmed.hasSuffix(";") || trimmed.hasPrefix("<")
-                    || trimmed.hasPrefix("include") ? nil : line
+                pending =
+                    trimmed.hasSuffix(";") || trimmed.hasPrefix("<")
+                        || trimmed.hasPrefix("include") ? nil : line
                 continue
             }
             var ahead = String(line[line.startIndex..<open]).trimmingCharacters(in: .whitespaces)
@@ -49,9 +51,14 @@ struct ZoomRuleScan {
             let condition = ahead.isEmpty ? (pending ?? "") : ahead
             pending = nil
             guard !condition.isEmpty else { continue }
-            out.append(Rule(line: i, condition: condition,
-                            type: String(line[open...close]),
-                            typeRange: open..<line.index(after: close)))
+            out.append(
+                Rule(
+                    line: i,
+                    condition: condition,
+                    type: String(line[open...close]),
+                    typeRange: open..<line.index(after: close)
+                )
+            )
         }
         return out
     }

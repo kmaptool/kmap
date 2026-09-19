@@ -8,10 +8,12 @@ final class StylePickerScreen: Screen {
     }
 
     private var keys: [Hint] {
-        [Hint(key: "↑↓", label: t("move")),
-         Hint(key: Glyph.enter, label: t("choose")),
-         Hint(key: "type", label: t("filter")),
-         Hint(key: "esc", label: t("cancel"))]
+        [
+            Hint(key: "↑↓", label: t("move")),
+            Hint(key: Glyph.enter, label: t("choose")),
+            Hint(key: "type", label: t("filter")),
+            Hint(key: "esc", label: t("cancel"))
+        ]
     }
 
     private let styles: [MapStyle]
@@ -74,12 +76,20 @@ final class StylePickerScreen: Screen {
         let visible = filtered
 
         // Filter field.
-        let x = s.text(rect.x, rect.y, t("filter") + ": ",
-                       Style(fg: theme.dim, bg: theme.appBg))
+        let x = s.text(
+            rect.x,
+            rect.y,
+            t("filter") + ": ",
+            Style(fg: theme.dim, bg: theme.appBg)
+        )
         let end = s.text(x, rect.y, query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
         s.put(end, rect.y, "▏", Style(fg: theme.accent, bg: theme.appBg))
-        s.textRight(rect.maxX, rect.y, t("%d of %d", visible.count, styles.count),
-                    Style(fg: theme.faint, bg: theme.appBg))
+        s.textRight(
+            rect.maxX,
+            rect.y,
+            t("%d of %d", visible.count, styles.count),
+            Style(fg: theme.faint, bg: theme.appBg)
+        )
         s.hline(rect.x, rect.y + 1, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
 
         let bodyY = rect.y + 2
@@ -88,8 +98,12 @@ final class StylePickerScreen: Screen {
         guard listHeight > 0 else { return }
 
         if visible.isEmpty {
-            s.text(rect.x, bodyY, t("nothing matches \"%@\"", query),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                bodyY,
+                t("nothing matches \"%@\"", query),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             return
         }
 
@@ -100,17 +114,25 @@ final class StylePickerScreen: Screen {
             guard let style = visible[safe: index] else { break }
             let y = bodyY + i
             let isCurrent = style.id == current.id
-            Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
-                        y: y,
-                        text: style.name,
-                        trailing: style.hasTYP ? t("family %d", style.familyID) : t("no TYP"),
-                        theme: theme,
-                        selected: index == list.selected,
-                        leading: isCurrent ? "\(Glyph.dot) " : "  ")
+            Widgets.row(
+                s,
+                rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
+                y: y,
+                text: style.name,
+                trailing: style.hasTYP ? t("family %d", style.familyID) : t("no TYP"),
+                theme: theme,
+                selected: index == list.selected,
+                leading: isCurrent ? "\(Glyph.dot) " : "  "
+            )
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: bodyY, w: rect.w, h: listHeight),
-                           offset: list.offset, count: visible.count,
-                           visible: listHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: bodyY, w: rect.w, h: listHeight),
+            offset: list.offset,
+            count: visible.count,
+            visible: listHeight,
+            theme: theme
+        )
 
         // Detail for the highlighted entry.
         guard let style = visible[safe: list.selected] else { return }
@@ -123,8 +145,12 @@ final class StylePickerScreen: Screen {
             y += 1
         }
         if case .importedTYP(let url) = style.origin, y < rect.maxY {
-            s.text(rect.x, y, truncate(url.path, to: rect.w),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(url.path, to: rect.w),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
         }
     }
 }

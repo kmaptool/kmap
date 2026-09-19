@@ -10,27 +10,34 @@ extension BuildPipeline {
 
     /// Annotates every extract at once, as many as memory allows, and returns the
     /// files the splitter should read. Only the first region folds the contours in.
-    func annotateExtracts(_ extracts: [URL],
-                                  contoursTask: Task<[URL], Error>) async throws -> [String] {
+    func annotateExtracts(
+        _ extracts: [URL],
+        contoursTask: Task<[URL], Error>
+    ) async throws -> [String] {
         // Announced once for the whole group; the per-region lines carry a prefix.
         if recipe.needsBarrierContext || recipe.descriptions != .off
-            || (recipe.healRoadEnds && recipe.routable) {
-            log.step(recipe.healRoadEnds && recipe.routable
-                     ? "classifying barriers, and repairing road ends OSM left short"
-                     + " — \(extracts.count) region(s) at once"
-                     : (recipe.descriptions != .off && !recipe.needsBarrierContext
-                        ? "removing descriptions that only repeat the name"
+            || (recipe.healRoadEnds && recipe.routable)
+        {
+            log.step(
+                recipe.healRoadEnds && recipe.routable
+                    ? "classifying barriers, and repairing road ends OSM left short"
                         + " — \(extracts.count) region(s) at once"
+                    : (recipe.descriptions != .off && !recipe.needsBarrierContext
+                        ? "removing descriptions that only repeat the name"
+                            + " — \(extracts.count) region(s) at once"
                         : "classifying barriers, and tidying descriptions"
-                        + " — \(extracts.count) region(s) at once"))
+                            + " — \(extracts.count) region(s) at once")
+            )
         }
         // At most three passes at once, fewer on a small machine: a pass holds its
         // extract's node table, roads and barriers, roughly 14x the extract's size.
         let largest = extracts.map { FileTools.size(of: $0) }.max() ?? 0
         let atOnce = Machine.lanes(3, holdingEach: Double(largest) * 14 / 1_073_741_824)
         if atOnce < min(3, extracts.count) {
-            log.append("\(Machine.memoryGB) GB of memory — annotating"
-                       + " \(atOnce == 1 ? "one region" : "\(atOnce) regions") at a time")
+            log.append(
+                "\(Machine.memoryGB) GB of memory — annotating"
+                    + " \(atOnce == 1 ? "one region" : "\(atOnce) regions") at a time"
+            )
         }
         var results = [[String]](repeating: [], count: extracts.count)
         try await withThrowingTaskGroup(of: (Int, [String]).self) { group in
@@ -48,11 +55,15 @@ extension BuildPipeline {
                 }
                 group.addTask { [weak self] in
                     guard let self else { return (index, []) }
-                    return (index, try await self.annotateBarriersIfNeeded(
-                        extract,
-                        contoursReady: contours,
-                        suffix: extracts.count > 1 ? "-\(index)" : "",
-                        regionIndex: index))
+                    return (
+                        index,
+                        try await self.annotateBarriersIfNeeded(
+                            extract,
+                            contoursReady: contours,
+                            suffix: extracts.count > 1 ? "-\(index)" : "",
+                            regionIndex: index
+                        )
+                    )
                 }
                 next += 1
                 running += 1
@@ -65,8 +76,11 @@ extension BuildPipeline {
                 }
                 running -= 1
                 done += 1
-                advance(.split, fraction: Double(done) / Double(extracts.count)
-                        * Self.splitAnnotateShare)
+                advance(
+                    .split,
+                    fraction: Double(done) / Double(extracts.count)
+                        * Self.splitAnnotateShare
+                )
                 if next < extracts.count { launch(next) }
             }
         }
@@ -76,10 +90,12 @@ extension BuildPipeline {
     /// Rewrites one extract with what mkgmap's rule language cannot express: barriers
     /// classified by the way they stand on, redundant descriptions dropped, road ends
     /// repaired, contours folded in. Returns the files the splitter should read.
-    private func annotateBarriersIfNeeded(_ extract: URL,
-                                          contoursReady: (@Sendable () async throws -> [URL])? = nil,
-                                          suffix: String = "",
-                                          regionIndex: Int = 0) async throws -> [String] {
+    private func annotateBarriersIfNeeded(
+        _ extract: URL,
+        contoursReady: (@Sendable () async throws -> [URL])? = nil,
+        suffix: String = "",
+        regionIndex: Int = 0
+    ) async throws -> [String] {
         let dropDuplicates = recipe.descriptions != .off
         let heal = recipe.healRoadEnds && recipe.routable
         let features = recipe.needsBarrierContext || dropDuplicates || heal
@@ -95,11 +111,13 @@ extension BuildPipeline {
         FileTools.removeIfPresent(annotated)
         // With several regions the caller has already announced the step for all of them.
         if suffix.isEmpty {
-            log.step(heal
-                     ? "classifying barriers, and repairing road ends OSM left short"
-                     : (dropDuplicates && !recipe.needsBarrierContext
+            log.step(
+                heal
+                    ? "classifying barriers, and repairing road ends OSM left short"
+                    : (dropDuplicates && !recipe.needsBarrierContext
                         ? "removing descriptions that only repeat the name"
-                        : "classifying barriers, and tidying descriptions"))
+                        : "classifying barriers, and tidying descriptions")
+            )
         }
 
         var pass = AnnotatePass(source: extract, destination: annotated)

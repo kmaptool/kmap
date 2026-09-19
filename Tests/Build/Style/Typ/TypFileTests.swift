@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Reading the identifying header of a Garmin style file.
@@ -6,7 +7,6 @@ import XCTest
 /// The family and product ids in a TYP must match the ones mkgmap is invoked with, or the
 /// receiver ignores the TYP and draws the map in its default colours.
 final class TypFileTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -20,8 +20,12 @@ final class TypFileTests: XCTestCase {
     }
 
     /// A binary TYP: the header length, "GARMIN TYP", and the ids at their fixed offsets.
-    private func binary(family: Int, product: Int, name: String = "style.typ",
-                        signed: Bool = true) throws -> URL {
+    private func binary(
+        family: Int,
+        product: Int,
+        name: String = "style.typ",
+        signed: Bool = true
+    ) throws -> URL {
         var bytes = [UInt8](repeating: 0, count: 0x40)
         bytes[0] = 0x5B; bytes[1] = 0x00
         if signed {
@@ -53,8 +57,11 @@ final class TypFileTests: XCTestCase {
         // 6324 does not fit in one byte; the low byte alone reads as a plausible 180.
         let info = try XCTUnwrap(TypInfo.read(try binary(family: 6324, product: 1)))
         XCTAssertEqual(info.familyID, 6324)
-        XCTAssertEqual(try XCTUnwrap(TypInfo.read(try binary(family: 65_535, product: 1)))
-                        .familyID, 65_535)
+        XCTAssertEqual(
+            try XCTUnwrap(TypInfo.read(try binary(family: 65_535, product: 1)))
+                .familyID,
+            65_535
+        )
     }
 
     func testAProductOfZeroIsReadAsOneBecauseTheDeviceCountsFromThere() throws {
@@ -81,13 +88,19 @@ final class TypFileTests: XCTestCase {
     // MARK: mkgmap's own TYP source
 
     func testATextStyleIsReadFromItsFIDAndProductCode() throws {
-        let info = try XCTUnwrap(TypInfo.read(try text("""
-        [_id]
-        ProductCode=3
-        FID=6324
-        CodePage=1251
-        [end]
-        """)))
+        let info = try XCTUnwrap(
+            TypInfo.read(
+                try text(
+                    """
+                    [_id]
+                    ProductCode=3
+                    FID=6324
+                    CodePage=1251
+                    [end]
+                    """
+                )
+            )
+        )
         XCTAssertEqual(info.familyID, 6324)
         XCTAssertEqual(info.productID, 3)
         XCTAssertFalse(info.isBinary)

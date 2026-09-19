@@ -1,4 +1,5 @@
 import Foundation
+
 #if os(Windows)
 import WinSDK
 #endif
@@ -54,7 +55,8 @@ enum Machine {
         said.withLock { said in
             if let said { return said }
             if let told = ProcessInfo.processInfo.environment["KMAP_MEMORY_GB"],
-               let gigabytes = Int(told), gigabytes > 0 {
+                let gigabytes = Int(told), gigabytes > 0
+            {
                 said = gigabytes
                 return gigabytes
             }
@@ -89,8 +91,11 @@ enum Machine {
     ///
     /// Half rather than all, since the per-worker figure is typical rather than a worst
     /// case and swapping costs more than serialising.
-    static func lanes(_ wanted: Int, holdingEach gigabytes: Double,
-                      memoryGB: Int = Machine.memoryGB) -> Int {
+    static func lanes(
+        _ wanted: Int,
+        holdingEach gigabytes: Double,
+        memoryGB: Int = Machine.memoryGB
+    ) -> Int {
         guard gigabytes > 0 else { return max(1, wanted) }
         let byMemory = Int(Double(memoryGB) / 2 / gigabytes)
         return max(1, min(wanted, byMemory))
@@ -156,7 +161,11 @@ enum Measured {
         guard reported else { return nil }
         let seconds = Date().timeIntervalSince(since)
         guard seconds >= atLeast else { return nil }
-        return String(format: "  %@ %.1f s, up to %@", what, seconds,
-                      Fmt.bytes(Machine.memoryInUse()))
+        return String(
+            format: "  %@ %.1f s, up to %@",
+            what,
+            seconds,
+            Fmt.bytes(Machine.memoryInUse())
+        )
     }
 }

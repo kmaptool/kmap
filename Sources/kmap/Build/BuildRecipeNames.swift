@@ -32,8 +32,11 @@ extension BuildRecipe {
     /// Up to two of `ids` within `limit`, the rest counted: `spell` renders the named ids
     /// and the count. One id where two do not fit; that id cut at a hyphen as the last
     /// resort. The count always survives.
-    static func fittedIDs(_ ids: [String], limit: Int,
-                          spell: ([String], Int) -> String) -> String {
+    static func fittedIDs(
+        _ ids: [String],
+        limit: Int,
+        spell: ([String], Int) -> String
+    ) -> String {
         for named in [2, 1] where ids.count >= named {
             let text = spell(Array(ids.prefix(named)), ids.count - named)
             if text.count <= limit { return text }
@@ -44,14 +47,18 @@ extension BuildRecipe {
         return spell([cut], ids.count - 1)
     }
 
-    static func fitted(_ text: String, to limit: Int,
-                       breakingOn separator: Character = " ") -> String {
+    static func fitted(
+        _ text: String,
+        to limit: Int,
+        breakingOn separator: Character = " "
+    ) -> String {
         guard text.count > limit else { return text }
         let cut = String(text.prefix(limit))
         // Only take the word boundary if it leaves most of the room used; a short first
         // word would otherwise cut the text back to almost nothing.
         if let word = cut.lastIndex(of: separator),
-           cut.distance(from: cut.startIndex, to: word) > limit / 2 {
+            cut.distance(from: cut.startIndex, to: word) > limit / 2
+        {
             return String(cut[cut.startIndex..<word])
         }
         return cut
@@ -104,7 +111,8 @@ extension BuildRecipe {
     /// The ids as a file name says them: "a+b", "a+b+N-more", fitted like the title.
     private var regionsFileToken: String {
         Self.fittedIDs(regions.map { FileTools.slugify($0.id) }, limit: Self.fileNamePartLimit) {
-            named, rest in
+            named,
+            rest in
             named.joined(separator: "+") + (rest > 0 ? "+\(rest)-more" : "")
         }
     }
@@ -140,12 +148,16 @@ extension BuildRecipe {
     var copyrightLines: [String] {
         // kmap's own date rather than mkgmap's $LONGDATE$, which is written in the Java
         // locale and can contain characters the label alphabet does not hold.
-        var lines = ["kmap \(Version.number), mkgmap $MKGMAP_VERSION$, built \(dateStamp)",
-                     "(c) OpenStreetMap contributors, ODbL",
-                     "Built by kmap \(Version.number), \(dateStamp)"]
+        var lines = [
+            "kmap \(Version.number), mkgmap $MKGMAP_VERSION$, built \(dateStamp)",
+            "(c) OpenStreetMap contributors, ODbL",
+            "Built by kmap \(Version.number), \(dateStamp)"
+        ]
         if contours || demLayer {
-            lines.append("Elevation: \(demSources.replacingOccurrences(of: ",", with: " "))"
-                         + (contours ? ", contours \(contourInterval) m" : ""))
+            lines.append(
+                "Elevation: \(demSources.replacingOccurrences(of: ",", with: " "))"
+                    + (contours ? ", contours \(contourInterval) m" : "")
+            )
         }
         // A borrowed look whose licence asks to be credited is credited here, where the
         // receiver shows it: the map is the product the licence speaks of.

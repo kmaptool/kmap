@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The Garmin Custom POI file kmap writes.
@@ -6,18 +7,35 @@ import XCTest
 /// The shape of the format is checked here; `GPIAgainstGPSBabelTests` checks it against
 /// the program that used to write it, byte for byte, where that program is installed.
 final class GPIFileTests: XCTestCase {
-
-    private func point(_ lat: Double, _ lon: Double, _ name: String, _ note: String)
-        -> GPIFile.Point {
-        GPIFile.Point(lat: lat, lon: lon, name: Array(name.utf8),
-                      description: Array(note.utf8))
+    private func point(
+        _ lat: Double,
+        _ lon: Double,
+        _ name: String,
+        _ note: String
+    )
+        -> GPIFile.Point
+    {
+        GPIFile.Point(
+            lat: lat,
+            lon: lon,
+            name: Array(name.utf8),
+            description: Array(note.utf8)
+        )
     }
 
-    private func made(_ points: [GPIFile.Point], icon: GPIFile.Icon? = nil,
-                      codePage: Int = 1252) -> Data {
-        GPIFile.data(points: points, category: Array("kmap".utf8), codePage: codePage,
-                     fileName: "my.gpi", icon: icon,
-                     madeAt: GPIFile.epoch.addingTimeInterval(1_157_395_458))
+    private func made(
+        _ points: [GPIFile.Point],
+        icon: GPIFile.Icon? = nil,
+        codePage: Int = 1252
+    ) -> Data {
+        GPIFile.data(
+            points: points,
+            category: Array("kmap".utf8),
+            codePage: codePage,
+            fileName: "my.gpi",
+            icon: icon,
+            madeAt: GPIFile.epoch.addingTimeInterval(1_157_395_458)
+        )
     }
 
     func testItStartsWithTheFormatMarkerAndEndsWithTheClosingTag() {
@@ -49,8 +67,14 @@ final class GPIFileTests: XCTestCase {
 
     func testAPointWithNoDescriptionCarriesItsNameInstead() {
         // A device shows something either way; an empty note would draw a blank card.
-        let data = made([GPIFile.Point(lat: 45, lon: 34, name: Array("AB".utf8),
-                                       description: [])])
+        let data = made([
+            GPIFile.Point(
+                lat: 45,
+                lon: 34,
+                name: Array("AB".utf8),
+                description: []
+            )
+        ])
         XCTAssertEqual(data.ranges(of: Data("AB".utf8)).count, 2)
     }
 

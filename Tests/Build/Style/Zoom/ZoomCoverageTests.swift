@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The style a real build materialized, for tests that only read it.
@@ -18,22 +19,28 @@ enum ZoomRealStyle {
 /// A rule no family claims cannot be moved, and no row on screen says so. Reads the style
 /// on disk; skipped where no build has run.
 final class ZoomCoverageTests: XCTestCase {
-
     /// Rules deliberately left out, by the condition that identifies them: kmap's repair
     /// marker is a diagnostic rather than scenery.
     private static let notOffered = ["kmap:repair="]
 
     func testEveryRuleInTheStyleBelongsToAFamily() throws {
         let directory = ZoomRealStyle.directory
-        try XCTSkipUnless(FileManager.default.fileExists(
-            atPath: directory.appendingPathComponent("polygons").path),
-            "no materialized style on this machine")
+        try XCTSkipUnless(
+            FileManager.default.fileExists(
+                atPath: directory.appendingPathComponent("polygons").path
+            ),
+            "no materialized style on this machine"
+        )
 
         var orphans: [String] = []
         var counted = 0
         for file in Set(ZoomFamily.all.flatMap(\.files)).sorted() {
-            guard let text = try? String(contentsOf: directory.appendingPathComponent(file),
-                                         encoding: .utf8) else { continue }
+            guard
+                let text = try? String(
+                    contentsOf: directory.appendingPathComponent(file),
+                    encoding: .utf8
+                )
+            else { continue }
             for rule in ZoomRuleScan.rules(in: text.components(separatedBy: "\n"))
             where ZoomRuleScan.resolution(in: rule.type) != nil {
                 counted += 1
@@ -58,7 +65,7 @@ final class ZoomCoverageTests: XCTestCase {
             "",
             "waterway=* & waterway!=no",
             "    {add name='${waterway}'} [0x26 resolution 24]",
-            "highway=path [0x16 resolution 23]",
+            "highway=path [0x16 resolution 23]"
         ])
         XCTAssertEqual(rules.count, 3)
         XCTAssertTrue(rules[0].condition.contains("railway=rail"))
@@ -75,7 +82,7 @@ final class ZoomCoverageTests: XCTestCase {
         let rules = ZoomRuleScan.rules(in: [
             "natural=wood",
             "",
-            "[0x50 resolution 19]",
+            "[0x50 resolution 19]"
         ])
         XCTAssertTrue(rules.isEmpty)
     }

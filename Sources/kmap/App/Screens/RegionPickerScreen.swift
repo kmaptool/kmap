@@ -7,17 +7,21 @@ final class RegionPickerScreen: Screen {
     private var keys: [Hint] {
         if search.open { return search.hints }
         if !marked.isEmpty {
-            return [Hint(key: "space", label: t("mark")),
-                    Hint(key: "→←", label: t("browse")),
-                    Hint(key: Glyph.enter, label: t("build %d", marked.count)),
-                    Hint(key: "c", label: t("clear"))]
+            return [
+                Hint(key: "space", label: t("mark")),
+                Hint(key: "→←", label: t("browse")),
+                Hint(key: Glyph.enter, label: t("build %d", marked.count)),
+                Hint(key: "c", label: t("clear"))
+            ]
         }
-        return [Hint(key: "↑↓", label: t("move")),
-                Hint(key: "→", label: t("open")),
-                Hint(key: "←", label: t("back")),
-                Hint(key: Glyph.enter, label: t("choose")),
-                Hint(key: "space", label: t("mark several")),
-                Hint(key: "/", label: t("search"))]
+        return [
+            Hint(key: "↑↓", label: t("move")),
+            Hint(key: "→", label: t("open")),
+            Hint(key: "←", label: t("back")),
+            Hint(key: Glyph.enter, label: t("choose")),
+            Hint(key: "space", label: t("mark several")),
+            Hint(key: "/", label: t("search"))
+        ]
     }
 
     private var currentID: String? = nil
@@ -99,9 +103,14 @@ final class RegionPickerScreen: Screen {
                 // there are marks, the highlighted row once there are none.
                 marked.removeAll()
                 message = nil
-                return .push(RecipeScreen(regions: chosen, index: ctx.index,
-                                          settings: ctx.settings,
-                                          hasSeamPatch: ctx.toolchain.mkgmapIsPatched))
+                return .push(
+                    RecipeScreen(
+                        regions: chosen,
+                        index: ctx.index,
+                        settings: ctx.settings,
+                        hasSeamPatch: ctx.toolchain.mkgmapIsPatched
+                    )
+                )
             }
             guard let region = regions[safe: list.selected] else { return .none }
             return open(region, ctx)
@@ -129,8 +138,10 @@ final class RegionPickerScreen: Screen {
             return
         }
         if let covering = marked.first(where: { ctx.index.isAncestor($0, of: region.id) }) {
-            message = t("%@ already covers that",
-                        ctx.index.region(covering)?.name ?? covering)
+            message = t(
+                "%@ already covers that",
+                ctx.index.region(covering)?.name ?? covering
+            )
             return
         }
         let inside = marked.filter { ctx.index.isAncestor(region.id, of: $0) }
@@ -148,9 +159,14 @@ final class RegionPickerScreen: Screen {
     private func open(_ region: Region, _ ctx: AppContext) -> Route {
         if region.pbfURL != nil {
             search.query = ""
-            return .push(RecipeScreen(region: region, index: ctx.index,
-                                      settings: ctx.settings,
-                                      hasSeamPatch: ctx.toolchain.mkgmapIsPatched))
+            return .push(
+                RecipeScreen(
+                    region: region,
+                    index: ctx.index,
+                    settings: ctx.settings,
+                    hasSeamPatch: ctx.toolchain.mkgmapIsPatched
+                )
+            )
         }
         if region.hasChildren {
             descend(into: region.id)
@@ -186,16 +202,18 @@ final class RegionPickerScreen: Screen {
         ctx.loadIndexIfNeeded()
         let regions = visibleRegions(ctx)
         guard let region = regions[safe: list.selected],
-              region.pbfURL != nil,
-              sizes[region.id] == nil,
-              !probing.contains(region.id) else { return }
+            region.pbfURL != nil,
+            sizes[region.id] == nil,
+            !probing.contains(region.id)
+        else { return }
 
         probeSize(region)
     }
 
     private func probeSize(_ region: Region) {
         guard let url = region.pbfURL, sizes[region.id] == nil,
-              !probing.contains(region.id) else { return }
+            !probing.contains(region.id)
+        else { return }
         probing.insert(region.id)
         Task { [weak self] in
             let info = try? await Downloader.probe(url)
@@ -214,16 +232,27 @@ final class RegionPickerScreen: Screen {
         let theme = ctx.theme
 
         if case .loading = ctx.indexState, ctx.index.regions.isEmpty {
-            Widgets.notice(s, rect: rect, title: t("loading"),
-                           message: t("Fetching the region index from Geofabrik %@",
-                                      String(Widgets.spinner(ctx.frame))),
-                           theme: theme)
+            Widgets.notice(
+                s,
+                rect: rect,
+                title: t("loading"),
+                message: t(
+                    "Fetching the region index from Geofabrik %@",
+                    String(Widgets.spinner(ctx.frame))
+                ),
+                theme: theme
+            )
             return
         }
         if case .failed(let error) = ctx.indexState, ctx.index.regions.isEmpty {
-            Widgets.notice(s, rect: rect, title: t("index unavailable"),
-                           message: error + "\n\n" + t("Press r to try again."),
-                           theme: theme, tone: theme.danger)
+            Widgets.notice(
+                s,
+                rect: rect,
+                title: t("index unavailable"),
+                message: error + "\n\n" + t("Press r to try again."),
+                theme: theme,
+                tone: theme.danger
+            )
             return
         }
 
@@ -238,8 +267,13 @@ final class RegionPickerScreen: Screen {
         let listWidth = rect.w - detailWidth - (detailWidth > 0 ? 3 : 0)
         let listRect = Rect(x: rect.x, y: bodyY, w: listWidth, h: bodyHeight)
 
-        renderList(regions, into: s, listRect: listRect, bodyHeight: bodyHeight,
-                   theme: theme)
+        renderList(
+            regions,
+            into: s,
+            listRect: listRect,
+            bodyHeight: bodyHeight,
+            theme: theme
+        )
 
         if detailWidth > 0 {
             let detail = Rect(x: rect.x + listWidth + 3, y: bodyY, w: detailWidth, h: bodyHeight)
@@ -253,8 +287,12 @@ final class RegionPickerScreen: Screen {
         }
 
         if let message {
-            s.text(rect.x, rect.maxY - 1, truncate(message, to: rect.w),
-                   Style(fg: theme.warn, bg: theme.appBg))
+            s.text(
+                rect.x,
+                rect.maxY - 1,
+                truncate(message, to: rect.w),
+                Style(fg: theme.warn, bg: theme.appBg)
+            )
         }
     }
 
@@ -265,8 +303,12 @@ final class RegionPickerScreen: Screen {
             x = search.draw(into: s, x: rect.x, y: rect.y, theme: theme)
         } else {
             let crumb = ctx.index.breadcrumb(currentID)
-            x = s.text(rect.x, rect.y, truncate(crumb, to: rect.w),
-                       Style(fg: theme.dim, bg: theme.appBg))
+            x = s.text(
+                rect.x,
+                rect.y,
+                truncate(crumb, to: rect.w),
+                Style(fg: theme.dim, bg: theme.appBg)
+            )
         }
         if !marked.isEmpty {
             var summary = "  \(Glyph.dot) " + tn("%d marked", marked.count)
@@ -276,15 +318,24 @@ final class RegionPickerScreen: Screen {
             } else if !known.isEmpty {
                 summary += ", \(Fmt.bytes(known.reduce(0, +)))+"
             }
-            s.text(x, rect.y, truncate(summary, to: max(0, rect.maxX - x)),
-                   Style(fg: theme.accent, bg: theme.appBg, bold: true))
+            s.text(
+                x,
+                rect.y,
+                truncate(summary, to: max(0, rect.maxX - x)),
+                Style(fg: theme.accent, bg: theme.appBg, bold: true)
+            )
         }
         s.hline(rect.x, rect.y + 1, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
     }
 
     /// One row per region: marker, name, and either its size or its child count.
-    private func renderList(_ regions: [Region], into s: Surface, listRect: Rect,
-                            bodyHeight: Int, theme: Theme) {
+    private func renderList(
+        _ regions: [Region],
+        into s: Surface,
+        listRect: Rect,
+        bodyHeight: Int,
+        theme: Theme
+    ) {
         guard !regions.isEmpty else {
             let text = search.query.isEmpty ? t("no sub-regions here") : search.nothingMatches
             s.text(listRect.x, listRect.y, text, Style(fg: theme.faint, bg: theme.appBg))
@@ -305,22 +356,33 @@ final class RegionPickerScreen: Screen {
             }
 
             let isMarked = marked.contains(region.id)
-            let leading = isMarked
+            let leading =
+                isMarked
                 ? "\(Glyph.check) "
                 : (region.hasChildren ? "\(Glyph.arrowRight) " : "  ")
-            Widgets.row(s, rect: Rect(x: listRect.x, y: y, w: listRect.w - 1, h: 1),
-                        y: y,
-                        text: search.query.isEmpty ? region.name
-                            : "\(region.name)  \(Glyph.dot) \(region.id)",
-                        trailing: trailing,
-                        theme: theme,
-                        selected: index == list.selected,
-                        dimmed: region.pbfURL == nil,
-                        leading: leading,
-                        leadingColor: isMarked ? theme.picked : nil)
+            Widgets.row(
+                s,
+                rect: Rect(x: listRect.x, y: y, w: listRect.w - 1, h: 1),
+                y: y,
+                text: search.query.isEmpty
+                    ? region.name
+                    : "\(region.name)  \(Glyph.dot) \(region.id)",
+                trailing: trailing,
+                theme: theme,
+                selected: index == list.selected,
+                dimmed: region.pbfURL == nil,
+                leading: leading,
+                leadingColor: isMarked ? theme.picked : nil
+            )
         }
-        Widgets.scrollHint(s, rect: listRect, offset: list.offset,
-                           count: regions.count, visible: bodyHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: listRect,
+            offset: list.offset,
+            count: regions.count,
+            visible: bodyHeight,
+            theme: theme
+        )
     }
 
     /// What is in the basket, and what it comes to. Replaces the detail panel while marking.
@@ -328,24 +390,36 @@ final class RegionPickerScreen: Screen {
         let theme = ctx.theme
         var y = rect.y
         s.vline(rect.x - 2, rect.y, rect.h, Glyph.v, Style(fg: theme.rule, bg: theme.appBg))
-        s.text(rect.x, y, t("building together"),
-               Style(fg: theme.strong, bg: theme.appBg, bold: true))
+        s.text(
+            rect.x,
+            y,
+            t("building together"),
+            Style(fg: theme.strong, bg: theme.appBg, bold: true)
+        )
         y += 2
 
         var total: Int64 = 0
         var complete = true
         for id in marked {
             guard y < rect.maxY - 3 else {
-                s.text(rect.x, y, t("… and %d more", marked.count - (y - rect.y - 2)),
-                       Style(fg: theme.faint, bg: theme.appBg))
+                s.text(
+                    rect.x,
+                    y,
+                    t("… and %d more", marked.count - (y - rect.y - 2)),
+                    Style(fg: theme.faint, bg: theme.appBg)
+                )
                 y += 1
                 break
             }
             let region = ctx.index.region(id)
             let size = sizes[id]
             if let size { total += size } else { complete = false }
-            s.text(rect.x, y, truncate(region?.name ?? id, to: rect.w - 10),
-                   Style(fg: theme.text, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(region?.name ?? id, to: rect.w - 10),
+                Style(fg: theme.text, bg: theme.appBg)
+            )
             if let size {
                 let text = Fmt.bytes(size)
                 s.text(rect.maxX - text.count, y, text, Style(fg: theme.faint, bg: theme.appBg))
@@ -358,12 +432,20 @@ final class RegionPickerScreen: Screen {
         s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
         y += 1
         s.text(rect.x, y, t("to download"), Style(fg: theme.faint, bg: theme.appBg), limit: 13)
-        s.text(rect.x + 13, y, Fmt.bytes(total) + (complete ? "" : " +"),
-               Style(fg: theme.text, bg: theme.appBg))
+        s.text(
+            rect.x + 13,
+            y,
+            Fmt.bytes(total) + (complete ? "" : " +"),
+            Style(fg: theme.text, bg: theme.appBg)
+        )
         y += 1
         guard y < rect.maxY else { return }
-        s.text(rect.x, y, t("⏎ builds one map · c clears"),
-               Style(fg: theme.faint, bg: theme.appBg))
+        s.text(
+            rect.x,
+            y,
+            t("⏎ builds one map · c clears"),
+            Style(fg: theme.faint, bg: theme.appBg)
+        )
     }
 
     private func renderDetail(_ s: Surface, rect: Rect, region: Region, ctx: AppContext) {
@@ -372,8 +454,12 @@ final class RegionPickerScreen: Screen {
 
         s.vline(rect.x - 2, rect.y, rect.h, Glyph.v, Style(fg: theme.rule, bg: theme.appBg))
 
-        s.text(rect.x, y, truncate(region.name, to: rect.w),
-               Style(fg: theme.strong, bg: theme.appBg, bold: true))
+        s.text(
+            rect.x,
+            y,
+            truncate(region.name, to: rect.w),
+            Style(fg: theme.strong, bg: theme.appBg, bold: true)
+        )
         y += 1
         s.text(rect.x, y, truncate(region.id, to: rect.w), Style(fg: theme.faint, bg: theme.appBg))
         y += 2
@@ -392,9 +478,12 @@ final class RegionPickerScreen: Screen {
         if let size = sizes[region.id] {
             line(t("extract"), Fmt.bytes(size))
         } else if region.pbfURL != nil {
-            line(t("extract"), probing.contains(region.id)
+            line(
+                t("extract"),
+                probing.contains(region.id)
                     ? t("checking %@", String(Widgets.spinner(ctx.frame))) : "—",
-                 tone: theme.dim)
+                tone: theme.dim
+            )
         } else {
             line(t("extract"), t("not downloadable"), tone: theme.warn)
         }

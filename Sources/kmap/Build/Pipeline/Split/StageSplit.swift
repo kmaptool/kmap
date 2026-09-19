@@ -20,9 +20,12 @@ extension BuildPipeline {
         let inputSize: Int64
     }
 
-    func splitIntoTiles(extracts: [URL], contours contoursTask: Task<[URL], Error>,
-                                maxNodes: Int,
-                                areas: [TileSplitter.Area]? = nil) async throws -> TileSet {
+    func splitIntoTiles(
+        extracts: [URL],
+        contours contoursTask: Task<[URL], Error>,
+        maxNodes: Int,
+        areas: [TileSplitter.Area]? = nil
+    ) async throws -> TileSet {
         set(.split, .running, t("starting"))
 
         let tileDir = workDirectory.appendingPathComponent("tiles", isDirectory: true)
@@ -40,33 +43,40 @@ extension BuildPipeline {
 
         // Logged because the effect of either overlap is visible only on a receiver.
         if toolchain.mkgmapIsPatched {
-            log.step("seam patch on · overlap \(recipe.shapeOverlap) units"
-                     + " · land \(min(recipe.landOverlap, recipe.shapeOverlap)) units")
+            log.step(
+                "seam patch on · overlap \(recipe.shapeOverlap) units"
+                    + " · land \(min(recipe.landOverlap, recipe.shapeOverlap)) units"
+            )
         }
         // Tile ids must be unique across every map on the receiver: two maps sharing tile
         // ids hide each other.
-        let splitter = TileSplitter(options: .init(
-            inputs: inputs.map { URL(fileURLWithPath: $0) },
-            outputDirectory: tileDir,
-            mapID: recipe.mapIDBase,
-            maxNodes: maxNodes,
-            leastTiles: Machine.cores,
-            // The header slot, not the map's name: splitter writes it into every tile's
-            // args and mkgmap puts it into the .img header, which holds 50 characters.
-            description: recipe.headerDescription,
-            areas: areas,
-            // Only a patched mkgmap draws past the tile frame; without the patch the band
-            // would swell every tile with ground no compiler reads.
-            shapeOverlap: toolchain.mkgmapIsPatched ? Int32(recipe.shapeOverlap) : 0))
-        { [weak self] line in
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: inputs.map { URL(fileURLWithPath: $0) },
+                outputDirectory: tileDir,
+                mapID: recipe.mapIDBase,
+                maxNodes: maxNodes,
+                leastTiles: Machine.cores,
+                // The header slot, not the map's name: splitter writes it into every tile's
+                // args and mkgmap puts it into the .img header, which holds 50 characters.
+                description: recipe.headerDescription,
+                areas: areas,
+                // Only a patched mkgmap draws past the tile frame; without the patch the band
+                // would swell every tile with ground no compiler reads.
+                shapeOverlap: toolchain.mkgmapIsPatched ? Int32(recipe.shapeOverlap) : 0
+            )
+        ) { [weak self] line in
             self?.log.output(line, stage: StageID.split.rawValue)
             self?.detail(.split, line)
         }
         // The stage's bar: annotation took the first share, the splitter's phase
         // boundaries walk the rest.
         splitter.progress = { [weak self] fraction in
-            self?.advance(.split, fraction: Self.splitAnnotateShare
-                          + (1 - Self.splitAnnotateShare) * fraction)
+            self?.advance(
+                .split,
+                fraction: Self.splitAnnotateShare
+                    + (1 - Self.splitAnnotateShare) * fraction
+            )
         }
         // The splitter reads on its own threads, so ^C reaches it through this rather
         // than through the task; otherwise the cut runs to its end before stopping.
@@ -76,8 +86,11 @@ extension BuildPipeline {
         // One line per tile: the shape of the cut, which matters when a build is being
         // argued with rather than watched.
         for tile in result.tiles {
-            log.debug("\(tile.mapID): \(tile.nodes) node(s)", stage: StageID.split.rawValue,
-                      fields: ["mapID": .string("\(tile.mapID)"), "nodes": .int(tile.nodes)])
+            log.debug(
+                "\(tile.mapID): \(tile.nodes) node(s)",
+                stage: StageID.split.rawValue,
+                fields: ["mapID": .string("\(tile.mapID)"), "nodes": .int(tile.nodes)]
+            )
         }
 
         let tiles = try parseTiles(in: tileDir)
@@ -101,10 +114,13 @@ extension BuildPipeline {
 
         func flush() {
             guard !currentLines.isEmpty else { return }
-            guard let mapID = currentLines
-                .first(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("mapname:") })?
-                .split(separator: ":").last?
-                .trimmingCharacters(in: .whitespaces) else {
+            guard
+                let mapID =
+                    currentLines
+                    .first(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("mapname:") })?
+                    .split(separator: ":").last?
+                    .trimmingCharacters(in: .whitespaces)
+            else {
                 currentLines = []
                 return
             }
@@ -115,18 +131,23 @@ extension BuildPipeline {
             let rewritten = currentLines.map { line -> String in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
                 guard trimmed.hasPrefix("input-file:"),
-                      let value = trimmed.split(separator: ":", maxSplits: 1).last?
+                    let value = trimmed.split(separator: ":", maxSplits: 1).last?
                         .trimmingCharacters(in: .whitespaces),
-                      !value.hasPrefix("/") else { return line }
+                    !value.hasPrefix("/")
+                else { return line }
                 input = value
                 return "input-file: \(directory.appendingPathComponent(value).path)"
             }
 
             let size = input.map { FileTools.size(of: directory.appendingPathComponent($0)) } ?? 0
-            tiles.append(Tile(mapID: mapID,
-                              argsBlock: rewritten.joined(separator: "\n"),
-                              bbox: bounds[mapID] ?? .empty,
-                              inputSize: size))
+            tiles.append(
+                Tile(
+                    mapID: mapID,
+                    argsBlock: rewritten.joined(separator: "\n"),
+                    bbox: bounds[mapID] ?? .empty,
+                    inputSize: size
+                )
+            )
             currentLines = []
         }
 
@@ -152,7 +173,8 @@ extension BuildPipeline {
             if line.hasPrefix("#") {
                 // Comment line: `#	: <minLat>,<minLon> to <maxLat>,<maxLon>`
                 guard let id = pendingID,
-                      let colon = line.firstIndex(of: ":") else { continue }
+                    let colon = line.firstIndex(of: ":")
+                else { continue }
                 let body = line[line.index(after: colon)...]
                 let corners = body.components(separatedBy: " to ")
                 guard corners.count == 2 else { continue }

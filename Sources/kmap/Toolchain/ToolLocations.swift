@@ -6,7 +6,6 @@ import Foundation
 /// order without touching the machine, so any platform's answers can be tested from any
 /// other. The `platform`, `environment`, `which` and `contents` parameters exist for that.
 enum ToolLocations {
-
     // MARK: Java
 
     /// Candidate `java` binaries, most preferred first: the configured path, then what the
@@ -15,15 +14,17 @@ enum ToolLocations {
     ///
     /// kmap's own copy comes after PATH so that a Java the user installed deliberately
     /// wins, and before the well-known locations so that it beats a guess.
-    static func java(on platform: Platform = Platform.current,
-                     configured: String = "",
-                     environment: [String: String] = ProcessInfo.processInfo.environment,
-                     which: (String, [String: String]) -> String? = {
-                         Platform.which($0, environment: $1)
-                     },
-                     contents: (String) -> [String] = Self.contentsOfDirectory,
-                     ownJava: (Platform) -> String? = { JavaDownload.installed(on: $0)?.path },
-                     macJavaHome: () -> String? = Self.macJavaHome) -> [String] {
+    static func java(
+        on platform: Platform = Platform.current,
+        configured: String = "",
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        which: (String, [String: String]) -> String? = {
+            Platform.which($0, environment: $1)
+        },
+        contents: (String) -> [String] = Self.contentsOfDirectory,
+        ownJava: (Platform) -> String? = { JavaDownload.installed(on: $0)?.path },
+        macJavaHome: () -> String? = Self.macJavaHome
+    ) -> [String] {
         var out: [String] = []
         if !configured.isEmpty { out.append(configured) }
 
@@ -39,11 +40,13 @@ enum ToolLocations {
 
         switch platform {
         case .macOS, .linux, .wsl:
-            out += ["/opt/homebrew/opt/openjdk/bin/java",
-                    "/usr/local/opt/openjdk/bin/java",
-                    "/opt/homebrew/bin/java",
-                    "/usr/lib/jvm/default-java/bin/java",
-                    "/usr/bin/java"]
+            out += [
+                "/opt/homebrew/opt/openjdk/bin/java",
+                "/usr/local/opt/openjdk/bin/java",
+                "/opt/homebrew/bin/java",
+                "/usr/lib/jvm/default-java/bin/java",
+                "/usr/bin/java"
+            ]
         case .windows:
             // Each vendor installs into a version-named folder, so the parents are listed
             // and their contents sorted newest first.
@@ -65,7 +68,8 @@ enum ToolLocations {
 
     /// The folders Windows JDKs are installed under, in the order they are worth trying.
     private static func javaParents(_ environment: [String: String]) -> [String] {
-        let programFiles = environment.variable("ProgramFiles", on: .windows)
+        let programFiles =
+            environment.variable("ProgramFiles", on: .windows)
             ?? #"C:\Program Files"#
         var out = [
             // Where winget installs the JDK kmap asks it for.
@@ -85,8 +89,10 @@ enum ToolLocations {
     }
 
     /// The JDK folders inside `parent`, newest first.
-    private static func jdkFolders(in parent: String,
-                                   contents: (String) -> [String]) -> [String] {
+    private static func jdkFolders(
+        in parent: String,
+        contents: (String) -> [String]
+    ) -> [String] {
         contents(parent)
             .filter { name in
                 let lower = name.lowercased()
@@ -112,8 +118,11 @@ enum ToolLocations {
     /// A tool beside `java` in the same JDK, such as `javac` or `jar`, with the `.exe`
     /// suffix on Windows. Taken from the JDK directory rather than PATH, since javac and jar
     /// must come from the same JDK as java.
-    static func companion(_ name: String, of java: String,
-                          on platform: Platform = Platform.current) -> String {
+    static func companion(
+        _ name: String,
+        of java: String,
+        on platform: Platform = Platform.current
+    ) -> String {
         let file = platform.usesWindowsPaths ? name + ".exe" : name
         // Split textually, not through a URL: a URL built on one platform does not know
         // another platform's separators.
@@ -126,12 +135,14 @@ enum ToolLocations {
 
     /// Candidate `python3` binaries, most preferred first. PATH comes first, so a version
     /// manager's copy wins over the system one.
-    static func python(on platform: Platform = Platform.current,
-                       environment: [String: String] = ProcessInfo.processInfo.environment,
-                       which: (String, [String: String]) -> String? = {
-                           Platform.which($0, environment: $1)
-                       },
-                       contents: (String) -> [String] = Self.contentsOfDirectory) -> [String] {
+    static func python(
+        on platform: Platform = Platform.current,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        which: (String, [String: String]) -> String? = {
+            Platform.which($0, environment: $1)
+        },
+        contents: (String) -> [String] = Self.contentsOfDirectory
+    ) -> [String] {
         switch platform {
         case .macOS, .linux, .wsl:
             var out: [String] = []
@@ -148,7 +159,8 @@ enum ToolLocations {
             }
             for parent in pythonParents(environment) {
                 for folder in contents(parent).filter({ $0.lowercased().hasPrefix("python") })
-                    .sorted(by: { newer($0, than: $1) }) {
+                    .sorted(by: { newer($0, than: $1) })
+                {
                     out.append(parent + #"\"# + folder + #"\python.exe"#)
                 }
             }
@@ -177,8 +189,11 @@ enum ToolLocations {
 
     /// A program inside a Python virtual environment: `venv/bin/<name>` on the Unixes,
     /// `venv\Scripts\<name>.exe` on Windows, as `python -m venv` writes them.
-    static func inVirtualEnvironment(_ name: String, of venv: URL,
-                                     on platform: Platform = Platform.current) -> URL {
+    static func inVirtualEnvironment(
+        _ name: String,
+        of venv: URL,
+        on platform: Platform = Platform.current
+    ) -> URL {
         guard platform.usesWindowsPaths else {
             return venv.appendingPathComponent("bin/" + name)
         }
@@ -202,9 +217,11 @@ enum ToolLocations {
 
     /// The JDK home reported by the macOS `java_home` shim, or nil where it reports none.
     private static func macJavaHome() -> String? {
-        guard let home = ProcessProbe.capture("/usr/libexec/java_home", [])?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-              !home.isEmpty, !home.lowercased().contains("unable to") else { return nil }
+        guard
+            let home = ProcessProbe.capture("/usr/libexec/java_home", [])?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            !home.isEmpty, !home.lowercased().contains("unable to")
+        else { return nil }
         return home
     }
 }

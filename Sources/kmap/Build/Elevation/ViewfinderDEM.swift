@@ -5,7 +5,6 @@ import Foundation
 /// coverage page, so a fetch downloads a claiming archive, unpacks every `.hgt` in it and
 /// corrects the index to what it held. The index file format and location are pyhgtmap's.
 enum ViewfinderDEM {
-
     /// `view1` and `view3`: one and three arc-second.
     static func sourceID(_ resolution: Int) -> String { "view\(resolution)" }
 
@@ -37,8 +36,10 @@ enum ViewfinderDEM {
     /// The coverage page, over https: the site redirects from http, and a ranged download
     /// cannot follow a redirect.
     private static func coverageURL(_ resolution: Int) -> URL? {
-        URL(string: "https://viewfinderpanoramas.org/Coverage%20map%20viewfinderpanoramas_org"
-            + "\(resolution).htm")
+        URL(
+            string: "https://viewfinderpanoramas.org/Coverage%20map%20viewfinderpanoramas_org"
+                + "\(resolution).htm"
+        )
     }
 
     /// pyhgtmap stamps a version into the index header and rebuilds when it does not match;
@@ -92,9 +93,10 @@ enum ViewfinderDEM {
             // matter.
             for tag in html.allMatches("(?is)<area[^>]*>") {
                 guard let coords = attribute("coords", in: tag),
-                      let href = attribute("href", in: tag)?
-                          .trimmingCharacters(in: .whitespaces),
-                      !href.isEmpty else { continue }
+                    let href = attribute("href", in: tag)?
+                        .trimmingCharacters(in: .whitespaces),
+                    !href.isEmpty
+                else { continue }
                 index.entries[href, default: []]
                     .append(contentsOf: innerAreas(coords).map { $0.uppercased() }.sorted())
             }
@@ -102,9 +104,11 @@ enum ViewfinderDEM {
         }
 
         private static func attribute(_ name: String, in tag: String) -> String? {
-            for pattern in ["(?i)\(name)\\s*=\\s*\"([^\"]*)\"",
-                            "(?i)\(name)\\s*=\\s*'([^']*)'",
-                            "(?i)\(name)\\s*=\\s*([^\\s>]+)"] {
+            for pattern in [
+                "(?i)\(name)\\s*=\\s*\"([^\"]*)\"",
+                "(?i)\(name)\\s*=\\s*'([^']*)'",
+                "(?i)\(name)\\s*=\\s*([^\\s>]+)"
+            ] {
                 if let value = tag.firstCapture(pattern) { return value }
             }
             return nil
@@ -126,10 +130,14 @@ enum ViewfinderDEM {
         var names: [String] = []
         for lon in west..<max(west, east) {
             for lat in south..<max(south, north) {
-                let lonName = lon < 0 ? String(format: "W%03d", -lon)
-                                      : String(format: "E%03d", lon)
-                let latName = south < 0 ? String(format: "S%02d", -lat)
-                                        : String(format: "N%02d", lat)
+                let lonName =
+                    lon < 0
+                    ? String(format: "W%03d", -lon)
+                    : String(format: "E%03d", lon)
+                let latName =
+                    south < 0
+                    ? String(format: "S%02d", -lat)
+                    : String(format: "N%02d", lat)
                 names.append(latName + lonName)
             }
         }
@@ -162,8 +170,11 @@ enum ViewfinderDEM {
     private static let coverageTimeout: TimeInterval = 60
 
     /// Loads the index, building it from the coverage page if there is none cached.
-    static func index(_ resolution: Int, downloader: Downloader? = nil,
-                      log: (String) -> Void) async throws -> Index {
+    static func index(
+        _ resolution: Int,
+        downloader: Downloader? = nil,
+        log: (String) -> Void
+    ) async throws -> Index {
         let file = indexFile(resolution)
         if let cached = Index.load(file) { return cached }
 
@@ -192,9 +203,14 @@ enum ViewfinderDEM {
     /// Fetches one degree tile, keeping the other tiles its archive carried, which are
     /// usually the neighbours asked for next.
     @discardableResult
-    static func fetch(_ area: String, resolution: Int, index: inout Index,
-                      downloader: Downloader, runner: ProcessRunner,
-                      log: @escaping (String) -> Void) async throws -> URL {
+    static func fetch(
+        _ area: String,
+        resolution: Int,
+        index: inout Index,
+        downloader: Downloader,
+        runner: ProcessRunner,
+        log: @escaping (String) -> Void
+    ) async throws -> URL {
         let destination = cachedTile(area, resolution: resolution)
         if isComplete(destination, resolution: resolution) { return destination }
 
@@ -206,7 +222,8 @@ enum ViewfinderDEM {
         for zip in candidates {
             guard let url = URL(string: zip), url.scheme == "http" || url.scheme == "https"
             else { continue }
-            let archive = directory
+            let archive =
+                directory
                 .appendingPathComponent("download-\(UUID().uuidString.prefix(8)).zip")
             do {
                 log("fetching \(url.lastPathComponent) for \(area)")
@@ -231,9 +248,13 @@ enum ViewfinderDEM {
 
     /// Unpacks every `.hgt` in the archive flat: they sit in per-zone folders inside, and
     /// the rest of the pipeline expects them one directory deep.
-    private static func unpack(_ archive: URL, into directory: URL,
-                               runner: ProcessRunner) async throws -> [String] {
-        let staging = directory
+    private static func unpack(
+        _ archive: URL,
+        into directory: URL,
+        runner: ProcessRunner
+    ) async throws -> [String] {
+        let staging =
+            directory
             .appendingPathComponent("unpack-\(UUID().uuidString.prefix(8))")
         Paths.ensure(staging)
         defer { FileTools.removeIfPresent(staging) }
@@ -243,8 +264,11 @@ enum ViewfinderDEM {
         // Everything is unpacked and then walked: not every unpacker can flatten paths on
         // the way out, and the tiles are not always exactly one folder deep.
         let unpack = unpacker.unpack(archive, into: staging)
-        _ = try await runner.run(unpack.executable, unpack.arguments,
-                                 allowFailure: true) { _ in }
+        _ = try await runner.run(
+            unpack.executable,
+            unpack.arguments,
+            allowFailure: true
+        ) { _ in }
         var names: [String] = []
         for file in FileTools.allFiles(under: staging)
         where file.pathExtension.lowercased() == "hgt" {

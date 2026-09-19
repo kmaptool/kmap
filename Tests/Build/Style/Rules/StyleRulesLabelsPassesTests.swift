@@ -1,17 +1,19 @@
 import XCTest
+
 @testable import kmap
 
 /// The passes that reword a style: the operator dropped from a named label, mkgmap's
 /// default captions translated, and names for what OSM leaves unnamed.
 final class StyleRulesLabelsPassesTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
         directory = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("kmap-labels-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: directory.appendingPathComponent("inc"),
-                                                withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: directory.appendingPathComponent("inc"),
+            withIntermediateDirectories: true
+        )
     }
 
     override func tearDownWithError() throws {
@@ -61,23 +63,29 @@ final class StyleRulesLabelsPassesTests: XCTestCase {
 
     func testAStyleWithoutTheIncludeIsLeftAlone() throws {
         try catalog.dropOperatorFromNamedLabels(in: directory, log: Log(showing: .error))
-        XCTAssertFalse(FileManager.default.fileExists(
-            atPath: directory.appendingPathComponent("inc/name").path))
+        XCTAssertFalse(
+            FileManager.default.fileExists(
+                atPath: directory.appendingPathComponent("inc/name").path
+            )
+        )
     }
 
     // MARK: Default captions
 
     /// One caption mkgmap writes itself, taken from the table kmap translates from.
     private func aDefaultCaption() throws -> String {
-        let line = try XCTUnwrap(StyleAssets.defaultNameTranslations.split(separator: "\n")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .first { !$0.isEmpty && !$0.hasPrefix("#") && $0.contains("|") })
+        let line = try XCTUnwrap(
+            StyleAssets.defaultNameTranslations.split(separator: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .first { !$0.isEmpty && !$0.hasPrefix("#") && $0.contains("|") }
+        )
         return String(line[..<(try XCTUnwrap(line.firstIndex(of: "|")))])
     }
 
     func testDefaultCaptionsAreTranslatedForACyrillicBuildOnly() throws {
         let caption = try aDefaultCaption()
-        let stock = "amenity=x { add default_name '\(caption)' } [0x10 resolution 24]\n"
+        let stock =
+            "amenity=x { add default_name '\(caption)' } [0x10 resolution 24]\n"
             + "amenity=y { add default_name 'Not In The Table' } [0x11 resolution 24]\n"
         try write(stock, to: "points")
 

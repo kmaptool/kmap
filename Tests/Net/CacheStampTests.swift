@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// What the server said about an extract when it was cached: the cheap answer to "has
 /// the source changed?". It must never call a changed source unchanged.
 final class CacheStampTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -42,8 +42,12 @@ final class CacheStampTests: XCTestCase {
     func testADifferentDateIsADifferentExtractEvenAtTheSameSize() {
         // Geofabrik republishes daily and an extract's size barely moves, so the date is
         // the half that catches it.
-        XCTAssertFalse(stamp().matches(size: 1000,
-                                       lastModified: "Thu, 20 Aug 2026 23:14:11 GMT"))
+        XCTAssertFalse(
+            stamp().matches(
+                size: 1000,
+                lastModified: "Thu, 20 Aug 2026 23:14:11 GMT"
+            )
+        )
     }
 
     func testAServerThatSaysNothingIsNotTakenAsAgreement() {

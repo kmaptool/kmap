@@ -46,8 +46,13 @@ struct Block: OSMSink {
         if part == .relations { hasRelations = true }
     }
 
-    mutating func node(id: Int64, lat: Double, lon: Double,
-                       tags: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func node(
+        id: Int64,
+        lat: Double,
+        lon: Double,
+        tags: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         var pairs: [(String, String)] = []
         pairs.reserveCapacity(tags.count / 2)
         var i = tags.startIndex
@@ -61,8 +66,13 @@ struct Block: OSMSink {
         nodeTags.append(pairs)
     }
 
-    mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                      keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func way(
+        id: Int64,
+        refs: ArraySlice<Int64>,
+        keys: ArraySlice<Int32>,
+        values: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         wayIDs.append(id)
         wayRefs.append(Array(refs))
         wayTags.append(zip(keys, values).map { (text(Int($0)), text(Int($1))) })
@@ -84,19 +94,27 @@ struct Block: OSMSink {
         return false
     }
 
-    func nodes(movedBy moves: [Int64: (lat: Double, lon: Double)],
-               filter: IDFilter) -> [PBFWriter.Node] {
+    func nodes(
+        movedBy moves: [Int64: (lat: Double, lon: Double)],
+        filter: IDFilter
+    ) -> [PBFWriter.Node] {
         (0..<nodeIDs.count).map { i in
             let place = filter.mayContain(nodeIDs[i]) ? moves[nodeIDs[i]] : nil
-            return PBFWriter.Node(id: nodeIDs[i], lat: place?.lat ?? nodeLat[i],
-                                  lon: place?.lon ?? nodeLon[i], tags: nodeTags[i])
+            return PBFWriter.Node(
+                id: nodeIDs[i],
+                lat: place?.lat ?? nodeLat[i],
+                lon: place?.lon ?? nodeLon[i],
+                tags: nodeTags[i]
+            )
         }
     }
 
     /// Returns the ways with repairs applied: references to merged nodes are replaced, and
     /// each inserted node goes after the node starting its segment, located by id.
-    func ways(inserting inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
-              merging merges: [Int64: Int64]) -> [PBFWriter.Way] {
+    func ways(
+        inserting inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
+        merging merges: [Int64: Int64]
+    ) -> [PBFWriter.Way] {
         (0..<wayIDs.count).map { i in
             var refs = wayRefs[i]
             if !merges.isEmpty {
@@ -122,5 +140,4 @@ struct Block: OSMSink {
             return PBFWriter.Way(id: wayIDs[i], refs: refs, tags: wayTags[i])
         }
     }
-
 }

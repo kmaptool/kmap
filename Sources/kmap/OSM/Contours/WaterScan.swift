@@ -38,10 +38,15 @@ enum WaterScan {
         let wantedParts: OSMParts = .relations
         var members: [[(way: Int64, island: Bool)]] = []
 
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var isMultipolygon = false, isWater = false
             for (key, value) in zip(keys, values) {
                 let word = block.text(Int(key))
@@ -93,8 +98,13 @@ enum WaterScan {
         let members: [Int64]
         var found = Ways()
 
-        mutating func way(id: Int64, refs list: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs list: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var water = false
             if list.count >= WaterBodies.fewestRingPoints, list.first == list.last {
                 for (key, value) in zip(keys, values)
@@ -122,8 +132,11 @@ enum WaterScan {
 
     // MARK: Joining the passes
 
-    private static func assemble(_ lakes: Multipolygons, _ ways: Ways,
-                                 _ places: NodePlaces) -> WaterBodies {
+    private static func assemble(
+        _ lakes: Multipolygons,
+        _ ways: Ways,
+        _ places: NodePlaces
+    ) -> WaterBodies {
         var bodies = WaterBodies()
         func ring(of chain: some Sequence<Int64>, island: Bool, standalone: Bool) -> WaterBodies.Ring {
             var points: [Float] = []

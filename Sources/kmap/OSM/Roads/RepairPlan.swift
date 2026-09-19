@@ -19,15 +19,15 @@ struct RepairPlan {
     var trace: [String] = []
 
     struct Bridge {
-        var node: Int64                     // the invented node, on the other line
+        var node: Int64  // the invented node, on the other line
         var lat: Double
         var lon: Double
-        var end: Int64                      // the loose end it reaches back to
+        var end: Int64  // the loose end it reaches back to
         var word: String
         var height: Float
         var length: Double
         var middle: (lat: Double, lon: Double)
-        var way: Int32                      // the way that takes `node` into its list
+        var way: Int32  // the way that takes `node` into its list
         var segment: Int32
         var along: Double
     }

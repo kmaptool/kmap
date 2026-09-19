@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The small file helpers: name slugs, existence and size, directory contents.
 final class FileToolsTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -27,10 +27,14 @@ final class FileToolsTests: XCTestCase {
     func testARegionIdBecomesAFilesystemSafeToken() {
         // The result becomes part of the map file's name.
         XCTAssertEqual(FileTools.slugify("continent/large-region"), "continent-large-region")
-        XCTAssertEqual(FileTools.slugify("continent/large-region/child-region"),
-                       "continent-large-region-child-region")
-        XCTAssertEqual(FileTools.slugify("parent-region/child-region"),
-                       "parent-region-child-region")
+        XCTAssertEqual(
+            FileTools.slugify("continent/large-region/child-region"),
+            "continent-large-region-child-region"
+        )
+        XCTAssertEqual(
+            FileTools.slugify("parent-region/child-region"),
+            "parent-region-child-region"
+        )
         XCTAssertEqual(FileTools.slugify("border-region-district"), "border-region-district")
         XCTAssertEqual(FileTools.slugify("Border-Region"), "border-region")
     }
@@ -61,18 +65,27 @@ final class FileToolsTests: XCTestCase {
     func testContentsAreSortedAndCanBeFilteredByExtensionWhateverItsCase() throws {
         _ = try write("b.hgt"); _ = try write("a.hgt")
         _ = try write("c.HGT"); _ = try write("notes.txt")
-        XCTAssertEqual(FileTools.contents(of: directory).map(\.lastPathComponent),
-                       ["a.hgt", "b.hgt", "c.HGT", "notes.txt"])
-        XCTAssertEqual(FileTools.contents(of: directory, extension: "hgt")
-                        .map(\.lastPathComponent), ["a.hgt", "b.hgt", "c.HGT"])
-        XCTAssertTrue(FileTools.contents(of: directory.appendingPathComponent("absent"))
-                        .isEmpty)
+        XCTAssertEqual(
+            FileTools.contents(of: directory).map(\.lastPathComponent),
+            ["a.hgt", "b.hgt", "c.HGT", "notes.txt"]
+        )
+        XCTAssertEqual(
+            FileTools.contents(of: directory, extension: "hgt")
+                .map(\.lastPathComponent),
+            ["a.hgt", "b.hgt", "c.HGT"]
+        )
+        XCTAssertTrue(
+            FileTools.contents(of: directory.appendingPathComponent("absent"))
+                .isEmpty
+        )
     }
 
     func testEmptyingADirectoryLeavesTheDirectoryItself() throws {
         _ = try write("one"); _ = try write("two")
         try FileManager.default.createDirectory(
-            at: directory.appendingPathComponent("sub"), withIntermediateDirectories: true)
+            at: directory.appendingPathComponent("sub"),
+            withIntermediateDirectories: true
+        )
         FileTools.emptyDirectory(directory)
         XCTAssertTrue(FileTools.exists(directory))
         XCTAssertTrue(FileTools.contents(of: directory).isEmpty)

@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 // URLSession lives in a separate module outside Apple's platforms.
 import FoundationNetworking
@@ -15,8 +16,13 @@ extension BuildPipeline {
         var out: [BBox] = []
         for region in recipe.regions {
             for cell in region.boxes.flatMap({ degreeCells(of: $0) }) {
-                let key = String(format: "%.4f,%.4f,%.4f,%.4f",
-                                 cell.minLat, cell.minLon, cell.maxLat, cell.maxLon)
+                let key = String(
+                    format: "%.4f,%.4f,%.4f,%.4f",
+                    cell.minLat,
+                    cell.minLon,
+                    cell.maxLat,
+                    cell.maxLon
+                )
                 if seen.insert(key).inserted { out.append(cell) }
             }
         }
@@ -33,18 +39,24 @@ extension BuildPipeline {
         let snapped = bbox.snappedOutward()
         // Roughly 2 km, so contours run past the border and meet neighbouring maps.
         let margin = 0.02
-        let clip = BBox(minLon: bbox.minLon - margin, minLat: bbox.minLat - margin,
-                        maxLon: bbox.maxLon + margin, maxLat: bbox.maxLat + margin)
+        let clip = BBox(
+            minLon: bbox.minLon - margin,
+            minLat: bbox.minLat - margin,
+            maxLon: bbox.maxLon + margin,
+            maxLat: bbox.maxLat + margin
+        )
 
         var cells: [BBox] = []
         var lat = snapped.minLat
         while lat < snapped.maxLat {
             var lon = snapped.minLon
             while lon < snapped.maxLon {
-                let cell = BBox(minLon: max(lon, clip.minLon),
-                                minLat: max(lat, clip.minLat),
-                                maxLon: min(lon + 1, clip.maxLon),
-                                maxLat: min(lat + 1, clip.maxLat))
+                let cell = BBox(
+                    minLon: max(lon, clip.minLon),
+                    minLat: max(lat, clip.minLat),
+                    maxLon: min(lon + 1, clip.maxLon),
+                    maxLat: min(lat + 1, clip.maxLat)
+                )
                 // A cell the region only grazes can clip to nothing.
                 if cell.maxLon - cell.minLon > 0.001, cell.maxLat - cell.minLat > 0.001 {
                     cells.append(cell)
@@ -62,10 +74,12 @@ extension BuildPipeline {
         let wanted = ElevationLogins.needed(for: recipe.demSources)
         guard wanted.contains(where: { !ElevationLogins.usable($0) }) else { return }
 
-        log.warn("\(recipe.demSources) needs a login: srtm goes through USGS EarthExplorer"
-                 + " (https://ers.cr.usgs.gov/register, not NASA Earthdata), alos through"
-                 + " JAXA. Set it in Settings, or the build falls back to whatever else you"
-                 + " listed.")
+        log.warn(
+            "\(recipe.demSources) needs a login: srtm goes through USGS EarthExplorer"
+                + " (https://ers.cr.usgs.gov/register, not NASA Earthdata), alos through"
+                + " JAXA. Set it in Settings, or the build falls back to whatever else you"
+                + " listed."
+        )
     }
 
     /// The outline of every chosen region as one mask, or nil if any outline is missing:
@@ -74,8 +88,10 @@ extension BuildPipeline {
         var rings: [RegionOutline.Ring] = []
         for region in recipe.regions {
             guard let some = await regionRings(region) else {
-                log.warn("no outline for \(region.name) — contours will cover the whole"
-                         + " rectangle, including ground outside the region")
+                log.warn(
+                    "no outline for \(region.name) — contours will cover the whole"
+                        + " rectangle, including ground outside the region"
+                )
                 return nil
             }
             rings.append(contentsOf: some)
@@ -99,8 +115,10 @@ extension BuildPipeline {
             do {
                 water.add(contentsOf: try WaterScan.bodies(in: extract))
             } catch {
-                log.warn("could not read the water of \(extract.lastPathComponent)"
-                         + " — contours will cross it: \(error.localizedDescription)")
+                log.warn(
+                    "could not read the water of \(extract.lastPathComponent)"
+                        + " — contours will cross it: \(error.localizedDescription)"
+                )
             }
         }
         if !water.isEmpty {
@@ -109,8 +127,15 @@ extension BuildPipeline {
         return water
     }
 
-    func contourCell(_ cell: BBox, index: Int, mask: GroundMask?, water: WaterBodies,
-                             directory: URL, major: Int, medium: Int) async throws {
+    func contourCell(
+        _ cell: BBox,
+        index: Int,
+        mask: GroundMask?,
+        water: WaterBodies,
+        directory: URL,
+        major: Int,
+        medium: Int
+    ) async throws {
         // A non-overlapping id slice per cell, starting clear of the ids OSM itself uses.
         let nodeStart = ContourOutput.nodeIDBase + Int64(index) * ContourOutput.nodeIDSlice
         let wayStart = ContourOutput.wayIDBase + Int64(index) * ContourOutput.wayIDSlice
@@ -120,16 +145,20 @@ extension BuildPipeline {
         try Task.checkCancellation()
 
         let name = HGTName.of(lat: cell.minLat, lon: cell.minLon) + ".hgt"
-        guard let tile = demSearchPaths()
-            .map({ $0.appendingPathComponent(name) })
-            .first(where: { FileTools.exists($0) }) else { return }
+        guard
+            let tile = demSearchPaths()
+                .map({ $0.appendingPathComponent(name) })
+                .first(where: { FileTools.exists($0) })
+        else { return }
 
         let cellStarted = ContourTiming.now()
         do {
             let grid = try ContourTiming.measure("load") { try Contours.Grid(contentsOf: tile) }
             var tracer = Contours(grid: grid, step: recipe.contourInterval)
-            tracer.clip = (minLat: cell.minLat, minLon: cell.minLon,
-                           maxLat: cell.maxLat, maxLon: cell.maxLon)
+            tracer.clip = (
+                minLat: cell.minLat, minLon: cell.minLon,
+                maxLat: cell.maxLat, maxLon: cell.maxLon
+            )
             let raw = tracer.trace()
             let traced = ContourTiming.measure("split") { Contours.split(raw) }
             // Cut where they leave the region. Lines share no nodes, and the mask answers
@@ -138,20 +167,35 @@ extension BuildPipeline {
             // And where they meet water. Lines share no nodes, and a shore stands where it
             // stands whichever cell asks, so the seams stay in step here too.
             let lines = ContourTiming.measure("water") {
-                WaterMask(cellAt: Int(cell.minLat.rounded(.down)), Int(cell.minLon.rounded(.down)),
-                          water: water)?.clip(onGround) ?? onGround
+                WaterMask(
+                    cellAt: Int(cell.minLat.rounded(.down)),
+                    Int(cell.minLon.rounded(.down)),
+                    water: water
+                )?.clip(onGround) ?? onGround
             }
             guard !lines.isEmpty else { return }
             let output = directory.appendingPathComponent("\(prefix).osm.pbf")
             let counts = try ContourTiming.measure("write") {
-                try ContourOutput.write(lines, to: output,
-                                        nodeStart: nodeStart, wayStart: wayStart,
-                                        major: major, medium: medium)
+                try ContourOutput.write(
+                    lines,
+                    to: output,
+                    nodeStart: nodeStart,
+                    wayStart: wayStart,
+                    major: major,
+                    medium: medium
+                )
             }
-            ContourTiming.cell(index: index, name: tile.lastPathComponent, start: cellStarted,
-                               seconds: ContourTiming.now() - cellStarted, points: counts.nodes)
-            log.append("\(prefix): \(counts.ways) contour(s), \(counts.nodes) node(s)"
-                       + " from \(tile.lastPathComponent)")
+            ContourTiming.cell(
+                index: index,
+                name: tile.lastPathComponent,
+                start: cellStarted,
+                seconds: ContourTiming.now() - cellStarted,
+                points: counts.nodes
+            )
+            log.append(
+                "\(prefix): \(counts.ways) contour(s), \(counts.nodes) node(s)"
+                    + " from \(tile.lastPathComponent)"
+            )
         } catch {
             try rethrowIfCancelled(error)
             log.warn("\(prefix): \(error)")
@@ -159,9 +203,13 @@ extension BuildPipeline {
     }
 
     func hgtFileCount() -> Int {
-        guard let walker = FileManager.default.enumerator(
-            at: Paths.hgtCache, includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]) else { return 0 }
+        guard
+            let walker = FileManager.default.enumerator(
+                at: Paths.hgtCache,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+        else { return 0 }
         var count = 0
         for case let url as URL in walker where url.pathExtension.lowercased() == "hgt" {
             count += 1
@@ -173,9 +221,13 @@ extension BuildPipeline {
     /// searches `--dem` paths in order and takes the first tile it finds.
     func demSearchPaths() -> [URL] {
         var directories = Set<URL>()
-        guard let walker = FileManager.default.enumerator(
-            at: Paths.hgtCache, includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]) else { return [] }
+        guard
+            let walker = FileManager.default.enumerator(
+                at: Paths.hgtCache,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+        else { return [] }
         for case let url as URL in walker where url.pathExtension.lowercased() == "hgt" {
             directories.insert(url.deletingLastPathComponent())
         }
@@ -220,9 +272,11 @@ extension BuildPipeline {
         var wanted: [URL: Set<String>] = [:]
         for cell in elevationCells() {
             let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
-            guard let source = sources.first(where: {
-                FileTools.exists($0.appendingPathComponent(name + ".hgt"))
-            }) else { continue }
+            guard
+                let source = sources.first(where: {
+                    FileTools.exists($0.appendingPathComponent(name + ".hgt"))
+                })
+            else { continue }
             wanted[source, default: []].insert(name)
         }
         guard !wanted.isEmpty else { return }
@@ -240,15 +294,19 @@ extension BuildPipeline {
             return
         }
         for (source, names) in wanted.sorted(by: { $0.key.path < $1.key.path }) {
-            let destination = root.appendingPathComponent(source.lastPathComponent,
-                                                          isDirectory: true)
+            let destination = root.appendingPathComponent(
+                source.lastPathComponent,
+                isDirectory: true
+            )
             do {
                 var burn = BurnPeaks(extracts: extracts, hgt: source, out: destination)
                 burn.tiles = names
                 let report = try burn.run(peaks: peaks)
-                log.append("\(report.raised) summit height(s) written into"
-                           + " \(report.written.count) tile(s) of \(source.lastPathComponent),"
-                           + " \(report.rejected.count) rejected as bad OSM")
+                log.append(
+                    "\(report.raised) summit height(s) written into"
+                        + " \(report.written.count) tile(s) of \(source.lastPathComponent),"
+                        + " \(report.rejected.count) rejected as bad OSM"
+                )
                 if !report.written.isEmpty { burned.append(destination) }
             } catch {
                 guard !isCancelled, !Task.isCancelled else { return }

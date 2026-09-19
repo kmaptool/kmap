@@ -2,8 +2,10 @@ import Foundation
 
 /// One install, as the screens run it: the real one is `Toolchain.install`, and a test
 /// stands in something that holds until it is released or cancelled.
-typealias ToolInstaller = (_ id: String, _ log: Log, _ runner: ProcessRunner,
-                           _ progress: InstallProgress) async throws -> Void
+typealias ToolInstaller = (
+    _ id: String, _ log: Log, _ runner: ProcessRunner,
+    _ progress: InstallProgress
+) async throws -> Void
 
 /// What an install is doing now, for a screen to draw.
 ///

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The interface's own language: how it is chosen and how it is looked up.
@@ -6,7 +7,6 @@ import XCTest
 /// `L10n.current` is process-wide by design, so every test here puts the language back
 /// where it found it.
 final class LocalizationTests: XCTestCase {
-
     private var before: Lang!
 
     override func setUp() {
@@ -74,8 +74,10 @@ final class LocalizationTests: XCTestCase {
         L10n.use(.en)
         // English needs no entries; an untranslated key reads as English.
         XCTAssertEqual(t("Style"), "Style")
-        XCTAssertEqual(t("a string nobody ever put in the catalogue"),
-                       "a string nobody ever put in the catalogue")
+        XCTAssertEqual(
+            t("a string nobody ever put in the catalogue"),
+            "a string nobody ever put in the catalogue"
+        )
     }
 
     func testRussianComesOutOfTheCatalogue() {
@@ -83,17 +85,23 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(t("Style"), "Стиль")
         XCTAssertEqual(t("menu"), "меню")
         // Still English where there is no translation, rather than blank.
-        XCTAssertEqual(t("a string nobody ever put in the catalogue"),
-                       "a string nobody ever put in the catalogue")
+        XCTAssertEqual(
+            t("a string nobody ever put in the catalogue"),
+            "a string nobody ever put in the catalogue"
+        )
     }
 
     func testValuesAreDroppedIntoTheStringRatherThanAppendedToIt() {
         L10n.use(.en)
-        XCTAssertEqual(t("%@ is now the default", "Borrowed"),
-                       "Borrowed is now the default")
+        XCTAssertEqual(
+            t("%@ is now the default", "Borrowed"),
+            "Borrowed is now the default"
+        )
         // Two of them, in an order the translation is free to change.
-        XCTAssertEqual(t("%1$@ exited with code %2$d", "mkgmap", 3),
-                       "mkgmap exited with code 3")
+        XCTAssertEqual(
+            t("%1$@ exited with code %2$d", "mkgmap", 3),
+            "mkgmap exited with code 3"
+        )
     }
 
     // MARK: Counting
@@ -132,8 +140,10 @@ final class LocalizationTests: XCTestCase {
 
     func testACountedStringCanCarrySomethingElseAsWell() {
         L10n.use(.ru)
-        XCTAssertEqual(tn("cleared %d file(s), %@", 2, "1.4 GB"),
-                       "очищено 2 файла, 1.4 GB")
+        XCTAssertEqual(
+            tn("cleared %d file(s), %@", 2, "1.4 GB"),
+            "очищено 2 файла, 1.4 GB"
+        )
     }
 
     func testACountNobodyGaveAPluralFormFallsBackRatherThanBlanks() {

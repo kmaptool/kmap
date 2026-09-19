@@ -7,7 +7,6 @@ import WinSDK
 /// UTF-8 and restored on exit; and the blocking read runs on its own thread, since a
 /// console handle has no `poll` equivalent.
 enum WindowsConsole: ConsoleBackend {
-
     private static let input: HANDLE? = GetStdHandle(STD_INPUT_HANDLE)
     private static let output: HANDLE? = GetStdHandle(STD_OUTPUT_HANDLE)
 
@@ -20,7 +19,8 @@ enum WindowsConsole: ConsoleBackend {
 
     static func enterRawMode() -> Bool {
         guard let input, let output,
-              input != INVALID_HANDLE_VALUE, output != INVALID_HANDLE_VALUE else { return false }
+            input != INVALID_HANDLE_VALUE, output != INVALID_HANDLE_VALUE
+        else { return false }
         var inputMode: DWORD = 0, outputMode: DWORD = 0
         // Fails when the handle is not a console, such as a pipe or a redirect.
         guard GetConsoleMode(input, &inputMode), GetConsoleMode(output, &outputMode) else {
@@ -85,8 +85,9 @@ enum WindowsConsole: ConsoleBackend {
         lentShape = nil
         var now = CONSOLE_SCREEN_BUFFER_INFO()
         guard GetConsoleScreenBufferInfo(output, &now) else { return }
-        guard now.srWindow.Bottom - now.srWindow.Top < want.srWindow.Bottom - want.srWindow.Top
-            || now.srWindow.Right - now.srWindow.Left < want.srWindow.Right - want.srWindow.Left
+        guard
+            now.srWindow.Bottom - now.srWindow.Top < want.srWindow.Bottom - want.srWindow.Top
+                || now.srWindow.Right - now.srWindow.Left < want.srWindow.Right - want.srWindow.Left
         else { return }
         var size = want.dwSize
         size.X = max(size.X, now.dwSize.X)
@@ -105,16 +106,21 @@ enum WindowsConsole: ConsoleBackend {
         // otherwise consume clicks as text selection.
         if let input, let mode = savedInputMode {
             var raw = mode
-            raw &= ~DWORD(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT
-                          | ENABLE_MOUSE_INPUT | ENABLE_QUICK_EDIT_MODE | ENABLE_WINDOW_INPUT)
+            raw &= ~DWORD(
+                ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT
+                    | ENABLE_MOUSE_INPUT | ENABLE_QUICK_EDIT_MODE | ENABLE_WINDOW_INPUT
+            )
             raw |= DWORD(ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_EXTENDED_FLAGS)
             SetConsoleMode(input, raw)
         }
         // Without DISABLE_NEWLINE_AUTO_RETURN the console wraps at the last column, so a
         // full-width line scrolls the screen.
         if let output, let mode = savedOutputMode {
-            SetConsoleMode(output, mode | DWORD(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
-                                        | DWORD(DISABLE_NEWLINE_AUTO_RETURN))
+            SetConsoleMode(
+                output,
+                mode | DWORD(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+                    | DWORD(DISABLE_NEWLINE_AUTO_RETURN)
+            )
         }
     }
 
@@ -148,8 +154,13 @@ enum WindowsConsole: ConsoleBackend {
             var written = 0
             while written < raw.count {
                 var wrote: DWORD = 0
-                let ok = WriteFile(output, base.advanced(by: written),
-                                   DWORD(raw.count - written), &wrote, nil)
+                let ok = WriteFile(
+                    output,
+                    base.advanced(by: written),
+                    DWORD(raw.count - written),
+                    &wrote,
+                    nil
+                )
                 if !ok || wrote == 0 { break }
                 written += Int(wrote)
             }

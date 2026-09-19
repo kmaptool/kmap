@@ -4,7 +4,6 @@ import Foundation
 /// Cancelled from another thread than the one that runs it. `@unchecked Sendable` stands
 /// on `lock`: the process, its latch and the terminated flag are reached only under it.
 final class ProcessRunner: @unchecked Sendable {
-
     /// Lines of the tail an error report shows.
     private static let reportedTail = 6
     /// A cancelled command's time to exit cleanly before SIGKILL.
@@ -12,7 +11,7 @@ final class ProcessRunner: @unchecked Sendable {
 
     struct Result {
         let exitCode: Int32
-        let tail: [String]      // last lines, for error reporting
+        let tail: [String]  // last lines, for error reporting
     }
 
     enum RunError: Error, LocalizedError {
@@ -114,13 +113,14 @@ final class ProcessRunner: @unchecked Sendable {
     /// Runs `executable` with `arguments`, calling `onLine` for every line of stdout/stderr.
     /// Throws `RunError.failed` on a non-zero exit unless `allowFailure` is set.
     @discardableResult
-    func run(_ executable: String,
-             _ arguments: [String],
-             cwd: URL? = nil,
-             environment: [String: String]? = nil,
-             allowFailure: Bool = false,
-             onLine: @escaping (String) -> Void) async throws -> Result {
-
+    func run(
+        _ executable: String,
+        _ arguments: [String],
+        cwd: URL? = nil,
+        environment: [String: String]? = nil,
+        allowFailure: Bool = false,
+        onLine: @escaping (String) -> Void
+    ) async throws -> Result {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -189,8 +189,11 @@ final class ProcessRunner: @unchecked Sendable {
         let finalTail = collector.snapshot
         let code = process.terminationStatus
         if code != 0 && !allowFailure {
-            throw RunError.failed(command: (executable as NSString).lastPathComponent,
-                                  exitCode: code, tail: finalTail)
+            throw RunError.failed(
+                command: (executable as NSString).lastPathComponent,
+                exitCode: code,
+                tail: finalTail
+            )
         }
         return Result(exitCode: code, tail: finalTail)
     }

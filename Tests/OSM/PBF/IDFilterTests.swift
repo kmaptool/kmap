@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The "certainly not" test in front of the rewrite's tables.
@@ -6,7 +7,6 @@ import XCTest
 /// It may never deny an id that is present. A yes for an absent id costs only the
 /// dictionary lookup behind it.
 final class IDFilterTests: XCTestCase {
-
     func testEveryIDPutInIsFound() {
         let ids: [Int64] = (0..<5000).map { Int64($0) * 7919 + 1_000_000_000 }
         let filter = IDFilter(ids)
@@ -58,8 +58,11 @@ final class IDFilterTests: XCTestCase {
             if filter.mayContain(candidate) { yes += 1 }
         }
         XCTAssertGreaterThan(asked, 100_000)
-        XCTAssertLessThan(Double(yes) / Double(asked), 0.02,
-                          "\(yes) false yes in \(asked) — the filter has stopped paying")
+        XCTAssertLessThan(
+            Double(yes) / Double(asked),
+            0.02,
+            "\(yes) false yes in \(asked) — the filter has stopped paying"
+        )
     }
 
     func testItGrowsWithTheSetRatherThanStayingFixed() {

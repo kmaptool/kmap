@@ -6,7 +6,6 @@ import Foundation
 /// Nothing is scaled. A donor drawn for a different size is offered with its size stated
 /// and used as it is.
 final class IconDonorScreen: Screen {
-
     var page: Page {
         let subject: String
         switch stage {
@@ -20,9 +19,11 @@ final class IconDonorScreen: Screen {
     private var keys: [Hint] {
         switch stage {
         case .style:
-            return [Hint(key: "↑↓", label: t("move")),
-                    Hint(key: Glyph.enter, label: t("open")),
-                    Hint(key: "esc", label: t("back"))]
+            return [
+                Hint(key: "↑↓", label: t("move")),
+                Hint(key: Glyph.enter, label: t("open")),
+                Hint(key: "esc", label: t("back"))
+            ]
         case .file:
             var hints = [Hint(key: Glyph.enter, label: loaded == nil ? t("load") : t("use this one"))]
             if FilePicker.isAvailable { hints.append(Hint(key: "^O", label: t("browse"))) }
@@ -30,10 +31,12 @@ final class IconDonorScreen: Screen {
             hints.append(Hint(key: "esc", label: t("back")))
             return hints
         case .type:
-            return [Hint(key: "↑↓", label: t("move")),
-                    Hint(key: Glyph.enter, label: t("use this one")),
-                    Hint(key: "type", label: t("filter")),
-                    Hint(key: "esc", label: t("back to the list"))]
+            return [
+                Hint(key: "↑↓", label: t("move")),
+                Hint(key: Glyph.enter, label: t("use this one")),
+                Hint(key: "type", label: t("filter")),
+                Hint(key: "esc", label: t("back to the list"))
+            ]
         }
     }
 
@@ -130,7 +133,8 @@ final class IconDonorScreen: Screen {
         stage = .type
         list = ListState()
         query = ""
-        message = donorSections.isEmpty
+        message =
+            donorSections.isEmpty
             ? t("%1$@ has no %2$@ to lend", style.name, kind.plural) : nil
     }
 
@@ -148,7 +152,8 @@ final class IconDonorScreen: Screen {
             list.selected = 0
         case .enter:
             guard let section = shown[safe: list.selected],
-                  let picture = section.picture else { return .none }
+                let picture = section.picture
+            else { return .none }
             onPick(picture)
             return .pop
         case .esc:
@@ -170,7 +175,9 @@ final class IconDonorScreen: Screen {
             // Every extension the importer can read.
             if let chosen = FilePicker.choose(
                 .file(extensions: ["png", "jpg", "jpeg", "svg", "gif", "tif", "tiff", "bmp"]),
-                startingAt: nil, prompt: t("take an icon from a file")) {
+                startingAt: nil,
+                prompt: t("take an icon from a file")
+            ) {
                 path = chosen.path
                 loaded = nil
                 message = nil
@@ -229,10 +236,14 @@ final class IconDonorScreen: Screen {
         var y = rect.y
         let size = target?.picture?.width ?? 20
         for chunk in wrapText(
-            t("A picture is read at %@ — the size of the drawing "
-            + "it would replace. PNG, JPEG, TIFF, GIF and BMP work, and SVG "
-            + "where the system can draw it. `~` is expanded.", "\(size)×\(size)"),
-            width: rect.w) {
+            t(
+                "A picture is read at %@ — the size of the drawing "
+                    + "it would replace. PNG, JPEG, TIFF, GIF and BMP work, and SVG "
+                    + "where the system can draw it. `~` is expanded.",
+                "\(size)×\(size)"
+            ),
+            width: rect.w
+        ) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
         }
@@ -246,8 +257,12 @@ final class IconDonorScreen: Screen {
 
         guard let loaded else {
             if let message, y < rect.maxY {
-                s.text(rect.x, y, truncate(message, to: rect.w),
-                       Style(fg: theme.danger, bg: theme.appBg))
+                s.text(
+                    rect.x,
+                    y,
+                    truncate(message, to: rect.w),
+                    Style(fg: theme.danger, bg: theme.appBg)
+                )
             }
             return
         }
@@ -262,20 +277,40 @@ final class IconDonorScreen: Screen {
 
         var used = 1
         if let current = target?.picture {
-            used = Widgets.picture(s, x: rect.x, y: y, current, background: theme.appBg,
-                                   maxColumns: room.columns, maxRows: rows)
+            used = Widgets.picture(
+                s,
+                x: rect.x,
+                y: y,
+                current,
+                background: theme.appBg,
+                maxColumns: room.columns,
+                maxRows: rows
+            )
         } else {
             s.text(rect.x, y, t("nothing"), Style(fg: theme.faint, bg: theme.appBg))
         }
-        used = max(used, Widgets.picture(s, x: rightColumn, y: y, loaded.block,
-                                         background: theme.appBg,
-                                         maxColumns: room.columns, maxRows: rows))
+        used = max(
+            used,
+            Widgets.picture(
+                s,
+                x: rightColumn,
+                y: y,
+                loaded.block,
+                background: theme.appBg,
+                maxColumns: room.columns,
+                maxRows: rows
+            )
+        )
         y += used + 1
 
         guard y < rect.maxY else { return }
-        s.text(rightColumn, y, "\(loaded.block.width)×\(loaded.block.height), "
-               + tn("%d colour(s)", loaded.paletteSize),
-               Style(fg: theme.faint, bg: theme.appBg))
+        s.text(
+            rightColumn,
+            y,
+            "\(loaded.block.width)×\(loaded.block.height), "
+                + tn("%d colour(s)", loaded.paletteSize),
+            Style(fg: theme.faint, bg: theme.appBg)
+        )
         y += 1
 
         // What the import had to give up, shown before the drawing is accepted.
@@ -288,18 +323,25 @@ final class IconDonorScreen: Screen {
             }
         }
         if loaded.warnings.isEmpty, y < rect.maxY {
-            s.text(rect.x, y, t("read at its own size, nothing scaled and no colour lost"),
-                   Style(fg: theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("read at its own size, nothing scaled and no colour lost"),
+                Style(fg: theme.ok, bg: theme.appBg)
+            )
         }
     }
 
     private func renderStyles(_ s: Surface, rect: Rect, theme: Theme) {
         var y = rect.y
         for chunk in wrapText(
-            t("A drawing comes from a picture on disk, or from another "
-            + "style whose TYP is readable — a compiled one has nothing to "
-            + "offer until it is imported, which decompiles it."),
-            width: rect.w) {
+            t(
+                "A drawing comes from a picture on disk, or from another "
+                    + "style whose TYP is readable — a compiled one has nothing to "
+                    + "offer until it is imported, which decompiles it."
+            ),
+            width: rect.w
+        ) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
         }
@@ -307,23 +349,39 @@ final class IconDonorScreen: Screen {
 
         list.clamp(count: sourceRowCount, visible: max(1, rect.maxY - y - 1))
 
-        Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w, h: 1), y: y,
-                    text: t("A picture on disk — PNG, JPEG, SVG…"),
-                    trailing: t("read at %d px", target?.picture?.width ?? 20),
-                    theme: theme, selected: list.selected == 0,
-                    leading: "＋ ", leadingColor: theme.accent)
+        Widgets.row(
+            s,
+            rect: Rect(x: rect.x, y: y, w: rect.w, h: 1),
+            y: y,
+            text: t("A picture on disk — PNG, JPEG, SVG…"),
+            trailing: t("read at %d px", target?.picture?.width ?? 20),
+            theme: theme,
+            selected: list.selected == 0,
+            leading: "＋ ",
+            leadingColor: theme.accent
+        )
         y += 1
 
         if styles.isEmpty, y < rect.maxY {
-            s.text(rect.x, y, "  " + t("no other readable style — import one to borrow from it"),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                "  " + t("no other readable style — import one to borrow from it"),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
         for (index, style) in styles.enumerated() {
             guard y < rect.maxY - 1 else { break }
-            Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w, h: 1), y: y,
-                        text: style.name, trailing: t("family %d", style.familyID),
-                        theme: theme, selected: index + 1 == list.selected)
+            Widgets.row(
+                s,
+                rect: Rect(x: rect.x, y: y, w: rect.w, h: 1),
+                y: y,
+                text: style.name,
+                trailing: t("family %d", style.familyID),
+                theme: theme,
+                selected: index + 1 == list.selected
+            )
             y += 1
         }
         if let message, y < rect.maxY {
@@ -338,15 +396,23 @@ final class IconDonorScreen: Screen {
         let fx = s.text(rect.x, y, t("filter") + ": ", Style(fg: theme.dim, bg: theme.appBg))
         let end = s.text(fx, y, query, Style(fg: theme.strong, bg: theme.appBg, bold: true))
         s.put(end, y, "▏", Style(fg: theme.accent, bg: theme.appBg))
-        s.textRight(rect.maxX, y, t("%d of %d", shown.count, donorSections.count),
-                    Style(fg: theme.faint, bg: theme.appBg))
+        s.textRight(
+            rect.maxX,
+            y,
+            t("%d of %d", shown.count, donorSections.count),
+            Style(fg: theme.faint, bg: theme.appBg)
+        )
         y += 1
         s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
         y += 1
 
         guard !shown.isEmpty else {
-            s.text(rect.x, y, message ?? t("nothing matches \"%@\"", query),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                message ?? t("nothing matches \"%@\"", query),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             return
         }
 
@@ -361,35 +427,63 @@ final class IconDonorScreen: Screen {
             guard let section = shown[safe: index] else { break }
             let picture = section.picture
             let size = picture.map { "\($0.width)×\($0.height)" } ?? ""
-            Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1), y: y,
-                        text: "\(section.hex)  \(section.englishLabel ?? section.russianLabel ?? "")",
-                        trailing: size, theme: theme, selected: index == list.selected)
+            Widgets.row(
+                s,
+                rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
+                y: y,
+                text: "\(section.hex)  \(section.englishLabel ?? section.russianLabel ?? "")",
+                trailing: size,
+                theme: theme,
+                selected: index == list.selected
+            )
             y += 1
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
-                           offset: list.offset, count: shown.count,
-                           visible: listHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
+            offset: list.offset,
+            count: shown.count,
+            visible: listHeight,
+            theme: theme
+        )
 
         guard let section = shown[safe: list.selected] else { return }
-        compare(section, into: s,
-                rect: Rect(x: rect.x, y: listTop + listHeight + 1, w: rect.w,
-                           h: rect.maxY - listTop - listHeight - 1),
-                theme: theme)
+        compare(
+            section,
+            into: s,
+            rect: Rect(
+                x: rect.x,
+                y: listTop + listHeight + 1,
+                w: rect.w,
+                h: rect.maxY - listTop - listHeight - 1
+            ),
+            theme: theme
+        )
     }
 
     /// Room for two drawings side by side: how wide each may be, and the column the second
     /// starts at. Both are reduced by the same rule, so they compare at one scale.
-    private func pair(_ rect: Rect, current: XpmBlock?, rows: Int)
-        -> (columns: Int, rightColumn: Int) {
+    private func pair(
+        _ rect: Rect,
+        current: XpmBlock?,
+        rows: Int
+    )
+        -> (columns: Int, rightColumn: Int)
+    {
         let columns = max(2, (rect.w - 6) / 2)
-        let width = current.map {
-            Widgets.pictureFit($0, maxColumns: columns, maxRows: rows).columns
-        } ?? 0
+        let width =
+            current.map {
+                Widgets.pictureFit($0, maxColumns: columns, maxRows: rows).columns
+            } ?? 0
         return (columns, rect.x + max(24, width + 6))
     }
 
-    private func compare(_ donorSection: TypSection, into s: Surface, rect: Rect,
-                         theme: Theme) {
+    private func compare(
+        _ donorSection: TypSection,
+        into s: Surface,
+        rect: Rect,
+        theme: Theme
+    ) {
         guard rect.h > 2 else { return }
         s.hline(rect.x, rect.y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
         var y = rect.y + 1
@@ -406,16 +500,32 @@ final class IconDonorScreen: Screen {
 
         var used = 0
         if let current {
-            used = Widgets.picture(s, x: rect.x, y: y, current, background: theme.appBg,
-                                   maxColumns: room.columns, maxRows: rows)
+            used = Widgets.picture(
+                s,
+                x: rect.x,
+                y: y,
+                current,
+                background: theme.appBg,
+                maxColumns: room.columns,
+                maxRows: rows
+            )
         } else {
             s.text(rect.x, y, t("nothing"), Style(fg: theme.faint, bg: theme.appBg))
             used = 1
         }
         if let incoming {
-            used = max(used, Widgets.picture(s, x: rightColumn, y: y, incoming,
-                                             background: theme.appBg,
-                                             maxColumns: room.columns, maxRows: rows))
+            used = max(
+                used,
+                Widgets.picture(
+                    s,
+                    x: rightColumn,
+                    y: y,
+                    incoming,
+                    background: theme.appBg,
+                    maxColumns: room.columns,
+                    maxRows: rows
+                )
+            )
         }
         y += used + 1
 
@@ -432,10 +542,14 @@ final class IconDonorScreen: Screen {
 
         // A size mismatch is reported, not acted on: nothing here scales a drawing.
         if let current, let incoming,
-           current.width != incoming.width || current.height != incoming.height, y < rect.maxY {
-            s.text(rect.x, y,
-                   t("different size — it will be used as it is, not scaled to fit"),
-                   Style(fg: theme.warn, bg: theme.appBg))
+            current.width != incoming.width || current.height != incoming.height, y < rect.maxY
+        {
+            s.text(
+                rect.x,
+                y,
+                t("different size — it will be used as it is, not scaled to fit"),
+                Style(fg: theme.warn, bg: theme.appBg)
+            )
         }
     }
 }

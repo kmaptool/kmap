@@ -8,8 +8,11 @@ extension BuildPipeline {
     ///
     /// A missing tile is not an error: the bucket simply has nothing over open sea, and a
     /// coastal region routinely asks for degrees that are entirely water.
-    func fetchCopernicusTiles(_ flavor: CopernicusDEM.Flavor, covering bbox: BBox,
-                              last: Bool) async throws {
+    func fetchCopernicusTiles(
+        _ flavor: CopernicusDEM.Flavor,
+        covering bbox: BBox,
+        last: Bool
+    ) async throws {
         Paths.ensure(flavor.cacheDirectory)
 
         // A cell a finer source listed before this one already converted is settled: the
@@ -19,8 +22,10 @@ extension BuildPipeline {
         let earlier = earlierSourceDirectories(before: flavor.sourceID)
         let wanted = all.filter { !cellSettledEarlier(earlier, lat: $0.lat, lon: $0.lon) }
         if wanted.count < all.count {
-            log.append("\(all.count - wanted.count) cell(s) already held by an earlier"
-                       + " source — this one fills the \(wanted.count) left")
+            log.append(
+                "\(all.count - wanted.count) cell(s) already held by an earlier"
+                    + " source — this one fills the \(wanted.count) left"
+            )
         }
         guard !wanted.isEmpty else {
             log.append("nothing left for \(flavor.sourceID) — every cell is already held")
@@ -40,9 +45,13 @@ extension BuildPipeline {
             !FileTools.exists(flavor.downloadedTif(lat: $0.lat, lon: $0.lon))
         }
         if missing.count < unconverted.count {
-            log.append("\(unconverted.count - missing.count) Copernicus tile(s) already downloaded — kept from an interrupted run")
+            log.append(
+                "\(unconverted.count - missing.count) Copernicus tile(s) already downloaded — kept from an interrupted run"
+            )
         }
-        log.step("fetching \(missing.count) Copernicus \(flavor.sourceID == CopernicusDEM.glo90.sourceID ? "GLO-90" : "GLO-30") tile(s)")
+        log.step(
+            "fetching \(missing.count) Copernicus \(flavor.sourceID == CopernicusDEM.glo90.sourceID ? "GLO-90" : "GLO-30") tile(s)"
+        )
 
         // Two phases: downloads run several at a time, then conversion warps from a mosaic
         // of all the tiles. A `.hgt` grid is half a cell wider than the source square on
@@ -69,8 +78,11 @@ extension BuildPipeline {
         // else is going to fetch. The two halves overlap across sources.
         if last, isLastFetching(.copernicus) { elevationDownloadsFinished() }
         elevationBuildStarted("converting")
-        let converted = try await convertCopernicusTiles(downloaded, from: mosaic,
-                                                         flavor: flavor)
+        let converted = try await convertCopernicusTiles(
+            downloaded,
+            from: mosaic,
+            flavor: flavor
+        )
 
         // The mosaic samples across the joins, so no .tif is deleted until the whole pass
         // is over, and a cell whose conversion failed keeps its download.
@@ -79,8 +91,10 @@ extension BuildPipeline {
             FileTools.removeIfPresent(flavor.downloadedTif(lat: cell.lat, lon: cell.lon))
         }
 
-        log.ok("\(converted) Copernicus tile(s) converted"
-               + (absent > 0 ? ", \(absent) not in the bucket (open sea)" : ""))
+        log.ok(
+            "\(converted) Copernicus tile(s) converted"
+                + (absent > 0 ? ", \(absent) not in the bucket (open sea)" : "")
+        )
         guard converted > 0 || hgtFileCount() > 0 else {
             throw BuildError.noElevationTiles
         }
@@ -90,9 +104,11 @@ extension BuildPipeline {
     /// line. A tile the bucket does not hold is open sea, not a failure.
     ///
     /// - Returns: how many cells came back absent.
-    private func downloadCopernicusTifs(_ missing: [(lat: Int, lon: Int)],
-                                        flavor: CopernicusDEM.Flavor,
-                                        into scratch: URL) async throws -> Int {
+    private func downloadCopernicusTifs(
+        _ missing: [(lat: Int, lon: Int)],
+        flavor: CopernicusDEM.Flavor,
+        into scratch: URL
+    ) async throws -> Int {
         let lanes = max(2, min(6, Machine.workers))
         let absent = Counter()
         let fetched = Counter()
@@ -109,12 +125,18 @@ extension BuildPipeline {
             while !Task.isCancelled {
                 let done = fetched.value + absent.value
                 pace.note(done: done)
-                let text = BuildPipeline.fetchLine(done: done, of: total,
-                                                   received: flight.received,
-                                                   elapsed: Date().timeIntervalSince(started),
-                                                   secondsLeft: pace.secondsLeft(total - done))
-                board.detail(.elevation, text,
-                             fraction: Double(done) / Double(max(1, total)))
+                let text = BuildPipeline.fetchLine(
+                    done: done,
+                    of: total,
+                    received: flight.received,
+                    elapsed: Date().timeIntervalSince(started),
+                    secondsLeft: pace.secondsLeft(total - done)
+                )
+                board.detail(
+                    .elevation,
+                    text,
+                    fraction: Double(done) / Double(max(1, total))
+                )
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
         }
@@ -176,9 +198,11 @@ extension BuildPipeline {
     /// and every cell writes its own file, so order changes nothing.
     ///
     /// - Returns: how many tiles converted; a failed cell warns and keeps its download.
-    private func convertCopernicusTiles(_ downloaded: [(lat: Int, lon: Int)],
-                                        from mosaic: HGTConversion.Mosaic,
-                                        flavor: CopernicusDEM.Flavor) async throws -> Int {
+    private func convertCopernicusTiles(
+        _ downloaded: [(lat: Int, lon: Int)],
+        from mosaic: HGTConversion.Mosaic,
+        flavor: CopernicusDEM.Flavor
+    ) async throws -> Int {
         let converted = Counter()
         let done = Counter()
         try await withThrowingTaskGroup(of: Void.self) { group in
@@ -196,9 +220,11 @@ extension BuildPipeline {
                         self.log.warn("\(name): could not be converted — \(error)")
                     }
                     done.increment()
-                    self.detail(.elevationBuild,
-                                "converting \(done.value)/\(downloaded.count)",
-                                fraction: Double(done.value) / Double(max(1, downloaded.count)) * 0.2)
+                    self.detail(
+                        .elevationBuild,
+                        "converting \(done.value)/\(downloaded.count)",
+                        fraction: Double(done.value) / Double(max(1, downloaded.count)) * 0.2
+                    )
                 }
                 next += 1
                 running += 1
@@ -219,9 +245,11 @@ extension BuildPipeline {
     /// Resamples one degree cell of GeoTIFF onto the arc-second nodes and writes it as
     /// `.hgt`. Sampling each tile directly, rather than through an averaged VRT mosaic,
     /// avoids a second resampling where neighbouring tiles differ in sample spacing.
-    private func convertCopernicusTile(_ cell: (lat: Int, lon: Int),
-                                       from mosaic: HGTConversion.Mosaic,
-                                       flavor: CopernicusDEM.Flavor) throws {
+    private func convertCopernicusTile(
+        _ cell: (lat: Int, lon: Int),
+        from mosaic: HGTConversion.Mosaic,
+        flavor: CopernicusDEM.Flavor
+    ) throws {
         let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
         let destination = flavor.cachedTile(lat: cell.lat, lon: cell.lon)
         FileTools.removeIfPresent(destination)
@@ -240,7 +268,8 @@ extension BuildPipeline {
         guard size == expected else {
             FileTools.removeIfPresent(destination)
             throw BuildError.missingTool(
-                "\(name).hgt came out \(size) bytes, expected \(expected)")
+                "\(name).hgt came out \(size) bytes, expected \(expected)"
+            )
         }
     }
 }

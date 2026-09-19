@@ -3,7 +3,6 @@ import Foundation
 /// The looks kmap carries in the binary: each a palette table the TYP is written from on
 /// every build, so edits to the written file do not survive.
 extension StyleCatalog {
-
     struct ShippedPalette {
         let id: String
         let name: String
@@ -24,39 +23,43 @@ extension StyleCatalog {
             id: "osm-carto",
             name: "OpenStreetMap",
             summary: "the openstreetmap.org look — openstreetmap-carto's colours on kmap's"
-                   + " rule set",
+                + " rule set",
             fid: 6325,
             palette: StyleAssets.cartoPalette,
-            points: StyleAssets.cartoPoints),
+            points: StyleAssets.cartoPoints
+        ),
         ShippedPalette(
             id: "opentopomap",
             name: "OpenTopoMap",
             summary: "the OpenTopoMap look — its own Garmin colours where the maps share"
-                   + " a meaning (© OpenTopoMap, CC-BY-SA)",
+                + " a meaning (© OpenTopoMap, CC-BY-SA)",
             fid: 6326,
             palette: StyleAssets.otmPalette,
             points: StyleAssets.otmPoints,
             graphics: StyleAssets.otmGraphics,
-            credit: "Style: OpenTopoMap, CC-BY-SA"),
+            credit: "Style: OpenTopoMap, CC-BY-SA"
+        ),
         ShippedPalette(
             id: "cyclosm",
             name: "CyclOSM",
             summary: "the CyclOSM look — an outdoor palette, warmer and quieter than"
-                   + " carto's (© CyclOSM, BSD-3-Clause; colours from Hydda, Apache 2.0)",
+                + " carto's (© CyclOSM, BSD-3-Clause; colours from Hydda, Apache 2.0)",
             fid: 6327,
             palette: StyleAssets.cyclosmPalette,
             points: StyleAssets.cartoPoints,
             graphics: StyleAssets.cyclosmGraphics,
-            credit: "Style: CyclOSM, BSD-3-Clause; colours from Hydda, Apache 2.0"),
+            credit: "Style: CyclOSM, BSD-3-Clause; colours from Hydda, Apache 2.0"
+        ),
         ShippedPalette(
             id: "liberty-topo",
             name: "OSM Liberty Topo",
             summary: "a minimal topographic look — quiet ground, orange roads, contour"
-                   + " browns (© OSM Liberty Topo, BSD; © OpenMapTiles, CC-BY 4.0)",
+                + " browns (© OSM Liberty Topo, BSD; © OpenMapTiles, CC-BY 4.0)",
             fid: 6328,
             palette: StyleAssets.libertyTopoPalette,
             points: StyleAssets.libertyTopoPoints,
-            credit: "Style: OSM Liberty Topo, BSD/CC-BY 3.0; (c) OpenMapTiles, CC-BY 4.0"),
+            credit: "Style: OSM Liberty Topo, BSD/CC-BY 3.0; (c) OpenMapTiles, CC-BY 4.0"
+        )
     ]
 
     static func shippedPalette(id: String) -> ShippedPalette? {
@@ -69,8 +72,11 @@ extension StyleCatalog {
 
     /// The TYP source a shipped palette stands for, icons included.
     static func shippedTypText(of shipped: ShippedPalette) throws -> String {
-        TypGenerator.text(from: try StylePalette.read(shipped.palette),
-                          fid: shipped.fid, points: shipped.points,
-                          graphics: shipped.graphics)
+        TypGenerator.text(
+            from: try StylePalette.read(shipped.palette),
+            fid: shipped.fid,
+            points: shipped.points,
+            graphics: shipped.graphics
+        )
     }
 }

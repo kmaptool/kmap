@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Covers decoding a picture and resampling it onto another grid.
@@ -6,9 +7,11 @@ import XCTest
 /// A decoded picture keeps its orientation, and resampling a soft edge does not drag the
 /// colour of transparent pixels into it.
 final class RasterTests: XCTestCase {
-
-    private func bitmap(_ width: Int, _ height: Int,
-                        _ pixel: (Int, Int) -> (UInt8, UInt8, UInt8, UInt8)) -> Raster.Bitmap {
+    private func bitmap(
+        _ width: Int,
+        _ height: Int,
+        _ pixel: (Int, Int) -> (UInt8, UInt8, UInt8, UInt8)
+    ) -> Raster.Bitmap {
         var rgba = [UInt8](repeating: 0, count: width * height * 4)
         for y in 0..<height {
             for x in 0..<width {
@@ -97,8 +100,11 @@ final class RasterTests: XCTestCase {
             for x in 0..<8 where small[x, y].a > 0 {
                 XCTAssertEqual(small[x, y].g, 0, "no green appeared at (\(x),\(y))")
                 XCTAssertEqual(small[x, y].b, 0, "no blue appeared at (\(x),\(y))")
-                XCTAssertGreaterThan(small[x, y].r, 200,
-                                     "the red stayed red at (\(x),\(y)), rather than darkening")
+                XCTAssertGreaterThan(
+                    small[x, y].r,
+                    200,
+                    "the red stayed red at (\(x),\(y)), rather than darkening"
+                )
             }
         }
     }
@@ -182,8 +188,11 @@ final class RasterTests: XCTestCase {
         let ink = out.rgba.enumerated().filter { $0.offset % 4 == 3 }
             .reduce(0) { $0 + Int($1.element) }
         let meanAlpha = Double(ink) / Double(20 * 20)
-        XCTAssertGreaterThan(meanAlpha, 3,
-                             "a 25:1 shrink that samples instead of averaging loses the ink")
+        XCTAssertGreaterThan(
+            meanAlpha,
+            3,
+            "a 25:1 shrink that samples instead of averaging loses the ink"
+        )
         let rowsWithInk = (0..<20).filter { y in
             (0..<20).contains { x in out[x, y].a > 0 }
         }

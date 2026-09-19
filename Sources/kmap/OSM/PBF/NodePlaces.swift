@@ -8,8 +8,13 @@ struct BlockNodes: OSMSink {
     var lat: [Double] = []
     var lon: [Double] = []
 
-    mutating func node(id: Int64, lat latitude: Double, lon longitude: Double,
-                       tags: ArraySlice<Int32>, block: OSMBlock) {
+    mutating func node(
+        id: Int64,
+        lat latitude: Double,
+        lon longitude: Double,
+        tags: ArraySlice<Int32>,
+        block: OSMBlock
+    ) {
         ids.append(id)
         lat.append(latitude)
         lon.append(longitude)
@@ -68,7 +73,7 @@ struct NodePlaces {
     mutating func take(_ block: BlockNodes) {
         for i in 0..<block.ids.count {
             let id = block.ids[i]
-            if id < lastID { at = 0 }        // a file whose ids do not ascend: start over
+            if id < lastID { at = 0 }  // a file whose ids do not ascend: start over
             lastID = id
             while at < wanted.count, wanted[at] < id { at += 1 }
             guard at < wanted.count, wanted[at] == id else { continue }

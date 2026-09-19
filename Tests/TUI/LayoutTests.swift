@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Where a screen's columns fall: the split between the form and the side panel, and
 /// the width at which the panel is dropped.
 final class LayoutTests: XCTestCase {
-
     func testAWideScreenGetsBothTheFormAndThePanel() {
         let (form, panel) = Layout.split(Rect(x: 2, y: 1, w: 116, h: 40))
         XCTAssertEqual(form.w, Layout.formWidth, "a form stops being useful past its width")

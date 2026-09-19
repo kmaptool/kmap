@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Deciding which candidate gaps are broken junctions, and what to do about each.
@@ -6,7 +7,6 @@ import XCTest
 /// Each rule has its own test, and the verdict is checked by the name the pass counts it
 /// under.
 final class RepairPlannerTests: XCTestCase {
-
     private let metre = 1 / RoadRepair.metresPerDegree
 
     private struct Line {
@@ -55,18 +55,25 @@ final class RepairPlannerTests: XCTestCase {
         return network
     }
 
-    private func plan(_ network: RoadNetwork, limit: Double = 5,
-                      bridging: Bool = false) -> RepairPlan {
+    private func plan(
+        _ network: RoadNetwork,
+        limit: Double = 5,
+        bridging: Bool = false
+    ) -> RepairPlan {
         let (found, loose) = RoadRepair(network: network, limit: limit).candidates()
-        return RepairPlanner(network: network, terrain: nil, bridging: bridging,
-                             limit: limit).plan(found, loose: loose)
+        return RepairPlanner(
+            network: network,
+            terrain: nil,
+            bridging: bridging,
+            limit: limit
+        ).plan(found, loose: loose)
     }
 
     /// A track ending two metres short of a road that runs past it.
     private var shortOfARoad: RoadNetwork {
         network([
             Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
+            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
         ])
     }
 
@@ -82,10 +89,12 @@ final class RepairPlannerTests: XCTestCase {
 
     func testTwoEndsReachingForEachOtherBecomeOneNode() {
         // Neither line grows a vertex: the two ends share one node.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.001)]),
-            Line(id: 11, points: [(45, 33.001 + 2 * metre), (45, 33.003)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.001)]),
+                Line(id: 11, points: [(45, 33.001 + 2 * metre), (45, 33.003)])
+            ])
+        )
         XCTAssertEqual(result.counts["joined"], 1)
         XCTAssertEqual(result.merges.count, 1)
         XCTAssertTrue(result.inserts.isEmpty)
@@ -94,9 +103,9 @@ final class RepairPlannerTests: XCTestCase {
     func testAnEndAlreadyOnTheLineIsLeftAlone() {
         var net = network([
             Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45, 33.001), (45, 33.003)]),
+            Line(id: 11, points: [(45, 33.001), (45, 33.003)])
         ])
-        net.refs[2] = net.refs[0]        // way 11 starts on a node way 10 already has
+        net.refs[2] = net.refs[0]  // way 11 starts on a node way 10 already has
         let result = plan(net)
         XCTAssertNil(result.counts["joined"])
     }
@@ -104,75 +113,126 @@ final class RepairPlannerTests: XCTestCase {
     // MARK: What stands in the way
 
     func testAFenceBetweenTheEndsStopsTheRepair() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .fence, word: "fence",
-                     points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]),
-        ]))
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .fence,
+                        word: "fence",
+                        points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]
+                    )
+                ]
+            )
+        )
         XCTAssertEqual(result.counts["stopped by fence"], 1)
         XCTAssertNil(result.counts["joined"])
     }
 
     func testABuildingBetweenTheEndsStopsTheRepair() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .building, word: "building",
-                     points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]),
-        ]))
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .building,
+                        word: "building",
+                        points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]
+                    )
+                ]
+            )
+        )
         XCTAssertEqual(result.counts["stopped by building"], 1)
     }
 
     func testACrossableObstacleStopsTheRepairWhenBridgingIsOff() {
         // Without bridging the map cannot show the obstacle, so the gap is left open.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .barrier, word: "kerb",
-                     points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]),
-        ]))
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .barrier,
+                        word: "kerb",
+                        points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]
+                    )
+                ]
+            )
+        )
         XCTAssertEqual(result.counts["stopped by kerb"], 1)
     }
 
     func testACrossableObstacleIsBridgedWhenBridgingIsOn() {
         // The gap is closed by a link of its own, named after what it crosses.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .barrier, word: "kerb",
-                     points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]),
-        ]), bridging: true)
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .barrier,
+                        word: "kerb",
+                        points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]
+                    )
+                ]
+            ),
+            bridging: true
+        )
         XCTAssertEqual(result.counts["bridged over kerb"], 1)
         XCTAssertEqual(result.bridges.count, 1)
         XCTAssertEqual(result.bridges.first?.word, "kerb")
     }
 
     func testSomethingTooHighToClimbIsNotBridged() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .barrier, word: "retaining_wall", height: 3,
-                     points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]),
-        ]), bridging: true)
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .barrier,
+                        word: "retaining_wall",
+                        height: 3,
+                        points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]
+                    )
+                ]
+            ),
+            bridging: true
+        )
         XCTAssertEqual(result.counts["stopped by retaining_wall over 2 m high"], 1)
         XCTAssertTrue(result.bridges.isEmpty)
     }
 
     func testAnObstacleBesideTheGapDoesNotBlockIt() {
         // The obstacle must be crossed by the gap, not merely near it.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .fence, word: "fence",
-                     points: [(45 + 1 * metre, 33.0016), (45 + 0.001, 33.0016)]),
-        ]))
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .fence,
+                        word: "fence",
+                        points: [(45 + 1 * metre, 33.0016), (45 + 0.001, 33.0016)]
+                    )
+                ]
+            )
+        )
         XCTAssertEqual(result.counts["joined"], 1)
     }
 
@@ -180,10 +240,12 @@ final class RepairPlannerTests: XCTestCase {
 
     func testAPavementRunningBesideARoadIsNotAJunction() {
         // Parallel and close along their whole length.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.004)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 2 * metre, 33.003)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.004)]),
+                Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 2 * metre, 33.003)])
+            ])
+        )
         XCTAssertEqual(result.counts["running alongside"], 2)
         XCTAssertNil(result.counts["joined"])
     }
@@ -198,12 +260,19 @@ final class RepairPlannerTests: XCTestCase {
     func testASwitchbackArrivingShallowIsStillAJunction() {
         // The last segment arrives at a pavement's shallow angle, but the way has left
         // the roadside further back, so the arrival angle alone cannot decide.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.004)]),
-            Line(id: 11, points: [(45 + 30 * metre, 33.0000),
-                                  (45 + 9 * metre, 33.0016),
-                                  (45 + 2 * metre, 33.0020)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.004)]),
+                Line(
+                    id: 11,
+                    points: [
+                        (45 + 30 * metre, 33.0000),
+                        (45 + 9 * metre, 33.0016),
+                        (45 + 2 * metre, 33.0020)
+                    ]
+                )
+            ])
+        )
         XCTAssertNil(result.counts["running alongside"])
         XCTAssertEqual(result.counts["joined"], 1)
     }
@@ -213,25 +282,43 @@ final class RepairPlannerTests: XCTestCase {
     func testTwoPassesWithTheirOwnBasesInventDisjointNodes() {
         // Each extract is annotated by its own pass and the inventions meet in one
         // splitter stream, so each pass numbers from its own base.
-        let roads = network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .barrier, word: "kerb",
-                     points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]),
-        ])
+        let roads = network(
+            [
+                Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+            ],
+            obstacles: [
+                Obstacle(
+                    kind: .barrier,
+                    word: "kerb",
+                    points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]
+                )
+            ]
+        )
         let (found, loose) = RoadRepair(network: roads, limit: 5).candidates()
-        let first = RepairPlanner(network: roads, terrain: nil, bridging: true,
-                                  limit: 5, inventedIDBase: 1 << 40)
-            .plan(found, loose: loose)
-        let second = RepairPlanner(network: roads, terrain: nil, bridging: true,
-                                   limit: 5, inventedIDBase: (1 << 40) + (1 << 32))
-            .plan(found, loose: loose)
+        let first = RepairPlanner(
+            network: roads,
+            terrain: nil,
+            bridging: true,
+            limit: 5,
+            inventedIDBase: 1 << 40
+        )
+        .plan(found, loose: loose)
+        let second = RepairPlanner(
+            network: roads,
+            terrain: nil,
+            bridging: true,
+            limit: 5,
+            inventedIDBase: (1 << 40) + (1 << 32)
+        )
+        .plan(found, loose: loose)
         let a = Set(first.bridges.map(\.node))
         let b = Set(second.bridges.map(\.node))
         XCTAssertFalse(a.isEmpty)
-        XCTAssertTrue(a.isDisjoint(with: b),
-                      "two regions' invented nodes must never share an id")
+        XCTAssertTrue(
+            a.isDisjoint(with: b),
+            "two regions' invented nodes must never share an id"
+        )
     }
 
     // MARK: A route that already gets through
@@ -241,10 +328,15 @@ final class RepairPlannerTests: XCTestCase {
         // that is not on the ground.
         var net = network([
             Line(id: 10, points: [(45, 33), (45, 33.0005), (45, 33.001)]),
-            Line(id: 11, points: [(45 + 3 * metre, 33.001), (45 + 3 * metre, 33.0005),
-                                  (45, 33)]),
+            Line(
+                id: 11,
+                points: [
+                    (45 + 3 * metre, 33.001), (45 + 3 * metre, 33.0005),
+                    (45, 33)
+                ]
+            )
         ])
-        net.refs[5] = net.refs[0]         // way 11 ends on way 10's first node
+        net.refs[5] = net.refs[0]  // way 11 ends on way 10's first node
         let result = plan(net)
         XCTAssertGreaterThanOrEqual(result.counts["already joined nearby"] ?? 0, 1)
         XCTAssertNil(result.counts["joined"])
@@ -254,8 +346,13 @@ final class RepairPlannerTests: XCTestCase {
         // Under a metre the ends are within one coordinate unit of the finest zoom.
         var net = network([
             Line(id: 10, points: [(45, 33), (45, 33.0005), (45, 33.001)]),
-            Line(id: 11, points: [(45 + 0.5 * metre, 33.001), (45 + 0.5 * metre, 33.0005),
-                                  (45, 33)]),
+            Line(
+                id: 11,
+                points: [
+                    (45 + 0.5 * metre, 33.001), (45 + 0.5 * metre, 33.0005),
+                    (45, 33)
+                ]
+            )
         ])
         net.refs[5] = net.refs[0]
         let result = plan(net)
@@ -269,12 +366,16 @@ final class RepairPlannerTests: XCTestCase {
         var lines = [Line(id: 10, points: [(45, 33), (45, 33.01)])]
         for i in 0..<3 {
             let lon = 33.001 + Double(i) * 0.0004
-            lines.append(Line(id: Int64(11 + i),
-                              points: [(45 + 2 * metre, lon), (45 + 0.002, lon)]))
+            lines.append(
+                Line(
+                    id: Int64(11 + i),
+                    points: [(45 + 2 * metre, lon), (45 + 0.002, lon)]
+                )
+            )
         }
         let result = plan(network(lines))
         XCTAssertEqual(result.counts["joined"], 3)
-        XCTAssertEqual(result.inserts[0]?.count, 3)   // all three land on way 10
+        XCTAssertEqual(result.inserts[0]?.count, 3)  // all three land on way 10
     }
 
     func testEveryVerdictIsCountedExactlyOnce() {
@@ -283,10 +384,12 @@ final class RepairPlannerTests: XCTestCase {
     }
 
     func testNothingToRepairLeavesAnEmptyPlan() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(46, 34), (46, 34.002)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                Line(id: 11, points: [(46, 34), (46, 34.002)])
+            ])
+        )
         XCTAssertTrue(result.moves.isEmpty)
         XCTAssertTrue(result.inserts.isEmpty)
         XCTAssertTrue(result.merges.isEmpty)
@@ -313,93 +416,130 @@ final class RepairPlannerTests: XCTestCase {
 /// Cases where the verdict must be to leave the gap open: closing one wrongly puts a road
 /// on the map that is not on the ground.
 extension RepairPlannerTests {
-
     func testAPathUnderABridgeIsNotJoinedToIt() {
         // A metre apart on the map, but on different levels.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)], level: 0),
-            Line(id: 11, points: [(45 + 1 * metre, 33.001), (45 + 0.002, 33.001)], level: 2),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.002)], level: 0),
+                Line(id: 11, points: [(45 + 1 * metre, 33.001), (45 + 0.002, 33.001)], level: 2)
+            ])
+        )
         XCTAssertTrue(result.inserts.isEmpty)
         XCTAssertTrue(result.merges.isEmpty)
     }
 
     func testATunnelIsNotJoinedToTheRoadAboveIt() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)], level: 0),
-            Line(id: 11, points: [(45 + 1 * metre, 33.001), (45 + 0.002, 33.001)], level: 1),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.002)], level: 0),
+                Line(id: 11, points: [(45 + 1 * metre, 33.001), (45 + 0.002, 33.001)], level: 1)
+            ])
+        )
         XCTAssertTrue(result.inserts.isEmpty)
         XCTAssertTrue(result.merges.isEmpty)
     }
 
     func testARiverBetweenTheEndsStopsTheRepair() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 3 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .water, word: "river",
-                     points: [(45 + 1.5 * metre, 33.0005), (45 + 1.5 * metre, 33.0015)]),
-        ]))
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 3 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .water,
+                        word: "river",
+                        points: [(45 + 1.5 * metre, 33.0005), (45 + 1.5 * metre, 33.0015)]
+                    )
+                ]
+            )
+        )
         XCTAssertEqual(result.counts["stopped by river"], 1)
     }
 
     func testACliffBetweenTheEndsStopsTheRepair() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 3 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .cliff, word: "cliff",
-                     points: [(45 + 1.5 * metre, 33.0005), (45 + 1.5 * metre, 33.0015)]),
-        ]))
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 3 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .cliff,
+                        word: "cliff",
+                        points: [(45 + 1.5 * metre, 33.0005), (45 + 1.5 * metre, 33.0015)]
+                    )
+                ]
+            )
+        )
         XCTAssertEqual(result.counts["stopped by cliff"], 1)
     }
 
     func testAFenceWinsOverBridgingBeingOn() {
         // Bridging applies to crossable obstacles only, whatever the height.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ], obstacles: [
-            Obstacle(kind: .fence, word: "fence", height: 0.5,
-                     points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]),
-        ]), bridging: true)
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                    Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .fence,
+                        word: "fence",
+                        height: 0.5,
+                        points: [(45 + 1 * metre, 33.0005), (45 + 1 * metre, 33.0015)]
+                    )
+                ]
+            ),
+            bridging: true
+        )
         XCTAssertEqual(result.counts["stopped by fence"], 1)
         XCTAssertTrue(result.bridges.isEmpty)
     }
 
     func testAGapJustPastTheLimitIsNotEvenACandidate() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 5.4 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                Line(id: 11, points: [(45 + 5.4 * metre, 33.001), (45 + 0.002, 33.001)])
+            ])
+        )
         XCTAssertTrue(result.counts.isEmpty)
     }
 
     func testAGapJustInsideTheLimitIsJoined() {
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 4.6 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                Line(id: 11, points: [(45 + 4.6 * metre, 33.001), (45 + 0.002, 33.001)])
+            ])
+        )
         XCTAssertEqual(result.counts["joined"], 1)
     }
 
     func testAnEndPastTheEndOfAShortLineIsMeasuredToItsCornerNotItsLine() {
         // The nearest place on the other way is its last node, not the extension of its
         // line, which points straight at this end.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.0002)]),
-            Line(id: 11, points: [(45, 33.0004), (45, 33.001)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.0002)]),
+                Line(id: 11, points: [(45, 33.0004), (45, 33.001)])
+            ])
+        )
         XCTAssertTrue(result.counts.isEmpty, "\(result.counts)")
     }
 
     func testTwoEndsInExactlyTheSamePlaceAreJoinedWithoutMovingAnything() {
         // Zero distance: the node still has to be shared, and nothing may be moved.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.001)]),
-            Line(id: 11, points: [(45, 33.001), (45, 33.002)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.001)]),
+                Line(id: 11, points: [(45, 33.001), (45, 33.002)])
+            ])
+        )
         XCTAssertEqual(result.counts["joined"], 1)
         XCTAssertTrue(result.moves.isEmpty, "a join at no distance moved a node")
         XCTAssertEqual(result.merges.count, 1)
@@ -407,21 +547,34 @@ extension RepairPlannerTests {
 
     func testAnObstacleWayIsNeverTreatedAsARoadToJoin() {
         // An obstacle way is not routable, so it is no candidate to join to.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.002)]),
-        ], obstacles: [
-            Obstacle(kind: .fence, word: "fence",
-                     points: [(45 + 1 * metre, 33.002), (45 + 0.002, 33.002)]),
-        ]))
+        let result = plan(
+            network(
+                [
+                    Line(id: 10, points: [(45, 33), (45, 33.002)])
+                ],
+                obstacles: [
+                    Obstacle(
+                        kind: .fence,
+                        word: "fence",
+                        points: [(45 + 1 * metre, 33.002), (45 + 0.002, 33.002)]
+                    )
+                ]
+            )
+        )
         XCTAssertTrue(result.counts.isEmpty)
     }
 
     func testARoundaboutHasNoEndsToRepair() {
         // A closed way's first and last point are the same node, so neither is loose.
         var net = network([
-            Line(id: 10, points: [(45, 33), (45.0001, 33), (45.0001, 33.0001),
-                                  (45, 33.0001), (45, 33)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.00005), (45 + 0.002, 33.00005)]),
+            Line(
+                id: 10,
+                points: [
+                    (45, 33), (45.0001, 33), (45.0001, 33.0001),
+                    (45, 33.0001), (45, 33)
+                ]
+            ),
+            Line(id: 11, points: [(45 + 2 * metre, 33.00005), (45 + 0.002, 33.00005)])
         ])
         net.refs[4] = net.refs[0]
         let result = plan(net)
@@ -431,10 +584,12 @@ extension RepairPlannerTests {
     func testAWayWithTwoPointsInTheSamePlaceDoesNotConfuseTheGeometry() {
         // A zero-length segment must not divide by zero: a NaN compares false against
         // every limit.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33), (45, 33.002)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33), (45, 33.002)]),
+                Line(id: 11, points: [(45 + 2 * metre, 33.001), (45 + 0.002, 33.001)])
+            ])
+        )
         XCTAssertEqual(result.counts["joined"], 1)
     }
 
@@ -462,10 +617,12 @@ extension RepairPlannerTests {
     func testAnEndTouchingTheMiddleOfALineIsInsertedNotMerged() {
         // The nearest point is halfway along the far line, so there is no end to merge
         // with and the line takes a new vertex.
-        let result = plan(network([
-            Line(id: 10, points: [(45, 33), (45, 33.004)]),
-            Line(id: 11, points: [(45 + 2 * metre, 33.002), (45 + 0.002, 33.002)]),
-        ]))
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.004)]),
+                Line(id: 11, points: [(45 + 2 * metre, 33.002), (45 + 0.002, 33.002)])
+            ])
+        )
         XCTAssertEqual(result.counts["joined"], 1)
         XCTAssertEqual(result.inserts.count, 1)
         XCTAssertTrue(result.merges.isEmpty)

@@ -18,8 +18,13 @@ extension TypEdit {
         // The highest level in the table, so a new polygon lands above ground cover
         // rather than hidden beneath it.
         let highest = lines[table].compactMap { drawOrderEntry(of: $0)?.level }.max() ?? 1
-        placeInDrawOrder(&lines, table: table, entry: "Type=\(TypeMeaning.hex(code))",
-                         level: level ?? highest, note: addedNote)
+        placeInDrawOrder(
+            &lines,
+            table: table,
+            entry: "Type=\(TypeMeaning.hex(code))",
+            level: level ?? highest,
+            note: addedNote
+        )
     }
 
     /// Moves a polygon to another level of the draw order, or adds a missing one.
@@ -28,8 +33,13 @@ extension TypEdit {
     /// order stays that way. The code keeps its spelling; kmap's own note above the
     /// entry moves with it.
     /// - Throws: `EditError.noDrawOrder` without a table, `.notALevel` below 1.
-    static func setDrawOrderLevel(in source: TypSource, code: Int, to level: Int) throws
-        -> String {
+    static func setDrawOrderLevel(
+        in source: TypSource,
+        code: Int,
+        to level: Int
+    ) throws
+        -> String
+    {
         guard level >= 1 else { throw EditError.notALevel(level) }
         var lines = source.lines
         guard let table = drawOrderTable(in: lines) else { throw EditError.noDrawOrder }
@@ -40,7 +50,8 @@ extension TypEdit {
             spelling = drawOrderEntry(of: lines[number])?.spelling ?? spelling
             // Only kmap's own note moves: a divider above the entry belongs to the group.
             if number > table.lowerBound,
-               isAddedNote(lines[number - 1]) {
+                isAddedNote(lines[number - 1])
+            {
                 note = addedNote
             }
         }
@@ -53,8 +64,13 @@ extension TypEdit {
     /// Writes an entry after the last one at or below its level, or at the top where
     /// none is. The note goes on its own line: the TYP compiler reads an entry to the
     /// end of the line, and a comment behind the level breaks the whole file.
-    private static func placeInDrawOrder(_ lines: inout [String], table: Range<Int>,
-                                         entry: String, level: Int, note: String?) {
+    private static func placeInDrawOrder(
+        _ lines: inout [String],
+        table: Range<Int>,
+        entry: String,
+        level: Int,
+        note: String?
+    ) {
         var at = table.lowerBound
         for number in table {
             guard let entry = drawOrderEntry(of: lines[number]), entry.level <= level
@@ -73,7 +89,7 @@ extension TypEdit {
             line.trimmingCharacters(in: .whitespaces).lowercased() == marker
         }
         guard let open = lines.firstIndex(where: { marks($0, tableHeader) }),
-              let close = lines[open...].firstIndex(where: { marks($0, tableEnd) })
+            let close = lines[open...].firstIndex(where: { marks($0, tableEnd) })
         else { return nil }
         return open + 1..<close
     }
@@ -85,7 +101,8 @@ extension TypEdit {
         for number in table where drawOrderEntry(of: lines[number])?.code == code {
             going.insert(number)
             if number > table.lowerBound,
-               isAddedNote(lines[number - 1]) {
+                isAddedNote(lines[number - 1])
+            {
                 going.insert(number - 1)
             }
         }
@@ -95,8 +112,11 @@ extension TypEdit {
     /// An entry like `Type=0x04b,5`: the type, its level (0 where none is given) and the
     /// type as spelt in the file. Nil for any other line. A comment behind the level,
     /// which an older kmap wrote, does not hide the entry.
-    private static func drawOrderEntry(of line: String)
-        -> (code: Int, level: Int, spelling: String)? {
+    private static func drawOrderEntry(
+        of line: String
+    )
+        -> (code: Int, level: Int, spelling: String)?
+    {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard trimmed.lowercased().hasPrefix("type="), let eq = trimmed.firstIndex(of: "=")
         else { return nil }

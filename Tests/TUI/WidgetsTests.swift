@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// Moving through a list. Which row is selected and which rows are on screen are
 /// separate questions; the selection must stay inside the window.
 final class WidgetsTests: XCTestCase {
-
     func testMovingWrapsRoundTheEndsBecauseTheFarEndIsWhatYouAreReachingFor() {
         var list = ListState()
         list.move(-1, count: 10)
@@ -49,7 +49,7 @@ final class WidgetsTests: XCTestCase {
         var list = ListState()
         list.jump(to: 20, count: 100)
         list.clamp(count: 100, visible: 10)
-        XCTAssertEqual(list.offset, 11)                 // the selected row is the last shown
+        XCTAssertEqual(list.offset, 11)  // the selected row is the last shown
         XCTAssertTrue((list.offset..<(list.offset + 10)).contains(list.selected))
         list.jump(to: 5, count: 100)
         list.clamp(count: 100, visible: 10)
@@ -87,8 +87,10 @@ final class WidgetsTests: XCTestCase {
         for _ in 0..<250 {
             list.move(1, count: 200)
             list.clamp(count: 200, visible: 12)
-            XCTAssertTrue((list.offset..<(list.offset + 12)).contains(list.selected),
-                          "selected \(list.selected) outside \(list.offset)…")
+            XCTAssertTrue(
+                (list.offset..<(list.offset + 12)).contains(list.selected),
+                "selected \(list.selected) outside \(list.offset)…"
+            )
             XCTAssertLessThanOrEqual(list.offset + 12, 200)
         }
     }
@@ -96,7 +98,6 @@ final class WidgetsTests: XCTestCase {
 
 /// The rectangles screens are laid out with.
 final class RectTests: XCTestCase {
-
     func testInsettingPullsInFromEverySide() {
         let panel = Rect(x: 0, y: 0, w: 20, h: 10).inset(by: 2)
         XCTAssertEqual([panel.x, panel.y, panel.w, panel.h], [2, 2, 16, 6])

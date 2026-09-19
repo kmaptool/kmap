@@ -6,7 +6,6 @@ import Foundation
 /// `components(separatedBy:)` disagree with each other and across platforms on CRLF
 /// input. These functions work over unicode scalars, which is consistent.
 enum Lines {
-
     /// Returns `text` as lines with the ending removed; CRLF, LF and a lone CR all end a
     /// line. A trailing newline produces no empty last line.
     static func of(_ text: String) -> [String] {
@@ -32,7 +31,7 @@ enum Lines {
                 current.append(scalar)
                 sawCarriageReturn = true
             default:
-                if sawCarriageReturn { flush(); }
+                if sawCarriageReturn { flush();  }
                 current.append(scalar)
             }
         }

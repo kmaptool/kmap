@@ -5,7 +5,6 @@ import Foundation
 /// `1 << (byte[0x61] + byte[0x62])`, and the directory starts at `byte[0x40] × 512` — fixed
 /// 512-byte sectors, not blocks.
 enum ImgContainer {
-
     struct SubFile {
         let name: String
         let ext: String
@@ -27,7 +26,8 @@ enum ImgContainer {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
         defer { try? handle.close() }
         guard let head = try? handle.read(upToCount: 0x200),
-              head.count > signatureOffset + 6 else { return false }
+            head.count > signatureOffset + 6
+        else { return false }
         return head[signatureOffset..<(signatureOffset + 6)].elementsEqual(Array("DSKIMG".utf8))
     }
 
@@ -38,21 +38,24 @@ enum ImgContainer {
         guard let head = try? handle.read(upToCount: 0x600), head.count >= 0x600 else { return [] }
         let bytes = [UInt8](head)
         guard bytes.count > signatureOffset + 6,
-              Array(bytes[signatureOffset..<(signatureOffset + 6)]) == Array("DSKIMG".utf8) else {
+            Array(bytes[signatureOffset..<(signatureOffset + 6)]) == Array("DSKIMG".utf8)
+        else {
             return []
         }
 
         let blockSize = 1 << (Int(bytes[blockExponent1]) + Int(bytes[blockExponent2]))
         guard blockSize > 0, blockSize <= 1 << 20 else { return [] }
 
-        let directoryStart = Int(bytes[directorySectorOffset] == 0 ? 2 : bytes[directorySectorOffset])
+        let directoryStart =
+            Int(bytes[directorySectorOffset] == 0 ? 2 : bytes[directorySectorOffset])
             * directoryEntrySize
         guard (try? handle.seek(toOffset: UInt64(directoryStart))) != nil else { return [] }
 
         // The first entry describes the directory itself; its block list bounds the FAT.
         var directoryEnd: Int? = nil
         if let selfEntry = try? handle.read(upToCount: directoryEntrySize),
-           selfEntry.count == directoryEntrySize, selfEntry.first == 1 {
+            selfEntry.count == directoryEntrySize, selfEntry.first == 1
+        {
             let blocks = blockList(in: [UInt8](selfEntry))
             if let last = blocks.max() { directoryEnd = (last + 1) * blockSize }
         }
@@ -64,7 +67,8 @@ enum ImgContainer {
             let position = Int((try? handle.offset()) ?? 0)
             if let directoryEnd, position >= directoryEnd { break }
             guard let raw = try? handle.read(upToCount: directoryEntrySize),
-                  raw.count == directoryEntrySize, raw.first == 1 else { break }
+                raw.count == directoryEntrySize, raw.first == 1
+            else { break }
 
             let entry = [UInt8](raw)
             // `CodePage.latin1` rather than Foundation's Latin-1, which is not dependable
@@ -73,16 +77,23 @@ enum ImgContainer {
             // the same call on a 40 kB page is what broke every elevation download.
             let name = CodePage.latin1(entry[1..<9]).trimmingCharacters(in: .whitespaces)
             let ext = CodePage.latin1(entry[9..<12]).trimmingCharacters(in: .whitespaces)
-            let size = Int(UInt32(entry[0x0C]) | UInt32(entry[0x0D]) << 8
-                           | UInt32(entry[0x0E]) << 16 | UInt32(entry[0x0F]) << 24)
+            let size = Int(
+                UInt32(entry[0x0C]) | UInt32(entry[0x0D]) << 8
+                    | UInt32(entry[0x0E]) << 16 | UInt32(entry[0x0F]) << 24
+            )
             let blocks = blockList(in: entry)
             let key = "\(name).\(ext)"
 
             if found[key] != nil {
                 found[key]?.blocks.append(contentsOf: blocks)
             } else {
-                found[key] = SubFile(name: name, ext: ext, size: size,
-                                     blocks: blocks, blockSize: blockSize)
+                found[key] = SubFile(
+                    name: name,
+                    ext: ext,
+                    size: size,
+                    blocks: blocks,
+                    blockSize: blockSize
+                )
                 order.append(key)
             }
         }
@@ -124,7 +135,8 @@ enum ImgContainer {
             let take = min(file.blockSize - within, remaining)
             let position = file.blocks[blockIndex] * file.blockSize + within
             guard (try? handle.seek(toOffset: UInt64(position))) != nil,
-                  let chunk = try? handle.read(upToCount: take), !chunk.isEmpty else { break }
+                let chunk = try? handle.read(upToCount: take), !chunk.isEmpty
+            else { break }
             out.append(chunk)
             cursor += chunk.count
             remaining -= chunk.count
@@ -141,11 +153,13 @@ enum ImgContainer {
     /// offset 2, family id at 0x2F and product id at 0x31, both little-endian 16-bit.
     static func typIdentity(in url: URL) -> (familyID: Int, productID: Int, size: Int)? {
         guard let sub = typSubFile(in: url),
-              let head = read(sub, from: url, offset: 0, length: 0x40),
-              head.count >= 0x33 else { return nil }
+            let head = read(sub, from: url, offset: 0, length: 0x40),
+            head.count >= 0x33
+        else { return nil }
         let bytes = [UInt8](head)
         guard bytes.count > 12,
-              Array(bytes[2..<12]) == Array("GARMIN TYP".utf8) else { return nil }
+            Array(bytes[2..<12]) == Array("GARMIN TYP".utf8)
+        else { return nil }
         let family = Int(bytes[0x2F]) | Int(bytes[0x30]) << 8
         let product = Int(bytes[0x31]) | Int(bytes[0x32]) << 8
         guard family > 0 else { return nil }
@@ -156,7 +170,8 @@ enum ImgContainer {
     @discardableResult
     static func extractTYP(from url: URL, to destination: URL) -> Bool {
         guard let sub = typSubFile(in: url),
-              let data = read(sub, from: url), data.count > 0x33 else { return false }
+            let data = read(sub, from: url), data.count > 0x33
+        else { return false }
         Paths.ensure(destination.deletingLastPathComponent())
         return (try? data.write(to: destination, options: .atomic)) != nil
     }

@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The recipe itself: tile ids, coverage, where a description goes, which labels survive.
 final class BuildRecipeTests: RecipeTestCase {
-
     // MARK: The tile ids
 
     func testTheTileIdsStartWhereTheFamilyIdSaysTheyDo() {
@@ -26,15 +26,19 @@ final class BuildRecipeTests: RecipeTestCase {
         // of a set flat.
         let a = region("a", "A", box: BBox(minLon: 5, minLat: 49, maxLon: 6, maxLat: 50))
         let b = region("b", "B", box: BBox(minLon: 8, minLat: 47, maxLon: 9, maxLat: 48))
-        XCTAssertEqual(recipe([a, b]).coverage,
-                       BBox(minLon: 5, minLat: 47, maxLon: 9, maxLat: 50))
+        XCTAssertEqual(
+            recipe([a, b]).coverage,
+            BBox(minLon: 5, minLat: 47, maxLon: 9, maxLat: 50)
+        )
     }
 
     func testARegionWithNoOutlineDoesNotDragTheCoverageToInfinity() {
         let a = region("a", "A", box: BBox(minLon: 5, minLat: 49, maxLon: 6, maxLat: 50))
         let empty = region("b", "B")
-        XCTAssertEqual(recipe([a, empty]).coverage,
-                       BBox(minLon: 5, minLat: 49, maxLon: 6, maxLat: 50))
+        XCTAssertEqual(
+            recipe([a, empty]).coverage,
+            BBox(minLon: 5, minLat: 49, maxLon: 6, maxLat: 50)
+        )
     }
 
     func testElevationIsNeededForEitherPurpose() {

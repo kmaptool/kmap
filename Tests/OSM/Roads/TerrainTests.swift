@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The ground, read off the .hgt tiles the contour step downloads. Posts are 30 m apart.
@@ -6,7 +7,6 @@ import XCTest
 /// Reads the nearest post, answers nil where the data is absent, and treats the -32768
 /// void marker as no answer rather than as a height.
 final class TerrainTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
     private let size = 3601
 
@@ -45,8 +45,11 @@ final class TerrainTests: XCTestCase {
         // The bottom row is 44°N.
         XCTAssertEqual(terrain.elevation(44.0, 33.5) ?? -1, Double(size - 1), accuracy: 0.5)
         // Halfway down.
-        XCTAssertEqual(terrain.elevation(44.5, 33.5) ?? -1, Double(size - 1) / 2,
-                       accuracy: 1)
+        XCTAssertEqual(
+            terrain.elevation(44.5, 33.5) ?? -1,
+            Double(size - 1) / 2,
+            accuracy: 1
+        )
     }
 
     func testColumnsRunEastFromTheTilesWesternEdge() throws {
@@ -75,8 +78,11 @@ final class TerrainTests: XCTestCase {
 
     func testFlatGroundHasNoSlope() throws {
         try writeFlat("N44E033.hgt", 100)
-        XCTAssertEqual(Terrain(directory: directory).slope(44.5, 33.5) ?? -1, 0,
-                       accuracy: 0.01)
+        XCTAssertEqual(
+            Terrain(directory: directory).slope(44.5, 33.5) ?? -1,
+            0,
+            accuracy: 0.01
+        )
     }
 
     func testAStepOfOnePostHeightIsAboutFortyFiveDegrees() throws {
@@ -93,8 +99,12 @@ final class TerrainTests: XCTestCase {
         try writeFlat("N44E033.hgt", 42)
         let terrain = Terrain(directory: directory)
         for (lat, lon) in [(44.0, 33.0), (45.0, 34.0), (44.0, 34.0), (45.0, 33.0)] {
-            XCTAssertEqual(terrain.elevation(lat, lon) ?? 0, 42, accuracy: 0.5,
-                           "\(lat),\(lon)")
+            XCTAssertEqual(
+                terrain.elevation(lat, lon) ?? 0,
+                42,
+                accuracy: 0.5,
+                "\(lat),\(lon)"
+            )
         }
     }
 
@@ -104,7 +114,7 @@ final class TerrainTests: XCTestCase {
         try short.write(to: directory.appendingPathComponent("N44E033.hgt"))
         let terrain = Terrain(directory: directory)
         XCTAssertNil(terrain.elevation(44.5, 33.5))
-        XCTAssertNotNil(terrain.elevation(45.0, 33.0))    // the first post is there
+        XCTAssertNotNil(terrain.elevation(45.0, 33.0))  // the first post is there
     }
 
     func testTheSameTileIsOnlyReadOnce() throws {

@@ -62,7 +62,6 @@ struct BuildChoices: Codable, Equatable {
 // In an extension so the memberwise initialiser, which every caller uses, is still
 // synthesised.
 extension BuildChoices {
-
     /// Decodes leniently, field by field: a missing or unreadable key takes the current
     /// default. The synthesised decoder would throw on the first missing key, and profiles
     /// live in one array, so a throw would lose every profile in the file.
@@ -98,8 +97,10 @@ extension BuildChoices {
         parts = read(.parts, fallback.parts)
         theme = read(.theme, fallback.theme)
         shapeOverlap = BuildChoices.sane(read(.shapeOverlap, fallback.shapeOverlap))
-        landOverlap = min(BuildChoices.sane(read(.landOverlap, fallback.landOverlap)),
-                          shapeOverlap)
+        landOverlap = min(
+            BuildChoices.sane(read(.landOverlap, fallback.landOverlap)),
+            shapeOverlap
+        )
     }
 }
 
@@ -129,8 +130,12 @@ struct BuildProfile: Codable, Equatable, Identifiable {
         // Compared in the alphabet's own locale rather than the interface's, so the order
         // within a script is stable whatever language the screen is in.
         let locale = Locale(identifier: left == 1 ? "ru" : "en")
-        let order = a.name.compare(b.name, options: [.caseInsensitive], range: nil,
-                                   locale: locale)
+        let order = a.name.compare(
+            b.name,
+            options: [.caseInsensitive],
+            range: nil,
+            locale: locale
+        )
         if order != .orderedSame { return order == .orderedAscending }
         return a.id < b.id
     }
@@ -150,7 +155,6 @@ struct BuildProfile: Codable, Equatable, Identifiable {
 // MARK: - The profiles a settings file holds
 
 extension SettingsStore {
-
     /// Every profile, in the order they are offered everywhere: Latin names, then Cyrillic.
     var profiles: [BuildProfile] {
         settings.profiles.sorted(by: BuildProfile.precedes)
@@ -221,7 +225,8 @@ extension SettingsStore {
     @discardableResult
     func deleteProfile(_ id: String) -> Bool {
         guard settings.profiles.count > 1,
-              let at = settings.profiles.firstIndex(where: { $0.id == id }) else { return false }
+            let at = settings.profiles.firstIndex(where: { $0.id == id })
+        else { return false }
         update {
             $0.profiles.remove(at: at)
             if $0.lastProfileID == id { $0.lastProfileID = $0.profiles.first?.id ?? "" }
@@ -234,8 +239,10 @@ extension SettingsStore {
     func uniqueProfileName(_ wanted: String, ignoring id: String? = nil) -> String {
         let trimmed = wanted.trimmingCharacters(in: .whitespaces)
         let base = trimmed.isEmpty ? BuildProfile.firstName : trimmed
-        let taken = Set(settings.profiles.filter { $0.id != id }
-            .map { $0.name.lowercased() })
+        let taken = Set(
+            settings.profiles.filter { $0.id != id }
+                .map { $0.name.lowercased() }
+        )
         guard taken.contains(base.lowercased()) else { return base }
         var n = 2
         while taken.contains("\(base.lowercased()) \(n)") { n += 1 }
@@ -246,7 +253,6 @@ extension SettingsStore {
 // MARK: - A profile meeting a recipe
 
 extension BuildRecipe {
-
     /// The choices this recipe is carrying, lifted out of it.
     var choices: BuildChoices {
         BuildChoices(
@@ -274,7 +280,8 @@ extension BuildRecipe {
             parts: splitMode.fileCount > 0 ? splitMode.fileCount : 1,
             theme: theme.rawValue,
             shapeOverlap: shapeOverlap,
-            landOverlap: landOverlap)
+            landOverlap: landOverlap
+        )
     }
 
     /// Lays a set of choices over the recipe, leaving what belongs to this map alone: the
@@ -286,8 +293,12 @@ extension BuildRecipe {
     ///   - regionCodePage: used when the profile leaves the code page open.
     ///   - plans: the zoom plans to resolve `zoomPlanID` against, passed in so the recipe
     ///     never reads settings itself.
-    mutating func apply(_ choices: BuildChoices, style: MapStyle?, regionCodePage: Int,
-                        plans: [ZoomPlan] = ZoomPlan.builtins) {
+    mutating func apply(
+        _ choices: BuildChoices,
+        style: MapStyle?,
+        regionCodePage: Int,
+        plans: [ZoomPlan] = ZoomPlan.builtins
+    ) {
         if let style { self.style = style }
         contours = choices.contours
         contourInterval = choices.contourInterval
@@ -296,9 +307,11 @@ extension BuildRecipe {
         demSources = CopernicusDEM.canonicalSourceList(choices.demSources)
         levels = LevelsProfile.all.first { $0.id == choices.levelsID } ?? .smooth
         // A deleted plan, or one made for another ladder, falls back to the built-in.
-        zoomPlan = plans.first { $0.id == choices.zoomPlanID && $0.levelsID == levels.id }
+        zoomPlan =
+            plans.first { $0.id == choices.zoomPlanID && $0.levelsID == levels.id }
             ?? ZoomPlan.builtin(forLevels: levels.id)
-        nameTagList = LabelLanguage.all
+        nameTagList =
+            LabelLanguage.all
             .first { $0.id == choices.labelLanguageID }?.tagList ?? ""
         codePage = choices.codePage != 0 ? choices.codePage : regionCodePage
         routable = choices.routable

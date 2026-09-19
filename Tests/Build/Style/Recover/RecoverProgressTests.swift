@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// What a recovery reports while it runs: a count where no total exists, a bar where one
 /// does, written from many cores and read by the render loop.
 final class RecoverProgressTests: XCTestCase {
-
     func testItStartsPreparingWithNothingToShow() {
         let snapshot = RecoverProgress().snapshot
         XCTAssertEqual(snapshot.stage, .preparing)

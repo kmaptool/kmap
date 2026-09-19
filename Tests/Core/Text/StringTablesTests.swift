@@ -1,17 +1,18 @@
 import XCTest
+
 @testable import kmap
 
 /// The string tables against the sources that use them: a `t("…")` with no entry behind it
 /// neither crashes nor warns, so the sources are scanned and every key must have an answer.
 final class StringTablesTests: XCTestCase {
-
     /// The source tree, found by walking up from `#filePath` to `Package.swift`: a path
     /// counted in directories would yield an enumerator over nothing rather than an error.
     private static var sourcesDirectory: URL {
         var directory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         while directory.path != "/" {
             if FileManager.default.fileExists(
-                atPath: directory.appendingPathComponent("Package.swift").path) {
+                atPath: directory.appendingPathComponent("Package.swift").path
+            ) {
                 return directory.appendingPathComponent("Sources/kmap", isDirectory: true)
             }
             directory = directory.deletingLastPathComponent()
@@ -61,8 +62,12 @@ final class StringTablesTests: XCTestCase {
     }
 
     /// Reads one Swift string literal, returning its value and where it ended.
-    private func readLiteral(_ text: String, from start: String.Index)
-        -> (String?, String.Index) {
+    private func readLiteral(
+        _ text: String,
+        from start: String.Index
+    )
+        -> (String?, String.Index)
+    {
         guard text[start] == "\"" else { return (nil, start) }
         var value = ""
         var index = text.index(after: start)
@@ -76,7 +81,7 @@ final class StringTablesTests: XCTestCase {
                 case "t": value += "\t"
                 case "\"": value += "\""
                 case "\\": value += "\\"
-                default: value += "\\" + String(text[next])   // `\(` and the rest
+                default: value += "\\" + String(text[next])  // `\(` and the rest
                 }
                 index = text.index(after: next)
                 continue
@@ -112,23 +117,30 @@ final class StringTablesTests: XCTestCase {
             if nameStart > text.startIndex {
                 let before = text[text.index(before: nameStart)]
                 if before.isLetter || before.isNumber || before == "_" || before == "."
-                    || before == "\"" { continue }
+                    || before == "\""
+                {
+                    continue
+                }
             }
 
             // The literals that follow, joined across `+`.
             var parts: [String] = []
             var cursor = text.index(after: open)
             while true {
-                while cursor < text.endIndex, text[cursor] == " " || text[cursor] == "\n"
-                    || text[cursor] == "\t" { cursor = text.index(after: cursor) }
+                while cursor < text.endIndex,
+                    text[cursor] == " " || text[cursor] == "\n"
+                        || text[cursor] == "\t"
+                { cursor = text.index(after: cursor) }
                 guard cursor < text.endIndex, text[cursor] == "\"" else { break }
                 let (literal, next) = readLiteral(text, from: cursor)
                 guard let literal else { break }
                 parts.append(literal)
                 cursor = next
                 var peek = cursor
-                while peek < text.endIndex, text[peek] == " " || text[peek] == "\n"
-                    || text[peek] == "\t" { peek = text.index(after: peek) }
+                while peek < text.endIndex,
+                    text[peek] == " " || text[peek] == "\n"
+                        || text[peek] == "\t"
+                { peek = text.index(after: peek) }
                 guard peek < text.endIndex, text[peek] == "+" else { break }
                 cursor = text.index(after: peek)
             }
@@ -142,8 +154,13 @@ final class StringTablesTests: XCTestCase {
 
     private func everythingAsked() throws -> [Ask] {
         let root = StringTablesTests.sourcesDirectory
-        let walker = try XCTUnwrap(FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]))
+        let walker = try XCTUnwrap(
+            FileManager.default.enumerator(
+                at: root,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+        )
         var out: [Ask] = []
         for case let url as URL in walker where url.pathExtension == "swift" {
             // The tables hold keys and translations, not calls asking for one.
@@ -158,19 +175,21 @@ final class StringTablesTests: XCTestCase {
 
     func testTheScannerReadsWhatTheScreensActuallyWrite() {
         let source = """
-        // t("in a comment") is not a string to translate
-        /* nor t("in a block") */
-        let a = t("plain")
-        let b = tn("%d file(s)", n)
-        let c = t("a long one "
-                + "written across lines")
-        let d = t("with \\(interpolation) in it")
-        let e = format(t("nested"))
-        let f = subtract(x)
-        """
+            // t("in a comment") is not a string to translate
+            /* nor t("in a block") */
+            let a = t("plain")
+            let b = tn("%d file(s)", n)
+            let c = t("a long one "
+                    + "written across lines")
+            let d = t("with \\(interpolation) in it")
+            let e = format(t("nested"))
+            let f = subtract(x)
+            """
         let found = asks(in: source, file: "sample.swift")
-        XCTAssertEqual(found.map(\.key),
-                       ["plain", "%d file(s)", "a long one written across lines", "nested"])
+        XCTAssertEqual(
+            found.map(\.key),
+            ["plain", "%d file(s)", "a long one written across lines", "nested"]
+        )
         XCTAssertEqual(found.map(\.counted), [false, true, false, false])
     }
 
@@ -181,8 +200,11 @@ final class StringTablesTests: XCTestCase {
         let sources = StringTablesTests.sourcesDirectory
         XCTAssertTrue(FileManager.default.fileExists(atPath: sources.path), sources.path)
         let asked = try everythingAsked()
-        XCTAssertGreaterThan(asked.count, 300,
-                             "the interface asks for far more strings than this")
+        XCTAssertGreaterThan(
+            asked.count,
+            300,
+            "the interface asks for far more strings than this"
+        )
         XCTAssertGreaterThan(Set(asked.map(\.file)).count, 20, "across far more files")
     }
 
@@ -201,9 +223,11 @@ final class StringTablesTests: XCTestCase {
             }
         }
 
-        XCTAssertTrue(missing.isEmpty,
-                      "untranslated:\n"
-                      + missing.map { "  \($0.file): \($0.key)" }.joined(separator: "\n"))
+        XCTAssertTrue(
+            missing.isEmpty,
+            "untranslated:\n"
+                + missing.map { "  \($0.file): \($0.key)" }.joined(separator: "\n")
+        )
     }
 
     func testACountedStringCarriesBothEnglishFormsAsWell() throws {
@@ -219,11 +243,11 @@ final class StringTablesTests: XCTestCase {
     func testTheKeysNothingCanScanForAreInTheTablesToo() {
         // Looked up through a variable, so the scanner cannot find them.
         let byHand = [
-            "Local", "Russian", "English",                      // LabelLanguage
-            "Standard (4 levels)", "Smooth (8 levels)",         // LevelsProfile
+            "Local", "Russian", "English",  // LabelLanguage
+            "Standard (4 levels)", "Smooth (8 levels)",  // LevelsProfile
             "whatever the local mappers wrote — Russian in Russia, German in Germany",
             "mkgmap's default — smaller maps, coarser zoom steps",
-            "Amenities", "Shops", "Tourism", "Road features"    // hideable categories
+            "Amenities", "Shops", "Tourism", "Road features"  // hideable categories
         ]
         for key in byHand {
             XCTAssertNotNil(Strings.text(key, in: .ru), "no translation for \"\(key)\"")

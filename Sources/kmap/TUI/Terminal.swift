@@ -28,12 +28,12 @@ final class Terminal {
     func start() {
         Terminal.shared = self
         _ = Console.enterRawMode()
-        output("\u{1B}[?1049h")   // alternate screen buffer
-        output("\u{1B}[?25l")     // hide cursor
-        output("\u{1B}[?2004h")   // bracketed paste mode
-        output("\u{1B}[22;0t")    // push the current window title
-        output("\u{1B}]0;kmap\u{07}") // set the window title
-        output("\u{1B}[2J")       // clear
+        output("\u{1B}[?1049h")  // alternate screen buffer
+        output("\u{1B}[?25l")  // hide cursor
+        output("\u{1B}[?2004h")  // bracketed paste mode
+        output("\u{1B}[22;0t")  // push the current window title
+        output("\u{1B}]0;kmap\u{07}")  // set the window title
+        output("\u{1B}[2J")  // clear
         installSignalHandlers()
     }
 
@@ -43,8 +43,11 @@ final class Terminal {
     func setMouseTracking(_ enabled: Bool) {
         guard enabled != mouseTracking else { return }
         mouseTracking = enabled
-        output(enabled ? "\u{1B}[?1000h\u{1B}[?1003h\u{1B}[?1006h"
-                       : "\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1000l")
+        output(
+            enabled
+                ? "\u{1B}[?1000h\u{1B}[?1003h\u{1B}[?1006h"
+                : "\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1000l"
+        )
     }
 
     /// Remembers the console as it stands, before another program is given it.
@@ -58,10 +61,10 @@ final class Terminal {
         Console.reclaim()
         // Whatever the dialog left in the buffer is not a keystroke meant for a screen.
         pending.removeAll()
-        output("\u{1B}[?1049h")   // the alternate screen, in case it was left
-        output("\u{1B}[?25l")     // hide cursor
-        output("\u{1B}[?2004h")   // bracketed paste
-        output("\u{1B}[2J")       // clear
+        output("\u{1B}[?1049h")  // the alternate screen, in case it was left
+        output("\u{1B}[?25l")  // hide cursor
+        output("\u{1B}[?2004h")  // bracketed paste
+        output("\u{1B}[2J")  // clear
         if mouseTracking { output("\u{1B}[?1000h\u{1B}[?1003h\u{1B}[?1006h") }
         repaintWanted = true
     }
@@ -77,10 +80,10 @@ final class Terminal {
 
     func stop() {
         setMouseTracking(false)
-        output("\u{1B}[23;0t")    // restore the pushed window title
-        output("\u{1B}[?2004l")   // disable bracketed paste
-        output("\u{1B}[?25h")     // show cursor
-        output("\u{1B}[?1049l")   // leave alternate screen
+        output("\u{1B}[23;0t")  // restore the pushed window title
+        output("\u{1B}[?2004l")  // disable bracketed paste
+        output("\u{1B}[?25h")  // show cursor
+        output("\u{1B}[?1049l")  // leave alternate screen
         Console.restore()
     }
 
@@ -164,22 +167,25 @@ final class Terminal {
         let b = pending.removeFirst()
 
         switch b {
-        case 0x1B: // ESC
+        case 0x1B:  // ESC
             ensure(1)
             guard let next = pending.first, next == 0x5B || next == 0x4F else { return .esc }
-            pending.removeFirst() // consume [ or O
+            pending.removeFirst()  // consume [ or O
             ensure(1)
             guard let c = pending.first else { return .esc }
-            if c == 0x3C { // '<' — an SGR pointer report
+            if c == 0x3C {  // '<' — an SGR pointer report
                 pending.removeFirst()
                 return parseMouse()
             }
-            if (c >= 0x30 && c <= 0x39) || c == 0x3B { // parameterized CSI
+            if (c >= 0x30 && c <= 0x39) || c == 0x3B {  // parameterized CSI
                 var params: [String] = []
                 var current = ""
                 while ensure(1), let d = pending.first, (d >= 0x30 && d <= 0x39) || d == 0x3B {
-                    if d == 0x3B { params.append(current); current = "" }
-                    else { current.append(Character(UnicodeScalar(d))) }
+                    if d == 0x3B {
+                        params.append(current); current = ""
+                    } else {
+                        current.append(Character(UnicodeScalar(d)))
+                    }
                     pending.removeFirst()
                 }
                 params.append(current)
@@ -187,7 +193,7 @@ final class Terminal {
                 if pending.first != nil { pending.removeFirst() }
 
                 switch final {
-                case 0x7E: // '~'
+                case 0x7E:  // '~'
                     switch params.first ?? "" {
                     case "200": return collectPaste()
                     case "1", "7": return .home
@@ -245,8 +251,7 @@ final class Terminal {
         var params: [String] = []
         var current = ""
         while let d = pending.first, (d >= 0x30 && d <= 0x39) || d == 0x3B {
-            if d == 0x3B { params.append(current); current = "" }
-            else { current.append(Character(UnicodeScalar(d))) }
+            if d == 0x3B { params.append(current); current = "" } else { current.append(Character(UnicodeScalar(d))) }
             pending.removeFirst()
         }
         params.append(current)
@@ -254,11 +259,12 @@ final class Terminal {
         pending.removeFirst()
 
         guard params.count >= 3,
-              let button = Int(params[0]),
-              let column = Int(params[1]),
-              let row = Int(params[2]) else { return nil }
+            let button = Int(params[0]),
+            let column = Int(params[1]),
+            let row = Int(params[2])
+        else { return nil }
 
-        let released = final == 0x6D   // 'm'
+        let released = final == 0x6D  // 'm'
         // The low two bits name the button; 3 means none, so motion with 3 is a move and
         // motion with any other value is a drag.
         let noButton = button & 3 == 3
@@ -273,8 +279,14 @@ final class Terminal {
             action = .press
         }
         // The terminal counts from one; everything drawn here counts from zero.
-        return .mouse(MouseEvent(action: action, x: column - 1, y: row - 1,
-                                 isPrimary: button & 3 == 0))
+        return .mouse(
+            MouseEvent(
+                action: action,
+                x: column - 1,
+                y: row - 1,
+                isPrimary: button & 3 == 0
+            )
+        )
     }
 
     private func collectPaste() -> KeyEvent {

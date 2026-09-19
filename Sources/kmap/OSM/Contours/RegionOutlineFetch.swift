@@ -13,17 +13,22 @@ extension RegionOutline {
         Paths.ensure(Paths.polyCache)
         let file = Paths.polyCache.appendingPathComponent(FileTools.slugify(region.id) + polySuffix)
         if let text = try? String(contentsOf: file, encoding: .utf8),
-           let rings = parse(text) {
+            let rings = parse(text)
+        {
             return rings
         }
         guard let pbf = region.pbfURL,
-              let polyURL = URL(string: pbf.absoluteString
-                  .replacingOccurrences(of: extractSuffix, with: polySuffix)) else {
+            let polyURL = URL(
+                string: pbf.absoluteString
+                    .replacingOccurrences(of: extractSuffix, with: polySuffix)
+            )
+        else {
             return nil
         }
         guard let data = try? await Fetch.data(polyURL),
-              let text = String(data: data, encoding: .utf8),
-              let rings = parse(text) else { return nil }
+            let text = String(data: data, encoding: .utf8),
+            let rings = parse(text)
+        else { return nil }
         try? data.write(to: file, options: .atomic)
         return rings
     }

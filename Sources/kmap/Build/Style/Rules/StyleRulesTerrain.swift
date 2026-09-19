@@ -34,27 +34,28 @@ extension StyleCatalog {
         let rules = """
 
 
-        \(marker) ---------------------------------------------
-        # Added by kmap. The stock style only knows leisure=nature_reserve, so every
-        # boundary=protected_area and boundary=national_park renders as nothing.
-        #
-        # One fill for all of them, 0x16, carrying a green diagonal hatch: it hatches
-        # every protected area alike, and a strict reserve is not a different kind of
-        # ground for being closed. The edge is drawn from `lines`, one green
-        # ribbon for all of them.
+            \(marker) ---------------------------------------------
+            # Added by kmap. The stock style only knows leisure=nature_reserve, so every
+            # boundary=protected_area and boundary=national_park renders as nothing.
+            #
+            # One fill for all of them, 0x16, carrying a green diagonal hatch: it hatches
+            # every protected area alike, and a strict reserve is not a different kind of
+            # ground for being closed. The edge is drawn from `lines`, one green
+            # ribbon for all of them.
 
-        boundary=national_park [0x16 resolution 18]
-        boundary=protected_area [0x16 resolution 18]
-        leisure=nature_reserve [0x16 resolution 18]
+            boundary=national_park [0x16 resolution 18]
+            boundary=protected_area [0x16 resolution 18]
+            leisure=nature_reserve [0x16 resolution 18]
 
-        """
+            """
 
         var added = false
         try amendRuleFile("polygons", in: directory, unlessMarked: marker) { text in
             // Show reserves a zoom level earlier than stock.
             text = text.replacingOccurrences(
                 of: "leisure=nature_reserve [0x16 resolution 19]",
-                with: "leisure=nature_reserve [0x16 resolution 18]")
+                with: "leisure=nature_reserve [0x16 resolution 18]"
+            )
 
             // And the closed military ground alongside them, at the same resolution.
             text = StyleCatalog.restrictedMilitary(in: text).text
@@ -96,8 +97,12 @@ extension StyleCatalog {
 
         // The military edge, which the stock style draws not at all: the hatch says what
         // the ground is, the line says where it starts.
-        try spliceRules(StyleCatalog.militaryEdgeRules, marked: "# --- kmap: military edge",
-                        intoFile: "lines", in: directory)
+        try spliceRules(
+            StyleCatalog.militaryEdgeRules,
+            marked: "# --- kmap: military edge",
+            intoFile: "lines",
+            in: directory
+        )
 
         log.append("conservation areas added to the rule set")
     }
@@ -112,41 +117,41 @@ extension StyleCatalog {
             text += """
 
 
-            \(marker) ---------------------------------------------
-            # Member ways of a fell multipolygon carry no tags, so the outline rule in
-            # `lines` would never see them. This hands each member the marker it matches on.
-            # Named plateaux only; see the rule in `lines`.
+                \(marker) ---------------------------------------------
+                # Member ways of a fell multipolygon carry no tags, so the outline rule in
+                # `lines` would never see them. This hands each member the marker it matches on.
+                # Named plateaux only; see the rule in `lines`.
 
-            (type=multipolygon | type=boundary) & natural=fell & name=*
-            { apply { set kmap:fell_edge=yes } }
+                (type=multipolygon | type=boundary) & natural=fell & name=*
+                { apply { set kmap:fell_edge=yes } }
 
-            """
+                """
             return true
         }
 
         let rules = """
 
 
-        \(marker) ---------------------------------------------
-        # 0x12 is unused by the stock style. Detail zoom only — a rim at overview scale
-        # is noise.
-        #
-        # The type code is chosen, not arbitrary. Where a plateau edge runs along a
-        # reserve boundary the two lines land on the same pixels, and the device draws
-        # the higher type code last: as 0x2c the rim covered the reserve edge entirely.
-        # Below 0x19 it now goes underneath, so the reserve always wins the overlap.
+            \(marker) ---------------------------------------------
+            # 0x12 is unused by the stock style. Detail zoom only — a rim at overview scale
+            # is noise.
+            #
+            # The type code is chosen, not arbitrary. Where a plateau edge runs along a
+            # reserve boundary the two lines land on the same pixels, and the device draws
+            # the higher type code last: as 0x2c the rim covered the reserve edge entirely.
+            # Below 0x19 it now goes underneath, so the reserve always wins the overlap.
 
-        # `continue` for the same reason as the conservation outlines: a plain typed
-        # match in `lines` ends a closed way's journey and it never reaches the polygon
-        # rules, so without it this rim would delete the plateau's own fill.
-        #
-        # Named fells only. The rim is for the yaylas, whose name it draws along the
-        # edge. natural=fell is also put on nameless patches of alpine meadow, where a
-        # rim reads as a fence or a reserve edge; those get the fill alone, like a
-        # grassland.
-        (kmap:fell_edge=yes | (natural=fell & name=*)) & highway!=* {name '${name}'} [0x12 resolution 21 continue with_actions]
+            # `continue` for the same reason as the conservation outlines: a plain typed
+            # match in `lines` ends a closed way's journey and it never reaches the polygon
+            # rules, so without it this rim would delete the plateau's own fill.
+            #
+            # Named fells only. The rim is for the yaylas, whose name it draws along the
+            # edge. natural=fell is also put on nameless patches of alpine meadow, where a
+            # rim reads as a fence or a reserve edge; those get the fill alone, like a
+            # grassland.
+            (kmap:fell_edge=yes | (natural=fell & name=*)) & highway!=* {name '${name}'} [0x12 resolution 21 continue with_actions]
 
-        """
+            """
         guard try spliceRules(rules, marked: marker, intoFile: "lines", in: directory)
         else { return }
         log.append("plateau rim outline added to the rule set")
@@ -160,20 +165,20 @@ extension StyleCatalog {
         let rules = """
 
 
-        \(marker) ---------------------------------------------
-        # 0x23 and 0x24 are unused by the stock style, by the TYP's lines and by every
-        # tile, and -- the part that is load-bearing -- they are OUTSIDE mkgmap's set of
-        # "special routable" line types (0x01-0x13, 0x16, 0x1a, 0x1b, 0x2c-0x2f), which
-        # Garmin firmware may try to route along. These two lived at 0x2e/0x2f and every
-        # forest track running along its cutline -- one way, both tags -- drew a
-        # routable road and a non-routable 0x2e on the same way: mkgmap's SEVERE
-        # "leads to routing errors", two tiles of the Caucasus build. Detail zoom only
-        # for the valley -- its name is long and there are 158 of them.
+            \(marker) ---------------------------------------------
+            # 0x23 and 0x24 are unused by the stock style, by the TYP's lines and by every
+            # tile, and -- the part that is load-bearing -- they are OUTSIDE mkgmap's set of
+            # "special routable" line types (0x01-0x13, 0x16, 0x1a, 0x1b, 0x2c-0x2f), which
+            # Garmin firmware may try to route along. These two lived at 0x2e/0x2f and every
+            # forest track running along its cutline -- one way, both tags -- drew a
+            # routable road and a non-routable 0x2e on the same way: mkgmap's SEVERE
+            # "leads to routing errors", two tiles of the Caucasus build. Detail zoom only
+            # for the valley -- its name is long and there are 158 of them.
 
-        man_made=cutline [0x23 resolution 21]
-        natural=valley & name=* { name '${name}' } [0x24 resolution 20]
+            man_made=cutline [0x23 resolution 21]
+            natural=valley & name=* { name '${name}' } [0x24 resolution 20]
 
-        """
+            """
 
         guard try spliceRules(rules, marked: marker, intoFile: "lines", in: directory)
         else { return }
@@ -188,19 +193,19 @@ extension StyleCatalog {
         let rules = """
 
 
-        \(marker) ------------------------------------------------------
-        # The stock style has no natural=cliff line rule, so crags are invisible.
-        # 0x2b is unused by it and free in every TYP checked.
+            \(marker) ------------------------------------------------------
+            # The stock style has no natural=cliff line rule, so crags are invisible.
+            # 0x2b is unused by it and free in every TYP checked.
 
-        natural=cliff {name '${name}'} [0x2b resolution 22]
-        natural=arete | natural=ridge {name '${name}'} [0x2b resolution 22]
-        # Deliberately NOT man_made=embankment or barrier=retaining_wall. In a 60 000 km²
-        # extract those are 2785 ways against 2956 real crags — enough to halve the
-        # symbol's meaning.
-        # A retaining wall is not a cliff, and on a walking map that distinction is the
-        # whole point of drawing it.
+            natural=cliff {name '${name}'} [0x2b resolution 22]
+            natural=arete | natural=ridge {name '${name}'} [0x2b resolution 22]
+            # Deliberately NOT man_made=embankment or barrier=retaining_wall. In a 60 000 km²
+            # extract those are 2785 ways against 2956 real crags — enough to halve the
+            # symbol's meaning.
+            # A retaining wall is not a cliff, and on a walking map that distinction is the
+            # whole point of drawing it.
 
-        """
+            """
         guard try spliceRules(rules, marked: marker, intoFile: "lines", in: directory)
         else { return }
         log.append("cliffs added to the rule set")

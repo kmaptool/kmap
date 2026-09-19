@@ -36,7 +36,6 @@ enum PackageManager: String, CaseIterable, Equatable {
     /// scripting interface, while `apt` is what a person types.
     var spokenName: String { self == .apt ? "apt" : binary }
 
-
     /// Whether installing needs root. False for Homebrew, which refuses to run as root,
     /// and for winget, whose default scope is per-user.
     var needsRoot: Bool { self != .homebrew && self != .winget }
@@ -54,8 +53,10 @@ enum PackageManager: String, CaseIterable, Equatable {
         case .xbps: return ["-Sy"] + packages
         case .winget:
             // winget stops to ask for these otherwise, with no terminal to ask on.
-            return ["install", "--silent", "--disable-interactivity",
-                    "--accept-package-agreements", "--accept-source-agreements", "--id"]
+            return [
+                "install", "--silent", "--disable-interactivity",
+                "--accept-package-agreements", "--accept-source-agreements", "--id"
+            ]
                 + packages
         }
     }
@@ -101,8 +102,10 @@ enum PackageManager: String, CaseIterable, Equatable {
     ///
     /// Where several are present the first in the platform's order wins: Homebrew on
     /// macOS, since it needs no root, and the distribution's own on Linux.
-    static func detect(on platform: Platform = Platform.current,
-                       which: (String) -> String? = { Platform.which($0) }) -> PackageManager? {
+    static func detect(
+        on platform: Platform = Platform.current,
+        which: (String) -> String? = { Platform.which($0) }
+    ) -> PackageManager? {
         let order: [PackageManager]
         switch platform {
         case .macOS:
@@ -135,11 +138,14 @@ enum Privilege: Equatable {
     ///
     /// - Parameter isRoot: Whether this process is already uid 0.
     /// - Parameter sudoIsPasswordless: Whether sudo would run without prompting.
-    static func forInstalling(with manager: PackageManager,
-                              isRoot: Bool = Privilege.isRoot(),
-                              hasSudo: Bool = Platform.which("sudo") != nil,
-                              sudoIsPasswordless: @autoclosure () -> Bool = Privilege.sudoIsPasswordless())
-        -> Privilege {
+    static func forInstalling(
+        with manager: PackageManager,
+        isRoot: Bool = Privilege.isRoot(),
+        hasSudo: Bool = Platform.which("sudo") != nil,
+        sudoIsPasswordless: @autoclosure () -> Bool = Privilege.sudoIsPasswordless()
+    )
+        -> Privilege
+    {
         if !manager.needsRoot { return .direct }
         if isRoot { return .direct }
         guard hasSudo, sudoIsPasswordless() else { return .wouldAsk }
@@ -169,11 +175,14 @@ enum Privilege: Equatable {
 }
 
 extension PackageManager {
-
     /// Returns the command that installs `what` and whether kmap may run it, or nil
     /// where this manager has no package for it.
-    func command(for what: Need, privilege: Privilege)
-        -> (executable: String, arguments: [String], runnable: Bool)? {
+    func command(
+        for what: Need,
+        privilege: Privilege
+    )
+        -> (executable: String, arguments: [String], runnable: Bool)?
+    {
         guard let packages = packages(for: what) else { return nil }
         let arguments = installArguments(packages)
         switch privilege {

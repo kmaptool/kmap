@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Reading a compiled TYP.
@@ -6,7 +7,6 @@ import XCTest
 /// The layout follows the mkgmap writer and carries its self-check: every element must
 /// end exactly where the next one in its index begins.
 final class TypBinaryTests: XCTestCase {
-
     /// Compiled TYPs on this machine and what reading them must produce. They cannot
     /// be committed, so the paths and expectations live outside the repository; see
     /// `LocalTestMaps`. Where the file is absent the tests skip.
@@ -38,17 +38,33 @@ final class TypBinaryTests: XCTestCase {
     /// subtype pair, so an extended type keeps its trailing zeros.
     func testHowATypeAndSubtypeCombineIntoTheWrittenCode() {
         func code(_ kind: MapElementKind, _ type: Int, _ subtype: Int) -> Int {
-            TypBinary.Element(kind: kind, type: type, subtype: subtype, colours: [],
-                              bitmap: nil, bitmapHeight: 0, dayImage: nil, nightImage: nil,
-                              labels: [], fontStyle: nil, dayLabelColour: nil,
-                              nightLabelColour: nil, lineWidth: nil, borderWidth: nil,
-                              usesOrientation: false, exact: true).code
+            TypBinary.Element(
+                kind: kind,
+                type: type,
+                subtype: subtype,
+                colours: [],
+                bitmap: nil,
+                bitmapHeight: 0,
+                dayImage: nil,
+                nightImage: nil,
+                labels: [],
+                fontStyle: nil,
+                dayLabelColour: nil,
+                nightLabelColour: nil,
+                lineWidth: nil,
+                borderWidth: nil,
+                usesOrientation: false,
+                exact: true
+            ).code
         }
         XCTAssertEqual(code(.polygon, 0x16, 0), 0x16, "a plain type stays as it is")
         XCTAssertEqual(code(.point, 0x2a, 0), 0x2a00, "a point always folds its subtype in")
         XCTAssertEqual(code(.line, 0x108, 1), 0x10801, "an extended type folds its subtype in")
-        XCTAssertEqual(code(.polygon, 0x101, 0), 0x10100,
-                       "an extended type with no subtype keeps its trailing zeros")
+        XCTAssertEqual(
+            code(.polygon, 0x101, 0),
+            0x10100,
+            "an extended type with no subtype keeps its trailing zeros"
+        )
     }
 
     // MARK: Palette depth
@@ -69,8 +85,11 @@ final class TypBinaryTests: XCTestCase {
     func testTheCodePageDecidesTheAlphabet() {
         let moscow: [UInt8] = [0xCC, 0xEE, 0xF1, 0xEA, 0xE2, 0xE0]
         XCTAssertEqual(CodePage.decodeLenient(moscow, codePage: 1251), "Москва")
-        XCTAssertEqual(CodePage.decodeLenient(moscow, codePage: 1252), "Ìîñêâà",
-                       "the symptom a wrong page produces, and the reason it has to be right")
+        XCTAssertEqual(
+            CodePage.decodeLenient(moscow, codePage: 1252),
+            "Ìîñêâà",
+            "the symptom a wrong page produces, and the reason it has to be right"
+        )
         XCTAssertEqual(CodePage.decodeLenient(Array("Москва".utf8), codePage: 65001), "Москва")
         // A page with no table reads as Latin-1 rather than as nothing.
         XCTAssertEqual(CodePage.decodeLenient(moscow, codePage: 0), "Ìîñêâà")
@@ -91,15 +110,21 @@ final class TypBinaryTests: XCTestCase {
             XCTAssertEqual(typ.points.count, expected.points, name)
             XCTAssertEqual(typ.exactCount, expected.exact, name)
             XCTAssertEqual(typ.all.count, expected.all, name)
-            XCTAssertEqual(typ.all.filter { !$0.exact }.map(\.code).sorted(),
-                           expected.inexactCodes, name)
+            XCTAssertEqual(
+                typ.all.filter { !$0.exact }.map(\.code).sorted(),
+                expected.inexactCodes,
+                name
+            )
 
             // A file in a single-byte code page read as anything else comes back as
             // accented Latin.
             for label in expected.labels {
                 let element = try XCTUnwrap(typ.all.first { $0.code == label.code }, name)
-                XCTAssertEqual(element.labels.first { $0.language == label.language }?.text,
-                               label.text, name)
+                XCTAssertEqual(
+                    element.labels.first { $0.language == label.language }?.text,
+                    label.text,
+                    name
+                )
             }
 
             // A cased line: fill and casing, day and night.
@@ -123,8 +148,11 @@ final class TypBinaryTests: XCTestCase {
                 XCTAssertTrue(bitmap.allSatisfy { $0.count == 32 })
                 // Every index must address a colour the element actually has.
                 let highest = bitmap.flatMap { $0 }.max() ?? 0
-                XCTAssertLessThan(highest, max(2, element.colours.count),
-                                  "\(TypeMeaning.hex(element.code)) indexes past its palette")
+                XCTAssertLessThan(
+                    highest,
+                    max(2, element.colours.count),
+                    "\(TypeMeaning.hex(element.code)) indexes past its palette"
+                )
             }
         }
     }
@@ -160,9 +188,11 @@ final class TypBinaryTests: XCTestCase {
                 XCTAssertEqual(source.codes(kind), usable, "\(name): \(kind.rawValue) codes")
             }
             for element in typ.all where !TypDecompiler.isUsable(element) {
-                XCTAssertFalse(element.exact,
-                               "\(name): \(TypeMeaning.hex(element.code)) decoded cleanly and "
-                               + "was still left out")
+                XCTAssertFalse(
+                    element.exact,
+                    "\(name): \(TypeMeaning.hex(element.code)) decoded cleanly and "
+                        + "was still left out"
+                )
             }
 
             // A styled polygon absent from the draw order is never drawn. Some files
@@ -170,16 +200,21 @@ final class TypBinaryTests: XCTestCase {
             // the file did have.
             let ordered = Set(typ.drawOrder.map(\.code))
             for code in source.polygonsMissingFromDrawOrder {
-                XCTAssertFalse(ordered.contains(code),
-                               "\(name): \(TypeMeaning.hex(code)) lost its draw order")
+                XCTAssertFalse(
+                    ordered.contains(code),
+                    "\(name): \(TypeMeaning.hex(code)) lost its draw order"
+                )
             }
 
             // Every picture must agree with its own header, or its pixels resolve against
             // colours that are not there.
             for section in source.sections {
                 guard let picture = section.picture else { continue }
-                XCTAssertEqual(picture.palette.count, picture.declaredColours,
-                               "\(name) \(section.hex)")
+                XCTAssertEqual(
+                    picture.palette.count,
+                    picture.declaredColours,
+                    "\(name) \(section.hex)"
+                )
                 XCTAssertEqual(picture.rows.count, picture.height, "\(name) \(section.hex)")
             }
         }

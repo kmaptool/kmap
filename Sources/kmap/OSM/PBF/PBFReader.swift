@@ -32,8 +32,10 @@ struct PBFReader {
 
     /// Returns the bounding box the file's header declares, in degrees, or nil if it
     /// declares none. Tile areas are cut inside this box; anything outside is fringe.
-    func headerBBox() throws -> (minLat: Double, minLon: Double,
-                                 maxLat: Double, maxLon: Double)? {
+    func headerBBox() throws -> (
+        minLat: Double, minLon: Double,
+        maxLat: Double, maxLon: Double
+    )? {
         let data = try Data(contentsOf: url, options: .alwaysMapped)
         var scratch = [UInt8](repeating: 0, count: Self.megabyte)
         return try data.withUnsafeBytes { file -> (Double, Double, Double, Double)? in
@@ -46,7 +48,8 @@ struct PBFReader {
             at += headerLength
             let blobHeader = Self.blobHeader(header)
             guard blobHeader.kind == PBFSchema.headerBlob,
-                  at + blobHeader.size <= file.count else { return nil }
+                at + blobHeader.size <= file.count
+            else { return nil }
             let blob = UnsafeRawBufferPointer(rebasing: file[at..<(at + blobHeader.size)])
             let size = try Self.inflate(blob, into: &scratch)
             return scratch.withUnsafeBytes { payload -> (Double, Double, Double, Double)? in
@@ -87,17 +90,31 @@ struct PBFReader {
     private struct BoundsSink: OSMSink {
         var box = BBox.empty
         let wantedParts: OSMParts = .nodes
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             box.extend(lon: lon, lat: lat)
         }
-        mutating func way(id: Int64, refs: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                          block: OSMBlock) {}
-        mutating func relation(id: Int64, memberKinds: ArraySlice<Int32>,
-                               memberIDs: ArraySlice<Int64>, memberRoles: ArraySlice<Int32>,
-                               keys: ArraySlice<Int32>, values: ArraySlice<Int32>,
-                               block: OSMBlock) {}
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {}
+        mutating func relation(
+            id: Int64,
+            memberKinds: ArraySlice<Int32>,
+            memberIDs: ArraySlice<Int64>,
+            memberRoles: ArraySlice<Int32>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {}
     }
 
     /// Walks the whole file, handing every node and way to the sink. Blocks are inflated
@@ -132,8 +149,11 @@ struct PBFReader {
                 for i in 0..<blobs.count {
                     let size = sizes[i]
                     try scratches[i].withUnsafeBytes { payload in
-                        try Self.decodeBlock(UnsafeRawBufferPointer(rebasing: payload[0..<size]),
-                                        into: &sink, fields: &fields)
+                        try Self.decodeBlock(
+                            UnsafeRawBufferPointer(rebasing: payload[0..<size]),
+                            into: &sink,
+                            fields: &fields
+                        )
                     }
                 }
                 batch.removeAll(keepingCapacity: true)
@@ -154,12 +174,19 @@ struct PBFReader {
     /// payload. Every declared length is checked against the file before it slices it.
     static func forEachBlob(
         in file: UnsafeRawBufferPointer,
-        _ body: (_ header: UnsafeRawBufferPointer, _ kind: String,
-                 _ blob: UnsafeRawBufferPointer) throws -> Void) throws {
+        _ body: (
+            _ header: UnsafeRawBufferPointer, _ kind: String,
+            _ blob: UnsafeRawBufferPointer
+        ) throws -> Void
+    ) throws {
         var at = 0
         while at + PBFSchema.lengthPrefix <= file.count {
-            let headerLength = Int(file.loadUnaligned(fromByteOffset: at,
-                                                      as: UInt32.self).bigEndian)
+            let headerLength = Int(
+                file.loadUnaligned(
+                    fromByteOffset: at,
+                    as: UInt32.self
+                ).bigEndian
+            )
             at += PBFSchema.lengthPrefix
             guard headerLength >= 0, at + headerLength <= file.count else {
                 throw PBFError.truncated("a blob header")
@@ -178,8 +205,11 @@ struct PBFReader {
     /// Runs `body` for every index across the cores and rethrows the first failure in
     /// index order, so an error does not depend on which core finished first. The
     /// failures array is the caller's, kept across batches, and is cleared on a throw.
-    static func acrossCores(_ count: Int, failures: inout [Error?],
-                            _ body: (Int) throws -> Void) throws {
+    static func acrossCores(
+        _ count: Int,
+        failures: inout [Error?],
+        _ body: (Int) throws -> Void
+    ) throws {
         guard count > 0 else { return }
         withoutActuallyEscaping(body) { body in
             failures.withUnsafeMutableBufferPointer { errors in
@@ -220,8 +250,10 @@ struct PBFReader {
     /// Inflates a blob into `scratch`, growing it if needed, and returns the byte count. A
     /// blob is stored raw or zlib-wrapped; a wrapped one is passed to zlib whole, header,
     /// body and checksum, so the checksum is verified.
-    static func inflate(_ blob: UnsafeRawBufferPointer,
-                        into scratch: inout [UInt8]) throws -> Int {
+    static func inflate(
+        _ blob: UnsafeRawBufferPointer,
+        into scratch: inout [UInt8]
+    ) throws -> Int {
         var raw: UnsafeRawBufferPointer?
         var zlib: UnsafeRawBufferPointer?
         var plainSize = 0
@@ -249,15 +281,20 @@ struct PBFReader {
         guard let zlib, plainSize > 0 else { throw PBFError.truncated("a blob's payload") }
         // Untrusted size: past the format's ceiling it would be allocated as claimed.
         guard plainSize <= PBFSchema.maxUncompressedBlob else {
-            throw PBFError.truncated("a blob claiming \(plainSize / megabyte) MB, past the"
-                                     + " format's \(PBFSchema.maxUncompressedBlob / megabyte)")
+            throw PBFError.truncated(
+                "a blob claiming \(plainSize / megabyte) MB, past the"
+                    + " format's \(PBFSchema.maxUncompressedBlob / megabyte)"
+            )
         }
         guard zlib.count >= smallestZlibStream else { throw PBFError.truncated("a compressed blob") }
         if scratch.count < plainSize { scratch = [UInt8](repeating: 0, count: plainSize) }
         do {
             try scratch.withUnsafeMutableBufferPointer { out in
-                try Zlib.inflate(zlib, into: UnsafeMutableBufferPointer(rebasing: out[0..<plainSize]),
-                                 expecting: plainSize)
+                try Zlib.inflate(
+                    zlib,
+                    into: UnsafeMutableBufferPointer(rebasing: out[0..<plainSize]),
+                    expecting: plainSize
+                )
             }
         } catch {
             throw PBFError.truncated("a compressed blob")

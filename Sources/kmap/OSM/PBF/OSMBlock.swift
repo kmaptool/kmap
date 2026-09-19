@@ -56,6 +56,6 @@ struct OSMBlock {
     /// Rounds nanodegrees to the hundred: 1e-7 of a degree, the grid libosmium keeps its
     /// locations on.
     static func quantise(_ nanodegrees: Int64) -> Double {
-        Double(nanodegrees / 100) * 1e-7        // toward zero, as the C++ does
+        Double(nanodegrees / 100) * 1e-7  // toward zero, as the C++ does
     }
 }

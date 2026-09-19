@@ -28,8 +28,11 @@ struct StyleWords {
         for raw in StyleAssets.styleWords.split(separator: "\n", omittingEmptySubsequences: true) {
             let line = raw.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty, !line.hasPrefix("#") else { continue }
-            let parts = line.split(separator: "|", maxSplits: 2,
-                                   omittingEmptySubsequences: false).map(String.init)
+            let parts = line.split(
+                separator: "|",
+                maxSplits: 2,
+                omittingEmptySubsequences: false
+            ).map(String.init)
             guard parts.count == 3 else { continue }
             out[parts[0]] = (en: parts[1], ru: parts[2])
         }

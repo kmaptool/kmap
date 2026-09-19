@@ -10,12 +10,12 @@ struct RoadRepair {
     /// Grid cell for filing the loose ends: about 55 m of latitude, comfortably wider
     /// than any gap worth closing.
     static let cellDegrees = 0.0005
-    
+
     /// Two ends per way, and the 3 by 3 cells round one.
     static let endsPerWay = 2
-    
+
     private static let neighbourhood = 9
-    
+
     /// A guess at how many ways have a loose end, for the candidates' capacity.
     private static let looseShare = 4
 
@@ -27,11 +27,11 @@ struct RoadRepair {
     /// A candidate: an end of a way, and the nearest line it stops short of.
     struct Candidate {
         var way: Int32
-        var atEnd: Bool                     // false: the way's first point
+        var atEnd: Bool  // false: the way's first point
         var otherWay: Int32 = -1
         var segment: Int32 = -1
         var distance: Double = .infinity
-        var along: Double = 0               // where on that segment the end lands, 0...1
+        var along: Double = 0  // where on that segment the end lands, 0...1
     }
 
     let network: RoadNetwork
@@ -57,7 +57,7 @@ struct RoadRepair {
     /// Counting the rest of a repeated id says nothing more.
     private static func appearsOnce(_ id: Int64, in sorted: [Int64]) -> Bool {
         var low = 0, high = sorted.count
-        while low < high {                                  // first index not less than id
+        while low < high {  // first index not less than id
             let mid = (low + high) / 2
             if sorted[mid] < id { low = mid + 1 } else { high = mid }
         }
@@ -95,8 +95,14 @@ struct RoadRepair {
             let range = network.points(of: way)
             let level = network.level[way]
             for i in range.lowerBound..<(range.upperBound - 1) {
-                probe(way: Int32(way), segment: i, level: level, cell: cell,
-                      grid: grid, ends: &ends)
+                probe(
+                    way: Int32(way),
+                    segment: i,
+                    level: level,
+                    cell: cell,
+                    grid: grid,
+                    ends: &ends
+                )
             }
         }
         return (ends.filter { $0.distance <= limit }, loose)
@@ -109,8 +115,14 @@ struct RoadRepair {
     }
 
     /// Offer one segment to every loose end near it, keeping each end's nearest.
-    private func probe(way: Int32, segment: Int, level: Int32, cell: Double,
-                       grid: [Int64: [Int32]], ends: inout [Candidate]) {
+    private func probe(
+        way: Int32,
+        segment: Int,
+        level: Int32,
+        cell: Double,
+        grid: [Int64: [Int32]],
+        ends: inout [Candidate]
+    ) {
         let alat = network.lat[segment], alon = network.lon[segment]
         let blat = network.lat[segment + 1], blon = network.lon[segment + 1]
         let steps = max(Int(max(abs(blat - alat), abs(blon - alon)) / cell), 0) + 1
@@ -122,22 +134,40 @@ struct RoadRepair {
             visited = here
             guard let bucket = grid[here] else { continue }
             for index in bucket {
-                consider(end: Int(index), way: way, segment: segment, level: level,
-                         alat: alat, alon: alon, blat: blat, blon: blon, ends: &ends)
+                consider(
+                    end: Int(index),
+                    way: way,
+                    segment: segment,
+                    level: level,
+                    alat: alat,
+                    alon: alon,
+                    blat: blat,
+                    blon: blon,
+                    ends: &ends
+                )
             }
         }
     }
 
-    private func consider(end index: Int, way: Int32, segment: Int, level: Int32,
-                          alat: Double, alon: Double, blat: Double, blon: Double,
-                          ends: inout [Candidate]) {
+    private func consider(
+        end index: Int,
+        way: Int32,
+        segment: Int,
+        level: Int32,
+        alat: Double,
+        alon: Double,
+        blat: Double,
+        blon: Double,
+        ends: inout [Candidate]
+    ) {
         var end = ends[index]
         guard end.way != way, network.level[Int(end.way)] == level else { return }
         let range = network.points(of: Int(end.way))
         let at = end.atEnd ? range.upperBound - 1 : range.lowerBound
         // A line already carrying this node is not something to join it to.
         guard network.refs[at] != network.refs[segment],
-              network.refs[at] != network.refs[segment + 1] else { return }
+            network.refs[at] != network.refs[segment + 1]
+        else { return }
 
         let plat = network.lat[at], plon = network.lon[at]
         let kx = Self.metresPerLonDegree(at: plat)
@@ -151,9 +181,15 @@ struct RoadRepair {
     }
 
     /// Distance from a point to a segment in metres, and how far along it lands.
-    static func project(_ plat: Double, _ plon: Double,
-                        _ alat: Double, _ alon: Double,
-                        _ blat: Double, _ blon: Double, _ kx: Double) -> (Double, Double) {
+    static func project(
+        _ plat: Double,
+        _ plon: Double,
+        _ alat: Double,
+        _ alon: Double,
+        _ blat: Double,
+        _ blon: Double,
+        _ kx: Double
+    ) -> (Double, Double) {
         let ax = (alon - plon) * kx, ay = (alat - plat) * metresPerDegree
         let bx = (blon - plon) * kx, by = (blat - plat) * metresPerDegree
         let dx = bx - ax, dy = by - ay
@@ -167,8 +203,14 @@ struct RoadRepair {
 extension RoadRepair {
     /// Every grid cell a segment passes through. Filing a segment under its first point
     /// alone hides the long ones, whose middles are then never looked at.
-    static func cells(_ alat: Double, _ alon: Double, _ blat: Double, _ blon: Double,
-                      _ cell: Double, _ body: (Int64) -> Void) {
+    static func cells(
+        _ alat: Double,
+        _ alon: Double,
+        _ blat: Double,
+        _ blon: Double,
+        _ cell: Double,
+        _ body: (Int64) -> Void
+    ) {
         let steps = Int(max(abs(blat - alat), abs(blon - alon)) / cell) + 1
         var last: Int64 = .min
         for step in 0...steps {

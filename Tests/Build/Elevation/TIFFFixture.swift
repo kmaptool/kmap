@@ -29,8 +29,11 @@ struct TIFFFixture {
     var bands = 1
 
     /// Writes it into `directory` and returns the URL.
-    static func write(_ fixture: TIFFFixture, into directory: URL,
-                      as name: String = "tile.tif") throws -> URL {
+    static func write(
+        _ fixture: TIFFFixture,
+        into directory: URL,
+        as name: String = "tile.tif"
+    ) throws -> URL {
         let big = fixture.bigEndian
         func u16(_ v: Int) -> [UInt8] {
             let x = UInt16(truncatingIfNeeded: v)
@@ -38,8 +41,10 @@ struct TIFFFixture {
         }
         func u32(_ v: Int) -> [UInt8] {
             let x = UInt32(truncatingIfNeeded: v)
-            let bytes = [UInt8(x >> 24 & 0xFF), UInt8(x >> 16 & 0xFF),
-                         UInt8(x >> 8 & 0xFF), UInt8(x & 0xFF)]
+            let bytes = [
+                UInt8(x >> 24 & 0xFF), UInt8(x >> 16 & 0xFF),
+                UInt8(x >> 8 & 0xFF), UInt8(x & 0xFF)
+            ]
             return big ? bytes : bytes.reversed()
         }
         func f64(_ v: Double) -> [UInt8] {
@@ -71,8 +76,10 @@ struct TIFFFixture {
                     for c in 0..<tileWidth {
                         let row = tileRow * tileHeight + r
                         let column = tileColumn * tileWidth + c
-                        line.append(row < fixture.height && column < fixture.width
-                                    ? fixture.samples[row * fixture.width + column] : 0)
+                        line.append(
+                            row < fixture.height && column < fixture.width
+                                ? fixture.samples[row * fixture.width + column] : 0
+                        )
                     }
                     var bytes = line.flatMap(sample)
                     if fixture.predictor == 2 {
@@ -88,7 +95,8 @@ struct TIFFFixture {
                         // The bytes shuffled into columns, then differenced along the row;
                         // the shuffle is most significant byte first whatever the order.
                         let flat = line.flatMap { value -> [UInt8] in
-                            let bits = fixture.bits == 32
+                            let bits =
+                                fixture.bits == 32
                                 ? value.bitPattern
                                 : UInt32(UInt16(bitPattern: Int16(value.rounded())))
                             return (0..<bytesPerSample).map {
@@ -123,28 +131,42 @@ struct TIFFFixture {
             (256, 4, 1, u32(fixture.width)),
             (257, 4, 1, u32(fixture.height)),
             (258, 3, 1, u16(fixture.bits)),
-            (259, 3, 1, u16(1)),                       // no compression
+            (259, 3, 1, u16(1)),  // no compression
             (277, 3, 1, u16(fixture.bands)),
             (317, 3, 1, u16(fixture.predictor)),
-            (339, 3, 1, u16(fixture.format)),
+            (339, 3, 1, u16(fixture.format))
         ]
         if fixture.tile != nil {
-            fields += [(322, 4, 1, u32(tileWidth)), (323, 4, 1, u32(tileHeight)),
-                       (324, 4, blockOffsets.count, blockOffsets.flatMap(u32)),
-                       (325, 4, blocks.count, blocks.map(\.count).flatMap(u32))]
+            fields += [
+                (322, 4, 1, u32(tileWidth)), (323, 4, 1, u32(tileHeight)),
+                (324, 4, blockOffsets.count, blockOffsets.flatMap(u32)),
+                (325, 4, blocks.count, blocks.map(\.count).flatMap(u32))
+            ]
         } else {
-            fields += [(273, 4, blockOffsets.count, blockOffsets.flatMap(u32)),
-                       (278, 4, 1, u32(tileHeight)),
-                       (279, 4, blocks.count, blocks.map(\.count).flatMap(u32))]
+            fields += [
+                (273, 4, blockOffsets.count, blockOffsets.flatMap(u32)),
+                (278, 4, 1, u32(tileHeight)),
+                (279, 4, blocks.count, blocks.map(\.count).flatMap(u32))
+            ]
         }
         fields.append((33550, 12, 3, [fixture.step, fixture.stepLat ?? fixture.step, 0].flatMap(f64)))
         // Raster (0,0) maps to the stated corner.
         if fixture.placed {
-            fields.append((33922, 12, 6, [0, 0, 0, fixture.origin.lon, fixture.origin.lat, 0]
-                            .flatMap(f64)))
+            fields.append(
+                (
+                    33922, 12, 6,
+                    [0, 0, 0, fixture.origin.lon, fixture.origin.lat, 0]
+                        .flatMap(f64)
+                )
+            )
         }
-        fields.append((34735, 3, 8, ([1, 1, 0, 1] + [1025, 0, 1, fixture.rasterType])
-                        .flatMap(u16)))
+        fields.append(
+            (
+                34735, 3, 8,
+                ([1, 1, 0, 1] + [1025, 0, 1, fixture.rasterType])
+                    .flatMap(u16)
+            )
+        )
         fields.sort { $0.tag < $1.tag }
 
         let directoryStart = 8 + image.count

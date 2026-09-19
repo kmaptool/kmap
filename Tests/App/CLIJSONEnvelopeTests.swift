@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The shape every `--json` run answers in, whatever the command: one JSON object per
@@ -6,7 +7,6 @@ import XCTest
 /// from 1 without gaps; a non-zero exit explained by an `error` event or answered by a
 /// `result` the caller can read the verdict from.
 final class CLIJSONEnvelopeTests: XCTestCase {
-
     override func tearDown() {
         CLILog.proseSuppressed = false
         super.tearDown()
@@ -34,8 +34,11 @@ final class CLIJSONEnvelopeTests: XCTestCase {
     }
 
     /// CLILog.capture for an async body.
-    private func withCapturedOutput(_ body: () async -> Void) async throws
-        -> (out: String, error: String) {
+    private func withCapturedOutput(
+        _ body: () async -> Void
+    ) async throws
+        -> (out: String, error: String)
+    {
         // CLILog's sink is static; swap it by hand around the await.
         var out = "", errors = ""
         CLILog.sinkForTests = { text, isError in
@@ -46,8 +49,12 @@ final class CLIJSONEnvelopeTests: XCTestCase {
         return (out, errors)
     }
 
-    private func assertEnvelope(_ run: Run, command: String,
-                                file: StaticString = #filePath, line: UInt = #line) {
+    private func assertEnvelope(
+        _ run: Run,
+        command: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
         XCTAssertEqual(run.error, "", "stderr must stay empty under --json", file: file, line: line)
         guard let first = run.events.first, let last = run.events.last else {
             XCTFail("no events at all", file: file, line: line); return
@@ -60,15 +67,24 @@ final class CLIJSONEnvelopeTests: XCTestCase {
         XCTAssertEqual(last["code"] as? Int, Int(run.code), file: file, line: line)
         XCTAssertEqual(last["ok"] as? Bool, run.code == 0, file: file, line: line)
         let seqs = run.events.map { $0["seq"] as? Int }
-        XCTAssertEqual(seqs, (1...run.events.count).map { $0 },
-                       "seq must count from 1 without gaps", file: file, line: line)
+        XCTAssertEqual(
+            seqs,
+            (1...run.events.count).map { $0 },
+            "seq must count from 1 without gaps",
+            file: file,
+            line: line
+        )
         for event in run.events {
             XCTAssertNotNil(event["at"], "every line carries a timestamp", file: file, line: line)
         }
         let names = run.events.compactMap { $0["event"] as? String }
         if run.code != 0 {
-            XCTAssertTrue(names.contains("error") || names.contains("result"),
-                          "a refusal must be an event, not silence", file: file, line: line)
+            XCTAssertTrue(
+                names.contains("error") || names.contains("result"),
+                "a refusal must be an event, not silence",
+                file: file,
+                line: line
+            )
         }
     }
 
@@ -80,7 +96,7 @@ final class CLIJSONEnvelopeTests: XCTestCase {
             ("hideable", ["hideable", "--json"], 0),
             ("frobnicate", ["frobnicate", "--json"], 2),
             ("profiles", ["profiles", "show", "Nowhere", "--json"], 2),
-            ("verify", ["verify", "/nonexistent-\(UUID().uuidString).img", "--json"], 1),
+            ("verify", ["verify", "/nonexistent-\(UUID().uuidString).img", "--json"], 1)
         ]
         for (command, arguments, expected) in cases {
             let made = try await run(arguments)

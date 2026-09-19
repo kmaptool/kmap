@@ -1,18 +1,22 @@
 import XCTest
+
 @testable import kmap
 
 /// An open dropdown is drawn in the overlay pass, after the summary panel beside the form,
 /// and is clamped to the form's column: in the finished screen it is still a rectangle
 /// nothing is painted through.
 final class PickerOverlayTests: XCTestCase {
-
     private var ctx: AppContext!
 
     private static let somewhere = Region(
-        id: "large-region", name: "Large Inland Region",
-        parentID: nil, pbfURL: nil,
+        id: "large-region",
+        name: "Large Inland Region",
+        parentID: nil,
+        pbfURL: nil,
         bbox: BBox(minLon: 32.15, minLat: 43.18, maxLon: 36.68, maxLat: 46.25),
-        boxes: [], childIDs: [])
+        boxes: [],
+        childIDs: []
+    )
 
     @MainActor
     override func setUp() async throws {
@@ -25,16 +29,19 @@ final class PickerOverlayTests: XCTestCase {
         guard let top = rows.firstIndex(where: { $0.contains(Glyph.tl) }) else { return nil }
         let line = Array(rows[top])
         guard let left = line.firstIndex(of: Glyph.tl),
-              let right = line.firstIndex(of: Glyph.tr),
-              let bottom = rows.indices.dropFirst(top).first(where: { rows[$0].contains(Glyph.bl) })
+            let right = line.firstIndex(of: Glyph.tr),
+            let bottom = rows.indices.dropFirst(top).first(where: { rows[$0].contains(Glyph.bl) })
         else { return nil }
         return (top, bottom, left, right)
     }
 
     @MainActor
     private func screenWithAnOpenPicker(width: Int, height: Int) -> [String] {
-        let screen = RecipeScreen(region: Self.somewhere, settings: ctx.settings,
-                                  hasSeamPatch: true)
+        let screen = RecipeScreen(
+            region: Self.somewhere,
+            settings: ctx.settings,
+            hasSeamPatch: true
+        )
         let surface = Surface()
         surface.resize(width, height)
         surface.clear(ctx.theme.base)
@@ -60,14 +67,22 @@ final class PickerOverlayTests: XCTestCase {
             }
             for y in (box.top + 1)..<box.bottom {
                 let line = Array(rows[y])
-                XCTAssertEqual(line[safe: box.left], Glyph.v,
-                               "left side missing at row \(y), \(width)x\(height)")
-                XCTAssertEqual(line[safe: box.right], Glyph.v,
-                               "right side painted over at row \(y), \(width)x\(height)")
+                XCTAssertEqual(
+                    line[safe: box.left],
+                    Glyph.v,
+                    "left side missing at row \(y), \(width)x\(height)"
+                )
+                XCTAssertEqual(
+                    line[safe: box.right],
+                    Glyph.v,
+                    "right side painted over at row \(y), \(width)x\(height)"
+                )
                 let inside = line[(box.left + 1)..<box.right]
-                XCTAssertFalse(inside.contains(Glyph.v),
-                               "something was drawn through the box at row \(y): "
-                               + String(inside))
+                XCTAssertFalse(
+                    inside.contains(Glyph.v),
+                    "something was drawn through the box at row \(y): "
+                        + String(inside)
+                )
             }
         }
     }

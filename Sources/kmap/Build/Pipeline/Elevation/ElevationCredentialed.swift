@@ -9,12 +9,15 @@ extension BuildPipeline {
     /// tracer and mkgmap's DEM read only directories holding `.hgt`.
     func convertDownloadedGeoTIFF(covering bbox: BBox, sources: [String]) {
         for source in sources {
-            let directory = Paths.hgtCache.appendingPathComponent(source.uppercased(),
-                                                                  isDirectory: true)
+            let directory = Paths.hgtCache.appendingPathComponent(
+                source.uppercased(),
+                isDirectory: true
+            )
             guard FileTools.exists(directory) else { continue }
             let mosaic = HGTConversion.Mosaic { lat, lon in
                 let file = directory.appendingPathComponent(
-                    "\(CopernicusDEM.cellName(lat: lat, lon: lon)).tif")
+                    "\(CopernicusDEM.cellName(lat: lat, lon: lon)).tif"
+                )
                 return FileTools.exists(file) ? file : nil
             }
             // Cells convert independently and the shared mosaic is locked, so the

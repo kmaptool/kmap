@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The single pass over an extract that precedes mkgmap: barrier classes, tidied
@@ -7,7 +8,6 @@ import XCTest
 /// Checks that the parts combine without loss: everything that went in comes out, plus the
 /// additions and nothing else.
 final class AnnotatePassTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -26,8 +26,13 @@ final class AnnotatePassTests: XCTestCase {
         var nodes: [(id: Int64, tags: [String: String])] = []
         var ways: [(id: Int64, refs: [Int64], tags: [String: String])] = []
 
-        mutating func node(id: Int64, lat: Double, lon: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat: Double,
+            lon: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var pairs: [String: String] = [:]
             var i = tags.startIndex
             while i + 1 < tags.endIndex {
@@ -37,8 +42,13 @@ final class AnnotatePassTests: XCTestCase {
             nodes.append((id, pairs))
         }
 
-        mutating func way(id: Int64, refs: ArraySlice<Int64>, keys: ArraySlice<Int32>,
-                          values: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             var pairs: [String: String] = [:]
             for (key, value) in zip(keys, values) {
                 pairs[block.text(Int(key))] = block.text(Int(value))
@@ -65,13 +75,19 @@ final class AnnotatePassTests: XCTestCase {
             PBFWriter.Node(id: 2, lat: 44.5, lon: 33.502, tags: [("barrier", "gate")]),
             PBFWriter.Node(id: 3, lat: 44.5 + 2 * metre, lon: 33.501, tags: []),
             PBFWriter.Node(id: 4, lat: 44.502, lon: 33.501, tags: []),
-            PBFWriter.Node(id: 5, lat: 44.51, lon: 33.51,
-                           tags: [("natural", "spring"), ("name", "Родник"),
-                                  ("description", "Родник")]),
+            PBFWriter.Node(
+                id: 5,
+                lat: 44.51,
+                lon: 33.51,
+                tags: [
+                    ("natural", "spring"), ("name", "Родник"),
+                    ("description", "Родник")
+                ]
+            )
         ])
         writer.ways([
             PBFWriter.Way(id: 10, refs: [1, 2], tags: [("highway", "track")]),
-            PBFWriter.Way(id: 11, refs: [3, 4], tags: [("highway", "path")]),
+            PBFWriter.Way(id: 11, refs: [3, 4], tags: [("highway", "path")])
         ])
         try writer.finish()
         return url
@@ -103,8 +119,10 @@ final class AnnotatePassTests: XCTestCase {
         let source = try makeExtract()
         let kept = path("kept.osm.pbf")
         _ = try AnnotatePass(source: source, destination: kept).run { _ in }
-        XCTAssertEqual(try read(kept).nodes.first { $0.id == 5 }?.tags["description"],
-                       "Родник")
+        XCTAssertEqual(
+            try read(kept).nodes.first { $0.id == 5 }?.tags["description"],
+            "Родник"
+        )
 
         let tidied = path("tidied.osm.pbf")
         var pass = AnnotatePass(source: source, destination: tidied)
@@ -138,8 +156,10 @@ final class AnnotatePassTests: XCTestCase {
         let after = try read(out)
         let track: [Int64] = after.ways.first { $0.id == 10 }?.refs ?? []
         let joined: [Int64] = after.ways.first { $0.id == 11 }?.refs ?? []
-        XCTAssertFalse(Set(track).intersection(Set(joined)).isEmpty,
-                       "the two ways still share nothing")
+        XCTAssertFalse(
+            Set(track).intersection(Set(joined)).isEmpty,
+            "the two ways still share nothing"
+        )
     }
 
     func testContourFilesAreFoldedIn() throws {
@@ -147,12 +167,18 @@ final class AnnotatePassTests: XCTestCase {
         let contours = path("contours.osm.pbf")
         let writer = try PBFWriter(to: contours)
         writer.header()
-        writer.nodes((1...10).map {
-            PBFWriter.Node(id: 20_000_000_000 + Int64($0), lat: 44.5, lon: 33.5, tags: [])
-        })
-        writer.ways([PBFWriter.Way(id: 5_000_000_001,
-                                   refs: (1...10).map { 20_000_000_000 + Int64($0) },
-                                   tags: [("contour", "elevation"), ("ele", "100")])])
+        writer.nodes(
+            (1...10).map {
+                PBFWriter.Node(id: 20_000_000_000 + Int64($0), lat: 44.5, lon: 33.5, tags: [])
+            }
+        )
+        writer.ways([
+            PBFWriter.Way(
+                id: 5_000_000_001,
+                refs: (1...10).map { 20_000_000_000 + Int64($0) },
+                tags: [("contour", "elevation"), ("ele", "100")]
+            )
+        ])
         try writer.finish()
 
         let out = path("out.osm.pbf")

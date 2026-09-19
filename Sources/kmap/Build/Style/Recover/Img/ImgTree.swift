@@ -43,19 +43,35 @@ extension ImgElements {
             guard levelsPos + levelsSize <= data.count, subdivPos + subdivSize <= data.count
             else { throw Trouble.malformed(tile, "TRE sections past the end") }
 
-            let ladder = Self.mapLevels(data, at: levelsPos, size: levelsSize,
-                                        locked: locked, headerLength: headerLength,
-                                        reader: r)
+            let ladder = Self.mapLevels(
+                data,
+                at: levelsPos,
+                size: levelsSize,
+                locked: locked,
+                headerLength: headerLength,
+                reader: r
+            )
             readSubdivisions(&r, ladder: ladder, from: subdivPos, size: subdivSize)
-            readExtendedOffsets(&r, ladder: ladder, headerLength: headerLength,
-                                count: data.count)
+            readExtendedOffsets(
+                &r,
+                ladder: ladder,
+                headerLength: headerLength,
+                count: data.count
+            )
         }
 
         /// The map levels: level, resolution, and how many subdivisions each holds. A
         /// locked map's table is unscrambled first.
-        private static func mapLevels(_ data: Data, at levelsPos: Int, size levelsSize: Int,
-                                      locked: Bool, headerLength: Int, reader r: Bytes)
-            -> [(level: Int, resolution: Int, count: Int)] {
+        private static func mapLevels(
+            _ data: Data,
+            at levelsPos: Int,
+            size levelsSize: Int,
+            locked: Bool,
+            headerLength: Int,
+            reader r: Bytes
+        )
+            -> [(level: Int, resolution: Int, count: Int)]
+        {
             var levels = Array(data[levelsPos..<(levelsPos + levelsSize)])
             if locked, headerLength >= 0xAA, data.count >= 0xAE {
                 Self.demangle(&levels, key: r.u32(at: 0xAA))
@@ -75,8 +91,11 @@ extension ImgElements {
         /// The subdivisions, level by level: each record ends with the RGN offset the
         /// NEXT one starts at, and the first offset stands alone in front.
         private mutating func readSubdivisions(
-            _ r: inout Bytes, ladder: [(level: Int, resolution: Int, count: Int)],
-            from subdivPos: Int, size subdivSize: Int) {
+            _ r: inout Bytes,
+            ladder: [(level: Int, resolution: Int, count: Int)],
+            from subdivPos: Int,
+            size subdivSize: Int
+        ) {
             r.position = subdivPos
             let end = subdivPos + subdivSize
             var lastRgnOffset = Int(r.u24())
@@ -90,12 +109,22 @@ extension ImgElements {
                     let height = Int(r.u16())
                     if index < ladder.count - 1 { _ = r.u16() }
                     let endRgnOffset = Int(r.u24())
-                    subdivisions.append(Subdivision(
-                        level: rung.level, shift: 24 - rung.resolution,
-                        lat: lat, lon: lon, width: width, height: height,
-                        hasPoints: flags & 0x10 != 0, hasIndexedPoints: flags & 0x20 != 0,
-                        hasLines: flags & 0x40 != 0, hasAreas: flags & 0x80 != 0,
-                        rgnStart: lastRgnOffset, rgnEnd: endRgnOffset))
+                    subdivisions.append(
+                        Subdivision(
+                            level: rung.level,
+                            shift: 24 - rung.resolution,
+                            lat: lat,
+                            lon: lon,
+                            width: width,
+                            height: height,
+                            hasPoints: flags & 0x10 != 0,
+                            hasIndexedPoints: flags & 0x20 != 0,
+                            hasLines: flags & 0x40 != 0,
+                            hasAreas: flags & 0x80 != 0,
+                            rgnStart: lastRgnOffset,
+                            rgnEnd: endRgnOffset
+                        )
+                    )
                     lastRgnOffset = endRgnOffset
                 }
             }
@@ -105,14 +134,18 @@ extension ImgElements {
         /// without the section, or with one that will not read, leaves the offsets at
         /// zero, which downstream reads as "no extended elements".
         private mutating func readExtendedOffsets(
-            _ r: inout Bytes, ladder: [(level: Int, resolution: Int, count: Int)],
-            headerLength: Int, count: Int) {
+            _ r: inout Bytes,
+            ladder: [(level: Int, resolution: Int, count: Int)],
+            headerLength: Int,
+            count: Int
+        ) {
             guard headerLength > 120, count >= 0x8A else { return }
             let extPos = Int(r.u32(at: 0x7C)), extSize = Int(r.u32(at: 0x80))
             let recordSize = Int(r.u16(at: 0x84))
             let magic = Int(r.u32(at: 0x86))
             guard magic & 7 != 0, recordSize > 0, extSize % recordSize == 0,
-                  extPos + extSize <= count else { return }
+                extPos + extSize <= count
+            else { return }
             // With a record size past 13 there may be no data for the first level(s):
             // count records back from the finest level to see where they begin.
             var available = extSize / recordSize
@@ -163,8 +196,10 @@ extension ImgElements {
         /// A locked map's level table is scrambled with a key from its header. The
         /// unscrambling is mkgmap's, which took it from gimgtools.
         private static func demangle(_ data: inout [UInt8], key: UInt32) {
-            let shuffle: [Int] = [0xb, 0xc, 0xa, 0x0, 0x8, 0xf, 0x2, 0x1,
-                                  0x6, 0x4, 0x9, 0x3, 0xd, 0x5, 0x7, 0xe]
+            let shuffle: [Int] = [
+                0xb, 0xc, 0xa, 0x0, 0x8, 0xf, 0x2, 0x1,
+                0x6, 0x4, 0x9, 0x3, 0xd, 0x5, 0x7, 0xe
+            ]
             let key = Int32(bitPattern: key)
             // Written out in steps, with the type stated. As one expression the Linux
             // compiler gives up on it -- "unable to type-check this expression in

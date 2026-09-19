@@ -107,9 +107,16 @@ struct RepairPlanner {
             let distance = candidate.distance
             let kx = RoadRepair.metresPerLonDegree(at: network.lat[at])
 
-            switch stopped(at: (network.lat[at], network.lon[at]), reaching: (qlat, qlon),
-                           distance: distance, obstacles: obstacles, cell: cell,
-                           candidate: candidate, at: at, segment: segment) {
+            switch stopped(
+                at: (network.lat[at], network.lon[at]),
+                reaching: (qlat, qlon),
+                distance: distance,
+                obstacles: obstacles,
+                cell: cell,
+                candidate: candidate,
+                at: at,
+                segment: segment
+            ) {
             case .refused(let reason):
                 note(&plan, reason, candidate, told)
                 continue
@@ -117,22 +124,35 @@ struct RepairPlanner {
                 // A route that already exists is left alone, however far round it goes:
                 // closing such a gap would add a shortcut that is not there on the ground.
                 if graph.detour(from: ref, to: ends, cap: Self.search) != nil,
-                   distance > Self.slip {
+                    distance > Self.slip
+                {
                     note(&plan, Verdict.alreadyJoined, candidate, told)
                     continue
                 }
 
                 if let hit = blockage {
                     let node = made + Int64(plan.bridges.count) * Int64(Self.nodesPerBridge)
-                    plan.bridges.append(RepairPlan.Bridge(
-                        node: node, lat: qlat, lon: qlon, end: ref, word: hit.word,
-                        height: hit.height, length: distance,
-                        middle: ((network.lat[at] + qlat) / 2, (network.lon[at] + qlon) / 2),
-                        way: candidate.otherWay, segment: Int32(segment - otherRange.lowerBound),
-                        along: along))
+                    plan.bridges.append(
+                        RepairPlan.Bridge(
+                            node: node,
+                            lat: qlat,
+                            lon: qlon,
+                            end: ref,
+                            word: hit.word,
+                            height: hit.height,
+                            length: distance,
+                            middle: ((network.lat[at] + qlat) / 2, (network.lon[at] + qlon) / 2),
+                            way: candidate.otherWay,
+                            segment: Int32(segment - otherRange.lowerBound),
+                            along: along
+                        )
+                    )
                     plan.inserts[candidate.otherWay, default: []].append(
-                        (after: network.refs[segment],
-                         segment: Int32(segment - otherRange.lowerBound), along: along, node: node))
+                        (
+                            after: network.refs[segment],
+                            segment: Int32(segment - otherRange.lowerBound), along: along, node: node
+                        )
+                    )
                     link(&graph, ref, ends, (qlat, qlon), (alat, alon), (blat, blon))
                     note(&plan, Verdict.bridged(hit.word), candidate, told)
                     continue
@@ -140,14 +160,22 @@ struct RepairPlanner {
 
                 // Two ends reaching for each other: give them one node instead of two, so
                 // the join is a plain shared node and neither line grows a vertex.
-                if let partner = loosePartner(of: (plat, plon), segment: segment,
-                                              otherRange: otherRange, other: other,
-                                              loose: loose, plan: plan, kx: kx) {
+                if let partner = loosePartner(
+                    of: (plat, plon),
+                    segment: segment,
+                    otherRange: otherRange,
+                    other: other,
+                    loose: loose,
+                    plan: plan,
+                    kx: kx
+                ) {
                     // A node already put in place holds two lines together; moving it
                     // again would drag one of them off its course.
                     if distance > Self.touching && plan.moves[ref] == nil {
-                        plan.moves[ref] = ((plat + network.lat[partner.point]) / 2,
-                                           (plon + network.lon[partner.point]) / 2)
+                        plan.moves[ref] = (
+                            (plat + network.lat[partner.point]) / 2,
+                            (plon + network.lon[partner.point]) / 2
+                        )
                     }
                     plan.merges[partner.ref] = ref
                     graph.adopt(partner.ref, into: ref)
@@ -168,8 +196,11 @@ struct RepairPlanner {
                     plan.moves[ref] = (qlat, qlon)
                 }
                 plan.inserts[candidate.otherWay, default: []].append(
-                    (after: network.refs[segment],
-                     segment: Int32(segment - otherRange.lowerBound), along: along, node: ref))
+                    (
+                        after: network.refs[segment],
+                        segment: Int32(segment - otherRange.lowerBound), along: along, node: ref
+                    )
+                )
                 link(&graph, ref, ends, (qlat, qlon), (alat, alon), (blat, blon))
                 note(&plan, Verdict.joined, candidate, told)
             }
@@ -187,9 +218,15 @@ struct RepairPlanner {
     /// The other line's own loose end, when the segment's near node is one: an end not
     /// yet moved or merged, within reach. Joining two such ends means one shared node
     /// rather than a new vertex on either line.
-    private func loosePartner(of place: (lat: Double, lon: Double), segment: Int,
-                              otherRange: Range<Int>, other: Int, loose: [Bool],
-                              plan: RepairPlan, kx: Double) -> (point: Int, ref: Int64)? {
+    private func loosePartner(
+        of place: (lat: Double, lon: Double),
+        segment: Int,
+        otherRange: Range<Int>,
+        other: Int,
+        loose: [Bool],
+        plan: RepairPlan,
+        kx: Double
+    ) -> (point: Int, ref: Int64)? {
         for point in [segment, segment + 1] {
             let isEnd = point == otherRange.lowerBound || point == otherRange.upperBound - 1
             let slot = other * RoadRepair.endsPerWay + (point == otherRange.lowerBound ? 0 : 1)
@@ -197,8 +234,9 @@ struct RepairPlanner {
             let dx = (network.lon[point] - place.lon) * kx
             let dy = (network.lat[point] - place.lat) * RoadRepair.metresPerDegree
             if isEnd, loose[slot], plan.moves[candidateRef] == nil,
-               plan.merges[candidateRef] == nil,
-               (dx * dx + dy * dy).squareRoot() <= limit {
+                plan.merges[candidateRef] == nil,
+                (dx * dx + dy * dy).squareRoot() <= limit
+            {
                 return (point, candidateRef)
             }
         }
@@ -206,20 +244,34 @@ struct RepairPlanner {
     }
 
     /// Counts a verdict and records it against the candidate that earned it.
-    private func note(_ plan: inout RepairPlan, _ reason: String,
-                      _ candidate: RoadRepair.Candidate, _ told: Int) {
+    private func note(
+        _ plan: inout RepairPlan,
+        _ reason: String,
+        _ candidate: RoadRepair.Candidate,
+        _ told: Int
+    ) {
         plan.counts[reason, default: 0] += 1
         guard plan.trace.count == told else { return }
-        plan.trace.append(String(format: "%ld %ld %.3f %@",
-                                 network.wayID[Int(candidate.way)],
-                                 network.wayID[Int(candidate.otherWay)],
-                                 candidate.distance, reason))
+        plan.trace.append(
+            String(
+                format: "%ld %ld %.3f %@",
+                network.wayID[Int(candidate.way)],
+                network.wayID[Int(candidate.otherWay)],
+                candidate.distance,
+                reason
+            )
+        )
     }
 
     /// Whether the way is still within `reach` metres of the other line thirty metres back
     /// from its end, which separates a pavement from a switchback arriving shallow.
-    private func stillBeside(candidate: RoadRepair.Candidate, at: Int, kx: Double,
-                             reach: Double, segment: Int) -> Bool {
+    private func stillBeside(
+        candidate: RoadRepair.Candidate,
+        at: Int,
+        kx: Double,
+        reach: Double,
+        segment: Int
+    ) -> Bool {
         let way = Int(candidate.way)
         let lo = Int(network.start[way]), hi = Int(network.start[way + 1])
         var i = at
@@ -254,13 +306,25 @@ struct RepairPlanner {
     }
 
     /// Everything that can stop a repair before the routing test is reached.
-    private func stopped(at p: (lat: Double, lon: Double), reaching q: (lat: Double, lon: Double),
-                         distance: Double, obstacles: [Int64: [Int32]], cell: Double,
-                         candidate: RoadRepair.Candidate, at: Int, segment: Int) -> Gate {
+    private func stopped(
+        at p: (lat: Double, lon: Double),
+        reaching q: (lat: Double, lon: Double),
+        distance: Double,
+        obstacles: [Int64: [Int32]],
+        cell: Double,
+        candidate: RoadRepair.Candidate,
+        at: Int,
+        segment: Int
+    ) -> Gate {
         var blocked = blockedBy(p.lat, p.lon, q.lat, q.lon, grid: obstacles, cell: cell)
         if let hit = blocked, hit.kind.isImpassable {
-            return .refused(Verdict.stoppedBy(hit.kind == .building ? Verdict.building
-                                                                       : Verdict.fence))
+            return .refused(
+                Verdict.stoppedBy(
+                    hit.kind == .building
+                        ? Verdict.building
+                        : Verdict.fence
+                )
+            )
         }
         if let hit = blocked, !bridging { return .refused(Verdict.stoppedBy(hit.word)) }
         if let hit = blocked, hit.height.isFinite, Double(hit.height) > Self.tooHigh {
@@ -270,10 +334,14 @@ struct RepairPlanner {
         // A pavement running alongside a road is not a junction, however close it comes.
         let kx = RoadRepair.metresPerLonDegree(at: p.lat)
         let neighbour = candidate.atEnd ? at - 1 : at + 1
-        let v1 = ((p.lon - network.lon[neighbour]) * kx,
-                  (p.lat - network.lat[neighbour]) * RoadRepair.metresPerDegree)
-        let v2 = ((network.lon[segment + 1] - network.lon[segment]) * kx,
-                  (network.lat[segment + 1] - network.lat[segment]) * RoadRepair.metresPerDegree)
+        let v1 = (
+            (p.lon - network.lon[neighbour]) * kx,
+            (p.lat - network.lat[neighbour]) * RoadRepair.metresPerDegree
+        )
+        let v2 = (
+            (network.lon[segment + 1] - network.lon[segment]) * kx,
+            (network.lat[segment + 1] - network.lat[segment]) * RoadRepair.metresPerDegree
+        )
         let n1 = (v1.0 * v1.0 + v1.1 * v1.1).squareRoot()
         let n2 = (v2.0 * v2.0 + v2.1 * v2.1).squareRoot()
         if n1 > 0 && n2 > 0 {
@@ -284,8 +352,14 @@ struct RepairPlanner {
             // is still beside the other line thirty metres back.
             if angle < Self.shallowDegrees && candidate.along > Self.nearStart
                 && candidate.along < Self.nearEnd,
-               stillBeside(candidate: candidate, at: at, kx: kx,
-                           reach: distance + limit, segment: segment) {
+                stillBeside(
+                    candidate: candidate,
+                    at: at,
+                    kx: kx,
+                    reach: distance + limit,
+                    segment: segment
+                )
+            {
                 return .refused(Verdict.alongside)
             }
         }
@@ -293,8 +367,11 @@ struct RepairPlanner {
         if let reason = groundSays(p.lat, p.lon, q.lat, q.lon, distance: distance) {
             if !bridging { return .refused(Verdict.stoppedBy(reason.rawValue)) }
             if blocked == nil {
-                blocked = Blockage(kind: reason == .ravine ? .ravine : .cliff,
-                                   word: reason.rawValue, height: .nan)
+                blocked = Blockage(
+                    kind: reason == .ravine ? .ravine : .cliff,
+                    word: reason.rawValue,
+                    height: .nan
+                )
             }
         }
         return .allowed(blocked)
@@ -302,8 +379,14 @@ struct RepairPlanner {
 
     /// Tells the graph what was just done, so later candidates judge the map as this repair
     /// leaves it: without it, a row of ends reaching for one line each sees no route.
-    private func link(_ graph: inout LocalGraph, _ node: Int64, _ ends: (Int64, Int64),
-                      _ q: (Double, Double), _ a: (Double, Double), _ b: (Double, Double)) {
+    private func link(
+        _ graph: inout LocalGraph,
+        _ node: Int64,
+        _ ends: (Int64, Int64),
+        _ q: (Double, Double),
+        _ a: (Double, Double),
+        _ b: (Double, Double)
+    ) {
         let kq = RoadRepair.metresPerLonDegree(at: q.0)
         for (ref, point) in [(ends.0, a), (ends.1, b)] {
             let dx = (point.1 - q.1) * kq, dy = (point.0 - q.0) * RoadRepair.metresPerDegree
@@ -312,22 +395,32 @@ struct RepairPlanner {
     }
 
     /// The first thing standing between the two points, and how high it is if OSM says.
-    private func blockedBy(_ plat: Double, _ plon: Double, _ qlat: Double, _ qlon: Double,
-                           grid: [Int64: [Int32]], cell: Double) -> Blockage? {
+    private func blockedBy(
+        _ plat: Double,
+        _ plon: Double,
+        _ qlat: Double,
+        _ qlon: Double,
+        grid: [Int64: [Int32]],
+        cell: Double
+    ) -> Blockage? {
         let here = RoadRepair.key(plat, plon, cell)
         for dy in -1...1 {
             for dx in -1...1 {
                 guard let bucket = grid[RoadRepair.neighbour(of: here, dy: dy, dx: dx)] else { continue }
                 for entry in bucket {
                     let a = Int(entry)
-                    if Self.crosses((plat, plon), (qlat, qlon),
-                                    (network.obstacleLat[a], network.obstacleLon[a]),
-                                    (network.obstacleLat[a + 1], network.obstacleLon[a + 1])) {
+                    if Self.crosses(
+                        (plat, plon),
+                        (qlat, qlon),
+                        (network.obstacleLat[a], network.obstacleLon[a]),
+                        (network.obstacleLat[a + 1], network.obstacleLon[a + 1])
+                    ) {
                         let obstacle = network.obstacleOwning(point: a)
                         return Blockage(
                             kind: ObstacleKind(rawValue: network.obstacleKind[obstacle]) ?? .barrier,
                             word: network.vocabulary[Int(network.obstacleWord[obstacle])],
-                            height: network.obstacleHeight[obstacle])
+                            height: network.obstacleHeight[obstacle]
+                        )
                     }
                 }
             }
@@ -338,14 +431,23 @@ struct RepairPlanner {
     /// What the ground says against joining; the word is what the verdict prints.
     private enum Ground: String { case drop, ravine, face }
 
-    private func groundSays(_ plat: Double, _ plon: Double, _ qlat: Double, _ qlon: Double,
-                            distance: Double) -> Ground? {
+    private func groundSays(
+        _ plat: Double,
+        _ plon: Double,
+        _ qlat: Double,
+        _ qlon: Double,
+        distance: Double
+    ) -> Ground? {
         guard let terrain, distance > Self.groundMinimum else { return nil }
         guard let here = terrain.elevation(plat, plon),
-              let there = terrain.elevation(qlat, qlon) else { return nil }
+            let there = terrain.elevation(qlat, qlon)
+        else { return nil }
         if abs(here - there) > Self.step { return .drop }
         if let middle = terrain.elevation((plat + qlat) / 2, (plon + qlon) / 2),
-           min(here, there) - middle > Self.dip { return .ravine }
+            min(here, there) - middle > Self.dip
+        {
+            return .ravine
+        }
         if let steep = terrain.slope(plat, plon), steep > Self.cliffDegrees { return .face }
         return nil
     }
@@ -370,8 +472,13 @@ struct RepairPlanner {
             let points = network.obstaclePoints(of: obstacle)
             guard points.count >= 2 else { continue }
             for a in points.lowerBound..<(points.upperBound - 1) {
-                RoadRepair.cells(network.obstacleLat[a], network.obstacleLon[a],
-                                 network.obstacleLat[a + 1], network.obstacleLon[a + 1], cell) { key in
+                RoadRepair.cells(
+                    network.obstacleLat[a],
+                    network.obstacleLon[a],
+                    network.obstacleLat[a + 1],
+                    network.obstacleLon[a + 1],
+                    cell
+                ) { key in
                     if wanted.contains(key) { grid[key, default: []].append(Int32(a)) }
                 }
             }
@@ -386,8 +493,12 @@ struct RepairPlanner {
     /// Whether the two segments properly cross. A point exactly on the line counts as on
     /// the near side, so a fence starting on a road node blocks nothing; the dead band
     /// keeps the sign of the cross product stable within the coordinate grid.
-    static func crosses(_ p: (Double, Double), _ q: (Double, Double),
-                        _ a: (Double, Double), _ b: (Double, Double)) -> Bool {
+    static func crosses(
+        _ p: (Double, Double),
+        _ q: (Double, Double),
+        _ a: (Double, Double),
+        _ b: (Double, Double)
+    ) -> Bool {
         func beyond(_ o: (Double, Double), _ u: (Double, Double), _ v: (Double, Double)) -> Bool {
             let cross = (u.1 - o.1) * (v.0 - o.0) - (u.0 - o.0) * (v.1 - o.1)
             let span = ((u.0 - o.0) * (u.0 - o.0) + (u.1 - o.1) * (u.1 - o.1)).squareRoot()

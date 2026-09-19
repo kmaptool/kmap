@@ -6,15 +6,16 @@ extension BuildPipeline {
     /// gmapsupp write, or the device reads two products. The code page belongs here too:
     /// without it the TYP is written with code page 0 and drops every non-ASCII label.
     func identityOptions(areaName: String) -> [String] {
-        ["--family-id=\(recipe.familyID)",
-         "--product-id=1",
-         "--family-name=\(recipe.familyName)",
-         "--series-name=\(recipe.seriesName)",
-         "--area-name=\(areaName)",
-         "--description=\(recipe.headerDescription)",
-         "--code-page=\(recipe.codePage)"]
+        [
+            "--family-id=\(recipe.familyID)",
+            "--product-id=1",
+            "--family-name=\(recipe.familyName)",
+            "--series-name=\(recipe.seriesName)",
+            "--area-name=\(areaName)",
+            "--description=\(recipe.headerDescription)",
+            "--code-page=\(recipe.codePage)"
+        ]
     }
-
 
     /// Writes the map's attribution file and returns the `--copyright-file` option. Written
     /// per build, since two of its lines describe this build. Returns an empty array if the
@@ -34,9 +35,11 @@ extension BuildPipeline {
     static func handPicked() -> [MapElementKind: Set<Int>] {
         var out: [MapElementKind: Set<Int>] = [:]
         for entry in RuleReassignments.entries() {
-            guard let kind = MapElementKind.allCases.first(where: {
-                $0.ruleFile == entry.file
-            }) else { continue }
+            guard
+                let kind = MapElementKind.allCases.first(where: {
+                    $0.ruleFile == entry.file
+                })
+            else { continue }
             for line in entry.new {
                 guard let code = StyleCatalog.emittedCode(of: line, kind: kind) else {
                     continue
@@ -65,15 +68,17 @@ extension BuildPipeline {
         for block in text.components(separatedBy: "[_polygon]").dropFirst() {
             let body = block.components(separatedBy: "[end]").first ?? ""
             guard body.contains("Xpm=\""), !body.contains("Xpm=\"0 0"),
-                  body.contains(" c none") else { continue }
-            guard let line = body.split(separator: "\n")
-                    .first(where: { $0.hasPrefix("Type=") }) else { continue }
+                body.contains(" c none")
+            else { continue }
+            guard
+                let line = body.split(separator: "\n")
+                    .first(where: { $0.hasPrefix("Type=") })
+            else { continue }
             let code = line.dropFirst("Type=".count).trimmingCharacters(in: .whitespaces)
             if !code.isEmpty { out.append(code) }
         }
         return out
     }
-
 
     /// The search-index options. Separate because the run that bundles finished tiles
     /// rebuilds the index and needs exactly these options and none of the others.
@@ -96,9 +101,13 @@ extension BuildPipeline {
         return options
     }
 
-
-    func mkgmapOptions(name: String, outputDir: URL, tileCount: Int,
-                               gmapsupp: Bool = true, typ: URL? = nil) -> [String] {
+    func mkgmapOptions(
+        name: String,
+        outputDir: URL,
+        tileCount: Int,
+        gmapsupp: Bool = true,
+        typ: URL? = nil
+    ) -> [String] {
         var options: [String] = []
         /// The rule files this build compiles from, once the snapshot is decided: the
         /// drawing order is read from the same rules mkgmap is given.
@@ -117,7 +126,10 @@ extension BuildPipeline {
                     // The fallback first, then the silencing: what neither the new
                     // number nor the old one can paint goes quiet.
                     _ = try? StyleCatalog.keepTheOldNumberWherePaletteIsSilent(
-                        in: mine, palette: source, log: log)
+                        in: mine,
+                        palette: source,
+                        log: log
+                    )
                     // Only a palette written for kmap's numbers. Every other kind leaves
                     // what it does not paint to the receiver on purpose, and always has.
                     if source.lines.contains(where: {
@@ -125,8 +137,11 @@ extension BuildPipeline {
                             .hasSuffix(StylePort.forOurNumbers)
                     }) {
                         _ = try? StyleCatalog.keepOnlyWhatThePaletteDraws(
-                            in: mine, palette: source, chosen: BuildPipeline.handPicked(),
-                            log: log)
+                            in: mine,
+                            palette: source,
+                            chosen: BuildPipeline.handPicked(),
+                            log: log
+                        )
                     }
                 }
                 options.append("--style-file=\(mine.path)")
@@ -157,7 +172,7 @@ extension BuildPipeline {
             "--output-dir=\(outputDir.path)",
             // mkgmap finishes when its slowest tile does, and jobs sharing one heap hold
             // each other back when there are more than the heap can feed. See compileJobs.
-            "--max-jobs=\(Machine.compileJobs(tiles: tileCount, heapGB: recipe.heapGB, nodesPerTile: recipe.maxNodesPerTile))",
+            "--max-jobs=\(Machine.compileJobs(tiles: tileCount, heapGB: recipe.heapGB, nodesPerTile: recipe.maxNodesPerTile))"
         ]
         if gmapsupp { options.append("--gmapsupp") }
         options += copyrightOption()
@@ -180,8 +195,10 @@ extension BuildPipeline {
             } else {
                 // Derived from the extract's own coastline. `floodblocker` drops a sea
                 // polygon containing streets, which would otherwise flood inland areas.
-                options.append("--generate-sea=multipolygon,extend-sea-sectors,close-gaps=6000,"
-                               + "floodblocker,land-tag=natural=land")
+                options.append(
+                    "--generate-sea=multipolygon,extend-sea-sectors,close-gaps=6000,"
+                        + "floodblocker,land-tag=natural=land"
+                )
             }
         }
 
@@ -203,14 +220,19 @@ extension BuildPipeline {
             options.append("--x-shape-clip-exact=\(StyleCatalog.landPolygonType):\(landBand)")
             // Contours travel with the shapes; every other line stops at the frame because
             // routing is joined there. Otherwise the band carries landcover but no contours.
-            options.append("--x-line-clip-overlap="
-                           + StyleCatalog.contourLineTypes.joined(separator: ","))
+            options.append(
+                "--x-line-clip-overlap="
+                    + StyleCatalog.contourLineTypes.joined(separator: ",")
+            )
             // What covers what is decided by the order the lines are stored in, and left
             // to itself that is the order they arrived in: a river could cover the road it
             // passes under. The style's own road rules give every road type a rank.
             if let styleDir = styleUsed, let index = RuleSetIndex.read(styleDirectory: styleDir),
-               let order = LineDrawOrder.option(
-                   in: index, overContours: recipe.contours ? StyleCatalog.contourLineCodes : []) {
+                let order = LineDrawOrder.option(
+                    in: index,
+                    overContours: recipe.contours ? StyleCatalog.contourLineCodes : []
+                )
+            {
                 options.append(order)
             }
         }

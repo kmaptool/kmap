@@ -5,7 +5,6 @@ import Foundation
 /// Every flag the interactive form offers has an equivalent here. The order is fixed:
 /// read the profile, let explicit flags override it, hand a recipe to the pipeline.
 extension CLI {
-
     /// Reads the build flags one kind at a time, collecting every refusal, so one run
     /// reports everything wrong with it before any download.
     private struct BuildFlags {
@@ -32,8 +31,10 @@ extension CLI {
                 return nil
             }
             guard range.contains(value) else {
-                refused.append("--\(name)=\(value) is outside"
-                               + " \(range.lowerBound)-\(range.upperBound)")
+                refused.append(
+                    "--\(name)=\(value) is outside"
+                        + " \(range.lowerBound)-\(range.upperBound)"
+                )
                 return nil
             }
             return value
@@ -44,9 +45,13 @@ extension CLI {
             guard let raw = flags.value(name) else { return nil }
             if let match = options.first(where: {
                 $0.id.caseInsensitiveCompare(raw) == .orderedSame
-            }) { return match.value }
-            refused.append("--\(name)=\(raw) — one of "
-                           + options.map(\.id).joined(separator: ", "))
+            }) {
+                return match.value
+            }
+            refused.append(
+                "--\(name)=\(raw) — one of "
+                    + options.map(\.id).joined(separator: ", ")
+            )
             return nil
         }
 
@@ -78,12 +83,16 @@ extension CLI {
 
     /// The style the build was asked for. An unknown style is refused rather than
     /// swapped for whichever comes first.
-    private static func chosenStyle(_ flags: Flags, choices: BuildChoices,
-                                    catalog: StyleCatalog) -> Result<MapStyle, Refusal> {
+    private static func chosenStyle(
+        _ flags: Flags,
+        choices: BuildChoices,
+        catalog: StyleCatalog
+    ) -> Result<MapStyle, Refusal> {
         let askedStyle = flags.value("style")
         let styleID = askedStyle ?? choices.styleID
         guard let style = catalog.availableStyles().first(where: { $0.id == styleID }) else {
-            let named = askedStyle != nil
+            let named =
+                askedStyle != nil
                 ? "--style=\(styleID)"
                 : flags.value("profile") != nil
                     ? "the profile's style \"\(styleID)\""
@@ -98,7 +107,8 @@ extension CLI {
     /// id is refused: nil, with the offenders already reported.
     private static func hiddenFeatures(_ flags: Flags, choices: BuildChoices) -> Set<String>? {
         guard let asked = flags.value("hide") else { return Set(choices.hiddenFeatures) }
-        let askedToHide = asked
+        let askedToHide =
+            asked
             .split(separator: ",")
             .map { String($0).trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
@@ -112,16 +122,24 @@ extension CLI {
 
     /// The regions of a build: several ids joined by "+" build one seamless map out of
     /// all of them. Each must exist and have an extract to download.
-    private static func chosenRegions(_ regionID: String, in index: RegionIndex)
-        -> Result<[Region], Refusal> {
+    private static func chosenRegions(
+        _ regionID: String,
+        in index: RegionIndex
+    )
+        -> Result<[Region], Refusal>
+    {
         var chosen: [Region] = []
         for id in regionID.split(separator: "+").map(String.init) {
             guard let found = index.region(id) else {
                 return .failure(Refusal(why: "no region with id \"\(id)\" — try `kmap regions \(id)`"))
             }
             guard found.pbfURL != nil else {
-                return .failure(Refusal(why: "\(found.name) has no downloadable extract"
-                                        + " — pick a sub-region"))
+                return .failure(
+                    Refusal(
+                        why: "\(found.name) has no downloadable extract"
+                            + " — pick a sub-region"
+                    )
+                )
             }
             chosen.append(found)
         }
@@ -140,26 +158,34 @@ extension CLI {
         let codePage: Int
     }
 
-    private static func resolveRendering(_ asked: inout BuildFlags, choices: BuildChoices,
-                                         settings: Settings) -> RenderingChoices {
+    private static func resolveRendering(
+        _ asked: inout BuildFlags,
+        choices: BuildChoices,
+        settings: Settings
+    ) -> RenderingChoices {
         let flags = asked.flags
-        let levels = asked.word("levels", among: LevelsProfile.all.map { ($0.id, $0) })
+        let levels =
+            asked.word("levels", among: LevelsProfile.all.map { ($0.id, $0) })
             ?? LevelsProfile.all.first { $0.id == choices.levelsID } ?? .smooth
 
         // A plan is matched by name rather than by id, which is a UUID for custom plans.
         // Only plans made for this level ladder are offered.
         let forLadder = settings.zoomPlans.filter { $0.levelsID == levels.id }
-        let zoomPlan = asked.word("zoom-plan", among: forLadder.map { ($0.name.lowercased(), $0) })
+        let zoomPlan =
+            asked.word("zoom-plan", among: forLadder.map { ($0.name.lowercased(), $0) })
             ?? forLadder.first { $0.id == choices.zoomPlanID }
             ?? ZoomPlan.builtin(forLevels: levels.id)
         let fromProfile = TypEdit.Theme(rawValue: choices.theme) ?? .all
-        let theme = asked.word("theme", among: TypEdit.Theme.allCases.map { ($0.rawValue, $0) })
+        let theme =
+            asked.word("theme", among: TypEdit.Theme.allCases.map { ($0.rawValue, $0) })
             ?? fromProfile
-        let labels = asked.word("labels", among: LabelLanguage.all.map { ($0.id, $0) })
+        let labels =
+            asked.word("labels", among: LabelLanguage.all.map { ($0.id, $0) })
             ?? LabelLanguage.all.first { $0.id == choices.labelLanguageID } ?? .local
 
         // The kebab-case spelling used by the help text is accepted beside the raw value.
-        let carriers = BuildRecipe.DescriptionCarrier.allCases.map { ($0.rawValue, $0) }
+        let carriers =
+            BuildRecipe.DescriptionCarrier.allCases.map { ($0.rawValue, $0) }
             + [(id: "in-name", value: BuildRecipe.DescriptionCarrier.inName)]
         let descriptions: BuildRecipe.DescriptionCarrier =
             asked.word("descriptions", among: carriers)
@@ -167,9 +193,14 @@ extension CLI {
                 ? .phone
                 : BuildRecipe.DescriptionCarrier(rawValue: choices.descriptions) ?? .off)
 
-        return RenderingChoices(levels: levels, zoomPlan: zoomPlan, theme: theme,
-                                labels: labels, descriptions: descriptions,
-                                codePage: asked.codePage() ?? choices.codePage)
+        return RenderingChoices(
+            levels: levels,
+            zoomPlan: zoomPlan,
+            theme: theme,
+            labels: labels,
+            descriptions: descriptions,
+            codePage: asked.codePage() ?? choices.codePage
+        )
     }
 
     static func build(_ arguments: [String]) async -> Int32 {
@@ -177,7 +208,6 @@ extension CLI {
             return CLIOutput.failure("build needs a region id, e.g. austria", code: 2)
         }
         let flags = Flags(arguments)
-
 
         // Flags apply to this run only: a one-off `--out=` must not become the stored
         // output folder.
@@ -195,8 +225,10 @@ extension CLI {
         // start from; a flag overrides either.
         guard let choices = chosenChoices(flags.value("profile"), in: store) else {
             let wanted = flags.value("profile") ?? ""
-            return CLIOutput.failure("no profile called \"\(wanted)\" — see `kmap profiles`",
-                                     code: 2)
+            return CLIOutput.failure(
+                "no profile called \"\(wanted)\" — see `kmap profiles`",
+                code: 2
+            )
         }
 
         // Stored settings a build may overrule for one run. Out of range is refused
@@ -233,21 +265,27 @@ extension CLI {
         let askedFamilyID = number("family-id", in: 1...65535)
         let split = splitMode(from: flags, choices: choices, parts: parts)
         if split == nil {
-            asked.refused.append("--split=\(flags.value("split") ?? "")"
-                                 + " — one of fit, region, country, custom")
+            asked.refused.append(
+                "--split=\(flags.value("split") ?? "")"
+                    + " — one of fit, region, country, custom"
+            )
         }
 
         // Read here rather than at the point of use: every refusal has to be collected
         // before the guard below.
         let wantedOverlap = BuildChoices.sane(
-            number("overlap", in: 0...BuildChoices.overlapCeiling) ?? choices.shapeOverlap)
+            number("overlap", in: 0...BuildChoices.overlapCeiling) ?? choices.shapeOverlap
+        )
         let wantedLand = BuildChoices.sane(
-            number("land-overlap", in: 0...BuildChoices.overlapCeiling) ?? choices.landOverlap)
+            number("land-overlap", in: 0...BuildChoices.overlapCeiling) ?? choices.landOverlap
+        )
         // Land overlap may never exceed shape overlap; refused rather than clamped.
         if wantedLand > wantedOverlap {
-            asked.refused.append("--land-overlap=\(wantedLand) is past --overlap=\(wantedOverlap)"
-                                 + " — land would be painted onto ground the tile holds no"
-                                 + " cover for")
+            asked.refused.append(
+                "--land-overlap=\(wantedLand) is past --overlap=\(wantedOverlap)"
+                    + " — land would be painted onto ground the tile holds no"
+                    + " cover for"
+            )
         }
 
         guard asked.refused.isEmpty else {
@@ -280,8 +318,10 @@ extension CLI {
             contourInterval: interval,
             demLayer: switched("dem", choices.demLayer),
             fixSummits: switched("summits", choices.fixSummits),
-            demSources: CopernicusDEM.canonicalSourceList(flags.value("sources")
-                ?? choices.demSources),
+            demSources: CopernicusDEM.canonicalSourceList(
+                flags.value("sources")
+                    ?? choices.demSources
+            ),
             routable: switched("route", choices.routable),
             searchIndex: switched("index", choices.searchIndex),
             houseNumbers: switched("house-numbers", choices.houseNumbers),
@@ -309,7 +349,8 @@ extension CLI {
             // Smaller tiles mean more of them, and mkgmap compiles one per core.
             maxNodesPerTile: maxNodes,
             heapGB: askedHeap ?? settings.resolvedHeapGB,
-            downloadConnections: askedConnections ?? settings.downloadConnections)
+            downloadConnections: askedConnections ?? settings.downloadConnections
+        )
         recipe.healRadius = askedRepairRadius ?? recipe.healRadius
         recipe.startedOn = Date()
         // The compiler and the splitter are handed the same overlap figures; see
@@ -323,12 +364,18 @@ extension CLI {
         guard toolchain.canBuild else {
             let missing = Toolchain.missingRequirements(in: toolchain.status()).map(\.id)
             return CLIOutput.failure(
-                "\(missing.joined(separator: " and ")) missing — run: kmap install", code: 2)
+                "\(missing.joined(separator: " and ")) missing — run: kmap install",
+                code: 2
+            )
         }
 
-        let pipeline = BuildPipeline(recipe: recipe, settings: store,
-                                     toolchain: toolchain, styles: catalog,
-                                     showing: CLIOutput.showing)
+        let pipeline = BuildPipeline(
+            recipe: recipe,
+            settings: store,
+            toolchain: toolchain,
+            styles: catalog,
+            showing: CLIOutput.showing
+        )
         pipeline.start()
         return await follow(pipeline, landingIn: recipe.destinationDirectory)
     }
@@ -342,8 +389,12 @@ extension CLI {
         private var lastFraction: [String: Double] = [:]
         private var lastDetail: [String: String] = [:]
 
-        mutating func speaks(stage id: String, fraction: Double?, overall: Double,
-                             detail: String) -> Bool {
+        mutating func speaks(
+            stage id: String,
+            fraction: Double?,
+            overall: Double,
+            detail: String
+        ) -> Bool {
             let moved = abs((fraction ?? 0) - (lastFraction[id] ?? -1)) >= 0.01
             let grew = abs(overall - lastOverall) >= 0.01
             let said = detail != lastDetail[id]
@@ -379,17 +430,31 @@ extension CLI {
             for stage in snapshot.stages where lastStage[stage.id.rawValue] != stage.status {
                 lastStage[stage.id.rawValue] = stage.status
                 if stage.status == .running { CLILog.line("── \(stage.id.title)") }
-                CLIOutput.stage(stage.id.rawValue, stage.status.rawValue,
-                                title: stage.id.title, detail: stage.detail)
+                CLIOutput.stage(
+                    stage.id.rawValue,
+                    stage.status.rawValue,
+                    title: stage.id.title,
+                    detail: stage.detail
+                )
             }
 
             if CLIOutput.isJSON {
                 let overall = snapshot.overall
                 for stage in snapshot.stages where stage.status == .running {
-                    guard gate.speaks(stage: stage.id.rawValue, fraction: stage.fraction,
-                                      overall: overall, detail: stage.detail) else { continue }
-                    CLIOutput.progress(stage: stage.id.rawValue, fraction: stage.fraction,
-                                       overall: overall, detail: stage.detail)
+                    guard
+                        gate.speaks(
+                            stage: stage.id.rawValue,
+                            fraction: stage.fraction,
+                            overall: overall,
+                            detail: stage.detail
+                        )
+                    else { continue }
+                    CLIOutput.progress(
+                        stage: stage.id.rawValue,
+                        fraction: stage.fraction,
+                        overall: overall,
+                        detail: stage.detail
+                    )
                 }
             }
 
@@ -412,19 +477,29 @@ extension CLI {
                 CLIOutput.progress(stage: nil, fraction: nil, overall: snapshot.overall)
                 CLIOutput.result([
                     "destination": .string(destination.path),
-                    "outputs": .array(snapshot.outputs.map {
-                        ["name": .string($0.name), "path": .string($0.url.path),
-                         "bytes": .int(Int($0.size))]
-                    }),
-                    "stages": .array(snapshot.stages.map { stage in
-                        ["id": .string(stage.id.rawValue),
-                         "title": .string(stage.id.title),
-                         "status": .string(stage.status.rawValue),
-                         "seconds": .double(stage.seconds),
-                         "peakBytes": .int(Int(stage.peakBytes))]
-                    }),
-                    "seconds": .double((snapshot.finishedAt ?? Date())
-                        .timeIntervalSince(snapshot.startedAt)),
+                    "outputs": .array(
+                        snapshot.outputs.map {
+                            [
+                                "name": .string($0.name), "path": .string($0.url.path),
+                                "bytes": .int(Int($0.size))
+                            ]
+                        }
+                    ),
+                    "stages": .array(
+                        snapshot.stages.map { stage in
+                            [
+                                "id": .string(stage.id.rawValue),
+                                "title": .string(stage.id.title),
+                                "status": .string(stage.status.rawValue),
+                                "seconds": .double(stage.seconds),
+                                "peakBytes": .int(Int(stage.peakBytes))
+                            ]
+                        }
+                    ),
+                    "seconds": .double(
+                        (snapshot.finishedAt ?? Date())
+                            .timeIntervalSince(snapshot.startedAt)
+                    )
                 ])
                 return 0
             }

@@ -6,25 +6,29 @@ import Foundation
 /// lives in the TYP, and neither file refers to the other. This screen shows the two
 /// side by side.
 final class TypeBrowserScreen: Screen {
-
     var page: Page {
-        Page("\(document.style.name) · \(kind.plural)",
-             subject: search.subject, keys: keys)
+        Page(
+            "\(document.style.name) · \(kind.plural)",
+            subject: search.subject,
+            keys: keys
+        )
     }
 
     private var keys: [Hint] {
         if let asking { return asking.footerHints }
         if search.open { return search.hints }
-        return [Hint(key: "↑↓", label: t("move")),
-                Hint(key: Glyph.enter, label: document.isEditable ? t("change") : t("inspect")),
-                Hint(key: "←→", label: t("points/lines/polygons")),
-                Hint(key: "a", label: t("add a section")),
-                Hint(key: "d", label: t("delete the section")),
-                Hint(key: "x", label: t("reassign a rule")),
-                Hint(key: "l", label: russian ? t("english") : t("russian")),
-                Hint(key: "p", label: showingDetail ? t("hide the preview") : t("preview")),
-                Hint(key: "/", label: t("search")),
-                Hint(key: "esc", label: t("back"))]
+        return [
+            Hint(key: "↑↓", label: t("move")),
+            Hint(key: Glyph.enter, label: document.isEditable ? t("change") : t("inspect")),
+            Hint(key: "←→", label: t("points/lines/polygons")),
+            Hint(key: "a", label: t("add a section")),
+            Hint(key: "d", label: t("delete the section")),
+            Hint(key: "x", label: t("reassign a rule")),
+            Hint(key: "l", label: russian ? t("english") : t("russian")),
+            Hint(key: "p", label: showingDetail ? t("hide the preview") : t("preview")),
+            Hint(key: "/", label: t("search")),
+            Hint(key: "esc", label: t("back"))
+        ]
     }
 
     private var document: StyleDocument
@@ -75,12 +79,14 @@ final class TypeBrowserScreen: Screen {
     private var folding: (rows: [StyleTypeRow], spans: [Int: (last: Int, count: Int)]) {
         guard search.query.isEmpty else {
             let q = search.query.lowercased()
-            return (rows.filter { row in
-                row.hex.contains(q)
-                    || row.name(preferringRussian: russian).lowercased().contains(q)
-                    || row.section?.englishLabel?.lowercased().contains(q) == true
-                    || row.tags.contains { $0.lowercased().contains(q) }
-            }, [:])
+            return (
+                rows.filter { row in
+                    row.hex.contains(q)
+                        || row.name(preferringRussian: russian).lowercased().contains(q)
+                        || row.section?.englishLabel?.lowercased().contains(q) == true
+                        || row.tags.contains { $0.lowercased().contains(q) }
+                }, [:]
+            )
         }
         let all = rows
         var out: [StyleTypeRow] = []
@@ -115,7 +121,8 @@ final class TypeBrowserScreen: Screen {
     /// Opens a fold when the selected row stands for one; says whether it did.
     private func unfoldIfFolded() -> Bool {
         guard let row = visible[safe: list.selected],
-              folding.spans[row.code] != nil else { return false }
+            folding.spans[row.code] != nil
+        else { return false }
         expandedFolds.insert(row.code)
         return true
     }
@@ -154,12 +161,20 @@ final class TypeBrowserScreen: Screen {
             if unfoldIfFolded() { return .none }
             guard let row = visible[safe: list.selected] else { return .none }
             guard row.isStyled else {
-                say(t("this TYP has no section for %@ — press a to add one", row.hex),
-                    error: true)
+                say(
+                    t("this TYP has no section for %@ — press a to add one", row.hex),
+                    error: true
+                )
                 return .none
             }
-            return .push(TypeEditScreen(style: document.style, kind: kind, code: row.code,
-                                        onEdited: { [weak self] in self?.reload() }))
+            return .push(
+                TypeEditScreen(
+                    style: document.style,
+                    kind: kind,
+                    code: row.code,
+                    onEdited: { [weak self] in self?.reload() }
+                )
+            )
 
         case .char(let typed):
             // By the key's place on the keyboard, not by its letter, so the commands keep
@@ -179,14 +194,25 @@ final class TypeBrowserScreen: Screen {
                 guard let row = visible[safe: list.selected] else { return .none }
                 guard row.isEmitted else {
                     // The inverse gesture: a free code asks which feature to bind here.
-                    return .push(ReassignScreen(document: document, kind: kind,
-                                                bindingTo: row.code,
-                                                onReassigned: { [weak self] in
-                                                    self?.reload()
-                                                }))
+                    return .push(
+                        ReassignScreen(
+                            document: document,
+                            kind: kind,
+                            bindingTo: row.code,
+                            onReassigned: { [weak self] in
+                                self?.reload()
+                            }
+                        )
+                    )
                 }
-                return .push(ReassignScreen(document: document, kind: kind, code: row.code,
-                                            onReassigned: { [weak self] in self?.reload() }))
+                return .push(
+                    ReassignScreen(
+                        document: document,
+                        kind: kind,
+                        code: row.code,
+                        onReassigned: { [weak self] in self?.reload() }
+                    )
+                )
             case "l": russian.toggle()
             case "p": showingDetail.toggle()
             default: break
@@ -216,18 +242,29 @@ final class TypeBrowserScreen: Screen {
             return .none
         }
         guard document.isEditable, let source = document.source,
-              let url = document.sourceURL else {
+            let url = document.sourceURL
+        else {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return .none
         }
         do {
-            let edited = try TypEdit.addSection(in: source, kind: kind, code: row.code,
-                                                label: row.tags.first)
+            let edited = try TypEdit.addSection(
+                in: source,
+                kind: kind,
+                code: row.code,
+                label: row.tags.first
+            )
             try TypLibrary.save(edited, to: url)
             reload()
             say(t("added a section for %@ — magenta until you draw it", row.hex))
-            return .push(TypeEditScreen(style: document.style, kind: kind, code: row.code,
-                                        onEdited: { [weak self] in self?.reload() }))
+            return .push(
+                TypeEditScreen(
+                    style: document.style,
+                    kind: kind,
+                    code: row.code,
+                    onEdited: { [weak self] in self?.reload() }
+                )
+            )
         } catch {
             say(error.localizedDescription, error: true)
             return .none
@@ -239,30 +276,45 @@ final class TypeBrowserScreen: Screen {
     private func askToRemoveSection() {
         guard let row = visible[safe: list.selected] else { return }
         guard let section = row.section else {
-            say(t("this TYP has no section for %@ — press a to add one", row.hex),
-                error: true)
+            say(
+                t("this TYP has no section for %@ — press a to add one", row.hex),
+                error: true
+            )
             return
         }
         guard document.isEditable else {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return
         }
-        var body = [t("The section for %@ will be deleted: its drawing, its colours and"
-                      + " its names. The device will then draw this type its own way.",
-                      row.hex)]
+        var body = [
+            t(
+                "The section for %@ will be deleted: its drawing, its colours and"
+                    + " its names. The device will then draw this type its own way.",
+                row.hex
+            )
+        ]
         if kind == .polygon {
             body.append(t("Its entry in the draw order will be deleted too."))
         }
-        body.append(t("The file is rewritten at once. A new section can be created"
-                      + " with a, but the current colours and drawing will be lost."))
+        body.append(
+            t(
+                "The file is rewritten at once. A new section can be created"
+                    + " with a, but the current colours and drawing will be lost."
+            )
+        )
         var detail = [(t("type"), row.hex)]
         if let name = section.label(language: russian ? 0x19 : 0x00) ?? section.englishLabel {
             detail.append((t("name"), name))
         }
         if let tag = row.tags.first { detail.append((t("drawn for"), tag)) }
         removing = row
-        asking = Dialog(title: t("Delete the section"), body: body, detail: detail,
-                        confirm: t("delete"), cancel: t("cancel"))
+        asking = Dialog(
+            title: t("Delete the section"),
+            body: body,
+            detail: detail,
+            confirm: t("delete"),
+            cancel: t("cancel")
+        )
     }
 
     /// Deletes the section after confirmation.
@@ -272,8 +324,12 @@ final class TypeBrowserScreen: Screen {
             let edited = try TypEdit.removeSection(in: source, kind: kind, code: row.code)
             try TypLibrary.save(edited, to: url)
             reload()
-            say(t("section for %@ deleted — the device will draw this type its own way",
-                  row.hex))
+            say(
+                t(
+                    "section for %@ deleted — the device will draw this type its own way",
+                    row.hex
+                )
+            )
         } catch {
             say(error.localizedDescription, error: true)
         }
@@ -306,16 +362,21 @@ final class TypeBrowserScreen: Screen {
 
         drawHeader(s, rect: rect, theme: theme, shown: shown.count)
 
-        let detailHeight = showingDetail
+        let detailHeight =
+            showingDetail
             ? detailRows(for: shown[safe: list.selected], within: rect) : 0
         let listTop = rect.y + 3
         let listHeight = max(1, rect.maxY - listTop - detailHeight - 1)
 
         guard !shown.isEmpty else {
-            s.text(rect.x, listTop, search.query.isEmpty
+            s.text(
+                rect.x,
+                listTop,
+                search.query.isEmpty
                     ? t("nothing here — the rule set has not been unpacked yet")
                     : t("nothing matches \"%@\"", search.query),
-                   Style(fg: theme.faint, bg: theme.appBg))
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             return
         }
 
@@ -324,24 +385,46 @@ final class TypeBrowserScreen: Screen {
             let index = list.offset + i
             guard let row = shown[safe: index] else { break }
             // A column short of the edge: the scroll hint occupies the last one.
-            draw(row, into: s, rect: Rect(x: rect.x, y: rect.y, w: rect.w - 1, h: rect.h),
-                 y: listTop + i, theme: theme, selected: index == list.selected,
-                 fold: spans[row.code])
+            draw(
+                row,
+                into: s,
+                rect: Rect(x: rect.x, y: rect.y, w: rect.w - 1, h: rect.h),
+                y: listTop + i,
+                theme: theme,
+                selected: index == list.selected,
+                fold: spans[row.code]
+            )
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
-                           offset: list.offset, count: shown.count,
-                           visible: listHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
+            offset: list.offset,
+            count: shown.count,
+            visible: listHeight,
+            theme: theme
+        )
 
         if let message {
-            s.text(rect.x, rect.maxY - 1, truncate(message, to: rect.w),
-                   Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                rect.maxY - 1,
+                truncate(message, to: rect.w),
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg)
+            )
         }
 
         guard showingDetail, let row = shown[safe: list.selected] else { return }
-        drawDetail(row, into: s,
-                   rect: Rect(x: rect.x, y: listTop + listHeight + 1, w: rect.w,
-                              h: rect.maxY - listTop - listHeight - 1),
-                   theme: theme)
+        drawDetail(
+            row,
+            into: s,
+            rect: Rect(
+                x: rect.x,
+                y: listTop + listHeight + 1,
+                w: rect.w,
+                h: rect.maxY - listTop - listHeight - 1
+            ),
+            theme: theme
+        )
     }
 
     private func drawHeader(_ s: Surface, rect: Rect, theme: Theme, shown: Int) {
@@ -351,7 +434,8 @@ final class TypeBrowserScreen: Screen {
         for candidate in MapElementKind.allCases {
             let selected = candidate == kind
             let label = " \(candidate.plural) "
-            let style = selected
+            let style =
+                selected
                 ? Style(fg: theme.selectionFg, bg: theme.raisedBg, bold: true)
                 : Style(fg: theme.faint, bg: theme.appBg)
             x = s.text(x, rect.y, label, style)
@@ -359,17 +443,22 @@ final class TypeBrowserScreen: Screen {
         }
 
         let coverage = document.coverage(kind)
-        let summary = document.isReadable
+        let summary =
+            document.isReadable
             ? t("%d styled", coverage.both) + " · " + t("%d not", coverage.unstyled.count)
                 + (coverage.deliberate.isEmpty
-                   ? "" : " · " + t("%d by choice", coverage.deliberate.count))
+                    ? "" : " · " + t("%d by choice", coverage.deliberate.count))
                 + " · " + t("%d unused", coverage.unused.count)
             : t("TYP not readable")
         s.textRight(rect.maxX, rect.y, summary, Style(fg: theme.dim, bg: theme.appBg))
 
         search.draw(into: s, x: rect.x, y: rect.y + 1, theme: theme)
-        s.textRight(rect.maxX, rect.y + 1, t("%d of %d", shown, rows.count),
-                    Style(fg: theme.faint, bg: theme.appBg))
+        s.textRight(
+            rect.maxX,
+            rect.y + 1,
+            t("%d of %d", shown, rows.count),
+            Style(fg: theme.faint, bg: theme.appBg)
+        )
         s.hline(rect.x, rect.y + 2, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
     }
 
@@ -404,24 +493,42 @@ final class TypeBrowserScreen: Screen {
 
     /// One entry: how the device draws it by day, how it draws it after dark, the code, the
     /// name, and what the rules put on it.
-    private func draw(_ row: StyleTypeRow, into s: Surface, rect: Rect, y: Int,
-                      theme: Theme, selected: Bool,
-                      fold: (last: Int, count: Int)? = nil) {
+    private func draw(
+        _ row: StyleTypeRow,
+        into s: Surface,
+        rect: Rect,
+        y: Int,
+        theme: Theme,
+        selected: Bool,
+        fold: (last: Int, count: Int)? = nil
+    ) {
         let bg = selected ? theme.selectionBg : theme.appBg
         s.fill(Rect(x: rect.x, y: y, w: rect.w, h: 1), Style(fg: theme.text, bg: bg))
 
-        var x = s.text(rect.x, y, selected ? "\(Glyph.arrowRight) " : "  ",
-                       Style(fg: theme.accent, bg: bg))
+        var x = s.text(
+            rect.x,
+            y,
+            selected ? "\(Glyph.arrowRight) " : "  ",
+            Style(fg: theme.accent, bg: bg)
+        )
 
         // A folded run of anonymous codes is one line saying what it is; the row it
         // stands on unfolds with ⏎.
         if let fold {
             x += previewWidth * 2 + 2
             let range = "\(row.hex)–\(TypeMeaning.hex(fold.last))"
-            x = s.text(x, y, range.padding(toLength: 14, withPad: " ", startingAt: 0),
-                       Style(fg: theme.faint, bg: bg))
-            s.text(x, y, tn("%d free code(s) — ⏎ unfolds them", fold.count),
-                   Style(fg: theme.faint, bg: bg))
+            x = s.text(
+                x,
+                y,
+                range.padding(toLength: 14, withPad: " ", startingAt: 0),
+                Style(fg: theme.faint, bg: bg)
+            )
+            s.text(
+                x,
+                y,
+                tn("%d free code(s) — ⏎ unfolds them", fold.count),
+                Style(fg: theme.faint, bg: bg)
+            )
             return
         }
 
@@ -429,23 +536,41 @@ final class TypeBrowserScreen: Screen {
         // rather than filled in with the day drawing, as are codes with no section at all:
         // silence in the file is not the same fact as a drawing that repeats.
         if row.isStyled {
-            drawPreview(row, night: false, into: s,
-                        rect: Rect(x: x, y: y, w: previewWidth, h: 1),
-                        theme: theme, background: bg)
-            drawPreview(row, night: true, into: s,
-                        rect: Rect(x: x + previewWidth + 1, y: y, w: previewWidth, h: 1),
-                        theme: theme, background: bg)
+            drawPreview(
+                row,
+                night: false,
+                into: s,
+                rect: Rect(x: x, y: y, w: previewWidth, h: 1),
+                theme: theme,
+                background: bg
+            )
+            drawPreview(
+                row,
+                night: true,
+                into: s,
+                rect: Rect(x: x + previewWidth + 1, y: y, w: previewWidth, h: 1),
+                theme: theme,
+                background: bg
+            )
         }
         x += previewWidth * 2 + 2
 
-        x = s.text(x, y, row.hex.padding(toLength: 8, withPad: " ", startingAt: 0),
-                   Style(fg: row.isStyled ? theme.text : theme.faint, bg: bg))
+        x = s.text(
+            x,
+            y,
+            row.hex.padding(toLength: 8, withPad: " ", startingAt: 0),
+            Style(fg: row.isStyled ? theme.text : theme.faint, bg: bg)
+        )
 
         let name = row.name(preferringRussian: russian)
         let nameWidth = min(28, max(10, rect.w / 3))
-        x = s.text(x, y, truncate(name, to: nameWidth)
-                    .padding(toLength: nameWidth, withPad: " ", startingAt: 0),
-                   Style(fg: selected ? theme.selectionFg : theme.text, bg: bg, bold: selected))
+        x = s.text(
+            x,
+            y,
+            truncate(name, to: nameWidth)
+                .padding(toLength: nameWidth, withPad: " ", startingAt: 0),
+            Style(fg: selected ? theme.selectionFg : theme.text, bg: bg, bold: selected)
+        )
         x += 1
 
         // The trailing note is the only coloured part of the row.
@@ -453,8 +578,12 @@ final class TypeBrowserScreen: Screen {
         let noteWidth = note.isEmpty ? 0 : note.count + 2
         let tagRoom = max(0, rect.maxX - x - noteWidth)
         if tagRoom > 4 {
-            s.text(x, y, truncate(row.tagColumn(preferringRussian: russian), to: tagRoom),
-                   Style(fg: theme.faint, bg: bg))
+            s.text(
+                x,
+                y,
+                truncate(row.tagColumn(preferringRussian: russian), to: tagRoom),
+                Style(fg: theme.faint, bg: bg)
+            )
         }
         if !note.isEmpty {
             s.textRight(rect.maxX, y, note, Style(fg: noteColour, bg: bg))
@@ -464,22 +593,41 @@ final class TypeBrowserScreen: Screen {
     /// The type as the device draws it, in the room the row has for it. Scaled rather than
     /// cropped, each cell the average of what it stands for, and drawn in the top half of
     /// the row so that adjacent rows do not run into one column of colour.
-    private func drawPreview(_ row: StyleTypeRow, night: Bool, into s: Surface, rect: Rect,
-                             theme: Theme, background: Color) {
+    private func drawPreview(
+        _ row: StyleTypeRow,
+        night: Bool,
+        into s: Surface,
+        rect: Rect,
+        theme: Theme,
+        background: Color
+    ) {
         guard rect.w > 0 else { return }
-        Widgets.halfRow(s, x: rect.x, y: rect.y,
-                        colours: previewColours(row, night: night, width: rect.w,
-                                                on: background),
-                        background: background)
+        Widgets.halfRow(
+            s,
+            x: rect.x,
+            y: rect.y,
+            colours: previewColours(
+                row,
+                night: night,
+                width: rect.w,
+                on: background
+            ),
+            background: background
+        )
     }
 
     /// What that room comes down to: one colour per cell, nil where nothing is drawn.
-    private func previewColours(_ row: StyleTypeRow, night: Bool, width: Int,
-                                on background: Color) -> [Color?] {
+    private func previewColours(
+        _ row: StyleTypeRow,
+        night: Bool,
+        width: Int,
+        on background: Color
+    ) -> [Color?] {
         guard let section = row.section else { return [] }
 
         if let picture = night ? section.nightPicture : section.picture,
-           !TypeBrowserScreen.isBlank(picture) {
+            !TypeBrowserScreen.isBlank(picture)
+        {
             return Widgets.colourRow(picture, width: width, on: background)
         }
 
@@ -538,27 +686,58 @@ final class TypeBrowserScreen: Screen {
         // The drawing beside its own facts, as big as the pane will hold it, and beside
         // that the night drawing where the file has one.
         if let picture = row.section?.picture, row.section?.patternIsBlank == false,
-           rect.maxY - y > 2 {
+            rect.maxY - y > 2
+        {
             let rows = max(1, rect.maxY - y - 1)
             let night = row.section?.nightPicture
             let columns = max(2, night == nil ? rect.w / 2 : rect.w / 3)
             let fit = Widgets.pictureFit(picture, maxColumns: columns, maxRows: rows)
-            Widgets.picture(s, x: rect.x, y: y, picture, background: theme.appBg,
-                            maxColumns: columns, maxRows: rows)
+            Widgets.picture(
+                s,
+                x: rect.x,
+                y: y,
+                picture,
+                background: theme.appBg,
+                maxColumns: columns,
+                maxRows: rows
+            )
             var right = rect.x + fit.columns + 2
             if let night, !TypeBrowserScreen.isBlank(night) {
-                Widgets.picture(s, x: right, y: y, night, background: theme.appBg,
-                                maxColumns: columns, maxRows: rows)
-                s.text(right, y + fit.rows, t("night"),
-                       Style(fg: theme.faint, bg: theme.appBg))
-                s.text(rect.x, y + fit.rows, t("day"),
-                       Style(fg: theme.faint, bg: theme.appBg))
+                Widgets.picture(
+                    s,
+                    x: right,
+                    y: y,
+                    night,
+                    background: theme.appBg,
+                    maxColumns: columns,
+                    maxRows: rows
+                )
+                s.text(
+                    right,
+                    y + fit.rows,
+                    t("night"),
+                    Style(fg: theme.faint, bg: theme.appBg)
+                )
+                s.text(
+                    rect.x,
+                    y + fit.rows,
+                    t("day"),
+                    Style(fg: theme.faint, bg: theme.appBg)
+                )
                 right += Widgets.pictureFit(night, maxColumns: columns, maxRows: rows).columns + 2
             }
-            drawPictureFacts(picture, fit: fit, into: s,
-                             rect: Rect(x: right, y: y, w: max(0, rect.maxX - right),
-                                        h: max(0, rect.maxY - y)),
-                             theme: theme)
+            drawPictureFacts(
+                picture,
+                fit: fit,
+                into: s,
+                rect: Rect(
+                    x: right,
+                    y: y,
+                    w: max(0, rect.maxX - right),
+                    h: max(0, rect.maxY - y)
+                ),
+                theme: theme
+            )
             y += max(fit.rows + 1, 3)
         } else {
             y = drawColours(row, into: s, rect: rect, y: y, theme: theme)
@@ -568,51 +747,87 @@ final class TypeBrowserScreen: Screen {
 
         // Every rule that reaches this code, verbatim.
         if row.tags.isEmpty && row.meaning == nil {
-            s.text(rect.x, y, t("no rule in this style emits this code"),
-                   Style(fg: theme.warn, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("no rule in this style emits this code"),
+                Style(fg: theme.warn, bg: theme.appBg)
+            )
             return
         }
         for condition in (row.meaning?.conditions ?? []) {
             guard y < rect.maxY else { return }
             let x = s.text(rect.x, y, "· ", Style(fg: theme.faint, bg: theme.appBg))
-            s.text(x, y, truncate(condition, to: max(0, rect.maxX - x)),
-                   Style(fg: theme.dim, bg: theme.appBg))
+            s.text(
+                x,
+                y,
+                truncate(condition, to: max(0, rect.maxX - x)),
+                Style(fg: theme.dim, bg: theme.appBg)
+            )
             y += 1
         }
     }
 
     /// Size, palette depth and the colours themselves, for a picture.
-    private func drawPictureFacts(_ picture: XpmBlock, fit: Widgets.PictureFit,
-                                  into s: Surface, rect: Rect, theme: Theme) {
+    private func drawPictureFacts(
+        _ picture: XpmBlock,
+        fit: Widgets.PictureFit,
+        into s: Surface,
+        rect: Rect,
+        theme: Theme
+    ) {
         guard rect.w > 12, rect.h > 0 else { return }
         var y = rect.y
         // The scale is stated only when the drawing was reduced, since single-pixel
         // details are then not on screen.
         let scale = fit.isReduced ? "  ·  " + t("shown at 1:%d", fit.scale) : ""
-        s.text(rect.x, y, "\(picture.width)×\(picture.height)  "
+        s.text(
+            rect.x,
+            y,
+            "\(picture.width)×\(picture.height)  "
                 + tn("%d colour(s)", picture.declaredColours) + scale,
-               Style(fg: theme.dim, bg: theme.appBg))
+            Style(fg: theme.dim, bg: theme.appBg)
+        )
         y += 1
 
         // Hex beside every swatch: the block approximates the colour, the text does not.
         for entry in picture.palette.prefix(max(0, rect.h - 1)) {
             guard y < rect.maxY else { return }
-            var x = Widgets.swatch(s, x: rect.x, y: y, colour: entry.colour, width: 2,
-                                   theme: theme)
+            var x = Widgets.swatch(
+                s,
+                x: rect.x,
+                y: y,
+                colour: entry.colour,
+                width: 2,
+                theme: theme
+            )
             x += 1
-            s.text(x, y, entry.colour ?? t("none"),
-                   Style(fg: entry.colour == nil ? theme.faint : theme.text, bg: theme.appBg))
+            s.text(
+                x,
+                y,
+                entry.colour ?? t("none"),
+                Style(fg: entry.colour == nil ? theme.faint : theme.text, bg: theme.appBg)
+            )
             y += 1
         }
     }
 
     /// Colours for a line or polygon, which have no picture — day and night, and for a line
     /// with a border, the casing beside the fill.
-    private func drawColours(_ row: StyleTypeRow, into s: Surface, rect: Rect, y: Int,
-                             theme: Theme) -> Int {
+    private func drawColours(
+        _ row: StyleTypeRow,
+        into s: Surface,
+        rect: Rect,
+        y: Int,
+        theme: Theme
+    ) -> Int {
         guard let section = row.section else {
-            s.text(rect.x, y, t("not styled by this TYP — the device draws its own"),
-                   Style(fg: theme.warn, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("not styled by this TYP — the device draws its own"),
+                Style(fg: theme.warn, bg: theme.appBg)
+            )
             return y + 1
         }
         let colours = section.colours
@@ -627,20 +842,33 @@ final class TypeBrowserScreen: Screen {
         }
         if let width = section.lineWidth {
             let border = section.borderWidth.map { ", " + t("border %d", $0) } ?? ""
-            s.textRight(rect.maxX, y, t("width %d", width) + border,
-                        Style(fg: theme.dim, bg: theme.appBg))
+            s.textRight(
+                rect.maxX,
+                y,
+                t("width %d", width) + border,
+                Style(fg: theme.dim, bg: theme.appBg)
+            )
         }
 
         // The line itself, at the thickness the file gives it: two lines differing only in
         // width are otherwise the same pair of colours.
         guard kind == .line, rect.maxY - y > 2 else { return y + 2 }
         let day = section.colourSlots.day
-        let sample = Rect(x: rect.x, y: y + 1, w: min(rect.w, 32),
-                          h: min(rect.maxY - y - 1, 8))
-        let used = Widgets.lineSample(s, rect: sample, fill: day.first?.colour,
-                                      casing: day.dropFirst().first?.colour,
-                                      width: section.lineWidth, border: section.borderWidth,
-                                      background: theme.appBg)
+        let sample = Rect(
+            x: rect.x,
+            y: y + 1,
+            w: min(rect.w, 32),
+            h: min(rect.maxY - y - 1, 8)
+        )
+        let used = Widgets.lineSample(
+            s,
+            rect: sample,
+            fill: day.first?.colour,
+            casing: day.dropFirst().first?.colour,
+            width: section.lineWidth,
+            border: section.borderWidth,
+            background: theme.appBg
+        )
         return y + used + 2
     }
 }

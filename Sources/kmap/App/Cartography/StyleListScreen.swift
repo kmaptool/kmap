@@ -16,17 +16,19 @@ final class StyleListScreen: Screen {
         if renaming {
             return [Hint(key: Glyph.enter, label: t("rename")), Hint(key: "esc", label: t("cancel"))]
         }
-        return [Hint(key: "↑↓", label: t("move")),
-                Hint(key: Glyph.enter, label: t("open")),
-                Hint(key: "n", label: t("new")),
-                Hint(key: "i", label: t("import")),
-                Hint(key: "r", label: t("rename")),
-                Hint(key: "d", label: t("delete")),
-                Hint(key: "c", label: t("duplicate")),
-                Hint(key: "o", label: t("restore the original")),
-                Hint(key: "m", label: t("make default")),
-                Hint(key: "/", label: t("search")),
-                Hint(key: "esc", label: t("back"))]
+        return [
+            Hint(key: "↑↓", label: t("move")),
+            Hint(key: Glyph.enter, label: t("open")),
+            Hint(key: "n", label: t("new")),
+            Hint(key: "i", label: t("import")),
+            Hint(key: "r", label: t("rename")),
+            Hint(key: "d", label: t("delete")),
+            Hint(key: "c", label: t("duplicate")),
+            Hint(key: "o", label: t("restore the original")),
+            Hint(key: "m", label: t("make default")),
+            Hint(key: "/", label: t("search")),
+            Hint(key: "esc", label: t("back"))
+        ]
     }
 
     private var styles: [MapStyle] = []
@@ -72,7 +74,7 @@ final class StyleListScreen: Screen {
         ctx.styles.rescanStyles()
         styles = ctx.styles.styles().list
         guard let url,
-              let index = styles.firstIndex(where: { $0.typURL?.sameFile(as: url) == true })
+            let index = styles.firstIndex(where: { $0.typURL?.sameFile(as: url) == true })
         else { return }
         list.selected = index
     }
@@ -131,8 +133,11 @@ final class StyleListScreen: Screen {
     }
 
     /// One lettered command, aimed at the selected style where it takes one.
-    private func command(_ letter: Character?, visible: [MapStyle],
-                         ctx: AppContext) -> Route {
+    private func command(
+        _ letter: Character?,
+        visible: [MapStyle],
+        ctx: AppContext
+    ) -> Route {
         switch letter {
         case "/":
             search.open = true
@@ -140,9 +145,11 @@ final class StyleListScreen: Screen {
         case "n":
             return newStyle(ctx)
         case "i":
-            return .push(ImportTypScreen(onImported: { [weak self] in
-                self?.scanned = false
-            }))
+            return .push(
+                ImportTypScreen(onImported: { [weak self] in
+                    self?.scanned = false
+                })
+            )
         case "r":
             guard let style = visible[safe: list.selected] else { return .none }
             beginRename(style)
@@ -185,7 +192,8 @@ final class StyleListScreen: Screen {
             do {
                 let copy = try TypLibrary.adopt(
                     source: try StyleCatalog.shippedTypText(of: shipped),
-                    named: style.name)
+                    named: style.name
+                )
                 reload(ctx, select: copy)
                 say(t("copied to %@", copy.deletingPathExtension().lastPathComponent))
             } catch {
@@ -213,21 +221,34 @@ final class StyleListScreen: Screen {
             return
         }
         guard TypLibrary.original(of: url) != nil else {
-            say(t("this style has no original kept — nothing was imported to go"
-                + " back to"), error: true)
+            say(
+                t(
+                    "this style has no original kept — nothing was imported to go"
+                        + " back to"
+                ),
+                error: true
+            )
             return
         }
         restoring = style
         asking = Dialog(
             title: t("Overwrite"),
-            body: [t("%@ will be rewritten from the binary kept when it was"
-                   + " imported. Everything changed in it since is lost.", style.name),
-                   t("The copy kept at import is not touched, so this can be done"
-                   + " again.")],
+            body: [
+                t(
+                    "%@ will be rewritten from the binary kept when it was"
+                        + " imported. Everything changed in it since is lost.",
+                    style.name
+                ),
+                t(
+                    "The copy kept at import is not touched, so this can be done"
+                        + " again."
+                )
+            ],
             detail: [(t("style"), style.name)],
             confirm: t("restore"),
             cancel: t("cancel"),
-            tone: .plain)
+            tone: .plain
+        )
     }
 
     private func handleRename(_ key: KeyEvent, ctx: AppContext) -> Route {
@@ -238,16 +259,19 @@ final class StyleListScreen: Screen {
         case .accepted(let wanted):
             renaming = false
             guard let style = filtered[safe: list.selected],
-                  let url = libraryFile(of: style) else { return .none }
+                let url = libraryFile(of: style)
+            else { return .none }
             let wasDefault = ctx.settings.settings.defaultStyleID == style.id
             do {
                 let moved = try TypLibrary.rename(url, to: wanted)
                 reload(ctx, select: moved)
                 // The id is derived from the name, so the default setting is carried
                 // across to the new id.
-                if wasDefault, let now = styles.first(where: {
-                    $0.typURL?.sameFile(as: moved) == true
-                }) {
+                if wasDefault,
+                    let now = styles.first(where: {
+                        $0.typURL?.sameFile(as: moved) == true
+                    })
+                {
                     ctx.settings.update { $0.defaultStyleID = now.id }
                 }
                 say(t("renamed to %@", moved.deletingPathExtension().lastPathComponent))
@@ -273,13 +297,19 @@ final class StyleListScreen: Screen {
                 }
                 // Deleting the default moves the setting to another style and reports it,
                 // rather than leaving it naming a style that is gone.
-                let replacement = styles.first { libraryFile(of: $0) != nil }
+                let replacement =
+                    styles.first { libraryFile(of: $0) != nil }
                     ?? styles.first { $0.id == "plain" }
                     ?? styles.first
                 if let replacement {
                     ctx.settings.update { $0.defaultStyleID = replacement.id }
-                    say(t("deleted %@ — it was the default, which is now %@",
-                          style.name, replacement.name))
+                    say(
+                        t(
+                            "deleted %@ — it was the default, which is now %@",
+                            style.name,
+                            replacement.name
+                        )
+                    )
                 } else {
                     say(t("deleted %@ — nothing is left to be the default", style.name))
                 }
@@ -334,9 +364,11 @@ final class StyleListScreen: Screen {
         let defaultID = ctx.settings.settings.defaultStyleID
         var y = rect.y
 
-        let intro = t("A style is two things: the rules that turn OSM tags into Garmin types, "
-                    + "and a TYP file that says how those types are drawn. kmap ships the "
-                    + "rules; the look comes from your library.")
+        let intro = t(
+            "A style is two things: the rules that turn OSM tags into Garmin types, "
+                + "and a TYP file that says how those types are drawn. kmap ships the "
+                + "rules; the look comes from your library."
+        )
         for chunk in wrapText(intro, width: rect.w) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
@@ -346,8 +378,12 @@ final class StyleListScreen: Screen {
         let shown = filtered
         if search.showing {
             search.draw(into: s, x: rect.x, y: y, theme: theme)
-            s.textRight(rect.maxX, y, t("%d of %d", shown.count, styles.count),
-                        Style(fg: theme.faint, bg: theme.appBg))
+            s.textRight(
+                rect.maxX,
+                y,
+                t("%d of %d", shown.count, styles.count),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
 
@@ -355,9 +391,14 @@ final class StyleListScreen: Screen {
         list.clamp(count: shown.count, visible: listHeight)
 
         if shown.isEmpty {
-            s.text(rect.x, y, styles.isEmpty ? t("no styles found")
-                                             : t("nothing matches \"%@\"", search.query),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                styles.isEmpty
+                    ? t("no styles found")
+                    : t("nothing matches \"%@\"", search.query),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             return
         }
 
@@ -367,17 +408,26 @@ final class StyleListScreen: Screen {
             guard let style = shown[safe: index] else { break }
             let isDefault = style.id == defaultID
             let inLibrary = libraryFile(of: style) != nil
-            Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1), y: y,
-                        text: style.name,
-                        trailing: isDefault ? t("default") : (inLibrary ? t("yours") : ""),
-                        theme: theme,
-                        selected: index == list.selected,
-                        leading: isDefault ? "\(Glyph.dot) " : "  ")
+            Widgets.row(
+                s,
+                rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
+                y: y,
+                text: style.name,
+                trailing: isDefault ? t("default") : (inLibrary ? t("yours") : ""),
+                theme: theme,
+                selected: index == list.selected,
+                leading: isDefault ? "\(Glyph.dot) " : "  "
+            )
             y += 1
         }
-        Widgets.scrollHint(s, rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
-                           offset: list.offset, count: shown.count,
-                           visible: listHeight, theme: theme)
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: rect.x, y: listTop, w: rect.w, h: listHeight),
+            offset: list.offset,
+            count: shown.count,
+            visible: listHeight,
+            theme: theme
+        )
 
         guard let style = shown[safe: list.selected], y + 2 < rect.maxY else { return }
         y += 1
@@ -392,8 +442,12 @@ final class StyleListScreen: Screen {
         switch style.origin {
         case .importedTYP(let url), .customDirectory(let url):
             if y < rect.maxY {
-                s.text(rect.x, y, truncate(Paths.display(url), to: rect.w),
-                       Style(fg: theme.faint, bg: theme.appBg))
+                s.text(
+                    rect.x,
+                    y,
+                    truncate(Paths.display(url), to: rect.w),
+                    Style(fg: theme.faint, bg: theme.appBg)
+                )
             }
         case .builtin:
             break
@@ -409,21 +463,32 @@ final class StyleListScreen: Screen {
     private func drawFooterLine(_ s: Surface, rect: Rect, theme: Theme) {
         let y = rect.maxY - 1
         if let confirming {
-            s.text(rect.x, y,
-                   t("delete %@? the file goes for good  (y/n)", confirming.name),
-                   Style(fg: theme.danger, bg: theme.appBg, bold: true))
+            s.text(
+                rect.x,
+                y,
+                t("delete %@? the file goes for good  (y/n)", confirming.name),
+                Style(fg: theme.danger, bg: theme.appBg, bold: true)
+            )
             return
         }
         if renaming {
-            let x = s.text(rect.x, y, t("rename to") + ": ",
-                           Style(fg: theme.text, bg: theme.appBg))
+            let x = s.text(
+                rect.x,
+                y,
+                t("rename to") + ": ",
+                Style(fg: theme.text, bg: theme.appBg)
+            )
             let end = s.text(x, y, name.text, Style(fg: theme.strong, bg: theme.appBg, bold: true))
             s.put(end, y, "▏", Style(fg: theme.accent, bg: theme.appBg))
             return
         }
         if let message {
-            s.text(rect.x, y, truncate(message, to: rect.w),
-                   Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(message, to: rect.w),
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg)
+            )
         }
     }
 }

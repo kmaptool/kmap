@@ -1,13 +1,15 @@
 import XCTest
+
 @testable import kmap
 
 /// The progress bar a build is watched through. A stage is several pieces of work in a
 /// row, each counting from its own beginning, and the overall bar never goes backwards.
 final class BuildPipelineTests: XCTestCase {
-
-    private func stage(_ id: BuildPipeline.StageID,
-                       _ status: BuildPipeline.StageStatus = .pending,
-                       fraction: Double? = nil) -> BuildPipeline.Stage {
+    private func stage(
+        _ id: BuildPipeline.StageID,
+        _ status: BuildPipeline.StageStatus = .pending,
+        fraction: Double? = nil
+    ) -> BuildPipeline.Stage {
         var out = BuildPipeline.Stage(id: id)
         out.status = status
         out.fraction = fraction
@@ -15,8 +17,15 @@ final class BuildPipelineTests: XCTestCase {
     }
 
     private func snapshot(_ stages: [BuildPipeline.Stage]) -> BuildPipeline.Snapshot {
-        BuildPipeline.Snapshot(stages: stages, finished: false, failure: nil, cancelled: false,
-                               outputs: [], startedAt: Date(), finishedAt: nil)
+        BuildPipeline.Snapshot(
+            stages: stages,
+            finished: false,
+            failure: nil,
+            cancelled: false,
+            outputs: [],
+            startedAt: Date(),
+            finishedAt: nil
+        )
     }
 
     // MARK: One stage
@@ -54,17 +63,25 @@ final class BuildPipelineTests: XCTestCase {
         }
         XCTAssertEqual(BuildPipeline.StageID.allCases.count, 8)
         // The order is the order the build runs in, which is the order they are drawn.
-        XCTAssertEqual(BuildPipeline.StageID.allCases.map(\.rawValue),
-                       ["preflight", "dataUpdate", "download", "elevation", "elevationBuild",
-                        "split", "compile", "collect"])
+        XCTAssertEqual(
+            BuildPipeline.StageID.allCases.map(\.rawValue),
+            [
+                "preflight", "dataUpdate", "download", "elevation", "elevationBuild",
+                "split", "compile", "collect"
+            ]
+        )
     }
 
     // MARK: The whole build
 
     func testNothingStartedIsNoProgressAndEverythingDoneIsAllOfIt() {
         XCTAssertEqual(snapshot(BuildPipeline.StageID.allCases.map { stage($0) }).overall, 0)
-        XCTAssertEqual(snapshot(BuildPipeline.StageID.allCases.map { stage($0, .done) })
-                        .overall, 1, accuracy: 1e-9)
+        XCTAssertEqual(
+            snapshot(BuildPipeline.StageID.allCases.map { stage($0, .done) })
+                .overall,
+            1,
+            accuracy: 1e-9
+        )
     }
 
     func testASkippedStageCountsAsDoneAndNotAsMissing() {
@@ -83,8 +100,11 @@ final class BuildPipelineTests: XCTestCase {
             for step in [0.0, 0.3, 0.6, 1.0] {
                 stages[index] = stage(id, .running, fraction: step)
                 let now = snapshot(stages).overall
-                XCTAssertGreaterThanOrEqual(now, last - 1e-9,
-                                            "\(id.rawValue) at \(step): \(now) after \(last)")
+                XCTAssertGreaterThanOrEqual(
+                    now,
+                    last - 1e-9,
+                    "\(id.rawValue) at \(step): \(now) after \(last)"
+                )
                 last = now
             }
             stages[index] = stage(id, .done)
@@ -135,8 +155,11 @@ final class BuildPipelineTests: XCTestCase {
             stage($0, $0 == .compile ? .failed : ($0 == .collect ? .pending : .done))
         }
         // Everything before it, and nothing for the one that failed.
-        XCTAssertEqual(snapshot(stages).overall, 0.01 + 0.24 + 0.20 + 0.10 + 0.15,
-                       accuracy: 1e-9)
+        XCTAssertEqual(
+            snapshot(stages).overall,
+            0.01 + 0.24 + 0.20 + 0.10 + 0.15,
+            accuracy: 1e-9
+        )
     }
 
     func testTheWeightsAddUpToAWholeBuild() {
@@ -161,14 +184,35 @@ final class BuildPipelineTests: XCTestCase {
     private func pipeline() -> BuildPipeline {
         let settings = SettingsStore()
         let toolchain = Toolchain(settings: settings)
-        let region = Region(id: "continent/small-region", name: "Small Region",
-                            parentID: nil, pbfURL: nil, bbox: .empty, boxes: [])
-        let style = MapStyle(id: "plain", name: "Plain", summary: "", origin: .builtin,
-                             styleDirectory: nil, typURL: nil, familyID: 6300, productID: 1)
-        let recipe = BuildRecipe(region: region, style: style,
-                                 outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory()))
-        return BuildPipeline(recipe: recipe, settings: settings, toolchain: toolchain,
-                             styles: StyleCatalog(settings: settings, toolchain: toolchain))
+        let region = Region(
+            id: "continent/small-region",
+            name: "Small Region",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: .empty,
+            boxes: []
+        )
+        let style = MapStyle(
+            id: "plain",
+            name: "Plain",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: nil,
+            typURL: nil,
+            familyID: 6300,
+            productID: 1
+        )
+        let recipe = BuildRecipe(
+            region: region,
+            style: style,
+            outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory())
+        )
+        return BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
     }
 
     func testTheStageAFailureHappenedInIsMarked() {
@@ -177,8 +221,10 @@ final class BuildPipelineTests: XCTestCase {
         build.finish(error: DownloadError.badStatus(502))
 
         let after = build.snapshot()
-        XCTAssertNil(after.stages.first { $0.status == .running },
-                     "nothing may still be spinning once the build is over")
+        XCTAssertNil(
+            after.stages.first { $0.status == .running },
+            "nothing may still be spinning once the build is over"
+        )
         XCTAssertEqual(after.stages.first { $0.id == .download }?.status, .failed)
         XCTAssertNotNil(after.failure)
         XCTAssertFalse(after.cancelled)
@@ -191,8 +237,11 @@ final class BuildPipelineTests: XCTestCase {
         build.finish(error: DownloadError.badStatus(502))
 
         let after = build.snapshot()
-        XCTAssertEqual(after.stages.first { $0.id == .preflight }?.status, .done,
-                       "a stage that finished did not fail because a later one did")
+        XCTAssertEqual(
+            after.stages.first { $0.id == .preflight }?.status,
+            .done,
+            "a stage that finished did not fail because a later one did"
+        )
         XCTAssertEqual(after.stages.first { $0.id == .download }?.status, .failed)
     }
 
@@ -272,16 +321,38 @@ final class OverallProgressTests: XCTestCase {
     func testOverallNeverMovesBackwards() {
         let settings = SettingsStore()
         let toolchain = Toolchain(settings: settings)
-        let region = Region(id: "continent/small-region", name: "Small Region",
-                            parentID: nil, pbfURL: nil, bbox: .empty, boxes: [])
-        let style = MapStyle(id: "plain", name: "Plain", summary: "", origin: .builtin,
-                             styleDirectory: nil, typURL: nil, familyID: 6300, productID: 1)
-        let recipe = BuildRecipe(region: region, style: style,
-                                 outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory()))
-        let pipeline = BuildPipeline(recipe: recipe, settings: settings,
-                                     toolchain: toolchain,
-                                     styles: StyleCatalog(settings: settings,
-                                                          toolchain: toolchain))
+        let region = Region(
+            id: "continent/small-region",
+            name: "Small Region",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: .empty,
+            boxes: []
+        )
+        let style = MapStyle(
+            id: "plain",
+            name: "Plain",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: nil,
+            typURL: nil,
+            familyID: 6300,
+            productID: 1
+        )
+        let recipe = BuildRecipe(
+            region: region,
+            style: style,
+            outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory())
+        )
+        let pipeline = BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(
+                settings: settings,
+                toolchain: toolchain
+            )
+        )
         pipeline.set(.preflight, .done)
         pipeline.set(.download, .done)
         pipeline.set(.elevation, .skipped)
@@ -294,8 +365,11 @@ final class OverallProgressTests: XCTestCase {
         pipeline.detail(.compile, "0/13 tile(s)", fraction: 0)
         let measured = pipeline.snapshot()
         XCTAssertLessThan(measured.rawOverall, guessed, "the dip this test is about")
-        XCTAssertGreaterThanOrEqual(measured.overall, guessed,
-                                    "the bar must not move backwards")
+        XCTAssertGreaterThanOrEqual(
+            measured.overall,
+            guessed,
+            "the bar must not move backwards"
+        )
         // And it still moves forward from there.
         pipeline.detail(.compile, "13/13 tile(s)", fraction: 0.9)
         XCTAssertGreaterThan(pipeline.snapshot().overall, guessed)

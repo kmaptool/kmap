@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Reading an extract into the flat arrays the repair pass works on.
@@ -6,7 +7,6 @@ import XCTest
 /// Classification carries most of the weight: a fence and a kerb are both `barrier=*` in
 /// OSM and mean opposite things to a router.
 final class RoadNetworkTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -31,24 +31,40 @@ final class RoadNetworkTests: XCTestCase {
         XCTAssertNotEqual(RoadNetworkLoader.level(layer: "0", bridge: "yes", tunnel: "no"), ground)
         XCTAssertNotEqual(RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "yes"), ground)
         XCTAssertNotEqual(RoadNetworkLoader.level(layer: "-1", bridge: "no", tunnel: "no"), ground)
-        XCTAssertNotEqual(RoadNetworkLoader.level(layer: "1", bridge: "yes", tunnel: "no"),
-                          RoadNetworkLoader.level(layer: "1", bridge: "no", tunnel: "yes"))
+        XCTAssertNotEqual(
+            RoadNetworkLoader.level(layer: "1", bridge: "yes", tunnel: "no"),
+            RoadNetworkLoader.level(layer: "1", bridge: "no", tunnel: "yes")
+        )
     }
 
     func testANonsenseLayerReadsAsTheGround() {
         // A layer value that is not a number falls back to the ground.
-        XCTAssertEqual(RoadNetworkLoader.level(layer: "ground floor", bridge: "no", tunnel: "no"),
-                       RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "no"))
-        XCTAssertEqual(RoadNetworkLoader.level(layer: "", bridge: "no", tunnel: "no"),
-                       RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "no"))
+        XCTAssertEqual(
+            RoadNetworkLoader.level(layer: "ground floor", bridge: "no", tunnel: "no"),
+            RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "no")
+        )
+        XCTAssertEqual(
+            RoadNetworkLoader.level(layer: "", bridge: "no", tunnel: "no"),
+            RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "no")
+        )
     }
 
     // MARK: What counts as an obstacle
 
-    private func kind(barrier: String? = nil, natural: String? = nil, waterway: String? = nil,
-                      manMade: String? = nil, building: Bool = false) -> ObstacleKind? {
-        RoadNetworkLoader.obstacleKind(barrier: barrier, natural: natural, waterway: waterway,
-                                       manMade: manMade, building: building)
+    private func kind(
+        barrier: String? = nil,
+        natural: String? = nil,
+        waterway: String? = nil,
+        manMade: String? = nil,
+        building: Bool = false
+    ) -> ObstacleKind? {
+        RoadNetworkLoader.obstacleKind(
+            barrier: barrier,
+            natural: natural,
+            waterway: waterway,
+            manMade: manMade,
+            building: building
+        )
     }
 
     func testAPlotBoundaryIsAFenceAndACrossableOneIsNot() {
@@ -106,24 +122,33 @@ final class RoadNetworkTests: XCTestCase {
     // MARK: Reading a file
 
     /// Writes an extract holding the given ways, with the nodes laid out along a line.
-    private func extract(_ name: String, ways: [(id: Int64, refs: [Int64],
-                                                 tags: [(String, String)])],
-                         nodes: [Int64]) throws -> URL {
+    private func extract(
+        _ name: String,
+        ways: [(
+            id: Int64, refs: [Int64],
+            tags: [(String, String)]
+        )],
+        nodes: [Int64]
+    ) throws -> URL {
         let url = path(name)
         let writer = try PBFWriter(to: url)
         writer.header()
-        writer.nodes(nodes.map {
-            PBFWriter.Node(id: $0, lat: 44.5 + Double($0) * 1e-4, lon: 33.5, tags: [])
-        })
+        writer.nodes(
+            nodes.map {
+                PBFWriter.Node(id: $0, lat: 44.5 + Double($0) * 1e-4, lon: 33.5, tags: [])
+            }
+        )
         writer.ways(ways.map { PBFWriter.Way(id: $0.id, refs: $0.refs, tags: $0.tags) })
         try writer.finish()
         return url
     }
 
     func testARoadComesBackWithItsPointsInOrder() throws {
-        let url = try extract("road.osm.pbf",
-                              ways: [(1, [10, 11, 12], [("highway", "track")])],
-                              nodes: [10, 11, 12])
+        let url = try extract(
+            "road.osm.pbf",
+            ways: [(1, [10, 11, 12], [("highway", "track")])],
+            nodes: [10, 11, 12]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.wayCount, 1)
         XCTAssertEqual(network.wayID, [1])
@@ -134,9 +159,11 @@ final class RoadNetworkTests: XCTestCase {
 
     func testAWayNamingNodesTheExtractDoesNotHoldKeepsTheRest() throws {
         // An extract is cut out of a larger one, and the cut runs through ways.
-        let url = try extract("cut.osm.pbf",
-                              ways: [(1, [10, 999, 11, 12], [("highway", "path")])],
-                              nodes: [10, 11, 12])
+        let url = try extract(
+            "cut.osm.pbf",
+            ways: [(1, [10, 999, 11, 12], [("highway", "path")])],
+            nodes: [10, 11, 12]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.wayCount, 1)
         XCTAssertEqual(network.refs, [10, 11, 12])
@@ -145,29 +172,39 @@ final class RoadNetworkTests: XCTestCase {
     func testAWayLeftWithOneNodeIsDroppedEntirely() throws {
         // A way left with one node is dropped rather than filled in from whatever the
         // node lookup landed on.
-        let url = try extract("stub.osm.pbf",
-                              ways: [(1, [10, 998, 999], [("highway", "path")]),
-                                     (2, [10, 11], [("highway", "path")])],
-                              nodes: [10, 11])
+        let url = try extract(
+            "stub.osm.pbf",
+            ways: [
+                (1, [10, 998, 999], [("highway", "path")]),
+                (2, [10, 11], [("highway", "path")])
+            ],
+            nodes: [10, 11]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.wayID, [2])
         XCTAssertEqual(network.refs, [10, 11])
     }
 
     func testAWayThatIsNeitherRoadNorObstacleIsIgnored() throws {
-        let url = try extract("landuse.osm.pbf",
-                              ways: [(1, [10, 11], [("landuse", "meadow")])],
-                              nodes: [10, 11])
+        let url = try extract(
+            "landuse.osm.pbf",
+            ways: [(1, [10, 11], [("landuse", "meadow")])],
+            nodes: [10, 11]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.wayCount, 0)
         XCTAssertEqual(network.obstacleCount, 0)
     }
 
     func testObstaclesComeBackWithTheirKindWordAndHeight() throws {
-        let url = try extract("obstacles.osm.pbf",
-                              ways: [(1, [10, 11], [("barrier", "fence"), ("height", "1.8")]),
-                                     (2, [11, 12], [("natural", "cliff")])],
-                              nodes: [10, 11, 12])
+        let url = try extract(
+            "obstacles.osm.pbf",
+            ways: [
+                (1, [10, 11], [("barrier", "fence"), ("height", "1.8")]),
+                (2, [11, 12], [("natural", "cliff")])
+            ],
+            nodes: [10, 11, 12]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.obstacleCount, 2)
         XCTAssertEqual(network.obstacleKind[0], ObstacleKind.fence.rawValue)
@@ -181,29 +218,41 @@ final class RoadNetworkTests: XCTestCase {
     func testHeightsAreReadHoweverOSMSpellsThem() throws {
         let spellings = [("2", Float(2)), ("2.5", 2.5), ("2,5", 2.5), ("3 m", 3)]
         for (index, spelling) in spellings.enumerated() {
-            let url = try extract("height\(index).osm.pbf",
-                                  ways: [(1, [10, 11],
-                                          [("barrier", "wall"), ("height", spelling.0)])],
-                                  nodes: [10, 11])
+            let url = try extract(
+                "height\(index).osm.pbf",
+                ways: [
+                    (
+                        1, [10, 11],
+                        [("barrier", "wall"), ("height", spelling.0)]
+                    )
+                ],
+                nodes: [10, 11]
+            )
             let network = try RoadNetworkLoader(url: url).load()
             XCTAssertEqual(network.obstacleHeight[0], spelling.1, accuracy: 0.001, spelling.0)
         }
     }
 
     func testAHeightThatIsNotANumberIsNoHeight() throws {
-        let url = try extract("badheight.osm.pbf",
-                              ways: [(1, [10, 11], [("barrier", "wall"), ("height", "tall")])],
-                              nodes: [10, 11])
+        let url = try extract(
+            "badheight.osm.pbf",
+            ways: [(1, [10, 11], [("barrier", "wall"), ("height", "tall")])],
+            nodes: [10, 11]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertTrue(network.obstacleHeight[0].isNaN)
     }
 
     func testTheVocabularyIsInternedNotRepeated() throws {
-        let url = try extract("words.osm.pbf",
-                              ways: [(1, [10, 11], [("barrier", "fence")]),
-                                     (2, [11, 12], [("barrier", "fence")]),
-                                     (3, [10, 12], [("barrier", "wall")])],
-                              nodes: [10, 11, 12])
+        let url = try extract(
+            "words.osm.pbf",
+            ways: [
+                (1, [10, 11], [("barrier", "fence")]),
+                (2, [11, 12], [("barrier", "fence")]),
+                (3, [10, 12], [("barrier", "wall")])
+            ],
+            nodes: [10, 11, 12]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.obstacleCount, 3)
         XCTAssertEqual(network.obstacleWord[0], network.obstacleWord[1])
@@ -212,10 +261,14 @@ final class RoadNetworkTests: XCTestCase {
     }
 
     func testWhichObstacleAPointBelongsTo() throws {
-        let url = try extract("owning.osm.pbf",
-                              ways: [(1, [10, 11, 12], [("barrier", "fence")]),
-                                     (2, [12, 13], [("barrier", "wall")])],
-                              nodes: [10, 11, 12, 13])
+        let url = try extract(
+            "owning.osm.pbf",
+            ways: [
+                (1, [10, 11, 12], [("barrier", "fence")]),
+                (2, [12, 13], [("barrier", "wall")])
+            ],
+            nodes: [10, 11, 12, 13]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.obstacleOwning(point: 0), 0)
         XCTAssertEqual(network.obstacleOwning(point: 2), 0)
@@ -224,9 +277,11 @@ final class RoadNetworkTests: XCTestCase {
     }
 
     func testAWayOfOnePointIsNotAWay() throws {
-        let url = try extract("point.osm.pbf",
-                              ways: [(1, [10], [("highway", "path")])],
-                              nodes: [10])
+        let url = try extract(
+            "point.osm.pbf",
+            ways: [(1, [10], [("highway", "path")])],
+            nodes: [10]
+        )
         let network = try RoadNetworkLoader(url: url).load()
         XCTAssertEqual(network.wayCount, 0)
     }

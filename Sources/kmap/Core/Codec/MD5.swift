@@ -6,7 +6,6 @@ import Foundation
 /// not a security primitive. Implemented here rather than through CryptoKit so that
 /// every platform computes the digest with the same code and no dependency is needed.
 struct MD5 {
-
     /// The four words of state, as RFC 1321 initialises them.
     private var a: UInt32 = 0x6745_2301
     private var b: UInt32 = 0xefcd_ab89
@@ -51,8 +50,12 @@ struct MD5 {
         }
 
         if offset < bytes.count {
-            tail.append(contentsOf: UnsafeRawBufferPointer(start: base + offset,
-                                                           count: bytes.count - offset))
+            tail.append(
+                contentsOf: UnsafeRawBufferPointer(
+                    start: base + offset,
+                    count: bytes.count - offset
+                )
+            )
         }
     }
 

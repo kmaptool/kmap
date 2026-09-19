@@ -45,9 +45,14 @@ extension StylePort {
 
     /// The TYP source that carries their drawings on our numbers: each section is
     /// their block verbatim, with the type line rewritten to ours.
-    static func typ(from theirs: TypSource, ported: [Ported],
-                    familyID: Int?, productID: Int?, codePage: Int?,
-                    unstyled: [MapElementKind: Set<Int>] = [:]) -> String {
+    static func typ(
+        from theirs: TypSource,
+        ported: [Ported],
+        familyID: Int?,
+        productID: Int?,
+        codePage: Int?,
+        unstyled: [MapElementKind: Set<Int>] = [:]
+    ) -> String {
         var out: [String] = []
         // First, or the compiler reads the file in the platform's charset and gives up
         // on the first Cyrillic label.
@@ -67,32 +72,47 @@ extension StylePort {
         for kind in MapElementKind.allCases {
             guard let codes = unstyled[kind], !codes.isEmpty else { continue }
             let listed = codes.sorted().map { String(format: "0x%02x", $0) }.joined(separator: " ")
-            out.append("; kmap:unstyled \(kind.rawValue)s \(listed) - their map leaves these"
-                       + " to the receiver, which draws them itself")
+            out.append(
+                "; kmap:unstyled \(kind.rawValue)s \(listed) - their map leaves these"
+                    + " to the receiver, which draws them itself"
+            )
         }
         if !unstyled.isEmpty { out.append("") }
 
         var drawOrder: [(code: Int, level: Int)] = []
-        let theirOrder = Dictionary(theirs.drawOrder.map { ($0.code, $0.level) },
-                                   uniquingKeysWith: { a, _ in a })
+        let theirOrder = Dictionary(
+            theirs.drawOrder.map { ($0.code, $0.level) },
+            uniquingKeysWith: { a, _ in a }
+        )
 
         // The ground the map stands on. No OSM way is its source, so no evidence pairs
         // it; both sides get it from mkgmap, and the number is the shared name.
         for (kind, ours, theirsCode) in Self.generatedTypes {
             if let section = theirs.section(kind, theirsCode) {
-                out.append("; the build's own \(kind.rawValue) 0x\(String(ours, radix: 16))"
-                           + " — drawn as their 0x\(String(theirsCode, radix: 16))")
-                out.append(contentsOf: renumbered(theirs.lines[section.lines], to: ours,
-                                                  kind: kind))
+                out.append(
+                    "; the build's own \(kind.rawValue) 0x\(String(ours, radix: 16))"
+                        + " — drawn as their 0x\(String(theirsCode, radix: 16))"
+                )
+                out.append(
+                    contentsOf: renumbered(
+                        theirs.lines[section.lines],
+                        to: ours,
+                        kind: kind
+                    )
+                )
             } else if kind == .polygon {
                 // Their style leaves the ground to the device; ours must not.
                 let sea = ours == Self.seaCode
                 let night = Self.paintsNight(theirs)
                 let dark = Self.drawsDark(theirs)
-                let byDay = sea ? (dark ? Self.seaBlueAtNight : Self.seaBlue)
+                let byDay =
+                    sea
+                    ? (dark ? Self.seaBlueAtNight : Self.seaBlue)
                     : (dark ? Self.paperAtNight : Self.paper)
-                out.append("; the build's own polygon 0x\(String(ours, radix: 16))"
-                           + " - their style paints none, so kmap's own ground")
+                out.append(
+                    "; the build's own polygon 0x\(String(ours, radix: 16))"
+                        + " - their style paints none, so kmap's own ground"
+                )
                 out.append("[_polygon]")
                 out.append(String(format: "Type=0x%02x", ours))
                 out.append(night ? "Xpm=\"0 0 2 0\"" : "Xpm=\"0 0 1 0\"")
@@ -114,12 +134,21 @@ extension StylePort {
         }
         for port in ported {
             guard let section = theirs.section(port.kind, port.theirs) else { continue }
-            out.append("; \(port.meaning) — kmap 0x\(String(port.ours, radix: 16))"
-                       + " drawn as their 0x\(String(port.theirs, radix: 16))"
-                       + " (\(port.witnesses) seen)")
-            out.append(contentsOf: narrowed(renumbered(theirs.lines[section.lines],
-                                                       to: port.ours, kind: port.kind),
-                                            to: port.width))
+            out.append(
+                "; \(port.meaning) — kmap 0x\(String(port.ours, radix: 16))"
+                    + " drawn as their 0x\(String(port.theirs, radix: 16))"
+                    + " (\(port.witnesses) seen)"
+            )
+            out.append(
+                contentsOf: narrowed(
+                    renumbered(
+                        theirs.lines[section.lines],
+                        to: port.ours,
+                        kind: port.kind
+                    ),
+                    to: port.width
+                )
+            )
             out.append("")
             // Above the ground: their own level, moved up by the two the background and
             // the land keep to themselves.
@@ -144,7 +173,7 @@ extension StylePort {
         return block.map { line in
             let text = line.trimmingCharacters(in: .whitespaces)
             guard text.hasPrefix("LineWidth="),
-                  let had = Int(text.dropFirst("LineWidth=".count)), width < had
+                let had = Int(text.dropFirst("LineWidth=".count)), width < had
             else { return line }
             return "LineWidth=\(width)"
         }
@@ -152,8 +181,11 @@ extension StylePort {
 
     /// Their block with the type lines rewritten to our number; a point's low byte is
     /// its subtype, written on a line of its own.
-    private static func renumbered(_ block: ArraySlice<String>, to code: Int,
-                                   kind: MapElementKind) -> [String] {
+    private static func renumbered(
+        _ block: ArraySlice<String>,
+        to code: Int,
+        kind: MapElementKind
+    ) -> [String] {
         let type = kind == .point ? code >> 8 : code
         let subtype = kind == .point ? code & 0xff : 0
         var out: [String] = []
@@ -172,7 +204,8 @@ extension StylePort {
         // A point whose block never said SubType still needs one when ours has a low
         // byte.
         if kind == .point, !wroteSubtype, subtype != 0,
-           let at = out.firstIndex(where: { $0.hasPrefix("Type=") }) {
+            let at = out.firstIndex(where: { $0.hasPrefix("Type=") })
+        {
             out.insert(String(format: "SubType=0x%02x", subtype), at: at + 1)
         }
         return out

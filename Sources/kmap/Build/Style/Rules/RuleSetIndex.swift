@@ -36,7 +36,6 @@ enum MapElementKind: String, CaseIterable, Equatable {
 /// What one Garmin type code means, in OSM terms. A TYP styles codes and records nothing
 /// about what they stand for; a code means whatever the rule set emitting it puts there.
 struct TypeMeaning: Equatable {
-
     /// One rule that emits this code.
     struct Rule: Equatable {
         /// The condition, trimmed, for display.
@@ -74,7 +73,6 @@ struct TypeMeaning: Equatable {
 /// the materialized style - mkgmap's default rules plus every kmap edit - which is what a
 /// build uses. Read-only.
 struct RuleSetIndex {
-
     private(set) var byKind: [MapElementKind: [Int: TypeMeaning]] = [:]
 
     /// Every meaning, sorted by kind and then by code.
@@ -109,13 +107,21 @@ struct RuleSetIndex {
             readAnything = true
 
             var rulesByCode: [Int: [TypeMeaning.Rule]] = [:]
-            collect(text: text, into: &rulesByCode,
-                    includeRoot: styleDirectory, depth: 0)
+            collect(
+                text: text,
+                into: &rulesByCode,
+                includeRoot: styleDirectory,
+                depth: 0
+            )
 
             var table: [Int: TypeMeaning] = [:]
             for (code, rules) in rulesByCode {
-                table[code] = TypeMeaning(kind: kind, code: code, rules: rules,
-                                          tags: distillTags(from: rules.map(\.condition)))
+                table[code] = TypeMeaning(
+                    kind: kind,
+                    code: code,
+                    rules: rules,
+                    tags: distillTags(from: rules.map(\.condition))
+                )
             }
             index.byKind[kind] = table
         }
@@ -130,10 +136,12 @@ struct RuleSetIndex {
         var count = 0
         var search = text.startIndex
         while let found = text.range(of: span, range: search..<text.endIndex) {
-            let atLineStart = found.lowerBound == text.startIndex
+            let atLineStart =
+                found.lowerBound == text.startIndex
                 || text[text.index(before: found.lowerBound)] == "\n"
             if atLineStart { count += 1 }
-            search = found.lowerBound < text.endIndex
+            search =
+                found.lowerBound < text.endIndex
                 ? text.index(after: found.lowerBound) : text.endIndex
             if search >= text.endIndex { break }
         }
@@ -145,10 +153,12 @@ struct RuleSetIndex {
     /// Walks one rule file, following `include` directives. A rule is written either on one
     /// line, or with its condition on one line and its `[0x...]` on the next; both shapes are
     /// handled.
-    private static func collect(text: String,
-                                into table: inout [Int: [TypeMeaning.Rule]],
-                                includeRoot: URL,
-                                depth: Int) {
+    private static func collect(
+        text: String,
+        into table: inout [Int: [TypeMeaning.Rule]],
+        includeRoot: URL,
+        depth: Int
+    ) {
         // The `<finalize>` section runs for every already-matched element and emits no types
         // of its own, so anything below it would be attributed to the wrong rule.
         let body = text.components(separatedBy: "\n<finalize>").first ?? text
@@ -202,7 +212,8 @@ struct RuleSetIndex {
                 let first = min(ruleStart ?? index, index)
                 let raw = lines[first...index].joined(separator: "\n")
                 table[bracket.code, default: []].append(
-                    TypeMeaning.Rule(condition: condition, tail: bracket.tail, raw: raw))
+                    TypeMeaning.Rule(condition: condition, tail: bracket.tail, raw: raw)
+                )
             }
             pendingCondition = ""
             ruleStart = nil
@@ -215,12 +226,16 @@ struct RuleSetIndex {
         condition.hasSuffix("|") || condition.hasSuffix("&")
     }
 
-    private static func followInclude(_ line: String, root: URL,
-                                      into table: inout [Int: [TypeMeaning.Rule]],
-                                      depth: Int) {
+    private static func followInclude(
+        _ line: String,
+        root: URL,
+        into table: inout [Int: [TypeMeaning.Rule]],
+        depth: Int
+    ) {
         // Directive form: `include 'inc/contour_lines';`
         guard let open = line.firstIndex(of: "'"),
-              let close = line.lastIndex(of: "'"), open < close else { return }
+            let close = line.lastIndex(of: "'"), open < close
+        else { return }
         let name = String(line[line.index(after: open)..<close])
         let url = root.appendingPathComponent(name)
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return }
@@ -229,8 +244,11 @@ struct RuleSetIndex {
 
     /// Finds the first `[0x...` on a line and returns its code, the bracket's index, and the
     /// text between the code and the closing bracket. Other brackets are skipped.
-    private static func firstTypeBracket(in line: String)
-        -> (code: Int, range: String.Index, tail: String)? {
+    private static func firstTypeBracket(
+        in line: String
+    )
+        -> (code: Int, range: String.Index, tail: String)?
+    {
         var search = line.startIndex
         while let open = line[search...].firstIndex(of: "[") {
             let after = line.index(after: open)
@@ -284,8 +302,10 @@ struct RuleSetIndex {
     private static let syntheticPrefixes = ["mkgmap:", "kmap:", "addr:"]
 
     /// Keys that qualify a rule without describing what it matches, such as `name=*`.
-    private static let qualifyingKeys: Set<String> = ["name", "ref", "area", "oneway",
-                                                      "access", "layer", "tunnel", "bridge"]
+    private static let qualifyingKeys: Set<String> = [
+        "name", "ref", "area", "oneway",
+        "access", "layer", "tunnel", "bridge"
+    ]
 
     /// Pulls `key=value` pairs out of rule conditions in the order they appear. A wildcard is
     /// kept only where its condition names nothing concrete. Negations are dropped.

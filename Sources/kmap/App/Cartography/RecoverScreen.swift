@@ -5,7 +5,6 @@ import Foundation
 /// written onto the number kmap's rules draw that meaning with. Where nothing cached
 /// matches the map, the smallest useful region is offered; nothing is fetched unasked.
 final class RecoverScreen: Screen {
-
     var page: Page { Page(t("recover the style"), keys: keys) }
 
     private var keys: [Hint] {
@@ -70,11 +69,12 @@ final class RecoverScreen: Screen {
             default: return 2
             }
         }
-        return (report?.outcomes.values.filter {
-            $0.status == .mixed || $0.status == .noRule || $0.status == .singleWitness
-        } ?? []).sorted {
-            (rank($0.status), $1.witnesses) < (rank($1.status), $0.witnesses)
-        }
+        return
+            (report?.outcomes.values.filter {
+                $0.status == .mixed || $0.status == .noRule || $0.status == .singleWitness
+            } ?? []).sorted {
+                (rank($0.status), $1.witnesses) < (rank($1.status), $0.witnesses)
+            }
     }
 
     /// Why a code was left alone, in as few words as the column holds.
@@ -124,8 +124,10 @@ final class RecoverScreen: Screen {
                 if let stale = TypLibrary.sheet(of: typ) { FileTools.removeIfPresent(stale) }
                 saved = true
                 ctx.styles.rescanStyles()
-                message = t("%@ now draws this map's look",
-                            typ.deletingPathExtension().lastPathComponent)
+                message = t(
+                    "%@ now draws this map's look",
+                    typ.deletingPathExtension().lastPathComponent
+                )
             } catch {
                 message = error.localizedDescription
             }
@@ -154,14 +156,22 @@ final class RecoverScreen: Screen {
                 // Derived against the pristine rule stage, never against whatever the
                 // last build happened to hide or translate.
                 let settings = SettingsStore()
-                let catalog = StyleCatalog(settings: settings,
-                                           toolchain: Toolchain(settings: settings))
+                let catalog = StyleCatalog(
+                    settings: settings,
+                    toolchain: Toolchain(settings: settings)
+                )
                 let neutral = try await catalog.neutralRulesForRecovery(
-                    log: log, runner: ProcessRunner())
+                    log: log,
+                    runner: ProcessRunner()
+                )
                 defer { FileTools.removeIfPresent(neutral) }
                 let report = try await StyleRecovery.run(
-                    img: img, extracts: [], log: log, rulesDirectory: neutral,
-                    progress: progress)
+                    img: img,
+                    extracts: [],
+                    log: log,
+                    rulesDirectory: neutral,
+                    progress: progress
+                )
                 await MainActor.run {
                     self.report = report
                     self.phase = .done
@@ -188,17 +198,22 @@ final class RecoverScreen: Screen {
     /// What went wrong, in actionable words: a URL error arrives as an NSError describing
     /// the session's internals rather than what to do about it.
     private func explain(_ error: Error) -> String {
-        let code = (error as NSError).domain == NSURLErrorDomain
+        let code =
+            (error as NSError).domain == NSURLErrorDomain
             ? (error as NSError).code : nil
         switch code {
         case NSURLErrorTimedOut:
-            return t("the download server did not answer in time — try again, or later"
-                   + " if it is busy")
+            return t(
+                "the download server did not answer in time — try again, or later"
+                    + " if it is busy"
+            )
         case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost,
-             NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost,
-             NSURLErrorDNSLookupFailed:
-            return t("no connection to the download server — check the network and"
-                   + " try again")
+            NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost,
+            NSURLErrorDNSLookupFailed:
+            return t(
+                "no connection to the download server — check the network and"
+                    + " try again"
+            )
         case .some:
             return t("the download did not go through: %@", error.localizedDescription)
         case nil:
@@ -223,8 +238,10 @@ final class RecoverScreen: Screen {
                 let regions = RegionSuggestion.suggestedRegions(on: drawn, index: index)
                 guard !regions.isEmpty else {
                     await MainActor.run {
-                        self.failure = t("no region kmap can download overlaps this map (%@)",
-                                         frame.display)
+                        self.failure = t(
+                            "no region kmap can download overlaps this map (%@)",
+                            frame.display
+                        )
                         self.phase = .failed
                     }
                     return
@@ -234,10 +251,13 @@ final class RecoverScreen: Screen {
                 else { return }
                 await MainActor.run {
                     self.wanted = [pick.region]
-                    self.sizes = Dictionary(uniqueKeysWithValues:
-                        weighed.map { ($0.0.region.id, $0.1) })
+                    self.sizes = Dictionary(
+                        uniqueKeysWithValues:
+                            weighed.map { ($0.0.region.id, $0.1) }
+                    )
                     // The runners-up, limited to regions the map also stands on.
-                    self.alternatives = weighed
+                    self.alternatives =
+                        weighed
                         .filter { $0.0.region.id != pick.region.id && $0.0.isInside == pick.isInside }
                         .sorted { $0.1 < $1.1 }
                         .prefix(2).map { ($0.0.region.name, $0.1) }
@@ -254,13 +274,17 @@ final class RecoverScreen: Screen {
 
     /// The download size of every candidate, probed concurrently. Extract size does not
     /// follow area, so the choice is made on bytes rather than on ground covered.
-    private static func weighed(_ regions: [RegionSuggestion.Candidate]) async
-    -> [(RegionSuggestion.Candidate, Int64)] {
+    private static func weighed(
+        _ regions: [RegionSuggestion.Candidate]
+    ) async
+        -> [(RegionSuggestion.Candidate, Int64)]
+    {
         await withTaskGroup(of: (RegionSuggestion.Candidate, Int64)?.self) { group in
             for candidate in regions {
                 group.addTask {
                     guard let url = candidate.region.pbfURL,
-                          let info = try? await Downloader.probe(url) else { return nil }
+                        let info = try? await Downloader.probe(url)
+                    else { return nil }
                     return (candidate, info.size)
                 }
             }
@@ -282,16 +306,23 @@ final class RecoverScreen: Screen {
         }
         offering = Dialog(
             title: t("Download a region?"),
-            body: [t("No OSM data on this machine matches this map. Recovering the style"
-                   + " does not need the whole map covered — the codes a style uses are"
-                   + " used everywhere it draws, so one region inside the map is enough"
-                   + " to read them."),
-                   t("The first is what kmap would take; it lands in the same cache a"
-                   + " build reads, so the next build has it too.")],
+            body: [
+                t(
+                    "No OSM data on this machine matches this map. Recovering the style"
+                        + " does not need the whole map covered — the codes a style uses are"
+                        + " used everywhere it draws, so one region inside the map is enough"
+                        + " to read them."
+                ),
+                t(
+                    "The first is what kmap would take; it lands in the same cache a"
+                        + " build reads, so the next build has it too."
+                )
+            ],
             detail: detail,
             confirm: t("download"),
             cancel: t("not now"),
-            tone: .plain)
+            tone: .plain
+        )
     }
 
     private func download(_ ctx: AppContext) {
@@ -310,7 +341,8 @@ final class RecoverScreen: Screen {
                     try await downloader.download(
                         url: url,
                         to: RegionSuggestion.cacheDestination(for: region),
-                        connections: 4)
+                        connections: 4
+                    )
                 }
                 await MainActor.run { self.start(ctx) }
             } catch is CancellationError {
@@ -342,11 +374,23 @@ final class RecoverScreen: Screen {
         case .downloading:
             renderDownloading(into: s, rect: rect, ctx: ctx, theme: theme, y: &y)
         case .cancelled:
-            paragraph(t("cancelled — nothing was kept"), tone: theme.warn,
-                      into: s, rect: rect, theme: theme, y: &y)
+            paragraph(
+                t("cancelled — nothing was kept"),
+                tone: theme.warn,
+                into: s,
+                rect: rect,
+                theme: theme,
+                y: &y
+            )
         case .failed:
-            paragraph(t("it did not work out") + ": " + (failure ?? ""), tone: theme.danger,
-                      into: s, rect: rect, theme: theme, y: &y)
+            paragraph(
+                t("it did not work out") + ": " + (failure ?? ""),
+                tone: theme.danger,
+                into: s,
+                rect: rect,
+                theme: theme,
+                y: &y
+            )
         case .done:
             renderDone(into: s, rect: rect, theme: theme, y: &y)
         }
@@ -356,8 +400,14 @@ final class RecoverScreen: Screen {
     }
 
     /// Wrapped prose, one tone, advancing `y` a line per chunk until the rect is full.
-    private func paragraph(_ text: String, tone: Color, into s: Surface, rect: Rect,
-                           theme: Theme, y: inout Int) {
+    private func paragraph(
+        _ text: String,
+        tone: Color,
+        into s: Surface,
+        rect: Rect,
+        theme: Theme,
+        y: inout Int
+    ) {
         for chunk in wrapText(text, width: rect.w) {
             guard y < rect.maxY else { return }
             s.text(rect.x, y, chunk, Style(fg: tone, bg: theme.appBg))
@@ -369,31 +419,68 @@ final class RecoverScreen: Screen {
         func paragraph(_ text: String, tone: Color) {
             self.paragraph(text, tone: tone, into: s, rect: rect, theme: theme, y: &y)
         }
-        paragraph(t("A TYP records how type codes are drawn. It does not record which"
-                  + " code this map used for a forest or a trunk road."), tone: theme.text)
+        paragraph(
+            t(
+                "A TYP records how type codes are drawn. It does not record which"
+                    + " code this map used for a forest or a trunk road."
+            ),
+            tone: theme.text
+        )
         y += 1
-        paragraph(t("kmap works that out from the map itself: every element is looked"
-                  + " up in OSM data by its geometry, and the code it was drawn with"
-                  + " is tied to the thing it stands for."), tone: theme.text)
+        paragraph(
+            t(
+                "kmap works that out from the map itself: every element is looked"
+                    + " up in OSM data by its geometry, and the code it was drawn with"
+                    + " is tied to the thing it stands for."
+            ),
+            tone: theme.text
+        )
         y += 1
-        paragraph(t("What comes out is kept with the imported TYP, and every build"
-                  + " with that style applies it — the map comes out looking the way"
-                  + " the original did."), tone: theme.text)
+        paragraph(
+            t(
+                "What comes out is kept with the imported TYP, and every build"
+                    + " with that style applies it — the map comes out looking the way"
+                    + " the original did."
+            ),
+            tone: theme.text
+        )
         y += 1
-        paragraph(t("Reading the whole map takes a few minutes; you can stop it at"
-                  + " any point."), tone: theme.faint)
+        paragraph(
+            t(
+                "Reading the whole map takes a few minutes; you can stop it at"
+                    + " any point."
+            ),
+            tone: theme.faint
+        )
         y += 1
-        s.text(rect.x, y, t("map") + ": " + img.lastPathComponent,
-               Style(fg: theme.dim, bg: theme.appBg))
+        s.text(
+            rect.x,
+            y,
+            t("map") + ": " + img.lastPathComponent,
+            Style(fg: theme.dim, bg: theme.appBg)
+        )
     }
 
-    private func renderRunning(into s: Surface, rect: Rect, ctx: AppContext, theme: Theme,
-                               y: inout Int) {
+    private func renderRunning(
+        into s: Surface,
+        rect: Rect,
+        ctx: AppContext,
+        theme: Theme,
+        y: inout Int
+    ) {
         let snap = progress.snapshot
-        s.text(rect.x, y, t("recovering %@", String(Widgets.spinner(ctx.frame))),
-               Style(fg: theme.accent, bg: theme.appBg, bold: true))
-        s.textRight(rect.maxX, y, Fmt.duration(Date().timeIntervalSince(startedAt)),
-                    Style(fg: theme.dim, bg: theme.appBg))
+        s.text(
+            rect.x,
+            y,
+            t("recovering %@", String(Widgets.spinner(ctx.frame))),
+            Style(fg: theme.accent, bg: theme.appBg, bold: true)
+        )
+        s.textRight(
+            rect.maxX,
+            y,
+            Fmt.duration(Date().timeIntervalSince(startedAt)),
+            Style(fg: theme.dim, bg: theme.appBg)
+        )
         y += 2
 
         for (stage, title) in stages(for: snap) {
@@ -408,18 +495,35 @@ final class RecoverScreen: Screen {
             s.text(rect.x, y, marker, Style(fg: tone, bg: theme.appBg))
             // Cut with an ellipsis rather than at the column: a title that ends mid-word
             // says so, and one that ends on a preposition does not.
-            s.text(rect.x + 2, y, truncate(title, to: RecoverScreen.titleWidth),
-                   Style(fg: stage == .pending ? theme.faint : theme.text,
-                         bg: theme.appBg, bold: stage == .running))
+            s.text(
+                rect.x + 2,
+                y,
+                truncate(title, to: RecoverScreen.titleWidth),
+                Style(
+                    fg: stage == .pending ? theme.faint : theme.text,
+                    bg: theme.appBg,
+                    bold: stage == .running
+                )
+            )
             if stage == .running {
                 let detailX = rect.x + RecoverScreen.titleWidth + 4
                 if let fraction = snap.fraction, rect.w > 50 {
                     let barWidth = min(28, max(10, rect.maxX - detailX - 2))
-                    Widgets.progressBar(s, x: detailX, y: y, width: barWidth,
-                                        fraction: fraction, theme: theme)
+                    Widgets.progressBar(
+                        s,
+                        x: detailX,
+                        y: y,
+                        width: barWidth,
+                        fraction: fraction,
+                        theme: theme
+                    )
                 } else if snap.done > 0 {
-                    s.text(detailX, y, tn("%d element(s)", snap.done),
-                           Style(fg: theme.dim, bg: theme.appBg))
+                    s.text(
+                        detailX,
+                        y,
+                        tn("%d element(s)", snap.done),
+                        Style(fg: theme.dim, bg: theme.appBg)
+                    )
                 }
             }
             y += 1
@@ -427,39 +531,74 @@ final class RecoverScreen: Screen {
         y += 1
         for line in log.snapshot().suffix(max(0, rect.maxY - y - 1)) {
             guard y < rect.maxY else { break }
-            s.text(rect.x, y, truncate(line.text, to: rect.w),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(line.text, to: rect.w),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
     }
 
-    private func renderDownloading(into s: Surface, rect: Rect, ctx: AppContext,
-                                   theme: Theme, y: inout Int) {
-        s.text(rect.x, y, t("downloading %@", String(Widgets.spinner(ctx.frame))),
-               Style(fg: theme.accent, bg: theme.appBg, bold: true))
-        s.textRight(rect.maxX, y, Fmt.duration(Date().timeIntervalSince(startedAt)),
-                    Style(fg: theme.dim, bg: theme.appBg))
+    private func renderDownloading(
+        into s: Surface,
+        rect: Rect,
+        ctx: AppContext,
+        theme: Theme,
+        y: inout Int
+    ) {
+        s.text(
+            rect.x,
+            y,
+            t("downloading %@", String(Widgets.spinner(ctx.frame))),
+            Style(fg: theme.accent, bg: theme.appBg, bold: true)
+        )
+        s.textRight(
+            rect.maxX,
+            y,
+            Fmt.duration(Date().timeIntervalSince(startedAt)),
+            Style(fg: theme.dim, bg: theme.appBg)
+        )
         y += 2
         if !fetching.isEmpty {
-            s.text(rect.x, y, truncate(fetching, to: rect.w),
-                   Style(fg: theme.text, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(fetching, to: rect.w),
+                Style(fg: theme.text, bg: theme.appBg)
+            )
             y += 1
         }
         if let progress = downloader?.progress {
-            Widgets.progressBar(s, x: rect.x, y: y, width: min(46, rect.w),
-                                fraction: progress.fraction, theme: theme)
+            Widgets.progressBar(
+                s,
+                x: rect.x,
+                y: y,
+                width: min(46, rect.w),
+                fraction: progress.fraction,
+                theme: theme
+            )
             y += 1
             if progress.total > 0 {
-                s.text(rect.x, y, "\(Fmt.bytes(progress.received)) / \(Fmt.bytes(progress.total))",
-                       Style(fg: theme.dim, bg: theme.appBg))
+                s.text(
+                    rect.x,
+                    y,
+                    "\(Fmt.bytes(progress.received)) / \(Fmt.bytes(progress.total))",
+                    Style(fg: theme.dim, bg: theme.appBg)
+                )
                 y += 1
             }
         }
         y += 1
         for line in log.snapshot().suffix(max(0, rect.maxY - y - 1)) {
             guard y < rect.maxY else { break }
-            s.text(rect.x, y, truncate(line.text, to: rect.w),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(line.text, to: rect.w),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
     }
@@ -470,18 +609,28 @@ final class RecoverScreen: Screen {
         }
         guard let report else { return }
         let resolved = report.outcomes.values.filter { $0.status == .resolved }.count
-        paragraph(tn("%d code(s) in this map", report.outcomes.count) + " · "
-                  + tn("%d understood", resolved), tone: theme.strong)
+        paragraph(
+            tn("%d code(s) in this map", report.outcomes.count) + " · "
+                + tn("%d understood", resolved),
+            tone: theme.strong
+        )
         y += 1
         if !recovered {
-            paragraph(t("Nothing to save: this map carries no look to take."),
-                      tone: theme.text)
+            paragraph(
+                t("Nothing to save: this map carries no look to take."),
+                tone: theme.text
+            )
         }
         let rest = remainder
         if !rest.isEmpty {
-            paragraph(tn("%d code(s) left alone — no rule of ours is aimed at them,"
-                       + " so the map goes on drawing them as it did:",
-                       rest.count), tone: theme.text)
+            paragraph(
+                tn(
+                    "%d code(s) left alone — no rule of ours is aimed at them,"
+                        + " so the map goes on drawing them as it did:",
+                    rest.count
+                ),
+                tone: theme.text
+            )
             // Only as many rows as fit, with a count of the rest, so a list running
             // off the bottom does not read as the whole of it.
             let room = max(0, rect.maxY - y - 2)
@@ -491,23 +640,39 @@ final class RecoverScreen: Screen {
                 let what = o.meaning.isEmpty ? t("nothing identified") : o.meaning
                 let column = min(24, max(12, (rect.w - 12) / 3))
                 s.text(rect.x + 2, y, code, Style(fg: theme.dim, bg: theme.appBg))
-                s.text(rect.x + 12, y, reason(o.status),
-                       Style(fg: theme.faint, bg: theme.appBg), limit: column - 1)
-                s.text(rect.x + 12 + column, y,
-                       truncate(what, to: max(0, rect.maxX - rect.x - 12 - column)),
-                       Style(fg: theme.faint, bg: theme.appBg))
+                s.text(
+                    rect.x + 12,
+                    y,
+                    reason(o.status),
+                    Style(fg: theme.faint, bg: theme.appBg),
+                    limit: column - 1
+                )
+                s.text(
+                    rect.x + 12 + column,
+                    y,
+                    truncate(what, to: max(0, rect.maxX - rect.x - 12 - column)),
+                    Style(fg: theme.faint, bg: theme.appBg)
+                )
                 y += 1
             }
             if shown.count < rest.count, y < rect.maxY {
-                s.text(rect.x + 2, y, tn("and %d more", rest.count - shown.count),
-                       Style(fg: theme.dim, bg: theme.appBg))
+                s.text(
+                    rect.x + 2,
+                    y,
+                    tn("and %d more", rest.count - shown.count),
+                    Style(fg: theme.dim, bg: theme.appBg)
+                )
                 y += 1
             }
             y += 1
         }
         if let message, y < rect.maxY {
-            s.text(rect.x, y, truncate(message, to: rect.w),
-                   Style(fg: theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(message, to: rect.w),
+                Style(fg: theme.ok, bg: theme.appBg)
+            )
         }
     }
 
@@ -541,10 +706,12 @@ final class RecoverScreen: Screen {
         if case .placing(let name) = snap.stage {
             placing = t("identifying the rest by place in %@", name)
         }
-        return [(state(0), t("preparing the map reader")),
-                (state(1), t("reading the map")),
-                (state(2), ground),
-                (state(3), placing),
-                (state(4), t("working out what the codes mean"))]
+        return [
+            (state(0), t("preparing the map reader")),
+            (state(1), t("reading the map")),
+            (state(2), ground),
+            (state(3), placing),
+            (state(4), t("working out what the codes mean"))
+        ]
     }
 }

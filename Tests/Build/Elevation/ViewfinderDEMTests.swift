@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// Which Viewfinder archive holds which degree tile. The index is derived from the
 /// coverage page and shared byte for byte with pyhgtmap, so its rounding is kept as
 /// pyhgtmap has it rather than corrected.
 final class ViewfinderDEMTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -41,10 +41,14 @@ final class ViewfinderDEMTests: XCTestCase {
     func testTheSourceAndDirectoryNamesAreTheOnesTheRestOfTheBuildLooksFor() {
         XCTAssertEqual(ViewfinderDEM.sourceID(1), "view1")
         XCTAssertEqual(ViewfinderDEM.directoryName(3), "VIEW3")
-        XCTAssertEqual(ViewfinderDEM.cachedTile("N44E033", resolution: 1).lastPathComponent,
-                       "N44E033.hgt")
-        XCTAssertEqual(ViewfinderDEM.indexFile(3).lastPathComponent,
-                       "viewfinderHgtIndex_3.txt")
+        XCTAssertEqual(
+            ViewfinderDEM.cachedTile("N44E033", resolution: 1).lastPathComponent,
+            "N44E033.hgt"
+        )
+        XCTAssertEqual(
+            ViewfinderDEM.indexFile(3).lastPathComponent,
+            "viewfinderHgtIndex_3.txt"
+        )
     }
 
     func testTheIndexVersionsArePyhgtmapsOwn() {
@@ -84,8 +88,10 @@ final class ViewfinderDEMTests: XCTestCase {
         index.entries["https://viewfinderpanoramas.org/dem3/SA19.zip"] = []
         let url = directory.appendingPathComponent("sea.txt")
         try index.save(to: url, resolution: 3)
-        XCTAssertEqual(ViewfinderDEM.Index.load(url)?.entries.keys.first,
-                       "https://viewfinderpanoramas.org/dem3/SA19.zip")
+        XCTAssertEqual(
+            ViewfinderDEM.Index.load(url)?.entries.keys.first,
+            "https://viewfinderpanoramas.org/dem3/SA19.zip"
+        )
         XCTAssertEqual(ViewfinderDEM.Index.load(url)?.entries.values.first, [])
     }
 
@@ -106,18 +112,20 @@ final class ViewfinderDEMTests: XCTestCase {
         // Hand-written HTML: quotes of either kind, attributes in any order, newlines
         // inside a tag.
         let html = """
-        <html><body><map>
-        <area shape="rect" coords="900,400,905,405" href="https://x/A.zip">
-        <area href='https://x/B.zip' coords='905,400,910,405'>
-        <area
-             coords="910,400,915,405"
-             href=https://x/C.zip>
-        <area shape="rect" coords="920,400,925,405">
-        </map></body></html>
-        """
+            <html><body><map>
+            <area shape="rect" coords="900,400,905,405" href="https://x/A.zip">
+            <area href='https://x/B.zip' coords='905,400,910,405'>
+            <area
+                 coords="910,400,915,405"
+                 href=https://x/C.zip>
+            <area shape="rect" coords="920,400,925,405">
+            </map></body></html>
+            """
         let index = ViewfinderDEM.Index.parse(coveragePage: html)
-        XCTAssertEqual(Set(index.entries.keys),
-                       ["https://x/A.zip", "https://x/B.zip", "https://x/C.zip"])
+        XCTAssertEqual(
+            Set(index.entries.keys),
+            ["https://x/A.zip", "https://x/B.zip", "https://x/C.zip"]
+        )
         // The fourth has no href and stands for nothing.
         XCTAssertEqual(index.entries.count, 3)
         XCTAssertFalse(index.entries["https://x/A.zip"]!.isEmpty)
@@ -153,7 +161,9 @@ final class ViewfinderDEMTests: XCTestCase {
         let south = ViewfinderDEM.innerAreas("900,455,905,460")
         XCTAssertEqual(south, ["S02E000"])
         let crossing = ViewfinderDEM.innerAreas("900,445,905,455")
-        XCTAssertTrue(crossing.allSatisfy { $0.hasPrefix("S") },
-                      "the quirk has changed: \(crossing)")
+        XCTAssertTrue(
+            crossing.allSatisfy { $0.hasPrefix("S") },
+            "the quirk has changed: \(crossing)"
+        )
     }
 }

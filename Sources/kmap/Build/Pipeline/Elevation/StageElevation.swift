@@ -63,13 +63,20 @@ extension BuildPipeline {
         // grid plus its working set, so a machine short of memory runs fewer lanes.
         let concurrency = Machine.lanes(max(1, Machine.workers), holdingEach: 0.7)
         if concurrency < max(1, Machine.workers) {
-            log.append("\(Machine.memoryGB) GB of memory — tracing \(concurrency) cell(s)"
-                       + " at a time rather than \(Machine.workers)")
+            log.append(
+                "\(Machine.memoryGB) GB of memory — tracing \(concurrency) cell(s)"
+                    + " at a time rather than \(Machine.workers)"
+            )
         }
 
-        try await traceContourCells(cells, extracts: extracts, into: contourDir,
-                                    major: major, medium: medium,
-                                    concurrency: concurrency)
+        try await traceContourCells(
+            cells,
+            extracts: extracts,
+            into: contourDir,
+            major: major,
+            medium: medium,
+            concurrency: concurrency
+        )
         try Task.checkCancellation()
 
         // Sorted by name, which encodes the cell index, so the id ranges ascend.
@@ -99,15 +106,24 @@ extension BuildPipeline {
         await measure(.elevationBuild, "burn the summits in") {
             await burnPeakElevations(extracts: extracts)
         }
-        set(.elevationBuild, .done,
-            recipe.contours ? "\(produced.count) contour file(s)" : "\(hgtFileCount()) elevation tile(s)")
+        set(
+            .elevationBuild,
+            .done,
+            recipe.contours ? "\(produced.count) contour file(s)" : "\(hgtFileCount()) elevation tile(s)"
+        )
         return produced
     }
 
     /// Traces every cell's contours, `concurrency` at a time, with a live progress
     /// line. Each cell writes into its own reserved id range, so order changes nothing.
-    private func traceContourCells(_ cells: [BBox], extracts: [URL], into contourDir: URL,
-                                   major: Int, medium: Int, concurrency: Int) async throws {
+    private func traceContourCells(
+        _ cells: [BBox],
+        extracts: [URL],
+        into contourDir: URL,
+        major: Int,
+        medium: Int,
+        concurrency: Int
+    ) async throws {
         // The outline every cell's contours are cut to, fetched once for the build.
         let mask = await regionMask()
         // And the water they stop at: a contour is not drawn across a lake.
@@ -126,9 +142,11 @@ extension BuildPipeline {
             while !Task.isCancelled {
                 let done = completed.value
                 // The conversion is the first fifth of this stage and tracing the rest.
-                board.detail(.elevationBuild,
-                             "tracing \(done)/\(total) cell(s)",
-                             fraction: 0.2 + 0.8 * Double(done) / Double(max(1, total)))
+                board.detail(
+                    .elevationBuild,
+                    "tracing \(done)/\(total) cell(s)",
+                    fraction: 0.2 + 0.8 * Double(done) / Double(max(1, total))
+                )
                 try? await Task.sleep(nanoseconds: 500_000_000)
             }
         }
@@ -137,36 +155,44 @@ extension BuildPipeline {
         ContourTiming.begin()
         let tracingStarted = Date()
         try await measure(.elevationBuild, "trace the contours") {
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            var next = 0
-            var running = 0
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                var next = 0
+                var running = 0
 
-            func launch(_ index: Int) {
-                let cell = cells[index]
-                group.addTask { [weak self] in
-                    guard let self else { return }
-                    try await self.contourCell(cell, index: index, mask: mask, water: water,
-                                               directory: contourDir,
-                                               major: major, medium: medium)
-                    completed.increment()
+                func launch(_ index: Int) {
+                    let cell = cells[index]
+                    group.addTask { [weak self] in
+                        guard let self else { return }
+                        try await self.contourCell(
+                            cell,
+                            index: index,
+                            mask: mask,
+                            water: water,
+                            directory: contourDir,
+                            major: major,
+                            medium: medium
+                        )
+                        completed.increment()
+                    }
+                }
+
+                while next < cells.count && running < concurrency {
+                    launch(next); next += 1; running += 1
+                }
+                while running > 0 {
+                    try await group.next()
+                    running -= 1
+                    // Cancellation is cooperative and the tracer is pure CPU: this is the
+                    // one point, between cells, where it can take effect.
+                    try Task.checkCancellation()
+                    if next < cells.count { launch(next); next += 1; running += 1 }
                 }
             }
-
-            while next < cells.count && running < concurrency {
-                launch(next); next += 1; running += 1
-            }
-            while running > 0 {
-                try await group.next()
-                running -= 1
-                // Cancellation is cooperative and the tracer is pure CPU: this is the
-                // one point, between cells, where it can take effect.
-                try Task.checkCancellation()
-                if next < cells.count { launch(next); next += 1; running += 1 }
-            }
         }
-        }
-        for line in ContourTiming.report(wall: Date().timeIntervalSince(tracingStarted),
-                                         lanes: concurrency) {
+        for line in ContourTiming.report(
+            wall: Date().timeIntervalSince(tracingStarted),
+            lanes: concurrency
+        ) {
             log.debug(line, stage: StageID.elevationBuild.rawValue)
         }
     }

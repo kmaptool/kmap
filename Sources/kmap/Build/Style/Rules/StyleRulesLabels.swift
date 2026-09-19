@@ -18,7 +18,7 @@ extension StyleCatalog {
         ("ferry to the anchor", "amenity=ferry_terminal [0x2f08 ", "amenity=ferry_terminal [0x2f09 "),
         ("arts centre to the mask", "amenity=arts_centre [0x2c04 ", "amenity=arts_centre [0x2d01 "),
         ("furniture to the plain shop", "shop=furniture [0x2e09 ", "shop=furniture [0x2e0c "),
-        ("boat shop to the plain shop", "shop=boat [0x2f09 ", "shop=boat [0x2e0c "),
+        ("boat shop to the plain shop", "shop=boat [0x2f09 ", "shop=boat [0x2e0c ")
     ]
 
     /// Rules with no stock counterpart, inserted whole: no mkgmap rule mentions
@@ -33,13 +33,13 @@ extension StyleCatalog {
         return """
 
 
-    # --- kmap: aerial lift stations ------------------------------------
-    aerialway=station & name!=* { name '\(station)' } [0x2f1b resolution 22]
-    aerialway=station { name '${name}' } [0x2f1b resolution 22]
+            # --- kmap: aerial lift stations ------------------------------------
+            aerialway=station & name!=* { name '\(station)' } [0x2f1b resolution 22]
+            aerialway=station { name '${name}' } [0x2f1b resolution 22]
 
-    # --- kmap: the modern emergency-phone tag, same badge as the stock rule
-    emergency=phone [0x2f16 resolution 22 default_name '\(phone)']
-    """
+            # --- kmap: the modern emergency-phone tag, same badge as the stock rule
+            emergency=phone [0x2f16 resolution 22 default_name '\(phone)']
+            """
     }
 
     /// Labels a summit with its name and its height in metres; the stock mkgmap `points`
@@ -96,8 +96,12 @@ extension StyleCatalog {
         try text.write(to: points, atomically: true, encoding: .utf8)
     }
 
-    static func repairIcons(in text: String, cyrillic: Bool)
-        -> (text: String, applied: Int, missed: [String]) {
+    static func repairIcons(
+        in text: String,
+        cyrillic: Bool
+    )
+        -> (text: String, applied: Int, missed: [String])
+    {
         var out = text
         var applied = 0
         var missed: [String] = []
@@ -106,7 +110,7 @@ extension StyleCatalog {
                 out = out.replacingOccurrences(of: old, with: new)
                 applied += 1
             } else if out.contains(new) {
-                applied += 1        // already repaired on a previous pass
+                applied += 1  // already repaired on a previous pass
             } else {
                 missed.append(what)
             }
@@ -115,8 +119,10 @@ extension StyleCatalog {
             // The points file ends with a <finalize> section, and a typed rule inside it
             // is a style error that fails the compile.
             if let finalize = out.range(of: "<finalize>") {
-                out.replaceSubrange(finalize.lowerBound..<finalize.lowerBound,
-                                    with: liftStationRules(cyrillic: cyrillic) + "\n\n")
+                out.replaceSubrange(
+                    finalize.lowerBound..<finalize.lowerBound,
+                    with: liftStationRules(cyrillic: cyrillic) + "\n\n"
+                )
             } else {
                 out += liftStationRules(cyrillic: cyrillic)
             }
@@ -134,7 +140,8 @@ extension StyleCatalog {
         var out = text
         var changed = false
         for resolution in [22, 24] {
-            let centre = "leisure=sports_center | leisure=sports_centre "
+            let centre =
+                "leisure=sports_center | leisure=sports_centre "
                 + "{name '${name} (${sport})' | '${sport}'} [0x2d0a resolution \(resolution)]"
             guard out.contains(centre) else { continue }
             let spot = resolution == 24 ? 24 : 22
@@ -150,7 +157,7 @@ extension StyleCatalog {
                 "(climbing=area | climbing=boulder | climbing=yes) { name '${name}' } [0x2c0e resolution \(spot)]",
                 "(climbing=route | climbing=route_bottom) & name!=* { name '\(route)' } [0x2c0e resolution \(routeAt)]",
                 "(climbing=route | climbing=route_bottom) { name '${name}' } [0x2c0e resolution \(routeAt)]",
-                centre,
+                centre
             ].joined(separator: "\n")
             out = out.replacingOccurrences(of: centre, with: rules)
             changed = true
@@ -192,7 +199,8 @@ extension StyleCatalog {
         }
         text = text.replacingOccurrences(
             of: anchor,
-            with: anchor + "\n\n" + marker + "\nname=* { delete operator; }")
+            with: anchor + "\n\n" + marker + "\nname=* { delete operator; }"
+        )
         try text.write(to: include, atomically: true, encoding: .utf8)
         log.append("operator dropped from labels that already carry a name")
     }
@@ -206,10 +214,12 @@ extension StyleCatalog {
         // captions have no OSM name behind them, so there is nothing else to translate.
         var words: [String: String] = [:]
         for raw in StyleAssets.defaultNameTranslations
-            .split(separator: "\n", omittingEmptySubsequences: true) {
+            .split(separator: "\n", omittingEmptySubsequences: true)
+        {
             let line = raw.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty, !line.hasPrefix("#"),
-                  let bar = line.firstIndex(of: "|") else { continue }
+                let bar = line.firstIndex(of: "|")
+            else { continue }
             words[String(line[line.startIndex..<bar])] = String(line[line.index(after: bar)...])
         }
         var changed: [String] = []
@@ -240,7 +250,8 @@ extension StyleCatalog {
         for raw in StyleAssets.russianLabels.split(separator: "\n", omittingEmptySubsequences: false) {
             let line = raw.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty, !line.hasPrefix("#"),
-                  let bar = line.firstIndex(of: "|") else { continue }
+                let bar = line.firstIndex(of: "|")
+            else { continue }
             let pair = String(line[line.startIndex..<bar])
             let label = String(line[line.index(after: bar)...])
             guard !pair.isEmpty, !label.isEmpty else { continue }
@@ -248,15 +259,17 @@ extension StyleCatalog {
             // separator; quoting is what tells it otherwise, and unquoted the style fails.
             var condition = pair
             if let eq = pair.firstIndex(of: "="), pair[pair.index(after: eq)...].contains(";") {
-                condition = String(pair[pair.startIndex..<eq]) + "='"
-                          + String(pair[pair.index(after: eq)...]) + "'"
+                condition =
+                    String(pair[pair.startIndex..<eq]) + "='"
+                    + String(pair[pair.index(after: eq)...]) + "'"
             }
             rules.append("\(condition) & name!=* { name '\(label)' }")
         }
         guard !rules.isEmpty else { return }
 
         let marker = "# --- kmap: names for things OSM leaves unnamed"
-        let block = marker + " ---------------------------\n"
+        let block =
+            marker + " ---------------------------\n"
             + "# Generated from Assets/labels-ru.txt; see addRussianLabels. Action-only and\n"
             + "# first, so the stock mop-up rules cannot get in with a raw tag value.\n\n"
             + rules.joined(separator: "\n") + "\n\n\n"

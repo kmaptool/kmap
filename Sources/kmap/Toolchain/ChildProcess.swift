@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)
@@ -12,7 +13,6 @@ import ucrt
 /// how to wait for it, how to insist that it stop, and how to read what is waiting in a
 /// pipe without blocking for more. The rest of `Process` is portable.
 enum ChildProcess {
-
     /// Grace after `terminate()`, and the poll step.
     static let exitGrace: TimeInterval = 2
     private static let pollInterval: TimeInterval = 0.02
@@ -78,8 +78,10 @@ enum ChildProcess {
     /// the child left behind, so reading to end of file can block indefinitely. Both
     /// platforms read only what is available: POSIX by `O_NONBLOCK`, Windows by
     /// `PeekNamedPipe`, there being no non-blocking mode for a pipe there.
-    static func readWhatIsWaiting(_ handle: FileHandle,
-                                  into ingest: (String) -> Void) {
+    static func readWhatIsWaiting(
+        _ handle: FileHandle,
+        into ingest: (String) -> Void
+    ) {
         #if os(Windows)
         let pipe = handle._handle
         guard pipe != INVALID_HANDLE_VALUE else { return }
@@ -104,7 +106,7 @@ enum ChildProcess {
             let count = buffer.withUnsafeMutableBytes { raw in
                 read(descriptor, raw.baseAddress, raw.count)
             }
-            guard count > 0 else { return }   // 0 is end of file, -1 is "nothing waiting"
+            guard count > 0 else { return }  // 0 is end of file, -1 is "nothing waiting"
             ingest(String(decoding: buffer[0..<count], as: UTF8.self))
         }
         #endif

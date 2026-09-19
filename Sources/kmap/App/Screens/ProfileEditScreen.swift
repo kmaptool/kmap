@@ -19,17 +19,27 @@ final class ProfileEditScreen: Screen {
         self.profile = profile
         var recipe = BuildRecipe(
             region: ProfileEditScreen.anyRegion,
-            style: MapStyle(id: "plain", name: "Plain", summary: "",
-                            origin: .builtin,
-                            styleDirectory: StyleCatalog.baseStyleDirectory,
-                            typURL: nil, familyID: 6324, productID: 1),
-            outputDirectory: store.settings.outputURL)
+            style: MapStyle(
+                id: "plain",
+                name: "Plain",
+                summary: "",
+                origin: .builtin,
+                styleDirectory: StyleCatalog.baseStyleDirectory,
+                typURL: nil,
+                familyID: 6324,
+                productID: 1
+            ),
+            outputDirectory: store.settings.outputURL
+        )
         // Code page 0: with no region there is nothing to suggest one, and it is resolved at
         // build time.
         recipe.apply(profile.choices, style: nil, regionCodePage: 0)
-        self.form = RecipeForm(mode: .profile, recipe: recipe,
-                               askedStyleID: profile.choices.styleID,
-                               hasSeamPatch: hasSeamPatch)
+        self.form = RecipeForm(
+            mode: .profile,
+            recipe: recipe,
+            askedStyleID: profile.choices.styleID,
+            hasSeamPatch: hasSeamPatch
+        )
     }
 
     /// An empty placeholder region, so the form has a recipe to edit. Never built.
@@ -78,9 +88,13 @@ final class ProfileEditScreen: Screen {
         var y = side.y
         func caption(_ text: String) {
             guard y < side.maxY else { return }
-            s.sectionRule(side, y, text,
-                          labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                          ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+            s.sectionRule(
+                side,
+                y,
+                text,
+                labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+                ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+            )
             y += 2
         }
         func line(_ text: String, tone: Color? = nil) {
@@ -93,20 +107,31 @@ final class ProfileEditScreen: Screen {
 
         caption(t("profile"))
         line(profile.name)
-        line(t("selected on the New map screen; fills in every field of the form"),
-             tone: theme.faint)
+        line(
+            t("selected on the New map screen; fills in every field of the form"),
+            tone: theme.faint
+        )
         y += 1
 
         caption(t("what it does not include"))
-        line(t("The region, the family id and the output folder. The region and the"
-             + " family id are set per map — the device hides maps that share a family id."
-             + " The folder is set once, in Settings."), tone: theme.faint)
+        line(
+            t(
+                "The region, the family id and the output folder. The region and the"
+                    + " family id are set per map — the device hides maps that share a family id."
+                    + " The folder is set once, in Settings."
+            ),
+            tone: theme.faint
+        )
         y += 1
 
         caption(t("changing it later"))
-        line(t("A profile is edited on this page only. Changes made on the New map"
-             + " screen apply to one map and do not touch the profile."),
-             tone: theme.faint)
+        line(
+            t(
+                "A profile is edited on this page only. Changes made on the New map"
+                    + " screen apply to one map and do not touch the profile."
+            ),
+            tone: theme.faint
+        )
         y += 1
 
         caption(t("zoom"))

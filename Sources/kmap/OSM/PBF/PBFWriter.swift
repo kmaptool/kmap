@@ -74,8 +74,12 @@ final class PBFWriter {
 
     /// Writes the header block. The bbox, when given, is read as the file's coverage;
     /// mkgmap sets a tile's TRE bounds from it.
-    func header(bbox: (minLat: Double, minLon: Double,
-                       maxLat: Double, maxLon: Double)? = nil) {
+    func header(
+        bbox: (
+            minLat: Double, minLon: Double,
+            maxLat: Double, maxLon: Double
+        )? = nil
+    ) {
         var block = ProtoWriter()
         if let bbox {
             // The four corners are sint64: zigzag on the wire, unlike most of the format.
@@ -106,7 +110,8 @@ final class PBFWriter {
             let ordered = batch.sorted { $0.id < $1.id }
             for start in stride(from: 0, to: ordered.count, by: Self.maxElementsPerBlock) {
                 writeNodeBlock(
-                    ordered[start..<min(start + Self.maxElementsPerBlock, ordered.count)])
+                    ordered[start..<min(start + Self.maxElementsPerBlock, ordered.count)]
+                )
             }
         }
     }
@@ -170,8 +175,10 @@ final class PBFWriter {
             }
             // A fresh writer, since it escapes into `bodies`; sized to allocate once.
             var body = ProtoWriter()
-            body.reserve(keys.bytes.count + values.bytes.count + refs.bytes.count
-                         + Self.wayBodySlack)
+            body.reserve(
+                keys.bytes.count + values.bytes.count + refs.bytes.count
+                    + Self.wayBodySlack
+            )
             body.varintField(PBFSchema.elementID, way.id)
             if !keys.bytes.isEmpty {
                 body.bytesField(PBFSchema.elementKeys, keys.bytes)
@@ -192,7 +199,8 @@ final class PBFWriter {
         submit { [self] in
             for start in stride(from: 0, to: batch.count, by: Self.maxElementsPerBlock) {
                 writeRelationBlock(
-                    batch[start..<min(start + Self.maxElementsPerBlock, batch.count)])
+                    batch[start..<min(start + Self.maxElementsPerBlock, batch.count)]
+                )
             }
         }
     }
@@ -247,7 +255,6 @@ final class PBFWriter {
     private func emit(kind: String, payload: [UInt8]) {
         enqueue(.toCompress(kind: kind, payload: payload))
     }
-
 }
 
 /// A block's strings, interned as it is built. Index 0 is reserved and always empty.

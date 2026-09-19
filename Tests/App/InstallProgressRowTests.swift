@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The two lines an install is drawn as, on either screen.
 final class InstallProgressRowTests: XCTestCase {
-
     func testBeforeAnyStageTheLineSaysItIsStarting() {
         let progress = InstallProgress()
         progress.begin("java")
@@ -39,8 +39,14 @@ final class InstallProgressRowTests: XCTestCase {
         let surface = Surface()
         surface.resize(60, 3)
         surface.clear(Theme.strict.base)
-        InstallProgressRow.draw(surface, x: 0, y: 0, width: 60, progress: progress,
-                                theme: .strict)
+        InstallProgressRow.draw(
+            surface,
+            x: 0,
+            y: 0,
+            width: 60,
+            progress: progress,
+            theme: .strict
+        )
         // The frame is one ANSI string; the rows are addressed, not separated.
         let drawn = surface.compose()
         XCTAssertTrue(drawn.contains("downloading"))

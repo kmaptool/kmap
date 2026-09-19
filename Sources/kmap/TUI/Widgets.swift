@@ -32,11 +32,17 @@ struct ListState {
 }
 
 enum Widgets {
-
     /// A single-line bar: `━━━━━━──────  62%`
-    static func progressBar(_ s: Surface, x: Int, y: Int, width: Int,
-                            fraction: Double?, theme: Theme,
-                            fillColor: Color? = nil, bg: Color? = nil) {
+    static func progressBar(
+        _ s: Surface,
+        x: Int,
+        y: Int,
+        width: Int,
+        fraction: Double?,
+        theme: Theme,
+        fillColor: Color? = nil,
+        bg: Color? = nil
+    ) {
         guard width > 4 else { return }
         let labelWidth = 5
         let barWidth = width - labelWidth
@@ -58,26 +64,48 @@ enum Widgets {
     }
 
     /// A label/value row with the label in a fixed left column.
-    static func field(_ s: Surface, rect: Rect, y: Int, label: String, value: String,
-                      theme: Theme, labelWidth: Int = 16,
-                      valueStyle: Style? = nil, selected: Bool = false) {
+    static func field(
+        _ s: Surface,
+        rect: Rect,
+        y: Int,
+        label: String,
+        value: String,
+        theme: Theme,
+        labelWidth: Int = 16,
+        valueStyle: Style? = nil,
+        selected: Bool = false
+    ) {
         let bg = selected ? theme.selectionBg : theme.appBg
         if selected {
             s.fill(Rect(x: rect.x, y: y, w: rect.w, h: 1), Style(fg: theme.text, bg: bg))
         }
         let marker = selected ? "\(Glyph.arrowRight) " : "  "
         s.text(rect.x, y, marker, Style(fg: theme.accent, bg: bg))
-        s.text(rect.x + 2, y, label, Style(fg: selected ? theme.text : theme.dim, bg: bg),
-               limit: labelWidth)
+        s.text(
+            rect.x + 2,
+            y,
+            label,
+            Style(fg: selected ? theme.text : theme.dim, bg: bg),
+            limit: labelWidth
+        )
         let vx = rect.x + 2 + labelWidth
         let style = valueStyle ?? Style(fg: selected ? theme.selectionFg : theme.text, bg: bg)
         s.text(vx, y, truncate(value, to: max(0, rect.maxX - vx)), style.with(bg: bg))
     }
 
     /// A selectable list row with an optional right-aligned trailing value.
-    static func row(_ s: Surface, rect: Rect, y: Int, text: String, trailing: String? = nil,
-                    theme: Theme, selected: Bool, dimmed: Bool = false,
-                    leading: String = "", leadingColor: Color? = nil) {
+    static func row(
+        _ s: Surface,
+        rect: Rect,
+        y: Int,
+        text: String,
+        trailing: String? = nil,
+        theme: Theme,
+        selected: Bool,
+        dimmed: Bool = false,
+        leading: String = "",
+        leadingColor: Color? = nil
+    ) {
         let bg = selected ? theme.selectionBg : theme.appBg
         s.fill(Rect(x: rect.x, y: y, w: rect.w, h: 1), Style(fg: theme.text, bg: bg))
 
@@ -103,8 +131,15 @@ enum Widgets {
     ///
     /// - Parameter rowHeight: terminal rows per entry, so the track covers the list rather
     ///   than the entry count.
-    static func scrollHint(_ s: Surface, rect: Rect, offset: Int, count: Int, visible: Int,
-                           theme: Theme, rowHeight: Int = 1) {
+    static func scrollHint(
+        _ s: Surface,
+        rect: Rect,
+        offset: Int,
+        count: Int,
+        visible: Int,
+        theme: Theme,
+        rowHeight: Int = 1
+    ) {
         guard count > visible, visible > 1 else { return }
         let step = max(1, rowHeight)
         let trackHeight = visible * step
@@ -114,14 +149,23 @@ enum Widgets {
         let x = rect.maxX - 1
         for i in 0..<trackHeight {
             let inThumb = i >= thumbTop && i < thumbTop + thumbHeight
-            s.put(x, rect.y + i, inThumb ? "▐" : "│",
-                  Style(fg: inThumb ? theme.dim : theme.rule, bg: theme.appBg))
+            s.put(
+                x,
+                rect.y + i,
+                inThumb ? "▐" : "│",
+                Style(fg: inThumb ? theme.dim : theme.rule, bg: theme.appBg)
+            )
         }
     }
 
     /// The rolling output pane, showing the last `rect.h` lines less `scrollOffset`.
-    static func logPane(_ s: Surface, rect: Rect, lines: [LogEvent], theme: Theme,
-                        scrollOffset: Int = 0) {
+    static func logPane(
+        _ s: Surface,
+        rect: Rect,
+        lines: [LogEvent],
+        theme: Theme,
+        scrollOffset: Int = 0
+    ) {
         guard rect.h > 0, rect.w > 0 else { return }
         let visible = rect.h
         let end = max(0, lines.count - scrollOffset)
@@ -158,18 +202,30 @@ enum Widgets {
     }
 
     /// A centred message box drawn over the screen.
-    static func notice(_ s: Surface, rect: Rect, title: String, message: String,
-                       theme: Theme, tone: Color? = nil) {
+    static func notice(
+        _ s: Surface,
+        rect: Rect,
+        title: String,
+        message: String,
+        theme: Theme,
+        tone: Color? = nil
+    ) {
         let width = min(rect.w - 8, 72)
         let body = wrapText(message, width: width - 4)
         let height = body.count + 4
-        let box = Rect(x: rect.x + (rect.w - width) / 2,
-                       y: rect.y + max(0, (rect.h - height) / 2),
-                       w: width, h: height)
+        let box = Rect(
+            x: rect.x + (rect.w - width) / 2,
+            y: rect.y + max(0, (rect.h - height) / 2),
+            w: width,
+            h: height
+        )
         s.fill(box, Style(fg: theme.text, bg: theme.panelBg))
-        s.box(box, Style(fg: tone ?? theme.rule, bg: theme.panelBg),
-              title: title,
-              titleStyle: Style(fg: tone ?? theme.accent, bg: theme.panelBg, bold: true))
+        s.box(
+            box,
+            Style(fg: tone ?? theme.rule, bg: theme.panelBg),
+            title: title,
+            titleStyle: Style(fg: tone ?? theme.accent, bg: theme.panelBg, bold: true)
+        )
         for (i, line) in body.enumerated() {
             s.text(box.x + 2, box.y + 2 + i, line, Style(fg: theme.text, bg: theme.panelBg))
         }
@@ -177,9 +233,15 @@ enum Widgets {
 
     /// The dropdown a field opens, anchored to `row`: below it where there is room and
     /// above it otherwise.
-    static func optionList(_ s: Surface, within form: Rect, anchorRow row: Int,
-                           options: [String], at index: Int, theme: Theme,
-                           indent: Int = 18) {
+    static func optionList(
+        _ s: Surface,
+        within form: Rect,
+        anchorRow row: Int,
+        options: [String],
+        at index: Int,
+        theme: Theme,
+        indent: Int = 18
+    ) {
         guard !options.isEmpty, form.w > 8 else { return }
         let width = min(form.w - 4, max(24, (options.map(\.count).max() ?? 20) + 6))
         // Ten at a time, scrolled to keep the selection in view.
@@ -187,8 +249,12 @@ enum Widgets {
         let first = max(0, min(options.count - visible, index - visible / 2))
         let height = visible + 2
         let top = row + 1 + height <= form.maxY ? row + 1 : max(form.y, row - height)
-        let box = Rect(x: form.x + min(indent, max(0, form.w - width)), y: top,
-                       w: width, h: height)
+        let box = Rect(
+            x: form.x + min(indent, max(0, form.w - width)),
+            y: top,
+            w: width,
+            h: height
+        )
 
         s.fill(box, Style(fg: theme.text, bg: theme.raisedBg))
         s.box(box, Style(fg: theme.accent, bg: theme.raisedBg))
@@ -196,12 +262,18 @@ enum Widgets {
             let at = first + i
             guard let option = options[safe: at] else { break }
             let picked = at == index
-            let style = Style(fg: picked ? theme.strong : theme.text,
-                              bg: picked ? theme.selectionBg : theme.raisedBg,
-                              bold: picked)
+            let style = Style(
+                fg: picked ? theme.strong : theme.text,
+                bg: picked ? theme.selectionBg : theme.raisedBg,
+                bold: picked
+            )
             s.fill(Rect(x: box.x + 1, y: box.y + 1 + i, w: box.w - 2, h: 1), style)
-            s.text(box.x + 2, box.y + 1 + i, picked ? "\(Glyph.check) " : "  ",
-                   Style(fg: theme.picked, bg: style.bg))
+            s.text(
+                box.x + 2,
+                box.y + 1 + i,
+                picked ? "\(Glyph.check) " : "  ",
+                Style(fg: theme.picked, bg: style.bg)
+            )
             s.text(box.x + 4, box.y + 1 + i, truncate(option, to: box.w - 5), style)
         }
     }
@@ -209,12 +281,17 @@ enum Widgets {
     /// The right-hand header pieces, right to left, each with the column it ends at. The
     /// clock is always present; the load figures are dropped where they would reach the
     /// title.
-    static func headerRight(width: Int, titleEnds: Int, clock: String,
-                            load: MachineLoad) -> [(text: String, endsAt: Int)] {
+    static func headerRight(
+        width: Int,
+        titleEnds: Int,
+        clock: String,
+        load: MachineLoad
+    ) -> [(text: String, endsAt: Int)] {
         var out = [(clock, width - 2)]
         var edge = width - 2 - clock.count - 2
 
-        let memory = load.totalMemory > 0
+        let memory =
+            load.totalMemory > 0
             ? Fmt.memory(used: load.usedMemory, total: load.totalMemory) : ""
         let cpu = load.cpu.map { t("cpu %d%%", Int(($0 * 100).rounded())) } ?? ""
         // Memory and CPU are shown together or not at all.
@@ -240,8 +317,14 @@ enum Widgets {
     /// A block of one colour, `width` cells wide, returning the column after it. A nil or
     /// unparsable colour is drawn as a rule, standing for transparency.
     @discardableResult
-    static func swatch(_ s: Surface, x: Int, y: Int, colour: String?,
-                       width: Int = 2, theme: Theme) -> Int {
+    static func swatch(
+        _ s: Surface,
+        x: Int,
+        y: Int,
+        colour: String?,
+        width: Int = 2,
+        theme: Theme
+    ) -> Int {
         guard width > 0 else { return x }
         if let colour, let parsed = Color.hex(colour) {
             s.fill(Rect(x: x, y: y, w: width, h: 1), Style(fg: parsed, bg: parsed))
@@ -265,8 +348,11 @@ enum Widgets {
     static let cellsPerPixel = 2
 
     /// The size a picture will be drawn at, reduced by whole steps until it fits.
-    static func pictureFit(_ block: XpmBlock,
-                           maxColumns: Int = .max, maxRows: Int = .max) -> PictureFit {
+    static func pictureFit(
+        _ block: XpmBlock,
+        maxColumns: Int = .max,
+        maxRows: Int = .max
+    ) -> PictureFit {
         let width = block.width, height = block.height
         guard width > 0, height > 0, maxColumns >= cellsPerPixel, maxRows >= 1 else {
             return PictureFit(scale: 1, columns: 0, rows: 0)
@@ -287,9 +373,15 @@ enum Widgets {
     ///
     /// - Returns: the number of rows used.
     @discardableResult
-    static func picture(_ s: Surface, x: Int, y: Int, _ block: XpmBlock,
-                        background: Color,
-                        maxColumns: Int = .max, maxRows: Int = .max) -> Int {
+    static func picture(
+        _ s: Surface,
+        x: Int,
+        y: Int,
+        _ block: XpmBlock,
+        background: Color,
+        maxColumns: Int = .max,
+        maxRows: Int = .max
+    ) -> Int {
         guard let grid = block.pixels() else { return 0 }
         let fit = pictureFit(block, maxColumns: maxColumns, maxRows: maxRows)
         guard fit.rows > 0, fit.columns > 0 else { return 0 }
@@ -297,8 +389,13 @@ enum Widgets {
 
         for row in 0..<fit.rows {
             for column in 0..<(fit.columns / cellsPerPixel) {
-                let colour = average(grid, x: column * fit.scale, y: row * fit.scale,
-                                     over: fit.scale, on: background)
+                let colour = average(
+                    grid,
+                    x: column * fit.scale,
+                    y: row * fit.scale,
+                    over: fit.scale,
+                    on: background
+                )
                 let style = colour.map { Style(fg: $0, bg: $0) } ?? clear
                 for cell in 0..<cellsPerPixel {
                     s.put(x + column * cellsPerPixel + cell, y + row, " ", style)
@@ -311,15 +408,21 @@ enum Widgets {
     /// One cell of a reduced picture: the mean of the pixels it covers, mixed with
     /// `background` in proportion to the transparent pixels among them. Returns nil when
     /// every covered pixel is transparent.
-    private static func average(_ grid: [[String?]], x: Int, y: Int, over scale: Int,
-                                on background: Color) -> Color? {
+    private static func average(
+        _ grid: [[String?]],
+        x: Int,
+        y: Int,
+        over scale: Int,
+        on background: Color
+    ) -> Color? {
         var r = 0, g = 0, b = 0, opaque = 0, seen = 0
         for py in y..<(y + scale) {
             guard let line = grid[safe: py] else { continue }
             for px in x..<(x + scale) where px < line.count {
                 seen += 1
                 guard let text = line[px], let colour = Color.hex(text),
-                      case .rgb(let cr, let cg, let cb) = colour.kind else { continue }
+                    case .rgb(let cr, let cg, let cb) = colour.kind
+                else { continue }
                 r += Int(cr); g += Int(cg); b += Int(cb)
                 opaque += 1
             }
@@ -343,8 +446,13 @@ enum Widgets {
         guard fit.columns > 0 else { return [] }
         var out: [Color?] = []
         for column in 0..<(fit.columns / cellsPerPixel) {
-            let colour = average(grid, x: column * fit.scale, y: 0, over: fit.scale,
-                                 on: background)
+            let colour = average(
+                grid,
+                x: column * fit.scale,
+                y: 0,
+                over: fit.scale,
+                on: background
+            )
             for _ in 0..<cellsPerPixel { out.append(colour) }
         }
         return out
@@ -364,8 +472,15 @@ enum Widgets {
     ///
     /// - Returns: the number of rows used.
     @discardableResult
-    static func lineSample(_ s: Surface, rect: Rect, fill: String?, casing: String?,
-                           width: Int?, border: Int?, background: Color) -> Int {
+    static func lineSample(
+        _ s: Surface,
+        rect: Rect,
+        fill: String?,
+        casing: String?,
+        width: Int?,
+        border: Int?,
+        background: Color
+    ) -> Int {
         guard rect.w > 0, rect.h > 0 else { return 0 }
         let fillColour = fill.flatMap(Color.hex)
         let casingColour = casing.flatMap(Color.hex)
@@ -387,9 +502,11 @@ enum Widgets {
         let top = rect.y + max(0, (rect.h - rows) / 2)
 
         for i in 0..<rows {
-            let colour = (i < casingRows || i >= casingRows + thickness)
+            let colour =
+                (i < casingRows || i >= casingRows + thickness)
                 ? casingColour : fillColour
-            let style = colour.map { Style(fg: $0, bg: $0) }
+            let style =
+                colour.map { Style(fg: $0, bg: $0) }
                 ?? Style(fg: background, bg: background)
             s.fill(Rect(x: rect.x, y: top + i, w: rect.w, h: 1), style)
         }

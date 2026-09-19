@@ -58,7 +58,8 @@ struct Evidence: Sendable {
     /// The resolutions a code was seen at, coarsest first.
     static func span(_ code: ForCode) -> (lowest: Int, highest: Int)? {
         guard let low = code.resolutions.keys.min(),
-              let high = code.resolutions.keys.max() else { return nil }
+            let high = code.resolutions.keys.max()
+        else { return nil }
         return (low, high)
     }
 
@@ -92,13 +93,18 @@ struct Evidence: Sendable {
     /// unmatched and ambiguous counts are kept by `tally` instead, since an element is
     /// read once per extract and would otherwise be counted several times.
     @discardableResult
-    mutating func record(_ element: ElementDumper.Element, chain: ArraySlice<UInt64>,
-                         in index: GroundIndex, resolution: Int? = nil) -> Match {
+    mutating func record(
+        _ element: ElementDumper.Element,
+        chain: ArraySlice<UInt64>,
+        in index: GroundIndex,
+        resolution: Int? = nil
+    ) -> Match {
         let key = Self.slot(element.kind, element.type)
         switch element.kind {
         case .point:
             guard let cell = chain.first,
-                  let slots = index.nodesByCell[cell] else { return .unmatched }
+                let slots = index.nodesByCell[cell]
+            else { return .unmatched }
             // Several tagged nodes in one 2.4 m cell cannot be told apart.
             guard slots.count == 1 else { return .ambiguous }
             let node = index.nodes[Int(slots[0])]
@@ -109,13 +115,19 @@ struct Evidence: Sendable {
             if let resolution {
                 table[key]?.resolutions[resolution, default: 0] += 1
                 let held = table[key]?.sourceZoom[node.id]
-                table[key]?.sourceZoom[node.id] = min(held ?? Int16(resolution),
-                                                      Int16(resolution))
+                table[key]?.sourceZoom[node.id] = min(
+                    held ?? Int16(resolution),
+                    Int16(resolution)
+                )
             }
             return .matched
         case .line, .area:
-            guard let slot = ElementMatcher.way(of: chain, in: index,
-                                                ring: element.kind == .area)
+            guard
+                let slot = ElementMatcher.way(
+                    of: chain,
+                    in: index,
+                    ring: element.kind == .area
+                )
             else { return .unmatched }
             let way = index.ways[Int(slot)]
             table[key, default: ForCode(kind: element.kind, type: element.type)]
@@ -126,8 +138,10 @@ struct Evidence: Sendable {
             if let resolution {
                 table[key]?.resolutions[resolution, default: 0] += 1
                 let held = table[key]?.sourceZoom[way.id]
-                table[key]?.sourceZoom[way.id] = min(held ?? Int16(resolution),
-                                                     Int16(resolution))
+                table[key]?.sourceZoom[way.id] = min(
+                    held ?? Int16(resolution),
+                    Int16(resolution)
+                )
             }
             return .matched
         }
@@ -135,15 +149,19 @@ struct Evidence: Sendable {
 
     /// One identified source, recorded directly: the coarse pass names its ways
     /// without going through `record`'s per-cell machinery.
-    mutating func witness(kind: ElementDumper.Kind, type: Int, way: Int64,
-                          tags: [String: String], resolution: Int? = nil) {
+    mutating func witness(
+        kind: ElementDumper.Kind,
+        type: Int,
+        way: Int64,
+        tags: [String: String],
+        resolution: Int? = nil
+    ) {
         table[Self.slot(kind, type), default: ForCode(kind: kind, type: type)]
             .sources[way] = tags
         if let resolution {
             table[Self.slot(kind, type)]?.resolutions[resolution, default: 0] += 1
             let held = table[Self.slot(kind, type)]?.sourceZoom[way]
-            table[Self.slot(kind, type)]?.sourceZoom[way]
-                = min(held ?? Int16(resolution), Int16(resolution))
+            table[Self.slot(kind, type)]?.sourceZoom[way] = min(held ?? Int16(resolution), Int16(resolution))
         }
     }
 

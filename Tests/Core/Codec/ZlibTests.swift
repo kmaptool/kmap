@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Deflate and inflate, from the system's zlib.
@@ -7,11 +8,17 @@ import XCTest
 /// body, a damaged stream refused rather than half-inflated, and a declared size
 /// checked against what came out.
 final class ZlibTests: XCTestCase {
-
-    private func roundTrip(_ payload: [UInt8], file: StaticString = #filePath,
-                           line: UInt = #line) throws -> [UInt8] {
-        let packed = try XCTUnwrap(Zlib.deflate(payload), "zlib declined to compress",
-                                   file: file, line: line)
+    private func roundTrip(
+        _ payload: [UInt8],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> [UInt8] {
+        let packed = try XCTUnwrap(
+            Zlib.deflate(payload),
+            "zlib declined to compress",
+            file: file,
+            line: line
+        )
         var out = [UInt8](repeating: 0, count: payload.count)
         let written = try out.withUnsafeMutableBufferPointer { buffer in
             try packed.withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
@@ -67,9 +74,11 @@ final class ZlibTests: XCTestCase {
         var packed = try XCTUnwrap(Zlib.deflate(payload))
         packed[packed.count / 2] ^= 0xFF
         var out = [UInt8](repeating: 0, count: payload.count)
-        XCTAssertThrowsError(try out.withUnsafeMutableBufferPointer { buffer in
-            try packed.withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
-        })
+        XCTAssertThrowsError(
+            try out.withUnsafeMutableBufferPointer { buffer in
+                try packed.withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
+            }
+        )
     }
 
     func testADamagedChecksumIsRefusedEvenThoughTheBodyInflated() throws {
@@ -79,25 +88,31 @@ final class ZlibTests: XCTestCase {
         var packed = try XCTUnwrap(Zlib.deflate(payload))
         packed[packed.count - 1] ^= 0x01
         var out = [UInt8](repeating: 0, count: payload.count)
-        XCTAssertThrowsError(try out.withUnsafeMutableBufferPointer { buffer in
-            try packed.withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
-        })
+        XCTAssertThrowsError(
+            try out.withUnsafeMutableBufferPointer { buffer in
+                try packed.withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
+            }
+        )
     }
 
     func testAnEmptyStreamIsRefused() {
         var out = [UInt8](repeating: 0, count: 16)
-        XCTAssertThrowsError(try out.withUnsafeMutableBufferPointer { buffer in
-            try [UInt8]().withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
-        })
+        XCTAssertThrowsError(
+            try out.withUnsafeMutableBufferPointer { buffer in
+                try [UInt8]().withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
+            }
+        )
     }
 
     func testABufferTooSmallForTheStreamIsAFailureRatherThanATruncation() throws {
         let payload = Array(String(repeating: "sea and shorelines. ", count: 200).utf8)
         let packed = try XCTUnwrap(Zlib.deflate(payload))
         var out = [UInt8](repeating: 0, count: payload.count / 2)
-        XCTAssertThrowsError(try out.withUnsafeMutableBufferPointer { buffer in
-            try packed.withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
-        })
+        XCTAssertThrowsError(
+            try out.withUnsafeMutableBufferPointer { buffer in
+                try packed.withUnsafeBytes { try Zlib.inflate($0, into: buffer) }
+            }
+        )
     }
 
     // MARK: The declared size
@@ -108,13 +123,17 @@ final class ZlibTests: XCTestCase {
         let payload = Array("thirty-two bytes of nothing much".utf8)
         let packed = try XCTUnwrap(Zlib.deflate(payload))
         var out = [UInt8](repeating: 0, count: payload.count)
-        XCTAssertThrowsError(try out.withUnsafeMutableBufferPointer { buffer in
-            try packed.withUnsafeBytes {
-                try Zlib.inflate($0, into: buffer, expecting: payload.count - 1)
+        XCTAssertThrowsError(
+            try out.withUnsafeMutableBufferPointer { buffer in
+                try packed.withUnsafeBytes {
+                    try Zlib.inflate($0, into: buffer, expecting: payload.count - 1)
+                }
             }
-        }) { error in
-            XCTAssertEqual(error as? Zlib.Failure,
-                           .unexpectedSize(expected: payload.count - 1, got: payload.count))
+        ) { error in
+            XCTAssertEqual(
+                error as? Zlib.Failure,
+                .unexpectedSize(expected: payload.count - 1, got: payload.count)
+            )
         }
     }
 
@@ -122,11 +141,13 @@ final class ZlibTests: XCTestCase {
         let payload = Array("thirty-two bytes of nothing much".utf8)
         let packed = try XCTUnwrap(Zlib.deflate(payload))
         var out = [UInt8](repeating: 0, count: payload.count)
-        XCTAssertNoThrow(try out.withUnsafeMutableBufferPointer { buffer in
-            try packed.withUnsafeBytes {
-                try Zlib.inflate($0, into: buffer, expecting: payload.count)
+        XCTAssertNoThrow(
+            try out.withUnsafeMutableBufferPointer { buffer in
+                try packed.withUnsafeBytes {
+                    try Zlib.inflate($0, into: buffer, expecting: payload.count)
+                }
             }
-        })
+        )
         XCTAssertEqual(out, payload)
     }
 

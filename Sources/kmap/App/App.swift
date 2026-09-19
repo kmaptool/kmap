@@ -30,7 +30,8 @@ final class App {
                 // waited for, and a screen change ends the run so the eye sees it.
                 var taken = 1
                 while taken < App.keysPerFrame, stack.last === active,
-                      terminal.hasBufferedKey, let more = terminal.readKey() {
+                    terminal.hasBufferedKey, let more = terminal.readKey()
+                {
                     apply(active.handle(more, ctx: ctx))
                     taken += 1
                 }
@@ -50,9 +51,11 @@ final class App {
             if terminal.inputHasEnded {
                 running = false
                 terminal.stop()
-                CLILog.error("kmap's interface needs a terminal to read keys from. Run"
-                             + " it from one, or use the command line — `kmap --help`"
-                             + " lists what it can do without a screen.")
+                CLILog.error(
+                    "kmap's interface needs a terminal to read keys from. Run"
+                        + " it from one, or use the command line — `kmap --help`"
+                        + " lists what it can do without a screen."
+                )
                 exit(1)
             }
 
@@ -116,8 +119,12 @@ final class App {
         surface.text(x + 1, 0, screen.title, bar.with(fg: theme.headerFg))
 
         let load = ctx.load
-        let pieces = Widgets.headerRight(width: w, titleEnds: x + screen.title.count,
-                                         clock: Fmt.clock(), load: load)
+        let pieces = Widgets.headerRight(
+            width: w,
+            titleEnds: x + screen.title.count,
+            clock: Fmt.clock(),
+            load: load
+        )
         for (i, piece) in pieces.enumerated() {
             // The clock comes first and is dim; memory turns to the warning colour above
             // 90% used.

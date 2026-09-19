@@ -1,12 +1,13 @@
 import XCTest
+
+@testable import kmap
+
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-@testable import kmap
 
 /// The JDK kmap fetches for a machine whose package manager cannot provide one.
 final class JavaDownloadTests: XCTestCase {
-
     // MARK: What is asked for
 
     func testEachPlatformAsksForItsOwnBuild() {
@@ -18,12 +19,23 @@ final class JavaDownloadTests: XCTestCase {
     }
 
     func testTheAddressNamesThePlatformTheProcessorAndTheImage() throws {
-        let url = try XCTUnwrap(JavaDownload.assetsURL(on: .windows, architecture: "x64",
-                                                       feature: 21))
-        XCTAssertTrue(url.absoluteString.hasPrefix(
-            "https://api.adoptium.net/v3/assets/latest/21/hotspot?"), url.absoluteString)
-        let query = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems)
+        let url = try XCTUnwrap(
+            JavaDownload.assetsURL(
+                on: .windows,
+                architecture: "x64",
+                feature: 21
+            )
+        )
+        XCTAssertTrue(
+            url.absoluteString.hasPrefix(
+                "https://api.adoptium.net/v3/assets/latest/21/hotspot?"
+            ),
+            url.absoluteString
+        )
+        let query = try XCTUnwrap(
+            URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems
+        )
         let asked = Dictionary(uniqueKeysWithValues: query.map { ($0.name, $0.value ?? "") })
         XCTAssertEqual(asked["os"], "windows")
         XCTAssertEqual(asked["architecture"], "x64")
@@ -39,8 +51,13 @@ final class JavaDownloadTests: XCTestCase {
 
     // MARK: Reading the answer
 
-    private func asset(name: String, link: String, checksum: String?, size: Int = 100,
-                       release: String = "jdk-21.0.1+12") -> [String: Any] {
+    private func asset(
+        name: String,
+        link: String,
+        checksum: String?,
+        size: Int = 100,
+        release: String = "jdk-21.0.1+12"
+    ) -> [String: Any] {
         var package: [String: Any] = ["name": name, "link": link, "size": size]
         if let checksum { package["checksum"] = checksum }
         return ["release_name": release, "binary": ["package": package]]
@@ -51,10 +68,14 @@ final class JavaDownloadTests: XCTestCase {
     }
 
     func testTheReleaseIsReadOutOfWhatTheApiAnswered() throws {
-        let answer = try data([asset(
-            name: "OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.1_12.tar.gz",
-            link: "https://example.invalid/jdk.tar.gz",
-            checksum: "ABCD1234", size: 200_073_404)])
+        let answer = try data([
+            asset(
+                name: "OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.1_12.tar.gz",
+                link: "https://example.invalid/jdk.tar.gz",
+                checksum: "ABCD1234",
+                size: 200_073_404
+            )
+        ])
         let release = try JavaDownload.release(fromAssets: answer)
         XCTAssertEqual(release.name, "jdk-21.0.1+12")
         XCTAssertEqual(release.fileName, "OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.1_12.tar.gz")
@@ -69,7 +90,7 @@ final class JavaDownloadTests: XCTestCase {
         // taken instead.
         let answer = try data([
             asset(name: "unchecked.tar.gz", link: "https://example.invalid/a", checksum: nil),
-            asset(name: "checked.tar.gz", link: "https://example.invalid/b", checksum: "ff"),
+            asset(name: "checked.tar.gz", link: "https://example.invalid/b", checksum: "ff")
         ])
         XCTAssertEqual(try JavaDownload.release(fromAssets: answer).fileName, "checked.tar.gz")
     }
@@ -87,66 +108,104 @@ final class JavaDownloadTests: XCTestCase {
     // MARK: Finding java in what was unpacked
 
     /// A directory listing and an executable test, standing in for a machine.
-    private func tree(_ folders: [String], executable: Set<String>)
-        -> (contents: (URL) -> [String], exists: (URL) -> Bool) {
-        ({ url in url.path.hasSuffix("/jdk") ? folders : [] },
-         { url in executable.contains(url.path) })
+    private func tree(
+        _ folders: [String],
+        executable: Set<String>
+    )
+        -> (contents: (URL) -> [String], exists: (URL) -> Bool)
+    {
+        (
+            { url in url.path.hasSuffix("/jdk") ? folders : [] },
+            { url in executable.contains(url.path) }
+        )
     }
 
     func testTheJdkUnpacksIntoAVersionNamedFolder() {
         let root = URL(fileURLWithPath: "/tools/jdk")
         let machine = tree(["jdk-21.0.1+12"], executable: ["/tools/jdk/jdk-21.0.1+12/bin/java"])
         XCTAssertEqual(
-            JavaDownload.javaBinary(under: root, on: .linux,
-                                    contents: machine.contents, exists: machine.exists)?.path,
-            "/tools/jdk/jdk-21.0.1+12/bin/java")
+            JavaDownload.javaBinary(
+                under: root,
+                on: .linux,
+                contents: machine.contents,
+                exists: machine.exists
+            )?.path,
+            "/tools/jdk/jdk-21.0.1+12/bin/java"
+        )
     }
 
     func testOnAMacTheRuntimeSitsInsideTheBundle() {
         let root = URL(fileURLWithPath: "/tools/jdk")
-        let machine = tree(["jdk-21.0.1+12"],
-                           executable: ["/tools/jdk/jdk-21.0.1+12/Contents/Home/bin/java"])
+        let machine = tree(
+            ["jdk-21.0.1+12"],
+            executable: ["/tools/jdk/jdk-21.0.1+12/Contents/Home/bin/java"]
+        )
         XCTAssertEqual(
-            JavaDownload.javaBinary(under: root, on: .macOS,
-                                    contents: machine.contents, exists: machine.exists)?.path,
-            "/tools/jdk/jdk-21.0.1+12/Contents/Home/bin/java")
+            JavaDownload.javaBinary(
+                under: root,
+                on: .macOS,
+                contents: machine.contents,
+                exists: machine.exists
+            )?.path,
+            "/tools/jdk/jdk-21.0.1+12/Contents/Home/bin/java"
+        )
     }
 
     func testOnWindowsItIsJavaExe() {
         let root = URL(fileURLWithPath: "/tools/jdk")
-        let machine = tree(["jdk-21.0.1+12"],
-                           executable: ["/tools/jdk/jdk-21.0.1+12/bin/java.exe"])
+        let machine = tree(
+            ["jdk-21.0.1+12"],
+            executable: ["/tools/jdk/jdk-21.0.1+12/bin/java.exe"]
+        )
         XCTAssertEqual(
-            JavaDownload.javaBinary(under: root, on: .windows,
-                                    contents: machine.contents, exists: machine.exists)?
-                .lastPathComponent,
-            "java.exe")
+            JavaDownload.javaBinary(
+                under: root,
+                on: .windows,
+                contents: machine.contents,
+                exists: machine.exists
+            )?
+            .lastPathComponent,
+            "java.exe"
+        )
     }
 
     func testAnArchiveWithNoJavaInsideAnswersNothing() {
         let root = URL(fileURLWithPath: "/tools/jdk")
         let machine = tree(["docs"], executable: [])
-        XCTAssertNil(JavaDownload.javaBinary(under: root, on: .linux,
-                                             contents: machine.contents,
-                                             exists: machine.exists))
+        XCTAssertNil(
+            JavaDownload.javaBinary(
+                under: root,
+                on: .linux,
+                contents: machine.contents,
+                exists: machine.exists
+            )
+        )
     }
 }
 
 /// Where the probe looks for a JVM, and in what order.
 final class JavaPreferenceTests: XCTestCase {
-
-    private func candidates(own: String?, path: String?,
-                            environment: [String: String] = [:]) -> [String] {
-        ToolLocations.java(on: .linux, configured: "", environment: environment,
-                           which: { name, _ in name == "java" ? path : nil },
-                           contents: { _ in [] },
-                           ownJava: { _ in own },
-                           macJavaHome: { nil })
+    private func candidates(
+        own: String?,
+        path: String?,
+        environment: [String: String] = [:]
+    ) -> [String] {
+        ToolLocations.java(
+            on: .linux,
+            configured: "",
+            environment: environment,
+            which: { name, _ in name == "java" ? path : nil },
+            contents: { _ in [] },
+            ownJava: { _ in own },
+            macJavaHome: { nil }
+        )
     }
 
     func testAJavaTheUserInstalledDeliberatelyWinsOverTheOneKmapFetched() {
-        let found = candidates(own: "/home/u/.kmap/tools/jdk/jdk-21/bin/java",
-                               path: "/usr/bin/java")
+        let found = candidates(
+            own: "/home/u/.kmap/tools/jdk/jdk-21/bin/java",
+            path: "/usr/bin/java"
+        )
         let onPath = try? XCTUnwrap(found.firstIndex(of: "/usr/bin/java"))
         let own = try? XCTUnwrap(found.firstIndex(of: "/home/u/.kmap/tools/jdk/jdk-21/bin/java"))
         XCTAssertNotNil(onPath)
@@ -171,7 +230,6 @@ final class JavaPreferenceTests: XCTestCase {
 /// The mechanism, with a tarball made here standing in for the download: unpack, find the
 /// java inside, and run it.
 final class JavaUnpackTests: XCTestCase {
-
     private var work: URL!
 
     override func setUpWithError() throws {
@@ -197,8 +255,10 @@ final class JavaUnpackTests: XCTestCase {
         let java = bin.appendingPathComponent("java")
         try "#!/bin/sh\necho 'openjdk version \"21.0.1\" 2026-01-01' 1>&2\n"
             .write(to: java, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o755],
-                                              ofItemAtPath: java.path)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: java.path
+        )
 
         let tarball = work.appendingPathComponent("jdk.tar.gz")
         let tar = Process()
@@ -249,10 +309,15 @@ final class JavaUnpackTests: XCTestCase {
 
     func testAnArchiveOfSomethingElseIsRefusedRatherThanInstalled() throws {
         let tree = work.appendingPathComponent("other", isDirectory: true)
-        try FileManager.default.createDirectory(at: tree.appendingPathComponent("docs"),
-                                                withIntermediateDirectories: true)
-        try "read me".write(to: tree.appendingPathComponent("docs/README"),
-                            atomically: true, encoding: .utf8)
+        try FileManager.default.createDirectory(
+            at: tree.appendingPathComponent("docs"),
+            withIntermediateDirectories: true
+        )
+        try "read me".write(
+            to: tree.appendingPathComponent("docs/README"),
+            atomically: true,
+            encoding: .utf8
+        )
         let tarball = work.appendingPathComponent("other.tar.gz")
         let tar = Process()
         tar.executableURL = try tarProgram()
@@ -268,28 +333,41 @@ final class JavaUnpackTests: XCTestCase {
 /// the way the parser expects. Skipped unless `KMAP_NET_TESTS` is set, so the suite stays
 /// offline and quick.
 final class JavaDownloadLiveTests: XCTestCase {
-
     func testTheApiStillAnswersInTheShapeTheParserReads() async throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["KMAP_NET_TESTS"] != nil,
-                          "set KMAP_NET_TESTS to ask Adoptium")
+        try XCTSkipUnless(
+            ProcessInfo.processInfo.environment["KMAP_NET_TESTS"] != nil,
+            "set KMAP_NET_TESTS to ask Adoptium"
+        )
         for platform: Platform in [.macOS, .linux, .windows] {
             for architecture in ["x64", "aarch64"] {
-                let url = try XCTUnwrap(JavaDownload.assetsURL(on: platform,
-                                                               architecture: architecture))
+                let url = try XCTUnwrap(
+                    JavaDownload.assetsURL(
+                        on: platform,
+                        architecture: architecture
+                    )
+                )
                 var request = URLRequest(url: url)
                 request.setValue("kmap/\(Version.number)", forHTTPHeaderField: "User-Agent")
                 let (data, response) = try await URLSession.shared.data(for: request)
-                XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200,
-                               "\(platform) \(architecture)")
+                XCTAssertEqual(
+                    (response as? HTTPURLResponse)?.statusCode,
+                    200,
+                    "\(platform) \(architecture)"
+                )
                 let release = try JavaDownload.release(fromAssets: data)
                 XCTAssertEqual(release.checksum.count, 64, "a SHA-256 in hex")
                 XCTAssertGreaterThan(release.bytes, 50_000_000, "a JDK is not small")
-                XCTAssertTrue(release.link.absoluteString.hasPrefix("https://"),
-                              release.link.absoluteString)
+                XCTAssertTrue(
+                    release.link.absoluteString.hasPrefix("https://"),
+                    release.link.absoluteString
+                )
                 // Windows is published as a zip and the rest as a gzip tarball; the
                 // installer picks its unpacker from this.
-                XCTAssertEqual(release.fileName.hasSuffix(".zip"),
-                               platform == .windows, release.fileName)
+                XCTAssertEqual(
+                    release.fileName.hasSuffix(".zip"),
+                    platform == .windows,
+                    release.fileName
+                )
             }
         }
     }

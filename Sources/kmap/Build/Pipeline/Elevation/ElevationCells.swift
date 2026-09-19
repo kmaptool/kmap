@@ -62,8 +62,10 @@ extension BuildPipeline {
         guard !perRegion.isEmpty else { return }
         let kept = ElevationFootprint.trim(all, ringsPerRegion: perRegion)
         if kept.count < all.count {
-            log.ok("outline trim: \(all.count) cell(s) → \(kept.count), "
-                   + "\(all.count - kept.count) fully outside the region")
+            log.ok(
+                "outline trim: \(all.count) cell(s) → \(kept.count), "
+                    + "\(all.count - kept.count) fully outside the region"
+            )
         }
         outlineElevationCells = kept
     }

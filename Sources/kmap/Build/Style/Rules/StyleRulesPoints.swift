@@ -9,15 +9,15 @@ extension StyleCatalog {
     func addAreaPOIFilter(in directory: URL, log: Log) throws {
         let marker = "# --- kmap: icons for things mapped as an outline"
         let rules = """
-        \(marker) ------------------------
-        # See addAreaPOIFilter. Must stay first: it works by leaving nothing behind.
+            \(marker) ------------------------
+            # See addAreaPOIFilter. Must stay first: it works by leaving nothing behind.
 
-        mkgmap:area2poi=true & kmap:dup_venue=yes { deletealltags }
-        mkgmap:area2poi=true & amenity!=* & shop!=* & tourism!=* & office!=* \
-        & healthcare!=* { deletealltags }
+            mkgmap:area2poi=true & kmap:dup_venue=yes { deletealltags }
+            mkgmap:area2poi=true & amenity!=* & shop!=* & tourism!=* & office!=* \
+            & healthcare!=* { deletealltags }
 
 
-        """
+            """
         guard try prependRules(rules, marked: marker, toFile: "points", in: directory)
         else { return }
         log.append("outlined venues given their icons")
@@ -26,8 +26,11 @@ extension StyleCatalog {
     /// Types what a walking map needs and the stock style drops: `ford`, every shelter but
     /// `shelter_type=basic_hut`, `mountain_pass` and `natural=saddle`. Each rule supplies a
     /// default name, since almost none of these objects carry one.
-    func addTerrainPOIRules(in directory: URL, cyrillic: Bool,
-                                    log: Log) throws {
+    func addTerrainPOIRules(
+        in directory: URL,
+        cyrillic: Bool,
+        log: Log
+    ) throws {
         let points = directory.appendingPathComponent("points")
         guard var text = try? String(contentsOf: points, encoding: .utf8) else { return }
         let marker = "# --- kmap: terrain POIs"
@@ -50,51 +53,55 @@ extension StyleCatalog {
         let sun = words("terrain.sun-shelter")
 
         /// Named objects keep their name and gain the kind; unnamed ones become the kind.
-        func named(_ condition: String, keep: String, alone: String,
-                   type: String) -> String {
+        func named(
+            _ condition: String,
+            keep: String,
+            alone: String,
+            type: String
+        ) -> String {
             "\(condition) & name=* { name '${name} (\(keep))' } [\(type) resolution 24]\n"
-            + "\(condition) & name!=* { name '\(alone)' } [\(type) resolution 24]"
+                + "\(condition) & name!=* { name '\(alone)' } [\(type) resolution 24]"
         }
 
         let rules = """
 
 
-        \(marker) -----------------------------------------------
-        # Objects the stock rule set never types at all.
+            \(marker) -----------------------------------------------
+            # Objects the stock rule set never types at all.
 
-        \(named("ford=stepping_stones", keep: stones, alone: "\(ford) (\(stones))",
+            \(named("ford=stepping_stones", keep: stones, alone: "\(ford) (\(stones))",
                  type: "0x6514"))
-        ford=yes | ford=stream { name '${name|def:\(ford)}' } [0x6514 resolution 24]
+            ford=yes | ford=stream { name '${name|def:\(ford)}' } [0x6514 resolution 24]
 
-        mountain_pass=yes | natural=saddle { name '${name|def:\(pass)}' } [0x6613 resolution 24]
+            mountain_pass=yes | natural=saddle { name '${name|def:\(pass)}' } [0x6613 resolution 24]
 
-        # A bus shelter is a bus stop; a changing cabin is not shelter from anything.
-        amenity=shelter & shelter_type=public_transport { delete amenity }
-        amenity=shelter & shelter_type=changing_rooms { delete amenity }
+            # A bus shelter is a bus stop; a changing cabin is not shelter from anything.
+            amenity=shelter & shelter_type=public_transport { delete amenity }
+            amenity=shelter & shelter_type=changing_rooms { delete amenity }
 
-        # Enclosed: somewhere to wait out weather.
-        \(named("amenity=shelter & shelter_type=basic_hut", keep: hut.lowercased(),
+            # Enclosed: somewhere to wait out weather.
+            \(named("amenity=shelter & shelter_type=basic_hut", keep: hut.lowercased(),
                  alone: hut, type: "0x2b06"))
-        \(named("amenity=shelter & shelter_type=weather_shelter", keep: shelter.lowercased(),
+            \(named("amenity=shelter & shelter_type=weather_shelter", keep: shelter.lowercased(),
                  alone: shelter, type: "0x2b06"))
-        \(named("amenity=shelter & shelter_type=rock_shelter", keep: rock,
+            \(named("amenity=shelter & shelter_type=rock_shelter", keep: rock,
                  alone: "\(shelter) (\(rock))", type: "0x2b06"))
 
-        # A roof on posts.
-        \(named("amenity=shelter & shelter_type=lean_to", keep: leanTo, alone: picnic,
+            # A roof on posts.
+            \(named("amenity=shelter & shelter_type=lean_to", keep: leanTo, alone: picnic,
                  type: "0x2b05"))
-        \(named("amenity=shelter & shelter_type=gazebo", keep: gazebo.lowercased(),
+            \(named("amenity=shelter & shelter_type=gazebo", keep: gazebo.lowercased(),
                  alone: gazebo, type: "0x2b05"))
-        \(named("amenity=shelter & (shelter_type=picnic_shelter"
+            \(named("amenity=shelter & (shelter_type=picnic_shelter"
                  + " | shelter_type=picnic_shelters | shelter_type=roof)",
                  keep: leanTo, alone: picnic, type: "0x2b05"))
-        \(named("amenity=shelter & shelter_type=sun_shelter", keep: leanTo, alone: sun,
+            \(named("amenity=shelter & shelter_type=sun_shelter", keep: leanTo, alone: sun,
                  type: "0x2b05"))
 
-        # Kind not recorded — 290 of them, so it needs to say something.
-        amenity=shelter { name '${name|def:\(shelter)}' } [0x2b06 resolution 24]
+            # Kind not recorded — 290 of them, so it needs to say something.
+            amenity=shelter { name '${name|def:\(shelter)}' } [0x2b06 resolution 24]
 
-        """
+            """
 
         splice(rules, into: &text)
         try text.write(to: points, atomically: true, encoding: .utf8)
@@ -109,23 +116,23 @@ extension StyleCatalog {
         let rules = """
 
 
-        \(marker) ------------------------------------
-        # Derive the city and region from the boundary data for countries mkgmap has no
-        # specific rule for. Each guard is `!=*`, so anything already set is left alone,
-        # and the admin_level tags only exist when --bounds is supplied — without it these
-        # are simply no-ops. Level 8 is the municipality nearly everywhere; 9 and 10 are
-        # sub-districts, 7 and 6 the larger units to fall back on.
+            \(marker) ------------------------------------
+            # Derive the city and region from the boundary data for countries mkgmap has no
+            # specific rule for. Each guard is `!=*`, so anything already set is left alone,
+            # and the admin_level tags only exist when --bounds is supplied — without it these
+            # are simply no-ops. Level 8 is the municipality nearly everywhere; 9 and 10 are
+            # sub-districts, 7 and 6 the larger units to fall back on.
 
-        mkgmap:city!=* & mkgmap:admin_level8=* { set mkgmap:city='${mkgmap:admin_level8}' }
-        mkgmap:city!=* & mkgmap:admin_level9=* { set mkgmap:city='${mkgmap:admin_level9}' }
-        mkgmap:city!=* & mkgmap:admin_level10=* { set mkgmap:city='${mkgmap:admin_level10}' }
-        mkgmap:city!=* & mkgmap:admin_level7=* { set mkgmap:city='${mkgmap:admin_level7}' }
-        mkgmap:city!=* & mkgmap:admin_level6=* { set mkgmap:city='${mkgmap:admin_level6}' }
+            mkgmap:city!=* & mkgmap:admin_level8=* { set mkgmap:city='${mkgmap:admin_level8}' }
+            mkgmap:city!=* & mkgmap:admin_level9=* { set mkgmap:city='${mkgmap:admin_level9}' }
+            mkgmap:city!=* & mkgmap:admin_level10=* { set mkgmap:city='${mkgmap:admin_level10}' }
+            mkgmap:city!=* & mkgmap:admin_level7=* { set mkgmap:city='${mkgmap:admin_level7}' }
+            mkgmap:city!=* & mkgmap:admin_level6=* { set mkgmap:city='${mkgmap:admin_level6}' }
 
-        mkgmap:region!=* & mkgmap:admin_level4=* { set mkgmap:region='${mkgmap:admin_level4}' }
-        mkgmap:region!=* & mkgmap:admin_level5=* { set mkgmap:region='${mkgmap:admin_level5}' }
+            mkgmap:region!=* & mkgmap:admin_level4=* { set mkgmap:region='${mkgmap:admin_level4}' }
+            mkgmap:region!=* & mkgmap:admin_level5=* { set mkgmap:region='${mkgmap:admin_level5}' }
 
-        """
+            """
 
         var patched = 0
         for name in ["points", "lines", "polygons"] {
@@ -142,9 +149,11 @@ extension StyleCatalog {
     /// so the text rides in an address field, which is shown only when an object is opened.
     /// Preference is `description:ru`, `description`, `description:en`, each excluding the
     /// others.
-    func addDescriptionRules(in directory: URL,
-                                     carrier: BuildRecipe.DescriptionCarrier,
-                                     log: Log) throws {
+    func addDescriptionRules(
+        in directory: URL,
+        carrier: BuildRecipe.DescriptionCarrier,
+        log: Log
+    ) throws {
         guard carrier != .off else { return }
         let marker = "# --- kmap: descriptions"
 
@@ -153,30 +162,30 @@ extension StyleCatalog {
             rules = """
 
 
-            \(marker) -------------------------------------------------
-            # OSM description text, carried into the object's card on the device.
-            # Address fields never draw on the map, which is the point of using one.
+                \(marker) -------------------------------------------------
+                # OSM description text, carried into the object's card on the device.
+                # Address fields never draw on the map, which is the point of using one.
 
-            description:ru=* { set \(tag)='${description:ru}' }
-            description=* & description:ru!=* { set \(tag)='${description}' }
-            description:en=* & description:ru!=* & description!=* { set \(tag)='${description:en}' }
+                description:ru=* { set \(tag)='${description:ru}' }
+                description=* & description:ru!=* { set \(tag)='${description}' }
+                description:en=* & description:ru!=* & description!=* { set \(tag)='${description:en}' }
 
-            """
+                """
         } else {
             // Appended to the label instead of an address field: an address block exists
             // only on POIs, so this carrier reaches ways and areas, but is drawn on the map.
             rules = """
 
 
-            \(marker) -------------------------------------------------
-            # OSM description text, appended to the object's own label in brackets.
+                \(marker) -------------------------------------------------
+                # OSM description text, appended to the object's own label in brackets.
 
-            name=* & description:ru=* { name '${name} (${description:ru})' }
-            name=* & description=* & description:ru!=* { name '${name} (${description})' }
-            name=* & description:en=* & description:ru!=* & description!=* \
-            { name '${name} (${description:en})' }
+                name=* & description:ru=* { name '${name} (${description:ru})' }
+                name=* & description=* & description:ru!=* { name '${name} (${description})' }
+                name=* & description:en=* & description:ru!=* & description!=* \
+                { name '${name} (${description:en})' }
 
-            """
+                """
         }
 
         // Action-only rules with no type fall through to the rules below, annotating the
@@ -187,7 +196,9 @@ extension StyleCatalog {
                 patched += 1
             }
         }
-        log.append("descriptions carried in \(carrier.tag ?? "the name")"
-                   + " (\(patched) rule file(s))")
+        log.append(
+            "descriptions carried in \(carrier.tag ?? "the name")"
+                + " (\(patched) rule file(s))"
+        )
     }
 }

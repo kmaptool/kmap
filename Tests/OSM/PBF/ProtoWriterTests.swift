@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// The writer: fields, nesting, and the zero that protobuf leaves out.
 final class ProtoWriterTests: XCTestCase {
-
     private func read<T>(_ bytes: [UInt8], _ body: (inout ProtoReader) -> T) -> T {
         var storage = bytes
         return storage.withUnsafeMutableBytes { raw in
@@ -18,7 +18,6 @@ final class ProtoWriterTests: XCTestCase {
         return writer.bytes
     }
 
-
     func testVarintFieldLeavesOutZeroTheWayProtobufDoes() {
         XCTAssertEqual(written { $0.varintField(1, 0) }, [])
         XCTAssertEqual(written { $0.varintField(1, 1) }.isEmpty, false)
@@ -27,7 +26,7 @@ final class ProtoWriterTests: XCTestCase {
     func testNegativeVarintFieldsUseTheFullTenBytes() {
         // A plain int64 field is not zigzagged, so -1 is every bit set.
         let bytes = written { $0.varintField(1, -1) }
-        XCTAssertEqual(bytes.count, 11)   // one key byte, ten of value
+        XCTAssertEqual(bytes.count, 11)  // one key byte, ten of value
         let value = read(bytes) { reader -> Int64 in
             _ = reader.nextField()
             return Int64(bitPattern: reader.varint())

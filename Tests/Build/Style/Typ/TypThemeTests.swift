@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Packing one of a TYP's two drawings and leaving the other out.
@@ -6,52 +7,51 @@ import XCTest
 /// Night is not a type code and not a section: it is the back half of a palette, a second
 /// picture on a point, and `NightCustomColor` on a label.
 final class TypThemeTests: XCTestCase {
-
     private let source = """
-    [_polygon]
-    Type=0x27
-    ; the land, day then night
-    Xpm="0 0 2 0"
-    "1 c #F4F4F0"
-    "2 c #40403D"
-    String=0x00,Land
-    [end]
+        [_polygon]
+        Type=0x27
+        ; the land, day then night
+        Xpm="0 0 2 0"
+        "1 c #F4F4F0"
+        "2 c #40403D"
+        String=0x00,Land
+        [end]
 
-    [_polygon]
-    Type=0x16
-    Xpm="4 2 4 1"
-    "1 c #6AA84F"
-    "2 c none"
-    "3 c #2E4A22"
-    "4 c none"
-    "1221"
-    "2112"
-    [end]
+        [_polygon]
+        Type=0x16
+        Xpm="4 2 4 1"
+        "1 c #6AA84F"
+        "2 c none"
+        "3 c #2E4A22"
+        "4 c none"
+        "1221"
+        "2112"
+        [end]
 
-    [_line]
-    Type=0x02
-    BorderWidth=1
-    Xpm="0 0 4 0"
-    "1 c #E8A070"
-    "2 c #804000"
-    "3 c #402000"
-    "4 c #201000"
-    [end]
+        [_line]
+        Type=0x02
+        BorderWidth=1
+        Xpm="0 0 4 0"
+        "1 c #E8A070"
+        "2 c #804000"
+        "3 c #402000"
+        "4 c #201000"
+        [end]
 
-    [_point]
-    Type=0x2f01
-    DayXpm="2 1 2 1"
-    "! c #000000"
-    "  c none"
-    "! "
-    NightXpm="2 1 2 1"
-    "! c #FFFFFF"
-    "  c none"
-    "! "
-    DayCustomColor=#101010
-    NightCustomColor=#F0F0F0
-    [end]
-    """
+        [_point]
+        Type=0x2f01
+        DayXpm="2 1 2 1"
+        "! c #000000"
+        "  c none"
+        "! "
+        NightXpm="2 1 2 1"
+        "! c #FFFFFF"
+        "  c none"
+        "! "
+        DayCustomColor=#101010
+        NightCustomColor=#F0F0F0
+        [end]
+        """
 
     func testDayOnlyLeavesNothingOfTheNight() {
         let out = TypEdit.keeping(.day, in: source)

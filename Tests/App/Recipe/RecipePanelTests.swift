@@ -1,11 +1,11 @@
 import XCTest
+
 @testable import kmap
 
 /// The panel beside the new-map form carries what the form itself does not: what the
 /// build will cost, where it lands, what will bite, and what the row under the cursor
 /// is for.
 final class RecipePanelTests: XCTestCase {
-
     private var ctx: AppContext!
 
     @MainActor
@@ -14,10 +14,14 @@ final class RecipePanelTests: XCTestCase {
     }
 
     private static let somewhere = Region(
-        id: "large-region", name: "Large Inland Region",
-        parentID: nil, pbfURL: nil,
+        id: "large-region",
+        name: "Large Inland Region",
+        parentID: nil,
+        pbfURL: nil,
         bbox: BBox(minLon: 32.15, minLat: 43.18, maxLon: 36.68, maxLat: 46.25),
-        boxes: [], childIDs: [])
+        boxes: [],
+        childIDs: []
+    )
 
     @MainActor
     private func drawn(_ screen: RecipeScreen) -> String {
@@ -48,7 +52,7 @@ final class RecipePanelTests: XCTestCase {
     @MainActor
     func testTheExplanationFollowsTheCursor() async {
         let screen = self.screen()
-        _ = drawn(screen)                       // rows exist only after a render
+        _ = drawn(screen)  // rows exist only after a render
 
         // Walk to the road-repair row and read its explanation.
         var found = false
@@ -60,8 +64,10 @@ final class RecipePanelTests: XCTestCase {
 
         // And it goes away again when the cursor does.
         _ = screen.handle(.up, ctx: ctx)
-        XCTAssertFalse(drawn(screen).contains("that is a dead end"),
-                       "an explanation for a row nobody is on is a screen nobody reads")
+        XCTAssertFalse(
+            drawn(screen).contains("that is a dead end"),
+            "an explanation for a row nobody is on is a screen nobody reads"
+        )
     }
 
     /// A warning is only worth a line when it is true of this map.

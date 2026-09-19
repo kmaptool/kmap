@@ -13,14 +13,17 @@ extension BuildPipeline {
         // settled; Viewfinder fills what they left. view1 against view3 is chained
         // below, per cell.
         let all = degreeCellNames(of: bbox)
-        let earlier = viewfinderResolutions.first
+        let earlier =
+            viewfinderResolutions.first
             .map { earlierSourceDirectories(before: ViewfinderDEM.sourceID($0)) } ?? []
         let cells = all.filter { name in
             !earlier.contains { FileTools.exists($0.appendingPathComponent("\(name).hgt")) }
         }
         if cells.count < all.count {
-            log.append("\(all.count - cells.count) cell(s) already held by an earlier"
-                       + " source — Viewfinder fills the \(cells.count) left")
+            log.append(
+                "\(all.count - cells.count) cell(s) already held by an earlier"
+                    + " source — Viewfinder fills the \(cells.count) left"
+            )
         }
         guard !cells.isEmpty else {
             log.append("nothing left for Viewfinder — every cell is already held")
@@ -31,8 +34,10 @@ extension BuildPipeline {
         let runner = makeRunner()
         var indexes: [Int: ViewfinderDEM.Index] = [:]
         for resolution in viewfinderResolutions {
-            indexes[resolution] = try await ViewfinderDEM.index(resolution,
-                                                                downloader: downloader) {
+            indexes[resolution] = try await ViewfinderDEM.index(
+                resolution,
+                downloader: downloader
+            ) {
                 self.log.append($0)
             }
         }
@@ -49,9 +54,13 @@ extension BuildPipeline {
                 guard var index = indexes[resolution] else { continue }
                 do {
                     try Task.checkCancellation()
-                    _ = try await ViewfinderDEM.fetch(cell, resolution: resolution,
-                                                      index: &index,
-                                                      downloader: downloader, runner: runner) {
+                    _ = try await ViewfinderDEM.fetch(
+                        cell,
+                        resolution: resolution,
+                        index: &index,
+                        downloader: downloader,
+                        runner: runner
+                    ) {
                         self.log.append($0)
                     }
                     indexes[resolution] = index
@@ -64,11 +73,16 @@ extension BuildPipeline {
                 }
             }
             if found { have += 1 } else { missing.append(cell) }
-            detail(.elevation, "Viewfinder \(position + 1)/\(cells.count) · \(cell)",
-                   fraction: Double(position + 1) / Double(max(1, cells.count)))
+            detail(
+                .elevation,
+                "Viewfinder \(position + 1)/\(cells.count) · \(cell)",
+                fraction: Double(position + 1) / Double(max(1, cells.count))
+            )
         }
         if isLastFetching(.viewfinder) { elevationDownloadsFinished() }
-        log.ok("Viewfinder: \(have)/\(cells.count) tile(s) in the cache"
-               + (missing.isEmpty ? "" : ", \(missing.count) not published (open sea)"))
+        log.ok(
+            "Viewfinder: \(have)/\(cells.count) tile(s) in the cache"
+                + (missing.isEmpty ? "" : ", \(missing.count) not published (open sea)")
+        )
     }
 }

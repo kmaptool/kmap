@@ -3,7 +3,6 @@ import Foundation
 /// What the split plan is made of: the plan itself, and the interned tile sets it
 /// stores its answers in without holding one Set per node.
 extension TileSplitter {
-
     struct Plan {
         /// Extra tiles for a node, beyond the one it sits in. A flat sorted table of
         /// interned pairs, read by binary search from every worker at once.
@@ -80,8 +79,11 @@ extension TileSplitter {
         /// Folds in a worker's harvest: its pool is interned here once per distinct set
         /// and its pairs re-pointed and appended. The order the pairs arrive in does not
         /// matter, since `settle` sorts them and the unions it takes are commutative.
-        mutating func absorb(pool otherPool: [[UInt16]], pairs otherPairs: [(id: Int64, set: Int32)],
-                             sorted: Bool = false) {
+        mutating func absorb(
+            pool otherPool: [[UInt16]],
+            pairs otherPairs: [(id: Int64, set: Int32)],
+            sorted: Bool = false
+        ) {
             var remap = [Int32](repeating: 0, count: otherPool.count)
             for (at, tiles) in otherPool.enumerated() {
                 remap[at] = intern(Set(tiles))
@@ -148,7 +150,9 @@ extension TileSplitter {
             // first write through the buffer pointer below copy all of it.
             pairs = []
             var target = [(id: Int64, set: Int32)](
-                repeating: (0, 0), count: source.count)
+                repeating: (0, 0),
+                count: source.count
+            )
             while bounds.count > 1 {
                 let merges = bounds.count / 2
                 let plan = bounds
@@ -233,7 +237,7 @@ extension TileSplitter {
         var isEmpty: Bool { ids.isEmpty }
 
         mutating func wants(_ id: Int64) -> Bool {
-            if id < lastID { at = 0 }        // a worker starting its own run of blocks
+            if id < lastID { at = 0 }  // a worker starting its own run of blocks
             lastID = id
             while at < ids.count, ids[at] < id { at += 1 }
             return at < ids.count && ids[at] == id

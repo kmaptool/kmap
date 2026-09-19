@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Finding Java, mkgmap and the rest, and remembering what was found.
@@ -6,7 +7,6 @@ import XCTest
 /// These run against whatever is installed on the machine, so they assert that the
 /// answers are consistent rather than what they are. The patch marker is pinned outright.
 final class ToolchainTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -55,29 +55,44 @@ final class ToolchainTests: XCTestCase {
         let tools = Toolchain(settings: settings)
 
         XCTAssertEqual(tools.findJava()?.path, java.path)
-        XCTAssertNotEqual(tools.findJavaKit()?.path, java.path,
-                          "a runtime cannot build the patch")
+        XCTAssertNotEqual(
+            tools.findJavaKit()?.path,
+            java.path,
+            "a runtime cannot build the patch"
+        )
     }
 
     /// The screen used to answer "already installed" to anything ready, which left the
     /// runtime-without-javac row offering an install that did nothing, forever.
     func testAToolThatWorksButCannotDoEverythingStillTakesAnInstall() {
-        var java = ToolStatus(id: "java", name: "Java", detail: "", state: .ready,
-                              installable: true, moreToInstall: true)
+        var java = ToolStatus(
+            id: "java",
+            name: "Java",
+            detail: "",
+            state: .ready,
+            installable: true,
+            moreToInstall: true
+        )
         XCTAssertFalse(java.isFinished)
 
         java.moreToInstall = false
         XCTAssertTrue(java.isFinished, "ready and complete takes no install")
 
-        let missing = ToolStatus(id: "mkgmap", name: "mkgmap", detail: "", state: .missing,
-                                 installable: true)
+        let missing = ToolStatus(
+            id: "mkgmap",
+            name: "mkgmap",
+            detail: "",
+            state: .missing,
+            installable: true
+        )
         XCTAssertFalse(missing.isFinished)
     }
 
     func testTheJavaRowOffersAnInstallExactlyWhenItIsShortOfSomething() {
         let tools = Toolchain(settings: SettingsStore())
         guard let java = tools.status().first(where: { $0.id == "java" }),
-              java.isReady else { return }
+            java.isReady
+        else { return }
         // Whatever this machine carries, the row has to agree with the probe.
         if java.moreToInstall {
             XCTAssertTrue(java.installable, "an offer that leads nowhere")
@@ -90,8 +105,10 @@ final class ToolchainTests: XCTestCase {
 
     func testWhateverJavaIsFoundIsSomethingThatCanBeRun() {
         guard let java = toolchain().findJava() else {
-            return XCTAssertNil(toolchain().findMkgmap(),
-                                "mkgmap cannot be usable without a Java to run it")
+            return XCTAssertNil(
+                toolchain().findMkgmap(),
+                "mkgmap cannot be usable without a Java to run it"
+            )
         }
         XCTAssertTrue(FileTools.isExecutable(java.path), java.path)
         // The macOS stub prints "Unable to locate a Java Runtime" and is not a runtime.
@@ -105,8 +122,11 @@ final class ToolchainTests: XCTestCase {
         let first = tools.findJava()
         let started = Date()
         for _ in 0..<200 { _ = tools.findJava() }
-        XCTAssertLessThan(Date().timeIntervalSince(started), 1,
-                          "the probe is being run again on every ask")
+        XCTAssertLessThan(
+            Date().timeIntervalSince(started),
+            1,
+            "the probe is being run again on every ask"
+        )
         XCTAssertEqual(first?.path, tools.findJava()?.path)
     }
 
@@ -136,16 +156,20 @@ final class ToolchainTests: XCTestCase {
         // The screen offers what `status()` reports for this machine; the command line
         // validates against a written list, and the two must not drift.
         for tool in toolchain().status() where tool.installable {
-            XCTAssertTrue(Toolchain.installableIDs.contains(tool.id),
-                          "\(tool.id) is offered but cannot be named")
+            XCTAssertTrue(
+                Toolchain.installableIDs.contains(tool.id),
+                "\(tool.id) is offered but cannot be named"
+            )
         }
     }
 
     func testTheListIsNotDerivedFromWhatThisMachineHappensToBeMissing() {
         // `status()` depends on what this machine has, so the set of known names cannot
         // be derived from it.
-        for expected in ["mkgmap", "mkgmap-patch", "pyhgtmap",
-                         "java", "python", "unzip", "sea", "bounds"] {
+        for expected in [
+            "mkgmap", "mkgmap-patch", "pyhgtmap",
+            "java", "python", "unzip", "sea", "bounds"
+        ] {
             XCTAssertTrue(Toolchain.installableIDs.contains(expected), expected)
         }
         XCTAssertFalse(Toolchain.installableIDs.contains("mkgmpa"))
@@ -155,23 +179,35 @@ final class ToolchainTests: XCTestCase {
 
     func testTheOptionsGoInFrontOfTheJarBecauseThatIsWhereTheJvmLooks() {
         let plain = JavaRuntime(path: "/usr/bin/java", version: "21", options: [])
-        XCTAssertEqual(plain.command(["-Xmx4g", "-jar", "mkgmap.jar"]),
-                       ["-Xmx4g", "-jar", "mkgmap.jar"])
+        XCTAssertEqual(
+            plain.command(["-Xmx4g", "-jar", "mkgmap.jar"]),
+            ["-Xmx4g", "-jar", "mkgmap.jar"]
+        )
 
         // Anything after `-jar` belongs to the program, not to the JVM.
-        let rescued = JavaRuntime(path: "/usr/bin/java", version: "21",
-                                  options: ["-XX:-UseCompressedClassPointers"])
-        XCTAssertEqual(rescued.command(["-Xmx4g", "-jar", "mkgmap.jar"]),
-                       ["-XX:-UseCompressedClassPointers", "-Xmx4g", "-jar", "mkgmap.jar"])
+        let rescued = JavaRuntime(
+            path: "/usr/bin/java",
+            version: "21",
+            options: ["-XX:-UseCompressedClassPointers"]
+        )
+        XCTAssertEqual(
+            rescued.command(["-Xmx4g", "-jar", "mkgmap.jar"]),
+            ["-XX:-UseCompressedClassPointers", "-Xmx4g", "-jar", "mkgmap.jar"]
+        )
     }
 
     func testJavacAndJarTakeTheSameOptionsThroughTheirOwnSpelling() {
         // They are JVMs as well, and they accept JVM options only behind `-J`.
-        let rescued = JavaRuntime(path: "/usr/bin/java", version: "21",
-                                  options: ["-XX:-UseCompressedClassPointers"])
+        let rescued = JavaRuntime(
+            path: "/usr/bin/java",
+            version: "21",
+            options: ["-XX:-UseCompressedClassPointers"]
+        )
         XCTAssertEqual(rescued.toolOptions, ["-J-XX:-UseCompressedClassPointers"])
-        XCTAssertEqual(JavaRuntime(path: "/usr/bin/java", version: "21", options: []).toolOptions,
-                       [])
+        XCTAssertEqual(
+            JavaRuntime(path: "/usr/bin/java", version: "21", options: []).toolOptions,
+            []
+        )
     }
 
     func testAHealthyJavaCarriesNothingExtra() {
@@ -188,8 +224,10 @@ final class ToolchainTests: XCTestCase {
     // MARK: The patched jar
 
     func testTheMarkerIsWhatSaysAJarCarriesThePatch() throws {
-        try XCTSkipUnless(Archive.isAvailable && Platform.which("zip") != nil,
-                          "this reads a jar with the machine's zip and unzip")
+        try XCTSkipUnless(
+            Archive.isAvailable && Platform.which("zip") != nil,
+            "this reads a jar with the machine's zip and unzip"
+        )
         // By the marker inside rather than by the filename, so a jar copied or renamed
         // still answers honestly.
         let plain = directory.appendingPathComponent(Toolchain.patchedMkgmapName)
@@ -197,14 +235,15 @@ final class ToolchainTests: XCTestCase {
         XCTAssertFalse(Toolchain.isPatched(plain), "named like the patched jar, and is not")
 
         let patched = directory.appendingPathComponent("renamed-by-someone.jar")
-        try makeZip(at: patched, holding:
-            [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion)\n"])
+        try makeZip(at: patched, holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion)\n"])
         XCTAssertTrue(Toolchain.isPatched(patched), "carries the marker under another name")
     }
 
     func testAnOlderPatchReadsAsOutdatedNotAsPatched() throws {
-        try XCTSkipUnless(Archive.isAvailable && Platform.which("zip") != nil,
-                          "this reads a jar with the machine's zip and unzip")
+        try XCTSkipUnless(
+            Archive.isAvailable && Platform.which("zip") != nil,
+            "this reads a jar with the machine's zip and unzip"
+        )
         // A marker without a version cannot say which edits the jar stands for.
         let old = directory.appendingPathComponent("old-patch.jar")
         try makeZip(at: old, holding: [Toolchain.patchMarker: "option: --x-shape-clip-overlap\n"])
@@ -212,14 +251,12 @@ final class ToolchainTests: XCTestCase {
         XCTAssertFalse(Toolchain.isPatched(old), "an old patch must ask to be rebuilt")
 
         let current = directory.appendingPathComponent("current-patch.jar")
-        try makeZip(at: current, holding:
-            [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion)\n"])
+        try makeZip(at: current, holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion)\n"])
         XCTAssertEqual(Toolchain.patchVersion(of: current), Toolchain.patchVersion)
         XCTAssertTrue(Toolchain.isPatched(current))
 
         let future = directory.appendingPathComponent("future-patch.jar")
-        try makeZip(at: future, holding:
-            [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion + 5)\n"])
+        try makeZip(at: future, holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion + 5)\n"])
         XCTAssertTrue(Toolchain.isPatched(future), "a newer patch is not worse than ours")
     }
 
@@ -231,10 +268,14 @@ final class ToolchainTests: XCTestCase {
     }
 
     func testThePatchedJarIsLookedForUnderTheToolsFolder() {
-        XCTAssertTrue(Toolchain.patchedMkgmapURL.path.hasPrefix(Paths.tools.path),
-                      Toolchain.patchedMkgmapURL.path)
-        XCTAssertEqual(Toolchain.patchedMkgmapURL.lastPathComponent,
-                       Toolchain.patchedMkgmapName)
+        XCTAssertTrue(
+            Toolchain.patchedMkgmapURL.path.hasPrefix(Paths.tools.path),
+            Toolchain.patchedMkgmapURL.path
+        )
+        XCTAssertEqual(
+            Toolchain.patchedMkgmapURL.lastPathComponent,
+            Toolchain.patchedMkgmapName
+        )
     }
 
     /// A real zip, built with the machine's own `zip` so that `unzip -l` reads it the way
@@ -244,8 +285,11 @@ final class ToolchainTests: XCTestCase {
         let staging = directory.appendingPathComponent("staging-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
         for (name, body) in files {
-            try body.write(to: staging.appendingPathComponent(name), atomically: true,
-                           encoding: .utf8)
+            try body.write(
+                to: staging.appendingPathComponent(name),
+                atomically: true,
+                encoding: .utf8
+            )
         }
         let zip = Process()
         zip.executableURL = URL(fileURLWithPath: zipBinary)

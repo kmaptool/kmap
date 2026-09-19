@@ -153,7 +153,7 @@ extension TileSplitter {
                     guard near != Self.none, !hits.contains(near) else { continue }
                     let rect = rects[Int(near)]
                     guard lat >= rect.minLat - margin, lat < rect.maxLat + margin,
-                          lon >= rect.minLon - margin, lon < rect.maxLon + margin
+                        lon >= rect.minLon - margin, lon < rect.maxLon + margin
                     else { continue }
                     hits.add(near)
                 }

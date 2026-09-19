@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Uncommitted byte-compare harness. Materializes the base style twice (bare and with
@@ -7,15 +8,18 @@ import XCTest
 final class ZZMaterializeHarness: XCTestCase {
     func testDumpMaterializedStyle() async throws {
         guard let outPath = ProcessInfo.processInfo.environment["KMAP_HARNESS_OUT"],
-              !outPath.isEmpty else {
+            !outPath.isEmpty
+        else {
             throw XCTSkip("KMAP_HARNESS_OUT not set")
         }
         let out = URL(fileURLWithPath: outPath, isDirectory: true)
         try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
 
         // The real jar, read-only, copied into the test root so the toolchain finds it.
-        let realJar = URL(fileURLWithPath: ("~/.kmap/tools/mkgmap/mkgmap.jar" as NSString)
-            .expandingTildeInPath)
+        let realJar = URL(
+            fileURLWithPath: ("~/.kmap/tools/mkgmap/mkgmap.jar" as NSString)
+                .expandingTildeInPath
+        )
         guard FileManager.default.fileExists(atPath: realJar.path) else {
             throw XCTSkip("no mkgmap.jar at ~/.kmap/tools/mkgmap")
         }
@@ -52,11 +56,14 @@ final class ZZMaterializeHarness: XCTestCase {
         plan.windows["trails"] = ZoomPlan.Window(finest: 0, coarsest: 2)
         plan.windows["woodland"] = ZoomPlan.Window(finest: 1, coarsest: 3)
         try await catalog.prepare(
-            plain, log: log, runner: runner,
+            plain,
+            log: log,
+            runner: runner,
             descriptions: .inName,
             hidden: ["power-tower", "man_made-survey_point", "barriers-fence"],
             zoom: (plan, .smooth),
-            cyrillicLabels: true)
+            cyrillicLabels: true
+        )
         try snapshot("base-full")
 
         // Shipped palettes: the generated TYP sources.

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// Installing from the toolchain screen: several at once, each in its own row, one that
@@ -8,23 +9,34 @@ import XCTest
 /// on what this machine has installed or on a network.
 @MainActor
 final class ToolchainInstallTests: XCTestCase {
-
     private var ctx: AppContext!
     private var screen: ToolchainScreen!
     private var installs: InstallStandIn!
     private var cursor = 0
 
-    private func tool(_ id: String, name: String? = nil, ready: Bool = false,
-                      optional: Bool = false) -> ToolStatus {
-        ToolStatus(id: id, name: name ?? id, detail: "", state: ready ? .ready : .missing,
-                   installable: true, isOptional: optional)
+    private func tool(
+        _ id: String,
+        name: String? = nil,
+        ready: Bool = false,
+        optional: Bool = false
+    ) -> ToolStatus {
+        ToolStatus(
+            id: id,
+            name: name ?? id,
+            detail: "",
+            state: ready ? .ready : .missing,
+            installable: true,
+            isOptional: optional
+        )
     }
 
     override func setUp() async throws {
         ctx = AppContext()
-        ctx.useForTesting(tools: [tool("mkgmap"), tool("mkgmap-patch", name: "seam patch"),
-                                  tool("sea"), tool("bounds", ready: true),
-                                  tool("pyhgtmap", optional: true)])
+        ctx.useForTesting(tools: [
+            tool("mkgmap"), tool("mkgmap-patch", name: "seam patch"),
+            tool("sea"), tool("bounds", ready: true),
+            tool("pyhgtmap", optional: true)
+        ])
         ctx.useForTesting(packNews: [:])
         installs = InstallStandIn()
         screen = ToolchainScreen()
@@ -193,8 +205,11 @@ final class ToolchainInstallTests: XCTestCase {
         let route = screen.handle(.ctrl("c"), ctx: ctx)
         if case .none = route {} else { XCTFail("stopping stays on the screen") }
         await expectSettled { self.running().isEmpty }
-        XCTAssertEqual(Set(installs.cancelledIDs), ["sea", "mkgmap"],
-                       "each install's task was cancelled, not only its process")
+        XCTAssertEqual(
+            Set(installs.cancelledIDs),
+            ["sea", "mkgmap"],
+            "each install's task was cancelled, not only its process"
+        )
         XCTAssertTrue(screen.queuedForTesting.isEmpty)
         XCTAssertEqual(installs.timesStarted("mkgmap-patch"), 0, "never started")
         XCTAssertTrue(drawn().contains(t("stopped")))

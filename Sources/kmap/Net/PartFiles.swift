@@ -74,19 +74,28 @@ struct PartFiles {
     ///
     /// - Returns: The bytes reclaimed.
     @discardableResult
-    static func sweepAbandoned(in directory: URL, olderThan age: TimeInterval = 14 * .day,
-                               now: Date = Date()) -> Int64 {
-        guard let walker = FileManager.default.enumerator(
-            at: directory, includingPropertiesForKeys: [.contentModificationDateKey],
-            options: [.skipsHiddenFiles]) else { return 0 }
+    static func sweepAbandoned(
+        in directory: URL,
+        olderThan age: TimeInterval = 14 * .day,
+        now: Date = Date()
+    ) -> Int64 {
+        guard
+            let walker = FileManager.default.enumerator(
+                at: directory,
+                includingPropertiesForKeys: [.contentModificationDateKey],
+                options: [.skipsHiddenFiles]
+            )
+        else { return 0 }
         var freed: Int64 = 0
         var touched: Set<URL> = []
         for case let url as URL in walker where isPart(url) {
             let files = PartFiles(destination: url.deletingPathExtension())
-            var abandoned = FileManager.default.fileExists(atPath: files.destination.path)
+            var abandoned =
+                FileManager.default.fileExists(atPath: files.destination.path)
                 && CacheStamp.read(besides: files.destination) != nil
             if !abandoned {
-                let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
+                let modified =
+                    (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
                     .contentModificationDate ?? now
                 abandoned = now.timeIntervalSince(modified) > age
             }

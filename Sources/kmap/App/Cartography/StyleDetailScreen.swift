@@ -6,7 +6,6 @@ import Foundation
 /// Neither file records the other, and a code the TYP has no section for is drawn by the
 /// device however it chooses, with nothing to announce it.
 final class StyleDetailScreen: Screen {
-
     var page: Page { Page(document.style.name, keys: keys) }
 
     private var keys: [Hint] {
@@ -106,8 +105,13 @@ final class StyleDetailScreen: Screen {
         y = drawCoverage(into: s, rect: rect, y: y, theme: theme)
         y += 1
 
-        s.sectionRule(rect, y, t("edit"), labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                      ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+        s.sectionRule(
+            rect,
+            y,
+            t("edit"),
+            labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+            ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+        )
         y += 1
 
         for (index, row) in rows.enumerated() {
@@ -156,24 +160,38 @@ final class StyleDetailScreen: Screen {
 
         // mkgmap rewrites the embedded TYP's family id to match the build's; a mismatch
         // makes the device ignore the TYP outright.
-        var facts = [t("family %d", document.familyID),
-                     t("product %d", document.productID)]
+        var facts = [
+            t("family %d", document.familyID),
+            t("product %d", document.productID)
+        ]
         if let codePage = document.codePage {
             facts.append(t("code page") + " \(codePage)")
         }
         facts.append(kindLabel)
-        x = s.text(rect.x, y, facts.joined(separator: "  ·  "),
-                   Style(fg: theme.dim, bg: theme.appBg))
+        x = s.text(
+            rect.x,
+            y,
+            facts.joined(separator: "  ·  "),
+            Style(fg: theme.dim, bg: theme.appBg)
+        )
         y += 1
 
         if let url = document.sourceURL {
-            s.text(rect.x, y, truncate(Paths.display(url), to: rect.w),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(Paths.display(url), to: rect.w),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
         if let img = recoverableMap {
-            s.text(rect.x, y, truncate(t("from map %@", img.lastPathComponent), to: rect.w),
-                   Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                truncate(t("from map %@", img.lastPathComponent), to: rect.w),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
         return y
@@ -190,11 +208,15 @@ final class StyleDetailScreen: Screen {
     /// Why this style cannot be edited in place.
     private var readOnlyReason: String {
         document.style.origin == .builtin || document.sourceURL == nil
-            ? t("This is kmap's own TYP, and its working copy is rewritten from the shipped "
-              + "one whenever a build finds the two differ — an edit here would be undone "
-              + "without a word. Press ^F for an editable copy in your TYP library.")
-            : t("This file is outside kmap's TYP library, which is the only place kmap writes "
-              + "a TYP. Press ^F for an editable copy.")
+            ? t(
+                "This is kmap's own TYP, and its working copy is rewritten from the shipped "
+                    + "one whenever a build finds the two differ — an edit here would be undone "
+                    + "without a word. Press ^F for an editable copy in your TYP library."
+            )
+            : t(
+                "This file is outside kmap's TYP library, which is the only place kmap writes "
+                    + "a TYP. Press ^F for an editable copy."
+            )
     }
 
     /// Draws the explanation for a style whose TYP cannot be opened. Returns the next free
@@ -204,13 +226,17 @@ final class StyleDetailScreen: Screen {
         let explanation: String
         switch document.availability {
         case .binary:
-            explanation = t("This TYP is compiled. Its identity reads fine, but its sections "
-                + "cannot be opened yet: mkgmap compiles source into a TYP and offers no way "
-                + "back, so decoding one is work kmap has to do itself. Until then the file "
-                + "can still be built with — it is simply not editable here.")
+            explanation = t(
+                "This TYP is compiled. Its identity reads fine, but its sections "
+                    + "cannot be opened yet: mkgmap compiles source into a TYP and offers no way "
+                    + "back, so decoding one is work kmap has to do itself. Until then the file "
+                    + "can still be built with — it is simply not editable here."
+            )
         case .none:
-            explanation = t("This style ships no TYP. The device draws every type its own way, "
-                + "so there is nothing here to edit.")
+            explanation = t(
+                "This style ships no TYP. The device draws every type its own way, "
+                    + "so there is nothing here to edit."
+            )
         case .source:
             explanation = ""
         }
@@ -226,38 +252,69 @@ final class StyleDetailScreen: Screen {
     /// styles. Returns the next free row.
     private func drawCoverage(into s: Surface, rect: Rect, y: Int, theme: Theme) -> Int {
         var y = y
-        s.sectionRule(rect, y, t("coverage"), labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                      ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+        s.sectionRule(
+            rect,
+            y,
+            t("coverage"),
+            labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+            ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+        )
         y += 1
 
         guard document.rules != nil else {
-            s.text(rect.x, y, t("the rule set has not been unpacked yet — run a build once"),
-                   Style(fg: theme.warn, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("the rule set has not been unpacked yet — run a build once"),
+                Style(fg: theme.warn, bg: theme.appBg)
+            )
             return y + 1
         }
 
         for kind in MapElementKind.allCases {
             guard y < rect.maxY else { break }
             let coverage = document.coverage(kind)
-            var x = s.text(rect.x, y, kind.plural.padding(toLength: 12, withPad: " ",
-                                                          startingAt: 0),
-                           Style(fg: theme.text, bg: theme.appBg))
-            x = s.text(x, y, t("%d of %d styled", coverage.both, coverage.emitted),
-                       Style(fg: theme.text, bg: theme.appBg))
+            var x = s.text(
+                rect.x,
+                y,
+                kind.plural.padding(
+                    toLength: 12,
+                    withPad: " ",
+                    startingAt: 0
+                ),
+                Style(fg: theme.text, bg: theme.appBg)
+            )
+            x = s.text(
+                x,
+                y,
+                t("%d of %d styled", coverage.both, coverage.emitted),
+                Style(fg: theme.text, bg: theme.appBg)
+            )
 
             if !coverage.unstyled.isEmpty {
-                x = s.text(x + 2, y, tn("%d fall back to the device", coverage.unstyled.count),
-                           Style(fg: theme.warn, bg: theme.appBg))
+                x = s.text(
+                    x + 2,
+                    y,
+                    tn("%d fall back to the device", coverage.unstyled.count),
+                    Style(fg: theme.warn, bg: theme.appBg)
+                )
             }
             // Not a fault: the TYP declares these as deliberately left to the device.
             if !coverage.deliberate.isEmpty {
-                x = s.text(x + 2, y, tn("%d left to it on purpose", coverage.deliberate.count),
-                           Style(fg: theme.faint, bg: theme.appBg))
+                x = s.text(
+                    x + 2,
+                    y,
+                    tn("%d left to it on purpose", coverage.deliberate.count),
+                    Style(fg: theme.faint, bg: theme.appBg)
+                )
             }
             if !coverage.unused.isEmpty {
-                s.textRight(rect.maxX, y,
-                            tn("%d styled but never emitted", coverage.unused.count),
-                            Style(fg: theme.faint, bg: theme.appBg))
+                s.textRight(
+                    rect.maxX,
+                    y,
+                    tn("%d styled but never emitted", coverage.unused.count),
+                    Style(fg: theme.faint, bg: theme.appBg)
+                )
             }
             y += 1
         }
@@ -266,15 +323,25 @@ final class StyleDetailScreen: Screen {
         let missing = document.polygonsNeverDrawn
         if !missing.isEmpty, y < rect.maxY {
             let list = missing.prefix(8).map(TypeMeaning.hex).joined(separator: " ")
-            s.text(rect.x, y, t("polygons missing from the draw order, never drawn: %@", list),
-                   Style(fg: theme.danger, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("polygons missing from the draw order, never drawn: %@", list),
+                Style(fg: theme.danger, bg: theme.appBg)
+            )
             y += 1
         }
         return y
     }
 
-    private func draw(_ row: Row, into s: Surface, rect: Rect, y: Int, theme: Theme,
-                      selected: Bool) {
+    private func draw(
+        _ row: Row,
+        into s: Surface,
+        rect: Rect,
+        y: Int,
+        theme: Theme,
+        selected: Bool
+    ) {
         let text: String
         let trailing: String
         switch row {
@@ -286,8 +353,15 @@ final class StyleDetailScreen: Screen {
             text = t("Draw order — which polygon is painted over which")
             trailing = tn("%d entries", document.source?.drawOrder.count ?? 0)
         }
-        Widgets.row(s, rect: Rect(x: rect.x, y: y, w: rect.w, h: 1), y: y,
-                    text: text, trailing: trailing, theme: theme, selected: selected)
+        Widgets.row(
+            s,
+            rect: Rect(x: rect.x, y: y, w: rect.w, h: 1),
+            y: y,
+            text: text,
+            trailing: trailing,
+            theme: theme,
+            selected: selected
+        )
     }
 
     private func label(for kind: MapElementKind) -> String {

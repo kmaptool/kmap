@@ -34,27 +34,31 @@ struct AnnotatePass {
 
     /// Runs the scans first and awaits the contours only between them and the rewrite that
     /// folds them in, so the scans overlap with the contour tracer.
-    func run(contoursReady: @escaping @Sendable () async throws -> [URL],
-             log: @escaping @Sendable (String) -> Void) async throws -> PBFRewriter.Tally {
+    func run(
+        contoursReady: @escaping @Sendable () async throws -> [URL],
+        log: @escaping @Sendable (String) -> Void
+    ) async throws -> PBFRewriter.Tally {
         let held = self
         return try await withCheckedThrowingContinuation { done in
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
-                    let tally = try held.runScansThenWrite(contoursReady: { () throws -> [URL] in
-                        // Bridged with a semaphore: the scans run on a plain queue thread,
-                        // never the cooperative pool, so blocking here starves nothing.
-                        let gate = DispatchSemaphore(value: 0)
-                        let landed = Locked<Result<[URL], Error>>(.success([]))
-                        Task {
-                            let answer: Result<[URL], Error>
-                            do { answer = .success(try await contoursReady()) }
-                            catch { answer = .failure(error) }
-                            landed.withLock { $0 = answer }
-                            gate.signal()
-                        }
-                        gate.wait()
-                        return try landed.withLock { $0 }.get()
-                    }, log: log)
+                    let tally = try held.runScansThenWrite(
+                        contoursReady: { () throws -> [URL] in
+                            // Bridged with a semaphore: the scans run on a plain queue thread,
+                            // never the cooperative pool, so blocking here starves nothing.
+                            let gate = DispatchSemaphore(value: 0)
+                            let landed = Locked<Result<[URL], Error>>(.success([]))
+                            Task {
+                                let answer: Result<[URL], Error>
+                                do { answer = .success(try await contoursReady()) } catch { answer = .failure(error) }
+                                landed.withLock { $0 = answer }
+                                gate.signal()
+                            }
+                            gate.wait()
+                            return try landed.withLock { $0 }.get()
+                        },
+                        log: log
+                    )
                     done.resume(returning: tally)
                 } catch {
                     done.resume(throwing: error)
@@ -63,8 +67,10 @@ struct AnnotatePass {
         }
     }
 
-    private func runScansThenWrite(contoursReady: (() throws -> [URL])?,
-                                   log: (String) -> Void) throws -> PBFRewriter.Tally {
+    private func runScansThenWrite(
+        contoursReady: (() throws -> [URL])?,
+        log: (String) -> Void
+    ) throws -> PBFRewriter.Tally {
         // Timings per phase, since the extract is read several times over.
         var mark = Date()
         func took(_ what: String) {
@@ -90,8 +96,12 @@ struct AnnotatePass {
         let contourFiles: [URL]
         if let contoursReady { contourFiles = try contoursReady() } else { contourFiles = contours }
 
-        var rewriter = PBFRewriter(url: source, plan: scanned.plan,
-                                   network: scanned.network, language: language)
+        var rewriter = PBFRewriter(
+            url: source,
+            plan: scanned.plan,
+            network: scanned.network,
+            language: language
+        )
         rewriter.barriers = scanned.barriers
         rewriter.tidyDescriptions = dropDuplicateDescriptions
         rewriter.contours = contourFiles
@@ -181,8 +191,11 @@ struct AnnotatePass {
     /// The repair scan: load the road network, find the loose ends, plan the repairs.
     ///
     /// - Returns: the loaded network, the plan, and the log lines describing it.
-    private func repairScan(timings: ScanTimings) throws
-        -> (RoadNetwork, RepairPlan, [String]) {
+    private func repairScan(
+        timings: ScanTimings
+    ) throws
+        -> (RoadNetwork, RepairPlan, [String])
+    {
         var step = Date()
         func part(_ what: String) {
             timings.note("  " + what, seconds: Date().timeIntervalSince(step))
@@ -197,24 +210,31 @@ struct AnnotatePass {
             FileManager.default.fileExists(atPath: $0.path)
                 ? Terrain(directory: $0) : nil
         }
-        let made = RepairPlanner(network: loaded, terrain: terrain,
-                                 bridging: bridgeObstacles, limit: repairRadius,
-                                 inventedIDBase: inventedIDBase)
-            .plan(found, loose: loose)
+        let made = RepairPlanner(
+            network: loaded,
+            terrain: terrain,
+            bridging: bridgeObstacles,
+            limit: repairRadius,
+            inventedIDBase: inventedIDBase
+        )
+        .plan(found, loose: loose)
         part("planned the repairs")
 
-        let joined = (made.counts[RepairPlanner.Verdict.joined] ?? 0)
+        let joined =
+            (made.counts[RepairPlanner.Verdict.joined] ?? 0)
             + made.counts.filter { $0.key.hasPrefix("bridged") }.values
-                .reduce(0, +)
+            .reduce(0, +)
         var lines = [
             "joined \(joined) road end(s) no route could get through,"
-            + " of \(found.count)" + String(format: " within %.1f m", repairRadius)]
+                + " of \(found.count)" + String(format: " within %.1f m", repairRadius)
+        ]
         // Commonest first, and by name where two are equally common: a
         // dictionary has no order of its own, and this list is compared.
         for (reason, count) in made.counts.sorted(by: {
             ($0.value, $1.key) > ($1.value, $0.key)
         }) where reason != RepairPlanner.Verdict.joined {
-            let label = reason.hasPrefix("bridged")
+            let label =
+                reason.hasPrefix("bridged")
                 ? reason : "left as mapped, " + reason
             lines.append("  \(label): \(count)")
         }
@@ -222,13 +242,19 @@ struct AnnotatePass {
     }
 
     /// The pass's closing summary: what was tagged, folded in, dropped and marked.
-    private func report(_ tally: PBFRewriter.Tally, barriers: [Int64: String],
-                        contourFiles: [URL], log: (String) -> Void) {
+    private func report(
+        _ tally: PBFRewriter.Tally,
+        barriers: [Int64: String],
+        contourFiles: [URL],
+        log: (String) -> Void
+    ) {
         var kinds: [String: Int] = [:]
         for kind in barriers.values { kinds[kind, default: 0] += 1 }
-        log("annotated \(tally.tagged) barrier node(s): "
-            + kinds.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }
-                .joined(separator: ", "))
+        log(
+            "annotated \(tally.tagged) barrier node(s): "
+                + kinds.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }
+                .joined(separator: ", ")
+        )
         if tally.contourBlocks > 0 {
             log("folded \(contourFiles.count) contour file(s) in, \(tally.contourBlocks) block(s)")
         }

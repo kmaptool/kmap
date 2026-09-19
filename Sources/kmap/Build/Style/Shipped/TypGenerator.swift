@@ -8,7 +8,6 @@ import Foundation
 /// four steps a MIP watch can actually show (0, 85, 170, 255). A night palette drawn in
 /// finer steps looks fine on paper and collapses to mud on the wrist.
 enum TypGenerator {
-
     /// `points` is a block of ready `[_point]` sections appended as it is - icons are
     /// bitmaps made once from their SVGs, not something to regenerate at build time.
     ///
@@ -17,8 +16,13 @@ enum TypGenerator {
     /// the flat colour that would be generated, a line section for a code the palette
     /// does not carry is appended, and a polygon for an unknown code is dropped - a
     /// polygon needs a draw order, and the palette is where draw orders live.
-    static func text(from palette: StylePalette, fid: Int, productCode: Int = 1,
-                     points: String = "", graphics: String = "") -> String {
+    static func text(
+        from palette: StylePalette,
+        fid: Int,
+        productCode: Int = 1,
+        points: String = "",
+        graphics: String = ""
+    ) -> String {
         let overrides = parseGraphics(graphics)
         var out: [String] = []
         out.append("; -*- coding: UTF-8 -*-")
@@ -108,9 +112,11 @@ enum TypGenerator {
         guard !section.contains("String=0x00,") else { return section }
         var lines = section.components(separatedBy: "\n")
         // First, so it is the label a device reads before their own language entries.
-        guard let type = lines.firstIndex(where: {
-            $0.trimmingCharacters(in: .whitespaces).lowercased().hasPrefix("type=")
-        }) else { return section }
+        guard
+            let type = lines.firstIndex(where: {
+                $0.trimmingCharacters(in: .whitespaces).lowercased().hasPrefix("type=")
+            })
+        else { return section }
         lines.insert("String=0x00,\(name)", at: type + 1)
         return lines.joined(separator: "\n")
     }
@@ -120,8 +126,11 @@ enum TypGenerator {
     /// Through `TypSource.parse`, the one reader of TYP text: it already knows a
     /// section's kind and code, tolerates CRLF, casing and a comment after the type,
     /// and a second hand-written splitter here accepted strictly less than it.
-    static func parseGraphics(_ text: String)
-    -> (polygons: [Int: String], lines: [Int: String]) {
+    static func parseGraphics(
+        _ text: String
+    )
+        -> (polygons: [Int: String], lines: [Int: String])
+    {
         var polygons: [Int: String] = [:]
         var lines: [Int: String] = [:]
         guard !text.isEmpty else { return (polygons, lines) }
@@ -141,7 +150,8 @@ enum TypGenerator {
     /// snapped to the nearest of 0, 85, 170, 255 - the only greys a MIP display has.
     static func night(of day: String) -> String {
         guard day.count == 7, day.hasPrefix("#"),
-              let value = Int(day.dropFirst(), radix: 16) else { return day }
+            let value = Int(day.dropFirst(), radix: 16)
+        else { return day }
         func snap(_ channel: Int) -> Int {
             let dimmed = channel * 2 / 3
             return ((dimmed + 42) / 85) * 85

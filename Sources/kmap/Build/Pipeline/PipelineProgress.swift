@@ -4,10 +4,9 @@ import Foundation
 /// stage's status, detail line and bar, the timed pieces of work inside it,
 /// and the snapshot every screen and the CLI read.
 extension BuildPipeline {
-
     enum StageID: String, CaseIterable {
         case preflight, dataUpdate, download, elevation, elevationBuild, split,
-             compile, collect
+            compile, collect
 
         /// Whether this stage runs concurrently with the others rather than before them.
         /// The elevation stages start once the extracts are down and run beside the split.
@@ -104,13 +103,15 @@ extension BuildPipeline {
 
     func snapshot() -> Snapshot {
         let run = state.withLock { $0 }
-        var made = Snapshot(stages: board.stages,
-                            finished: run.finished,
-                            failure: run.failure,
-                            cancelled: run.wasCancelled,
-                            outputs: run.outputs,
-                            startedAt: run.startedAt,
-                            finishedAt: run.finishedAt)
+        var made = Snapshot(
+            stages: board.stages,
+            finished: run.finished,
+            failure: run.failure,
+            cancelled: run.wasCancelled,
+            outputs: run.outputs,
+            startedAt: run.startedAt,
+            finishedAt: run.finishedAt
+        )
         made.overallFloor = board.floor(raisedTo: made.rawOverall)
         return made
     }
@@ -123,10 +124,12 @@ extension BuildPipeline {
         var peakBytes: Int64
     }
 
-
     /// Times a piece of work and files it under its stage.
-    func measure<T>(_ stage: StageID, _ name: String,
-                            _ work: () async throws -> T) async rethrows -> T {
+    func measure<T>(
+        _ stage: StageID,
+        _ name: String,
+        _ work: () async throws -> T
+    ) async rethrows -> T {
         let started = Date()
         let result = try await work()
         record(stage, name, Date().timeIntervalSince(started))
@@ -168,8 +171,11 @@ extension BuildPipeline {
         let total = ran.reduce(0.0) { $0 + $1.seconds }
         guard total > 1 else { return }
 
-        let width = max(ran.map { $0.id.title.count }.max() ?? 12,
-                        (marks.map { $0.name.count + 2 }.max() ?? 0)) + 2
+        let width =
+            max(
+                ran.map { $0.id.title.count }.max() ?? 12,
+                (marks.map { $0.name.count + 2 }.max() ?? 0)
+            ) + 2
         func padded(_ text: String) -> String {
             text + String(repeating: " ", count: max(1, width - text.count))
         }
@@ -178,12 +184,20 @@ extension BuildPipeline {
         log.append("where the time went")
         for stage in ran {
             let share = Int((stage.seconds / total * 100).rounded())
-            log.append("  " + padded(stage.id.title)
-                       + String(format: "%6.1f s  %3d%%   up to %@",
-                                stage.seconds, share, Fmt.bytes(stage.peakBytes)))
+            log.append(
+                "  " + padded(stage.id.title)
+                    + String(
+                        format: "%6.1f s  %3d%%   up to %@",
+                        stage.seconds,
+                        share,
+                        Fmt.bytes(stage.peakBytes)
+                    )
+            )
             for mark in marks where mark.stage == stage.id && mark.seconds >= 0.05 {
-                log.append("    " + padded("· " + mark.name)
-                           + String(format: "%6.1f s", mark.seconds))
+                log.append(
+                    "    " + padded("· " + mark.name)
+                        + String(format: "%6.1f s", mark.seconds)
+                )
             }
         }
         log.append("  " + padded("in all") + String(format: "%6.1f s", total))

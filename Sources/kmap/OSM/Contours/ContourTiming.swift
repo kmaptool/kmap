@@ -68,13 +68,27 @@ enum ContourTiming {
 
         var out: [String] = []
         let busy = totals.values.reduce(0, +)
-        out.append(String(format: "contour timing: %.1f s wall, %.1f s of work in %d lane(s)"
-                          + " — %.1f cores' worth", wall, busy, lanes, busy / max(wall, leastSeconds)))
+        out.append(
+            String(
+                format: "contour timing: %.1f s wall, %.1f s of work in %d lane(s)"
+                    + " — %.1f cores' worth",
+                wall,
+                busy,
+                lanes,
+                busy / max(wall, leastSeconds)
+            )
+        )
         for phase in order {
             let seconds = totals[phase] ?? 0
-            out.append(String(format: "  %-10@ %7.1f s  %5.1f%% of work  %5.1f%% of wall",
-                              phase as NSString, seconds, 100 * seconds / max(busy, leastSeconds),
-                              100 * seconds / max(wall, leastSeconds) / Double(lanes)))
+            out.append(
+                String(
+                    format: "  %-10@ %7.1f s  %5.1f%% of work  %5.1f%% of wall",
+                    phase as NSString,
+                    seconds,
+                    100 * seconds / max(busy, leastSeconds),
+                    100 * seconds / max(wall, leastSeconds) / Double(lanes)
+                )
+            )
         }
 
         // The tail: a stage with ten lanes and one four-minute cell spends its last four
@@ -96,16 +110,30 @@ enum ContourTiming {
             running += event.delta
             previous = event.at
         }
-        out.append(String(format: "  %d cell(s); mean occupancy %.1f lane(s);"
-                          + " %.1f s (%.0f%%) below half the lanes",
-                          cells.count, occupancy / max(last, leastSeconds), alone,
-                          100 * alone / max(last, leastSeconds)))
-        out.append("  slowest cell(s): " + sorted.prefix(5).map {
-            String(format: "%@ %.1f s (starts at %.1f)", $0.name, $0.seconds, $0.start)
-        }.joined(separator: ", "))
+        out.append(
+            String(
+                format: "  %d cell(s); mean occupancy %.1f lane(s);"
+                    + " %.1f s (%.0f%%) below half the lanes",
+                cells.count,
+                occupancy / max(last, leastSeconds),
+                alone,
+                100 * alone / max(last, leastSeconds)
+            )
+        )
+        out.append(
+            "  slowest cell(s): "
+                + sorted.prefix(5).map {
+                    String(format: "%@ %.1f s (starts at %.1f)", $0.name, $0.seconds, $0.start)
+                }.joined(separator: ", ")
+        )
         let points = cells.reduce(0) { $0 + $1.points }
-        out.append(String(format: "  %d point(s) traced, %.2f µs each of work",
-                          points, busy * 1e6 / Double(max(points, 1))))
+        out.append(
+            String(
+                format: "  %d point(s) traced, %.2f µs each of work",
+                points,
+                busy * 1e6 / Double(max(points, 1))
+            )
+        )
         return out
     }
 }

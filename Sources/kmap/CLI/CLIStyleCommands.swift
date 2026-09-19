@@ -28,8 +28,10 @@ extension CLI {
             }
             guard ImgContainer.isImg(url) else {
                 CLILog.line("  not a Garmin IMG")
-                maps.append(["file": .string(url.lastPathComponent), "found": true,
-                             "isIMG": false])
+                maps.append([
+                    "file": .string(url.lastPathComponent), "found": true,
+                    "isIMG": false
+                ])
                 unreadable += 1
                 continue
             }
@@ -46,7 +48,8 @@ extension CLI {
             var ladders: [String: [(level: Int, resolution: Int, count: Int)]] = [:]
             for tre in directory where tre.ext.uppercased() == "TRE" {
                 guard let data = ImgContainer.read(tre, from: url),
-                      let tree = try? ImgElements.Tree(data, tile: tre.name) else { continue }
+                    let tree = try? ImgElements.Tree(data, tile: tre.name)
+                else { continue }
                 var seen: [Int: (Int, Int)] = [:]
                 for division in tree.subdivisions {
                     var held = seen[division.level] ?? (division.shift, 0)
@@ -70,38 +73,52 @@ extension CLI {
             }
             if let first = ladders.keys.sorted().first, let ladder = ladders[first] {
                 if ladders.count > 1 {
-                    let same = ladders.values.allSatisfy { $0.map(\.resolution)
-                        == ladder.map(\.resolution) }
+                    let same = ladders.values.allSatisfy {
+                        $0.map(\.resolution)
+                            == ladder.map(\.resolution)
+                    }
                     let finest = ladders.values.compactMap { $0.map(\.resolution).max() }.max() ?? 0
                     let coarsest = ladders.values.compactMap { $0.map(\.resolution).min() }.min() ?? 0
-                    CLILog.line("    \(ladders.count) tile(s), "
-                                + (same ? "all on the same ladder" : "ladders differ")
-                                + " · resolutions \(coarsest)…\(finest)")
+                    CLILog.line(
+                        "    \(ladders.count) tile(s), "
+                            + (same ? "all on the same ladder" : "ladders differ")
+                            + " · resolutions \(coarsest)…\(finest)"
+                    )
                 }
             }
 
             let identity = ImgContainer.typIdentity(in: url)
             if let identity {
-                CLILog.line("  TYP: family \(identity.familyID), product \(identity.productID),"
-                      + " \(Fmt.bytes(Int64(identity.size)))")
+                CLILog.line(
+                    "  TYP: family \(identity.familyID), product \(identity.productID),"
+                        + " \(Fmt.bytes(Int64(identity.size)))"
+                )
             } else if directory.contains(where: { $0.ext.uppercased() == "TYP" }) {
                 CLILog.line("  TYP present but its header could not be read")
             } else {
                 CLILog.line("  no TYP inside")
             }
-            maps.append(["file": .string(url.lastPathComponent),
-                         "path": .string(url.path),
-                         "found": true,
-                         "isIMG": true,
-                         "subFiles": .int(directory.count),
-                         "listed": .array(listed.map {
-                             ["name": .string($0.fullName), "bytes": .int($0.size),
-                              "blocks": .int($0.blocks.count)]
-                         }),
-                         "typ": identity.map {
-                             ["family": .int($0.familyID), "product": .int($0.productID),
-                              "bytes": .int($0.size)]
-                         } ?? .null])
+            maps.append([
+                "file": .string(url.lastPathComponent),
+                "path": .string(url.path),
+                "found": true,
+                "isIMG": true,
+                "subFiles": .int(directory.count),
+                "listed": .array(
+                    listed.map {
+                        [
+                            "name": .string($0.fullName), "bytes": .int($0.size),
+                            "blocks": .int($0.blocks.count)
+                        ]
+                    }
+                ),
+                "typ": identity.map {
+                    [
+                        "family": .int($0.familyID), "product": .int($0.productID),
+                        "bytes": .int($0.size)
+                    ]
+                } ?? .null
+            ])
         }
         CLIOutput.result(["maps": .array(maps)])
         // The per-file verdicts are the answer; the code says whether every file could
@@ -118,7 +135,8 @@ extension CLI {
             return CLIOutput.failure("extract-typ needs a .img path", code: 2)
         }
         let force = flags.has("force")
-        let destinationDir = flags.value("out").map { Paths.expand($0) }
+        let destinationDir =
+            flags.value("out").map { Paths.expand($0) }
             ?? Paths.root.appendingPathComponent("typ", isDirectory: true)
         Paths.ensure(destinationDir)
 
@@ -128,7 +146,9 @@ extension CLI {
         guard !CLIOutput.isJSON else {
             return CLIOutput.failure(
                 "extract-typ asks an interactive copyright confirmation, which --json"
-                + " cannot show — run it without --json", code: 2)
+                    + " cannot show — run it without --json",
+                code: 2
+            )
         }
         CLILog.line("Important")
         CLILog.line("")
@@ -136,12 +156,16 @@ extension CLI {
             CLILog.line("  file  \(Paths.expand(path).lastPathComponent)")
         }
         CLILog.line("")
-        CLILog.line("I confirm that the copyright in the files being imported is mine, or that"
-              + " their author has given me permission, or that they are open source and"
-              + " copying and editing them is allowed.")
+        CLILog.line(
+            "I confirm that the copyright in the files being imported is mine, or that"
+                + " their author has given me permission, or that they are open source and"
+                + " copying and editing them is allowed."
+        )
         CLILog.line("")
-        CLILog.line("The copy stays on this machine. kmap does not publish it and does not send"
-              + " it anywhere; what is done with it afterwards is yours to answer for.")
+        CLILog.line(
+            "The copy stays on this machine. kmap does not publish it and does not send"
+                + " it anywhere; what is done with it afterwards is yours to answer for."
+        )
         CLILog.line("")
         CLILog.write("Type y to confirm: ")
         guard readLine()?.trimmingCharacters(in: .whitespaces).lowercased() == "y" else {
@@ -176,18 +200,24 @@ extension CLI {
                 failures += 1
                 continue
             }
-            CLILog.line("\(Paths.display(destination))  \(Fmt.bytes(FileTools.size(of: destination)))"
-                  + "  family \(identity.familyID)")
-            extracted.append(["from": .string(url.path),
-                              "typ": .string(destination.path),
-                              "bytes": .int(Int(FileTools.size(of: destination))),
-                              "familyID": .int(identity.familyID),
-                              "productID": .int(identity.productID)])
+            CLILog.line(
+                "\(Paths.display(destination))  \(Fmt.bytes(FileTools.size(of: destination)))"
+                    + "  family \(identity.familyID)"
+            )
+            extracted.append([
+                "from": .string(url.path),
+                "typ": .string(destination.path),
+                "bytes": .int(Int(FileTools.size(of: destination))),
+                "familyID": .int(identity.familyID),
+                "productID": .int(identity.productID)
+            ])
         }
 
         if failures == 0 {
-            CLILog.line("\nEdit the file and build with it — kmap picks up any .typ under "
-                  + "\(Paths.display(Paths.root.appendingPathComponent("typ"))) as a style,")
+            CLILog.line(
+                "\nEdit the file and build with it — kmap picks up any .typ under "
+                    + "\(Paths.display(Paths.root.appendingPathComponent("typ"))) as a style,"
+            )
             CLILog.line("and never overwrites one that already exists.")
         }
         CLIOutput.result(["extracted": .array(extracted), "failures": .int(failures)])
@@ -207,34 +237,49 @@ extension CLI {
         do {
             let source = Paths.expand(path)
             let palette = try StylePalette.read(
-                String(contentsOf: source, encoding: .utf8))
+                String(contentsOf: source, encoding: .utf8)
+            )
             // Icon and pattern sections live beside the table, ready-made; see
             // points.txt and graphics.txt.
-            let points = (try? String(
-                contentsOf: source.deletingLastPathComponent()
-                    .appendingPathComponent("points.txt"),
-                encoding: .utf8)) ?? ""
-            let graphics = (try? String(
-                contentsOf: source.deletingLastPathComponent()
-                    .appendingPathComponent("graphics.txt"),
-                encoding: .utf8)) ?? ""
-            let text = TypGenerator.text(from: palette, fid: fid, points: points,
-                                         graphics: graphics)
+            let points =
+                (try? String(
+                    contentsOf: source.deletingLastPathComponent()
+                        .appendingPathComponent("points.txt"),
+                    encoding: .utf8
+                )) ?? ""
+            let graphics =
+                (try? String(
+                    contentsOf: source.deletingLastPathComponent()
+                        .appendingPathComponent("graphics.txt"),
+                    encoding: .utf8
+                )) ?? ""
+            let text = TypGenerator.text(
+                from: palette,
+                fid: fid,
+                points: points,
+                graphics: graphics
+            )
             if let out = flags.value("out") {
                 let destination = Paths.expand(out)
                 try text.write(to: destination, atomically: true, encoding: .utf8)
-                CLILog.line("\(Paths.display(destination))  \(palette.polygons.count)"
-                      + " polygon(s), \(palette.lines.count) line(s), FID \(fid)")
-                CLIOutput.result(["out": .string(destination.path),
-                                  "polygons": .int(palette.polygons.count),
-                                  "lines": .int(palette.lines.count),
-                                  "familyID": .int(fid)])
+                CLILog.line(
+                    "\(Paths.display(destination))  \(palette.polygons.count)"
+                        + " polygon(s), \(palette.lines.count) line(s), FID \(fid)"
+                )
+                CLIOutput.result([
+                    "out": .string(destination.path),
+                    "polygons": .int(palette.polygons.count),
+                    "lines": .int(palette.lines.count),
+                    "familyID": .int(fid)
+                ])
             } else {
                 CLILog.line(text)
-                CLIOutput.result(["polygons": .int(palette.polygons.count),
-                                  "lines": .int(palette.lines.count),
-                                  "familyID": .int(fid),
-                                  "text": .string(text)])
+                CLIOutput.result([
+                    "polygons": .int(palette.polygons.count),
+                    "lines": .int(palette.lines.count),
+                    "familyID": .int(fid),
+                    "text": .string(text)
+                ])
             }
             return 0
         } catch {
@@ -252,7 +297,8 @@ extension CLI {
             for entry in FileTools.contents(of: root) {
                 var isDir: ObjCBool = false
                 guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir),
-                      isDir.boolValue else { continue }
+                    isDir.boolValue
+                else { continue }
                 found.append(contentsOf: FileTools.contents(of: entry, extension: "img").map(\.path))
             }
             paths = found
@@ -275,17 +321,25 @@ extension CLI {
                 case .warn: mark = "warn"
                 case .fail: mark = "FAIL"
                 }
-                CLILog.line("  \(mark)  \(finding.label.padding(toLength: 14, withPad: " ", startingAt: 0))"
-                      + "  \(finding.detail)")
+                CLILog.line(
+                    "  \(mark)  \(finding.label.padding(toLength: 14, withPad: " ", startingAt: 0))"
+                        + "  \(finding.detail)"
+                )
             }
-            reported.append(["file": .string(report.url.lastPathComponent),
-                             "path": .string(report.url.path),
-                             "ok": .bool(!report.failed),
-                             "findings": .array(report.findings.map {
-                                 ["level": .string("\($0.level)"),
-                                  "label": .string($0.label),
-                                  "detail": .string($0.detail)]
-                             })])
+            reported.append([
+                "file": .string(report.url.lastPathComponent),
+                "path": .string(report.url.path),
+                "ok": .bool(!report.failed),
+                "findings": .array(
+                    report.findings.map {
+                        [
+                            "level": .string("\($0.level)"),
+                            "label": .string($0.label),
+                            "detail": .string($0.detail)
+                        ]
+                    }
+                )
+            ])
             if report.failed { worst = max(worst, 1) }
         }
         CLIOutput.result(["maps": .array(reported)])
@@ -299,19 +353,26 @@ extension CLI {
         let styles = catalog.availableStyles()
         let width = min(46, styles.map(\.id.count).max() ?? 20)
         for style in styles {
-            let id = style.id.count >= width
+            let id =
+                style.id.count >= width
                 ? style.id
                 : style.id.padding(toLength: width, withPad: " ", startingAt: 0)
             CLILog.line("\(id)  \(style.name)")
             CLILog.line("\(String(repeating: " ", count: width + 2))\(style.summary)")
         }
         CLILog.line("\n\(styles.count) style(s)")
-        CLIOutput.result(["styles": .array(styles.map {
-            ["id": .string($0.id), "name": .string($0.name),
-             "summary": .string($0.summary), "origin": .string($0.origin.name),
-             "familyID": .int($0.familyID), "productID": .int($0.productID),
-             "typ": .of($0.typURL?.path)]
-        })])
+        CLIOutput.result([
+            "styles": .array(
+                styles.map {
+                    [
+                        "id": .string($0.id), "name": .string($0.name),
+                        "summary": .string($0.summary), "origin": .string($0.origin.name),
+                        "familyID": .int($0.familyID), "productID": .int($0.productID),
+                        "typ": .of($0.typURL?.path)
+                    ]
+                }
+            )
+        ])
         return 0
     }
 
@@ -324,7 +385,8 @@ extension CLI {
         let current = store.currentProfile.id
         let width = min(30, profiles.map(\.name.count).max() ?? 12)
         for profile in profiles {
-            let name = profile.name.count >= width
+            let name =
+                profile.name.count >= width
                 ? profile.name
                 : profile.name.padding(toLength: width, withPad: " ", startingAt: 0)
             CLILog.line(profile.id == current ? "\(name)  (open in the interface)" : profile.name)
@@ -332,45 +394,61 @@ extension CLI {
         }
         CLILog.line("\n\(profiles.count) profile(s). Build with: kmap build … --profile=<name>")
         CLILog.line("Optional: a build given no --profile switches on only what its flags say.")
-        CLIOutput.result(["profiles": .array(profiles.map {
-            ["id": .string($0.id), "name": .string($0.name),
-             "current": .bool($0.id == current),
-             "summary": .string(describe($0.choices)),
-             "choices": choicesAsData($0.choices)]
-        })])
+        CLIOutput.result([
+            "profiles": .array(
+                profiles.map {
+                    [
+                        "id": .string($0.id), "name": .string($0.name),
+                        "current": .bool($0.id == current),
+                        "summary": .string(describe($0.choices)),
+                        "choices": choicesAsData($0.choices)
+                    ]
+                }
+            )
+        ])
         return 0
     }
 
     /// The same choices as data, for a reader that is not a person. Every field a
     /// profile holds, under the names the flags use.
     static func choicesAsData(_ choices: BuildChoices) -> JSONValue {
-        ["style": .string(choices.styleID),
-         "contours": .bool(choices.contours),
-         "interval": .int(choices.contourInterval),
-         "dem": .bool(choices.demLayer),
-         "summits": .bool(choices.fixSummits),
-         "sources": .string(choices.demSources),
-         "levels": .string(choices.levelsID),
-         "labels": .string(choices.labelLanguageID),
-         "codePage": .int(choices.codePage),
-         "split": .string(choices.splitMode),
-         "parts": .int(choices.parts),
-         "hide": .array(choices.hiddenFeatures.map(JSONValue.string))]
+        [
+            "style": .string(choices.styleID),
+            "contours": .bool(choices.contours),
+            "interval": .int(choices.contourInterval),
+            "dem": .bool(choices.demLayer),
+            "summits": .bool(choices.fixSummits),
+            "sources": .string(choices.demSources),
+            "levels": .string(choices.levelsID),
+            "labels": .string(choices.labelLanguageID),
+            "codePage": .int(choices.codePage),
+            "split": .string(choices.splitMode),
+            "parts": .int(choices.parts),
+            "hide": .array(choices.hiddenFeatures.map(JSONValue.string))
+        ]
     }
 
     /// One profile on one line.
     static func describe(_ choices: BuildChoices) -> String {
         var parts = ["style \(choices.styleID)"]
-        parts.append(choices.contours ? "contours \(choices.contourInterval) m"
-                                      : "no contours")
+        parts.append(
+            choices.contours
+                ? "contours \(choices.contourInterval) m"
+                : "no contours"
+        )
         parts.append(choices.demLayer ? "DEM" : "no DEM")
         if choices.contours || choices.demLayer { parts.append(choices.demSources) }
         parts.append("levels \(choices.levelsID)")
         parts.append("labels \(choices.labelLanguageID)")
-        parts.append(choices.codePage == 0 ? "code page by region"
-                                           : "code page \(choices.codePage)")
-        parts.append("split \(choices.splitMode)"
-                     + (choices.splitMode == "custom" ? " \(choices.parts)" : ""))
+        parts.append(
+            choices.codePage == 0
+                ? "code page by region"
+                : "code page \(choices.codePage)"
+        )
+        parts.append(
+            "split \(choices.splitMode)"
+                + (choices.splitMode == "custom" ? " \(choices.parts)" : "")
+        )
         if !choices.hiddenFeatures.isEmpty {
             parts.append("hides \(choices.hiddenFeatures.joined(separator: ","))")
         }

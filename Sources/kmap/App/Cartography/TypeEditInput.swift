@@ -34,9 +34,11 @@ extension TypeEditScreen {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return .none
         }
-        return .push(IconDonorScreen(kind: kind, target: section) { [weak self] picture in
-            self?.apply(picture)
-        })
+        return .push(
+            IconDonorScreen(kind: kind, target: section) { [weak self] picture in
+                self?.apply(picture)
+            }
+        )
     }
 
     /// Opens the picture in the pixel editor.
@@ -45,8 +47,13 @@ extension TypeEditScreen {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return .none
         }
-        guard let editor = PixelEditorScreen(style: style, kind: kind, code: code,
-                                             onSaved: { [weak self] in self?.reload() })
+        guard
+            let editor = PixelEditorScreen(
+                style: style,
+                kind: kind,
+                code: code,
+                onSaved: { [weak self] in self?.reload() }
+            )
         else {
             say(t("there is no drawing here to edit — borrow one first"), error: true)
             return .none
@@ -58,13 +65,21 @@ extension TypeEditScreen {
     private func apply(_ picture: XpmBlock) {
         guard let source = document.source, let url = document.sourceURL else { return }
         do {
-            let edited = try TypEdit.setPicture(in: source, kind: kind, code: code,
-                                                to: picture)
+            let edited = try TypEdit.setPicture(
+                in: source,
+                kind: kind,
+                code: code,
+                to: picture
+            )
             try TypLibrary.save(edited, to: url)
             reload()
-            say(t("drawing replaced — %@, %@",
-                  "\(picture.width)×\(picture.height)",
-                  tn("%d colour(s)", picture.declaredColours)))
+            say(
+                t(
+                    "drawing replaced — %@, %@",
+                    "\(picture.width)×\(picture.height)",
+                    tn("%d colour(s)", picture.declaredColours)
+                )
+            )
         } catch {
             say(error.localizedDescription, error: true)
         }
@@ -73,13 +88,20 @@ extension TypeEditScreen {
     /// Makes room for night colours on an element that has only day ones.
     private func addNightColours() {
         guard document.isEditable, let source = document.source,
-              let url = document.sourceURL else {
+            let url = document.sourceURL
+        else {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return
         }
         do {
-            try TypLibrary.save(try TypEdit.addNightColours(in: source, kind: kind,
-                                                            code: code), to: url)
+            try TypLibrary.save(
+                try TypEdit.addNightColours(
+                    in: source,
+                    kind: kind,
+                    code: code
+                ),
+                to: url
+            )
             reload()
             say(t("night colours added, the same as day to start — now change them"))
         } catch {
@@ -90,7 +112,8 @@ extension TypeEditScreen {
     /// Gives a point a night picture drawn the same as its day one.
     private func addNightPicture() {
         guard document.isEditable, let source = document.source,
-              let url = document.sourceURL else {
+            let url = document.sourceURL
+        else {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return
         }
@@ -173,7 +196,8 @@ extension TypeEditScreen {
     /// Rewrites the one line this field lives on, and reloads from disk.
     private func apply() {
         guard let field = editing, let source = document.source,
-              let url = document.sourceURL else { return }
+            let url = document.sourceURL
+        else { return }
         let value = draft.trimmingCharacters(in: .whitespaces)
 
         do {
@@ -183,17 +207,30 @@ extension TypeEditScreen {
                 return
             case .labelColour:
                 edited = try TypEdit.setLabelColour(
-                    in: source, kind: kind, code: code, night: onNight,
-                    to: meansNone(value) ? nil : value)
+                    in: source,
+                    kind: kind,
+                    code: code,
+                    night: onNight,
+                    to: meansNone(value) ? nil : value
+                )
             case .colourPair(_, let day, let night):
                 guard let slot = onNight ? night : day else { return }
-                edited = try TypEdit.setColour(in: source, kind: kind, code: code,
-                                               colourIndex: slot.index,
-                                               to: meansNone(value) ? nil : value,
-                                               tag: slot.tag)
+                edited = try TypEdit.setColour(
+                    in: source,
+                    kind: kind,
+                    code: code,
+                    colourIndex: slot.index,
+                    to: meansNone(value) ? nil : value,
+                    tag: slot.tag
+                )
             case .label(let language, _):
-                edited = try TypEdit.setLabel(in: source, kind: kind, code: code,
-                                              language: language, to: value)
+                edited = try TypEdit.setLabel(
+                    in: source,
+                    kind: kind,
+                    code: code,
+                    language: language,
+                    to: value
+                )
             }
             try TypLibrary.save(edited, to: url)
             reload()
@@ -209,7 +246,8 @@ extension TypeEditScreen {
     /// is the absence of the tag.
     private func cycleFontStyle() {
         guard document.isEditable, let source = document.source,
-              let url = document.sourceURL, let section else {
+            let url = document.sourceURL, let section
+        else {
             say(t("this style is read-only — take an editable copy first"), error: true)
             return
         }
@@ -217,13 +255,22 @@ extension TypeEditScreen {
         let current = styles.firstIndex(of: section.fontStyle ?? "") ?? 0
         let next = styles[(current + 1) % styles.count]
         do {
-            try TypLibrary.save(try TypEdit.setFontStyle(in: source, kind: kind, code: code,
-                                                         to: next.isEmpty ? nil : next),
-                                to: url)
+            try TypLibrary.save(
+                try TypEdit.setFontStyle(
+                    in: source,
+                    kind: kind,
+                    code: code,
+                    to: next.isEmpty ? nil : next
+                ),
+                to: url
+            )
             reload()
             // The value is the compiler's own word and is not translated.
-            say(next.isEmpty ? t("font style left to the device")
-                             : t("font style: %@", next))
+            say(
+                next.isEmpty
+                    ? t("font style left to the device")
+                    : t("font style: %@", next)
+            )
         } catch {
             say(error.localizedDescription, error: true)
         }
@@ -235,7 +282,8 @@ extension TypeEditScreen {
         var tally: [String: Int] = [:]
         for section in source.sections {
             for entry in (section.xpm?.palette ?? []) + (section.dayXpm?.palette ?? [])
-                + (section.nightXpm?.palette ?? []) {
+                + (section.nightXpm?.palette ?? [])
+            {
                 guard let colour = entry.colour else { continue }
                 tally[colour.uppercased(), default: 0] += 1
             }

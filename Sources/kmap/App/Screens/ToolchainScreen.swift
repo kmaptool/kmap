@@ -9,14 +9,19 @@ final class ToolchainScreen: Screen {
     var page: Page { Page(t("toolchain"), keys: keys) }
 
     private var keys: [Hint] {
-        var hints = [Hint(key: "↑↓", label: t("move")),
-                     Hint(key: Glyph.enter, label: t("install")),
-                     Hint(key: "u", label: t("update")),
-                     Hint(key: "a", label: t("install all missing")),
-                     Hint(key: "x", label: t("remove")),
-                     Hint(key: "r", label: t("re-check"))]
-        hints.append(isBusy ? Hint(key: "^C", label: t("stop"))
-                            : Hint(key: "esc", label: t("back")))
+        var hints = [
+            Hint(key: "↑↓", label: t("move")),
+            Hint(key: Glyph.enter, label: t("install")),
+            Hint(key: "u", label: t("update")),
+            Hint(key: "a", label: t("install all missing")),
+            Hint(key: "x", label: t("remove")),
+            Hint(key: "r", label: t("re-check"))
+        ]
+        hints.append(
+            isBusy
+                ? Hint(key: "^C", label: t("stop"))
+                : Hint(key: "esc", label: t("back"))
+        )
         return hints
     }
 
@@ -121,8 +126,11 @@ final class ToolchainScreen: Screen {
         }
         guard tool.isReady else { return .install }
         guard ctx.packNews[tool.id] != nil else {
-            return .nothing(ctx.packsChecked ? t("%@ is already the published one", tool.name)
-                                             : t("still checking…"))
+            return .nothing(
+                ctx.packsChecked
+                    ? t("%@ is already the published one", tool.name)
+                    : t("still checking…")
+            )
         }
         return .fetch
     }
@@ -163,8 +171,10 @@ final class ToolchainScreen: Screen {
 
     private func install(_ tool: ToolStatus, _ ctx: AppContext) {
         guard !isInstalling(tool.id) else {
-            message = queued.contains(tool.id) ? waitingNote(for: tool.id, ctx)
-                                               : t("%@ is still installing", tool.name)
+            message =
+                queued.contains(tool.id)
+                ? waitingNote(for: tool.id, ctx)
+                : t("%@ is still installing", tool.name)
             return
         }
         // A package manager writes across the whole machine, and on a box with passwordless
@@ -174,8 +184,10 @@ final class ToolchainScreen: Screen {
         // rather than answering it, or the consent is one repeated keystroke deep.
         if let command = ctx.toolchain.rootInstallCommand(for: tool.id) {
             awaitingRoot = tool.id
-            message = t("this installs a system package as root:  %@   —  press y to go ahead",
-                        command)
+            message = t(
+                "this installs a system package as root:  %@   —  press y to go ahead",
+                command
+            )
             return
         }
         awaitingRoot = nil
@@ -228,9 +240,10 @@ final class ToolchainScreen: Screen {
         running[tool.id] = job
         let log = self.log
         let toolchain = ctx.toolchain
-        let install = installer ?? { id, log, runner, progress in
-            try await toolchain.install(id, log: log, runner: runner, progress: progress)
-        }
+        let install =
+            installer ?? { id, log, runner, progress in
+                try await toolchain.install(id, log: log, runner: runner, progress: progress)
+            }
 
         log.step(t("installing %@", tool.name))
         job.progress.begin(tool.name)
@@ -311,8 +324,11 @@ final class ToolchainScreen: Screen {
 
         // Wrapped, not clipped: the path in the middle makes this line longer than a
         // narrow window, and a sentence cut at the edge reads as a mistake.
-        let intro = t("A map needs Java and mkgmap. Everything kmap installs"
-                    + " lives under %@.", Paths.display(Paths.root))
+        let intro = t(
+            "A map needs Java and mkgmap. Everything kmap installs"
+                + " lives under %@.",
+            Paths.display(Paths.root)
+        )
         for chunk in wrapText(intro, width: rect.w) {
             s.text(rect.x, y, chunk, Style(fg: theme.faint, bg: theme.appBg))
             y += 1
@@ -321,8 +337,12 @@ final class ToolchainScreen: Screen {
 
         let tools = tools(ctx)
         if tools.isEmpty {
-            s.text(rect.x, y, t("checking %@", String(Widgets.spinner(ctx.frame))),
-                   Style(fg: theme.dim, bg: theme.appBg))
+            s.text(
+                rect.x,
+                y,
+                t("checking %@", String(Widgets.spinner(ctx.frame))),
+                Style(fg: theme.dim, bg: theme.appBg)
+            )
             return
         }
         list.clamp(count: tools.count, visible: max(1, tools.count * 3))
@@ -351,43 +371,77 @@ final class ToolchainScreen: Screen {
 
             s.text(rect.x + 2, y, marker, Style(fg: tone, bg: bg))
             s.text(rect.x + 4, y, tool.name, Style(fg: theme.strong, bg: bg, bold: true))
-            s.text(rect.x + 22, y, tool.detail, Style(fg: theme.faint, bg: bg),
-                   limit: max(0, rect.w - 24))
+            s.text(
+                rect.x + 22,
+                y,
+                tool.detail,
+                Style(fg: theme.faint, bg: bg),
+                limit: max(0, rect.w - 24)
+            )
 
             // An install in flight takes the row's other two lines for itself.
             if let job {
-                InstallProgressRow.draw(s, x: rect.x + 4, y: y + 1, width: rect.w - 6,
-                                        progress: job.progress, theme: theme, bg: bg)
+                InstallProgressRow.draw(
+                    s,
+                    x: rect.x + 4,
+                    y: y + 1,
+                    width: rect.w - 6,
+                    progress: job.progress,
+                    theme: theme,
+                    bg: bg
+                )
                 y += 3
                 continue
             }
 
-            let statusText = waiting ? waitingNote(for: tool.id, ctx)
+            let statusText =
+                waiting
+                ? waitingNote(for: tool.id, ctx)
                 : (tool.isReady ? (tool.version ?? t("ready")) : t("not installed"))
-            let after = s.text(rect.x + 4, y + 1, truncate(statusText, to: rect.w - 6),
-                               Style(fg: tool.isReady ? theme.dim : theme.warn, bg: bg))
+            let after = s.text(
+                rect.x + 4,
+                y + 1,
+                truncate(statusText, to: rect.w - 6),
+                Style(fg: tool.isReady ? theme.dim : theme.warn, bg: bg)
+            )
             // A pack the mirror has moved on from, said where the note would go.
             if !waiting, let news = ctx.packNews[tool.id] {
                 let room = rect.maxX - after - 4
                 let said = t("newer one published %@ — press u", news.describedShortly)
                 if room > 8 {
-                    s.text(after + 1, y + 1, truncate("\(Glyph.dot) \(said)", to: room),
-                           Style(fg: theme.accent, bg: bg))
+                    s.text(
+                        after + 1,
+                        y + 1,
+                        truncate("\(Glyph.dot) \(said)", to: room),
+                        Style(fg: theme.accent, bg: bg)
+                    )
                 }
             } else if tool.isReady, let note = tool.note {
                 let room = rect.maxX - after - 4
                 if room > 8 {
-                    s.text(after + 1, y + 1, truncate("\(Glyph.dot) \(note)", to: room),
-                           Style(fg: theme.warn, bg: bg))
+                    s.text(
+                        after + 1,
+                        y + 1,
+                        truncate("\(Glyph.dot) \(note)", to: room),
+                        Style(fg: theme.warn, bg: bg)
+                    )
                 }
             }
 
             if let path = tool.path {
-                s.text(rect.x + 4, y + 2, truncate(path, to: rect.w - 6),
-                       Style(fg: theme.faint, bg: bg))
+                s.text(
+                    rect.x + 4,
+                    y + 2,
+                    truncate(path, to: rect.w - 6),
+                    Style(fg: theme.faint, bg: bg)
+                )
             } else if let note = tool.note {
-                s.text(rect.x + 4, y + 2, truncate(note, to: rect.w - 6),
-                       Style(fg: theme.faint, bg: bg))
+                s.text(
+                    rect.x + 4,
+                    y + 2,
+                    truncate(note, to: rect.w - 6),
+                    Style(fg: theme.faint, bg: bg)
+                )
             }
             y += 3
         }
@@ -401,11 +455,19 @@ final class ToolchainScreen: Screen {
         let lines = log.snapshot()
         guard !lines.isEmpty, y + 2 < rect.maxY else { return }
         y += 1
-        s.sectionRule(rect, y, t("log"),
-                      labelStyle: Style(fg: theme.dim, bg: theme.appBg),
-                      ruleStyle: Style(fg: theme.rule, bg: theme.appBg))
+        s.sectionRule(
+            rect,
+            y,
+            t("log"),
+            labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+            ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+        )
         y += 1
-        Widgets.logPane(s, rect: Rect(x: rect.x, y: y, w: rect.w, h: max(0, rect.maxY - y)),
-                        lines: lines, theme: theme)
+        Widgets.logPane(
+            s,
+            rect: Rect(x: rect.x, y: y, w: rect.w, h: max(0, rect.maxY - y)),
+            lines: lines,
+            theme: theme
+        )
     }
 }

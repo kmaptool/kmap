@@ -19,7 +19,8 @@ extension String {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
         let range = NSRange(startIndex..<endIndex, in: self)
         guard let match = regex.firstMatch(in: self, range: range), match.numberOfRanges > 1,
-              let group = Range(match.range(at: 1), in: self) else { return nil }
+            let group = Range(match.range(at: 1), in: self)
+        else { return nil }
         return String(self[group])
     }
 }

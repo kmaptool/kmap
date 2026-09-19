@@ -5,38 +5,55 @@ extension StyleCatalog {
     /// Names each barrier in the map's own language and says when it cannot be passed,
     /// both through the barrier's label. The name is set here, not appended later: `add
     /// name=` below is a no-op once a name exists. These rules carry no type of their own.
-    func addBarrierAccessRules(in directory: URL, cyrillic: Bool,
-                                       log: Log) throws {
+    func addBarrierAccessRules(
+        in directory: URL,
+        cyrillic: Bool,
+        log: Log
+    ) throws {
         let marker = "# --- kmap: barrier access"
 
         let words = StyleWords(cyrillic: cyrillic)
-        let tags = ["gate", "lift_gate", "swing_gate", "kissing_gate", "bollard",
-                    "block", "cycle_barrier", "stile", "chain", "bus_trap"]
+        let tags = [
+            "gate", "lift_gate", "swing_gate", "kissing_gate", "bollard",
+            "block", "cycle_barrier", "stile", "chain", "bus_trap"
+        ]
         let locked = words("barrier.locked")
         let noEntry = words("barrier.no-entry")
         let priv = words("barrier.private")
 
-        var lines = ["", "", "\(marker) ----------------------------------------------",
-                     "# Action-only: the barrier still falls through to the type rules below.",
-                     ""]
+        var lines = [
+            "", "", "\(marker) ----------------------------------------------",
+            "# Action-only: the barrier still falls through to the type rules below.",
+            ""
+        ]
         for tag in tags {
             let base = "${name|def:\(words("barrier.\(tag)"))}"
             lines.append("barrier=\(tag) & locked=yes { name '\(base) (\(locked))' }")
-            lines.append("barrier=\(tag) & locked!=yes & access=no"
-                         + " { name '\(base) (\(noEntry))' }")
-            lines.append("barrier=\(tag) & locked!=yes & access!=no & foot=no"
-                         + " { name '\(base) (\(noEntry))' }")
-            lines.append("barrier=\(tag) & locked!=yes & access=private & foot!=yes"
-                         + " { name '\(base) (\(priv))' }")
+            lines.append(
+                "barrier=\(tag) & locked!=yes & access=no"
+                    + " { name '\(base) (\(noEntry))' }"
+            )
+            lines.append(
+                "barrier=\(tag) & locked!=yes & access!=no & foot=no"
+                    + " { name '\(base) (\(noEntry))' }"
+            )
+            lines.append(
+                "barrier=\(tag) & locked!=yes & access=private & foot!=yes"
+                    + " { name '\(base) (\(priv))' }"
+            )
             lines.append("barrier=\(tag) { name '\(base)' }")
         }
         lines.append("")
 
         // Above the barrier type block, not at the end of the file: that block assigns a
         // type, so it consumes the barrier and nothing after it would ever be reached.
-        switch try insertRules(lines.joined(separator: "\n") + "\n\n", marked: marker,
-                               beforeLineWith: Self.barrierBlockNote,
-                               intoFile: "points", in: directory) {
+        switch try insertRules(
+            lines.joined(separator: "\n") + "\n\n",
+            marked: marker,
+            beforeLineWith: Self.barrierBlockNote,
+            intoFile: "points",
+            in: directory
+        ) {
         case .added:
             log.append("barriers named in the map's language, with access noted")
         case .missingAnchor:
@@ -67,10 +84,10 @@ extension StyleCatalog {
         guard var text = try? String(contentsOf: points, encoding: .utf8) else { return }
 
         let original = """
-        barrier=bollard | barrier=bus_trap | barrier=gate | barrier=block | barrier=cycle_barrier |
-            barrier=stile | barrier=kissing_gate | barrier=lift_gate | barrier=swing_gate
-            {add name='${barrier|subst:"_=> "}'} [0x3200 resolution 24]
-        """
+            barrier=bollard | barrier=bus_trap | barrier=gate | barrier=block | barrier=cycle_barrier |
+                barrier=stile | barrier=kissing_gate | barrier=lift_gate | barrier=swing_gate
+                {add name='${barrier|subst:"_=> "}'} [0x3200 resolution 24]
+            """
         guard text.contains(original) else { return }
 
         var split = [Self.barrierBlockNote]

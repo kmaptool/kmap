@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// The log a run writes to, read by the build screen, the file it leaves behind, and
 /// whatever else is attached.
 final class LogTests: XCTestCase {
-
     func testLinesComeBackInTheOrderTheyWereWritten() {
         let log = Log()
         log.step("splitting")
@@ -12,8 +12,13 @@ final class LogTests: XCTestCase {
         log.warn("a tile was dense")
         log.error("mkgmap failed")
         let lines = log.snapshot()
-        XCTAssertEqual(lines.map(\.text), ["splitting", "7 tiles", "a tile was dense",
-                                           "mkgmap failed"])
+        XCTAssertEqual(
+            lines.map(\.text),
+            [
+                "splitting", "7 tiles", "a tile was dense",
+                "mkgmap failed"
+            ]
+        )
         XCTAssertEqual(lines.map(\.kind), [.step, .ok, .plain, .plain])
         XCTAssertEqual(lines.map(\.severity), [.info, .info, .warn, .error])
         XCTAssertEqual(log.count, 4)
@@ -114,8 +119,10 @@ final class LogTests: XCTestCase {
         log.append("compiling")
         log.output("SEVERE (StyleImpl): line 12")
         XCTAssertEqual(log.snapshot().map(\.text), ["compiling"])
-        XCTAssertEqual(record.snapshot().map(\.text),
-                       ["compiling", "SEVERE (StyleImpl): line 12"])
+        XCTAssertEqual(
+            record.snapshot().map(\.text),
+            ["compiling", "SEVERE (StyleImpl): line 12"]
+        )
     }
 
     func testTheNumberingCountsWhatWasMadeNotWhatEachSinkSaw() {
@@ -139,8 +146,10 @@ final class LogTests: XCTestCase {
             log.step("compiling")
             log.output("mkgmap: reading style")
         }
-        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8),
-                       "compiling\nmkgmap: reading style\n")
+        XCTAssertEqual(
+            try String(contentsOf: url, encoding: .utf8),
+            "compiling\nmkgmap: reading style\n"
+        )
     }
 
     func testTheMirrorFileHoldsTheSameLines() throws {
@@ -151,7 +160,7 @@ final class LogTests: XCTestCase {
             let log = Log(mirrorTo: url)
             log.step("one")
             log.append("\u{1B}[1mtwo\u{1B}[0m")
-        }                                        // flushed and closed on leaving scope
+        }  // flushed and closed on leaving scope
         let written = try String(contentsOf: url, encoding: .utf8)
         XCTAssertEqual(written, "one\ntwo\n")
     }

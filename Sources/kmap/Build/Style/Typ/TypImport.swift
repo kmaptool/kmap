@@ -13,7 +13,6 @@ struct TypCandidate: Equatable, Identifiable, Sendable {
     let productID: Int
     let size: Int64
 
-
     /// What to call it on screen: the file's own name, or the map's for an embedded one.
     let name: String
     /// The folder it was found in, for telling two copies of the same product apart.
@@ -62,13 +61,18 @@ extension TypLibrary {
 
                 if extensionName == "typ" {
                     guard let info = TypInfo.read(url) else { continue }
-                    found.append(TypCandidate(
-                        url: url, isEmbedded: false,
-                        familyID: info.familyID, productID: info.productID,
-                        size: FileTools.size(of: url),
-                        name: url.deletingPathExtension().lastPathComponent,
-                        location: folder,
-                        fingerprint: fingerprint(ofTypAt: url)))
+                    found.append(
+                        TypCandidate(
+                            url: url,
+                            isEmbedded: false,
+                            familyID: info.familyID,
+                            productID: info.productID,
+                            size: FileTools.size(of: url),
+                            name: url.deletingPathExtension().lastPathComponent,
+                            location: folder,
+                            fingerprint: fingerprint(ofTypAt: url)
+                        )
+                    )
                 } else if extensionName == "img" {
                     guard let identity = ImgContainer.typIdentity(in: url) else { continue }
                     // One entry per product: a split map carries the same TYP in both
@@ -77,13 +81,18 @@ extension TypLibrary {
                     guard seenProducts.insert(key).inserted else { continue }
                     // Fingerprinted only after the cheap key has dropped the duplicates:
                     // reading tens of kilobytes from every tile of a folder is slow.
-                    found.append(TypCandidate(
-                        url: url, isEmbedded: true,
-                        familyID: identity.familyID, productID: identity.productID,
-                        size: Int64(identity.size),
-                        name: folder,
-                        location: url.lastPathComponent,
-                        fingerprint: fingerprint(ofTypAt: url)))
+                    found.append(
+                        TypCandidate(
+                            url: url,
+                            isEmbedded: true,
+                            familyID: identity.familyID,
+                            productID: identity.productID,
+                            size: Int64(identity.size),
+                            name: folder,
+                            location: url.lastPathComponent,
+                            fingerprint: fingerprint(ofTypAt: url)
+                        )
+                    )
                 }
             }
         }
@@ -95,9 +104,13 @@ extension TypLibrary {
     private static func files(under root: URL, excludingPrefix output: String?) -> [URL] {
         var out: [URL] = []
         let rootDepth = root.pathComponents.count
-        guard let walker = FileManager.default.enumerator(
-            at: root, includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { return out }
+        guard
+            let walker = FileManager.default.enumerator(
+                at: root,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            )
+        else { return out }
 
         for case let url as URL in walker {
             if url.pathComponents.count - rootDepth > 3 {
@@ -161,9 +174,11 @@ extension TypLibrary {
 
     /// Takes a copy of a candidate into the library.
     @discardableResult
-    static func take(_ candidate: TypCandidate,
-                     into directory: URL = TypLibrary.directory,
-                     on day: Date = Date()) throws -> Imported {
+    static func take(
+        _ candidate: TypCandidate,
+        into directory: URL = TypLibrary.directory,
+        on day: Date = Date()
+    ) throws -> Imported {
         try take(at: candidate.url, into: directory, on: day)
     }
 
@@ -187,7 +202,8 @@ extension TypLibrary {
         }
         guard let kept = original(of: url, library: library) else {
             throw ImportError.failed(
-                t("this style has no original kept — nothing was imported to go back to"))
+                t("this style has no original kept — nothing was imported to go back to")
+            )
         }
         guard let decoded = try? TypBinary.read(kept) else {
             throw ImportError.failed(t("%@ could not be decoded", kept.lastPathComponent))
@@ -210,14 +226,20 @@ extension TypLibrary {
 
     /// Appends one line to that log. Failure is ignored: a note about an import is not
     /// worth failing the import over.
-    static func recordImport(from source: URL, to destination: URL, at when: Date = Date(),
-                             fingerprint mark: UInt64 = 0,
-                             note: String, in directory: URL = TypLibrary.directory) {
+    static func recordImport(
+        from source: URL,
+        to destination: URL,
+        at when: Date = Date(),
+        fingerprint mark: UInt64 = 0,
+        note: String,
+        in directory: URL = TypLibrary.directory
+    ) {
         let stamp = ISO8601DateFormatter().string(from: when)
         // The fingerprint answers what the path cannot once the drive it names is gone:
         // whether the file kept in originals/ is still the one taken that day.
         let identity = mark == 0 ? "-" : String(format: "%016llx", mark)
-        let line = "\(stamp)\t\(destination.lastPathComponent)\t\(identity)"
+        let line =
+            "\(stamp)\t\(destination.lastPathComponent)\t\(identity)"
             + "\t\(source.path)\t\(note)\n"
         let url = importLog(in: directory)
         Paths.ensure(directory)
@@ -239,8 +261,10 @@ extension TypLibrary {
     /// used to be found by asking which field began with a slash, which is a question
     /// only a Unix path answers yes to: on Windows the path begins `C:\`, no field
     /// matched, and kmap could never say which map a style had come from.
-    static func importedSource(of entry: URL,
-                               library: URL = TypLibrary.directory) -> URL? {
+    static func importedSource(
+        of entry: URL,
+        library: URL = TypLibrary.directory
+    ) -> URL? {
         guard let text = try? String(contentsOf: importLog(in: library), encoding: .utf8)
         else { return nil }
         let name = entry.lastPathComponent
@@ -275,8 +299,11 @@ extension TypLibrary {
     /// out. Returns where it landed. Never overwrites - a file already in the library may
     /// have been edited - so the copy gets a dated or numbered name instead.
     @discardableResult
-    static func take(at url: URL, into directory: URL = TypLibrary.directory,
-                     on day: Date = Date()) throws -> Imported {
+    static func take(
+        at url: URL,
+        into directory: URL = TypLibrary.directory,
+        on day: Date = Date()
+    ) throws -> Imported {
         guard FileTools.exists(url) else { throw ImportError.notFound(Paths.display(url)) }
         Paths.ensure(directory)
 
@@ -307,7 +334,8 @@ extension TypLibrary {
             ImgContainer.isImg(url)
                 ? "\(url.deletingLastPathComponent().lastPathComponent)-"
                     + url.deletingPathExtension().lastPathComponent
-                : url.deletingPathExtension().lastPathComponent)
+                : url.deletingPathExtension().lastPathComponent
+        )
         let base = stem.contains("\(info.familyID)") ? stem : "\(stem)-\(info.familyID)"
 
         // Source comes in as source: nothing to decompile, and nothing to keep a copy of.
@@ -318,8 +346,14 @@ extension TypLibrary {
             } catch {
                 throw ImportError.failed(error.localizedDescription)
             }
-            return Imported(url: destination, decompiled: false, elements: 0,
-                            refused: 0, original: nil, fingerprint: mark)
+            return Imported(
+                url: destination,
+                decompiled: false,
+                elements: 0,
+                refused: 0,
+                original: nil,
+                fingerprint: mark
+            )
         }
 
         // Compiled: decompile it, so the library entry is editable. The original is kept
@@ -329,7 +363,8 @@ extension TypLibrary {
             try? FileManager.default.copyItem(at: binary, to: destination)
             throw ImportError.failed(
                 "\(url.lastPathComponent) could not be decoded — the copy at "
-                + "\(Paths.display(destination)) can still be built with, but not edited")
+                    + "\(Paths.display(destination)) can still be built with, but not edited"
+            )
         }
 
         let destination = datedName(base, extension: "txt", in: directory, on: day)
@@ -342,23 +377,32 @@ extension TypLibrary {
 
         let originals = originalsDirectory(in: directory)
         Paths.ensure(originals)
-        let kept = originals.appendingPathComponent(destination
-            .deletingPathExtension().lastPathComponent + ".typ")
+        let kept = originals.appendingPathComponent(
+            destination
+                .deletingPathExtension().lastPathComponent + ".typ"
+        )
         FileTools.removeIfPresent(kept)
         try? FileManager.default.copyItem(at: binary, to: kept)
 
-        return Imported(url: destination, decompiled: true,
-                        elements: decoded.all.count,
-                        refused: decoded.all.count - decoded.exactCount,
-                        original: FileTools.exists(kept) ? kept : nil,
-                        fingerprint: mark)
+        return Imported(
+            url: destination,
+            decompiled: true,
+            elements: decoded.all.count,
+            refused: decoded.all.count - decoded.exactCount,
+            original: FileTools.exists(kept) ? kept : nil,
+            fingerprint: mark
+        )
     }
 
     /// A free name for an import, dated rather than numbered where the plain one is taken:
     /// a second import of the same product is usually a newer version of it. Two imports
     /// on one day fall back to a number after the date.
-    static func datedName(_ base: String, extension suffix: String, in directory: URL,
-                          on day: Date = Date()) -> URL {
+    static func datedName(
+        _ base: String,
+        extension suffix: String,
+        in directory: URL,
+        on day: Date = Date()
+    ) -> URL {
         let plain = directory.appendingPathComponent("\(base).\(suffix)")
         guard FileTools.exists(plain) else { return plain }
 
@@ -368,12 +412,18 @@ extension TypLibrary {
         // language, and the date is the local one.
         stamp.locale = Locale(identifier: "en_US_POSIX")
         stamp.timeZone = TimeZone.current
-        return freeName("\(base)-\(stamp.string(from: day))", extension: suffix,
-                        in: directory)
+        return freeName(
+            "\(base)-\(stamp.string(from: day))",
+            extension: suffix,
+            in: directory
+        )
     }
 
-    static func freeName(_ base: String, extension suffix: String,
-                                 in directory: URL) -> URL {
+    static func freeName(
+        _ base: String,
+        extension suffix: String,
+        in directory: URL
+    ) -> URL {
         var candidate = directory.appendingPathComponent("\(base).\(suffix)")
         var counter = 2
         while FileTools.exists(candidate) {

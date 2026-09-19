@@ -11,7 +11,8 @@ struct VenueScan {
     static let keys = ["amenity", "shop", "tourism", "office", "healthcare"]
     /// The same list as a lookup, since it is asked of every tag of every object.
     private static let keyRank: [String: Int] = Dictionary(
-        uniqueKeysWithValues: keys.enumerated().map { ($1, $0) })
+        uniqueKeysWithValues: keys.enumerated().map { ($1, $0) }
+    )
 
     struct Area {
         var id: Int64
@@ -51,8 +52,12 @@ struct VenueScan {
 
     /// Second pass: where the ways' member nodes stand, and the venue nodes in their own
     /// right.
-    private static func readVenueNodes(in url: URL, wanted refs: [Int64]) throws
-        -> (NodePlaces, [(tag: String, x: Double, y: Double)]) {
+    private static func readVenueNodes(
+        in url: URL,
+        wanted refs: [Int64]
+    ) throws
+        -> (NodePlaces, [(tag: String, x: Double, y: Double)])
+    {
         var places = NodePlaces(wanted: NodePlaces.wantedIDs(from: refs))
         var venues: [(tag: String, x: Double, y: Double)] = []
         try PBFReader(url: url).readInOrder(make: { VenueNodes() }) { block in
@@ -78,10 +83,20 @@ struct VenueScan {
             guard ring.count >= 4 else { continue }
             let xs = ring.map(\.x), ys = ring.map(\.y)
             guard let minX = xs.min(), let minY = ys.min(),
-                  let maxX = xs.max(), let maxY = ys.max() else { continue }
+                let maxX = xs.max(), let maxY = ys.max()
+            else { continue }
             let box = (minX, minY, maxX, maxY)
-            areas.append(Area(id: id, seen: i, tag: shape.tags[i], ring: ring, box: box,
-                              size: (box.2 - box.0) * (box.3 - box.1), named: shape.named[i]))
+            areas.append(
+                Area(
+                    id: id,
+                    seen: i,
+                    tag: shape.tags[i],
+                    ring: ring,
+                    box: box,
+                    size: (box.2 - box.0) * (box.3 - box.1),
+                    named: shape.named[i]
+                )
+            )
         }
         return areas
     }
@@ -125,9 +140,10 @@ struct VenueScan {
             grid.candidates(at: point) { at in
                 let area = group[at]
                 guard !marked.contains(area.id),
-                      point.x >= area.box.x0, point.x <= area.box.x1,
-                      point.y >= area.box.y0, point.y <= area.box.y1,
-                      inside(point, area.ring) else { return }
+                    point.x >= area.box.x0, point.x <= area.box.x1,
+                    point.y >= area.box.y0, point.y <= area.box.y1,
+                    inside(point, area.ring)
+                else { return }
                 marked.insert(area.id)
             }
         }
@@ -141,8 +157,9 @@ struct VenueScan {
                 let outer = group[i]
                 // Bounding boxes settle nearly every pair.
                 guard inner.box.x0 >= outer.box.x0, inner.box.y0 >= outer.box.y0,
-                      inner.box.x1 <= outer.box.x1, inner.box.y1 <= outer.box.y1,
-                      inside(centre, outer.ring) else { return }
+                    inner.box.x1 <= outer.box.x1, inner.box.y1 <= outer.box.y1,
+                    inside(centre, outer.ring)
+                else { return }
                 // The enclosing area usually carries the name, so the inner one goes; where
                 // the naming runs the other way, the named one is kept.
                 marked.insert(inner.named && !outer.named ? outer.id : inner.id)
@@ -157,7 +174,8 @@ struct VenueScan {
         var j = ring.count - 1
         for i in 0..<ring.count {
             if (ring[i].y > point.y) != (ring[j].y > point.y) {
-                let across = (ring[j].x - ring[i].x) * (point.y - ring[i].y)
+                let across =
+                    (ring[j].x - ring[i].x) * (point.y - ring[i].y)
                     / (ring[j].y - ring[i].y) + ring[i].x
                 if point.x < across { within.toggle() }
             }
@@ -186,8 +204,13 @@ struct VenueScan {
             refs.removeAll(keepingCapacity: true)
         }
 
-        mutating func way(id: Int64, refs list: ArraySlice<Int64>,
-                          keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func way(
+            id: Int64,
+            refs list: ArraySlice<Int64>,
+            keys: ArraySlice<Int32>,
+            values: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             guard list.count >= 4, list.first == list.last else { return }
             // A place can carry more than one of these keys, so the key is chosen by the
             // order of `VenueScan.keys`, not by the order the file stores the tags in.
@@ -225,8 +248,13 @@ struct VenueScan {
         var nodes = BlockNodes()
         var venues: [(tag: String, x: Double, y: Double)] = []
 
-        mutating func node(id: Int64, lat latitude: Double, lon longitude: Double,
-                           tags: ArraySlice<Int32>, block: OSMBlock) {
+        mutating func node(
+            id: Int64,
+            lat latitude: Double,
+            lon longitude: Double,
+            tags: ArraySlice<Int32>,
+            block: OSMBlock
+        ) {
             nodes.node(id: id, lat: latitude, lon: longitude, tags: tags, block: block)
 
             // The key is chosen by the order of `VenueScan.keys`. Written without a

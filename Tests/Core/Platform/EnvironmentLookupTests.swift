@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// Reading an environment variable on a machine that may not agree about its name.
 final class EnvironmentLookupTests: XCTestCase {
-
     func testWindowsSpellsItPathAndMeansTheSameVariable() {
         // Windows writes the name as `Path`, and a case-sensitive lookup for `PATH`
         // would answer nil.
@@ -32,19 +32,28 @@ final class EnvironmentLookupTests: XCTestCase {
     }
 
     func testTheProgramSearchReadsAPathSpelledTheWindowsWay() {
-        let found = Platform.which("java", environment: ["Path": #"C:\jdk\bin"#],
-                                   on: .windows,
-                                   exists: { $0 == #"C:\jdk\bin\java.exe"# })
+        let found = Platform.which(
+            "java",
+            environment: ["Path": #"C:\jdk\bin"#],
+            on: .windows,
+            exists: { $0 == #"C:\jdk\bin\java.exe"# }
+        )
         XCTAssertEqual(found, #"C:\jdk\bin\java.exe"#)
     }
 
     func testTheOtherWindowsVariablesAreReadTheSameWay() {
         // Every Windows variable is read case-insensitively, not only `Path`.
-        XCTAssertTrue(Platform.searchPath(["systemroot": #"D:\Windows"#], on: .windows)
-                          .contains(#"D:\Windows\System32"#))
-        XCTAssertEqual(Platform.executableSuffixes(["pathext": ".EXE"], on: .windows),
-                       ["", ".exe"])
-        XCTAssertTrue(Paths.defaultRoot(.windows, environment: ["localappdata": #"D:\AppData"#])
-                          .nativePath.contains("AppData"))
+        XCTAssertTrue(
+            Platform.searchPath(["systemroot": #"D:\Windows"#], on: .windows)
+                .contains(#"D:\Windows\System32"#)
+        )
+        XCTAssertEqual(
+            Platform.executableSuffixes(["pathext": ".EXE"], on: .windows),
+            ["", ".exe"]
+        )
+        XCTAssertTrue(
+            Paths.defaultRoot(.windows, environment: ["localappdata": #"D:\AppData"#])
+                .nativePath.contains("AppData")
+        )
     }
 }

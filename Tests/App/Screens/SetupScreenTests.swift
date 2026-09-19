@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The first thing a person sees on a machine kmap was just installed on: what is
@@ -10,16 +11,22 @@ import XCTest
 /// rather than on this file.
 @MainActor
 final class SetupScreenTests: XCTestCase {
-
     private func tool(_ id: String, ready: Bool) -> ToolStatus {
-        ToolStatus(id: id, name: id, detail: "", state: ready ? .ready : .missing,
-                   installable: !ready)
+        ToolStatus(
+            id: id,
+            name: id,
+            detail: "",
+            state: ready ? .ready : .missing,
+            installable: !ready
+        )
     }
 
     func testOnlyWhatABuildCannotStartWithoutIsAskedFor() async {
-        let tools = [tool("java", ready: false), tool("mkgmap", ready: false),
-                     tool("pyhgtmap", ready: false), tool("sea", ready: false),
-                     tool("bounds", ready: false)]
+        let tools = [
+            tool("java", ready: false), tool("mkgmap", ready: false),
+            tool("pyhgtmap", ready: false), tool("sea", ready: false),
+            tool("bounds", ready: false)
+        ]
         // pyhgtmap and the data packs are not what stops a map being built.
         XCTAssertEqual(Toolchain.missingRequirements(in: tools).map(\.id), ["java", "mkgmap"])
     }
@@ -35,8 +42,12 @@ final class SetupScreenTests: XCTestCase {
     }
 
     func testAReadyMachineIsAskedForNothing() async {
-        XCTAssertTrue(Toolchain.missingRequirements(in: [tool("java", ready: true),
-                                                tool("mkgmap", ready: true)]).isEmpty)
+        XCTAssertTrue(
+            Toolchain.missingRequirements(in: [
+                tool("java", ready: true),
+                tool("mkgmap", ready: true)
+            ]).isEmpty
+        )
     }
 
     func testTheQuestionIsAskedBeforeAnythingIsInstalled() async {
@@ -50,8 +61,10 @@ final class SetupScreenTests: XCTestCase {
 
     func testTheOfferNamesEveryMissingPieceAndWhereItGoes() async {
         let ctx = AppContext()
-        let screen = SetupScreen(missing: [tool("java", ready: false),
-                                           tool("mkgmap", ready: false)]) { _ in .pop }
+        let screen = SetupScreen(missing: [
+            tool("java", ready: false),
+            tool("mkgmap", ready: false)
+        ]) { _ in .pop }
         let surface = Surface()
         surface.resize(120, 40)
         surface.clear(ctx.theme.base)

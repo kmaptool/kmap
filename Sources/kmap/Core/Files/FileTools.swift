@@ -1,4 +1,5 @@
 import Foundation
+
 #if os(Windows)
 import WinSDK
 #endif
@@ -6,7 +7,8 @@ import WinSDK
 enum FileTools {
     static func size(of url: URL) -> Int64 {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-              let number = attrs[.size] as? NSNumber else { return 0 }
+            let number = attrs[.size] as? NSNumber
+        else { return 0 }
         return number.int64Value
     }
 
@@ -36,12 +38,16 @@ enum FileTools {
 
     /// Files directly inside `dir`, optionally filtered by extension, sorted by name.
     static func contents(of dir: URL, extension ext: String? = nil) -> [URL] {
-        let items = (try? FileManager.default.contentsOfDirectory(
-            at: dir, includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey],
-            options: [.skipsHiddenFiles])) ?? []
-        let filtered = ext.map { e in
-            items.filter { $0.pathExtension.lowercased() == e.lowercased() }
-        } ?? items
+        let items =
+            (try? FileManager.default.contentsOfDirectory(
+                at: dir,
+                includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey],
+                options: [.skipsHiddenFiles]
+            )) ?? []
+        let filtered =
+            ext.map { e in
+                items.filter { $0.pathExtension.lowercased() == e.lowercased() }
+            } ?? items
         return filtered.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
@@ -50,9 +56,13 @@ enum FileTools {
     /// For archives whose internal layout is not known in advance, with or without
     /// intermediate folders.
     static func allFiles(under dir: URL, extension ext: String? = nil) -> [URL] {
-        guard let walker = FileManager.default.enumerator(
-            at: dir, includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]) else { return [] }
+        guard
+            let walker = FileManager.default.enumerator(
+                at: dir,
+                includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles]
+            )
+        else { return [] }
         var out: [URL] = []
         for case let url as URL in walker {
             guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
@@ -69,8 +79,12 @@ enum FileTools {
 
     /// Empties a directory without removing the directory itself.
     static func emptyDirectory(_ url: URL) {
-        guard let items = try? FileManager.default.contentsOfDirectory(
-            at: url, includingPropertiesForKeys: nil) else { return }
+        guard
+            let items = try? FileManager.default.contentsOfDirectory(
+                at: url,
+                includingPropertiesForKeys: nil
+            )
+        else { return }
         for item in items { try? FileManager.default.removeItem(at: item) }
     }
 
@@ -81,11 +95,13 @@ enum FileTools {
     static func freeSpaceBytes(at url: URL) -> Int64 {
         #if canImport(Darwin)
         guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
-              let capacity = values.volumeAvailableCapacityForImportantUsage else { return 0 }
+            let capacity = values.volumeAvailableCapacityForImportantUsage
+        else { return 0 }
         return capacity
         #else
         guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
-              let capacity = values.volumeAvailableCapacity else { return 0 }
+            let capacity = values.volumeAvailableCapacity
+        else { return 0 }
         return Int64(capacity)
         #endif
     }

@@ -46,8 +46,10 @@ final class Terrain {
         let span = Terrain.metresPerPost
         let east = span * cos(lat * .pi / 180)
         var worst = 0.0
-        for (dlat, dlon, run) in [(step, 0.0, span), (-step, 0.0, span),
-                                  (0.0, step, east), (0.0, -step, east)] {
+        for (dlat, dlon, run) in [
+            (step, 0.0, span), (-step, 0.0, span),
+            (0.0, step, east), (0.0, -step, east)
+        ] {
             if let other = elevation(lat + dlat, lon + dlon), run > 0 {
                 worst = max(worst, abs(other - here) / run)
             }

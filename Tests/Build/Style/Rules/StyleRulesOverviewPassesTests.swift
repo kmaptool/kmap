@@ -1,10 +1,10 @@
 import XCTest
+
 @testable import kmap
 
 /// The passes that take things off the map: ground cover off the far zoom, and the
 /// features somebody chose to hide.
 final class StyleRulesOverviewPassesTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -34,14 +34,18 @@ final class StyleRulesOverviewPassesTests: XCTestCase {
 
     func testGroundCoverLeavesTheFarZoomAndWaterDoesNot() throws {
         let water = "natural=water [0x3c resolution 18]"
-        try write("natural=grassland [0x55 resolution 18]\nnatural=scrub [0x4f resolution 18]\n\(water)\n",
-                  to: "polygons")
+        try write(
+            "natural=grassland [0x55 resolution 18]\nnatural=scrub [0x4f resolution 18]\n\(water)\n",
+            to: "polygons"
+        )
         let log = Log(showing: .info)
         try catalog.thinTheOverview(in: directory, cyrillic: false, log: log)
         let text = try read("polygons")
         XCTAssertTrue(text.contains("natural=grassland [0x55 resolution 19]"), "a wash moves one finer")
-        XCTAssertTrue(text.contains("natural=scrub [0x4f resolution 22]"),
-                      "a drawn texture waits for the zoom the paths arrive at")
+        XCTAssertTrue(
+            text.contains("natural=scrub [0x4f resolution 22]"),
+            "a drawn texture waits for the zoom the paths arrive at"
+        )
         XCTAssertTrue(text.contains(water), "water bodies are untouched")
         XCTAssertFalse(log.snapshot().isEmpty, "what moved is said")
     }

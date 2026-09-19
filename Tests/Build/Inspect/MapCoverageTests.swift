@@ -1,14 +1,24 @@
 import XCTest
+
 @testable import kmap
 
 /// Whether the tiles of a map cover the ground they claim. A spot inside the map's own box
 /// belonging to no tile draws as blank paper, since a tile carries the sea fill and the DEM.
 final class MapCoverageTests: XCTestCase {
-
-    private func tile(_ name: String, _ minLat: Double, _ minLon: Double,
-                      _ maxLat: Double, _ maxLon: Double) -> MapCoverage.Tile {
-        MapCoverage.Tile(name: name, minLat: minLat, minLon: minLon,
-                         maxLat: maxLat, maxLon: maxLon)
+    private func tile(
+        _ name: String,
+        _ minLat: Double,
+        _ minLon: Double,
+        _ maxLat: Double,
+        _ maxLon: Double
+    ) -> MapCoverage.Tile {
+        MapCoverage.Tile(
+            name: name,
+            minLat: minLat,
+            minLon: minLon,
+            maxLat: maxLat,
+            maxLon: maxLon
+        )
     }
 
     // MARK: Reading the bounds out of a TRE
@@ -40,10 +50,10 @@ final class MapCoverageTests: XCTestCase {
             header[offset + 1] = UInt8((raw >> 8) & 0xFF)
             header[offset + 2] = UInt8((raw >> 16) & 0xFF)
         }
-        put(1 << 22, at: 0x15)          // north 90
-        put(1 << 21, at: 0x18)          // east 45
-        put(0, at: 0x1B)                // south 0
-        put(-(1 << 21), at: 0x1E)       // west -45
+        put(1 << 22, at: 0x15)  // north 90
+        put(1 << 21, at: 0x18)  // east 45
+        put(0, at: 0x1B)  // south 0
+        put(-(1 << 21), at: 0x1E)  // west -45
 
         let box = MapCoverage.bounds(ofTRE: header)
         XCTAssertNotNil(box)
@@ -63,10 +73,13 @@ final class MapCoverageTests: XCTestCase {
     // MARK: The check itself
 
     func testTilesThatPartitionTheirBoxLeaveNoHoles() {
-        let report = MapCoverage.check([
-            tile("a", 0, 0, 1, 1), tile("b", 0, 1, 1, 2),
-            tile("c", 1, 0, 2, 1), tile("d", 1, 1, 2, 2),
-        ], step: 0.25)
+        let report = MapCoverage.check(
+            [
+                tile("a", 0, 0, 1, 1), tile("b", 0, 1, 1, 2),
+                tile("c", 1, 0, 2, 1), tile("d", 1, 1, 2, 2)
+            ],
+            step: 0.25
+        )
         XCTAssertNotNil(report)
         XCTAssertTrue(report!.holes.isEmpty)
         XCTAssertEqual(report!.sampled, 64)
@@ -76,9 +89,12 @@ final class MapCoverageTests: XCTestCase {
 
     /// One of the four missing: the samples over it belong to no tile.
     func testAMissingTileIsFound() {
-        let report = MapCoverage.check([
-            tile("a", 0, 0, 1, 1), tile("b", 0, 1, 1, 2), tile("c", 1, 0, 2, 1),
-        ], step: 0.25)
+        let report = MapCoverage.check(
+            [
+                tile("a", 0, 0, 1, 1), tile("b", 0, 1, 1, 2), tile("c", 1, 0, 2, 1)
+            ],
+            step: 0.25
+        )
         XCTAssertEqual(report!.holes.count, 16)
         XCTAssertTrue(report!.holes.allSatisfy { $0.lat > 1 && $0.lon > 1 })
     }
@@ -87,15 +103,21 @@ final class MapCoverageTests: XCTestCase {
     /// both neighbours claim it and a gap of nothing between them would read as covered.
     func testASampleNeverLandsOnASharedEdge() {
         // Two tiles a hair apart: 1.0 to 1.001 belongs to neither.
-        let report = MapCoverage.check([
-            tile("a", 0, 0, 1, 2), tile("b", 1.001, 0, 2, 2),
-        ], step: 0.5)
+        let report = MapCoverage.check(
+            [
+                tile("a", 0, 0, 1, 2), tile("b", 1.001, 0, 2, 2)
+            ],
+            step: 0.5
+        )
         // The gap is far thinner than the step, so no sample lands in it.
         XCTAssertTrue(report!.holes.isEmpty)
         // A gap wider than the step is found.
-        let wide = MapCoverage.check([
-            tile("a", 0, 0, 1, 2), tile("b", 1.6, 0, 2, 2),
-        ], step: 0.25)
+        let wide = MapCoverage.check(
+            [
+                tile("a", 0, 0, 1, 2), tile("b", 1.6, 0, 2, 2)
+            ],
+            step: 0.25
+        )
         XCTAssertFalse(wide!.holes.isEmpty)
     }
 

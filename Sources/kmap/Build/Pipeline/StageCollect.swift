@@ -12,20 +12,28 @@ extension BuildPipeline {
         let manager = FileManager.default
         let ownPath = own.standardizedFileURL.path
         var names = Set<String>()
-        let folders = ((try? manager.contentsOfDirectory(
-            at: root, includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles])) ?? [])
+        let folders =
+            ((try? manager.contentsOfDirectory(
+                at: root,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            )) ?? [])
         for folder in folders where folder.standardizedFileURL.path != ownPath {
-            guard (try? folder.resourceValues(forKeys: [.isDirectoryKey]))?
-                .isDirectory == true else {
+            guard
+                (try? folder.resourceValues(forKeys: [.isDirectoryKey]))?
+                    .isDirectory == true
+            else {
                 if folder.pathExtension.lowercased() == "img" {
                     names.insert(folder.lastPathComponent)
                 }
                 continue
             }
-            for file in ((try? manager.contentsOfDirectory(
-                at: folder, includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles])) ?? [])
+            for file
+                in ((try? manager.contentsOfDirectory(
+                    at: folder,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                )) ?? [])
             where file.pathExtension.lowercased() == "img" {
                 names.insert(file.lastPathComponent)
             }
@@ -41,23 +49,29 @@ extension BuildPipeline {
         let buildRoot = workDirectory.appendingPathComponent("build", isDirectory: true)
         // In the packer's order, recorded by the compile stage. The directory listing is
         // the fallback for a work directory this process did not compile.
-        let groups = outputGroups.isEmpty
+        let groups =
+            outputGroups.isEmpty
             ? ((try? FileManager.default.contentsOfDirectory(
-                at: buildRoot, includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles])) ?? [])
-                .sorted { $0.lastPathComponent < $1.lastPathComponent }
+                at: buildRoot,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )) ?? [])
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
             : outputGroups.map { buildRoot.appendingPathComponent($0, isDirectory: true) }
 
         var written: [Output] = []
-        let parts = groups
+        let parts =
+            groups
             .filter { FileTools.exists($0.appendingPathComponent("gmapsupp.img")) }
 
         // The name carries the regions and the day only, so a second build of the same
         // ground that day would replace the first on a card: a name another build folder
         // already uses gets "-2", "-3". This build's own folder is left out, so a rebuild
         // replaces its own files.
-        let names = Self.imgNames(under: destinationDir.deletingLastPathComponent(),
-                                  excluding: destinationDir)
+        let names = Self.imgNames(
+            under: destinationDir.deletingLastPathComponent(),
+            excluding: destinationDir
+        )
         let copy = recipe.freeCopy(of: parts.count) { names.contains($0) }
         if copy > 1 {
             log.step(t("another build already uses this name — files carry -%d", copy))
@@ -124,9 +138,11 @@ extension BuildPipeline {
 
         do {
             let report = try gpi.run()
-            log.append("\(report.written) described POI(s): \(report.fromNodes) from nodes,"
-                       + " \(report.fromAreas) from areas, \(report.uninformative) dropped"
-                       + " as uninformative")
+            log.append(
+                "\(report.written) described POI(s): \(report.fromNodes) from nodes,"
+                    + " \(report.fromAreas) from areas, \(report.uninformative) dropped"
+                    + " as uninformative"
+            )
             log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(FileTools.size(of: destination)))")
         } catch {
             log.warn("custom POIs could not be written: \(error)")
@@ -166,7 +182,9 @@ extension BuildPipeline {
         lines.append("Copy the .img files to the Garmin folder on the device or its SD card.")
         try lines.joined(separator: "\n").write(
             to: directory.appendingPathComponent("build-info.txt"),
-            atomically: true, encoding: .utf8)
+            atomically: true,
+            encoding: .utf8
+        )
     }
 
     /// Removes this build's scratch directory, and the work root if it is then empty.
@@ -181,15 +199,20 @@ extension BuildPipeline {
 
         let root = recipe.workRoot
         if let remaining = try? FileManager.default.contentsOfDirectory(
-            atPath: root.path), remaining.isEmpty {
+            atPath: root.path
+        ), remaining.isEmpty {
             FileTools.removeIfPresent(root)
         }
         log.ok("cleaned up work files\(freed > 0 ? " · freed \(Fmt.bytes(freed))" : "")")
     }
 
     func directorySize(_ url: URL) -> Int64 {
-        guard let walker = FileManager.default.enumerator(
-            at: url, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
+        guard
+            let walker = FileManager.default.enumerator(
+                at: url,
+                includingPropertiesForKeys: [.fileSizeKey]
+            )
+        else { return 0 }
         var total: Int64 = 0
         for case let item as URL in walker { total += FileTools.size(of: item) }
         return total

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import kmap
 
 /// The scan that keeps two builds from coming out as one file on a card.
@@ -7,7 +8,6 @@ import XCTest
 /// leaving out the folder being written — so a rebuild of the same map replaces its own
 /// files instead of numbering itself upward day after day.
 final class OutputNameScanTests: XCTestCase {
-
     private var root: URL!
 
     override func setUpWithError() throws {
@@ -30,12 +30,20 @@ final class OutputNameScanTests: XCTestCase {
     }
 
     func testNamesFromNeighbouringBuildsAreSeen() throws {
-        _ = try build("2026-09-06_monaco", holding: ["kmap-osm-carto-1-regions.img",
-                                                     "build-info.txt"])
+        _ = try build(
+            "2026-09-06_monaco",
+            holding: [
+                "kmap-osm-carto-1-regions.img",
+                "build-info.txt"
+            ]
+        )
         let own = try build("2026-09-06_andorra", holding: [])
         let names = BuildPipeline.imgNames(under: root, excluding: own)
-        XCTAssertEqual(names, ["kmap-osm-carto-1-regions.img"],
-                       "the .img is seen and the manifest beside it is not")
+        XCTAssertEqual(
+            names,
+            ["kmap-osm-carto-1-regions.img"],
+            "the .img is seen and the manifest beside it is not"
+        )
     }
 
     func testTheBuildsOwnFolderIsLeftOut() throws {
@@ -47,16 +55,22 @@ final class OutputNameScanTests: XCTestCase {
     func testAnEmptyOrMissingRootIsSimplyNoNames() throws {
         let own = root.appendingPathComponent("2026-09-06_monaco")
         XCTAssertTrue(BuildPipeline.imgNames(under: root, excluding: own).isEmpty)
-        XCTAssertTrue(BuildPipeline.imgNames(
-            under: root.appendingPathComponent("absent"), excluding: own).isEmpty)
+        XCTAssertTrue(
+            BuildPipeline.imgNames(
+                under: root.appendingPathComponent("absent"),
+                excluding: own
+            ).isEmpty
+        )
     }
 
     func testALooseImgDroppedInTheRootCountsToo() throws {
         // People move files around; a name is taken wherever it sits.
         try Data("x".utf8).write(to: root.appendingPathComponent("kmap-hand-moved.img"))
         let own = try build("2026-09-06_monaco", holding: [])
-        XCTAssertEqual(BuildPipeline.imgNames(under: root, excluding: own),
-                       ["kmap-hand-moved.img"])
+        XCTAssertEqual(
+            BuildPipeline.imgNames(under: root, excluding: own),
+            ["kmap-hand-moved.img"]
+        )
     }
 
     func testCaseOfTheExtensionDoesNotHideAName() throws {

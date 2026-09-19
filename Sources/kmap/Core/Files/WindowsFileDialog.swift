@@ -9,7 +9,6 @@ import WinSDK
 /// every glyph the interface draws. Nothing is started here, so there is nothing to hand
 /// the console to.
 enum WindowsFileDialog {
-
     /// Shows the open dialog. Returns the chosen path, or nil when it was cancelled.
     static func file(extensions: [String], startingAt start: String?, title: String) -> String? {
         // The shell's own places and thumbnails come with OLE started; the dialog works
@@ -34,8 +33,10 @@ enum WindowsFileDialog {
                     options.nFilterIndex = 1
                     options.lpstrTitle = caption.baseAddress
                     // NOCHANGEDIR: the dialog must not move this process's own directory.
-                    options.Flags = DWORD(OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST
-                                          | OFN_NOCHANGEDIR | OFN_HIDEREADONLY)
+                    options.Flags = DWORD(
+                        OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST
+                            | OFN_NOCHANGEDIR | OFN_HIDEREADONLY
+                    )
 
                     // The starting folder's buffer has to outlive the call, so the dialog
                     // is shown inside its scope.
@@ -70,8 +71,10 @@ enum WindowsFileDialog {
                 info.hwndOwner = owner()
                 info.pszDisplayName = shown.baseAddress
                 info.lpszTitle = caption.baseAddress
-                info.ulFlags = UINT(BIF_RETURNONLYFSDIRS
-                                    | (ole >= 0 ? BIF_USENEWUI : 0))
+                info.ulFlags = UINT(
+                    BIF_RETURNONLYFSDIRS
+                        | (ole >= 0 ? BIF_USENEWUI : 0)
+                )
                 if !startSelection.isEmpty { info.lpfn = openAtTheStartingFolder }
                 guard let list = SHBrowseForFolderW(&info) else { return nil }
                 defer { CoTaskMemFree(list) }
@@ -93,7 +96,7 @@ enum WindowsFileDialog {
 
     /// The path a dialog wrote into the buffer, or nil where it wrote nothing.
     private static func answer<Buffer: Collection>(in buffer: Buffer) -> String?
-        where Buffer.Element == WCHAR {
+    where Buffer.Element == WCHAR {
         guard let start = buffer.first, start != 0 else { return nil }
         return String(decoding: buffer.prefix(while: { $0 != 0 }), as: UTF16.self)
     }
@@ -109,8 +112,12 @@ enum WindowsFileDialog {
             startSelection.withUnsafeBufferPointer { start in
                 guard let folder = start.baseAddress else { return }
                 // The message takes the string as a number, which is what LPARAM is.
-                _ = SendMessageW(window, UINT(BFFM_SETSELECTIONW), WPARAM(1),
-                                 LPARAM(Int(bitPattern: UnsafeRawPointer(folder))))
+                _ = SendMessageW(
+                    window,
+                    UINT(BFFM_SETSELECTIONW),
+                    WPARAM(1),
+                    LPARAM(Int(bitPattern: UnsafeRawPointer(folder)))
+                )
             }
         }
         return 0
@@ -123,8 +130,12 @@ enum WindowsFileDialog {
     private static func filterList(_ extensions: [String]) -> [WCHAR] {
         var pairs = [(String, String)]()
         if !extensions.isEmpty {
-            pairs.append((t("supported files"),
-                          extensions.map { "*.\($0)" }.joined(separator: ";")))
+            pairs.append(
+                (
+                    t("supported files"),
+                    extensions.map { "*.\($0)" }.joined(separator: ";")
+                )
+            )
         }
         pairs.append((t("all files"), "*.*"))
 

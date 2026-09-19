@@ -5,7 +5,6 @@ import Foundation
 /// A style's codes repeat wherever it draws, so one region inside the map answers for
 /// all of it. Geometry against the Geofabrik index only: no evidence, no rules.
 enum RegionSuggestion {
-
     /// Minimum share of a region lying under the map's tiles for its extract to be
     /// worth downloading.
     static let mostlyInside = 0.6
@@ -41,24 +40,38 @@ enum RegionSuggestion {
     }
 
     static func drawnGround(of img: URL) -> DrawnGround {
-        let sizes = Dictionary(ImgContainer.directory(of: img)
-            .filter { $0.ext.uppercased() == "RGN" }
-            .map { ($0.name, Double($0.size)) }, uniquingKeysWith: max)
+        let sizes = Dictionary(
+            ImgContainer.directory(of: img)
+                .filter { $0.ext.uppercased() == "RGN" }
+                .map { ($0.name, Double($0.size)) },
+            uniquingKeysWith: max
+        )
         var frame = BBox.empty
         var spots: [DrawnGround.Spot] = []
         for tile in MapCoverage.tiles(in: img) {
             frame.extend(lon: tile.minLon, lat: tile.minLat)
             frame.extend(lon: tile.maxLon, lat: tile.maxLat)
-            spots.append(DrawnGround.Spot(
-                box: BBox(minLon: tile.minLon, minLat: tile.minLat,
-                          maxLon: tile.maxLon, maxLat: tile.maxLat),
-                weight: sizes[tile.name] ?? 0))
+            spots.append(
+                DrawnGround.Spot(
+                    box: BBox(
+                        minLon: tile.minLon,
+                        minLat: tile.minLat,
+                        maxLon: tile.maxLon,
+                        maxLat: tile.maxLat
+                    ),
+                    weight: sizes[tile.name] ?? 0
+                )
+            )
         }
         // A container whose RGN sizes cannot be read is weighed by area instead:
         // wrong for border tiles, and never all zeros.
         if spots.allSatisfy({ $0.weight <= 0 }) {
-            spots = spots.map { DrawnGround.Spot(box: $0.box,
-                                                 weight: max($0.box.squareDegrees, 1e-9)) }
+            spots = spots.map {
+                DrawnGround.Spot(
+                    box: $0.box,
+                    weight: max($0.box.squareDegrees, 1e-9)
+                )
+            }
         }
         return DrawnGround(spots: spots, frame: frame)
     }
@@ -94,12 +107,15 @@ enum RegionSuggestion {
         var heldArea = 0.0
         for spot in drawn.spots {
             guard spot.box.squareDegrees > 0,
-                  region.boxes.contains(where: { $0.intersects(spot.box) })
-                      || region.bbox.intersects(spot.box) else { continue }
+                region.boxes.contains(where: { $0.intersects(spot.box) })
+                    || region.bbox.intersects(spot.box)
+            else { continue }
             // A grid stepped to the tile, 6 to 24 per side, so a region smaller than
             // the tile still catches samples.
-            let span = max(spot.box.maxLon - spot.box.minLon,
-                           spot.box.maxLat - spot.box.minLat)
+            let span = max(
+                spot.box.maxLon - spot.box.minLon,
+                spot.box.maxLat - spot.box.minLat
+            )
             let steps = max(6, min(24, Int(span * 2)))
             let cells = sampleCells(of: spot.box, steps: steps)
             let inside = cells.lazy.filter { region.holds(lat: $0.lat, lon: $0.lon) }.count
@@ -124,11 +140,13 @@ enum RegionSuggestion {
         }
         let share = total > 0 ? held / total : 0
         let areaShare = wholeArea > 0 ? heldArea / wholeArea : 0
-        return Candidate(region: region,
-                         inside: sampled > 0 ? hit / sampled : 0,
-                         share: share,
-                         density: areaShare > 0 ? share / areaShare : 0,
-                         drawn: held)
+        return Candidate(
+            region: region,
+            inside: sampled > 0 ? hit / sampled : 0,
+            share: share,
+            density: areaShare > 0 ? share / areaShare : 0,
+            drawn: held
+        )
     }
 
     /// Regions whose OSM data would identify this map's codes, the ones holding most
@@ -148,7 +166,8 @@ enum RegionSuggestion {
 
         // Leaves only while any qualify: a leaf identifies the same codes as the
         // region containing it. Measured only where the box meets the frame.
-        let measured = leaves
+        let measured =
+            leaves
             .filter { region in
                 region.bbox.intersects(drawn.frame)
                     || region.boxes.contains { $0.intersects(drawn.frame) }
@@ -160,12 +179,14 @@ enum RegionSuggestion {
         // a smaller one backed by coverage.
         if out.count < 4 {
             let taken = Set(out.map(\.region.id))
-            out += ranked(measured.filter {
-                !taken.contains($0.region.id) && $0.isDrawnOn
-                    && ($0.share >= drawsAQuarter
-                        || ($0.share >= drawsALot && $0.inside >= sliverInside)
-                        || ($0.inside >= mostlyInside / 2 && $0.share >= drawsEnough))
-            })
+            out += ranked(
+                measured.filter {
+                    !taken.contains($0.region.id) && $0.isDrawnOn
+                        && ($0.share >= drawsAQuarter
+                            || ($0.share >= drawsALot && $0.inside >= sliverInside)
+                            || ($0.inside >= mostlyInside / 2 && $0.share >= drawsEnough))
+                }
+            )
         }
         // A map smaller than every region: nothing lies inside it, so fall back to
         // whichever region holds the map's data.
@@ -177,9 +198,11 @@ enum RegionSuggestion {
         }
         // Somewhere the index holds only as part of something bigger.
         if out.isEmpty {
-            out = ranked(downloadable.filter(\.hasChildren)
-                .filter { $0.bbox.intersects(drawn.frame) }
-                .map(measure).filter { $0.share > 0 })
+            out = ranked(
+                downloadable.filter(\.hasChildren)
+                    .filter { $0.bbox.intersects(drawn.frame) }
+                    .map(measure).filter { $0.share > 0 }
+            )
         }
         return Array(out.prefix(12))
     }
@@ -209,16 +232,22 @@ enum RegionSuggestion {
 
     /// The frame as a `steps` by `steps` grid of cell-centre points. Coverage is
     /// counted in these rather than in area, whatever the shape of the outline.
-    private static func sampleCells(of frame: BBox,
-                                    steps: Int = 24) -> [(lat: Double, lon: Double)] {
+    private static func sampleCells(
+        of frame: BBox,
+        steps: Int = 24
+    ) -> [(lat: Double, lon: Double)] {
         var out: [(lat: Double, lon: Double)] = []
         out.reserveCapacity(steps * steps)
         for row in 0..<steps {
             for column in 0..<steps {
                 let f = (Double(row) + 0.5) / Double(steps)
                 let g = (Double(column) + 0.5) / Double(steps)
-                out.append((lat: frame.minLat + f * (frame.maxLat - frame.minLat),
-                            lon: frame.minLon + g * (frame.maxLon - frame.minLon)))
+                out.append(
+                    (
+                        lat: frame.minLat + f * (frame.maxLat - frame.minLat),
+                        lon: frame.minLon + g * (frame.maxLon - frame.minLon)
+                    )
+                )
             }
         }
         return out
@@ -238,11 +267,21 @@ enum RegionSuggestion {
         var out: [(URL, Double)] = []
         for url in FileTools.contents(of: Paths.pbfCache, extension: "pbf") {
             guard let box = try? PBFReader(url: url).headerBBox() else { continue }
-            let bbox = BBox(minLon: box.minLon, minLat: box.minLat,
-                            maxLon: box.maxLon, maxLat: box.maxLat)
+            let bbox = BBox(
+                minLon: box.minLon,
+                minLat: box.minLat,
+                maxLon: box.maxLon,
+                maxLat: box.maxLat
+            )
             guard bbox.isValid else { continue }
-            let extract = Region(id: url.lastPathComponent, name: url.lastPathComponent,
-                                 parentID: nil, pbfURL: nil, bbox: bbox, boxes: [bbox])
+            let extract = Region(
+                id: url.lastPathComponent,
+                name: url.lastPathComponent,
+                parentID: nil,
+                pbfURL: nil,
+                bbox: bbox,
+                boxes: [bbox]
+            )
             let standing = stance(of: extract, on: drawn)
             guard standing.isDrawnOn else { continue }
             out.append((url, standing.drawn))

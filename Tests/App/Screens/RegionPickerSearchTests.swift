@@ -1,25 +1,29 @@
 import XCTest
+
 @testable import kmap
 
 /// The region picker's search: a kept query is a list like any other, so regions found by
 /// name can be marked one after another and built together.
 @MainActor
 final class RegionPickerSearchTests: XCTestCase {
-
     private func context() throws -> AppContext {
         func feature(_ id: String, _ name: String, parent: String? = nil) -> [String: Any] {
-            var properties: [String: Any] = ["id": id, "name": name,
-                                             "urls": ["pbf": "https://x/\(id).osm.pbf"]]
+            var properties: [String: Any] = [
+                "id": id, "name": name,
+                "urls": ["pbf": "https://x/\(id).osm.pbf"]
+            ]
             if let parent { properties["parent"] = parent }
             return ["properties": properties]
         }
-        let data = try JSONSerialization.data(withJSONObject: ["features": [
-            feature("asia", "Asia"),
-            feature("asia/nepal", "Nepal", parent: "asia"),
-            feature("asia/india", "India", parent: "asia"),
-            feature("asia/indonesia", "Indonesia", parent: "asia"),
-            feature("europe", "Europe"),
-        ]])
+        let data = try JSONSerialization.data(withJSONObject: [
+            "features": [
+                feature("asia", "Asia"),
+                feature("asia/nepal", "Nepal", parent: "asia"),
+                feature("asia/india", "India", parent: "asia"),
+                feature("asia/indonesia", "Indonesia", parent: "asia"),
+                feature("europe", "Europe")
+            ]
+        ])
         let ctx = AppContext()
         try ctx.index.parse(data)
         // Ready, so nothing goes to fetch the real index.

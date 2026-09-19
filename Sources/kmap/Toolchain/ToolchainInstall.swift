@@ -1,4 +1,5 @@
 import Foundation
+
 #if canImport(FoundationNetworking)
 // URLSession lives in a module of its own outside Apple's platforms.
 import FoundationNetworking
@@ -72,9 +73,13 @@ extension Toolchain {
 
     /// - Parameter downloading: fetch into kmap's own directory even where the machine's
     ///   package manager could install it. Only Java can be had both ways.
-    func install(_ id: String, log: Log, runner: ProcessRunner,
-                 downloading: Bool = false,
-                 progress: InstallProgress? = nil) async throws {
+    func install(
+        _ id: String,
+        log: Log,
+        runner: ProcessRunner,
+        downloading: Bool = false,
+        progress: InstallProgress? = nil
+    ) async throws {
         defer { invalidate(); progress?.finish() }
         switch id {
         case "mkgmap":
@@ -86,33 +91,51 @@ extension Toolchain {
         case "pyhgtmap":
             try await installPyhgtmap(log: log, runner: runner, progress: progress)
 
-
         case "sea":
-            try await installDataPack(.sea, log: log, progress: progress,
-                                      name: t("precompiled coastline polygons (~344 MB)"))
+            try await installDataPack(
+                .sea,
+                log: log,
+                progress: progress,
+                name: t("precompiled coastline polygons (~344 MB)")
+            )
 
         case "bounds":
             try await installDataPack(
-                .bounds, log: log, progress: progress,
-                name: t("administrative boundaries (~2.5 GB)"))
+                .bounds,
+                log: log,
+                progress: progress,
+                name: t("administrative boundaries (~2.5 GB)")
+            )
 
         case "java":
             // The machine's own package manager first, where it can do it without a
             // password; otherwise kmap fetches a JDK into its own directory.
             if !downloading, Toolchain.Installability.detect().canInstall(.java) {
-                try await installSystemPackage(.java, log: log, runner: runner,
-                                               progress: progress)
+                try await installSystemPackage(
+                    .java,
+                    log: log,
+                    runner: runner,
+                    progress: progress
+                )
             } else {
                 try await installOwnJava(log: log, runner: runner, progress: progress)
             }
 
         case "python":
-            try await installSystemPackage(.python, log: log, runner: runner,
-                                           progress: progress)
+            try await installSystemPackage(
+                .python,
+                log: log,
+                runner: runner,
+                progress: progress
+            )
 
         case "unzip":
-            try await installSystemPackage(.unzip, log: log, runner: runner,
-                                           progress: progress)
+            try await installSystemPackage(
+                .unzip,
+                log: log,
+                runner: runner,
+                progress: progress
+            )
 
         default:
             throw InstallError.unsupported(t("nothing known about \"%@\"", id))
@@ -125,8 +148,11 @@ extension Toolchain {
     /// The archive is checked against the checksum Adoptium publishes for it before
     /// anything is unpacked, and the unpacked tree replaces any earlier one only once a
     /// `java` inside it has been found and has run.
-    private func installOwnJava(log: Log, runner: ProcessRunner,
-                                progress: InstallProgress? = nil) async throws {
+    private func installOwnJava(
+        log: Log,
+        runner: ProcessRunner,
+        progress: InstallProgress? = nil
+    ) async throws {
         guard JavaDownload.isAvailable() else { throw JavaDownload.Trouble.unsupportedMachine }
 
         progress?.step(t("looking up the current Java %d build", JavaDownload.feature))
@@ -187,36 +213,56 @@ extension Toolchain {
     ///
     /// Refuses before running anything where root is needed and sudo would ask for a
     /// password: children get /dev/null for stdin, so the prompt would hang unseen.
-    private func installSystemPackage(_ what: PackageManager.Need,
-                                      log: Log, runner: ProcessRunner,
-                                      progress: InstallProgress? = nil) async throws {
+    private func installSystemPackage(
+        _ what: PackageManager.Need,
+        log: Log,
+        runner: ProcessRunner,
+        progress: InstallProgress? = nil
+    ) async throws {
         guard let manager = PackageManager.detect() else {
             throw InstallError.unsupported(
-                t("no package manager kmap knows was found — install %@ by hand",
-                  what.spokenName))
+                t(
+                    "no package manager kmap knows was found — install %@ by hand",
+                    what.spokenName
+                )
+            )
         }
         let privilege = Privilege.forInstalling(with: manager)
         guard let command = manager.command(for: what, privilege: privilege) else {
             throw InstallError.unsupported(
-                t("%1$@ has no name for %2$@ that kmap knows",
-                  manager.spokenName, what.spokenName))
+                t(
+                    "%1$@ has no name for %2$@ that kmap knows",
+                    manager.spokenName,
+                    what.spokenName
+                )
+            )
         }
         guard command.runnable else {
             // A root install where sudo wants a password: report the exact command instead.
             throw InstallError.unsupported(
-                t("this needs a root password, which kmap cannot ask for from here. Run:  %@",
-                  manager.spokenCommand(for: what, privilege: privilege) ?? ""))
+                t(
+                    "this needs a root password, which kmap cannot ask for from here. Run:  %@",
+                    manager.spokenCommand(for: what, privilege: privilege) ?? ""
+                )
+            )
         }
 
         progress?.step(t("installing %1$@ with %2$@", what.spokenName, manager.spokenName))
         log.step(t("installing %1$@ with %2$@", what.spokenName, manager.spokenName))
         guard let executable = Platform.which(command.executable) else {
-            throw InstallError.unsupported(t("%@ is not where it said it was",
-                                             command.executable))
+            throw InstallError.unsupported(
+                t(
+                    "%@ is not where it said it was",
+                    command.executable
+                )
+            )
         }
         // apt refuses to run without this when there is no terminal to ask questions on.
-        try await runner.run(executable, command.arguments,
-                             environment: ["DEBIAN_FRONTEND": "noninteractive"]) { line in
+        try await runner.run(
+            executable,
+            command.arguments,
+            environment: ["DEBIAN_FRONTEND": "noninteractive"]
+        ) { line in
             log.output(line)
         }
         invalidate()
@@ -225,36 +271,44 @@ extension Toolchain {
 
     /// Stamped with what the server said, so a build can later ask whether the mirror has
     /// moved on without fetching a gigabyte to find out.
-    private func installDataPack(_ pack: DataPack, log: Log,
-                                 progress: InstallProgress? = nil,
-                                 name: String) async throws {
+    private func installDataPack(
+        _ pack: DataPack,
+        log: Log,
+        progress: InstallProgress? = nil,
+        name: String
+    ) async throws {
         log.step("downloading \(name)")
         Paths.ensure(Paths.tools)
         let downloader = Downloader(log: log)
         progress?.downloading(t("downloading %@", name), downloader.progress)
         // The count a build uses: parts are laid out per count, so a differing one would
         // start the download again instead of resuming it.
-        try await pack.fetch(using: downloader,
-                             connections: settings.settings.downloadConnections)
+        try await pack.fetch(
+            using: downloader,
+            connections: settings.settings.downloadConnections
+        )
         log.ok("\(pack.file.lastPathComponent) ready — \(Fmt.bytes(FileTools.size(of: pack.file)))")
     }
 
     /// Downloads a mkgmap.org.uk zip, finds the jar inside it, and installs it plus its lib/.
-    private func installJarBundle(pageURL: String,
-                                  pattern: String,
-                                  fallbackFile: String,
-                                  jarName: String,
-                                  destination: URL,
-                                  log: Log,
-                                  progress: InstallProgress? = nil) async throws {
+    private func installJarBundle(
+        pageURL: String,
+        pattern: String,
+        fallbackFile: String,
+        jarName: String,
+        destination: URL,
+        log: Log,
+        progress: InstallProgress? = nil
+    ) async throws {
         let base = "https://www.mkgmap.org.uk/download/"
         var file = fallbackFile
 
         progress?.step(t("looking up the latest %@ release", jarName))
         log.step("looking up the latest \(jarName) release")
         if let url = URL(string: pageURL),
-           let (data, _) = try? await URLSession.shared.data(from: url),
-           let html = String(data: data, encoding: .utf8) {
+            let (data, _) = try? await URLSession.shared.data(from: url),
+            let html = String(data: data, encoding: .utf8)
+        {
             let matches = html.allMatches(pattern)
             // Releases are revision-numbered; take the highest.
             let best = matches.compactMap { match -> (Int, String)? in
@@ -318,27 +372,41 @@ extension Toolchain {
 
     /// Installs the latest mkgmap release, or `fallbackFile` where the release page cannot
     /// be read.
-    func installMkgmap(log: Log, runner: ProcessRunner,
-                       progress: InstallProgress? = nil) async throws {
+    func installMkgmap(
+        log: Log,
+        runner: ProcessRunner,
+        progress: InstallProgress? = nil
+    ) async throws {
         try await installJarBundle(
             pageURL: "https://www.mkgmap.org.uk/download/mkgmap.html",
             pattern: "mkgmap-r([0-9]+)\\.zip",
             fallbackFile: "mkgmap-r4924.zip",
             jarName: "mkgmap.jar",
             destination: Paths.tools.appendingPathComponent("mkgmap", isDirectory: true),
-            log: log, progress: progress)
+            log: log,
+            progress: progress
+        )
     }
 
-    private func installPyhgtmap(log: Log, runner: ProcessRunner,
-                                 progress: InstallProgress? = nil) async throws {
+    private func installPyhgtmap(
+        log: Log,
+        runner: ProcessRunner,
+        progress: InstallProgress? = nil
+    ) async throws {
         // pyhgtmap lives in a virtualenv, which needs a python3 to build it from.
         if findPython3() == nil, Toolchain.canInstall(.python) {
-            try await installSystemPackage(.python, log: log, runner: runner,
-                                           progress: progress)
+            try await installSystemPackage(
+                .python,
+                log: log,
+                runner: runner,
+                progress: progress
+            )
         }
         guard let python = findPython3() else {
-            throw InstallError.unsupported("python3 not found — install with: "
-                                           + Platform.installHint(.python))
+            throw InstallError.unsupported(
+                "python3 not found — install with: "
+                    + Platform.installHint(.python)
+            )
         }
         Paths.ensure(Paths.tools)
 
@@ -351,11 +419,17 @@ extension Toolchain {
         progress?.step(t("installing pyhgtmap"))
         log.step("installing pyhgtmap (this pulls in a few geo libraries — give it a minute)")
         let pip = ToolLocations.inVirtualEnvironment("pip", of: Paths.venv).nativePath
-        try await runner.run(pip, ["install", "--upgrade", "--disable-pip-version-check",
-                                   "pyhgtmap"]) { line in
+        try await runner.run(
+            pip,
+            [
+                "install", "--upgrade", "--disable-pip-version-check",
+                "pyhgtmap"
+            ]
+        ) { line in
             // pip is chatty; keep the useful lines.
             if line.hasPrefix("Collecting") || line.hasPrefix("Successfully")
-                || line.hasPrefix("Installing") || line.contains("error") {
+                || line.hasPrefix("Installing") || line.contains("error")
+            {
                 log.output(line)
             }
         }

@@ -55,23 +55,36 @@ struct StylePalette {
                 out.summary = parts.dropFirst().joined(separator: " ")
             case "poly":
                 guard parts.count >= 5, let code = hex(parts[1]),
-                      let level = Int(parts[2]), isColour(parts[3])
+                    let level = Int(parts[2]), isColour(parts[3])
                 else { throw fail("expected: poly <code> <level> <day> [night] <name>") }
                 let hasNight = isColour(parts[4])
                 let name = parts.dropFirst(hasNight ? 5 : 4).joined(separator: " ")
                 guard !name.isEmpty else { throw fail("no name") }
-                out.polygons.append(Polygon(code: code, level: level, day: parts[3],
-                                            night: hasNight ? parts[4] : parts[3],
-                                            name: name))
+                out.polygons.append(
+                    Polygon(
+                        code: code,
+                        level: level,
+                        day: parts[3],
+                        night: hasNight ? parts[4] : parts[3],
+                        name: name
+                    )
+                )
             case "line":
                 guard parts.count >= 4, let code = hex(parts[1]),
-                      let width = Int(parts[2]), isColour(parts[3])
+                    let width = Int(parts[2]), isColour(parts[3])
                 else { throw fail("expected: line <code> <width> <day> [casing] <name>") }
                 let hasCasing = parts.count > 4 && isColour(parts[4])
                 let name = parts.dropFirst(hasCasing ? 5 : 4).joined(separator: " ")
                 guard !name.isEmpty else { throw fail("no name") }
-                out.lines.append(Line(code: code, width: width, day: parts[3],
-                                      casing: hasCasing ? parts[4] : nil, name: name))
+                out.lines.append(
+                    Line(
+                        code: code,
+                        width: width,
+                        day: parts[3],
+                        casing: hasCasing ? parts[4] : nil,
+                        name: name
+                    )
+                )
             default:
                 throw fail("unknown kind \(parts.first ?? "")")
             }

@@ -1,9 +1,9 @@
 import XCTest
+
 @testable import kmap
 
 /// Telling a cached extract damaged on disk from a build that failed for its own reasons.
 final class ExtractRepairTests: XCTestCase {
-
     private var directory = URL(fileURLWithPath: "/tmp")
 
     override func setUpWithError() throws {
@@ -19,21 +19,42 @@ final class ExtractRepairTests: XCTestCase {
     private func pipeline() -> BuildPipeline {
         let settings = SettingsStore()
         let toolchain = Toolchain(settings: settings)
-        let region = Region(id: "continent/small-region", name: "Small Region",
-                            parentID: nil, pbfURL: nil, bbox: .empty, boxes: [])
-        let style = MapStyle(id: "plain", name: "Plain", summary: "", origin: .builtin,
-                             styleDirectory: nil, typURL: nil, familyID: 6300, productID: 1)
+        let region = Region(
+            id: "continent/small-region",
+            name: "Small Region",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: .empty,
+            boxes: []
+        )
+        let style = MapStyle(
+            id: "plain",
+            name: "Plain",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: nil,
+            typURL: nil,
+            familyID: 6300,
+            productID: 1
+        )
         let recipe = BuildRecipe(region: region, style: style, outputDirectory: directory)
-        return BuildPipeline(recipe: recipe, settings: settings, toolchain: toolchain,
-                             styles: StyleCatalog(settings: settings, toolchain: toolchain))
+        return BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
     }
 
     /// An extract as the download stage leaves it: the bytes and a stamp with their MD5.
     private func cachedExtract(_ name: String, stamped: Bool = true) throws -> URL {
         let url = directory.appendingPathComponent(name)
         try Data(repeating: 7, count: 4096).write(to: url)
-        CacheStamp(size: 4096, lastModified: "then",
-                   md5: stamped ? try Downloader.md5(of: url) : nil).write(besides: url)
+        CacheStamp(
+            size: 4096,
+            lastModified: "then",
+            md5: stamped ? try Downloader.md5(of: url) : nil
+        ).write(besides: url)
         return url
     }
 

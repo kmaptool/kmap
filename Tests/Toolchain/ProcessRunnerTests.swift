@@ -1,17 +1,24 @@
 import XCTest
+
 @testable import kmap
 
 /// Running mkgmap. Every long command kmap runs goes through here, and the build reads
 /// the reported result rather than the tool's own words.
 final class ProcessRunnerTests: XCTestCase {
-
-    private func collect(_ executable: String, _ arguments: [String],
-                         allowFailure: Bool = false) async throws
-    -> (result: ProcessRunner.Result, lines: [String]) {
+    private func collect(
+        _ executable: String,
+        _ arguments: [String],
+        allowFailure: Bool = false
+    ) async throws
+        -> (result: ProcessRunner.Result, lines: [String])
+    {
         let lock = NSLock()
         var lines: [String] = []
-        let result = try await ProcessRunner().run(executable, arguments,
-                                                   allowFailure: allowFailure) { line in
+        let result = try await ProcessRunner().run(
+            executable,
+            arguments,
+            allowFailure: allowFailure
+        ) { line in
             lock.lock(); lines.append(line); lock.unlock()
         }
         return (result, lines)
@@ -32,8 +39,10 @@ final class ProcessRunnerTests: XCTestCase {
     func testLinesEndedTheWindowsWayAreStillLines() async throws {
         // Swift counts "\r\n" as one Character, so `firstIndex(of: "\n")` finds none of
         // them and the whole run arrives as a single line.
-        let (_, lines) = try await collect(TestShell.path,
-                                           TestShell.arguments(.twoLinesWithCarriageReturns))
+        let (_, lines) = try await collect(
+            TestShell.path,
+            TestShell.arguments(.twoLinesWithCarriageReturns)
+        )
         XCTAssertEqual(lines, ["one", "two"])
     }
 
@@ -78,17 +87,21 @@ final class ProcessRunnerTests: XCTestCase {
 
     func testTheEnvironmentIsAddedToTheOneKmapHasRatherThanReplacingIt() async throws {
         // Java needs PATH and HOME to work at all; handing it only JAVA_OPTS would break it.
-        let (_, lines) = try await collect(TestShell.path,
-                                           TestShell.arguments(.reportEnvironment))
+        let (_, lines) = try await collect(
+            TestShell.path,
+            TestShell.arguments(.reportEnvironment)
+        )
         XCTAssertEqual(lines.first, "unset")
 
         let lock = NSLock()
         var withEnv: [String] = []
         _ = try await ProcessRunner().run(
-            TestShell.path, TestShell.arguments(.reportEnvironment),
-            environment: ["KMAP_TEST_VALUE": "here"]) { line in
-                lock.lock(); withEnv.append(line); lock.unlock()
-            }
+            TestShell.path,
+            TestShell.arguments(.reportEnvironment),
+            environment: ["KMAP_TEST_VALUE": "here"]
+        ) { line in
+            lock.lock(); withEnv.append(line); lock.unlock()
+        }
         XCTAssertEqual(withEnv, ["here", "path-is-set"])
     }
 
@@ -99,14 +112,18 @@ final class ProcessRunnerTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let lock = NSLock()
         var lines: [String] = []
-        _ = try await ProcessRunner().run(TestShell.path,
-                                          TestShell.arguments(.printWorkingDirectory),
-                                          cwd: directory) { line in
+        _ = try await ProcessRunner().run(
+            TestShell.path,
+            TestShell.arguments(.printWorkingDirectory),
+            cwd: directory
+        ) { line in
             lock.lock(); lines.append(line); lock.unlock()
         }
         // Compared by what the path resolves to: /tmp is a link to /private/tmp here.
-        XCTAssertEqual(lines.first.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path },
-                       directory.resolvingSymlinksInPath().path)
+        XCTAssertEqual(
+            lines.first.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path },
+            directory.resolvingSymlinksInPath().path
+        )
     }
 
     func testAChildDoesNotInheritTheTerminal() async throws {

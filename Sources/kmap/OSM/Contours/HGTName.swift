@@ -11,9 +11,13 @@ import Foundation
 enum HGTName {
     /// The name of the tile holding a point, without the extension.
     static func of(lat: Int, lon: Int) -> String {
-        String(format: "%@%02d%@%03d",
-               lat < 0 ? "S" : "N", abs(lat),
-               lon < 0 ? "W" : "E", abs(lon))
+        String(
+            format: "%@%02d%@%03d",
+            lat < 0 ? "S" : "N",
+            abs(lat),
+            lon < 0 ? "W" : "E",
+            abs(lon)
+        )
     }
 
     /// The tile holding a coordinate: whole degrees, rounded down, as the corner is.
@@ -29,8 +33,11 @@ enum HGTName {
         guard letters[0] == "N" || letters[0] == "S" else { return nil }
         guard letters[3] == "E" || letters[3] == "W" else { return nil }
         guard let degreesNorth = Int(String(letters[1...2])),
-              let degreesEast = Int(String(letters[4...6])) else { return nil }
-        return (lat: letters[0] == "S" ? -degreesNorth : degreesNorth,
-                lon: letters[3] == "W" ? -degreesEast : degreesEast)
+            let degreesEast = Int(String(letters[4...6]))
+        else { return nil }
+        return (
+            lat: letters[0] == "S" ? -degreesNorth : degreesNorth,
+            lon: letters[3] == "W" ? -degreesEast : degreesEast
+        )
     }
 }
