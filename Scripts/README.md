@@ -15,6 +15,21 @@ without a bundle, an installer or a package manager.
 call them. Each script refuses on the wrong OS and names any tool it is missing.
 `SKIP_BUILD=1` packages what was built last time; on Windows the same is `-SkipBuild`.
 
+## Formatting
+
+The code is laid out by `swift format` with the settings in `.swift-format` at the root:
+
+```sh
+swift format --configuration .swift-format --in-place --recursive Sources Tests
+```
+
+The reformat that adopted it touched every file, so it is listed in
+`.git-blame-ignore-revs`. GitHub reads that file by itself; locally it is one command:
+
+```sh
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ## Requirements
 
 | | |

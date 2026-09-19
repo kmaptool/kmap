@@ -1,0 +1,4 @@
+# Whole-repository reformat with swift-format. No code was changed.
+# git blame skips these; GitHub reads this file by itself, and locally:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+86b2803fb160cfe01621f73a4723fb3e36b167b5
