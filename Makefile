@@ -64,6 +64,7 @@ assets: version
 ## Regenerate the version constant from the VERSION file. The generated file is
 ## committed, so a plain `swift build` needs nothing but the sources.
 version:
+	@mkdir -p $(BUILD_DIR)
 	@printf '// Generated from the VERSION file at the repository root by `make version`.\n// Edit that file, not this one.\nextension Version {\n    /// The number the VERSION file holds.\n    static let number = "%s"\n}\n' "$$(tr -d ' \r\n' < VERSION)" > $(BUILD_DIR)/version-next.swift
 	@cmp -s $(BUILD_DIR)/version-next.swift Sources/kmap/Core/VersionNumber.swift || cp $(BUILD_DIR)/version-next.swift Sources/kmap/Core/VersionNumber.swift
 
@@ -90,11 +91,19 @@ package-linux:
 package-windows:
 	@Scripts/build-windows.sh
 
-## Install the release binary
-install: release
-	install -d $(PREFIX)/bin
-	install -m 755 $(BUILD_DIR)/release/$(BINARY) $(PREFIX)/bin/$(BINARY)
+## Install the release binary: built as you, copied with sudo only if $(PREFIX) needs it.
+SUDO_IF_NEEDED = $$( [ -w "$(PREFIX)/bin" ] || [ "$$(id -u)" = 0 ] || echo sudo )
+
+install:
+	@if [ "$$(id -u)" = 0 ] && [ -n "$$SUDO_USER" ]; then \
+		sudo -u "$$SUDO_USER" $(MAKE) release; \
+	else \
+		$(MAKE) release; \
+	fi
+	@mkdir -p $(PREFIX)/bin 2>/dev/null || true
+	@$(SUDO_IF_NEEDED) install -d $(PREFIX)/bin
+	@$(SUDO_IF_NEEDED) install -m 755 $(BUILD_DIR)/release/$(BINARY) $(PREFIX)/bin/$(BINARY)
 	@echo "installed -> $(PREFIX)/bin/$(BINARY)"
 
 uninstall:
-	rm -f $(PREFIX)/bin/$(BINARY)
+	@$(SUDO_IF_NEEDED) rm -f $(PREFIX)/bin/$(BINARY)
