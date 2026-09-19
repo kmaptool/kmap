@@ -15,6 +15,11 @@ struct WaterMask {
     /// A run of fewer points is not a line.
     private static let fewestLinePoints = 2
     private static let bitsPerWord = 64
+    private static let metresPerDegree = 111_320.0
+    /// A piece with water at both ends and shorter than this is dropped: two raster cells,
+    /// about 30 m, below which a notch in the shore looks like ground. A piece ending
+    /// anywhere else is kept, since at a cell's edge its other half is next door.
+    static let shortestBetweenShores = 2 * metresPerDegree / Double(cellsPerDegree)
 
     private let minLat: Double, minLon: Double
     private var words: [UInt64]
@@ -99,9 +104,11 @@ struct WaterMask {
         for line in lines {
             var run: [(lat: Double, lon: Double)] = []
             var cut = false
+            var fromShore = false
             var previous: (point: (lat: Double, lon: Double), wet: Bool)?
             func close() {
-                if run.count >= Self.fewestLinePoints {
+                if run.count >= Self.fewestLinePoints,
+                   !(fromShore && Self.length(of: run) < Self.shortestBetweenShores) {
                     out.append(Contours.Line(elevation: line.elevation, points: run, closed: false))
                 }
                 run.removeAll(keepingCapacity: true)
@@ -112,7 +119,7 @@ struct WaterMask {
                     let shore = self.shore(dry: wet ? previous.point : point,
                                            wet: wet ? point : previous.point)
                     run.append(shore)
-                    if wet { close() }
+                    if wet { close() } else { fromShore = true }
                 }
                 if wet { cut = true } else { run.append(point) }
                 previous = (point, wet)
@@ -123,6 +130,16 @@ struct WaterMask {
             }
         }
         return out
+    }
+
+    /// Length in metres, flat-earth: enough for runs of tens of metres.
+    private static func length(of run: [(lat: Double, lon: Double)]) -> Double {
+        var metres = 0.0
+        for (a, b) in zip(run, run.dropFirst()) {
+            let across = (b.lon - a.lon) * cos(a.lat * .pi / 180)
+            metres += (across * across + (b.lat - a.lat) * (b.lat - a.lat)).squareRoot()
+        }
+        return metres * metresPerDegree
     }
 
     /// Where the segment from dry ground to water meets the shore, by halving.

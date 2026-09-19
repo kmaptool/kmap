@@ -141,4 +141,43 @@ final class WaterMaskTests: XCTestCase {
         let chains = WaterBodies.closedChains(of: [[1, 2, 3, 1], [7, 8], [8, 9, 7]])
         XCTAssertEqual(chains.count, 2)
     }
+
+    // MARK: Pieces left between two shores
+
+    /// Two lakes `gap` degrees apart and a contour across both, one vertex in the gap.
+    private func pieces(acrossGap gap: Double) throws -> [Contours.Line] {
+        let west = square(44.40, 34.40, side: 0.05)
+        let east = square(44.40, 34.45 + gap, side: 0.05)
+        let mask = try XCTUnwrap(WaterMask(cellAt: 44, 34, water: water(west, east)))
+        return mask.clip([line((44.425, 34.30), (44.425, 34.42), (44.425, 34.45 + gap / 2),
+                               (44.425, 34.48), (44.425, 34.60))])
+    }
+
+    func testAScrapBetweenTwoShoresIsDropped() throws {
+        // About 24 m of ground.
+        let pieces = try pieces(acrossGap: 0.0003)
+        XCTAssertEqual(pieces.count, 2, "the line up to the first lake and on from the second")
+        XCTAssertEqual(pieces.first?.points.first?.lon, 34.30)
+        XCTAssertEqual(pieces.last?.points.last?.lon, 34.60)
+    }
+
+    func testAStretchOfGroundBetweenTwoShoresIsKept() throws {
+        // About 80 m: a real isthmus.
+        XCTAssertEqual(try pieces(acrossGap: 0.001).count, 3)
+    }
+
+    func testAShortPieceAtTheEndOfALineIsKept() throws {
+        // Its other half may be in the next cell.
+        let mask = try XCTUnwrap(WaterMask(cellAt: 44, 34, water: water(square(44.4, 34.4, side: 0.1))))
+        let fromTheWest = mask.clip([line((44.45, 34.3999), (44.45, 34.42))])
+        XCTAssertEqual(fromTheWest.count, 1, "starts on dry ground, ends at the shore")
+        let intoTheEast = mask.clip([line((44.45, 34.48), (44.45, 34.5001))])
+        XCTAssertEqual(intoTheEast.count, 1, "starts at the shore, ends on dry ground")
+    }
+
+    func testTheThresholdIsTwoRasterCells() {
+        XCTAssertEqual(WaterMask.shortestBetweenShores, 2 * 111_320.0 / 7200, accuracy: 1e-9)
+        XCTAssertGreaterThan(WaterMask.shortestBetweenShores, 25)
+        XCTAssertLessThan(WaterMask.shortestBetweenShores, 35)
+    }
 }
