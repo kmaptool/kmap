@@ -15,12 +15,10 @@ protocol ConsoleBackend {
     static func lend()
 
     /// Puts the console back into the mode `enterRawMode` asked for, and back to the shape
-    /// `lend` remembered if it came back smaller. Takes nothing as the state to restore on
-    /// exit: that is what `enterRawMode` found, and this is after another program has had
-    /// the console and left it its own way.
+    /// `lend` remembered if it came back smaller.
     static func reclaim()
 
-    /// The window, in cells. `(80, 24)` when there is nothing to ask.
+    /// The window, in cells; `fallbackSize` when there is nothing to ask.
     static func size() -> (columns: Int, rows: Int)
 
     /// Writes every byte, or as many as it can.
@@ -33,11 +31,14 @@ protocol ConsoleBackend {
     /// or a negative number on error.
     static func read(into buffer: inout [UInt8]) -> Int
 
-    /// Calls `handler` on ^C or a closing console.
-    ///
-    /// The handler runs in a signal-handler context: it may touch only what
-    /// `Terminal.stop()` touches.
+    /// Calls `handler` on ^C or a closing console. The handler runs in a signal-handler
+    /// context: it may touch only what `Terminal.stop()` touches.
     static func onInterrupt(_ handler: @escaping () -> Void)
+}
+
+extension ConsoleBackend {
+    /// The size assumed where the console cannot be asked: the classic terminal.
+    static var fallbackSize: (columns: Int, rows: Int) { (80, 24) }
 }
 
 /// What a wait for input came back with.

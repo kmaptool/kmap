@@ -1,32 +1,10 @@
 import Foundation
 
-/// An in-memory grid of styled cells. Screens draw into it; `compose()` emits a full ANSI frame.
+/// An in-memory grid of styled cells. Screens draw into it; `compose()` emits a full ANSI
+/// frame.
 final class Surface {
-    /// A string the renderer had to cut short, with the position it was drawn at.
-    /// Collected only inside `collectClipped(_:)`.
-    struct Clip: Hashable {
-        let x: Int, y: Int
-        let text: String
-        /// Identity is the position alone, so the same draw call compares equal across
-        /// languages.
-        static func == (a: Clip, b: Clip) -> Bool { a.x == b.x && a.y == b.y }
-        func hash(into hasher: inout Hasher) { hasher.combine(x); hasher.combine(y) }
-    }
-
-    /// Nil except while something is collecting.
-    private static let clips = Locked<[Clip]?>(nil)
-
-    static func collectClipped<T>(_ body: () throws -> T) rethrows -> (T, [Clip]) {
-        clips.withLock { $0 = [] }
-        defer { clips.withLock { $0 = nil } }
-        let out = try body()
-        return (out, clips.withLock { $0 ?? [] })
-    }
-
-    private static func noteClipped(at x: Int, _ y: Int, _ string: String) {
-        guard !string.isEmpty else { return }
-        clips.withLock { $0?.append(Clip(x: x, y: y, text: string)) }
-    }
+    /// Columns a tab stands for.
+    private static let tabWidth = 4
 
     private(set) var width = 0
     private(set) var height = 0
@@ -35,14 +13,14 @@ final class Surface {
     /// Whether `compose()` emits 24-bit colour or folds it onto the 256-entry palette.
     var trueColour = TerminalCapabilities.trueColour
 
+    var bounds: Rect { Rect(x: 0, y: 0, w: width, h: height) }
+
     func resize(_ w: Int, _ h: Int) {
         guard w != width || h != height else { return }
         width = max(0, w)
         height = max(0, h)
         cells = Array(repeating: Cell(), count: width * height)
     }
-
-    var bounds: Rect { Rect(x: 0, y: 0, w: width, h: height) }
 
     func clear(_ style: Style) {
         for i in cells.indices { cells[i] = Cell(ch: " ", style: style) }
@@ -59,8 +37,8 @@ final class Surface {
         return cells[y * width + x]
     }
 
-    /// The grid as plain text, one line per row with trailing spaces removed. Not used by
-    /// the renderer.
+    /// The grid as plain text, one line per row with trailing spaces removed. For tests,
+    /// not for the renderer.
     func asText() -> String {
         (0..<height).map { y in
             String((0..<width).map { x in cells[y * width + x].ch })
@@ -72,6 +50,8 @@ final class Surface {
         .joined(separator: "\n")
     }
 
+    // MARK: Drawing
+
     func put(_ x: Int, _ y: Int, _ ch: Character, _ style: Style) {
         guard inBounds(x, y) else { return }
         // Every character on screen passes here, which is where a console that cannot
@@ -80,6 +60,7 @@ final class Surface {
     }
 
     /// Draws text starting at (x, y), clipped to `limit` columns and the surface bounds.
+    /// Control characters are never stored: they would reach the terminal verbatim.
     @discardableResult
     func text(_ x: Int, _ y: Int, _ string: String, _ style: Style, limit: Int = .max) -> Int {
         guard y >= 0, y < height else { return x }
@@ -89,20 +70,14 @@ final class Surface {
         let stopX = x + min(limit, available)
         for ch in string {
             if cx >= stopX {
-                // The rest of the string is dropped; record it for `collectClipped(_:)`.
                 Surface.noteClipped(at: x, y, string)
                 break
             }
             if ch == "\t" {
-                for _ in 0..<4 where cx < stopX { put(cx, y, " ", style); cx += 1 }
+                for _ in 0..<Self.tabWidth where cx < stopX { put(cx, y, " ", style); cx += 1 }
                 continue
             }
-            // Control characters are never stored: they would reach the terminal verbatim.
-            if let scalar = ch.unicodeScalars.first,
-                scalar.value < 0x20 || scalar.value == 0x7F || (0x80...0x9F).contains(scalar.value)
-            {
-                continue
-            }
+            if let scalar = ch.unicodeScalars.first, Text.isControl(scalar) { continue }
             put(cx, y, ch, style)
             cx += 1
         }
@@ -164,7 +139,9 @@ final class Surface {
         }
     }
 
-    /// Builds the full-frame ANSI string with run-length style coalescing.
+    // MARK: The frame
+
+    /// The full-frame ANSI string, with a style written only where it changes.
     func compose() -> String {
         var out = "\u{1B}[H"
         out.reserveCapacity(width * height + 256)
@@ -183,72 +160,4 @@ final class Surface {
         }
         return out
     }
-}
-
-// MARK: - Text helpers
-
-/// Wraps text to `width` columns, honoring explicit newlines and breaking on spaces when possible.
-func wrapText(_ text: String, width: Int) -> [String] {
-    guard width > 0 else { return [text] }
-    var lines: [String] = []
-    let normalized = text.replacingOccurrences(of: "\t", with: "    ")
-    for rawLine in normalized.split(separator: "\n", omittingEmptySubsequences: false) {
-        var line = String(rawLine)
-        if line.isEmpty { lines.append(""); continue }
-        while line.count > width {
-            let breakIdx = line.index(line.startIndex, offsetBy: width)
-            let head = line[line.startIndex..<breakIdx]
-            if let space = head.lastIndex(of: " "), space != line.startIndex {
-                lines.append(String(line[line.startIndex..<space]))
-                line = String(line[line.index(after: space)...])
-            } else {
-                lines.append(String(head))
-                line = String(line[breakIdx...])
-            }
-        }
-        lines.append(line)
-    }
-    return lines
-}
-
-/// Strips ANSI/VT escape sequences and control characters from text produced by external
-/// programs. Tabs and newlines are kept.
-func stripControlSequences(_ text: String) -> String {
-    var result = ""
-    result.reserveCapacity(text.count)
-    let scalars = Array(text.unicodeScalars)
-    var i = 0
-    while i < scalars.count {
-        let s = scalars[i]
-        if s.value == 0x1B {  // ESC — skip the whole sequence
-            let next = i + 1 < scalars.count ? scalars[i + 1] : UnicodeScalar(0)
-            if next == "[" {
-                i += 2
-                while i < scalars.count, !(0x40...0x7E).contains(scalars[i].value) { i += 1 }
-                i += 1
-            } else if next == "]" {
-                i += 2
-                while i < scalars.count, scalars[i].value != 0x07, scalars[i].value != 0x1B { i += 1 }
-                if i < scalars.count, scalars[i].value == 0x1B { i += 1 }
-                i += 1
-            } else {
-                i += 2
-            }
-            continue
-        }
-        if s.value == 0x09 || s.value == 0x0A
-            || (s.value >= 0x20 && s.value != 0x7F && !(0x80...0x9F).contains(s.value))
-        {
-            result.unicodeScalars.append(s)
-        }
-        i += 1
-    }
-    return result
-}
-
-func truncate(_ s: String, to width: Int) -> String {
-    guard width > 0 else { return "" }
-    guard s.count > width else { return s }
-    guard width > 1 else { return String(s.prefix(width)) }
-    return String(s.prefix(width - 1)) + String(Glyph.ellipsis)
 }

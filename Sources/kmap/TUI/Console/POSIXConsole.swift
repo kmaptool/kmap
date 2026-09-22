@@ -8,6 +8,9 @@ import Glibc
 
 /// `ConsoleBackend` on Unix: termios raw mode, `poll` for input, and signal handlers.
 enum POSIXConsole: ConsoleBackend {
+    /// How long a write blocked on a full pipe waits before trying again.
+    private static let writeRetryMilliseconds: Int32 = 100
+
     // Read from signal handlers, where no lock may be taken: a handler that interrupts the
     // thread holding it would wait for ever. Both are written before the handlers exist.
     nonisolated(unsafe) private static var original = termios()
@@ -34,10 +37,12 @@ enum POSIXConsole: ConsoleBackend {
         raw.c_iflag &= ~(tcflag_t(IXON) | tcflag_t(ICRNL) | tcflag_t(BRKINT) | tcflag_t(INPCK) | tcflag_t(ISTRIP))
         raw.c_oflag &= ~tcflag_t(OPOST)
         raw.c_cflag |= tcflag_t(CS8)
+        // A read returns what is there, or nothing after a tenth of a second; the real
+        // waiting is done with `poll`.
         withUnsafeMutablePointer(to: &raw.c_cc) { ptr in
             ptr.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { cc in
-                cc[Int(VMIN)] = 0  // non-blocking-ish read
-                cc[Int(VTIME)] = 1  // 100ms poll timeout
+                cc[Int(VMIN)] = 0
+                cc[Int(VTIME)] = 1
             }
         }
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
@@ -54,7 +59,7 @@ enum POSIXConsole: ConsoleBackend {
         if ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &ws) == 0, ws.ws_col > 0 {
             return (Int(ws.ws_col), Int(ws.ws_row))
         }
-        return (80, 24)
+        return fallbackSize
     }
 
     static func write(_ bytes: [UInt8]) {
@@ -62,18 +67,14 @@ enum POSIXConsole: ConsoleBackend {
             guard let base = ptr.baseAddress else { return }
             var written = 0
             while written < ptr.count {
-                let n = Glibcish.write(
-                    STDOUT_FILENO,
-                    base.advanced(by: written),
-                    ptr.count - written
-                )
+                let n = Glibcish.write(STDOUT_FILENO, base.advanced(by: written), ptr.count - written)
                 if n > 0 { written += n; continue }
                 // A frame is resent only when it changes, so a partial write is never
                 // repaired later: EINTR and EAGAIN must be retried, not abandoned.
                 if errno == EINTR { continue }
                 if errno == EAGAIN || errno == EWOULDBLOCK {
                     var pfd = pollfd(fd: STDOUT_FILENO, events: Int16(POLLOUT), revents: 0)
-                    _ = poll(&pfd, 1, 100)
+                    _ = poll(&pfd, 1, writeRetryMilliseconds)
                     continue
                 }
                 break

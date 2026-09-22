@@ -76,19 +76,19 @@ final class ColourPickerTests: XCTestCase {
         _ = picker.handle(.tab)  // onto the sliders
         XCTAssertEqual(picker.pane, .sliders)
 
-        let before = picker.lightnessForTests
+        let before = picker.lightness
         _ = picker.handle(.down)  // hue -> saturation -> lightness
         _ = picker.handle(.down)
         _ = picker.handle(.right)
-        XCTAssertEqual(picker.lightnessForTests, before + 0.01, accuracy: 0.0001)
+        XCTAssertEqual(picker.lightness, before + 0.01, accuracy: 0.0001)
     }
 
     func testThePageKeysMoveTenAtATime() {
         var picker = ColourPicker(start: "#808080")
         _ = picker.handle(.tab)
-        let before = picker.hueForTests
+        let before = picker.hue
         _ = picker.handle(.pageUp)
-        XCTAssertEqual(picker.hueForTests, before + 10, accuracy: 0.0001)
+        XCTAssertEqual(picker.hue, before + 10, accuracy: 0.0001)
     }
 
     func testASliderStopsAtTheEndsRatherThanWrappingPast() {
@@ -96,9 +96,9 @@ final class ColourPickerTests: XCTestCase {
         _ = picker.handle(.tab)
         _ = picker.handle(.down)  // saturation
         for _ in 0..<200 { _ = picker.handle(.left) }
-        XCTAssertEqual(picker.saturationForTests, 0, accuracy: 0.0001)
+        XCTAssertEqual(picker.saturation, 0, accuracy: 0.0001)
         for _ in 0..<400 { _ = picker.handle(.right) }
-        XCTAssertEqual(picker.saturationForTests, 1, accuracy: 0.0001)
+        XCTAssertEqual(picker.saturation, 1, accuracy: 0.0001)
     }
 
     /// Hue is a circle: it wraps rather than stopping, and stays within 0..<360.
@@ -106,8 +106,8 @@ final class ColourPickerTests: XCTestCase {
         var picker = ColourPicker(start: "#FF0000")
         _ = picker.handle(.tab)
         for _ in 0..<40 { _ = picker.handle(.left) }
-        XCTAssertGreaterThanOrEqual(picker.hueForTests, 0)
-        XCTAssertLessThan(picker.hueForTests, 360)
+        XCTAssertGreaterThanOrEqual(picker.hue, 0)
+        XCTAssertLessThan(picker.hue, 360)
     }
 
     /// A hex converted to HSL and back comes out as the same hex.
