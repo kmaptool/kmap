@@ -588,22 +588,28 @@ final class ScreenKeysTests: XCTestCase {
         addTeardownBlock { FileTools.removeIfPresent(Paths.seaData) }
     }
 
-    /// The toolchain list is probed off the render loop; these tests need it settled.
-    private func settledToolchain(_ screen: ToolchainScreen) async -> Bool {
-        screen.tick(ctx)
-        // Up to ten seconds: the probe asks every tool for its version, and on a machine
-        // busy with other builds that takes longer than it does alone.
-        for _ in 0..<500 where !ctx.toolsProbed {
-            try? await Task.sleep(nanoseconds: 20_000_000)
+    /// A toolchain list of the test's own, in place of a probe. What `u` does depends on
+    /// the row, not on what this machine has installed, and probing runs every tool for its
+    /// version: seconds alone, far longer on a machine busy with other builds.
+    private func knownToolchain() -> ToolchainScreen {
+        func tool(_ id: String, _ name: String) -> ToolStatus {
+            ToolStatus(id: id, name: name, detail: "", state: .ready, installable: true)
         }
-        return ctx.toolsProbed
+        ctx.useForTesting(tools: [
+            tool("java", "Java"),
+            tool("mkgmap", "mkgmap"),
+            tool("sea", "coastlines"),
+            tool("bounds", "boundaries")
+        ])
+        let screen = ToolchainScreen()
+        screen.tick(ctx)
+        return screen
     }
 
     /// `u` is for the two packs that go out of date while installed. Everything else in
     /// the list is a program with a version, and kmap does not chase those.
     func testUpdatingSomethingThatIsNotADataPackSaysSo() async {
-        let screen = ToolchainScreen()
-        guard await settledToolchain(screen) else { return XCTFail("the list never settled") }
+        let screen = knownToolchain()
         ctx.useForTesting(packNews: [:])
         guard let mkgmap = ctx.tools.firstIndex(where: { $0.id == "mkgmap" }) else {
             return XCTFail("the toolchain list always names mkgmap")
@@ -617,8 +623,7 @@ final class ScreenKeysTests: XCTestCase {
     /// why rather than going quiet.
     func testUpdatingAPackWithNoNewsFetchesNothing() async throws {
         try installFakeSeaPack()
-        let screen = ToolchainScreen()
-        guard await settledToolchain(screen) else { return XCTFail("the list never settled") }
+        let screen = knownToolchain()
         ctx.useForTesting(packNews: [:])
         let row = try XCTUnwrap(ctx.tools.firstIndex { $0.id == "sea" })
         select(screen, steps: row)
@@ -636,8 +641,7 @@ final class ScreenKeysTests: XCTestCase {
     /// And one the mirror has moved on from: the fetch starts.
     func testUpdatingAPackWithNewsStartsTheFetch() async throws {
         try installFakeSeaPack()
-        let screen = ToolchainScreen()
-        guard await settledToolchain(screen) else { return XCTFail("the list never settled") }
+        let screen = knownToolchain()
         ctx.useForTesting(packNews: [
             "sea": DataPack.News(
                 size: 343_858_019,
