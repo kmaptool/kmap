@@ -2,9 +2,8 @@ import Foundation
 
 /// The flags every command understands, read before the command is chosen.
 ///
-/// They are taken out of the arguments rather than left in them: a command that treats
-/// what is left as a search term -- `kmap regions`, `kmap hideable` -- would otherwise
-/// search for the flag.
+/// Taken out of the arguments rather than left in them: a command that treats what is
+/// left as a search term, `kmap regions` say, would otherwise search for the flag.
 struct CLIOptions {
     /// Write one JSON object per line to standard output instead of text.
     var json = false

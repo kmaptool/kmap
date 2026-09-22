@@ -1,26 +1,23 @@
 import Foundation
 
-/// `kmap img-elements`: a map's detail-level elements in the form mkgmap's reader
-/// produces, for a byte-for-byte comparison.
+/// `kmap img-elements`: a map's drawn elements in the binary form mkgmap's reader
+/// produces, the ground truth `kmap recover` reads. `--coarse` reads the zoomed-out
+/// levels instead of the detailed one; `--res` reads whatever is drawn at that
+/// resolution, wherever it lives.
 extension CLI {
-    /// `kmap img-elements <map.img> --out <dump.bin> [--ground minLat,minLon,maxLat,maxLon]...`
-    /// writes the map's detail-level elements in the binary form mkgmap's reader produces,
-    /// for a byte-for-byte comparison. `--extended` adds extended-type polygons and points.
     static func imgElements(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["out", "ground", "res"])
         guard let path = flags.positionals.first, let out = flags.value("out") else {
-            return CLIOutput.failure(
+            return CLIOutput.refuse(
                 "usage: kmap img-elements <map.img> --out <dump.bin>"
-                    + " [--ground a,b,c,d]… [--extended]"
-                    + " [--coarse] [--res=N]",
-                code: 2
+                    + " [--ground a,b,c,d]… [--extended] [--coarse] [--res=N]"
             )
         }
         var grounds: [BBox] = []
         for spec in flags.values("ground") {
             let parts = spec.split(separator: ",").compactMap { Double($0) }
             guard parts.count == 4 else {
-                return CLIOutput.failure("bad --ground: \(spec)", code: 2)
+                return CLIOutput.refuse("bad --ground: \(spec)")
             }
             grounds.append(BBox(minLon: parts[1], minLat: parts[0], maxLon: parts[3], maxLat: parts[2]))
         }
@@ -33,18 +30,13 @@ extension CLI {
                 grounds: grounds.map(ImgElements.Ground.init),
                 extendedAreasAndPoints: flags.has("extended"),
                 coarserLevels: flags.has("coarse"),
-                resolution: flags.value("res").flatMap { Int($0) },
+                resolution: flags.int("res"),
                 tick: {}
             ) { kind, type, coords in
                 let from = dump.cells.count
                 for c in coords { dump.cells.append(GarminGrid.pack(latUnit: c.lat, lonUnit: c.lon)) }
                 dump.elements.append(
-                    ElementDumper.Element(
-                        kind: kind,
-                        type: type,
-                        from: Int32(from),
-                        count: Int32(coords.count)
-                    )
+                    ElementDumper.Element(kind: kind, type: type, from: Int32(from), count: Int32(coords.count))
                 )
             }
             try ElementDumper.write(dump, to: Paths.expand(out))

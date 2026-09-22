@@ -1,16 +1,11 @@
 import Foundation
 
-/// The command line's output.
+/// The command line's prose: what a person reads.
 ///
 /// Commands write through this rather than `print` so results and diagnostics stay on
-/// separate streams, and so a test or an embedding program can capture both. Text is
-/// written as given: the command line is a scripting surface, and its output is
-/// compared byte for byte.
-///
-/// Where the prose goes is decided once per run. Normally it is standard output. Under
-/// `--json` the prose is not printed at all: whoever asked for JSON is parsing, and the
-/// stream carries everything the prose would have said — results, log lines and errors —
-/// as events.
+/// separate streams, and so a test or an embedding program can capture both. Text goes
+/// out as given, since the output is compared byte for byte by scripts. Under `--json`
+/// the prose is not printed at all: the event stream carries everything it would say.
 enum CLILog {
     private struct State {
         var sink: ((_ text: String, _ isError: Bool) -> Void)?
@@ -25,15 +20,13 @@ enum CLILog {
         set { state.withLock { $0.sink = newValue } }
     }
 
-    /// The same sink, settable across an `await`: `capture(_:)` takes a synchronous
-    /// body, which an async command cannot be. Tests only.
+    /// The same sink, settable across an `await`, which `capture(_:)` cannot span. Tests only.
     static var sinkForTests: ((_ text: String, _ isError: Bool) -> Void)? {
         get { sink }
         set { sink = newValue }
     }
 
-    /// Whether prose is dropped entirely, which `--json` switches on: the event stream
-    /// carries everything as structured lines, so the sentences would only repeat it.
+    /// Whether prose is dropped entirely, which `--json` switches on.
     static var proseSuppressed: Bool {
         get { state.withLock { $0.proseSuppressed } }
         set { state.withLock { $0.proseSuppressed = newValue } }

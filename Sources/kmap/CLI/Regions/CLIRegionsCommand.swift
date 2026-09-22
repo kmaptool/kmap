@@ -2,6 +2,11 @@ import Foundation
 
 /// `kmap regions`: the Geofabrik index, listed, searched or opened by id.
 extension CLI {
+    /// Most hits a search lists.
+    private static let searchLimit = 60
+    /// The id column is never narrower than this, so short lists still line up.
+    private static let idColumnFloor = 8
+
     /// What `kmap regions <query>` lists.
     enum RegionListing {
         /// No query: the continents.
@@ -12,21 +17,18 @@ extension CLI {
         case search(String)
     }
 
-    /// Chooses the listing for a query. Opening by exact id comes before searching, so
-    /// `kmap regions europe` walks into Europe rather than finding it; a leaf's id still
-    /// searches, which finds the leaf itself.
+    /// Opening by exact id comes before searching, so `kmap regions europe` walks into
+    /// Europe rather than finding it; a leaf's id still searches, which finds the leaf.
     static func regionListing(
         for query: String,
         in index: RegionIndex
-    )
-        -> (listing: RegionListing, regions: [Region])
-    {
+    ) -> (listing: RegionListing, regions: [Region]) {
         let q = query.trimmingCharacters(in: .whitespaces)
         if q.isEmpty { return (.roots, index.children(of: nil)) }
         if let region = index.region(q) ?? index.region(q.lowercased()), region.hasChildren {
             return (.opened(region), index.children(of: region.id))
         }
-        return (.search(q), index.search(q, limit: 60))
+        return (.search(q), index.search(q, limit: searchLimit))
     }
 
     static func listRegions(query: String) async -> Int32 {
@@ -43,12 +45,9 @@ extension CLI {
             opened = region
             CLILog.line("\(index.breadcrumb(region.id))\n")
         }
-        // Wide enough for the longest id on show, and never narrower than the id itself.
-        // `padding(toLength:)` truncates as readily as it pads, and at a fixed 34 the one
-        // id longer than that - saint-helena-ascension-and-tristan-da-cunha - came out
-        // cut in half and touching the name, which is the id somebody would then copy
+        // As wide as the longest id on show: an id cut short is one somebody would copy
         // into `kmap build` and be told does not exist.
-        let idColumn = max(regions.map(\.id.count).max() ?? 0, 8)
+        let idColumn = max(regions.map(\.id.count).max() ?? 0, idColumnFloor)
         for region in regions {
             let mark = region.pbfURL == nil ? "  " : "· "
             let children = region.hasChildren ? "  (\(region.childIDs.count) sub-regions)" : ""
@@ -67,8 +66,7 @@ extension CLI {
                 )
             }
         }
-        // A search that matched nothing said nothing at all and exited 0, which reads
-        // exactly like a search that worked. Every other command answers.
+        // A search that matched nothing answers, rather than exiting 0 in silence.
         if regions.isEmpty, case .search(let query) = listing {
             CLILog.line(t("nothing here answers to \"%@\"", query))
             CLIOutput.result(["in": .null, "regions": .array([])])
@@ -82,26 +80,26 @@ extension CLI {
         }
         CLIOutput.result([
             "in": .of(opened?.id),
-            "regions": .array(
-                regions.map { region in
+            "regions": .array(regions.map(regionAsData))
+        ])
+        return 0
+    }
+
+    private static func regionAsData(_ region: Region) -> JSONValue {
+        [
+            "id": .string(region.id), "name": .string(region.name),
+            "parent": .of(region.parentID),
+            "downloadable": .bool(region.pbfURL != nil),
+            "subRegions": .int(region.childIDs.count),
+            "demCells": .int(region.demTileCount),
+            "boxes": .array(
+                region.boxes.map {
                     [
-                        "id": .string(region.id), "name": .string(region.name),
-                        "parent": .of(region.parentID),
-                        "downloadable": .bool(region.pbfURL != nil),
-                        "subRegions": .int(region.childIDs.count),
-                        "demCells": .int(region.demTileCount),
-                        "boxes": .array(
-                            region.boxes.map {
-                                [
-                                    "minLat": .double($0.minLat), "minLon": .double($0.minLon),
-                                    "maxLat": .double($0.maxLat), "maxLon": .double($0.maxLon)
-                                ]
-                            }
-                        )
+                        "minLat": .double($0.minLat), "minLon": .double($0.minLon),
+                        "maxLat": .double($0.maxLat), "maxLon": .double($0.maxLon)
                     ]
                 }
             )
-        ])
-        return 0
+        ]
     }
 }

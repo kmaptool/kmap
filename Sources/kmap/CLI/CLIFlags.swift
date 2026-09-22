@@ -11,9 +11,9 @@ extension CLI {
         /// The arguments that were not flags and not a flag's value, in order.
         let positionals: [String]
 
-        /// - Parameter valued: the keys that take the NEXT argument as their value when no
-        ///   `=` is written. Declared per command rather than guessed: without it,
-        ///   `--quiet map.img` would take the path as the value of `--quiet`.
+        /// - Parameter valued: the keys that take the next argument as their value when no
+        ///   `=` is written. Declared per command: without it, `--quiet map.img` would
+        ///   take the path as the value of `--quiet`.
         init(_ arguments: [String], valued: Set<String> = []) {
             var positionals: [String] = []
             var index = 0
@@ -43,8 +43,8 @@ extension CLI {
         /// Whether the flag was written at all, with a value or without.
         func has(_ name: String) -> Bool { present.contains(name) }
 
-        /// Every flag that was written, for a command that wants to refuse the ones it
-        /// does not know rather than skip a typo silently.
+        /// Every flag that was written, for a command that refuses the ones it does not
+        /// know rather than skipping a typo.
         var names: Set<String> { present }
 
         /// The flag's value; the last one where it was written more than once.

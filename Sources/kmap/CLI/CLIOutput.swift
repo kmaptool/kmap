@@ -2,15 +2,14 @@ import Foundation
 
 /// How this run of the command line answers.
 ///
-/// Two shapes. Text is for a person and is written as it always was. JSON is one object
-/// per line on standard output, in the order things happened, for a program driving kmap
-/// -- a graphical front end, a script, another build system. A command prints its prose
-/// as it always did and states the same answer as data through ``result(_:)``; which of
-/// the two owns standard output is settled here, once, by ``begin(_:command:)``.
+/// Two shapes. Text is for a person. JSON is one object per line on standard output, in
+/// the order things happened, for a program driving kmap. A command prints its prose as
+/// it always did and states the same answer as data through ``result(_:)``; which of the
+/// two owns standard output is settled once, by ``begin(_:command:)``.
 ///
-/// Every JSON line carries `event`, `seq` and `at`. `seq` counts from 1 without gaps, so
-/// a reader can tell it lost one. New fields may appear in later versions; a reader
-/// should ignore what it does not know. `schema` on the opening line says which version
+/// Every JSON line carries `event`, `seq` and `at`. `seq` counts from 1 without gaps, so a
+/// reader can tell it lost one. New fields may appear in later versions and a reader
+/// should ignore what it does not know; `schema` on the opening line says which version
 /// this is.
 enum CLIOutput {
     enum Shape { case text, json }
@@ -18,6 +17,16 @@ enum CLIOutput {
     /// The stream's contract version. Raised when a field changes meaning or goes away,
     /// never for a field that is merely added.
     static let schema = 1
+
+    /// Exit codes a script can act on.
+    enum Exit {
+        /// The command ran and something went wrong.
+        static let failed: Int32 = 1
+        /// The command line was refused, and nothing was attempted.
+        static let refused: Int32 = 2
+        /// The run was cut short by the user, as a shell reports Ctrl+C.
+        static let cancelled: Int32 = 130
+    }
 
     private struct State {
         var shape: Shape = .text
@@ -39,7 +48,6 @@ enum CLIOutput {
             $0.shape = options.json ? .json : .text
             $0.sequence = 0
         }
-        // Under --json standard output is the stream, and the prose is not printed.
         CLILog.proseSuppressed = options.json
         guard options.json else { return }
         emit(
@@ -62,19 +70,31 @@ enum CLIOutput {
 
     // MARK: What a command says
 
-    /// The command's answer, as data. Ignored when the answer is text, where the same
-    /// facts are in the prose the command printed.
+    /// The command's answer, as data. Ignored in text, where the prose already said it.
     static func result(_ data: JSONValue) {
         guard isJSON else { return }
         emit("result", ["data": data])
     }
 
     /// Something went wrong. In text this is the stderr line it always was; in JSON it
-    /// is an `error` event and nothing else — the parser gets one story, in one shape.
-    static func failure(_ message: String, code: Int32 = 1) -> Int32 {
+    /// is an `error` event and nothing else, so the parser gets one story in one shape.
+    static func failure(_ message: String, code: Int32 = Exit.failed) -> Int32 {
         CLILog.error(message)
         if isJSON { emit("error", ["message": .string(message), "code": .int(Int(code))]) }
         return code
+    }
+
+    /// The command line was wrong: a usage line, or a flag nothing answers to.
+    static func refuse(_ message: String) -> Int32 {
+        failure(message, code: Exit.refused)
+    }
+
+    /// Several things wrong at once: each on the error stream, and all of them in one
+    /// result under `--json`, so one run reports everything wrong with it.
+    static func refuse(_ lines: [String]) -> Int32 {
+        for line in lines { CLILog.error(line) }
+        result(["refused": .array(lines.map(JSONValue.string))])
+        return Exit.refused
     }
 
     // MARK: What a run says as it goes
