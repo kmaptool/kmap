@@ -49,7 +49,7 @@ extension StyleCatalog {
             log.warn("woodland rules have changed in this mkgmap — left at their own zoom")
             return
         }
-        try text.write(to: polygons, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: polygons)
         log.append("woodland drawn from resolution 18, as the rest of the landcover is")
     }
 

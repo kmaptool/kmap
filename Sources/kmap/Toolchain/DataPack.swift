@@ -130,7 +130,7 @@ extension DataPack {
         if stamped == nil { stamped = (try? await Downloader.probe(url))?.lastModified }
         Paths.ensure(file.deletingLastPathComponent())
         FileTools.removeIfPresent(file)
-        try FileManager.default.moveItem(at: staging, to: file)
+        try FileTools.move(staging, to: file)
         CacheStamp(size: FileTools.size(of: file), lastModified: stamped, md5: nil)
             .write(besides: file)
     }

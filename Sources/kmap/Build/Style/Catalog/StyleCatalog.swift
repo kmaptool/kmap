@@ -80,14 +80,10 @@ final class StyleCatalog: Sendable {
     /// The marker is written before the swap, so `dir` holds either a complete stamped
     /// style or the previous one.
     private func install(_ build: URL, as dir: URL, marker wanted: String) throws {
-        try wanted.write(
-            to: build.appendingPathComponent("kmap-version"),
-            atomically: true,
-            encoding: .utf8
-        )
+        try FileTools.write(wanted, to: build.appendingPathComponent("kmap-version"))
         try holdingStyles {
             FileTools.removeIfPresent(dir)
-            try FileManager.default.moveItem(at: build, to: dir)
+            try FileTools.move(build, to: dir)
         }
     }
 
@@ -186,16 +182,12 @@ final class StyleCatalog: Sendable {
 
         FileTools.removeIfPresent(dir)
         Paths.ensure(Paths.styles)
-        try FileManager.default.moveItem(at: extracted, to: dir)
+        try FileTools.move(extracted, to: dir)
 
         // Contours in metres, not feet.
         let incDir = dir.appendingPathComponent("inc", isDirectory: true)
         Paths.ensure(incDir)
-        try StyleAssets.contourLinesMetric.write(
-            to: incDir.appendingPathComponent("contour_lines"),
-            atomically: true,
-            encoding: .utf8
-        )
+        try FileTools.write(StyleAssets.contourLinesMetric, to: incDir.appendingPathComponent("contour_lines"))
     }
 
     /// The rule set before any build choice: the unpack from mkgmap, kmap's own rules, the
@@ -234,11 +226,7 @@ final class StyleCatalog: Sendable {
 
         try applyRulePasses(in: dir, cyrillicLabels: cyrillicLabels, log: log)
 
-        try StyleAssets.styleInfo.write(
-            to: dir.appendingPathComponent("info"),
-            atomically: true,
-            encoding: .utf8
-        )
+        try FileTools.write(StyleAssets.styleInfo, to: dir.appendingPathComponent("info"))
 
         let redirects = try StyleCatalog.applySubstitutions(StyleAssets.iconRedirects, in: dir)
         if redirects.applied > 0 {
@@ -394,12 +382,10 @@ final class StyleCatalog: Sendable {
         // without a version marker.
         if let shipped = StyleCatalog.shippedPalette(id: style.id) {
             try holdingStyles {
-                try StyleCatalog.shippedTypText(of: shipped)
-                    .write(
-                        to: StyleCatalog.shippedTypURL(of: shipped),
-                        atomically: true,
-                        encoding: .utf8
-                    )
+                try FileTools.write(
+                    StyleCatalog.shippedTypText(of: shipped),
+                    to: StyleCatalog.shippedTypURL(of: shipped)
+                )
             }
         }
         if style.styleDirectory == StyleCatalog.baseStyleDirectory {

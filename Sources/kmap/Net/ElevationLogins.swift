@@ -75,7 +75,7 @@ enum ElevationLogins {
         for (key, value) in values.sorted(by: { $0.key < $1.key }) where !value.isEmpty {
             yaml += "\(key): \(value)\n"
         }
-        try? yaml.write(to: configFile, atomically: true, encoding: .utf8)
+        try? FileTools.write(yaml, to: configFile)
         // Mode 0600: the file holds passwords.
         try? FileManager.default.setAttributes(
             [.posixPermissions: 0o600],

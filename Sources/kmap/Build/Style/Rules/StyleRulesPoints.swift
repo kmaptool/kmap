@@ -104,7 +104,7 @@ extension StyleCatalog {
             """
 
         splice(rules, into: &text)
-        try text.write(to: points, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: points)
         log.append("fords, shelters and mountain passes typed")
     }
 

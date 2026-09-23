@@ -131,7 +131,7 @@ enum ElementDumper {
                 put(Int32(bitPattern: UInt32(cell & 0xFFFF_FFFF)))
             }
         }
-        try out.write(to: url, options: .atomic)
+        try FileTools.write(out, to: url)
     }
 
     static func parse(_ url: URL) throws -> Dump {

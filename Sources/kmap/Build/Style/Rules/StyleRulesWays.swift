@@ -66,7 +66,7 @@ extension StyleCatalog {
                     missed.append(String(rule.prefix(28)))
                 }
             }
-            try text.write(to: lines, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: lines)
             for m in missed { log.warn("rule not found, left at its own zoom — \(m)") }
         }
 
@@ -295,7 +295,7 @@ extension StyleCatalog {
 
         let rule = lines.remove(at: stop)
         lines.insert(rule, at: platform)
-        try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(lines.joined(separator: "\n"), to: url)
         log.append("bus stops read before platforms, so a borrowed look can tell them apart")
     }
 }
@@ -364,7 +364,7 @@ extension StyleCatalog {
             }
             guard rewritten > 0 else { continue }
             text = lines.joined(separator: "\n")
-            try? text.write(to: url, atomically: true, encoding: .utf8)
+            try? FileTools.write(text, to: url)
         }
         return rewritten
     }

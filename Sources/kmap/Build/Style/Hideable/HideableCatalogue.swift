@@ -26,7 +26,7 @@ enum HideableCatalogue {
         guard let text = try? String(contentsOf: points, encoding: .utf8) else { return 0 }
         let made = HideableGenerator.catalogue(fromPoints: text)
         let beside = destination(besidePoints: points)
-        guard (try? made.text.write(to: beside, atomically: true, encoding: .utf8)) != nil else {
+        guard (try? FileTools.write(made.text, to: beside)) != nil else {
             return 0
         }
         held.withLock { $0 = made.text }

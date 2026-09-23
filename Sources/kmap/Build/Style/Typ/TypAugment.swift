@@ -256,7 +256,7 @@ enum TypAugment {
         {
             FileTools.removeIfPresent(directory)
         }
-        guard (try? text.write(to: written, atomically: true, encoding: .utf8)) != nil else {
+        guard (try? FileTools.write(text, to: written)) != nil else {
             return Result(url: typURL, added: [], theme: nil, refusal: nil)
         }
 

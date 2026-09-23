@@ -153,7 +153,7 @@ enum CopernicusDEM {
         let cells = parseTileList(text)
         guard !cells.isEmpty else { return nil }
         Paths.ensure(file.deletingLastPathComponent())
-        try? data.write(to: file, options: .atomic)
+        try? FileTools.write(data, to: file)
         return cells
     }
 
@@ -173,6 +173,6 @@ enum CopernicusDEM {
             END
 
             """
-        try text.write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: url)
     }
 }

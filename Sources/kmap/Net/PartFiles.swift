@@ -32,7 +32,7 @@ struct PartFiles {
         let record = "\(size)/\(count)\n"
         if (try? String(contentsOf: layout, encoding: .utf8)) != record {
             removeParts()
-            try? record.write(to: layout, atomically: true, encoding: .utf8)
+            try? FileTools.write(record, to: layout)
         }
     }
 
@@ -42,7 +42,7 @@ struct PartFiles {
     func assemble(_ parts: [URL], expectedSize: Int64) throws {
         FileTools.removeIfPresent(destination)
         if parts.count == 1 {
-            try FileManager.default.moveItem(at: parts[0], to: destination)
+            try FileTools.move(parts[0], to: destination)
             return
         }
         guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {

@@ -202,7 +202,7 @@ extension Toolchain {
         }
         FileTools.removeIfPresent(JavaDownload.home)
         Paths.ensure(JavaDownload.home.deletingLastPathComponent())
-        try FileManager.default.moveItem(at: staging, to: JavaDownload.home)
+        try FileTools.move(staging, to: JavaDownload.home)
 
         invalidate()
         guard let java = findJava() else { throw JavaDownload.Trouble.noJavaInside }

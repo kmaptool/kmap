@@ -36,7 +36,7 @@ extension StyleCatalog {
         guard var text = try? String(contentsOf: url, encoding: .utf8) else { return }
         if let marker, text.contains(marker) { return }
         guard change(&text) else { return }
-        try text.write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: url)
     }
 
     /// Splices a marked block ahead of `<finalize>`, once.

@@ -9,7 +9,7 @@ extension CLI {
         let out = URL(fileURLWithPath: flags.value("out") ?? AssetEmbedder.defaultOutput)
         do {
             let text = try AssetEmbedder.render(from: root)
-            try text.write(to: out, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: out)
             CLILog.line(t("wrote %@ (%@)", out.path, Fmt.bytes(Int64(text.utf8.count))))
             CLIOutput.result(["out": .string(out.path), "bytes": .int(text.utf8.count)])
             return 0

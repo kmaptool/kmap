@@ -153,7 +153,7 @@ enum RuleReassignments {
     private static func write(_ body: String, to file: URL) throws {
         Paths.ensure(file.deletingLastPathComponent())
         do {
-            try body.write(to: file, atomically: true, encoding: .utf8)
+            try FileTools.write(body, to: file)
         } catch {
             throw StoreError.failed(error.localizedDescription)
         }

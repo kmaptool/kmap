@@ -73,21 +73,6 @@ enum FileTools {
         return out.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
-    static func removeIfPresent(_ url: URL) {
-        try? FileManager.default.removeItem(at: url)
-    }
-
-    /// Empties a directory without removing the directory itself.
-    static func emptyDirectory(_ url: URL) {
-        guard
-            let items = try? FileManager.default.contentsOfDirectory(
-                at: url,
-                includingPropertiesForKeys: nil
-            )
-        else { return }
-        for item in items { try? FileManager.default.removeItem(at: item) }
-    }
-
     /// Bytes free on the volume holding `url`, or zero where the system will not say.
     ///
     /// Uses important-usage capacity on Darwin, which counts purgeable space a large

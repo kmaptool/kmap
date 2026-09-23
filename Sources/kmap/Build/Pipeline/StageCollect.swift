@@ -85,7 +85,7 @@ extension BuildPipeline {
             // Move rather than copy when work area and output share a volume; these files
             // run to gigabytes.
             do {
-                try FileManager.default.moveItem(at: source, to: destination)
+                try FileTools.move(source, to: destination)
             } catch {
                 try FileManager.default.copyItem(at: source, to: destination)
             }
@@ -180,11 +180,7 @@ extension BuildPipeline {
         }
         lines.append("")
         lines.append("Copy the .img files to the Garmin folder on the device or its SD card.")
-        try lines.joined(separator: "\n").write(
-            to: directory.appendingPathComponent("build-info.txt"),
-            atomically: true,
-            encoding: .utf8
-        )
+        try FileTools.write(lines.joined(separator: "\n"), to: directory.appendingPathComponent("build-info.txt"))
     }
 
     /// Removes this build's scratch directory, and the work root if it is then empty.

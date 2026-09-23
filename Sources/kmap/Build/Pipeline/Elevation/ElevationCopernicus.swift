@@ -165,7 +165,7 @@ extension BuildPipeline {
                         // is already busy, and the bucket favours plain GETs.
                         try await downloader.download(url: url, to: assembling, connections: 2)
                         FileTools.removeIfPresent(tif)
-                        try FileManager.default.moveItem(at: assembling, to: tif)
+                        try FileTools.move(assembling, to: tif)
                         flight.left(downloader, carrying: FileTools.size(of: tif))
                         fetched.increment()
                     } catch let error where CopernicusDEM.isAbsent(error) {

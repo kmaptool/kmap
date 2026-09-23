@@ -29,7 +29,7 @@ extension RegionOutline {
             let text = String(data: data, encoding: .utf8),
             let rings = parse(text)
         else { return nil }
-        try? data.write(to: file, options: .atomic)
+        try? FileTools.write(data, to: file)
         return rings
     }
 }

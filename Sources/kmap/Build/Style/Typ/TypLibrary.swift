@@ -60,7 +60,7 @@ enum TypLibrary {
             )
         }
         do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: url)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -78,7 +78,7 @@ enum TypLibrary {
         Paths.ensure(directory)
         let destination = freeName(FileTools.slugify(name), extension: "txt", in: directory)
         do {
-            try text.write(to: destination, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: destination)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -96,7 +96,7 @@ enum TypLibrary {
         }
         guard FileTools.exists(url) else { return }
         do {
-            try FileManager.default.removeItem(at: url)
+            try FileTools.remove(url)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -123,7 +123,7 @@ enum TypLibrary {
         let destination = freeName(base, extension: url.pathExtension, in: library)
         guard destination != url else { return url }
         do {
-            try FileManager.default.moveItem(at: url, to: destination)
+            try FileTools.move(url, to: destination)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -137,7 +137,7 @@ enum TypLibrary {
                 destination.deletingPathExtension().lastPathComponent + ".typ"
             )
             FileTools.removeIfPresent(now)
-            try? FileManager.default.moveItem(at: was, to: now)
+            try? FileTools.move(was, to: now)
         }
         // The recovered sheet follows its source as well.
         if let kept = sheet(of: url, library: library) {
@@ -145,7 +145,7 @@ enum TypLibrary {
                 destination.deletingPathExtension().lastPathComponent + ".txt"
             )
             FileTools.removeIfPresent(now)
-            try? FileManager.default.moveItem(at: kept, to: now)
+            try? FileTools.move(kept, to: now)
         }
         return destination
     }
@@ -187,7 +187,7 @@ enum TypLibrary {
             """
         let destination = freeName(base, extension: "txt", in: library)
         do {
-            try text.write(to: destination, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: destination)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }

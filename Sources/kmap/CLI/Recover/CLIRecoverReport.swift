@@ -31,7 +31,7 @@ extension CLI {
             )
         }
         if let sheet {
-            try (report.sheet + "\n").write(to: Paths.expand(sheet), atomically: true, encoding: .utf8)
+            try FileTools.write((report.sheet + "\n"), to: Paths.expand(sheet))
             CLILog.line("\nsheet -> \(sheet)")
         }
     }

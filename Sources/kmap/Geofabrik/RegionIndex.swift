@@ -114,7 +114,7 @@ final class RegionIndex: Sendable {
             // Cached only once it proves to be JSON: garbage written here would shadow
             // the stale copy the catch below falls back to, for a whole cache period.
             if (try? JSONSerialization.jsonObject(with: data)) != nil {
-                try? data.write(to: cached, options: .atomic)
+                try? FileTools.write(data, to: cached)
             }
             return data
         } catch {

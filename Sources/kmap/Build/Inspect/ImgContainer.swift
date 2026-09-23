@@ -173,6 +173,6 @@ enum ImgContainer {
             let data = read(sub, from: url), data.count > 0x33
         else { return false }
         Paths.ensure(destination.deletingLastPathComponent())
-        return (try? data.write(to: destination, options: .atomic)) != nil
+        return (try? FileTools.write(data, to: destination)) != nil
     }
 }

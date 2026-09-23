@@ -210,7 +210,7 @@ extension TypLibrary {
         }
         let text = TypDecompiler.source(decoded, origin: kept.lastPathComponent)
         do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: url)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -370,7 +370,7 @@ extension TypLibrary {
         let destination = datedName(base, extension: "txt", in: directory, on: day)
         let text = TypDecompiler.source(decoded, origin: url.lastPathComponent)
         do {
-            try text.write(to: destination, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: destination)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }

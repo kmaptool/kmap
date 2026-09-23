@@ -23,7 +23,7 @@ extension BuildPipeline {
     func copyrightOption() -> [String] {
         let url = workDirectory.appendingPathComponent("copyright.txt")
         let text = recipe.copyrightLines.joined(separator: "\n") + "\n"
-        guard (try? text.write(to: url, atomically: true, encoding: .utf8)) != nil else {
+        guard (try? FileTools.write(text, to: url)) != nil else {
             log.warn("could not write the attribution file — the map will carry mkgmap's own")
             return []
         }

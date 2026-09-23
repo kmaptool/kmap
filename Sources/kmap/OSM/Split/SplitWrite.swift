@@ -367,7 +367,7 @@ extension TileSplitter {
                 Self.degrees(a.maxLon)
             )
         }
-        try text.write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: url)
     }
 
     func writeTemplateArgs(
@@ -380,6 +380,6 @@ extension TileSplitter {
             text += "description: \(options.description)\n"
             text += "input-file: \(tile.mapID).osm.pbf\n"
         }
-        try text.write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: url)
     }
 }

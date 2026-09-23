@@ -93,7 +93,7 @@ extension StyleCatalog {
         }
 
         guard changed else { return }
-        try text.write(to: points, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: points)
     }
 
     static func repairIcons(
@@ -201,7 +201,7 @@ extension StyleCatalog {
             of: anchor,
             with: anchor + "\n\n" + marker + "\nname=* { delete operator; }"
         )
-        try text.write(to: include, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: include)
         log.append("operator dropped from labels that already carry a name")
     }
 
@@ -234,7 +234,7 @@ extension StyleCatalog {
                 touched = true
                 changed.append(english)
             }
-            if touched { try text.write(to: url, atomically: true, encoding: .utf8) }
+            if touched { try FileTools.write(text, to: url) }
         }
         if !changed.isEmpty {
             log.append("default labels translated: \(changed.count) of \(words.count)")

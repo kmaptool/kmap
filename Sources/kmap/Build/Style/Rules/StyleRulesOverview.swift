@@ -30,7 +30,7 @@ extension StyleCatalog {
             out.text = far.text
             roads += far.moved
             guard out.moved > 0 || far.moved > 0 else { continue }
-            try out.text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(out.text, to: url)
             moved += out.moved
         }
         if moved > 0 {
@@ -164,7 +164,7 @@ extension StyleCatalog {
                     text.contains(substitution.old)
                 else { continue }
                 text = text.replacingOccurrences(of: substitution.old, with: substitution.new)
-                try text.write(to: url, atomically: true, encoding: .utf8)
+                try FileTools.write(text, to: url)
                 ok = true
             }
             if ok { applied.append(feature.name) } else { missed.append(feature.name) }

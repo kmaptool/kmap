@@ -313,7 +313,7 @@ enum HGTConversion {
                 )
             )
         }
-        try Data(out).write(to: url, options: .atomic)
+        try FileTools.write(Data(out), to: url)
         return written
     }
 }

@@ -36,7 +36,7 @@ extension StyleCatalog {
                 (try? String(contentsOf: url, encoding: .utf8)) != text
             {
                 Paths.ensure(url.deletingLastPathComponent())
-                try? text.write(to: url, atomically: true, encoding: .utf8)
+                try? FileTools.write(text, to: url)
             }
             out.append(
                 MapStyle(

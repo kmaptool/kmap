@@ -68,7 +68,7 @@ extension StyleCatalog {
                 )
                 applied += 1
             }
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: url)
         }
         return (applied, missed, hidden)
     }
@@ -141,7 +141,7 @@ extension StyleCatalog {
                 fitted += 1
             }
             text = out.joined(separator: "\n")
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: url)
         }
         return fitted
     }

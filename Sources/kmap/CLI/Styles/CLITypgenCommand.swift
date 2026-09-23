@@ -26,7 +26,7 @@ extension CLI {
             )
             if let out = flags.value("out") {
                 let destination = Paths.expand(out)
-                try text.write(to: destination, atomically: true, encoding: .utf8)
+                try FileTools.write(text, to: destination)
                 CLILog.line(
                     "\(Paths.display(destination))  \(palette.polygons.count)"
                         + " polygon(s), \(palette.lines.count) line(s), FID \(fid)"

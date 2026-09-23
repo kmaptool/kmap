@@ -466,11 +466,11 @@ extension Toolchain {
         }
 
         let marker = classes.appendingPathComponent(Toolchain.patchMarker)
-        try
-            ("built-from: r\(revision)\npatch-version: \(Toolchain.patchVersion)\n"
+        let stamp =
+            "built-from: r\(revision)\npatch-version: \(Toolchain.patchVersion)\n"
             + "option: --x-shape-clip-overlap\n"
-            + "option: --x-line-draw-order\n")
-            .write(to: marker, atomically: true, encoding: .utf8)
+            + "option: --x-line-draw-order\n"
+        try FileTools.write(stamp, to: marker)
         try await runner.run(
             jarTool,
             java.toolOptions
@@ -567,7 +567,7 @@ extension Toolchain {
                 )
             }
             text.replaceSubrange(found, with: replacement)
-            try text.write(to: file, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: file)
         }
         log.append("\(edits.count) edit(s) applied to \(Set(edits.map(\.0)).count) file(s)")
     }

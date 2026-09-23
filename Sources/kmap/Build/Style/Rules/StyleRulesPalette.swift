@@ -91,7 +91,7 @@ extension StyleCatalog {
                 quieted += 1
             }
             out.append(contentsOf: pending)
-            try out.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(out.joined(separator: "\n"), to: url)
         }
         if quieted > 0 {
             log.append(

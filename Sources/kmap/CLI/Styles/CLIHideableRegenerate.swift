@@ -50,7 +50,7 @@ extension CLI {
     /// the text itself for a person, its measurements for a program.
     private static func reportCatalogue(_ made: HideableGenerator.Result, out: String?) throws {
         if let out {
-            try made.text.write(toFile: out, atomically: true, encoding: .utf8)
+            try FileTools.write(made.text, to: URL(fileURLWithPath: out))
             CLILog.line(t("%@: %d hideable feature(s) across %d key(s)", out, made.features, made.keys))
         } else {
             CLILog.write(made.text)

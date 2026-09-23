@@ -82,7 +82,7 @@ enum ViewfinderDEM {
                 text += "[\(zip)]\n"
                 for area in entries[zip] ?? [] { text += "\(area)\n" }
             }
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: url)
         }
 
         /// Reads the coverage page's image map: every `<area>` carries the rectangle it
@@ -275,7 +275,7 @@ enum ViewfinderDEM {
             let name = file.deletingPathExtension().lastPathComponent.uppercased()
             let landing = directory.appendingPathComponent("\(name).hgt")
             FileTools.removeIfPresent(landing)
-            try? FileManager.default.moveItem(at: file, to: landing)
+            try? FileTools.move(file, to: landing)
             names.append(name)
         }
         return names

@@ -63,7 +63,7 @@ extension StyleCatalog {
                     + " — not a source for the hide catalogue",
                 at: 0
             )
-            try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(lines.joined(separator: "\n"), to: url)
         }
 
         // Reported per family, and even when the count is zero: a family that matched no

@@ -19,7 +19,7 @@ extension CLI {
         if let out {
             let url = Paths.expand(out)
             do {
-                try report.style.write(to: url, atomically: true, encoding: .utf8)
+                try FileTools.write(report.style, to: url)
             } catch {
                 return CLIOutput.failure("recover: \(error)")
             }

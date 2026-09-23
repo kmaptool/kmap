@@ -50,7 +50,7 @@ extension ElevationLogins {
         }
         all[service.rawValue] = Check(user: load(service).user, verdict: verdict)
         guard let data = try? JSONEncoder().encode(all) else { return }
-        try? data.write(to: checksFile, options: .atomic)
+        try? FileTools.write(data, to: checksFile)
     }
 
     static func forget(_ service: Service) {
@@ -59,7 +59,7 @@ extension ElevationLogins {
         else { return }
         all[service.rawValue] = nil
         guard let encoded = try? JSONEncoder().encode(all) else { return }
-        try? encoded.write(to: checksFile, options: .atomic)
+        try? FileTools.write(encoded, to: checksFile)
     }
 
     /// Asks the service whether these credentials work: JAXA over HTTP Basic, USGS through

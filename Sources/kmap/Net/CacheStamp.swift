@@ -31,7 +31,7 @@ struct CacheStamp: Codable, Equatable {
 
     func write(besides file: URL) {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        try? data.write(to: Self.url(for: file), options: .atomic)
+        try? FileTools.write(data, to: Self.url(for: file))
     }
 
     static func remove(besides file: URL) {

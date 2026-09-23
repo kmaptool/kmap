@@ -106,7 +106,7 @@ final class SettingsStore: Sendable {
             let aside = Paths.settingsFile.deletingLastPathComponent()
                 .appendingPathComponent("settings.unreadable.json")
             FileTools.removeIfPresent(aside)
-            try? FileManager.default.moveItem(at: Paths.settingsFile, to: aside)
+            try? FileTools.move(Paths.settingsFile, to: aside)
         }
         let persisted = SettingsStore.load() ?? .default
         state = Locked(State(persisted: persisted, settings: persisted))
@@ -201,7 +201,7 @@ final class SettingsStore: Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         if let data = try? encoder.encode(state.withLock({ $0.persisted })) {
-            try? data.write(to: Paths.settingsFile, options: .atomic)
+            try? FileTools.write(data, to: Paths.settingsFile)
         }
     }
 }

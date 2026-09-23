@@ -36,7 +36,7 @@ extension BuildPipeline {
         let text = RegionOutline.polyText(name: "kmap-elevation", sections: sections)
         let url = workDirectory.appendingPathComponent("elevation-clip.poly")
         do {
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: url)
             return url
         } catch {
             log.warn("could not write the elevation clip polygon — using the box: \(error)")

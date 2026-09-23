@@ -71,7 +71,7 @@ extension StyleCatalog {
                 touched = true
                 moved += 1
             }
-            if touched { try text.write(to: url, atomically: true, encoding: .utf8) }
+            if touched { try FileTools.write(text, to: url) }
         }
         if moved > 0 {
             log.append(
@@ -285,7 +285,7 @@ extension StyleCatalog {
             text.contains(old)
         else { return false }
         text = text.replacingOccurrences(of: old, with: new)
-        try text.write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: url)
         return true
     }
 }

@@ -17,7 +17,7 @@ extension CLI {
             }
             text += "\n"
         }
-        try? text.write(toFile: dump, atomically: true, encoding: .utf8)
+        try? FileTools.write(text, to: URL(fileURLWithPath: dump))
     }
 
     /// `--deviation`: how far off the line the tidying pass's dropped points lay. The tile

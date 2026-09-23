@@ -36,8 +36,7 @@ extension CLI {
             )
             CLILog.line(String(format: "judged in %.1f s", judgeSeconds))
             if let dump {
-                try? plan.trace.sorted().joined(separator: "\n")
-                    .write(toFile: dump, atomically: true, encoding: .utf8)
+                try? FileTools.write(plan.trace.sorted().joined(separator: "\n"), to: URL(fileURLWithPath: dump))
             }
             CLIOutput.result([
                 "routableWays": .int(network.wayCount),
