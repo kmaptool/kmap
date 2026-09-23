@@ -2,9 +2,12 @@
 
 # 🗺 kmap
 
-**Free maps for any Garmin — handheld, watch or bike computer — built on your own computer.**
+**kmap is a computer program for building free detailed maps compatible with all Garmin
+navigation devices and smartwatches.**
 
-Pick a country or region. Press Build. Copy one file to the device. The map is ready.
+You can build maps directly on your computer in just a few minutes. Select a country or a
+region, press Build, and copy a single `.img` file to your Garmin device. A new map is
+ready to use immediately.
 
 [По-русски → README.ru.md](README.ru.md)
 
@@ -37,142 +40,163 @@ Pick a country or region. Press Build. Copy one file to the device. The map is r
   ↑↓ field   ←→ change   ⏎ open · build   esc back           kmap 1.0.0
 ```
 
-## What is this?
+## The problem kmap solves
 
-Garmin GPS devices — handhelds, watches, bike computers — can show detailed maps.
-Good maps for them usually cost money. Meanwhile [OpenStreetMap](https://www.openstreetmap.org)
-is a free map of the whole world, drawn by volunteers, and often *more* detailed than
-many paid maps: every trail, spring, bench and rain shelter.
+Good maps for Garmin devices not only cost money as a rule, but are also rarely updated.
+kmap saves money and time by making it possible to create free detailed maps of any region
+or area yourself, as well as easily customize them to your needs without long data
+processing.
 
-**kmap turns that free map into a file your Garmin understands.** The build runs on your
-own computer and takes minutes for a small region. OpenStreetMap data is refined and
-updated daily — just rebuild the map whenever you need fresh data. No sign-up, and nothing
-is sent anywhere.
+## How it works
 
-kmap is fast: every processor core is used, downloads run in parallel and resume after a
-dropped connection, everything fetched is cached, and the code itself is tuned for speed.
-The second build of the same region starts in seconds, not minutes.
+kmap uses [OpenStreetMap](https://www.openstreetmap.org) data: a free map of the whole
+world that volunteers update every day, adding little-known trails, springs, shelters,
+etc., that even paid maps often lack.
 
-## Three steps
+Building runs directly on your computer and requires a couple of minutes for a small area.
+OpenStreetMap data is updated daily, just rebuild the map when you need it.
 
-1. **Install kmap** — grab the build for your system [below](#install).
-2. **Run `kmap`**, pick a country, a region or a whole continent, press **Build**. On the first run kmap offers to
-   fetch the few tools it needs — one keypress, and it handles the rest.
-3. **Copy the finished file** into the `Garmin` folder on the device or its memory card.
-   Done.
+kmap is as fast as possible. The program utilizes all CPU cores, all data is downloaded
+concurrently. Automatic resuming after disconnection is also supported. Downloaded data is
+cached. Re-building the map starts within a few seconds.
+
+## Why kmap
+
+- It's free of charge. No subscription, no sign-up.
+- Fast operation. Building a map requires a few minutes.
+- Privacy protection. The program runs on your computer (Windows, Mac, or Linux) and sends
+  no personal data anywhere.
+- Flexible customization. See [What's on the map](#whats-on-the-map) for more details.
+- Route repair. kmap fills small (up to 5 m or 16 ft) road and trail gaps to ensure
+  correct route plotting.
+- Seamless maps. Select several regions or countries at once and merge them into one map.
+- Style import. kmap makes it possible to use graphic features (a TYP file) of any Garmin
+  map you have to create new ones. See [Your own map style](#your-own-map-style).
+
+## 3 steps to build your own map
+
+1. **Install kmap**. A build for your system is [here](#installation).
+2. **Run `kmap`**, select a country, a region, or an entire continent, press **Build**. On
+   the first run, kmap asks to download a few tools it needs. Confirm the download, and
+   the program performs the rest automatically.
+3. **Copy the resulting file** into the `Garmin` folder on the device or its memory card.
 
 > [!TIP]
-> Not sure everything is set up? `kmap doctor` checks and tells you exactly what to do.
+> Unsure about your configuration? `kmap doctor` runs a diagnostic and guides you through
+> the required changes.
 
 ## What's on the map
 
-- **Contour lines** — the thin elevation lines hikers read slopes from, at the interval
-  you choose.
-- **Relief shading** — the soft shadows that make mountains look like mountains, plus an
-  elevation profile for your track.
-- **Turn-by-turn routing** and **search** by address or place name.
-- **Day and night colours**, house numbers, coastlines, points of interest.
-- Labels in the local language, in English or in Russian — your choice.
+- **Contour lines**. Fine elevation contour lines, allowing hikers to read the slopes with
+  a contour interval of your choice.
+- **Hillshading**. Soft shadows that make mountains look like mountains, plus an elevation
+  profile for your route.
+- **Route planning** and **search** by address or place name.
+- **Day and night modes**, house numbers, coastlines, and points of interest.
+- **Labels in local language**, English or Russian, as you prefer.
 
-Each of these is a checkbox. Leave out what your device doesn't need and the map gets
-smaller and faster.
+Each of these features can be selected in the settings before building a new map. If your
+device requires a smaller one to work faster, just disable unnecessary options.
 
 ---
 
-*From here on the guide goes from everyday tasks to fine control:* **[styles](#bring-your-own-style) · [profiles](#a-profile-for-every-device)
-· [coverage](#coverage) · [install](#install) · [command line](#the-command-line)
-· [good to know](#good-to-know) · [for developers](#for-developers)**
+*Moving forward, the guide takes you from everyday usage to advanced configuration:*
+**[styles](#your-own-map-style) · [profiles](#profile-for-any-device) ·
+[coverage](#coverage) · [installation](#installation) · [command line](#command-line) ·
+[good to know](#good-to-know) · [for developers](#for-developers)**
 
 ## Interface and command line
 
-Everything in kmap can be done two ways: in the full-screen terminal interface (TUI), or
-from the command line for scripts and automation. The features are the same. This guide shows
-both, side by side:
+There are two ways to use kmap: through the full-screen TUI or from the command line for
+scripting and automation. Both of them offer the same capabilities. This guide covers both
+approaches.
 
-| 🖥 In the interface | ⌨️ From the shell |
+| 🖥 Interface | ⌨️ Command line |
 |---|---|
 | Run `kmap` | |
-| Pick a region | name it directly: `kmap build austria` |
-| Choose a profile, then adjust anything for this particular map | `--profile="GPSMap 67"`, plus any flags on top |
-| Press **Build** and watch the progress | the same progress, right in the terminal |
+| Select a region | Enter a region: `kmap build austria` |
+| Select a profile, enable or disable options for a particular map | `--profile="GPSMap 67"`, and any flags on top |
+| Press **Build** and watch the progress | The same progress, but in the terminal |
 
-Either way the finished map lands in `~/kmap`, one dated folder per build, ready to copy
-to the device.
+Either way, a new map will be saved to `~/kmap`. Just copy it to your device.
 
-## Bring your own style
+## Your own map style
 
-Out of the box kmap draws maps in the familiar looks of openstreetmap.org and
-OpenTopoMap — just pick one. There is a third option: **if you own a map whose
-licence lets you reuse its style, kmap can make your new maps look exactly like it.**
-The look of a Garmin map lives in a small file inside it (a *TYP*), and kmap can pull that
-file out and work out how the map uses it. Usually nothing needs editing.
+By default, kmap builds a map using the standard OpenStreetMap or OpenTopoMap design,
+simply select one of these options. However, there is more. **If you have a map with a
+license that permits design reuse, you can apply ready-made styles to your new maps.**
 
-| | 🖥 In the interface | ⌨️ From the shell |
+| | 🖥 Interface | ⌨️ Command line |
 |---|---|---|
-| **1 · Pull the look out of the map** | Open **Styles**, press `i`, pick the `.img` or `.typ` — kmap also scans `~/Garmin` and any plugged-in device, so a file already on a memory card turns up on its own | `kmap extract-typ my-map.img` |
-| **2 · Recover its look as a style of your own** | Offered right after the import — or open the style and press `r`, *recover from its map*. What comes out is a TYP that builds: their picture for a forest on kmap's number for a forest | `kmap recover my-map.img --attach` |
-| **3 · Build with it** | Pick the style on the build form | `kmap build … --style=typ:my-map` |
+| **1 · Get a ready-made design file** | Open **Styles**, press `i`, select `.img` or `.typ`, kmap also scans `~/Garmin` and any plugged-in device, so the needed file on the memory card will be found automatically | `kmap extract-typ my-map.img` |
+| **2 · Recover the map design** | It is offered right after the import. Or open a style and press `r`, *recover from its map* to get a TYP file that can be applied to a new map | `kmap recover my-map.img --attach` |
+| **3 · Build a new map with an applied style** | Select the necessary style | `kmap build … --style=typ:my-map` |
 
-Step 2 is the key one. A TYP says what each drawing code looks like, but not which
-code that map used for a forest or a trail. kmap works this out from the map itself, by
-comparing its geometry with OpenStreetMap data for the same area — and if that data is
-not downloaded yet, it names the exact region to fetch. The result is stored alongside
-the imported TYP, so every later build with that style looks like the original, or very
-close to it.
+The design of a Garmin map is stored in a small file inside it (a TYP file). kmap can pull
+that file out and use it when building a new map. Usually, no editing is needed.
 
-Styles can also be copied, renamed, edited (down to individual icon pixels) and set as
-the default — all from the **Styles** screen.
+### Style import
 
-## A profile for every device
+A TYP file stores the codes of all objects, but it does not contain information about
+which code corresponds to which object on a particular map. kmap automatically matches the
+map geometry with OpenStreetMap data. The result is stored alongside the imported TYP
+file, and each subsequent build using this style will look identical or very close to the
+original map, from which it was pulled.
 
-A handheld with room for everything, an older watch that needs a lighter map, a bike
-computer that cannot show a night theme — make a **profile** for each. A profile is a named set of build settings, the
-whole build form saved under a name: 10 m contours and the full search index for one
-device, 25 m and no house numbers for another.
+All design adjustment operations are performed on the **Styles** screen. You can copy
+existing styles, rename them, set as default, and modify each parameter, up to editing any
+icon pixel by pixel.
 
-The build form has a profile row at the top. Choosing a profile fills the form in;
-anything you change after that applies to this one map only, and the profile itself stays
-as you saved it.
+## Profile for any device
 
-| 🖥 In the interface | ⌨️ From the shell |
+Some Garmin devices may need different versions of the same map, for example, the most
+detailed one for a handheld, a lighter one for a smartwatch, one without a night mode for
+a cycling computer, etc. Just create a separate **profile** (build settings) for each of
+your devices.
+
+A profile bar is shown at the top of the build form. Once a profile is selected, the
+settings are applied automatically. Further changes to parameters affect only the current
+build and leave the saved profile unchanged.
+
+| 🖥 Interface | ⌨️ Command line |
 |---|---|
-| **Profiles** screen: `n` new, `c` copy, `r` rename, `d` delete, `m` make current | `kmap profiles new/copy/rename/delete/use <name>` |
-| Edit a profile's fields on its own form | `kmap profiles set <name> --interval=25 --no-dem …` — the same flags `kmap build` takes |
-| See what a profile holds | `kmap profiles` lists them all, `kmap profiles show <name>` opens one |
-| Pick one in the top row of the build form | `kmap build … --profile="GPSMap 67"` |
+| **Profiles** screen: `n` new, `c` copy, `r` rename, `d` delete, `m` select as current | `kmap profiles new/copy/rename/delete/use <name>` |
+| Edit profile fields on the profile form | `kmap profiles set <name> --interval=25 --no-dem …` provides the same flags as for `kmap build` |
+| Check profile settings | `kmap profiles` lists all profiles, `kmap profiles show <name>` opens one of them |
+| Select a profile from the top bar of the build form | `kmap build … --profile="GPSMap 67"` |
 
 ## Coverage
 
-kmap uses the same region tree Geofabrik publishes: continents, countries, and
-sub-regions down to a single state or federal district. Take a whole country, only the
-area you need, or several regions at once.
+kmap uses the same region tree as Geofabrik: continents, countries, and sub-regions down
+to a single state or federal district. Your map can cover a whole country, only a
+particular area you need, or several regions at once.
 
-| 🖥 In the interface | ⌨️ From the shell |
+| 🖥 Interface | ⌨️ Command line |
 |---|---|
-| Walk the tree with `→` and `←`, search with `/` | `kmap regions` — the continents, `kmap regions europe` — its countries, `kmap regions germany` — its states; anything else searches: `kmap regions alp` |
-| Mark several regions with `space` — they build as **one seamless map** | join the ids with `+`: `kmap build austria+switzerland` |
+| Navigate through the tree with `→` and `←`, search with `/` | `kmap regions` is for continents, `kmap regions europe` is for countries, `kmap regions germany` is for regions; search with `kmap regions alp` for the rest |
+| Mark several regions with `space`, and they form **one seamless map** | connect ids with `+`: `kmap build austria+switzerland` |
 
-- **The output can be split several ways.** One file if it fits the card; one per region
-  or per country; exactly `--parts=<n>` files of roughly equal size — see `--split`.
-- **The data is always fresh.** Geofabrik updates its extracts once a day. Everything
-  downloaded is cached, and on a rebuild kmap checks the cache against the server: if a
-  new extract is out, it fetches it; if not, it uses the cached one. Enlarge the map
-  later and only the new part is downloaded.
+- **The output can be split into files in several ways:** a single file if there is enough
+  space on the memory card; one file per region or country; or `--parts=<n>` approximately
+  equal-sized files (see `--split`).
+- **The data remains constantly fresh.** Geofabrik updates its extracts once a day. All
+  downloads are cached, and upon rebuilding, kmap checks the cache with the server. If a
+  newer dump is detected, kmap downloads it automatically, otherwise pulls data from the
+  cache. If you enlarge the map later by adding regions, only the new regions are
+  downloaded.
 
-## Install
+## Installation
 
 Download the latest build for your system from the [Releases](../../releases) page.
 
 ### Windows
 
-Run the installer — `kmap-<version>.exe`. One file for both Intel and ARM
-machines, which lays down the half that matches yours, so there is nothing to choose. It
-puts kmap into Program Files with a desktop shortcut; nothing else needs to be installed.
-Windows 10 version 1803 or later.
+Run the installer `kmap-<version>.exe`. kmap will be installed in Program Files, and its
+shortcut will appear on the desktop. Windows 10 version 1803 or later is required.
 
-The installer is not signed, so SmartScreen shows "Windows protected your PC" the first
-time. Click **More info**, then **Run anyway** — that is the whole ceremony, and it happens
-once.
+The installer is unsigned, so Windows SmartScreen will show the "Windows protected your
+PC" warning on the first launch. Click **More info**, then **Run anyway**. It should be
+done once.
 
 ### Linux
 
@@ -180,49 +204,52 @@ once.
 sudo apt install ./kmap_<version>_<arch>.deb
 ```
 
-Ubuntu 20.04, Debian 11, or anything newer; Intel or ARM. Works the same under WSL —
-kmap even finds a Garmin device where Windows mounted it and opens the Windows file
-dialogs.
+Ubuntu 20.04, Debian 11, or later; Intel or ARM. WSL is also supported.
+
+For other distros (Arch, Fedora, openSUSE, etc.), use .tar.xz. Extract the archive and put
+kmap in a directory in your PATH. Only glibc, libcurl, and zlib are required.
+
+```sh
+tar -xf kmap_<version>_linux_<arch>.tar.xz
+sudo install kmap*/kmap /usr/local/bin/
+```
 
 ### macOS
 
-Open the `.dmg` and drag **kmap** to Applications, or put the plain binary anywhere on
-your `PATH`. macOS 13 or later, Intel or Apple Silicon — one universal build.
+Open the `.dmg` and drag **kmap** to the Applications folder or copy the executable file
+to any folder on your `PATH`. macOS 13 or later is required; the same universal build runs
+on both Intel and Apple Silicon.
 
-The bundle is signed ad-hoc and not notarized with Apple, so Gatekeeper stops it the first
-time: "kmap can't be opened because Apple cannot check it for malicious software". It is
-the same binary you would build from source; nothing needs to be fixed, only allowed:
+The bundle is ad-hoc signed and not notarized by Apple, so Gatekeeper will block it on the
+first launch: "kmap cannot be opened because Apple cannot check it for malicious
+software." You just need to allow the app to run:
 
-- **macOS 13–14** — right-click **kmap** in Applications and choose **Open**, then **Open**
-  again in the dialog.
-- **macOS 15 and later** — double-click, dismiss the dialog, then open
-  **System Settings → Privacy & Security**, scroll to *kmap was blocked* and click
-  **Open Anyway**.
-- **From a terminal**, either version — strip the quarantine mark and be done:
+- On **macOS 13 and 14**, right-click **kmap** in the Applications folder, choose
+  **Open**, and confirm by clicking **Open** in the dialog box.
+- On **macOS 15 or later**, launch the app with a double-click, close the dialog box, then
+  open **System Settings → Privacy & Security**. Scroll down to the Security section, look
+  for the line stating kmap was blocked, and click **Open Anyway**.
+- **From the Terminal** on any macOS version, remove the quarantine attribute:
 
   ```sh
   xattr -dr com.apple.quarantine /Applications/kmap.app
   ```
 
-After that first time macOS remembers the answer. The plain binary from `make install`
-never asks: quarantine is put on downloads, not on files you compiled.
+### First launch
 
-### First run
+kmap downloads all the necessary tools, such as Java, the mkgmap map compiler and, if
+needed, pyhgtmap:
 
-kmap fetches the tools it needs — Java, the mkgmap map compiler and, when needed,
-pyhgtmap:
-
-| 🖥 In the interface | ⌨️ From the shell |
+| 🖥 Interface | ⌨️ Command line |
 |---|---|
-| The **Toolchain** screen shows what is missing and installs it with one key | `kmap install` |
+| The **Toolchain** screen shows what is missing and installs it by one click | `kmap install` |
 | The same screen shows the state of every tool | `kmap doctor` |
 
 ### From source
 
-You need Swift 5.9 or newer and Git. The generated files are in the repository, so nothing
-but the sources is required.
+Swift 5.9 or later, and Git.
 
-**macOS.** Xcode, or just its command line tools:
+**macOS.** Xcode or its Command Line Tools only:
 
 ```sh
 xcode-select --install
@@ -230,9 +257,9 @@ git clone https://github.com/kmaptool/kmap.git && cd kmap
 make install    # the binary lands in .build/release/kmap, a copy in /usr/local/bin
 ```
 
-**Linux, including WSL.** Install Swift as described on
-[swift.org/install/linux](https://www.swift.org/install/linux/) — with `swiftly` or from
-a tarball — and the zlib headers:
+**Linux, including WSL.** Install Swift by following the instructions at
+[swift.org/install/linux](https://www.swift.org/install/linux/) (via swiftly or from the
+archive) and the zlib development headers:
 
 ```sh
 sudo apt install zlib1g-dev
@@ -240,11 +267,11 @@ git clone https://github.com/kmaptool/kmap.git && cd kmap
 make install    # or make install PREFIX=~/.local
 ```
 
-The Swift standard library is linked statically, so the binary runs on a machine without
-Swift.
+The Swift standard library is statically linked into the binary, Swift is not required on
+the target machine.
 
-**Windows.** Install Swift as described on
-[swift.org/install/windows](https://www.swift.org/install/windows/) — the page also lists
+**Windows.** Install Swift by following the instructions at
+[swift.org/install/windows](https://www.swift.org/install/windows/). The page also lists
 the Visual Studio components the toolchain needs. Then:
 
 ```powershell
@@ -255,175 +282,177 @@ swift build -c release
 The result is `.build\release\kmap.exe`; the toolchain installer has already put the Swift
 runtime DLLs on `PATH`.
 
-## The command line
+## Command line
 
-*This half of the guide is for scripting and fine control — the interface can do all of
-it too.* `kmap --help` is the full reference; `kmap --version` prints the version.
+*The following part of this guide is intended for scripting and advanced configuration.
+The interface offers the exact same capabilities.* For the complete reference, run `kmap
+--help`; `kmap --version` indicates the current version.
 
 <details>
-<summary><b>Every command in one list</b> — click to unfold</summary>
+<summary><b>Every command in one list</b>. Click to unfold</summary>
 
 ```text
 Help and state
-  kmap                        the interactive interface
-  kmap --help                 the full reference
-  kmap --version              the version
-  kmap doctor                 the state of the toolchain
-  kmap install [tool]         install missing tools
+  kmap                        interactive interface
+  kmap --help                 full guide
+  kmap --version              current version
+  kmap doctor                 toolchain state
+  kmap install [tool]         installs lacking tools
 
 Regions and builds
-  kmap regions [id|query]     the continents, a region's contents, or a search
-  kmap build <region>[+…]     build a map
-  kmap dem-cost <region>[+…]  weigh the elevation download before any build
-  kmap fetch-dem <area>       fetch elevation tiles without building
+  kmap regions [id|query]     continents, a region's contents, or a search
+  kmap build <region>[+…]     builds a map
+  kmap dem-cost <region>[+…]  estimates the DEM data size before building a map
+  kmap fetch-dem <area>       downloads elevation tiles without building
 
 Styles and profiles
-  kmap styles                 list styles
+  kmap styles                 list of styles
   kmap profiles [show|new|set|copy|rename|delete|use]
-                              profiles: list and manage
-  kmap hideable [filter]      what --hide can leave off the map
+                              profiles: list and management
+  kmap hideable [filter]      what --hide can remove from the map
 
-A finished map
-  kmap verify <img>           check a built map
-  kmap coverage <img>         whether its tiles cover the ground they claim
+Finished map
+  kmap verify <img>           checks a built map
+  kmap coverage <img>         whether tiles cover the area
   kmap typinfo <img>          what kmap sees inside an .img
-  kmap typdump <typ|img>      decode a TYP
-  kmap typgen <palette.txt>   the TYP source of a built-in palette
-  kmap extract-typ <img>      pull the TYP out of a map
-  kmap recover <img>          make a style of a third-party map's look, from OSM data
-  kmap recover-check <a> <b>  compare two maps tag by tag
-  kmap img-elements <img>     dump a map's drawn elements
+  kmap typdump <typ|img>      decodes a TYP-file
+  kmap typgen <palette.txt>   TYP source for the built-in palette
+  kmap extract-typ <img>      pulls the TYP-file out of a map
+  kmap recover <img>          recovers style of another map, according to OSM data
+  kmap recover-check <a> <b>  compares two maps tag by tag
+  kmap img-elements <img>     dumps elements of a map
 
-Pipeline steps on their own
-  kmap split <pbf>            cut an extract into tiles
-  kmap contours <hgt>         trace one elevation tile
+Pipeline separate steps
+  kmap split <pbf>            divides the extract into tiles
+  kmap contours <hgt>         traces one elevation tile
   kmap repair-roads <in> <out>
-                              repair road ends
-  kmap burn-peaks             raise summits to their OSM height
-  kmap make-gpi <pbf> <gpi>   the Custom POI file
-  kmap osm-scan <pbf>         count what an extract holds
-  kmap tif <tif>              read a GeoTIFF tile
-  kmap tif2hgt <cell>         build one .hgt cell from GeoTIFF tiles
-  kmap embed-assets           fold Assets/ back into the source (developers)
+                              fills road or trail gaps
+  kmap burn-peaks             writes OSM peak heights into the elevation tiles
+  kmap make-gpi <pbf> <gpi>   Custom POI file
+  kmap osm-scan <pbf>         analyzes the contents of the OSM extract
+  kmap tif <tif>              reads GeoTIFF tile data
+  kmap tif2hgt <cell>         builds an .hgt cell from GeoTIFF
+  kmap embed-assets           adds Assets/ to the source files (for developers)
 ```
 
-Details for each are in the blocks below and in `kmap --help`.
+Detailed information for each command can be found in sections below or by running `kmap
+--help`.
 
 </details>
 
 ### Flags for every command
 
-| flag | what it does |
+| Flag | Description |
 |---|---|
-| `--json` | one JSON object per line on stdout — for driving kmap from another program, see [For developers](#for-developers) |
-| `--verbose` | show the detail that normally goes only to the log file |
+| `--json` | one JSON object per line on stdout for driving kmap from another program, see [For developers](#for-developers) |
+| `--verbose` | shows details that usually goes only to the log file |
 
-### Everyday
+### Common functions
 
 ```text
-kmap                          launch the interactive interface
-kmap doctor                   report on the toolchain
-kmap install [tool]           install missing tools; `kmap install java --download`
+kmap                          launches the interactive interface
+kmap doctor                   reports on the toolchain
+kmap install [tool]           installs missing tools; `kmap install java --download`
                               fetches kmap's own JDK even where a package manager exists
 kmap regions [id|query]       no argument — the continents; a region's id opens it and
                               lists its sub-regions; any other word searches
-kmap build <region-id>        build a map; several ids joined with + become one seamless map
-kmap styles                   list available styles
-kmap profiles                 list the profiles --profile can name
-kmap profiles show <name>     everything one profile holds
+kmap build <region-id>        builds a map; several ids joined with + become one seamless map
+kmap styles                   lists available styles
+kmap profiles                 lists the profiles for --profile
+kmap profiles show <name>     everything a profile holds
 kmap profiles new <name> [build options]
-                              create a profile; the options are `kmap build`'s own
+                              creates a profile; the options are `kmap build`'s own
 kmap profiles set <name> [build options]
-                              change what a profile holds, same flags again
+                              changes what a profile contains, the same flags
 kmap profiles copy <name> <new-name>
 kmap profiles rename <name> <new-name>
-kmap profiles delete <name>   the last one stays — the build form needs one
+kmap profiles delete <name>   the last one stays, the build form needs one
 kmap profiles use <name>      which profile the interface opens on
-kmap hideable [filter]        list what --hide can leave off the map
+kmap hideable [filter]        lists what --hide can remove from the map
 ```
 
 ### Build options
 
-A command-line build does only what you ask for: anything not switched on stays off.
-`--profile` switches on everything a saved profile holds in one go, and a flag on top of
-it overrides that one setting. An unknown value — a style that doesn't exist, a number
-out of range — stops the build instead of silently falling back to a default.
+A command-line build does only what it is told: anything not switched on is off.
+`--profile` enables everything stored in a saved profile, while a flag overrides
+one specific setting. An unknown value, such as a style that doesn't exist or a number out
+of range, stops the build instead of silently replacing it with a default value.
 
 <details>
-<summary><b>Every build flag</b> — click to unfold</summary>
+<summary><b>Every build flag</b>. Click to unfold</summary>
 
-| Flag | What it does |
+| Flag | Description |
 |------|--------------|
-| `--profile=<name>` | start from this profile's settings. Read-only: no build ever changes a profile |
-| `--style=<id>` | style id, from `kmap styles`. Without it the device draws with its built-in colours |
+| `--profile=<name>` | starts from this profile's settings. Read-only: no build ever changes a profile |
+| `--style=<id>` | style id, from `kmap styles`. Without it your device uses its built-in colors |
 | `--contours`, `--no-contours` | contour lines |
 | `--interval=<metres>` | contour interval |
 | `--dem`, `--no-dem` | the DEM layer — shaded relief and the elevation profile |
-| `--summits`, `--no-summits` | lift the DEM at each summit to its OSM height. On with `--dem` unless switched off |
-| `--sources=<list>` | elevation sources, tried in order — each fills only what the ones before it lack. Default `copernicus1,copernicus3` (recommended: global, no login); also `view1`, `view3`, `srtm1`, `alos1` |
-| `--levels=standard\|smooth` | how many zoom levels the map has |
-| `--labels=local\|ru\|en` | which OSM name tag to label with |
-| `--code-page=<n>\|auto` | which alphabet the map keeps — see *Good to know* |
-| `--family-id=<n>` | Garmin product id; two maps with the same id hide each other |
+| `--summits`, `--no-summits` | lifts the DEM at each summit to its OSM height. On with `--dem` unless switched off |
+| `--sources=<list>` | elevation sources, tried in order — each fills only what the ones before it lack. Default `view1,view3`; `copernicus1,copernicus3` is recommended (global, no login); also `srtm1`, `alos1` |
+| `--levels=<plan>` | how many zoom levels the map has: `standard` or `smooth` |
+| `--labels=<language>` | which OSM name tag to label with: `local`, `ru` or `en` |
+| `--code-page=<n>` | which alphabet the map keeps, a number or `auto` — see *Good to know* |
+| `--family-id=<n>` | Garmin family id; two maps with the same id hide each other |
 | `--route`, `--no-route` | routing data |
-| `--repair-ends`, `--no-repair-ends` | close the gaps OSM left between road ends |
+| `--repair-ends`, `--no-repair-ends` | fills gaps OSM left between road ends |
 | `--repair-radius=<m>` | how far apart two ends may be and still get joined. Default 5 |
 | `--index`, `--no-index` | the searchable address and POI index |
 | `--word-index`, `--no-word-index` | find a street by any word of its name. `--lean-index` is the old name for `--no-word-index` |
 | `--house-numbers`, `--no-house-numbers` | house numbers in the address index |
 | `--sea`, `--no-sea` | generated coastlines |
 | `--zoom-plan=<name>` | which zoom level each kind of feature appears at, from a plan made in the interface |
-| `--descriptions[=CARRIER]` | carry OSM `description` texts into the object card: `phone`, `street`, `region`, `postcode`, `in-name`, or `off` |
+| `--descriptions[=CARRIER]` | carries OSM `description` texts into the object card: `phone`, `street`, `region`, `postcode`, `in-name`, or `off` |
 | `--custom-pois`, `--no-custom-pois` | also write a `.gpi` with everything that has a description |
-| `--hide=a,b,c` | leave features off the map — benches, phones, power lines… ids from `kmap hideable` |
-| `--theme=all\|day\|night` | which of the style's two colour schemes to pack |
+| `--hide=a,b,c` | leaves features off the map — benches, phones, power lines… ids from `kmap hideable` |
+| `--theme=<scheme>` | which of the style's two colour schemes to pack: `all`, `day` or `night` |
 | `--overlap=<units>` | let tiles paint a little past their frame — hides tile seams; needs the mkgmap patch (experimental) |
 | `--land-overlap=<units>` | the same for the land layer alone. Never more than `--overlap` |
-| `--split=<fit\|region\|country\|custom>` | how the output is cut into files |
+| `--split=<mode>` | how the output is cut into files: `fit`, `region`, `country` or `custom` |
 | `--parts=<n>` | how many files, with `--split=custom` |
 | `--max-nodes=<n>` | nodes per tile; fewer nodes means more, smaller tiles |
 | `--out=<dir>` | where the finished map goes |
 | `--work=<dir>` | scratch folder |
-| `--keep-work` | keep the intermediate files |
+| `--keep-work` | keeps the intermediate files |
 | `--heap=<GB>` | memory for the compilers, this build only |
 | `--connections=<n>` | download streams, 1–16, this build only |
-| `--memory=<GB>` | assume the machine has this much memory and run fewer jobs at once |
+| `--memory=<GB>` | assumes the machine has this much memory and run fewer jobs at once |
 
 </details>
 
 ### Looking inside a finished map
 
 ```text
-kmap verify <img>             check a built map before copying it to the device
+kmap verify <img>             checks a built map before copying it to the device
 kmap coverage <img> [--step 0.25] [--quiet]
                               whether its tiles cover the ground they claim
 kmap typinfo <img>            what kmap can see inside a Garmin .img
 kmap typdump <typ|img> [--polygons] [--lines] [--points] [--draw-order] [--all] [--type=0xNN]
-                              decode a TYP: colours, patterns, labels, draw order
+                              decodes a TYP: colours, patterns, labels, draw order
 kmap typgen <palette.txt> [--fid=N] [--out=FILE]
-                              write out the TYP source of a built-in palette
+                              writes out the TYP source of a built-in palette
 kmap extract-typ <img> [--out=DIR] [--force]
-                              pull the TYP out of a map so you can reuse or edit it
+                              pulls the TYP out of a map so you can reuse or edit it
 kmap recover <map.img> [--extract=FILE.pbf]… [--out=STYLE.txt] [--attach]
              [--sheet=FILE]
-                              read a third-party map against OSM data and write its look
+                              reads a third-party map against OSM data and write its look
                               back out as a style of kmap's own — its pictures on kmap's
                               numbers. --out writes the style, --attach puts it in the
                               TYP library, --sheet writes the reassignment list
 kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…
-                              compare two maps tag by tag — the full test of a
+                              compares two maps tag by tag — the full test of a
                               recovery, every meaning before and after
 kmap img-elements <map.img> --out <dump.bin> [--ground a,b,c,d]… [--extended]
                  [--coarse] [--res=N]
-                              dump a map's drawn elements, the ground `recover` reads;
+                              dumps a map's drawn elements, the ground `recover` reads;
                               --coarse reads the zoomed-out levels, --res=N whatever
                               is drawn at that resolution
 ```
 
-### One piece of the pipeline, on its own
+### Pipeline steps individually
 
 <details>
-<summary>For scripting and for the curious — each command runs one step by itself</summary>
+<summary>For scripting and the curious: each command runs one step on its own.</summary>
 
 ```text
 kmap split <extract.osm.pbf> --output-dir <dir> [--mapid N]
@@ -458,41 +487,43 @@ kmap embed-assets [--assets DIR] [--out FILE]
 
 ## Good to know
 
-**Invisible tile seams.** Garmin maps are built from tiles, and on many devices the joins
-show: hairlines of blank ground, a forest cut off mid-slope. kmap ships a small patch for
-mkgmap that lets tiles paint slightly past their frame (`--overlap`, `--land-overlap`), and
-the seams disappear. Install it once from the Toolchain screen or with `kmap install`;
-without it those flags do nothing and the map is simply built the ordinary way.
+**Invisible tile seams.** Garmin maps are built from tiles, and on many devices the seams
+between tiles appear as thin, light-colored lines. kmap includes a small patch for mkgmap
+that allows tiles to draw slightly beyond their frames (`--overlap`, `--land-overlap`),
+causing the seams to disappear. Install it once from the Toolchain screen or with `kmap
+install`; without it those flags do nothing and the map is simply built in the ordinary
+way.
 
-**What covers what.** A receiver paints the lines of a map in the order the map stores
-them, and that order is otherwise the order the data happened to arrive in — so a river
-could be painted over the trunk road it passes under, and a driveway over the motorway it
-joins. The same patch gives the order a rule: kmap reads the style's own road rules,
-ranks every road type by what it carries, and the roads are laid out from the smallest up,
-above everything else. It works for any style, kmap's own and a borrowed one alike, and
-costs nothing at build time.
+**Line drawing order.** A Garmin device draws lines in the order they are stored in the
+map. Without further processing that order is the order the data arrived in, and it
+ignores how important each object is: a river can be drawn over the road it passes under,
+and a driveway over the motorway it joins. The same mkgmap patch fixes this. At build time
+kmap reads the road rules of the chosen style, assigns every road type a rank by its
+importance and writes the roads out in ascending rank, above all other lines. This works
+with any style, built-in or imported, and does not affect build time.
 
 **Contours and relief are two different things.** *Contour lines* are the drawn elevation
 lines, at the interval you choose. *The DEM layer* is what gives you shaded relief and the
-elevation profile. You can have either, both, or neither; the data for both comes from
-one download.
+elevation profile. You can have either, both, or neither; the data for both comes from one
+download.
 
-**Code page — worth a look for non-Latin maps.** `--code-page` decides which alphabet the
-map keeps: 1252 for western Europe, 1251 for Cyrillic. A wrong value silently turns local
+**Code page: important for non-Latin maps.** `--code-page` decides which alphabet the map
+keeps: 1252 for western Europe, 1251 for Cyrillic. A wrong value silently turns local
 names into Latin transliteration. kmap picks the right one for each region; `auto` leaves
 that choice to it.
 
-**Roads OSM left an inch short.** Mappers sometimes end a road just short of the one it
-joins, and the device then won't route across the gap. With `--repair-ends` kmap closes
-such gaps (up to `--repair-radius` metres) and marks the join on the map as a red dashed
-line saying what it crosses — a kerb, a ditch — so you can tell the connection was added
-by kmap, not mapped on the ground. Routing then runs through it like any other road.
+**Roads left short in OSM.** Mappers sometimes end a road just short of the one it joins,
+and the device then won't route across the gap. With `--repair-ends` kmap closes such gaps
+(up to `--repair-radius` metres) and marks the join on the map as a red dashed line
+showing what has to be crossed if there was an obstacle: a kerb, a ditch, and so on. That
+makes it clear the connection was added by kmap, not mapped on the ground. Routing then
+runs through it like any other road.
 
-**House numbers are search data, not labels.** Garmin devices never paint numbers on
-buildings — no Garmin map does that. `--house-numbers` feeds the *address search*: on the
-device open *Where To? → Addresses*, pick the city and street, and the number field takes
-you to the right spot. `kmap osm-scan` shows how many objects in the extract carry
-`addr:housenumber`, and `kmap verify` confirms the finished map carries a search index.
+**House numbers are search data, not labels.** Garmin devices do not paint numbers on
+buildings. `--house-numbers` feeds the *address search*: on the device open *Where To? →
+Addresses*, then pick the city, the street and the house number. `kmap osm-scan` shows how
+many objects in the extract carry `addr:housenumber`, and `kmap verify` confirms the
+finished map carries a search index.
 
 **Descriptions on the device.** OSM objects often carry a `description` — how to find the
 spring, whether the hut is open. Garmin maps have no field for it, so kmap can carry it
@@ -500,15 +531,15 @@ into the object card (`--descriptions`) and, with `--custom-pois`, write a `.gpi
 where every such note is searchable under Custom POIs.
 
 **Day and night.** A style has two colour schemes, day and night, and the device switches
-between them on its own. Not every device does this well: some Garmin Edge models have
-no dark mode, and if the map carries one, the style renders badly. In that case pack only
-one scheme into the map: the **Theme** field on the build form, or `--theme=day` — the
-device then always shows the day map. The reverse works too: `--theme=night` makes the
-map night-only, for good.
+between them on its own. Not every device does this well: some Garmin Edge models have no
+dark mode, and if the map carries one, the style renders badly. In that case pack only one
+scheme into the map: the **Theme** field on the build form, or `--theme=day` — the device
+then always shows the day map. The reverse works too: `--theme=night` makes the map
+permanently night-only.
 
-**Interface language.** The interface is available in English and Russian — it's the
-first field in Settings. This never affects the map itself: the language a road is
-labelled in is decided per build, by `--labels` and the code page.
+**Interface language.** The interface is available in English and Russian — it's the first
+field in Settings. This never affects the map itself: the language a road is labelled in
+is decided per build, by `--labels` and the code page.
 
 **Where things live**
 
@@ -536,26 +567,26 @@ layout.
 ## System requirements
 
 - **Windows** 10 version 1803 and later, 64-bit: x64 or ARM64
-- **Linux** — Ubuntu 20.04, Debian 11, or anything newer (glibc 2.29+), x86_64 or
-  ARM64; WSL works the same way
+- **Linux**: Ubuntu 20.04, Debian 11, or anything newer (glibc 2.29+), x86_64 or ARM64;
+  WSL works the same way
 - **macOS** 13 and later, Intel or Apple Silicon
 - **Java** is needed by the map compiler — `kmap install` fetches it for you, from the
   system's package manager or straight from Adoptium
 - Python 3 is needed only for the optional `srtm`/`alos` elevation sources
-- An internet connection for downloads; map data and elevation tiles are cached, so a
-  rebuild downloads nothing unless a newer extract has appeared
+- Internet connection for downloads; map data and elevation tiles are cached, so a rebuild
+  downloads nothing unless a newer extract has appeared
 
 ## Installing a map on the device
 
-The finished map is in `~/kmap`, in a folder named after the build date: one `.img`, or
-several if the map was split into parts. Copy them all into the `Garmin` folder on the
-device or its memory card. No renaming needed: the names are already unique, and the
-device shows all maps side by side. If you built a `.gpi` with descriptions, it goes
-into `Garmin/POI`.
+A new map can be found in `~/kmap`, in a folder named for the build date: a single `.img`
+file, or several ones if the map was split into parts. Copy them all to the `Garmin`
+folder on the device or its memory card. No renaming needed. If you built a `.gpi` with
+descriptions, put it to `Garmin/POI`.
 
 ## For developers
 
-Any kmap command can be driven from another program — a shell script, Python, Go, anything that can start a process and read its stdout. Put `--json` anywhere among the arguments:
+Any kmap command can be driven from another program — a shell script, Python, Go, anything
+that can start a process and read its stdout. Put `--json` anywhere among the arguments:
 
 ```sh
 kmap build austria --profile="GPSMap 67" --json
@@ -563,9 +594,16 @@ kmap regions alps --json
 kmap doctor --json
 ```
 
-**What `--json` changes.** The usual prose is not printed at all, and stderr stays silent: everything kmap has to say goes to stdout as one JSON object per line, in the order things happen. A failure arrives as an `error` event, not as text on stderr — the reader gets one story, in one shape.
+**What `--json` changes.** The usual prose is not printed at all, and stderr stays silent:
+everything kmap has to say goes to stdout as one JSON object per line, in the order things
+happen. A failure arrives as an `error` event, not as text on stderr — the reader gets one
+story, in one shape.
 
-**The stream contract.** Every line carries three fields: `event` — the kind of event, `seq` — a counter from 1 with no gaps (a skipped number means a lost line), `at` — a timestamp in RFC 3339, UTC. The opening `start` line carries `schema`, the contract version. New fields may appear in any release and a reader should ignore what it does not know; `schema` is raised only when a field changes meaning or goes away.
+**The stream contract.** Every line carries three fields: `event` — the kind of event,
+`seq` — a counter from 1 with no gaps (a skipped number means a lost line), `at` — a
+timestamp in RFC 3339, UTC. The opening `start` line carries `schema`, the contract
+version. New fields may appear in any release and a reader should ignore what it does not
+know; `schema` is raised only when a field changes meaning or goes away.
 
 | `event` | When | Fields |
 |---|---|---|
@@ -577,13 +615,28 @@ kmap doctor --json
 | `error` | the command could not do it | `message`, `code` |
 | `end` | the last line | `ok`, `code` — the same as the process exit code |
 
-Build stages: `preflight`, `download`, `elevation`, `elevationBuild`, `split`, `compile`, `collect`; statuses: `pending`, `running`, `done`, `skipped`, `failed`. The elevation stages run beside the split, so two stages `running` at once is normal.
+Build stages: `preflight`, `download`, `elevation`, `elevationBuild`, `split`, `compile`,
+`collect`; statuses: `pending`, `running`, `done`, `skipped`, `failed`. The elevation
+stages run beside the split, so two stages `running` at once is normal.
 
-**Exit codes.** `0` — done; `1` — failed while running; `2` — bad arguments: an unknown command, a style or profile that does not exist, a number out of range, tools not installed; `130` — the build was interrupted. Under `--json` the same code is repeated in `end`.
+**Exit codes.** `0` — done; `1` — failed while running; `2` — bad arguments: an unknown
+command, a style or profile that does not exist, a number out of range, tools not
+installed; `130` — the build was interrupted. With `--json` the same code is repeated in
+`end`.
 
-**What `result.data` holds.** For `build`: `destination` (the folder), `outputs` (an array of `{name, path, bytes}` — the files to copy to the device), `stages` (per stage: `id`, `status`, `seconds`, `peakBytes`) and `seconds`. For `regions`: `in` (the id of the opened region, or `null`) and `regions` with `id`, `name`, `parent`, `downloadable`, `subRegions`, `boxes`; to walk the whole tree, open every region with `subRegions > 0`. For `styles`: `styles` with `id`, `name`, `origin`, `familyID`. For `profiles`: `profiles` with `id`, `name`, `current`, `choices` — the same set the flags accept. For `doctor`: `ready` and `tools` with `id`, `ready`, `installable`, `path`. For `verify` and `coverage`: a report per map. The easiest way to see the exact shape of any command is to run it once with `--json`.
+**What `result.data` holds.** For `build`: `destination` (the folder), `outputs` (an array
+of `{name, path, bytes}` — the files to copy to the device), `stages` (per stage: `id`,
+`status`, `seconds`, `peakBytes`) and `seconds`. For `regions`: `in` (the id of the opened
+region, or `null`) and `regions` with `id`, `name`, `parent`, `downloadable`,
+`subRegions`, `boxes`; to walk the whole tree, open every region with `subRegions > 0`.
+For `styles`: `styles` with `id`, `name`, `origin`, `familyID`. For `profiles`: `profiles`
+with `id`, `name`, `current`, `choices` — the same set the flags accept. For `doctor`:
+`ready` and `tools` with `id`, `ready`, `installable`, `path`. For `verify` and
+`coverage`: a report per map. The easiest way to see the exact shape of any command is to
+run it once with `--json`.
 
-**Examples.** Read stdout line by line rather than waiting for the process to end, so progress shows as it happens. Three languages, the same program:
+**Examples.** Read stdout line by line rather than waiting for the process to end, so
+progress shows as it happens. Three languages, the same program:
 
 <details>
 <summary><b>Python</b> — click to unfold</summary>
@@ -710,7 +763,7 @@ int main() {
 
 </details>
 
-From a shell, `jq` is enough for a one-off question:
+For a one-off query, `jq` is enough:
 
 ```sh
 kmap styles --json | jq -r 'select(.event == "result") | .data.styles[].id'
@@ -718,15 +771,15 @@ kmap styles --json | jq -r 'select(.event == "result") | .data.styles[].id'
 
 ## Licence
 
-kmap's own code is MIT — see [LICENSE](LICENSE). Use it, change it, sell it — no
-permission needed.
+kmap's own code is MIT — see [LICENSE](LICENSE).
 
-One exception, marked where it lives: the rule lines quoted in `Assets/hideable.txt` and
+There is one exception: the rule lines quoted in `Assets/hideable.txt` and
 `Assets/mkgmap/redirects.txt` are mkgmap's, under GPL v2. They are quoted because a
 substitution has to name the exact line it replaces.
 
-mkgmap and pyhgtmap are not bundled: kmap downloads them onto your machine from their
-own projects. The tile splitter is kmap's own. [NOTICE.md](NOTICE.md) has the full details.
+mkgmap and pyhgtmap are not bundled: they are downloaded onto your machine from their own
+repositories. The tile splitter is kmap's own. See [NOTICE.md](NOTICE.md) for more
+details.
 
 Maps you build are covered by OpenStreetMap's terms, not kmap's: the data is
 [ODbL](https://www.openstreetmap.org/copyright), and so is anything made from it.
