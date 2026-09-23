@@ -1,206 +1,169 @@
 import Foundation
 
-/// The help text, printed bare or on `--help`. Kept as one literal: the README tests read
-/// every flag out of it, and the columns are aligned by hand.
+/// The help text, printed bare or on `--help`. The wording is the README's, which is the
+/// reference; the tests hold the two to the same set of commands and flags. Kept as one
+/// literal, with the columns aligned by hand.
 extension CLI {
     static let usage = """
         kmap — OpenStreetMap to Garmin
 
-          kmap                          launch the interactive interface
-          kmap --version                what this build calls itself
-          kmap doctor                   report on the toolchain
-          kmap install [tool]           install missing tools (mkgmap, pyhgtmap)
-          kmap regions [id|query]       the continents; a region's id opens it and lists its
-                                        sub-regions; anything else searches
+        Help and state
+          kmap                          launches the interactive interface
+          kmap --help                   this guide
+          kmap --version                current version
+          kmap doctor                   reports on the toolchain
+          kmap install [tool]           installs missing tools; `kmap install java --download`
+                                        fetches kmap's own JDK even where a package manager exists
+
+        Regions and builds
+          kmap regions [id|query]       no argument — the continents; a region's id opens it and
+                                        lists its sub-regions; any other word searches
           kmap build <region-id>[+<region-id>…] [options]
-
-        every command
-          --json                        answer with one JSON object per line on stdout: the
-                                        command's result, and for a build the log and the
-                                        progress as they happen. Nothing else is printed —
-                                        the stream carries the whole story
-          --verbose                     show the detail a run normally keeps to its log
-                                        file: the exact command lines, and what mkgmap and
-                                        the splitter print
-
-        build options
-          A build takes only what it is given: what is not switched on is off. --profile is
-          optional and switches on whatever that profile holds, in one go; a flag still
-          overrides any single one of them.
-
-          --profile=<name>              take this profile's choices as the starting point
-                                        (see `kmap profiles`). Read only — no build changes
-                                        a profile, or which one the interface opens on
-          --style=<id>                  style id (see `kmap styles`); an id nothing answers
-                                        to refuses the build rather than picking another.
-                                        Without it the map carries no TYP and the device
-                                        picks the colours
-          --contours, --no-contours     contour lines. Off unless switched on here or by
-                                        a profile — they cost an elevation download
-          --dem, --no-dem               the DEM elevation layer. Off for the same reason
-          --summits, --no-summits       lift the DEM at each summit to its OSM height, where
-                                        the relief agrees. On with --dem unless switched off
-          --interval=<metres>           contour interval, when contours are on
-          --theme=all|day|night         which of the TYP's two drawings to pack. `day`
-                                        leaves out every night colour, so a receiver
-                                        that draws night wrongly -- an Edge 1040 does,
-                                        Garmin's own maps included -- shows the day one
-                                        at any hour; `night` does the reverse
-          --overlap=<units>             how far past its own frame a tile may paint a
-                                        shape, 0-2048 map units. Needs the mkgmap seam
-                                        patch; without it the build draws no overlap
-                                        whatever this says
-          --land-overlap=<units>        the same for the land layer alone, which is what
-                                        hides the join on a fenix and what a GPSMAP 67
-                                        shows lying on its neighbour. Never more than
-                                        --overlap
-          --sources=<list>              elevation sources, e.g. view1,view3
-          --levels=standard|smooth      zoom ladder
-          --max-nodes=<n>               nodes per tile; fewer means more tiles, and mkgmap
-                                        compiles one tile per core
-          --parts=<n>                   cut the output into n .img files of equal weight
-          --split=<fit|region|country|custom>
-                                        or cut it to fit a card, by region, by country, or
-                                        into exactly --parts files
-          --labels=local|ru|en          which OSM name tag to label with
-          --descriptions[=CARRIER]      carry OSM `description` into the object card.
-                                        phone (default) stays out of the search index;
-                                        street reads naturally but can reach it;
-                                        region is what OpenTopoMap ships; postcode is
-                                        mkgmap's own suggestion. Which one a device
-                                        renders varies — try more than one.
-                                        in-name puts it after the name in brackets:
-                                        the only one that works on objects with no
-                                        address block, and the only one drawn on the map.
-                                        =off where the profile carries them and this map
-                                        should not
-          --zoom-plan=<name>            which rung each kind of feature starts on. Named,
-                                        not by id -- `kmap profiles` lists what there is.
-                                        Only the plans built for the chosen ladder apply
-          --code-page=<n>|auto          1252 western Europe, 1251 Cyrillic; auto leaves it
-                                        to the region, which is also how a profile that
-                                        pins one is argued out of it. Wrong value silently
-                                        transliterates names to Latin
-          --family-id=<n>               Garmin product id; must not clash with a map
-                                        already on the device (default: per region)
-          --heap=<GB>                   memory for splitter and mkgmap, for this build only.
-                                        Without it, what Settings works out from this machine
-          --connections=<n>             download streams, 1-16, for this build only
-          --memory=<GB>                 pretend the machine has this much, and run fewer
-                                        lanes accordingly. Slower, and it finishes where
-                                        the real amount would have swapped
-          --repair-radius=<m>           how far apart two road ends may be and still be
-                                        joined, 0-50 m. Default 5
-          --out=<dir>                   output folder
-          --work=<dir>                  scratch folder
-          --keep-work                   do not delete intermediate files
-          --repair-ends, --no-repair-ends
-                                        close the gaps OSM left between road ends, or use
-                                        the data exactly as OSM has it
-          --route, --no-route           routing data
-          --index, --no-index           the searchable address/POI index
-          --house-numbers, --no-house-numbers
-                                        house numbers in the address index
-          --sea, --no-sea               generated coastlines
-          --custom-pois, --no-custom-pois
-                                        also write a .gpi of every object that has an OSM
-                                        description — the one Garmin format with a real
-                                        description field. Appears under Custom POIs
-          --hide=a,b,c                  leave features off the map, instead of whatever a
-                                        named profile leaves off. Ids: barriers, benches,
-                                        phones, busstops. `--hide=` with nothing after it
-                                        hides nothing. Reversible — rebuild to bring
-                                        them back
-          --word-index, --no-word-index index each word of a street name separately, so
-                                        "Гагарина" finds "улица Юрия Гагарина". Costs
-                                        index entries, and a slow handheld feels it.
-                                        --lean-index is the old spelling of the negative
-
-          kmap styles                   list available styles
-          kmap profiles                 list the profiles --profile can name
-          kmap profiles show <name>     everything one profile holds
-          kmap profiles new <name> [build options]
-                                        create a profile; the options are `kmap build`'s own
-          kmap profiles set <name> [build options]
-                                        change what a profile holds, same flags again
-          kmap profiles copy <name> <new-name>
-          kmap profiles rename <name> <new-name>
-          kmap profiles delete <name>   the last profile stays — the build form needs one
-          kmap profiles use <name>      which profile the interface opens on
-          kmap hideable [filter]        list what --hide can leave off the map
-
-        looking inside a finished map
-          kmap verify <img>             check a built map before copying it to the device
-          kmap coverage <img> [--step 0.25] [--quiet]
-                                        whether its tiles cover the ground they claim, or
-                                        leave holes that draw as blank paper
-          kmap typinfo <img>            what kmap can see inside a Garmin .img
-          kmap typdump <typ|img> [--polygons] [--lines] [--points] [--draw-order]
-                         [--all] [--type=0xNN]
-                                        decode a compiled TYP: colours, patterns, labels
-                                        and the order polygons are drawn in
-          kmap typgen <palette.txt> [--fid=N] [--out=FILE]
-                                        write the TYP source a shipped palette stands for
-          kmap extract-typ <img> [--out=DIR] [--force]
-                                        pull the TYP out of a map so you can edit it.
-                                        Edited copies under ~/.kmap/typ are picked up
-                                        as styles and are never overwritten.
-          kmap img-elements <map.img> --out <dump.bin> [--ground a,b,c,d]…
-                     [--extended] [--coarse] [--res=N]
-                                        dump a map's drawn elements to a binary file,
-                                        the ground truth `kmap recover` reads. --coarse
-                                        reads the zoomed-out levels instead of the
-                                        detailed one; --res reads whatever is drawn at
-                                        that resolution, wherever it lives
-          kmap recover <map.img> [--extract=FILE.pbf]… [--out=STYLE.txt] [--attach]
-                     [--sheet=FILE]
-                                        read a foreign map against OSM ground and write its
-                                        look back out as a style of kmap's own: every
-                                        picture it was seen using for a meaning, on the
-                                        number kmap draws that meaning with. --out writes
-                                        the style, --attach puts it in the TYP library,
-                                        --sheet writes the reassignment list the style
-                                        editor uses.
-          kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…
-                                        compare two maps tag by tag — the full test of a
-                                        recovery, every meaning before and after
-
-        one piece of the pipeline, on its own
-          kmap split <extract.osm.pbf> --output-dir <dir> [--mapid N]
-                                        cut an extract into map tiles
-          kmap contours <tile.hgt> [--step 20] [--out <file.pbf>] [--clip S,W,N,E]
-                                        trace one elevation tile and report what came out;
-                                        tracer diagnostics: --raw --no-split --flatness D
-                                        --dump-paths F --deviation --collinear --lengths
-                                        --per-level
-          kmap repair-roads <in.osm.pbf> <out.osm.pbf>
-                                        the annotate pass on its own: barriers, road ends,
-                                        descriptions, repeated venues
-          kmap burn-peaks --pbf <extract>... --hgt-dir <dir> --out <dir>
-                                        raise summits in the elevation tiles to their OSM
-                                        height, so the DEM and the map agree
-          kmap make-gpi <extract> <out.gpi>
-                                        the Custom POI file on its own
-          kmap osm-scan <file.osm.pbf>  count what an extract holds
-          kmap fetch-dem <area> [--source view1|view3]
-                                        fetch elevation tiles without building anything
+                                        builds a map; several ids joined with + become one
+                                        seamless map
           kmap dem-cost <region>[+<region>…] [--sources=<list>]
                                         what the elevation download will weigh, per source,
                                         before any build
+          kmap fetch-dem <area> [--source view1|view3]
+                                        fetch elevation tiles without building anything
+
+        Flags for every command
+          --json                        one JSON object per line on stdout for driving kmap from
+                                        another program: the command's result, and for a build
+                                        the log and the progress as they happen. Nothing else
+                                        is printed
+          --verbose                     shows details that usually go only to the log file
+
+        Build options
+          A command-line build does only what it is told: anything not switched on is off.
+          --profile enables everything stored in a saved profile, while a flag
+          overrides one specific setting. An unknown value, such as a style that doesn't exist
+          or a number out of range, stops the build instead of silently replacing it with a
+          default value.
+
+          --profile=<name>              starts from this profile's settings. Read-only: no build
+                                        ever changes a profile
+          --style=<id>                  style id, from `kmap styles`. Without it your device
+                                        uses its built-in colors
+          --contours, --no-contours     contour lines
+          --interval=<metres>           contour interval
+          --dem, --no-dem               the DEM layer — shaded relief and the elevation profile
+          --summits, --no-summits       lifts the DEM at each summit to its OSM height. On with
+                                        --dem unless switched off
+          --sources=<list>              elevation sources, tried in order — each fills only what
+                                        the ones before it lack. Default view1,view3;
+                                        copernicus1,copernicus3 is recommended (global, no
+                                        login); also srtm1, alos1
+          --levels=<plan>               how many zoom levels the map has: standard or smooth
+          --labels=<language>           which OSM name tag to label with: local, ru or en
+          --code-page=<n>               which alphabet the map keeps, a number or auto: 1252
+                                        western Europe, 1251 Cyrillic; auto leaves it to the
+                                        region. A wrong value silently transliterates names
+                                        to Latin
+          --family-id=<n>               Garmin family id; two maps with the same id hide each
+                                        other
+          --route, --no-route           routing data
+          --repair-ends, --no-repair-ends
+                                        fills gaps OSM left between road ends
+          --repair-radius=<m>           how far apart two ends may be and still get joined.
+                                        Default 5
+          --index, --no-index           the searchable address and POI index
+          --word-index, --no-word-index find a street by any word of its name.
+                                        --lean-index is the old name for --no-word-index
+          --house-numbers, --no-house-numbers
+                                        house numbers in the address index
+          --sea, --no-sea               generated coastlines
+          --zoom-plan=<name>            which zoom level each kind of feature appears at, from
+                                        a plan made in the interface
+          --descriptions[=CARRIER]      carries OSM `description` texts into the object card:
+                                        phone, street, region, postcode, in-name, or off
+          --custom-pois, --no-custom-pois
+                                        also write a .gpi with everything that has a
+                                        description
+          --hide=a,b,c                  leaves features off the map — benches, phones, power
+                                        lines… ids from `kmap hideable`
+          --theme=<scheme>              which of the style's two colour schemes to pack: all,
+                                        day or night
+          --overlap=<units>             let tiles paint a little past their frame — hides tile
+                                        seams; needs the mkgmap patch (experimental)
+          --land-overlap=<units>        the same for the land layer alone. Never more than
+                                        --overlap
+          --split=<mode>                how the output is cut into files: fit, region, country
+                                        or custom
+          --parts=<n>                   how many files, with --split=custom
+          --max-nodes=<n>               nodes per tile; fewer nodes means more, smaller tiles
+          --out=<dir>                   where the finished map goes
+          --work=<dir>                  scratch folder
+          --keep-work                   keeps the intermediate files
+          --heap=<GB>                   memory for the compilers, this build only
+          --connections=<n>             download streams, 1–16, this build only
+          --memory=<GB>                 assumes the machine has this much memory and runs
+                                        fewer jobs at once
+
+        Styles and profiles
+          kmap styles                   lists available styles
+          kmap profiles                 lists the profiles for --profile
+          kmap profiles show <name>     everything a profile holds
+          kmap profiles new <name> [build options]
+                                        creates a profile; the options are `kmap build`'s own
+          kmap profiles set <name> [build options]
+                                        changes what a profile contains, the same flags
+          kmap profiles copy <name> <new-name>
+          kmap profiles rename <name> <new-name>
+          kmap profiles delete <name>   the last one stays, the build form needs one
+          kmap profiles use <name>      which profile the interface opens on
+          kmap hideable [filter]        lists what --hide can remove from the map
+
+        Looking inside a finished map
+          kmap verify <img>             checks a built map before copying it to the device
+          kmap coverage <img> [--step 0.25] [--quiet]
+                                        whether its tiles cover the ground they claim
+          kmap typinfo <img>            what kmap can see inside a Garmin .img
+          kmap typdump <typ|img> [--polygons] [--lines] [--points] [--draw-order] [--all]
+                       [--type=0xNN]
+                                        decodes a TYP: colours, patterns, labels, draw order
+          kmap typgen <palette.txt> [--fid=N] [--out=FILE]
+                                        writes out the TYP source of a built-in palette
+          kmap extract-typ <img> [--out=DIR] [--force]
+                                        pulls the TYP out of a map so you can reuse or edit it
+          kmap recover <map.img> [--extract=FILE.pbf]… [--out=STYLE.txt] [--attach]
+                       [--sheet=FILE]
+                                        reads a third-party map against OSM data and writes its
+                                        look back out as a style of kmap's own — its pictures
+                                        on kmap's numbers. --out writes the style, --attach
+                                        puts it in the TYP library, --sheet writes the
+                                        reassignment list
+          kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…
+                                        compares two maps tag by tag — the full test of a
+                                        recovery, every meaning before and after
+          kmap img-elements <map.img> --out <dump.bin> [--ground a,b,c,d]… [--extended]
+                       [--coarse] [--res=N]
+                                        dumps a map's drawn elements, the ground `recover`
+                                        reads; --coarse reads the zoomed-out levels, --res=N
+                                        whatever is drawn at that resolution
+
+        Pipeline steps individually
+          kmap split <extract.osm.pbf> --output-dir <dir> [--mapid N]
+                                        cut an extract into map tiles
+          kmap contours <tile.hgt> [--step 20] [--out <file.pbf>] [--clip S,W,N,E]
+                                        trace one elevation tile; tracer diagnostics:
+                                        --raw --no-split --flatness D --dump-paths F
+                                        --deviation --collinear --lengths --per-level
+          kmap repair-roads <in.osm.pbf> <out.osm.pbf>
+                                        the road-repair pass on its own
+          kmap burn-peaks --pbf <extract> --hgt-dir <dir> --out <dir>
+                                        raise summits in the elevation tiles to their OSM height
+          kmap make-gpi <extract> <out.gpi>
+                                        the Custom POI file on its own
+          kmap osm-scan <file.osm.pbf>  count what an extract holds
           kmap tif <file.tif> [--dump <out.f32>]
                                         read a GeoTIFF elevation tile
           kmap tif2hgt <cell> --dir <tiles> --out <file.hgt>
                                         turn GeoTIFF tiles into one .hgt cell
-
-        maintaining a working copy
           kmap hideable --regenerate [--out FILE] [--points FILE]
-                                        rebuild the hide catalogue from the style it is
-                                        applied to
+                                        rebuild the hide catalogue from the style
           kmap embed-assets [--assets DIR] [--out FILE]
-                                        fold Assets/ back into StyleAssets.swift
-
-          A flag naming something no one knows — a levels ladder, a carrier, a number out
-          of range — refuses the build rather than falling back to a default quietly.
+                                        fold Assets/ back into the source (developers)
 
         Examples
           kmap build austria
