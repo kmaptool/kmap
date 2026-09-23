@@ -43,7 +43,6 @@ final class RussianFitsTests: XCTestCase {
             ("profiles", { ProfilesScreen() }),
             ("styles", { StyleListScreen() }),
             ("hide", { HideScreen(hidden: [], onChange: { _ in }) }),
-            ("help", { HelpScreen() }),
             ("library", { LibraryScreen() }),
             // The screens that need something handed to them; the region is made up, since
             // what is measured is the layout and not the data.
@@ -162,7 +161,7 @@ final class PageTests: XCTestCase {
         let screens: [(String, Screen)] = [
             ("main menu", MainMenuScreen()), ("settings", SettingsScreen()),
             ("toolchain", ToolchainScreen()), ("profiles", ProfilesScreen()),
-            ("styles", StyleListScreen()), ("help", HelpScreen()),
+            ("styles", StyleListScreen()),
             ("library", LibraryScreen()),
             ("hide", HideScreen(hidden: [], onChange: { _ in }))
         ]

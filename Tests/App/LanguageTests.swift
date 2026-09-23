@@ -89,7 +89,7 @@ final class LanguageTests: XCTestCase {
 
     func testEveryScreenSpeaksTheLanguageInHand() async {
         let screens: [Screen] = [
-            MainMenuScreen(), LibraryScreen(), HelpScreen(),
+            MainMenuScreen(), LibraryScreen(),
             ToolchainScreen(), SettingsScreen(), StyleListScreen(),
             RegionPickerScreen(),
             HideScreen(hidden: []) { _ in }
@@ -129,7 +129,7 @@ final class LanguageTests: XCTestCase {
         // A key name is a place on the keyboard, not a word: it is the same in every
         // language, while the label beside it is translated.
         let screens: [Screen] = [
-            MainMenuScreen(), LibraryScreen(), HelpScreen(),
+            MainMenuScreen(), LibraryScreen(),
             ToolchainScreen(), SettingsScreen(), StyleListScreen(),
             RegionPickerScreen(),
             HideScreen(hidden: []) { _ in },

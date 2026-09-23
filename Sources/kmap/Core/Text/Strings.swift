@@ -106,8 +106,6 @@ enum Strings {
             "Файл .gpi рядом с картой, со всеми объектами, у которых есть описание в OSM. Единственный формат Garmin с настоящим полем описания.",
         "A .img has its TYP lifted out here — there is no need to unpack it first. `~` is expanded.":
             "У .img TYP извлекается прямо здесь — распаковывать заранее не нужно. `~` раскрывается.",
-        "A 10 m contour interval is a choice you make and kmap honours it. It is not the same as a 10 m resolution elevation model: freely available global elevation data is 1 arc-second, roughly 30 m on the ground. A 10 m interval drawn from 30 m data is normal practice and looks right in the mountains, but on flat ground the lines will wander. Nothing kmap can do about that — the data does not exist.":
-            "Шаг горизонталей 10 м — ваш выбор, и kmap его выполняет. Но это не то же, что модель высот с разрешением 10 м: свободные данные о высотах имеют шаг в одну угловую секунду, примерно 30 м на местности. Рисовать десятиметровые горизонтали по тридцатиметровым данным — обычная практика: в горах выглядит правильно, на равнине линии плывут. Здесь kmap бессилен — более точных свободных данных не существует.",
         "kmap works with a copy in its own folder and does not touch the original again. The style keeps working even if the source file was on a removable drive.":
             "kmap работает с копией в своей папке и больше не обращается к оригиналу. Стиль продолжит работать, даже если исходный файл лежал на съёмном диске.",
         "A drawing comes from a picture on disk, or from another style whose TYP is readable — a compiled one has nothing to offer until it is imported, which decompiles it.":
@@ -117,8 +115,6 @@ enum Strings {
         "A picture is read at %@ — the size of the drawing it would replace. PNG, JPEG, TIFF, GIF and BMP work, and SVG where the system can draw it. `~` is expanded.":
             "Картинка читается в размере %@ — это размер рисунка, который она заменит. PNG, JPEG, TIFF, GIF и BMP годятся, SVG — там, где система умеет его нарисовать. `~` раскрывается.",
         "A picture on disk — PNG, JPEG, SVG…": "Картинка на диске — PNG, JPEG, SVG…",
-        "A profile is a named set of build choices — the whole build screen except the region. Make one per device, or per kind of map, and pick it at the top of the build screen: it fills the form in, and the one picked last is the one the next map opens on.":
-            "Профиль — именованный набор параметров сборки: весь экран сборки, кроме региона. Заведите по одному на прибор или на вид карты и выбирайте вверху экрана сборки: он заполнит форму, а выбранный последним откроется в следующий раз.",
         "A profile is a saved set of build settings. Pick one on the New map screen and every field fills in from it. Anything changed after that applies to the current map only — the profile itself stays as it was.":
             "Профиль — сохранённый набор настроек сборки. Выберите профиль на экране «Новая карта», и все поля заполнятся из него. Дальнейшие изменения касаются только текущей карты — сам профиль остаётся прежним.",
         "A profile is edited on this page only. Changes made on the New map screen apply to one map and do not touch the profile.":
@@ -134,8 +130,6 @@ enum Strings {
         "Cached elevation": "Кэш высот",
         "Cached extracts": "Кэш выгрузок",
         "Casing": "Обводка",
-        "Changing a field afterwards changes that map only, and says so on the profile row. Nothing else on the build screen is written down — a profile is rewritten from the profile screen and nowhere else, which is what makes it safe to build from.":
-            "Если после этого поменять поле на экране сборки, изменится только эта карта — и строка профиля прямо об этом скажет. Сам профиль с экрана сборки не переписывается никогда: править его можно только на экране профилей. Поэтому на него можно положиться.",
         "Check tools and disk": "Проверка инструментов",
         "Update tools": "Обновление инструментов",
         "Data updates": "Обновление данных",
@@ -170,13 +164,9 @@ enum Strings {
         "Colour 2": "Цвет 2",
         "Compile map": "Сборка карты",
         "Contour lines": "Горизонтали",
-        "Contour lines are vector ways generated from elevation data and drawn on the map like any other line. The DEM layer is a raster elevation grid stored in the map, and it is what gives shaded relief and the elevation profile. They are independent — you can have either, both, or neither. Both come from the same downloaded .hgt tiles, so enabling both costs one download.":
-            "Горизонтали — векторные линии, построенные по данным высот; на карте они рисуются как обычные линии. Слой DEM — растровая сетка высот внутри карты: именно она даёт отмывку рельефа и профиль высот. Эти два слоя независимы — можно включить любой, оба или ни одного. Данные у них общие, те же скачанные плитки высот, так что оба вместе стоят одной загрузки.",
         "Contours and DEM": "Горизонтали и DEM",
         "Copy it to Garmin/POI on the device; it opens under Custom POIs.":
             "Скопируйте его в Garmin/POI на приборе; он откроется в разделе Custom POIs.",
-        "Copy the .img to the Garmin folder on the device or its SD card. To keep several maps side by side, give each a distinct filename — the device reads them all.":
-            "Скопируйте .img в папку Garmin на приборе или его карте памяти. Несколько карт живут рядом — дайте каждой своё имя файла, прибор прочтёт все.",
         "Could not fetch the Geofabrik index: %@": "Не удалось получить индекс Geofabrik: %@",
         "Custom POI file": "Свой файл POI",
         "Cyrillic": "кириллица",
@@ -198,12 +188,9 @@ enum Strings {
         "smooth zoom close in; the overview never goes empty":
             "плавное приближение без скачков; обзорная карта не пустеет",
         "Geofabrik index is not in the expected format: %@": "Индекс Geofabrik не в ожидаемом формате: %@",
-        "Help": "Справка",
         "Hide on map": "Скрыть на карте",
         "Historic": "Историческое",
         "House numbers": "Номера домов",
-        "How a Garmin map looks is decided by its TYP file, which mkgmap embeds verbatim. That means any .typ you already own can be reused as the look for your own maps — kmap scans your Garmin folders and offers what it finds. The catch is that a TYP styles Garmin type codes, and it was written against whatever rule set its author used; if that differs from mkgmap's, some types will fall back to device defaults. The family id has to match too, and kmap reads it out of the TYP for you.":
-            "Как выглядит карта Garmin, решает её файл TYP: mkgmap встраивает его как есть. Значит, любой .typ, который у вас уже есть, годится как вид для собственных карт — kmap просматривает ваши папки Garmin и предлагает найденное. Загвоздка одна: TYP оформляет коды типов Garmin и написан под тот набор правил, которым пользовался его автор. Где этот набор расходится с mkgmap, типы прибор нарисует по-своему. Family id тоже должен совпадать — kmap сам читает его из TYP.",
         "How many": "Сколько",
         "I confirm": "подтверждаю",
         "I confirm that the copyright in the files being imported is mine, or that their author has given me permission, or that they are open source and copying and editing them is allowed.":
@@ -221,8 +208,6 @@ enum Strings {
         "Labels": "Подписи",
         "Land use": "Землепользование",
         "Language": "Язык",
-        "Large regions can be written as several .img files, split along whichever axis the region is widest on. Each file installs separately, and all of them share one family id so the same TYP applies to every part.":
-            "Большой регион можно записать несколькими файлами .img — разрез идёт вдоль той оси, по которой регион шире. Каждый файл ставится на прибор отдельно, а family id у всех общий, так что один TYP действует на все части.",
         "Leisure and sport": "Отдых и спорт",
         "Library": "Библиотека",
         "Lines — roads, paths, contours, streams": "Линии — дороги, тропы, горизонтали, ручьи",
@@ -257,23 +242,6 @@ enum Strings {
         "%d already in the cache": "%d уже в кэше",
         "nothing to fetch": "качать нечего",
         "which feature": "какой объект",
-        "what is this": "что это",
-        "how a map is made": "как собирается карта",
-        "your own style": "свой стиль на карте",
-        "Garmin devices — handhelds, watches, bike computers — can show detailed maps, and good ones usually cost money. OpenStreetMap is a free map of the whole world, drawn by volunteers, and often more detailed than the paid ones: every trail, spring, bench and rain shelter.":
-            "Устройства Garmin — навигаторы, часы, велокомпьютеры — умеют показывать подробные карты, и хорошие обычно платные. OpenStreetMap — бесплатная карта всего мира, которую рисуют добровольцы, и часто она подробнее платных: на ней есть каждая тропа, родник, скамейка и укрытие от непогоды.",
-        "kmap turns that free map into a file your Garmin understands. A small region builds in minutes, on your own computer. OpenStreetMap is refined daily — rebuild the map whenever you want fresh data. No sign-up, and nothing is sent anywhere.":
-            "kmap превращает эту бесплатную карту в файл, с которым может работать ваш Garmin. Небольшой регион собирается за минуты, на вашем компьютере. OpenStreetMap дорабатывается каждый день — просто пересоберите карту, когда понадобятся свежие данные. Регистрация не нужна, данные никуда не отправляются.",
-        "Pick a country, a region or a whole continent, press Build, and copy the finished file into the Garmin folder on the device or its memory card. The map lands in ~/kmap, one dated folder per build. A map too big for a FAT32 card splits itself into several files.":
-            "Выберите страну, регион или целый континент, нажмите Build и скопируйте готовый файл в папку Garmin на устройстве или на его карте памяти. Карта появляется в ~/kmap, по датированной папке на сборку. Карта, не влезающая в файл FAT32, сама разрежется на несколько.",
-        "What goes on it is a set of checkboxes on the build form: contour lines at the interval you choose, shaded relief with an elevation profile, routing and search, day and night colours, house numbers, labels in the local language, in English or in Russian. Leave out what your device does not need and the map gets smaller and faster.":
-            "Что будет на карте — галочки на форме сборки: горизонтали с шагом на ваш выбор, отмывка рельефа с профилем высот, маршруты и поиск, дневные и ночные цвета, номера домов, подписи на местном языке, по-английски или по-русски. Уберите то, что вашему устройству не нужно, и карта станет меньше и быстрее.",
-        "Out of the box kmap draws the familiar looks of openstreetmap.org and OpenTopoMap. And if you own a map whose licence lets you reuse its style, kmap can make your maps look just like it: the look of a Garmin map lives in a small file inside it, a TYP, and kmap pulls that file out and works out how the map uses it.":
-            "Из коробки kmap рисует в привычном оформлении openstreetmap.org и OpenTopoMap. А если у вас есть карта, лицензия которой разрешает использовать её оформление, kmap сделает ваши карты точно такими же на вид: оформление карты Garmin хранится внутри неё самой, в небольшом файле TYP, и kmap умеет достать его и разобраться, как карта им пользуется.",
-        "On the Styles screen, `i` imports the look from a .img or .typ — kmap also scans ~/Garmin and plugged-in devices. Then `r`, recover from its map, teaches kmap which code that map used for a forest or a trail, by matching its geometry against OpenStreetMap for the same ground. After that, just pick the style on the build form.":
-            "На экране Styles клавиша `i` импортирует оформление из .img или .typ — kmap заглядывает и в ~/Garmin, и в подключённые устройства. Затем `r`, восстановление по карте: kmap выясняет, каким кодом эта карта обозначила лес или тропу, сверяя её геометрию с OpenStreetMap той же местности. После этого просто выберите стиль на форме сборки.",
-        "Styles can be copied, renamed, edited down to single icon pixels, and set as the default — all on the Styles screen.":
-            "Стили можно копировать, переименовывать, редактировать вплоть до отдельных пикселей иконок и назначать стилем по умолчанию — всё на экране Styles.",
         "identifying the rest by place": "дополнительное распознавание",
         "identifying the rest by place in %@": "дополнительное распознавание в %@",
         "nothing matches": "ничего не совпадает",
@@ -329,14 +297,10 @@ enum Strings {
         "Style": "Стиль",
         "Styles": "Стили",
         "TYP not readable": "TYP не читается",
-        "The code page decides which alphabet survives into the map. 1252 covers western Europe, 1251 covers Cyrillic. It also overrides the code page declared inside the TYP: get it wrong and localized labels are dropped silently, with no warning.":
-            "Кодовая страница решает, какой алфавит переживёт запись в карту. 1252 покрывает Западную Европу, 1251 — кириллицу. Она же перекрывает кодовую страницу, объявленную внутри TYP: ошибётесь — и локальные подписи молча пропадут, без единого предупреждения.",
         "The copy kept at import is not touched, so this can be done again.":
             "Сохранённый при импорте оригинал не трогается, так что это можно повторить.",
         "The copy stays on this machine. kmap does not publish it and does not send it anywhere; what is done with it afterwards is yours to answer for.":
             "Копия остаётся на этой машине: kmap её не публикует и никуда не отправляет; за то, что будет с ней дальше, отвечаете вы.",
-        "The language kmap speaks is chosen in Settings and is nothing to do with the map. What language a road is labelled in on the device is decided by Labels and the code page on the build screen, per map. Switching the interface to Russian does not change one byte of a built map.":
-            "Язык, на котором говорит kmap, выбирается в настройках и к карте отношения не имеет. На каком языке подписана дорога на приборе, решают «Подписи» и кодовая страница на экране сборки, для каждой карты отдельно. Переключение интерфейса на русский не меняет в собранной карте ни байта.",
         "The region, the family id and the output folder. The region and the family id are set per map — the device hides maps that share a family id. The folder is set once, in Settings.":
             "Регион, family id и папка вывода. Регион и family id у каждой карты свои — карты с одинаковым family id прибор скрывает. Папка задаётся один раз в настройках.",
         "This TYP is compiled. Its identity reads fine, but its sections cannot be opened yet: mkgmap compiles source into a TYP and offers no way back, so decoding one is work kmap has to do itself. Until then the file can still be built with — it is simply not editable here.":
@@ -353,8 +317,6 @@ enum Strings {
         "USGS login": "Логин USGS",
         "USGS password": "Пароль USGS",
         "Unicode": "Юникод",
-        "What a profile does not hold: the region, the family id and the output folder. The first two belong to one map, and the folder is set once in Settings. It can also leave the code page to the region, which is usually right: the same profile then builds a Cyrillic map as 1251 and a German one as 1252.":
-            "Чего в профиле нет: региона, family id и папки вывода. Первые два принадлежат конкретной карте, папка задаётся один раз в настройках. Кодовую страницу профиль может оставить на усмотрение региона — и обычно это правильно: один и тот же профиль соберёт кириллическую карту в 1251, а немецкую в 1252.",
         "Work folder": "Рабочая папка",
         "Write output": "Запись результата",
         "Zoom levels": "Уровни зума",
@@ -365,7 +327,6 @@ enum Strings {
         "a polygon hatch is always 32×32": "штриховка полигона всегда 32×32",
         "a tile still overflows Garmin's 16 MB drawing section at %dk nodes per tile — lower Nodes per tile in Settings and build again":
             "плитка всё ещё не влезает в 16-мегабайтную секцию отрисовки Garmin при %dk узлов на плитку — уменьшите «Узлов на плитку» в настройках и соберите снова",
-        "about \"10 m\"": "про «10 м»",
         "accept": "принять",
         "add a section": "добавить секцию",
         "add colour": "добавить цвет",
@@ -479,7 +440,6 @@ enum Strings {
         "compiles OSM data into Garmin .img": "собирает данные OSM в Garmin .img",
         "contains": "содержит",
         "contour lines, DEM, and a style of your choosing": "горизонтали, DEM и стиль на ваш выбор",
-        "contours are not the DEM": "горизонтали — это не DEM",
         "contours every %d m": "горизонтали через %d м",
         "copied to %@": "скопировано в %@",
         "copy": "копия",
@@ -513,7 +473,6 @@ enum Strings {
             "другой размер — возьмётся как есть, без подгонки",
         "done": "готово",
         "downloaded .osm.pbf extracts kept for reuse": "скачанные .osm.pbf — хранятся для повторных сборок",
-        "downloaded extracts, reused between builds": "скачанные выгрузки, живут между сборками",
         "drawing replaced — %@, %@": "рисунок заменён — %@, %@",
         "duplicate": "копия",
         "edit": "править",
@@ -522,7 +481,6 @@ enum Strings {
         "elevation": "высоты",
         "downloaded elevation data; cleared, it is downloaded again":
             "скачанные данные высот; после очистки скачаются заново",
-        "elevation tiles, shared by contours and the DEM": "плитки высот, общие для горизонталей и DEM",
         "empty": "пусто",
         "english": "английские",
         "eorc.jaxa.jp/ALOS/en/aw3d30 — unlocks alos1, also 30 m": "eorc.jaxa.jp/ALOS/en/aw3d30 — alos1, 30 м",
@@ -546,7 +504,6 @@ enum Strings {
         "grid": "сетка",
         "grid · sliders · style": "сетка · ползунки · стиль",
         "grown to %@, the new ground clear": "увеличено до %@, новое поле прозрачное",
-        "help": "справка",
         "hide all shown": "скрыть всё показанное",
         "hide on map": "скрыть на карте",
         "hide the preview": "скрыть превью",
@@ -645,31 +602,6 @@ enum Strings {
             "в Windows 10 начиная с 1803 tar входит в состав системы — на этой машине его нет",
         "needs python3 — %@": "нужен python3 — %@",
         "unpacks everything else on this page": "распаковывает всё остальное на этой странице",
-        "the command line": "командная строка",
-        "Everything on these screens can be done from a shell, and a few things that cannot be done here at all. `kmap --help` lists every command and flag; the README has the same list in a table.":
-            "Всё, что умеют эти экраны, доступно и из командной строки — а кое-что доступно только из неё. `kmap --help` перечисляет команды и флаги; в README тот же список таблицей.",
-        "`kmap build <region>` builds a map. `kmap verify <img>` checks one before it goes on the device, and `kmap coverage <img>` asks whether its tiles cover the ground they claim.":
-            "`kmap build <регион>` собирает карту. `kmap verify <img>` проверяет готовую карту перед записью на прибор, а `kmap coverage <img>` — покрывают ли её плитки заявленную землю.",
-        "A build takes only what it is given: what is not switched on is off. `--profile` switches on a whole set at once, and any single flag still overrides it.":
-            "Сборка делает только то, о чём её попросили: что не включено, то выключено. `--profile` включает целый набор разом, но любой флаг поверх него всё равно главнее.",
-        "leaving things off the map": "скрыть лишнее",
-        "A hide removes a rule, not data. kmap finds the rule in the style and replaces it with one that keeps its actions and loses its type, so the object stops being drawn — and rebuilding without the box ticked brings it back.":
-            "Скрытие убирает правило, а не данные. kmap находит правило в стиле и подменяет его таким, которое сохраняет действия, но теряет тип: объект перестаёт рисоваться. Соберите карту без этой галочки — и он вернётся.",
-        "What can be hidden is read from the style kmap is about to build with, so the list matches the rules a hide is applied to rather than a list written down somewhere else.":
-            "Список того, что можно скрыть, читается из того самого стиля, которым сейчас будет собираться карта, — а не из списка, записанного раз и навсегда.",
-        "seams between tiles": "швы между плитками",
-        "A map is many tiles, and a receiver draws each one clipped to its own frame. A shape that stops at the frame leaves a hairline where two tiles meet — on a watch, a black seam across the ground.":
-            "Карта состоит из плиток, и прибор рисует каждую строго в её рамке. Фигура, обрезанная по рамке, оставляет на стыке волосок — на часах он превращается в чёрный шов поперёк местности.",
-        "The overlap is how far past its own frame a tile may paint. It needs the mkgmap seam patch, which the toolchain page installs; without it the setting does nothing. The land layer has an overlap of its own, because what hides a seam on a watch shows as a stripe on a handheld.":
-            "Перехлёст — это насколько плитке позволено рисовать за своей рамкой. Работает он только с патчем швов для mkgmap, который ставится на странице «Инструменты»; без патча настройка ничего не делает. У слоя суши перехлёст отдельный: то, что прячет шов на часах, на навигаторе вылезает полосой.",
-        "day and night": "день и ночь",
-        "A TYP can carry two drawings of everything: one for daylight and one for night. Some receivers get the night one wrong — an Edge 1040 does, with Garmin's own maps — and the theme setting packs only the one you want, so the device has nothing else to choose.":
-            "TYP может нести два варианта отрисовки: дневной и ночной. Некоторые приборы путают ночной — Edge 1040 делает это даже с картами самой Garmin. Настройка темы кладёт в карту только нужный вариант, и прибору просто не из чего выбрать не то.",
-        "a machine with less memory": "если памяти мало",
-        "The stages that hold the most run fewer lanes where there is not room for all of them, and say so. Slower, and it finishes: a build that starts swapping is slower than one that ran a lane at a time.":
-            "Самые тяжёлые стадии сами сокращают параллельность, когда памяти на всех не хватает, и пишут об этом в журнал. Выходит медленнее, зато сборка доходит до конца: уйти в своп — куда дольше, чем работать по очереди.",
-        "`--memory=<GB>` says the machine has less than it does, which is how to leave room for everything else while a map builds.":
-            "`--memory=<ГБ>` занижает память машины для kmap — так остаётся место всему остальному, пока собирается карта.",
         "code page 1252 cannot hold Cyrillic — set 1251 if the names here are in it":
             "кодовая страница 1252 не умеет кириллицу — поставьте 1251, если подписи здесь на ней",
         "worth knowing": "что важно знать",
@@ -702,9 +634,7 @@ enum Strings {
         "%@ is not where it said it was": "%@ не там, где только что был",
         "kmap can install this": "kmap может поставить это сам",
         "installing %@": "ставлю %@",
-        "installing a map": "установка карты",
         "installing…": "ставлю…",
-        "intermediate tiles, removed unless you keep them": "промежуточные плитки, удаляются, если не просили хранить",
         "joins ends within %d m that block a route": "сшивает концы ближе %d м там, где без этого нет маршрута",
         "keep": "оставить",
         "keep intermediate tiles and contours after a build": "хранить промежуточные плитки и горизонтали после сборки",
@@ -865,7 +795,6 @@ enum Strings {
         "rename": "переименовать",
         "rename to": "новое имя",
         "renamed to %@": "переименован в %@",
-        "repaired road ends": "сшивка разорванных дорог",
         "rescan": "пересканировать",
         "reveal in Finder": "показать в Finder",
         "show in Explorer": "показать в проводнике",
@@ -879,7 +808,6 @@ enum Strings {
         "save & back": "сохранить и назад",
         "saved": "сохранено",
         "scratch space during a build; emptied when it finishes": "черновики на время сборки; очищаются после неё",
-        "scroll": "прокрутка",
         "scroll log": "листать журнал",
         "detail": "подробности",
         "hide detail": "скрыть подробности",
@@ -901,7 +829,6 @@ enum Strings {
         "solid colours, no pattern": "сплошные цвета, без узора",
         "splitter did not produce what was expected: %@": "splitter выдал не то, чего ждали: %@",
         "splitter produced no tiles": "splitter не выдал ни одной плитки",
-        "splitting the output": "карта в несколько файлов",
         "start a pattern from this type's own colour": "начать узор с собственного цвета этого типа",
         "start one": "начать",
         "started a pattern from this type's own colour — save to keep it":
@@ -912,7 +839,6 @@ enum Strings {
         "style": "стиль",
         "style: %@": "стиль: %@",
         "styles": "стили",
-        "styles and TYP files": "стили и файлы TYP",
         "take it": "взять",
         "that picture has no pixels in it": "в этой картинке нет ни одного пикселя",
         "that rule has already been reassigned: %@": "это правило уже переносили: %@",
@@ -922,11 +848,8 @@ enum Strings {
         "the data is used exactly as OSM has it": "как в OSM, без сшивки",
         "the relief is used exactly as measured": "рельеф как измерен, без правки",
         "a summit's cell is lifted to its OSM height": "ячейка вершины поднята до высоты из OSM",
-        "the full output of every build": "полный журнал каждой сборки",
-        "the language of the interface": "язык интерфейса",
         "the last profile stays — the build screen opens on one":
             "последний профиль остаётся — экрану сборки нужно на чём-то открываться",
-        "the rule set and TYP sources": "набор правил и исходники TYP",
         "the rule set has not been unpacked yet — run a build once":
             "набор правил ещё не распакован — соберите что-нибудь один раз",
         "the toolchain is incomplete — open Toolchain to finish setting it up":
@@ -967,7 +890,6 @@ enum Strings {
         "whatever the device uses": "как решит прибор",
         "whatever the local mappers wrote — Russian in Russia, German in Germany":
             "как написали местные мапперы — по-русски в России, по-немецки в Германии",
-        "where things live": "где что лежит",
         "where to": "куда",
         "which rule": "какое правило",
         "width %d": "ширина %d",
@@ -981,7 +903,6 @@ enum Strings {
         "write it as 20x20, or one number for a square": "пишется как 20x20 или одним числом для квадрата",
         "written the way the rule files write it, such as 0x2f01":
             "так, как это пишут в файлах правил, например 0x2f01",
-        "your TYP library — the styles you may edit": "ваша библиотека TYP — стили, которые можно править",
         "yours": "ваш",
         "zoom": "зум",
         "… and %d more": "… и ещё %d",
@@ -1017,7 +938,6 @@ enum Strings {
         "how the map looks — TYP files": "внешний вид карты — файлы TYP",
         "your saved build settings": "сохранённые настройки сборки",
         "what appears at which zoom": "что видно на каком зуме",
-        "how kmap works": "как работает kmap",
         "Pick a region, choose what goes into the map, and press Build. kmap downloads the data, draws contour lines and shaded relief, and writes an .img file ready for the device.":
             "Выберите регион, отметьте, что войдёт в карту, и нажмите «Собрать». kmap скачает данные, построит горизонтали и отмывку рельефа и запишет файл .img, готовый для прибора.",
         "Every map you have built, with its size and date. From here a map can be shown in the file manager, ready to copy to the device, or deleted when it is no longer needed.":

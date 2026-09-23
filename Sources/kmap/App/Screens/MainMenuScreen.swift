@@ -26,8 +26,7 @@ final class MainMenuScreen: Screen {
             Item(key: "4", label: t("Profiles"), note: t("your saved build settings")),
             Item(key: "5", label: t("Zoom plans"), note: t("what appears at which zoom")),
             Item(key: "6", label: t("Toolchain"), note: t("mkgmap, the seam patch, elevation data")),
-            Item(key: "7", label: t("Settings"), note: t("paths, memory, connections")),
-            Item(key: "8", label: t("Help"), note: t("how kmap works"))
+            Item(key: "7", label: t("Settings"), note: t("paths, memory, connections"))
         ]
     }
 
@@ -58,7 +57,6 @@ final class MainMenuScreen: Screen {
         case 4: return .push(ZoomPlansScreen())
         case 5: return .push(ToolchainScreen())
         case 6: return .push(SettingsScreen())
-        case 7: return .push(HelpScreen())
         default: return .none
         }
     }
