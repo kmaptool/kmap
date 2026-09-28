@@ -128,9 +128,7 @@ enum TypGenerator {
     /// and a second hand-written splitter here accepted strictly less than it.
     static func parseGraphics(
         _ text: String
-    )
-        -> (polygons: [Int: String], lines: [Int: String])
-    {
+    ) -> (polygons: [Int: String], lines: [Int: String]) {
         var polygons: [Int: String] = [:]
         var lines: [Int: String] = [:]
         guard !text.isEmpty else { return (polygons, lines) }

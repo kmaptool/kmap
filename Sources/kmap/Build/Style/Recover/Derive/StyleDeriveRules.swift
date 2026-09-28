@@ -15,9 +15,7 @@ extension StyleRecovery {
             type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int],
             resolutions: [Int: Int]
         )]
-    )
-        -> [String]?
-    {
+    ) -> [String]? {
         if line.leadingGroup() == nil, line.wildcardHead() != nil {
             return splitFamilyRule(line, ranked: ranked)
         }
@@ -68,9 +66,7 @@ extension StyleRecovery {
             type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int],
             resolutions: [Int: Int]
         )]
-    )
-        -> [String]?
-    {
+    ) -> [String]? {
         guard let base = ranked.first else { return nil }
         var dedicated: [(pair: String, type: Int)] = []
         for claim in ranked.dropFirst() {

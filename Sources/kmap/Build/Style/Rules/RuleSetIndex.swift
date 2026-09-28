@@ -246,9 +246,7 @@ struct RuleSetIndex {
     /// text between the code and the closing bracket. Other brackets are skipped.
     private static func firstTypeBracket(
         in line: String
-    )
-        -> (code: Int, range: String.Index, tail: String)?
-    {
+    ) -> (code: Int, range: String.Index, tail: String)? {
         var search = line.startIndex
         while let open = line[search...].firstIndex(of: "[") {
             let after = line.index(after: open)

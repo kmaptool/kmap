@@ -143,9 +143,7 @@ enum Privilege: Equatable {
         isRoot: Bool = Privilege.isRoot(),
         hasSudo: Bool = Platform.which("sudo") != nil,
         sudoIsPasswordless: @autoclosure () -> Bool = Privilege.sudoIsPasswordless()
-    )
-        -> Privilege
-    {
+    ) -> Privilege {
         if !manager.needsRoot { return .direct }
         if isRoot { return .direct }
         guard hasSudo, sudoIsPasswordless() else { return .wouldAsk }
@@ -180,9 +178,7 @@ extension PackageManager {
     func command(
         for what: Need,
         privilege: Privilege
-    )
-        -> (executable: String, arguments: [String], runnable: Bool)?
-    {
+    ) -> (executable: String, arguments: [String], runnable: Bool)? {
         guard let packages = packages(for: what) else { return nil }
         let arguments = installArguments(packages)
         switch privilege {

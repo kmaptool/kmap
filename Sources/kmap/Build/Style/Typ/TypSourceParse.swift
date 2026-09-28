@@ -95,9 +95,7 @@ extension TypSource {
     /// comment rather than guessed at.
     private static func parseUnstyledMarker(
         _ line: String
-    )
-        -> (kind: MapElementKind, codes: Set<Int>)?
-    {
+    ) -> (kind: MapElementKind, codes: Set<Int>)? {
         let body = line.drop { $0 == ";" }.trimmingCharacters(in: .whitespaces)
         guard body.lowercased().hasPrefix("kmap:unstyled") else { return nil }
 

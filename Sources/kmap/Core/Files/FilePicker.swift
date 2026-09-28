@@ -112,9 +112,7 @@ enum FilePicker {
         platform: Platform = Platform.current,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         exists: (String) -> Bool = { FileTools.isExecutable($0) }
-    )
-        -> Helper?
-    {
+    ) -> Helper? {
         switch platform {
         case .macOS:
             return exists("/usr/bin/osascript")
@@ -184,9 +182,7 @@ enum FilePicker {
         startingAt start: URL?,
         prompt: String,
         windowsPath: (URL) -> String? = { Platform.windowsPath(for: $0) }
-    )
-        -> [String]
-    {
+    ) -> [String] {
         // The prompt is arbitrary text and lands inside quoted strings, so quotes and
         // newlines are removed.
         let title = prompt.replacingOccurrences(of: "\"", with: "'")

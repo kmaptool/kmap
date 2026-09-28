@@ -69,9 +69,7 @@ extension ImgElements {
             locked: Bool,
             headerLength: Int,
             reader r: Bytes
-        )
-            -> [(level: Int, resolution: Int, count: Int)]
-        {
+        ) -> [(level: Int, resolution: Int, count: Int)] {
             var levels = Array(data[levelsPos..<(levelsPos + levelsSize)])
             if locked, headerLength >= 0xAA, data.count >= 0xAE {
                 Self.demangle(&levels, key: r.u32(at: 0xAA))

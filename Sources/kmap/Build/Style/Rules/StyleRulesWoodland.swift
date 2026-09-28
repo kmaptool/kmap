@@ -56,9 +56,7 @@ extension StyleCatalog {
     /// The three forest kinds, and the words a build labels them with.
     static func forestKinds(
         cyrillic: Bool
-    )
-        -> [(tag: String, type: String, suffix: String, alone: String)]
-    {
+    ) -> [(tag: String, type: String, suffix: String, alone: String)] {
         let words = StyleWords(cyrillic: cyrillic)
         return [
             (

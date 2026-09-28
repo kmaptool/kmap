@@ -41,9 +41,7 @@ enum Paths {
     static func defaultRoot(
         _ platform: Platform = Platform.current,
         environment: [String: String] = ProcessInfo.processInfo.environment
-    )
-        -> URL
-    {
+    ) -> URL {
         guard platform == .windows else {
             return home.appendingPathComponent(".kmap", isDirectory: true)
         }
@@ -89,9 +87,7 @@ enum Paths {
     static func defaultOutput(
         _ platform: Platform = Platform.current,
         environment: [String: String] = ProcessInfo.processInfo.environment
-    )
-        -> URL
-    {
+    ) -> URL {
         guard platform == .windows else {
             return home.appendingPathComponent("kmap", isDirectory: true)
         }

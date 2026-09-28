@@ -226,9 +226,7 @@ enum HGTConversion {
         /// on a step that divides one. Anything else is refused rather than guessed at.
         private func lattice(
             of tiff: GeoTIFF
-        )
-            -> (originLon: Int, originLat: Int, stepLon: Int, stepLat: Int)?
-        {
+        ) -> (originLon: Int, originLat: Int, stepLon: Int, stepLat: Int)? {
             let unit = Double(HGTConversion.latticePerDegree)
             let stepLon = (tiff.stepLon * unit).rounded()
             let stepLat = (-tiff.stepLat * unit).rounded()

@@ -251,9 +251,7 @@ enum StylePort {
         rules: RuleSetIndex,
         theirTyp: TypSource,
         ported: [Ported]
-    )
-        -> [MapElementKind: Set<Int>]
-    {
+    ) -> [MapElementKind: Set<Int>] {
         let ourCodes = ourNumbers(in: rules)
         var painted: [MapElementKind: Set<Int>] = [:]
         for port in ported { painted[port.kind, default: []].insert(port.ours) }

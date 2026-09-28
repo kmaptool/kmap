@@ -148,9 +148,7 @@ struct TypBinary {
         in data: [UInt8],
         index: (Int, Int, Int),
         section: (Int, Int)
-    )
-        -> [(type: Int, subtype: Int, offset: Int, length: Int)]
-    {
+    ) -> [(type: Int, subtype: Int, offset: Int, length: Int)] {
         let (position, itemSize, length) = index
         guard itemSize >= 3, length > 0 else { return [] }
         let pointerSize = itemSize - 2

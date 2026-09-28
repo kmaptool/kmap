@@ -282,9 +282,7 @@ final class VenueScanTests: XCTestCase {
         _ count: Int,
         seed: UInt64,
         tags: [String] = ["amenity=cafe", "shop=bakery"]
-    )
-        -> (areas: [VenueScan.Area], nodes: [(tag: String, x: Double, y: Double)])
-    {
+    ) -> (areas: [VenueScan.Area], nodes: [(tag: String, x: Double, y: Double)]) {
         var state = seed
         func next() -> Double {  // xorshift, so the case is repeatable
             state ^= state << 13; state ^= state >> 7; state ^= state << 17

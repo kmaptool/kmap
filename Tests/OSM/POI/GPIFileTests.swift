@@ -12,9 +12,7 @@ final class GPIFileTests: XCTestCase {
         _ lon: Double,
         _ name: String,
         _ note: String
-    )
-        -> GPIFile.Point
-    {
+    ) -> GPIFile.Point {
         GPIFile.Point(
             lat: lat,
             lon: lon,

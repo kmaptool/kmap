@@ -83,9 +83,7 @@ final class DeriveTests: XCTestCase {
         _ codes: [String: Evidence.ForCode],
         ground: [String: Int] = [:],
         typDefined: [ElementDumper.Kind: Set<Int>] = [:]
-    )
-        -> StyleRecovery.Report
-    {
+    ) -> StyleRecovery.Report {
         var report = StyleRecovery.Report()
         StyleRecovery.derive(
             Evidence(codes: codes),

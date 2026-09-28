@@ -37,9 +37,7 @@ extension TypEdit {
         in source: TypSource,
         code: Int,
         to level: Int
-    ) throws
-        -> String
-    {
+    ) throws -> String {
         guard level >= 1 else { throw EditError.notALevel(level) }
         var lines = source.lines
         guard let table = drawOrderTable(in: lines) else { throw EditError.noDrawOrder }
@@ -114,9 +112,7 @@ extension TypEdit {
     /// which an older kmap wrote, does not hide the entry.
     private static func drawOrderEntry(
         of line: String
-    )
-        -> (code: Int, level: Int, spelling: String)?
-    {
+    ) -> (code: Int, level: Int, spelling: String)? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard trimmed.lowercased().hasPrefix("type="), let eq = trimmed.firstIndex(of: "=")
         else { return nil }

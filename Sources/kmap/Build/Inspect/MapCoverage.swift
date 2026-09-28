@@ -43,9 +43,7 @@ enum MapCoverage {
     /// sit at 0x15 in the order north, east, south, west.
     static func bounds(
         ofTRE header: [UInt8]
-    )
-        -> (minLat: Double, minLon: Double, maxLat: Double, maxLon: Double)?
-    {
+    ) -> (minLat: Double, minLon: Double, maxLat: Double, maxLon: Double)? {
         guard header.count >= 0x21 else { return nil }
         let name = String(decoding: header[2..<12], as: UTF8.self)
         guard name == "GARMIN TRE" else { return nil }

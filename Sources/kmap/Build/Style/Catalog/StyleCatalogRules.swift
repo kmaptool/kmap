@@ -20,9 +20,7 @@ extension StyleCatalog {
     static func applySubstitutions(
         _ list: String,
         in directory: URL
-    ) throws
-        -> (applied: Int, missed: [String], hidden: Int)
-    {
+    ) throws -> (applied: Int, missed: [String], hidden: Int) {
         var edits: [String: [(old: String, new: [String])]] = [:]
         for entry in SubstitutionSheet.parse(list) where !entry.file.isEmpty {
             edits[entry.file, default: []].append((entry.old.joined(separator: "\n"), entry.new))

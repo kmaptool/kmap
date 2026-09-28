@@ -55,9 +55,7 @@ final class ContourOutputTests: XCTestCase {
         wayStart: Int64 = 5_000_000_000,
         major: Int = 100,
         medium: Int = 50
-    ) throws
-        -> (counts: (nodes: Int, ways: Int), read: Collected)
-    {
+    ) throws -> (counts: (nodes: Int, ways: Int), read: Collected) {
         let url = directory.appendingPathComponent("out.osm.pbf")
         let counts = try ContourOutput.write(
             lines,

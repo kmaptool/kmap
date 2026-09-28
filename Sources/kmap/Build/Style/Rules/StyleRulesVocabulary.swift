@@ -277,9 +277,7 @@ extension StyleCatalog {
         in directory: URL,
         old: String,
         new: String
-    ) throws
-        -> Bool
-    {
+    ) throws -> Bool {
         let url = directory.appendingPathComponent(file)
         guard var text = try? String(contentsOf: url, encoding: .utf8),
             text.contains(old)

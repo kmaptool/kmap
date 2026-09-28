@@ -46,9 +46,7 @@ enum L10n {
     static func resolve(
         stored: String,
         system: [String] = Locale.preferredLanguages
-    )
-        -> (language: Lang, store: Bool)
-    {
+    ) -> (language: Lang, store: Bool) {
         if let known = Lang(rawValue: stored) { return (known, false) }
         // Nothing stored, or an unknown value: the system list decides, and is stored.
         return (Lang.fromSystem(system), true)

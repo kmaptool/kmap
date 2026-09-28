@@ -328,9 +328,7 @@ enum TypEdit {
         in source: TypSource,
         kind: MapElementKind,
         code: Int
-    ) throws
-        -> String
-    {
+    ) throws -> String {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }

@@ -276,9 +276,7 @@ final class RecoverScreen: Screen {
     /// follow area, so the choice is made on bytes rather than on ground covered.
     private static func weighed(
         _ regions: [RegionSuggestion.Candidate]
-    ) async
-        -> [(RegionSuggestion.Candidate, Int64)]
-    {
+    ) async -> [(RegionSuggestion.Candidate, Int64)] {
         await withTaskGroup(of: (RegionSuggestion.Candidate, Int64)?.self) { group in
             for candidate in regions {
                 group.addTask {

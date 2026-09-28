@@ -145,9 +145,7 @@ struct GeoTIFF {
     private static func readTagDirectory(
         in data: Data,
         bigEndian: Bool
-    ) throws
-        -> [Int: [Double]]
-    {
+    ) throws -> [Int: [Double]] {
         let directory = Int(Self.u32(data, 4, bigEndian))
         guard directory + 2 <= data.count else { throw Trouble.truncated }
         let entries = Int(Self.u16(data, directory, bigEndian))
@@ -191,9 +189,7 @@ struct GeoTIFF {
     /// Both are required rather than defaulted: a default would place the tile silently.
     private static func geoPlacement(
         from tags: [Int: [Double]]
-    ) throws
-        -> (stepLon: Double, stepLat: Double, originLon: Double, originLat: Double)
-    {
+    ) throws -> (stepLon: Double, stepLat: Double, originLon: Double, originLat: Double) {
         guard let scale = tags[Tag.modelPixelScale], scale.count >= 2,
             let tie = tags[Tag.modelTiepoint], tie.count >= 6
         else {

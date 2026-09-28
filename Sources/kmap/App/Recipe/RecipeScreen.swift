@@ -101,9 +101,7 @@ final class RecipeScreen: Screen {
     private static func countries(
         of regions: [Region],
         in index: RegionIndex?
-    )
-        -> [String: String]
-    {
+    ) -> [String: String] {
         guard let index else { return [:] }
         var out: [String: String] = [:]
         for region in regions {

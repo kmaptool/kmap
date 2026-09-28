@@ -125,9 +125,7 @@ struct DefaultRuleBook {
             group: [String],
             span: String,
             to type: Int
-        )
-            -> [String]
-        {
+        ) -> [String] {
             var lines = replacement(to: type)
             guard !lines.isEmpty else { return lines }
             let narrowed = "(" + group.joined(separator: " | ") + ")"

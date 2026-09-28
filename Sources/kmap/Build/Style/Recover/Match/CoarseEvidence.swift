@@ -296,9 +296,7 @@ enum CoarseEvidence {
         of cell: UInt64,
         lattice: Lattice,
         index: GroundIndex
-    )
-        -> (slot: Int32, tags: [String: String])?
-    {
+    ) -> (slot: Int32, tags: [String: String])? {
         let q = quantize(cell, shift: rescueShift)
         let lat = q >> 32, lon = q & 0xFFFF_FFFF
         var meaning: String?

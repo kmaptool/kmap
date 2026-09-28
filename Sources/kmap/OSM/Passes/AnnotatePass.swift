@@ -193,9 +193,7 @@ struct AnnotatePass {
     /// - Returns: the loaded network, the plan, and the log lines describing it.
     private func repairScan(
         timings: ScanTimings
-    ) throws
-        -> (RoadNetwork, RepairPlan, [String])
-    {
+    ) throws -> (RoadNetwork, RepairPlan, [String]) {
         var step = Date()
         func part(_ what: String) {
             timings.note("  " + what, seconds: Date().timeIntervalSince(step))

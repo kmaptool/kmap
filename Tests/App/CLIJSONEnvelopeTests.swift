@@ -36,9 +36,7 @@ final class CLIJSONEnvelopeTests: XCTestCase {
     /// CLILog.capture for an async body.
     private func withCapturedOutput(
         _ body: () async -> Void
-    ) async throws
-        -> (out: String, error: String)
-    {
+    ) async throws -> (out: String, error: String) {
         // CLILog's sink is static; swap it by hand around the await.
         var out = "", errors = ""
         CLILog.sinkForTests = { text, isError in

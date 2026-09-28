@@ -44,9 +44,7 @@ extension Platform {
         environment: [String: String] = ProcessInfo.processInfo.environment,
         on platform: Platform = Platform.current,
         exists: (String) -> Bool = { FileTools.isExecutable($0) }
-    )
-        -> String?
-    {
+    ) -> String? {
         let suffixes = executableSuffixes(environment, on: platform)
         // A name that is already a path is used as given; backslashes separate on
         // Windows as slashes do elsewhere.

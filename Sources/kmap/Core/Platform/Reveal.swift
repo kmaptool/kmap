@@ -12,9 +12,7 @@ extension Platform {
         for url: URL,
         on platform: Platform = Platform.current,
         which: (String) -> String? = { Platform.which($0) }
-    )
-        -> (executable: String, arguments: [String])?
-    {
+    ) -> (executable: String, arguments: [String])? {
         switch platform {
         case .macOS:
             guard let open = which("open") else { return nil }

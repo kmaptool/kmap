@@ -111,9 +111,7 @@ final class JavaDownloadTests: XCTestCase {
     private func tree(
         _ folders: [String],
         executable: Set<String>
-    )
-        -> (contents: (URL) -> [String], exists: (URL) -> Bool)
-    {
+    ) -> (contents: (URL) -> [String], exists: (URL) -> Bool) {
         (
             { url in url.path.hasSuffix("/jdk") ? folders : [] },
             { url in executable.contains(url.path) }

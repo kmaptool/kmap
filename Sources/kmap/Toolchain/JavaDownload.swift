@@ -151,9 +151,7 @@ enum JavaDownload {
         on platform: Platform = Platform.current,
         contents: (URL) -> [String] = Self.namesInDirectory,
         exists: (URL) -> Bool = { FileTools.isExecutable($0.path) }
-    )
-        -> URL?
-    {
+    ) -> URL? {
         let leaf = platform.usesWindowsPaths ? "java.exe" : "java"
         var roots = [root]
         roots += contents(root).sorted().map {

@@ -12,9 +12,7 @@ extension Platform {
         for url: URL,
         on platform: Platform = Platform.current,
         runner: (String, [String]) -> String? = { ProcessProbe.capture($0, $1, timeout: 5) }
-    )
-        -> String?
-    {
+    ) -> String? {
         // A native build has nothing to translate, and `wslpath` would reject the path.
         if platform.usesWindowsPaths { return url.nativePath }
         if let wslpath = which("wslpath"),

@@ -467,9 +467,7 @@ final class IconDonorScreen: Screen {
         _ rect: Rect,
         current: XpmBlock?,
         rows: Int
-    )
-        -> (columns: Int, rightColumn: Int)
-    {
+    ) -> (columns: Int, rightColumn: Int) {
         let columns = max(2, (rect.w - 6) / 2)
         let width =
             current.map {

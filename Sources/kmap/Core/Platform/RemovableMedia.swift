@@ -10,9 +10,7 @@ extension Platform {
     static func mediaRoots(
         _ platform: Platform = Platform.current,
         environment: [String: String] = ProcessInfo.processInfo.environment
-    )
-        -> [String]
-    {
+    ) -> [String] {
         switch platform {
         case .macOS:
             return ["/Volumes"]

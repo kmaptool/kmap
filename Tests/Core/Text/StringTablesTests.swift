@@ -65,9 +65,7 @@ final class StringTablesTests: XCTestCase {
     private func readLiteral(
         _ text: String,
         from start: String.Index
-    )
-        -> (String?, String.Index)
-    {
+    ) -> (String?, String.Index) {
         guard text[start] == "\"" else { return (nil, start) }
         var value = ""
         var index = text.index(after: start)

@@ -28,9 +28,7 @@ final class TilePackerTests: XCTestCase {
         axis: SplitAxis = .longitude,
         regions: [Region] = [],
         countryOf: [String: String] = [:]
-    )
-        -> TilePacker
-    {
+    ) -> TilePacker {
         TilePacker(
             mode: mode,
             axis: axis,

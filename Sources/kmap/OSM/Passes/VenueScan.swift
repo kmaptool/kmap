@@ -55,9 +55,7 @@ struct VenueScan {
     private static func readVenueNodes(
         in url: URL,
         wanted refs: [Int64]
-    ) throws
-        -> (NodePlaces, [(tag: String, x: Double, y: Double)])
-    {
+    ) throws -> (NodePlaces, [(tag: String, x: Double, y: Double)]) {
         var places = NodePlaces(wanted: NodePlaces.wantedIDs(from: refs))
         var venues: [(tag: String, x: Double, y: Double)] = []
         try PBFReader(url: url).readInOrder(make: { VenueNodes() }) { block in

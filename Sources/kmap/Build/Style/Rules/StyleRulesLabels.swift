@@ -99,9 +99,7 @@ extension StyleCatalog {
     static func repairIcons(
         in text: String,
         cyrillic: Bool
-    )
-        -> (text: String, applied: Int, missed: [String])
-    {
+    ) -> (text: String, applied: Int, missed: [String]) {
         var out = text
         var applied = 0
         var missed: [String] = []

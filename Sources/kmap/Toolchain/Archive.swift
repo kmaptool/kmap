@@ -92,9 +92,7 @@ struct Archive: Equatable {
         _ zip: URL,
         into directory: URL,
         matching patterns: [String] = []
-    )
-        -> (executable: String, arguments: [String])
-    {
+    ) -> (executable: String, arguments: [String]) {
         switch tool {
         case .unzip:
             // `-o` overwrites without asking; every child process gets /dev/null for stdin.

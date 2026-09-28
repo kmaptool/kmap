@@ -46,9 +46,7 @@ enum ElevationFootprint {
     static func trim(
         _ all: [(lat: Int, lon: Int)],
         ringsPerRegion: [(region: Region, rings: [RegionOutline.Ring]?)]
-    )
-        -> [(lat: Int, lon: Int)]
-    {
+    ) -> [(lat: Int, lon: Int)] {
         var rings: [RegionOutline.Ring] = []
         for (region, some) in ringsPerRegion {
             if let some {

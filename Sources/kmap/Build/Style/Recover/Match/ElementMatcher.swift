@@ -161,8 +161,7 @@ enum ElementMatcher {
         of element: Chain,
         in way: [UInt64],
         least: Int = minimumRun
-    )
-        -> (aligned: Int, longest: Int)
+    ) -> (aligned: Int, longest: Int)
     where Chain.Element == UInt64, Chain.Index == Int {
         guard !element.isEmpty, !way.isEmpty else { return (0, 0) }
         // Where each of the way's cells sits, built once and read for both directions.

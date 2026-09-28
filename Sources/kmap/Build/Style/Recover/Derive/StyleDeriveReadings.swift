@@ -98,9 +98,7 @@ extension StyleRecovery {
         additions: inout [ElementDumper.Kind: [RuleAddition]],
         readByCode: [String: CodeReading],
         verdicts: inout [String: CodeVerdict]
-    )
-        -> Outcome
-    {
+    ) -> Outcome {
         let code = entry.code
         var outcome = Outcome(
             kind: code.kind,
@@ -270,9 +268,7 @@ extension StyleRecovery {
         tagLeader: [String: Int],
         ground: [String: Int],
         outcome: inout Outcome
-    )
-        -> [(key: String, value: MeaningBucket)]?
-    {
+    ) -> [(key: String, value: MeaningBucket)]? {
         // A foreign code may stand for more than one rule, and may give a whole
         // family one mark. Every meaning above the noise floor is a claim - and so is
         // one below it that this code nonetheless leads: a hundred gardens are not
@@ -376,9 +372,7 @@ extension StyleRecovery {
         ranked: [(key: String, value: MeaningBucket)],
         tagLeader: [String: Int],
         outcome: inout Outcome
-    )
-        -> [(key: String, value: MeaningBucket)]?
-    {
+    ) -> [(key: String, value: MeaningBucket)]? {
         let led = ranked.filter { pair in
             pair.value.tags.contains { tag, count in
                 count >= fewestOutright

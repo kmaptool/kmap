@@ -18,9 +18,7 @@ final class PictureTests: XCTestCase {
     private func block(
         _ rows: [String],
         palette: [(key: String, colour: String?)]
-    )
-        -> XpmBlock
-    {
+    ) -> XpmBlock {
         XpmBlock(
             width: rows.first?.count ?? 0,
             height: rows.count,

@@ -9,9 +9,7 @@ final class ProcessRunnerTests: XCTestCase {
         _ executable: String,
         _ arguments: [String],
         allowFailure: Bool = false
-    ) async throws
-        -> (result: ProcessRunner.Result, lines: [String])
-    {
+    ) async throws -> (result: ProcessRunner.Result, lines: [String]) {
         let lock = NSLock()
         var lines: [String] = []
         let result = try await ProcessRunner().run(
