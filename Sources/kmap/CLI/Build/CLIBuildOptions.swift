@@ -25,6 +25,8 @@ extension CLI {
         static let repairRadiusMetres = 0.0...50.0
         /// The words `--split` takes, in the spelling `SplitMode.settingsID` stores.
         static let splitModes = ["fit", "region", "country", "custom"]
+        /// The words `--format` takes.
+        static let outputFormats = OutputFormat.allCases.map(\.rawValue)
         /// The kebab-case spelling the help text gives `DescriptionCarrier.inName`.
         static let inNameSpelling = "in-name"
 

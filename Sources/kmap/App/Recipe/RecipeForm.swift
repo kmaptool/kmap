@@ -32,7 +32,7 @@ final class RecipeForm {
             familyID
         case routable, healRoads, index, houseNumbers, sea, descriptions
         case customPOIs, hide
-        case splitMode, parts, output
+        case format, splitMode, parts, output
         case theme, overlap, landOverlap
         case build, save
 
@@ -60,6 +60,7 @@ final class RecipeForm {
             case .descriptions: return t("Descriptions")
             case .customPOIs: return t("Custom POI file")
             case .hide: return t("Hide on map")
+            case .format: return t("Format")
             case .splitMode: return t("Output files")
             case .parts: return t("How many")
             case .output: return t("Folder")

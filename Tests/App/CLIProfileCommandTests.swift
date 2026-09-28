@@ -49,9 +49,10 @@ final class CLIProfileCommandTests: XCTestCase {
     }
 
     func testSetChangesOnlyWhatItIsGiven() {
-        _ = run(["set", "Handheld", "--interval=50"])
+        _ = run(["set", "Handheld", "--interval=50", "--format=gmap"])
         let held = SettingsStore().profiles.first { $0.name == "Handheld" }
         XCTAssertEqual(held?.choices.contourInterval, 50)
+        XCTAssertEqual(held?.choices.format, "gmap")
         XCTAssertEqual(
             held?.choices.demLayer,
             BuildChoices().demLayer,

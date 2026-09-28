@@ -34,6 +34,8 @@ final class BuildPipeline: Sendable {
         /// The output groups in the order the packer laid them, set by the compile stage;
         /// collect names the files p1, p2... along it.
         var outputGroups: [String] = []
+        /// The BaseCamp folder the compile stage wrote, for collect to move.
+        var gmapBundle: URL?
         var startedAt = Date()
         var finishedAt: Date?
         /// Private copies of elevation tiles carrying OSM summit heights, written by
@@ -67,6 +69,10 @@ final class BuildPipeline: Sendable {
     var outputGroups: [String] {
         get { state.withLock { $0.outputGroups } }
         set { state.withLock { $0.outputGroups = newValue } }
+    }
+    var gmapBundle: URL? {
+        get { state.withLock { $0.gmapBundle } }
+        set { state.withLock { $0.gmapBundle = newValue } }
     }
     var burnedElevationDirectories: [URL] {
         get { state.withLock { $0.burnedElevationDirectories } }

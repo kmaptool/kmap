@@ -39,6 +39,7 @@ extension CLI {
         let maxNodes = asked.number("max-nodes", in: BuildOptions.nodesPerTile) ?? settings.maxNodesPerTile
         let familyID = asked.number("family-id", in: BuildOptions.familyID)
         let split = splitMode(&asked, choices: choices, parts: parts)
+        let format = outputFormat(&asked, choices: choices)
         let overlap = overlaps(&asked, choices: choices)
         guard asked.refused.isEmpty, let style, let split else { return CLIOutput.refuse(asked.refused) }
 
@@ -91,6 +92,7 @@ extension CLI {
         recipe.healRadius = repairRadius ?? recipe.healRadius
         recipe.startedOn = Date()
         recipe.theme = drawn.theme
+        recipe.format = format
         recipe.shapeOverlap = overlap.shape
         recipe.landOverlap = overlap.land
 
@@ -137,6 +139,13 @@ extension CLI {
         }
         if let parts { return .count(parts) }
         return SplitMode(settingsID: choices.splitMode, count: choices.parts)
+    }
+
+    /// `--format=` if given, else the profile's own; a profile from an older file writes
+    /// card files.
+    static func outputFormat(_ asked: inout BuildOptions, choices: BuildChoices) -> OutputFormat {
+        asked.word("format", among: OutputFormat.allCases.map { ($0.rawValue, $0) })
+            ?? OutputFormat(rawValue: choices.format) ?? .img
     }
 
     /// `--overlap` and `--land-overlap`, each stepped to the grid. Land may never exceed

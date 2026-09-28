@@ -2,6 +2,10 @@ import Foundation
 
 /// The mkgmap invocation: every option the pipeline decides, and why.
 extension BuildPipeline {
+    /// The DEM spacing of the overview submap, in map units: relief for the far zooms.
+    /// Smaller means more detail and a longer decode. Paired with `LevelsProfile.demBands`.
+    static let overviewDEMDistance = 424192
+
     /// The map's identity for mkgmap. Must be identical on the tile compile and on the
     /// gmapsupp write, or the device reads two products. The code page belongs here too:
     /// without it the TYP is written with code page 0 and drops every non-ASCII label.
@@ -9,12 +13,39 @@ extension BuildPipeline {
         [
             "--family-id=\(recipe.familyID)",
             "--product-id=1",
+            "--product-version=\(recipe.productVersion)",
             "--family-name=\(recipe.familyName)",
             "--series-name=\(recipe.seriesName)",
             "--area-name=\(areaName)",
             "--description=\(recipe.headerDescription)",
             "--code-page=\(recipe.codePage)"
         ]
+    }
+
+    /// The run that packs finished tiles rather than compiling them: `mode` is the
+    /// combiner flag, the identity is the one the tiles were compiled under, and the
+    /// search index is rebuilt over them all.
+    func combineArguments(
+        java: JavaRuntime,
+        mkgmap: URL,
+        mode: String,
+        areaName: String,
+        outputDir: URL,
+        options: [String] = [],
+        inputs: [URL],
+        typ: URL?
+    ) -> [String] {
+        var arguments = java.command(
+            ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path, mode]
+                + identityOptions(areaName: areaName)
+                + ["--output-dir=\(outputDir.path)"]
+                + options
+        )
+        arguments += indexOptions()
+        arguments += copyrightOption()
+        arguments += inputs.map(\.path)
+        if let typ, FileTools.exists(typ) { arguments.append(typ.path) }
+        return arguments
     }
 
     /// Writes the map's attribution file and returns the `--copyright-file` option. Written
@@ -158,9 +189,7 @@ extension BuildPipeline {
             // The mapname names the file; the id inside is a separate option whose default
             // is a constant, which would collide between two maps on one card.
             "--overview-mapnumber=\(recipe.overviewMapID)",
-            // A DEM on the overview submap makes a receiver shade the far zooms; a smaller
-            // value means more relief detail and a longer decode. Paired with `demBands`.
-            "--overview-dem-dist=424192",
+            "--overview-dem-dist=\(Self.overviewDEMDistance)",
             // Lets mkgmap join line fragments cut at subdivision borders even when it must
             // reverse one, where oneway and type allow. Fewer headers, faster paint.
             "--allow-reverse-merge",

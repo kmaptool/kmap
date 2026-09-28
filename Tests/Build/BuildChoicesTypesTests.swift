@@ -30,6 +30,24 @@ final class BuildChoicesTypesTests: RecipeTestCase {
         XCTAssertEqual(SplitMode.count(4).label, "4 files")
     }
 
+    // MARK: What the map is written as
+
+    func testEachFormatSaysWhichOutputsItWrites() {
+        XCTAssertTrue(OutputFormat.img.writesCardFiles)
+        XCTAssertFalse(OutputFormat.img.writesGmap)
+        XCTAssertFalse(OutputFormat.gmap.writesCardFiles)
+        XCTAssertTrue(OutputFormat.gmap.writesGmap)
+        XCTAssertTrue(OutputFormat.both.writesCardFiles)
+        XCTAssertTrue(OutputFormat.both.writesGmap)
+    }
+
+    func testTheFormatIsStoredAndTypedAsTheWordTheFlagTakes() {
+        // The profile keeps the word, and `--format` takes the same word.
+        XCTAssertEqual(OutputFormat.allCases.map(\.rawValue), ["img", "gmap", "both"])
+        XCTAssertEqual(BuildChoices().format, "img", "a fresh profile writes card files")
+        XCTAssertNil(OutputFormat(rawValue: "folder"), "an unknown word is refused, not guessed")
+    }
+
     // MARK: The DEM ladder
 
     func testTheDEMLadderIsTheMeasuredConstant() {

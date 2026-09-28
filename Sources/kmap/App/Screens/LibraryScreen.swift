@@ -29,17 +29,20 @@ final class LibraryScreen: Screen {
         }
     }
 
-    /// Collects `.img` files from the output folder and one level below it, since each
+    /// The outputs a build leaves: card files, and the BaseCamp folder.
+    private static let outputExtensions = ["img", "gmap"]
+
+    /// Collects the outputs from the output folder and one level below it, since each
     /// build writes into its own dated folder. Newest first.
     private func rescan(_ ctx: AppContext) {
         let root = ctx.settings.settings.outputURL
-        var found = FileTools.contents(of: root, extension: "img")
-        for entry in FileTools.contents(of: root) {
-            var isDir: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir),
-                isDir.boolValue
-            else { continue }
-            found.append(contentsOf: FileTools.contents(of: entry, extension: "img"))
+        func outputs(in dir: URL) -> [URL] {
+            Self.outputExtensions.flatMap { FileTools.contents(of: dir, extension: $0) }
+        }
+        var found = outputs(in: root)
+        for entry in FileTools.contents(of: root)
+        where entry.pathExtension.lowercased() != "gmap" && FileTools.isDirectory(entry) {
+            found.append(contentsOf: outputs(in: entry))
         }
         files = found.sorted {
             (FileTools.modified(of: $0) ?? .distantPast) > (FileTools.modified(of: $1) ?? .distantPast)

@@ -141,6 +141,8 @@ struct BuildRecipe {
 
     /// How the finished map is cut into files.
     var splitMode: SplitMode = .fitCard
+    /// What the finished map is written as: card files, a BaseCamp folder, or both.
+    var format: OutputFormat = .img
     /// Which country each region belongs to, for `.perCountry`. Filled where the region
     /// tree is at hand, since a region knows only its parent.
     var countryOf: [String: String] = [:]

@@ -289,6 +289,29 @@ final class BuildRecipeNamesTests: RecipeTestCase {
         XCTAssertEqual(made.freeCopy(of: 1) { $0 == base || $0 == second }, 3)
     }
 
+    func testTheVersionIsTheBuildMonthInHundredths() {
+        // Garmin's own products count 25.03 for March 2025; the field is 16-bit.
+        let made = dated(recipe([region("region-a", "Region A")]))
+        XCTAssertEqual(made.productVersion, 2608)
+        XCTAssertEqual(made.productVersionLabel, "26.08")
+    }
+
+    func testTheBaseCampFolderIsNamedLikeASingleCardFile() {
+        let made = dated(recipe([region("region-a", "Region A")]))
+        XCTAssertEqual(made.gmapName(), "kmap-region-a-2026-08-21.gmap")
+        XCTAssertEqual(made.gmapName(copy: 2), "kmap-region-a-2026-08-21-2.gmap")
+    }
+
+    func testTheBaseCampFolderSharesTheCopyNumberWithTheCardFiles() {
+        let made = dated(recipe([region("region-a", "Region A")]))
+        let folder = made.gmapName()
+        // A taken folder name moves the card files along with it, and the other way round.
+        XCTAssertEqual(made.freeCopy(of: 1, gmap: true) { $0 == folder }, 2)
+        XCTAssertEqual(made.freeCopy(of: 1, gmap: false) { $0 == folder }, 1)
+        // No card files at all: only the folder's name is asked about.
+        XCTAssertEqual(made.freeCopy(of: 0, gmap: true) { $0 == made.fileName() }, 1)
+    }
+
     func testOnePartTakenBumpsTheWholeSet() {
         // The parts share a number, so one collision moves them all.
         let made = dated(recipe([region("region-a", "Region A")]))

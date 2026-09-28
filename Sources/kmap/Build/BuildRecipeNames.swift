@@ -97,6 +97,21 @@ extension BuildRecipe {
     /// The day this build started, as it appears in every name it writes.
     var dateStamp: String { Fmt.day(startedOn) }
 
+    /// The version the desktop programs and a receiver list the map under: the build
+    /// month the way Garmin's own products count it, 2609 shown as 26.09. A 16-bit field
+    /// read in hundredths, so the century does not fit.
+    var productVersion: Int {
+        let stamp = dateStamp
+        let year = Int(stamp.dropFirst(2).prefix(2)) ?? 0
+        let month = Int(stamp.dropFirst(5).prefix(2)) ?? 0
+        return year * 100 + month
+    }
+
+    /// `productVersion` as the programs show it.
+    var productVersionLabel: String {
+        String(format: "%d.%02d", productVersion / 100, productVersion % 100)
+    }
+
     /// How much of the slug a file name carries.
     static let fileNamePartLimit = 48
 
@@ -106,6 +121,12 @@ extension BuildRecipe {
         let part = total > 1 ? "p\(ordinal)-" : ""
         let bump = copy > 1 ? "-\(copy)" : ""
         return "kmap-\(regionsFileToken)-\(part)\(dateStamp)\(bump).img"
+    }
+
+    /// The BaseCamp folder: named like a single card file, since it holds the whole map.
+    func gmapName(copy: Int = 1) -> String {
+        let bump = copy > 1 ? "-\(copy)" : ""
+        return "kmap-\(regionsFileToken)-\(dateStamp)\(bump).gmap"
     }
 
     /// The ids as a file name says them: "a+b", "a+b+N-more", fitted like the title.
@@ -121,22 +142,26 @@ extension BuildRecipe {
     /// to have taken long before this.
     private static let mostCopies = 10_000
 
-    /// The lowest copy number whose file names are all still free.
+    /// The lowest copy number whose output names are all still free.
     ///
-    /// Asked once per build, for every part at once: the parts of one build must share a
-    /// number, or part one could come out "-2" while part two did not and the set would
-    /// stop reading as a set.
+    /// Asked once per build, for every part and the BaseCamp folder at once: the outputs
+    /// of one build must share a number, or part one could come out "-2" while part two
+    /// did not and the set would stop reading as a set.
     ///
     /// `taken` answers for the *other* builds in the output folder - the caller leaves
     /// its own destination out, so rebuilding the same map on the same day still replaces
     /// its own files rather than growing a number each time.
-    func freeCopy(of total: Int, taken: (String) -> Bool) -> Int {
+    ///
+    /// - Parameter total: how many card files are written; 0 when none are.
+    func freeCopy(of total: Int, gmap: Bool = false, taken: (String) -> Bool) -> Int {
         var copy = 1
         while copy < Self.mostCopies {
-            let anyTaken = (1...max(1, total)).contains { ordinal in
-                taken(fileName(ordinal: ordinal, of: total, copy: copy))
+            var names: [String] = []
+            if total > 0 {
+                names += (1...total).map { fileName(ordinal: $0, of: total, copy: copy) }
             }
-            if !anyTaken { return copy }
+            if gmap { names.append(gmapName(copy: copy)) }
+            if !names.contains(where: taken) { return copy }
             copy += 1
         }
         return copy

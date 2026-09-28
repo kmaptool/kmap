@@ -69,7 +69,7 @@ extension RecipeForm {
         switch field {
         // Set apart from the profile row above it, which fills in everything below.
         case .style: return mode == .build
-        case .zoomPlan, .routable, .splitMode: return true
+        case .zoomPlan, .routable, .format: return true
         default: return false
         }
     }
@@ -170,10 +170,13 @@ extension RecipeForm {
                 .filter { recipe.hidden.contains($0.id) }
                 .map(\.localizedName)
             return names.joined(separator: ", ")
+        case .format:
+            return recipe.format.label + "  ·  " + recipe.format.note
         case .splitMode:
+            guard recipe.format.writesCardFiles else { return "—" }
             return recipe.splitMode.label
         case .parts:
-            guard case .count(let n) = recipe.splitMode else { return "—" }
+            guard recipe.format.writesCardFiles, case .count(let n) = recipe.splitMode else { return "—" }
             guard mode == .build else { return tn("%d file(s)", n) }
             let axis = SplitAxis.best(for: recipe.coverage)
             return "\(n) · \(recipe.partNames(count: n, axis: axis).joined(separator: ", "))"
@@ -189,7 +192,8 @@ extension RecipeForm {
         case .healRoads: disabled = !recipe.routable
         case .interval: disabled = !recipe.contours
         case .demSource: disabled = !recipe.needsElevationData
-        case .parts: disabled = recipe.splitMode.fileCount == 0
+        case .splitMode: disabled = !recipe.format.writesCardFiles
+        case .parts: disabled = !recipe.format.writesCardFiles || recipe.splitMode.fileCount == 0
         default: disabled = false
         }
         if disabled { return Style(fg: theme.faint, bg: theme.appBg) }

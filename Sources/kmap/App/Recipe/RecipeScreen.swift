@@ -422,22 +422,30 @@ final class RecipeScreen: Screen {
                 )
             }
         }
-        switch recipe.splitMode {
-        case .fitCard:
+        if recipe.format.writesCardFiles {
+            switch recipe.splitMode {
+            case .fitCard:
+                column.line(
+                    t(
+                        "written as one file when it fits a FAT32 card, several"
+                            + " when it does not"
+                    ),
+                    tone: theme.dim
+                )
+            case .perRegion:
+                column.line(t("one file per region, so a region can be left off the card"), tone: theme.dim)
+            case .perCountry:
+                column.line(t("one file per country, its regions gathered together"), tone: theme.dim)
+            case .count(let n):
+                column.line(
+                    tn("%d file(s) of equal weight, whatever that means for the card", n),
+                    tone: theme.dim
+                )
+            }
+        }
+        if recipe.format.writesGmap {
             column.line(
-                t(
-                    "written as one file when it fits a FAT32 card, several"
-                        + " when it does not"
-                ),
-                tone: theme.dim
-            )
-        case .perRegion:
-            column.line(t("one file per region, so a region can be left off the card"), tone: theme.dim)
-        case .perCountry:
-            column.line(t("one file per country, its regions gathered together"), tone: theme.dim)
-        case .count(let n):
-            column.line(
-                tn("%d file(s) of equal weight, whatever that means for the card", n),
+                t("a .gmap folder for BaseCamp as well, about the size of the tiles; the tiles are packed twice"),
                 tone: theme.dim
             )
         }

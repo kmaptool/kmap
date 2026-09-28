@@ -4,14 +4,18 @@ import Foundation
 extension BuildPipeline {
     // MARK: 6 — collect
 
-    /// Every .img file name in the output folder's builds, except the one being written.
-    ///
-    /// One level deep on purpose: builds are dated folders directly under the output
-    /// root, and what matters is only what would collide on a device's card.
-    static func imgNames(under root: URL, excluding own: URL) -> Set<String> {
+    /// The extensions an output carries: a card file, and the BaseCamp folder.
+    private static let outputExtensions: Set<String> = ["img", "gmap"]
+
+    /// Every output name in the output folder's builds, except the one being written.
+    /// One level deep on purpose: builds are dated folders directly under the output root.
+    static func outputNames(under root: URL, excluding own: URL) -> Set<String> {
         let manager = FileManager.default
         let ownPath = own.standardizedFileURL.path
         var names = Set<String>()
+        func isOutput(_ url: URL) -> Bool {
+            outputExtensions.contains(url.pathExtension.lowercased())
+        }
         let folders =
             ((try? manager.contentsOfDirectory(
                 at: root,
@@ -19,22 +23,21 @@ extension BuildPipeline {
                 options: [.skipsHiddenFiles]
             )) ?? [])
         for folder in folders where folder.standardizedFileURL.path != ownPath {
+            if isOutput(folder) {
+                names.insert(folder.lastPathComponent)
+                continue
+            }
             guard
                 (try? folder.resourceValues(forKeys: [.isDirectoryKey]))?
                     .isDirectory == true
-            else {
-                if folder.pathExtension.lowercased() == "img" {
-                    names.insert(folder.lastPathComponent)
-                }
-                continue
-            }
+            else { continue }
             for file
                 in ((try? manager.contentsOfDirectory(
                     at: folder,
                     includingPropertiesForKeys: nil,
                     options: [.skipsHiddenFiles]
                 )) ?? [])
-            where file.pathExtension.lowercased() == "img" {
+            where isOutput(file) {
                 names.insert(file.lastPathComponent)
             }
         }
@@ -68,29 +71,29 @@ extension BuildPipeline {
         // ground that day would replace the first on a card: a name another build folder
         // already uses gets "-2", "-3". This build's own folder is left out, so a rebuild
         // replaces its own files.
-        let names = Self.imgNames(
+        let names = Self.outputNames(
             under: destinationDir.deletingLastPathComponent(),
             excluding: destinationDir
         )
-        let copy = recipe.freeCopy(of: parts.count) { names.contains($0) }
+        let gmap = gmapBundle
+        let copy = recipe.freeCopy(of: parts.count, gmap: gmap != nil) { names.contains($0) }
         if copy > 1 {
             log.step(t("another build already uses this name — files carry -%d", copy))
         }
 
         for (ordinal, group) in parts.enumerated() {
-            let source = group.appendingPathComponent("gmapsupp.img")
             let name = recipe.fileName(ordinal: ordinal + 1, of: parts.count, copy: copy)
-            let destination = destinationDir.appendingPathComponent(name)
-            FileTools.removeIfPresent(destination)
-            // Move rather than copy when work area and output share a volume; these files
-            // run to gigabytes.
-            do {
-                try FileTools.move(source, to: destination)
-            } catch {
-                try FileManager.default.copyItem(at: source, to: destination)
-            }
-            written.append(Output(name: name, url: destination, size: FileTools.size(of: destination)))
-            log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(FileTools.size(of: destination)))")
+            written.append(
+                try place(group.appendingPathComponent("gmapsupp.img"), at: destinationDir.appendingPathComponent(name))
+            )
+        }
+        if let gmap {
+            let folder = destinationDir.appendingPathComponent(recipe.gmapName(copy: copy), isDirectory: true)
+            written.append(try place(gmap, at: folder))
+            log.append(
+                "BaseCamp tells maps apart by family id: another kmap map installed with id"
+                    + " \(recipe.familyID) replaces this one there"
+            )
         }
 
         guard !written.isEmpty else { throw BuildError.noOutput(recipe.slug) }
@@ -112,6 +115,21 @@ extension BuildPipeline {
         publish(written)
         cleanUp()
         set(.collect, .done, "\(written.count) file(s)")
+    }
+
+    /// Puts one finished output, a file or a folder, in its place and reports it. Moved
+    /// rather than copied where work area and output share a volume: these run to
+    /// gigabytes.
+    private func place(_ source: URL, at destination: URL) throws -> Output {
+        FileTools.removeIfPresent(destination)
+        do {
+            try FileTools.move(source, to: destination)
+        } catch {
+            try FileManager.default.copyItem(at: source, to: destination)
+        }
+        let size = FileTools.isDirectory(destination) ? directorySize(destination) : FileTools.size(of: destination)
+        log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(size))")
+        return Output(name: destination.lastPathComponent, url: destination, size: size)
     }
 
     /// Writes a Garmin Custom POI (`.gpi`) file beside the map, carrying every object with
@@ -158,6 +176,7 @@ extension BuildPipeline {
             "built         \(Fmt.timestamp(recipe.startedOn))",
             "style         \(recipe.style.name)",
             "family id     \(recipe.familyID)   (tile ids from \(recipe.mapIDBase))",
+            "version       \(recipe.productVersionLabel)   (the build month)",
             "code page     \(recipe.codePage)",
             "levels        \(recipe.levels.levels)",
             "overview      \(recipe.levels.overviewLevels)",
@@ -170,6 +189,7 @@ extension BuildPipeline {
             "house numbers \(recipe.houseNumbers ? "on — address search" : "off")",
             "descriptions  \(recipe.descriptions == .off ? "off" : recipe.descriptions.label)",
             "custom POIs   \(recipe.customPOIs ? "on" : "off")",
+            "format        \(recipe.format.rawValue)",
             "files"
         ]
         for output in outputs {
@@ -179,7 +199,17 @@ extension BuildPipeline {
             lines.append("TYP           \(typ.path)")
         }
         lines.append("")
-        lines.append("Copy the .img files to the Garmin folder on the device or its SD card.")
+        if recipe.format.writesCardFiles {
+            lines.append("Copy the .img files to the Garmin folder on the device or its SD card.")
+        }
+        if recipe.format.writesGmap {
+            lines.append(
+                "Put the .gmap folder where BaseCamp looks for installed maps and start it again:"
+                    + " ~/Library/Application Support/Garmin/Maps on macOS (or open the folder"
+                    + " with Garmin MapManager), %ProgramData%\\Garmin\\Maps on Windows."
+                    + " No device is needed."
+            )
+        }
         try FileTools.write(lines.joined(separator: "\n"), to: directory.appendingPathComponent("build-info.txt"))
     }
 

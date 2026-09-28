@@ -91,6 +91,8 @@ extension CLI {
           --split=<mode>                how the output is cut into files: fit, region, country
                                         or custom
           --parts=<n>                   how many files, with --split=custom
+          --format=<kind>               what to write: img for the device, gmap for BaseCamp
+                                        on the computer, or both
           --max-nodes=<n>               nodes per tile; fewer nodes means more, smaller tiles
           --out=<dir>                   where the finished map goes
           --work=<dir>                  scratch folder

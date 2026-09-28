@@ -20,6 +20,11 @@ enum FileTools {
         FileManager.default.fileExists(atPath: url.path)
     }
 
+    static func isDirectory(_ url: URL) -> Bool {
+        var isDir: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) && isDir.boolValue
+    }
+
     /// Whether `path` names a program this machine could run.
     ///
     /// Windows is asked through `GetFileAttributesW`: `isExecutableFile` there judges the

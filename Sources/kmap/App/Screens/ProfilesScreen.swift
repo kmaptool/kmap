@@ -332,7 +332,11 @@ final class ProfilesScreen: Screen {
 
         var lines = [parts.filter { !$0.isEmpty }.joined(separator: "  ·  ")]
         lines.append(t("style: %@", choices.styleID))
-        lines.append(SplitMode(settingsID: choices.splitMode, count: choices.parts).label)
+        let format = OutputFormat(rawValue: choices.format) ?? .img
+        if format.writesCardFiles {
+            lines.append(SplitMode(settingsID: choices.splitMode, count: choices.parts).label)
+        }
+        if format != .img { lines.append(format.label) }
         if !choices.hiddenFeatures.isEmpty {
             lines.append(tn("%d feature(s) left off the map", choices.hiddenFeatures.count))
         }

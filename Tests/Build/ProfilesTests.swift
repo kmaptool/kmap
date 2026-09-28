@@ -80,6 +80,7 @@ final class ProfilesTests: XCTestCase {
         choices.hiddenFeatures = ["benches", "ford"]
         choices.splitMode = "custom"
         choices.parts = 3
+        choices.format = OutputFormat.both.rawValue
 
         var map = recipe()
         map.apply(choices, style: style, regionCodePage: 1252)

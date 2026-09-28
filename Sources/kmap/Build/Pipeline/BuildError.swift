@@ -10,6 +10,7 @@ enum BuildError: Error, LocalizedError {
     case noTiles
     case tileTooDense(Int, failed: [Int])
     case noOutput(String)
+    case noGmap
 
     var errorDescription: String? {
         switch self {
@@ -39,6 +40,8 @@ enum BuildError: Error, LocalizedError {
             )
         case .noOutput(let name):
             return t("mkgmap did not produce gmapsupp.img for %@", name)
+        case .noGmap:
+            return t("mkgmap did not produce the .gmap folder")
         }
     }
 }

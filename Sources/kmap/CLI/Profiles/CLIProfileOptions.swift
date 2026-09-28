@@ -11,7 +11,7 @@ extension CLI {
         "house-numbers", "no-house-numbers", "sea", "no-sea",
         "custom-pois", "no-custom-pois",
         "style", "interval", "sources", "levels", "labels", "code-page",
-        "zoom-plan", "descriptions", "theme", "hide", "split", "parts",
+        "zoom-plan", "descriptions", "theme", "hide", "split", "parts", "format",
         "overlap", "land-overlap"
     ]
     private static let perRunOptions: Set<String> = [
@@ -69,6 +69,9 @@ extension CLI {
         }
         if let split = asked.word("split", among: BuildOptions.splitModes) {
             choices.splitMode = split
+        }
+        if let format = asked.word("format", among: BuildOptions.outputFormats) {
+            choices.format = format
         }
         if let theme = asked.word("theme", among: TypEdit.Theme.allCases.map(\.rawValue)) {
             choices.theme = theme

@@ -43,6 +43,7 @@ extension CLI {
         parts.append("labels \(choices.labelLanguageID)")
         parts.append(choices.codePage == 0 ? "code page by region" : "code page \(choices.codePage)")
         parts.append("split \(choices.splitMode)" + (choices.splitMode == "custom" ? " \(choices.parts)" : ""))
+        if choices.format != OutputFormat.img.rawValue { parts.append("format \(choices.format)") }
         if !choices.hiddenFeatures.isEmpty {
             parts.append("hides \(choices.hiddenFeatures.joined(separator: ","))")
         }
@@ -75,6 +76,7 @@ extension CLI {
             ("custom-pois", onOff(c.customPOIs)),
             ("theme", c.theme),
             ("split", c.splitMode + (c.splitMode == "custom" ? " · \(c.parts) file(s)" : "")),
+            ("format", c.format),
             ("overlap", "\(c.shapeOverlap) · land \(c.landOverlap)")
         ]
         if !c.hiddenFeatures.isEmpty {
@@ -106,6 +108,7 @@ extension CLI {
             "codePage": .int(choices.codePage),
             "split": .string(choices.splitMode),
             "parts": .int(choices.parts),
+            "format": .string(choices.format),
             "hide": .array(choices.hiddenFeatures.map(JSONValue.string))
         ]
     }

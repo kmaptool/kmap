@@ -37,6 +37,8 @@ struct BuildChoices: Codable, Equatable {
     }
     var splitMode: String = "fit"
     var parts: Int = 1
+    /// What the map is written as; see `OutputFormat`.
+    var format: String = OutputFormat.img.rawValue
     /// Which of the TYP's two drawings the build packs: both, day only, night only. A
     /// workaround for receivers that misdraw third-party maps after dark; a TYP with no
     /// night slots draws its day colours at any hour. See TypEdit.DayNight.
@@ -95,6 +97,7 @@ extension BuildChoices {
         hiddenFeatures = BuildChoices.canonical(read(.hiddenFeatures, fallback.hiddenFeatures))
         splitMode = read(.splitMode, fallback.splitMode)
         parts = read(.parts, fallback.parts)
+        format = read(.format, fallback.format)
         theme = read(.theme, fallback.theme)
         shapeOverlap = BuildChoices.sane(read(.shapeOverlap, fallback.shapeOverlap))
         landOverlap = min(
@@ -278,6 +281,7 @@ extension BuildRecipe {
             hiddenFeatures: hidden.sorted(),
             splitMode: splitMode.settingsID,
             parts: splitMode.fileCount > 0 ? splitMode.fileCount : 1,
+            format: format.rawValue,
             theme: theme.rawValue,
             shapeOverlap: shapeOverlap,
             landOverlap: landOverlap
@@ -324,6 +328,7 @@ extension BuildRecipe {
         customPOIs = choices.customPOIs
         hidden = Set(choices.hiddenFeatures)
         splitMode = SplitMode(settingsID: choices.splitMode, count: choices.parts)
+        format = OutputFormat(rawValue: choices.format) ?? .img
         theme = TypEdit.Theme(rawValue: choices.theme) ?? .all
         shapeOverlap = BuildChoices.sane(choices.shapeOverlap)
         landOverlap = min(BuildChoices.sane(choices.landOverlap), shapeOverlap)

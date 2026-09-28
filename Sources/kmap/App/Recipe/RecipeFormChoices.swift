@@ -122,7 +122,15 @@ extension RecipeForm {
                 current: recipe.theme,
                 label: RecipeForm.themeLabel
             ) { self.recipe.theme = $0 }
+        case .format:
+            return among(
+                OutputFormat.allCases,
+                current: recipe.format,
+                label: \.label
+            ) { self.recipe.format = $0 }
         case .splitMode:
+            // Inert while no card file is written: a folder is never cut.
+            guard recipe.format.writesCardFiles else { return nil }
             let modes: [SplitMode] = [
                 .fitCard, .perRegion, .perCountry,
                 .count(
@@ -137,7 +145,7 @@ extension RecipeForm {
             }
         case .parts:
             // Up to 64 files: a continent-sized extract cut to fit a card needs that many.
-            guard recipe.splitMode.fileCount > 0 else { return nil }
+            guard recipe.format.writesCardFiles, recipe.splitMode.fileCount > 0 else { return nil }
             return Choice(
                 options: (1...64).map { tn("%d file(s)", $0) },
                 current: max(0, recipe.splitMode.fileCount - 1)

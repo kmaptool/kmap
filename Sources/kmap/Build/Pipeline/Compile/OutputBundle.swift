@@ -1,7 +1,7 @@
 import Foundation
 
 /// Packing the compiled tiles into output files: weighing them, laying the groups
-/// so each fits its card, and one gmapsupp per group.
+/// so each fits its card, and one gmapsupp per group. The BaseCamp folder is GmapBundle.
 extension BuildPipeline {
     /// The largest file FAT32 can hold, which is the card format a receiver reads.
     private static let fatFileLimit: Int64 = 4_294_967_295
@@ -13,9 +13,9 @@ extension BuildPipeline {
         let size: Int64
     }
 
-    /// Puts the compiled tiles into output files, as few as the split mode allows. Nothing
-    /// is compiled twice: the `.img` files go in as they are and only the search index is
-    /// rebuilt from them.
+    /// Puts the compiled tiles into the outputs the format asks for. Nothing is compiled
+    /// twice: the `.img` files go in as they are; only the index and the overview are
+    /// rebuilt. Returns how many outputs were written, the BaseCamp folder counting as one.
     func bundle(
         _ tiles: [Tile],
         from tileDir: URL,
@@ -32,6 +32,24 @@ extension BuildPipeline {
         let total = weighed.reduce(Int64(0)) { $0 + $1.size }
         log.append("compiled \(Fmt.bytes(total)) of tiles")
 
+        var written = 0
+        if recipe.format.writesCardFiles {
+            written += try await writeCardFiles(weighed, java: java, mkgmap: mkgmap, typ: typ)
+        }
+        if recipe.format.writesGmap {
+            gmapBundle = try await writeGmap(weighed, java: java, mkgmap: mkgmap, typ: typ)
+            written += 1
+        }
+        return written
+    }
+
+    /// The `.img` files, as few as the split mode allows.
+    private func writeCardFiles(
+        _ weighed: [Weighed],
+        java: JavaRuntime,
+        mkgmap: URL,
+        typ: URL?
+    ) async throws -> Int {
         // The index and the container directory are written on top of the tiles, so groups
         // are filled short of the limit and the result checked; the margin widens on retry.
         var headroom = 0.85
@@ -102,21 +120,15 @@ extension BuildPipeline {
         let overview = tileDir(of: group)
             .appendingPathComponent("\(recipe.overviewMapID).img")
 
-        var arguments = java.command(
-            [
-                "-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path,
-                "--gmapsupp"
-            ]
-                + identityOptions(areaName: name)
-                + ["--output-dir=\(outDir.path)"]
+        let arguments = combineArguments(
+            java: java,
+            mkgmap: mkgmap,
+            mode: "--gmapsupp",
+            areaName: name,
+            outputDir: outDir,
+            inputs: group.map(\.url) + (FileTools.exists(overview) ? [overview] : []),
+            typ: typ
         )
-        arguments += indexOptions()
-        arguments += copyrightOption()
-        arguments += group.map(\.url.path)
-        if FileTools.exists(overview) { arguments.append(overview.path) }
-        if let typ, FileTools.exists(typ) {
-            arguments.append(typ.path)
-        }
 
         log.step("writing \(name) — \(group.count) tile(s)")
         let runner = makeRunner()

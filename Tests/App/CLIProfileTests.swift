@@ -111,6 +111,7 @@ final class CLIProfileTests: XCTestCase {
             "hiddenFeatures",  // --hide=a,b,c, or --hide= for none
             "splitMode",  // --split
             "parts",  // --parts
+            "format",  // --format
             "theme",  // --theme
             "shapeOverlap",  // --overlap
             "landOverlap"  // --land-overlap

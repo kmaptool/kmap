@@ -179,6 +179,9 @@ particular area you need, or several regions at once.
 - **The output can be split into files in several ways:** a single file if there is enough
   space on the memory card; one file per region or country; or `--parts=<n>` approximately
   equal-sized files (see `--split`).
+- **BaseCamp without a device.** Besides the `.img` for the device, or instead of it, kmap
+  can write the same map as a `.gmap` folder that Garmin BaseCamp reads from the computer
+  itself (`--format=gmap` or `both`, or the **Format** field on the build form).
 - **The data remains constantly fresh.** Geofabrik updates its extracts once a day. All
   downloads are cached, and upon rebuilding, kmap checks the cache with the server. If a
   newer dump is detected, kmap downloads it automatically, otherwise pulls data from the
@@ -410,6 +413,7 @@ of range, stops the build instead of silently replacing it with a default value.
 | `--land-overlap=<units>` | the same for the land layer alone. Never more than `--overlap` |
 | `--split=<mode>` | how the output is cut into files: `fit`, `region`, `country` or `custom` |
 | `--parts=<n>` | how many files, with `--split=custom` |
+| `--format=<kind>` | what to write: `img` for the device, `gmap` for BaseCamp on the computer, or `both` |
 | `--max-nodes=<n>` | nodes per tile; fewer nodes means more, smaller tiles |
 | `--out=<dir>` | where the finished map goes |
 | `--work=<dir>` | scratch folder |
@@ -582,6 +586,17 @@ A new map can be found in `~/kmap`, in a folder named for the build date: a sing
 file, or several ones if the map was split into parts. Copy them all to the `Garmin`
 folder on the device or its memory card. No renaming needed. If you built a `.gpi` with
 descriptions, put it to `Garmin/POI`.
+
+## Installing a map in BaseCamp
+
+BaseCamp shows an `.img` only from a connected device or memory card. A map built with
+`--format=gmap` (or `both`) also comes out as a `.gmap` folder, which BaseCamp reads from
+the computer with no device attached: on macOS, put it into
+`~/Library/Application Support/Garmin/Maps` or open it with Garmin MapManager; on Windows,
+put it into `%ProgramData%\Garmin\Maps`. BaseCamp lists the map at its next start, with
+the relief, the search index and the elevation profile, under a version that names the
+build month: `26.09` for September 2026. Like a device, BaseCamp tells maps apart by
+family id: two kmap maps installed with the same `--family-id` show as one.
 
 ## For developers
 

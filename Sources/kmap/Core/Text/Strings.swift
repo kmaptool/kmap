@@ -156,6 +156,7 @@ enum Strings {
         "up to date": "обновлений нет",
         "kept what was already here": "оставлено как было",
         "one kept": "одно оставлено",
+        "one for the device, one for the computer": "один для прибора, другой для компьютера",
         "Coastlines": "Береговые линии",
         "Code page": "Кодовая страница",
         "Colour": "Цвет",
@@ -185,6 +186,7 @@ enum Strings {
         "Fill": "Заливка",
         "Fix summits": "Правка вершин",
         "Folder": "Папка",
+        "Format": "Формат",
         "smooth zoom close in; the overview never goes empty":
             "плавное приближение без скачков; обзорная карта не пустеет",
         "Geofabrik index is not in the expected format: %@": "Индекс Geofabrik не в ожидаемом формате: %@",
@@ -323,6 +325,8 @@ enum Strings {
         "a %d m interval over this many tiles makes a large map and a long build":
             "шаг %d м на таком числе плиток даёт большую карту и долгую сборку",
         "a .gpi alongside the map": "файл .gpi рядом с картой",
+        "a .gmap folder for BaseCamp as well, about the size of the tiles; the tiles are packed twice":
+            "ещё и папка .gmap для BaseCamp, размером примерно с тайлы; тайлы упаковываются дважды",
         "a line pattern is always 32 wide, and at most 7 deep": "узор линии всегда 32 в ширину и не глубже 7",
         "a polygon hatch is always 32×32": "штриховка полигона всегда 32×32",
         "a tile still overflows Garmin's 16 MB drawing section at %dk nodes per tile — lower Nodes per tile in Settings and build again":
@@ -442,6 +446,8 @@ enum Strings {
         "contour lines, DEM, and a style of your choosing": "горизонтали, DEM и стиль на ваш выбор",
         "contours every %d m": "горизонтали через %d м",
         "copied to %@": "скопировано в %@",
+        "copied to the Garmin folder on the device or its card":
+            "копируется в папку Garmin на приборе или его карте памяти",
         "copy": "копия",
         "copy as": "копия под именем",
         "correct sea and shorelines (optional, 344 MB)": "правильное море и берега (необязательно, 344 МБ)",
@@ -591,6 +597,11 @@ enum Strings {
         "draws several things": "рисует разное",
         "no rule for it": "правила нет",
         "too few sightings": "мало наблюдений",
+        "gmap — for BaseCamp": "gmap — для BaseCamp",
+        "img — for the device": "img — для прибора",
+        "img and gmap": "img и gmap",
+        "installed on the computer; BaseCamp needs no device":
+            "устанавливается на компьютер; BaseCamp обходится без прибора",
         "in library": "в библиотеке",
         "in use": "текущий",
         "index unavailable": "индекс недоступен",
@@ -679,6 +690,7 @@ enum Strings {
         "menu": "меню",
         "missing tool: %@": "нет инструмента: %@",
         "mkgmap did not produce gmapsupp.img for %@": "mkgmap не создал gmapsupp.img для %@",
+        "mkgmap did not produce the .gmap folder": "mkgmap не создал папку .gmap",
         "mkgmap seam patch": "патч шва mkgmap",
         "mkgmap's default — smaller maps, coarser zoom steps": "по умолчанию у mkgmap — карты меньше, шаги зума грубее",
         "mkgmap, the seam patch, elevation data": "mkgmap, патч швов, данные высот",
