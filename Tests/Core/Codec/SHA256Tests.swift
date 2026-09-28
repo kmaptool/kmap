@@ -78,7 +78,7 @@ final class SHA256Tests: XCTestCase {
             .appendingPathComponent("kmap-sha-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: url) }
         let bytes = Data((0..<300_000).map { UInt8($0 % 253) })
-        try bytes.write(to: url)
+        try FileTools.write(bytes, to: url)
         XCTAssertEqual(SHA256.hex(ofFileAt: url, chunk: 4096), SHA256.hex(of: bytes))
     }
 

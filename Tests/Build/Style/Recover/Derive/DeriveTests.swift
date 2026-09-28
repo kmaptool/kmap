@@ -14,29 +14,35 @@ final class DeriveTests: XCTestCase {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // The railway rule is written as mkgmap writes it, condition and type on separate
         // lines. `[0x16 resolution 24]` and `highway=corridor` repeat: neither anchors alone.
-        try """
-        highway=trunk [0x02 road_class=4 road_speed=5 resolution 15]
-        highway=trunk_link [0x09 road_class=4 road_speed=2 resolution 20]
-        highway=residential [0x06 road_class=0 road_speed=2 resolution 22]
-        (railway=rail | railway=tram) & !(tunnel=yes)
-            [0x14 resolution 22]
-        highway=steps
-            [0x16 resolution 24]
-        highway=corridor
-            [0x16 resolution 24]
-        highway=corridor
-            [0x17 resolution 24]
-        natural=cliff {name '${name}'} [0x2b resolution 22]
-        (barrier=gate | barrier=bollard) & kmap:on=path
-            {add name='${barrier}'} [0x3200 resolution 24]
-        """.write(to: folder.appendingPathComponent("lines"), atomically: true, encoding: .utf8)
-        try """
-        landuse=forest [0x50 resolution 19]
-        landuse=forest & leaf_type=needleleaved [0x57 resolution 22]
-        landuse=farmland [0x1c resolution 20]
-        landuse=military [0x04 resolution 20]
-        building=* & building!=no [0x13 resolution 24]
-        """.write(to: folder.appendingPathComponent("polygons"), atomically: true, encoding: .utf8)
+        try FileTools.write(
+            """
+            highway=trunk [0x02 road_class=4 road_speed=5 resolution 15]
+            highway=trunk_link [0x09 road_class=4 road_speed=2 resolution 20]
+            highway=residential [0x06 road_class=0 road_speed=2 resolution 22]
+            (railway=rail | railway=tram) & !(tunnel=yes)
+                [0x14 resolution 22]
+            highway=steps
+                [0x16 resolution 24]
+            highway=corridor
+                [0x16 resolution 24]
+            highway=corridor
+                [0x17 resolution 24]
+            natural=cliff {name '${name}'} [0x2b resolution 22]
+            (barrier=gate | barrier=bollard) & kmap:on=path
+                {add name='${barrier}'} [0x3200 resolution 24]
+            """,
+            to: folder.appendingPathComponent("lines")
+        )
+        try FileTools.write(
+            """
+            landuse=forest [0x50 resolution 19]
+            landuse=forest & leaf_type=needleleaved [0x57 resolution 22]
+            landuse=farmland [0x1c resolution 20]
+            landuse=military [0x04 resolution 20]
+            building=* & building!=no [0x13 resolution 24]
+            """,
+            to: folder.appendingPathComponent("polygons")
+        )
         // A points file too, so a point code has somewhere to anchor a rule of its own.
         try """
         amenity=fuel [0x2f01 resolution 24]

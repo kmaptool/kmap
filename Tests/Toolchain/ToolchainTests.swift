@@ -28,7 +28,7 @@ final class ToolchainTests: XCTestCase {
         #if os(Windows)
         throw XCTSkip("the fake tools are shell scripts")
         #else
-        try ("#!/bin/sh\necho '\(text)'\n").write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write("#!/bin/sh\necho '\(text)'\n", to: url)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
         #endif
     }
@@ -263,7 +263,7 @@ final class ToolchainTests: XCTestCase {
     func testSomethingThatIsNotAJarAtAllIsNotPatched() throws {
         XCTAssertFalse(Toolchain.isPatched(directory.appendingPathComponent("absent.jar")))
         let rubbish = directory.appendingPathComponent("rubbish.jar")
-        try Data("not a zip".utf8).write(to: rubbish)
+        try FileTools.write(Data("not a zip".utf8), to: rubbish)
         XCTAssertFalse(Toolchain.isPatched(rubbish))
     }
 

@@ -17,7 +17,7 @@ final class TypAugmentTests: XCTestCase {
 
     private func write(_ text: String, as name: String = "style.txt") throws -> URL {
         let url = folder.appendingPathComponent(name)
-        try text.write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: url)
         return url
     }
 
@@ -249,7 +249,7 @@ final class TypAugmentTests: XCTestCase {
         for (i, b) in Array("GARMIN TYP".utf8).enumerated() { bytes[2 + i] = b }
         bytes[0x2F] = 1
         let url = folder.appendingPathComponent("compiled.typ")
-        try Data(bytes).write(to: url)
+        try FileTools.write(Data(bytes), to: url)
 
         let result = try XCTUnwrap(TypAugment.prepare(url))
         XCTAssertEqual(result.url, url, "it must still be built with")

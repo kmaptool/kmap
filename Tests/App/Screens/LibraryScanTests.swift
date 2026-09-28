@@ -39,8 +39,8 @@ final class LibraryScanTests: XCTestCase {
             at: build.appendingPathComponent("kmap-monaco-2026-09-28.gmap/Product1", isDirectory: true),
             withIntermediateDirectories: true
         )
-        try Data("img".utf8).write(to: build.appendingPathComponent("kmap-monaco-2026-09-28.img"))
-        try Data("notes".utf8).write(to: build.appendingPathComponent("build-info.txt"))
+        try FileTools.write(Data("img".utf8), to: build.appendingPathComponent("kmap-monaco-2026-09-28.img"))
+        try FileTools.write(Data("notes".utf8), to: build.appendingPathComponent("build-info.txt"))
 
         let text = drawn(LibraryScreen())
         XCTAssertTrue(text.contains("2026-09-28_monaco/kmap-monaco-2026-09-28.img"), text)

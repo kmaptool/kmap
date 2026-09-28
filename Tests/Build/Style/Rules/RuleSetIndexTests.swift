@@ -23,7 +23,7 @@ final class RuleSetIndexTests: XCTestCase {
 
         for (name, text) in [("points", points), ("lines", lines), ("polygons", polygons)]
         where !text.isEmpty {
-            try text.write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: dir.appendingPathComponent(name))
         }
         for (name, text) in includes {
             let url = dir.appendingPathComponent(name)
@@ -31,7 +31,7 @@ final class RuleSetIndexTests: XCTestCase {
                 at: url.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            try text.write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write(text, to: url)
         }
         let result = RuleSetIndex.read(styleDirectory: dir)
         return try XCTUnwrap(result, "nothing parsed", file: file, line: line)

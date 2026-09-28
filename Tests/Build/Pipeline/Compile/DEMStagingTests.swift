@@ -49,7 +49,7 @@ final class DEMStagingTests: XCTestCase {
         let dir = Paths.hgtCache.appendingPathComponent(source, isDirectory: true)
         Paths.ensure(dir)
         for cell in cells {
-            try Data(source.utf8).write(to: dir.appendingPathComponent(cell + ".hgt"))
+            try FileTools.write(Data(source.utf8), to: dir.appendingPathComponent(cell + ".hgt"))
         }
     }
 

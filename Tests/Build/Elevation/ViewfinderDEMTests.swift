@@ -30,9 +30,9 @@ final class ViewfinderDEMTests: XCTestCase {
     func testAShortOrMissingFileIsNotComplete() throws {
         let url = directory.appendingPathComponent("N44E033.hgt")
         XCTAssertFalse(ViewfinderDEM.isComplete(url, resolution: 3))
-        try Data(count: 2 * 1201 * 1201 - 1).write(to: url)
+        try FileTools.write(Data(count: 2 * 1201 * 1201 - 1), to: url)
         XCTAssertFalse(ViewfinderDEM.isComplete(url, resolution: 3))
-        try Data(count: 2 * 1201 * 1201).write(to: url)
+        try FileTools.write(Data(count: 2 * 1201 * 1201), to: url)
         XCTAssertTrue(ViewfinderDEM.isComplete(url, resolution: 3))
         // The same bytes are not a complete one-arc-second tile.
         XCTAssertFalse(ViewfinderDEM.isComplete(url, resolution: 1))
@@ -76,7 +76,7 @@ final class ViewfinderDEMTests: XCTestCase {
         // An empty index would read as "no archive covers anything" instead of prompting
         // a rebuild.
         let url = directory.appendingPathComponent("empty.txt")
-        try "# VIEW1 index file, VERSION=2\n\n".write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write("# VIEW1 index file, VERSION=2\n\n", to: url)
         XCTAssertNil(ViewfinderDEM.Index.load(url))
         XCTAssertNil(ViewfinderDEM.Index.load(directory.appendingPathComponent("absent.txt")))
     }

@@ -69,7 +69,7 @@ final class GmapBundleTests: XCTestCase {
         let java = JavaRuntime(path: "/usr/bin/java", version: "21", options: [])
         let tiles = [scratch.appendingPathComponent("63070001.img"), scratch.appendingPathComponent("63070002.img")]
         let typ = scratch.appendingPathComponent("plain.typ")
-        try Data("typ".utf8).write(to: typ)
+        try FileTools.write(Data("typ".utf8), to: typ)
         let arguments = pipeline.combineArguments(
             java: java,
             mkgmap: URL(fileURLWithPath: "/tools/mkgmap.jar"),
@@ -109,7 +109,7 @@ final class GmapBundleTests: XCTestCase {
 
     func testTheFolderIsFoundBesideTheIndexFiles() throws {
         _ = try folder("out/kmap 2026-09, here.gmap")
-        try Data("x".utf8).write(to: scratch.appendingPathComponent("out/63070000.mdx"))
+        try FileTools.write(Data("x".utf8), to: scratch.appendingPathComponent("out/63070000.mdx"))
         XCTAssertEqual(
             BuildPipeline.gmapFolder(in: scratch.appendingPathComponent("out"))?.lastPathComponent,
             "kmap 2026-09, here.gmap"
@@ -127,7 +127,7 @@ final class GmapBundleTests: XCTestCase {
 
     func testAFileWithTheExtensionIsNotTheFolder() throws {
         let out = try folder("out")
-        try Data("x".utf8).write(to: out.appendingPathComponent("stray.gmap"))
+        try FileTools.write(Data("x".utf8), to: out.appendingPathComponent("stray.gmap"))
         XCTAssertNil(BuildPipeline.gmapFolder(in: out))
         XCTAssertNil(BuildPipeline.gmapFolder(in: scratch.appendingPathComponent("absent")))
     }

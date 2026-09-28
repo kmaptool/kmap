@@ -49,7 +49,7 @@ final class ExtractRepairTests: XCTestCase {
     /// An extract as the download stage leaves it: the bytes and a stamp with their MD5.
     private func cachedExtract(_ name: String, stamped: Bool = true) throws -> URL {
         let url = directory.appendingPathComponent(name)
-        try Data(repeating: 7, count: 4096).write(to: url)
+        try FileTools.write(Data(repeating: 7, count: 4096), to: url)
         CacheStamp(
             size: 4096,
             lastModified: "then",

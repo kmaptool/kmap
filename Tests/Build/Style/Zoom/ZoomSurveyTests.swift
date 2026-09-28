@@ -24,10 +24,13 @@ final class ZoomSurveyTests: XCTestCase {
             "no family claims a path"
         )
         let far = rungs.bits[2]
-        try """
-        highway=path [0x16 resolution \(rungs.bits[0])]
-        highway=path & bicycle=yes [0x16 resolution \(far)]
-        """.write(to: directory.appendingPathComponent("lines"), atomically: true, encoding: .utf8)
+        try FileTools.write(
+            """
+            highway=path [0x16 resolution \(rungs.bits[0])]
+            highway=path & bicycle=yes [0x16 resolution \(far)]
+            """,
+            to: directory.appendingPathComponent("lines")
+        )
         return (ZoomSurvey(styleAt: directory, levels: .smooth), family, far)
     }
 

@@ -21,7 +21,7 @@ final class IconImportTests: XCTestCase {
     @discardableResult
     private func makeCornerPNG(_ name: String, size: Int, block: Int = 4) throws -> URL {
         let url = folder.appendingPathComponent(name)
-        try PNG.corners(size: size, block: block).write(to: url)
+        try FileTools.write(PNG.corners(size: size, block: block), to: url)
         return url
     }
 
@@ -113,7 +113,7 @@ final class IconImportTests: XCTestCase {
             rgba[i + 3] = 255
         }
         let url = folder.appendingPathComponent("many.png")
-        try PNG.encode(width: size, height: size, rgba: rgba).write(to: url)
+        try FileTools.write(PNG.encode(width: size, height: size, rgba: rgba), to: url)
 
         let result = try IconImport.load(url, size: size)
         XCTAssertLessThanOrEqual(result.paletteSize, IconImport.maximumColours)
@@ -170,7 +170,7 @@ final class IconImportTests: XCTestCase {
 
     func testAFileThatIsNotAPictureIsRefused() throws {
         let url = folder.appendingPathComponent("notes.txt")
-        try Data("hello".utf8).write(to: url)
+        try FileTools.write(Data("hello".utf8), to: url)
         XCTAssertThrowsError(try IconImport.load(url, size: 20)) { error in
             XCTAssertTrue(
                 error.localizedDescription.contains("could not be read"),

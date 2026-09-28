@@ -1,5 +1,7 @@
 import Foundation
 
+@testable import kmap
+
 /// Builds the elevation tiles the tests read.
 ///
 /// A tile is 3601x3601 samples of big-endian `Int16`. Rows that repeat are encoded once.
@@ -25,7 +27,7 @@ enum HGTFixture {
         var bytes: [UInt8] = []
         bytes.reserveCapacity(side * side * 2)
         for row in rows { bytes.append(contentsOf: row) }
-        try Data(bytes).write(to: url)
+        try FileTools.write(Data(bytes), to: url)
     }
 
     /// A tile of one height throughout.

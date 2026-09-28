@@ -111,7 +111,7 @@ final class TerrainTests: XCTestCase {
     func testATruncatedTileDoesNotReadPastItsEnd() throws {
         // A half-written file: the reader must not run past its end.
         let short = Data([UInt8](repeating: 0, count: 1000))
-        try short.write(to: directory.appendingPathComponent("N44E033.hgt"))
+        try FileTools.write(short, to: directory.appendingPathComponent("N44E033.hgt"))
         let terrain = Terrain(directory: directory)
         XCTAssertNil(terrain.elevation(44.5, 33.5))
         XCTAssertNotNil(terrain.elevation(45.0, 33.0))  // the first post is there

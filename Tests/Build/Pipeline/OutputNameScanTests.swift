@@ -24,7 +24,7 @@ final class OutputNameScanTests: XCTestCase {
         let dir = root.appendingPathComponent(folder, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         for name in files {
-            try Data("x".utf8).write(to: dir.appendingPathComponent(name))
+            try FileTools.write(Data("x".utf8), to: dir.appendingPathComponent(name))
         }
         return dir
     }
@@ -79,7 +79,7 @@ final class OutputNameScanTests: XCTestCase {
 
     func testALooseImgDroppedInTheRootCountsToo() throws {
         // People move files around; a name is taken wherever it sits.
-        try Data("x".utf8).write(to: root.appendingPathComponent("kmap-hand-moved.img"))
+        try FileTools.write(Data("x".utf8), to: root.appendingPathComponent("kmap-hand-moved.img"))
         let own = try build("2026-09-06_monaco", holding: [])
         XCTAssertEqual(
             BuildPipeline.outputNames(under: root, excluding: own),

@@ -18,7 +18,7 @@ final class PartFilesTests: XCTestCase {
 
     private func makeFile(_ name: String, bytes: Int = 16) throws -> URL {
         let url = directory.appendingPathComponent(name)
-        try Data(repeating: 7, count: bytes).write(to: url)
+        try FileTools.write(Data(repeating: 7, count: bytes), to: url)
         return url
     }
 

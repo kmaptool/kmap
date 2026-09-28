@@ -17,7 +17,7 @@ final class DataPackUpdateTests: XCTestCase {
     /// A pack of a given size on disk, with the file date a real install would leave.
     private func pack(bytes: Int = 2_000_000, downloaded: Date = Date()) throws -> DataPack {
         let file = folder.appendingPathComponent("pack.zip")
-        try Data(repeating: 0, count: bytes).write(to: file)
+        try FileTools.write(Data(repeating: 0, count: bytes), to: file)
         try FileManager.default.setAttributes(
             [.modificationDate: downloaded],
             ofItemAtPath: file.path

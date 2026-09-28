@@ -54,7 +54,7 @@ final class GPIAgainstGPSBabelTests: XCTestCase {
         }
         gpx += "</gpx>\n"
         let source = work.appendingPathComponent("points.gpx")
-        try Data(gpx.unicodeScalars.map { UInt8($0.value & 0xFF) }).write(to: source)
+        try FileTools.write(Data(gpx.unicodeScalars.map { UInt8($0.value & 0xFF) }), to: source)
 
         let out = work.appendingPathComponent("babel.gpi")
         let task = Process()

@@ -91,11 +91,14 @@ final class HideableFeaturesTests: XCTestCase {
             .appendingPathComponent("barriers-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        try """
-        barrier=bollard | barrier=bus_trap | barrier=gate | barrier=block | barrier=cycle_barrier |
-            barrier=stile | barrier=kissing_gate | barrier=lift_gate | barrier=swing_gate
-            {add name='${barrier|subst:"_=> "}'} [0x3200 resolution 24]
-        """.write(to: dir.appendingPathComponent("points"), atomically: true, encoding: .utf8)
+        try FileTools.write(
+            """
+            barrier=bollard | barrier=bus_trap | barrier=gate | barrier=block | barrier=cycle_barrier |
+                barrier=stile | barrier=kissing_gate | barrier=lift_gate | barrier=swing_gate
+                {add name='${barrier|subst:"_=> "}'} [0x3200 resolution 24]
+            """,
+            to: dir.appendingPathComponent("points")
+        )
         let settings = SettingsStore()
         let catalog = StyleCatalog(settings: settings, toolchain: Toolchain(settings: settings))
         try catalog.splitBarrierRule(in: dir, log: Log())

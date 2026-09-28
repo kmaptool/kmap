@@ -34,13 +34,13 @@ final class TypFileTests: XCTestCase {
         bytes[0x2F] = UInt8(family & 0xFF); bytes[0x30] = UInt8((family >> 8) & 0xFF)
         bytes[0x31] = UInt8(product & 0xFF); bytes[0x32] = UInt8((product >> 8) & 0xFF)
         let url = directory.appendingPathComponent(name)
-        try Data(bytes).write(to: url)
+        try FileTools.write(Data(bytes), to: url)
         return url
     }
 
     private func text(_ body: String, name: String = "style.txt") throws -> URL {
         let url = directory.appendingPathComponent(name)
-        try body.write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write(body, to: url)
         return url
     }
 
@@ -80,7 +80,7 @@ final class TypFileTests: XCTestCase {
 
     func testAFileTooShortToHoldTheIdsIsRefused() throws {
         let url = directory.appendingPathComponent("short.typ")
-        try Data([0x5B, 0x00] + TypInfo.signature).write(to: url)
+        try FileTools.write(Data([0x5B, 0x00] + TypInfo.signature), to: url)
         XCTAssertNil(TypInfo.read(url))
         XCTAssertNil(TypInfo.read(directory.appendingPathComponent("absent.typ")))
     }

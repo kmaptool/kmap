@@ -43,13 +43,14 @@ final class SubstitutionSheetTests: XCTestCase {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let file = dir.appendingPathComponent("reassignments.txt")
-        try sheet.write(to: file, atomically: true, encoding: .utf8)
+        try FileTools.write(sheet, to: file)
         XCTAssertEqual(RuleReassignments.entries(in: file), SubstitutionSheet.parse(sheet))
 
-        try "sport=airport [0x2d0b resolution 24]\namenity=prison [0x3007 resolution 24]\n"
-            .write(to: dir.appendingPathComponent("points"), atomically: true, encoding: .utf8)
-        try "highway=path [0x16 resolution 22]\n"
-            .write(to: dir.appendingPathComponent("lines"), atomically: true, encoding: .utf8)
+        try FileTools.write(
+            "sport=airport [0x2d0b resolution 24]\namenity=prison [0x3007 resolution 24]\n",
+            to: dir.appendingPathComponent("points")
+        )
+        try FileTools.write("highway=path [0x16 resolution 22]\n", to: dir.appendingPathComponent("lines"))
         let result = try StyleCatalog.applySubstitutions(sheet, in: dir)
         XCTAssertEqual(result.applied, 3)
         XCTAssertEqual(result.missed.count, 1, "the two-line rule is not in this points file")

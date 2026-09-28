@@ -18,7 +18,7 @@ final class StyleCatalogRulesTests: XCTestCase {
     }
 
     private func write(_ text: String, to name: String) throws {
-        try text.write(to: directory.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: directory.appendingPathComponent(name))
     }
 
     private func read(_ name: String) throws -> String {

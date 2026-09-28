@@ -253,8 +253,7 @@ final class JavaUnpackTests: XCTestCase {
             .appendingPathComponent("bin", isDirectory: true)
         try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
         let java = bin.appendingPathComponent("java")
-        try "#!/bin/sh\necho 'openjdk version \"21.0.1\" 2026-01-01' 1>&2\n"
-            .write(to: java, atomically: true, encoding: .utf8)
+        try FileTools.write("#!/bin/sh\necho 'openjdk version \"21.0.1\" 2026-01-01' 1>&2\n", to: java)
         try FileManager.default.setAttributes(
             [.posixPermissions: 0o755],
             ofItemAtPath: java.path

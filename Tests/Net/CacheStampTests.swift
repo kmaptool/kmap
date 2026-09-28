@@ -66,7 +66,7 @@ final class CacheStampTests: XCTestCase {
 
     func testAStampIsWrittenBesideItsFileAndReadBack() throws {
         let file = directory.appendingPathComponent("region.osm.pbf")
-        try Data("extract".utf8).write(to: file)
+        try FileTools.write(Data("extract".utf8), to: file)
         let written = stamp(size: 7, md5: "b4c8e5954933ffa5d884b03d41d84d8a")
         written.write(besides: file)
 
@@ -83,7 +83,7 @@ final class CacheStampTests: XCTestCase {
 
     func testRubbishInPlaceOfAStampIsIgnored() throws {
         let file = directory.appendingPathComponent("region.osm.pbf")
-        try Data("not json".utf8).write(to: CacheStamp.url(for: file))
+        try FileTools.write(Data("not json".utf8), to: CacheStamp.url(for: file))
         XCTAssertNil(CacheStamp.read(besides: file))
     }
 

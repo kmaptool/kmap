@@ -54,11 +54,11 @@ final class DownloaderTests: XCTestCase {
     func testTheChecksumIsTheOneEveryOtherToolReports() throws {
         // Compared against what Geofabrik publishes: lowercase hex of the file's MD5.
         let url = directory.appendingPathComponent("body")
-        try Data("The quick brown fox jumps over the lazy dog".utf8).write(to: url)
+        try FileTools.write(Data("The quick brown fox jumps over the lazy dog".utf8), to: url)
         XCTAssertEqual(try Downloader.md5(of: url), "9e107d9d372bb6826bd81d3542a419d6")
 
         let empty = directory.appendingPathComponent("empty")
-        try Data().write(to: empty)
+        try FileTools.write(Data(), to: empty)
         XCTAssertEqual(try Downloader.md5(of: empty), "d41d8cd98f00b204e9800998ecf8427e")
     }
 
@@ -67,17 +67,17 @@ final class DownloaderTests: XCTestCase {
         let url = directory.appendingPathComponent("big")
         var body = Data(count: 8 * 1024 * 1024)
         body.append(Data("tail".utf8))
-        try body.write(to: url)
+        try FileTools.write(body, to: url)
         let whole = try Downloader.md5(of: url)
 
         let short = directory.appendingPathComponent("short")
-        try Data(count: 8 * 1024 * 1024).write(to: short)
+        try FileTools.write(Data(count: 8 * 1024 * 1024), to: short)
         XCTAssertNotEqual(whole, try Downloader.md5(of: short))
     }
 
     func testHashingReportsHowFarItHasGot() throws {
         let url = directory.appendingPathComponent("body")
-        try Data(count: 20 * 1024 * 1024).write(to: url)
+        try FileTools.write(Data(count: 20 * 1024 * 1024), to: url)
         var reported: [Double] = []
         _ = try Downloader.md5(of: url) { reported.append($0) }
         XCTAssertFalse(reported.isEmpty)
@@ -97,7 +97,7 @@ final class DownloaderTests: XCTestCase {
         let part = RangeSession.Part(index: 2, start: 100, end: 199, url: url)
         XCTAssertEqual(part.length, 100, "both ends are inside the range")
         XCTAssertEqual(part.written, 0, "no file yet")
-        try Data(count: 40).write(to: url)
+        try FileTools.write(Data(count: 40), to: url)
         XCTAssertEqual(part.written, 40)
     }
 

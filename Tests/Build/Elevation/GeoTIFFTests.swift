@@ -160,11 +160,11 @@ final class GeoTIFFTests: XCTestCase {
 
     func testSomethingThatIsNotATIFFIsRefusedByName() throws {
         let url = directory.appendingPathComponent("nope.tif")
-        try Data("this is not a tiff at all, not even close".utf8).write(to: url)
+        try FileTools.write(Data("this is not a tiff at all, not even close".utf8), to: url)
         XCTAssertThrowsError(try GeoTIFF(contentsOf: url)) { error in
             XCTAssertEqual("\(error)", "not a TIFF file")
         }
-        try Data([0x49, 0x49]).write(to: url)  // right mark, nothing behind it
+        try FileTools.write(Data([0x49, 0x49]), to: url)  // right mark, nothing behind it
         XCTAssertThrowsError(try GeoTIFF(contentsOf: url))
     }
 

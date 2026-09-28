@@ -43,8 +43,7 @@ final class RulePassesTests: XCTestCase {
             if withAnchors { lines += anchors[name] ?? [] }
             lines += ["stock:last=yes [0x02 resolution 24]", ""]
             if name != "relations" { lines += ["<finalize>", "name=* { name '${name}' }", ""] }
-            try lines.joined(separator: "\n")
-                .write(to: directory.appendingPathComponent(name), atomically: true, encoding: .utf8)
+            try FileTools.write(lines.joined(separator: "\n"), to: directory.appendingPathComponent(name))
         }
     }
 

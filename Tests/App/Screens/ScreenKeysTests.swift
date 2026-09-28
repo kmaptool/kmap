@@ -214,7 +214,7 @@ final class ScreenKeysTests: XCTestCase {
         bytes[0x31] = 0x01
         let source = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("zz-keys-import-\(UUID().uuidString.prefix(6)).typ")
-        try Data(bytes).write(to: source)
+        try FileTools.write(Data(bytes), to: source)
         addTeardownBlock { try? FileManager.default.removeItem(at: source) }
 
         let taken = try TypLibrary.take(at: source)
@@ -584,7 +584,7 @@ final class ScreenKeysTests: XCTestCase {
     /// The real one lives under the real ~/.kmap and is never touched by a test.
     private func installFakeSeaPack() throws {
         Paths.ensure(Paths.tools)
-        try Data(repeating: 0, count: 2_000_000).write(to: Paths.seaData)
+        try FileTools.write(Data(repeating: 0, count: 2_000_000), to: Paths.seaData)
         addTeardownBlock { FileTools.removeIfPresent(Paths.seaData) }
     }
 

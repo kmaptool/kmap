@@ -28,13 +28,13 @@ final class TypDumpTests: XCTestCase {
 
     func testSomethingThatIsNotATypIsRefused() throws {
         let url = directory.appendingPathComponent("plain.typ")
-        try Data(repeating: 0x41, count: 400).write(to: url)
+        try FileTools.write(Data(repeating: 0x41, count: 400), to: url)
         XCTAssertEqual(CLI.typdump([url.path]), 1)
     }
 
     func testAShortFileIsRefusedRatherThanRead() throws {
         let url = directory.appendingPathComponent("short.typ")
-        try Data([0x00, 0x01]).write(to: url)
+        try FileTools.write(Data([0x00, 0x01]), to: url)
         XCTAssertEqual(CLI.typdump([url.path]), 1)
     }
 

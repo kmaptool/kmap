@@ -400,12 +400,15 @@ final class StyleCatalogTests: XCTestCase {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let points = dir.appendingPathComponent("points")
-        try """
-        sport=airport [0x2d0b resolution 24]
-        amenity=prison [0x3007 resolution 24]
-        two=lines [0x10 resolution 24]
-            [0x11 resolution 22]
-        """.write(to: points, atomically: true, encoding: .utf8)
+        try FileTools.write(
+            """
+            sport=airport [0x2d0b resolution 24]
+            amenity=prison [0x3007 resolution 24]
+            two=lines [0x10 resolution 24]
+                [0x11 resolution 22]
+            """,
+            to: points
+        )
 
         let sheet = """
             @@ points

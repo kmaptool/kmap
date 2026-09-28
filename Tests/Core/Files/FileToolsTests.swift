@@ -18,7 +18,7 @@ final class FileToolsTests: XCTestCase {
 
     private func write(_ name: String, bytes: Int = 0) throws -> URL {
         let url = directory.appendingPathComponent(name)
-        try Data(count: bytes).write(to: url)
+        try FileTools.write(Data(count: bytes), to: url)
         return url
     }
 

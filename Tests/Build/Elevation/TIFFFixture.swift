@@ -1,5 +1,7 @@
 import Foundation
 
+@testable import kmap
+
 /// A GeoTIFF built byte by byte: the smallest TIFF this reader accepts, with whatever
 /// variation a case needs — either byte order, tiles or strips, either predictor, and
 /// point- or area-registered samples.
@@ -190,7 +192,7 @@ struct TIFFFixture {
         out += extras
 
         let url = directory.appendingPathComponent(name)
-        try Data(out).write(to: url)
+        try FileTools.write(Data(out), to: url)
         return url
     }
 }

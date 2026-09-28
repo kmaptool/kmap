@@ -126,7 +126,7 @@ final class PBFReaderTests: XCTestCase {
     }
 
     private func write(_ bytes: [UInt8], to url: URL) throws {
-        try Data(bytes).write(to: url)
+        try FileTools.write(Data(bytes), to: url)
     }
 
     // MARK: The ordinary path
@@ -297,7 +297,7 @@ final class PBFReaderTests: XCTestCase {
         let whole = try Data(contentsOf: source)
         for cut in stride(from: 0, to: whole.count, by: max(1, whole.count / 20)) {
             let url = path("cut-\(cut).osm.pbf")
-            try whole.prefix(cut).write(to: url)
+            try FileTools.write(whole.prefix(cut), to: url)
             _ = try? read(url)
         }
     }

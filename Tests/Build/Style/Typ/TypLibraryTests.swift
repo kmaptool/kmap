@@ -30,7 +30,7 @@ final class TypLibraryTests: XCTestCase {
         bytes[0x31] = UInt8(product & 0xFF)
         bytes[0x32] = UInt8((product >> 8) & 0xFF)
         let url = folder.appendingPathComponent(name)
-        try Data(bytes).write(to: url)
+        try FileTools.write(Data(bytes), to: url)
         return url
     }
 
@@ -96,7 +96,7 @@ final class TypLibraryTests: XCTestCase {
     func testATypSourceIsCopiedAsItIs() throws {
         let text = "; a hand-written TYP\n[_id]\nFID=6324\nProductCode=1\nCodePage=1252\n[end]\n"
         let file = folder.appendingPathComponent("mine.txt")
-        try Data(text.utf8).write(to: file)
+        try FileTools.write(Data(text.utf8), to: file)
 
         let result = try TypLibrary.take(at: file, into: library())
         XCTAssertFalse(result.decompiled)
@@ -131,7 +131,7 @@ final class TypLibraryTests: XCTestCase {
         let first = try TypLibrary.take(at: source, into: library()).url
 
         // Stands in for an edit made after importing.
-        try Data("edited by hand".utf8).write(to: first)
+        try FileTools.write(Data("edited by hand".utf8), to: first)
 
         let second = try TypLibrary.take(at: source, into: library()).url
 
@@ -150,7 +150,7 @@ final class TypLibraryTests: XCTestCase {
         let library = self.library()
         try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
         for name in ["a.typ", "b.txt", "notes.md", "map.img"] {
-            try Data("x".utf8).write(to: library.appendingPathComponent(name))
+            try FileTools.write(Data("x".utf8), to: library.appendingPathComponent(name))
         }
         XCTAssertEqual(
             TypLibrary.contents(in: library).map(\.lastPathComponent),
@@ -166,7 +166,7 @@ final class TypLibraryTests: XCTestCase {
 
     func testAFileThatIsNeitherTypNorImgIsRefused() throws {
         let rubbish = folder.appendingPathComponent("notes.md")
-        try Data("hello".utf8).write(to: rubbish)
+        try FileTools.write(Data("hello".utf8), to: rubbish)
         XCTAssertThrowsError(try TypLibrary.take(at: rubbish, into: library())) { error in
             XCTAssertTrue(
                 "\(error)".contains("notATyp") || error.localizedDescription.contains("neither"),
@@ -187,7 +187,7 @@ final class TypLibraryTests: XCTestCase {
         let library = self.library()
         try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
         let file = library.appendingPathComponent("mine.txt")
-        try Data("[_id]\nFID=1\n[end]".utf8).write(to: file)
+        try FileTools.write(Data("[_id]\nFID=1\n[end]".utf8), to: file)
 
         try TypLibrary.save("[_id]\nFID=2\n[end]", to: file, library: library)
         XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "[_id]\nFID=2\n[end]")
@@ -421,7 +421,7 @@ final class TypLibraryTests: XCTestCase {
         // Same identity, different bytes.
         var bytes = try Data(contentsOf: two)
         bytes[0x50] = 0x7F
-        try bytes.write(to: two)
+        try FileTools.write(bytes, to: two)
 
         XCTAssertNotEqual(
             TypLibrary.fingerprint(ofTypAt: one),
@@ -467,7 +467,7 @@ final class TypLibraryTests: XCTestCase {
         let sibling = try makeTyp(named: "sibling.typ", family: 1540, product: 1)
         var bytes = try Data(contentsOf: sibling)
         bytes[0x50] = 0x11
-        try bytes.write(to: sibling)
+        try FileTools.write(bytes, to: sibling)
         let other = TypCandidate(
             url: sibling,
             isEmbedded: false,
@@ -579,7 +579,7 @@ final class TypLibraryTests: XCTestCase {
         let library = self.library()
         let source = try makeTyp(named: "sample.typ", family: 3332)
         let taken = try TypLibrary.take(at: source, into: library)
-        try "edited by hand".write(to: taken.url, atomically: true, encoding: .utf8)
+        try FileTools.write("edited by hand", to: taken.url)
 
         let day = Date(timeIntervalSince1970: 1_756_000_000)  // 2025-08-24
         let copy = try TypLibrary.duplicate(taken.url, library: library, on: day)
@@ -601,7 +601,7 @@ final class TypLibraryTests: XCTestCase {
         let taken = try TypLibrary.take(at: source, into: library)
         let asImported = try String(contentsOf: taken.url, encoding: .utf8)
 
-        try "ruined".write(to: taken.url, atomically: true, encoding: .utf8)
+        try FileTools.write("ruined", to: taken.url)
         try TypLibrary.restore(taken.url, library: library)
 
         // Everything but the header, which names the file it was decompiled from: the
@@ -644,7 +644,7 @@ final class TypLibraryTests: XCTestCase {
         var bytes = [UInt8](repeating: 0, count: 0x40)
         for (i, b) in Array("DSKIMG".utf8).enumerated() { bytes[0x10 + i] = b }
         let url = folder.appendingPathComponent(name)
-        try Data(bytes).write(to: url)
+        try FileTools.write(Data(bytes), to: url)
         return url
     }
 
@@ -666,8 +666,10 @@ final class TypLibraryTests: XCTestCase {
     func testTheOlderLogShapeWithoutAFingerprintStillAnswers() throws {
         let img = try makeImg(named: "old.img")
         let entry = folder.appendingPathComponent("old-style.txt")
-        try "2026-08-24T13:07:20Z\told-style.txt\t\(img.path)\trights confirmed by the user\n"
-            .write(to: TypLibrary.importLog(in: folder), atomically: true, encoding: .utf8)
+        try FileTools.write(
+            "2026-08-24T13:07:20Z\told-style.txt\t\(img.path)\trights confirmed by the user\n",
+            to: TypLibrary.importLog(in: folder)
+        )
         XCTAssertEqual(TypLibrary.importedSource(of: entry, library: folder), img)
     }
 

@@ -178,7 +178,7 @@ final class RecoveryTests: XCTestCase {
         )
         element(2, 0x52, [(54.4748930, 19.6929930), (54.4748280, 19.6918990)])
         element(0, 0x6417, [(54.4533060, 19.9612780)])
-        try Data(bytes).write(to: file)
+        try FileTools.write(Data(bytes), to: file)
 
         let dump = try ElementDumper.parse(file)
         XCTAssertEqual(dump.count, 3)
@@ -203,7 +203,7 @@ final class RecoveryTests: XCTestCase {
         bytes += [0x04, 0x08, 0x01, 0x00]  // type
         bytes += [0x03, 0x00, 0x00, 0x00]  // three vertices promised
         bytes += [UInt8](repeating: 0x11, count: 8)  // one delivered
-        try Data(bytes).write(to: file)
+        try FileTools.write(Data(bytes), to: file)
         XCTAssertEqual(try ElementDumper.parse(file).count, 0)
     }
 }

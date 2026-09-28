@@ -81,7 +81,7 @@ final class MalformedInputTests: XCTestCase {
                 bytes[at] = UInt8.random(in: 0...255, using: &noise)
             }
             let url = folder.appendingPathComponent("round-\(round).img")
-            try Data(bytes).write(to: url)
+            try FileTools.write(Data(bytes), to: url)
 
             let files = ImgContainer.directory(of: url)
             // Whatever it found, reading it must stay inside the file it came from.
@@ -106,7 +106,7 @@ final class MalformedInputTests: XCTestCase {
         addTeardownBlock { try? FileManager.default.removeItem(at: folder) }
 
         let url = folder.appendingPathComponent("small.img")
-        try Data([UInt8](repeating: 0, count: 0x1000)).write(to: url)
+        try FileTools.write(Data([UInt8](repeating: 0, count: 0x1000)), to: url)
 
         let liar = ImgContainer.SubFile(
             name: "LIAR",
@@ -156,7 +156,7 @@ final class MalformedInputTests: XCTestCase {
         for suffix in ["png", "jpg", "svg", "gif", "tif"] {
             let url = folder.appendingPathComponent("noise.\(suffix)")
             let bytes = (0..<2048).map { _ in UInt8.random(in: 0...255, using: &noise) }
-            try Data(bytes).write(to: url)
+            try FileTools.write(Data(bytes), to: url)
             _ = try? IconImport.load(url, size: 20)
         }
     }

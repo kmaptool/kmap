@@ -131,7 +131,7 @@ final class CLIExitCodeTests: XCTestCase {
     func testTypinfoOnSomethingThatIsNotAMapExitsNonZero() throws {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("not-a-map-\(UUID().uuidString).txt")
-        try "just text".write(to: scratch, atomically: true, encoding: .utf8)
+        try FileTools.write("just text", to: scratch)
         defer { try? FileManager.default.removeItem(at: scratch) }
         var code: Int32 = 0
         _ = CLILog.capture { code = CLI.typinfo([scratch.path]) }

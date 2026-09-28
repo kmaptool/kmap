@@ -83,7 +83,7 @@ final class FixHGTEdgesTests: XCTestCase {
 
     func testAFileThatIsNotAOneArcsecondTileIsLeftAlone() throws {
         let url = directory.appendingPathComponent("N44E036.hgt")
-        try Data([UInt8](repeating: 0, count: 1201 * 1201 * 2)).write(to: url)
+        try FileTools.write(Data([UInt8](repeating: 0, count: 1201 * 1201 * 2)), to: url)
         XCTAssertNil(try FixHGTEdges.repair(url))
     }
 
@@ -118,7 +118,7 @@ final class FixHGTEdgesTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("edge-1201-\(UUID().uuidString).hgt")
         defer { try? FileManager.default.removeItem(at: url) }
-        try Data(data).write(to: url)
+        try FileTools.write(Data(data), to: url)
         XCTAssertEqual(try FixHGTEdges.repair(url), "south")
         let repaired = [UInt8](try Data(contentsOf: url))
         let last = ((n - 1) * n) * 2

@@ -59,7 +59,7 @@ final class ImgContainerTests: XCTestCase {
 
     func testAFileTooShortToHoldAHeaderIsRefused() throws {
         let stub = directory.appendingPathComponent("short.img")
-        try Data([UInt8](repeating: 0, count: 64)).write(to: stub)
+        try FileTools.write(Data([UInt8](repeating: 0, count: 64)), to: stub)
         XCTAssertFalse(ImgContainer.isImg(stub))
         XCTAssertTrue(ImgContainer.directory(of: stub).isEmpty)
     }

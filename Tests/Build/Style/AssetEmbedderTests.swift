@@ -19,8 +19,7 @@ final class AssetEmbedderTests: XCTestCase {
                 at: url.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            try "payload of \(asset.property)\nsecond line\n"
-                .write(to: url, atomically: true, encoding: .utf8)
+            try FileTools.write("payload of \(asset.property)\nsecond line\n", to: url)
         }
     }
 
@@ -59,7 +58,7 @@ final class AssetEmbedderTests: XCTestCase {
     /// rest to be read as Swift.
     func testAPayloadThatCouldCloseItsOwnLiteralIsRefused() throws {
         let url = directory.appendingPathComponent(AssetEmbedder.assets[0].path)
-        try "before\n\"\"\"#####\nafter\n".write(to: url, atomically: true, encoding: .utf8)
+        try FileTools.write("before\n\"\"\"#####\nafter\n", to: url)
         XCTAssertThrowsError(try AssetEmbedder.render(from: directory)) { error in
             XCTAssertTrue("\(error)".contains("cannot be embedded"))
         }

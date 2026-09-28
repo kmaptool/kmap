@@ -25,7 +25,7 @@ final class StyleSpliceTests: XCTestCase {
     }
 
     private func write(_ text: String, to name: String = "points") throws {
-        try text.write(to: directory.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        try FileTools.write(text, to: directory.appendingPathComponent(name))
     }
 
     private func read(_ name: String = "points") throws -> String {

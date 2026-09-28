@@ -181,7 +181,7 @@ final class ImportConsentTests: XCTestCase {
         bytes[0x31] = 0x01
         let source = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("zz-consent-\(UUID().uuidString.prefix(6)).typ")
-        try Data(bytes).write(to: source)
+        try FileTools.write(Data(bytes), to: source)
         addTeardownBlock { try? FileManager.default.removeItem(at: source) }
         let taken = try TypLibrary.take(at: source)
 

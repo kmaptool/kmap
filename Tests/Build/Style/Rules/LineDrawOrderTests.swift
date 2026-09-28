@@ -15,7 +15,7 @@ final class LineDrawOrderTests: XCTestCase {
             .appendingPathComponent("draworder-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        try lines.write(to: dir.appendingPathComponent("lines"), atomically: true, encoding: .utf8)
+        try FileTools.write(lines, to: dir.appendingPathComponent("lines"))
         return try XCTUnwrap(
             RuleSetIndex.read(styleDirectory: dir),
             "nothing parsed",

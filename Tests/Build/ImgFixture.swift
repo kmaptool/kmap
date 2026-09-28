@@ -1,5 +1,7 @@
 import Foundation
 
+@testable import kmap
+
 /// A Garmin `.img` assembled byte by byte: the header, a directory of 512-byte entries and
 /// every subfile scattered across the blocks its entry names.
 enum ImgFixture {
@@ -87,7 +89,7 @@ enum ImgFixture {
         image.append(contentsOf: bodies)
 
         let url = directory.appendingPathComponent("map.img")
-        try Data(image).write(to: url)
+        try FileTools.write(Data(image), to: url)
         return url
     }
 
