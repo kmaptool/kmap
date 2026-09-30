@@ -58,9 +58,9 @@ final class ElevationCostTests: XCTestCase {
 /// ones listed before it leave behind, coverage comes from the sources' own lists, and
 /// a small fetch has every file asked its size.
 final class ElevationCostChainTests: XCTestCase {
-    private var probe: ((URL) async throws -> Int64)!
-    private var coverage: ((CopernicusDEM.Flavor) async -> Set<String>?)!
-    private var viewIndex: ((Int) async -> ViewfinderDEM.Index?)!
+    private var probe: (@Sendable (URL) async throws -> Int64)!
+    private var coverage: (@Sendable (CopernicusDEM.Flavor) async -> Set<String>?)!
+    private var viewIndex: (@Sendable (Int) async -> ViewfinderDEM.Index?)!
 
     override func setUp() {
         super.setUp()
@@ -116,11 +116,9 @@ final class ElevationCostChainTests: XCTestCase {
 
     func testALargeFetchIsSampledAsMeanTimesCount() async {
         // A hundred cells, far past the ask-them-all limit.
-        var many: [(lat: Int, lon: Int)] = []
-        for lon in 0..<100 { many.append((-80, lon - 170)) }
-        ElevationCost.copernicusCoverage = { _ in
-            Set(many.map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) })
-        }
+        let many: [(lat: Int, lon: Int)] = (0..<100).map { (-80, $0 - 170) }
+        let names = Set(many.map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) })
+        ElevationCost.copernicusCoverage = { _ in names }
         // Counted under a lock: the probes run six lanes at once.
         let probes = Counter()
         ElevationCost.probeSize = { _ in

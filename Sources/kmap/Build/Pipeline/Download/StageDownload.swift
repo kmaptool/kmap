@@ -26,6 +26,8 @@ extension BuildPipeline {
         let expected: Task<String?, Never>?
         /// What the server says about the extract; nil until asked, or unreachable.
         var remote: Downloader.RemoteInfo?
+        /// Why the last probe failed, for the warning that falls back to the cache.
+        var unreachable: String?
     }
 
     /// Fetches every region going into this map, in order. The closing line says how many
@@ -36,11 +38,11 @@ extension BuildPipeline {
         let probes = await probeExtracts()
         let cached = regions.map { Paths.cachedExtract(forRegion: $0.id) }
         // The server's size, or the cached copy's where the server did not answer.
-        let sizes = regions.indices.map { probes[$0]?.size ?? FileTools.size(of: cached[$0]) }
+        let sizes = regions.indices.map { probes[$0].info?.size ?? FileTools.size(of: cached[$0]) }
         let slices = DownloadSlices(sizes: sizes)
         // What each region will cost to fetch: nothing where the cached copy is current.
         let toFetch = regions.indices.map {
-            cachedCopyIsCurrent(at: cached[$0], remote: probes[$0]) ? 0 : sizes[$0]
+            cachedCopyIsCurrent(at: cached[$0], remote: probes[$0].info) ? 0 : sizes[$0]
         }
 
         var out: [URL] = []
@@ -65,7 +67,8 @@ extension BuildPipeline {
                 expected: region.md5URL.map { url in
                     Task { await Downloader.fetchExpectedMD5(url) }
                 },
-                remote: probes[index]
+                remote: probes[index].info,
+                unreachable: probes[index].refused
             )
             if try await !reuseCachedExtract(&job) {
                 try Task.checkCancellation()
@@ -94,22 +97,37 @@ extension BuildPipeline {
         return tn("%d extract(s)", extracts.count) + " — " + how
     }
 
+    /// An answer, or why there is none. The reason is kept so a region is not asked
+    /// again, with the same retries, after the answer is already no.
+    private typealias Probe = (info: Downloader.RemoteInfo?, refused: String?)
+
     /// One HEAD request per region, all at once. Each answer sizes the region's slice of
     /// the bar and is handed on to the check of its cached copy, which would otherwise ask
     /// again. A build of one region has nothing to apportion and asks later.
-    private func probeExtracts() async -> [Downloader.RemoteInfo?] {
+    private func probeExtracts() async -> [Probe] {
         let regions = recipe.regions
-        var answers = [Downloader.RemoteInfo?](repeating: nil, count: regions.count)
+        var answers = [Probe](repeating: (nil, nil), count: regions.count)
         guard regions.count > 1 else { return answers }
         set(.download, .running, t("checking for a newer extract"))
-        await withTaskGroup(of: (Int, Downloader.RemoteInfo?).self) { group in
+        await withTaskGroup(of: (Int, Probe).self) { group in
             for (index, region) in regions.enumerated() {
                 guard let url = region.pbfURL else { continue }
-                group.addTask { (index, try? await Downloader.probe(url)) }
+                group.addTask { (index, await Self.probeOnce(url)) }
             }
             for await (index, answer) in group { answers[index] = answer }
         }
         return answers
+    }
+
+    /// The retried probe, its failure kept as words rather than thrown.
+    private static func probeOnce(_ url: URL) async -> Probe {
+        do {
+            return (try await Downloader.probeRetrying(url), nil)
+        } catch {
+            // localizedDescription, not the error's dump: "too many HTTP redirects" is the
+            // line, the domain and code are not.
+            return (nil, (error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
+        }
     }
 
     // MARK: The cached copy
@@ -140,7 +158,8 @@ extension BuildPipeline {
         set(.download, .running, t("starting"))
         guard FileTools.exists(job.destination) else { return false }
         set(.download, .running, t("checking for a newer extract"))
-        if job.remote == nil { job.remote = try? await Downloader.probe(job.source) }
+        // Asked here only if never asked: a refusal from the shared probe stands.
+        if job.remote == nil, job.unreachable == nil { await probeAgain(&job) }
 
         if cachedCopyIsCurrent(at: job.destination, remote: job.remote) {
             log.ok("cached extract is current (\(Fmt.bytes(FileTools.size(of: job.destination))))")
@@ -151,10 +170,11 @@ extension BuildPipeline {
         // The server offers something different, or there was nothing to compare against.
         guard let remoteMD5 = await job.expected?.value else {
             if job.remote == nil {
-                // Unreachable, so downloading would fail too: the cached extract is used
-                // and its possible staleness reported.
+                // Unreachable after the retries, so downloading would fail too: the
+                // cached extract is used and its possible staleness reported, with why.
                 log.warn(
-                    "could not reach the server — building from the cached extract ("
+                    "could not reach the server (\(job.unreachable ?? "no answer"))"
+                        + " — building from the cached extract ("
                         + Fmt.bytes(FileTools.size(of: job.destination))
                         + "), which may be out of date"
                 )
@@ -240,13 +260,21 @@ extension BuildPipeline {
             log.warn("no .md5 published for this extract — skipping checksum verification")
             // Stamped anyway, or the next build cannot tell whether the server has moved
             // on and refetches the whole extract.
-            if job.remote == nil { job.remote = try? await Downloader.probe(job.source) }
+            // The download itself just got through, so an earlier refusal is stale.
+            if job.remote == nil { await probeAgain(&job) }
             stamp(job, md5: nil)
         }
         log.ok("downloaded \(Fmt.bytes(FileTools.size(of: job.destination)))")
     }
 
     // MARK: Shared
+
+    /// One more probe of the job's source, with the retries, keeping the reason it failed.
+    private func probeAgain(_ job: inout ExtractJob) async {
+        let asked = await Self.probeOnce(job.source)
+        job.remote = asked.info
+        job.unreachable = asked.refused
+    }
 
     /// The MD5 of the job's file, its progress reported in the stage's text.
     private func checksum(of job: ExtractJob, saying what: String) throws -> String {

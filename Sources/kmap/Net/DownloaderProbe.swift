@@ -22,15 +22,27 @@ extension Downloader {
 
     /// `probe`, retried with backoff for the errors `worthRetrying` accepts.
     static func probeRetrying(_ url: URL) async throws -> RemoteInfo {
+        try await retrying { try await probe(url) }
+    }
+
+    /// Runs `body` again, after a growing pause, for as long as it fails with something
+    /// transient: a timeout, a dropped connection, a 5xx. Three more tries, then the last
+    /// error. One HEAD among several sent at once can be the one the mirror drops, and
+    /// that must not read as the server being down.
+    static func retrying<T>(
+        attempts: Int = probeRetries,
+        pause: (Int) async throws -> Void = backOff,
+        _ body: () async throws -> T
+    ) async throws -> T {
         var failures = 0
         while true {
             do {
-                return try await probe(url)
+                return try await body()
             } catch {
                 if Task.isCancelled { throw error }
-                guard failures < probeRetries, worthRetrying(error) else { throw error }
+                guard failures < attempts, worthRetrying(error) else { throw error }
                 failures += 1
-                try await backOff(after: failures)
+                try await pause(failures)
             }
         }
     }
@@ -106,7 +118,9 @@ extension Downloader {
     /// Fetches an `.md5` file, "<hash>  <filename>", and returns the lowercased hash, or
     /// nil where it is missing or malformed.
     static func fetchExpectedMD5(_ url: URL) async -> String? {
-        guard let text = await Fetch.text(url) else { return nil }
+        // Retried like the probe: a missed .md5 costs a whole extract read or refetch.
+        let data = try? await retrying { try await Fetch.data(url, timeout: probeTimeout) }
+        guard let data, let text = String(data: data, encoding: .utf8) else { return nil }
         let token = text.split(separator: " ").first.map(String.init)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let token, token.count == 32,

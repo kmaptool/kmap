@@ -183,7 +183,8 @@ enum ViewfinderDEM {
         Paths.ensure(Paths.hgtCache)
         // One plain GET rather than the downloader, which needs a Content-Length to divide
         // into byte ranges; the server compresses this page, so there is none.
-        guard let data = try? await Fetch.data(url, timeout: coverageTimeout)
+        // Retried: one dropped answer here used to cost the contours and the DEM.
+        guard let data = try? await Downloader.retrying({ try await Fetch.data(url, timeout: coverageTimeout) })
         else { throw Trouble.noIndex(resolution) }
         // The page declares no dependable charset; latin-1 decodes any byte, and the bytes
         // that matter here are ASCII.

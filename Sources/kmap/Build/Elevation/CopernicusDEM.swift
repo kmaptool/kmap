@@ -147,7 +147,8 @@ enum CopernicusDEM {
             if !cells.isEmpty { return cells }
         }
         guard let url = tileListURL(flavor) else { return nil }
-        guard let data = try? await Fetch.data(url),
+        // Retried: without the list every cell is sampled blind, sea included.
+        guard let data = try? await Downloader.retrying({ try await Fetch.data(url) }),
             let text = String(data: data, encoding: .utf8)
         else { return nil }
         let cells = parseTileList(text)

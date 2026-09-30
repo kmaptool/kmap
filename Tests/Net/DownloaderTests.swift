@@ -49,6 +49,49 @@ final class DownloaderTests: XCTestCase {
         XCTAssertFalse(Downloader.worthRetrying(CocoaError(.fileNoSuchFile)))
     }
 
+    // MARK: Asking again
+
+    func testAProbeThatFailsOnceIsAskedAgainAndAnswers() async throws {
+        // Three HEADs at once and the mirror drops one: that is a retry, not a server
+        // that is down and a build from a stale cache.
+        var calls = 0
+        var pauses: [Int] = []
+        let answer = try await Downloader.retrying(pause: { pauses.append($0) }) { () throws -> Int in
+            calls += 1
+            if calls < 3 { throw URLError(.timedOut) }
+            return 42
+        }
+        XCTAssertEqual(answer, 42)
+        XCTAssertEqual(calls, 3)
+        XCTAssertEqual(pauses, [1, 2], "a growing pause between the tries")
+    }
+
+    func testAFinalAnswerIsNotAskedAgain() async {
+        var calls = 0
+        do {
+            _ = try await Downloader.retrying(pause: { _ in }) { () throws -> Int in
+                calls += 1
+                throw DownloadError.badStatus(404)
+            }
+            XCTFail("a 404 is final")
+        } catch {}
+        XCTAssertEqual(calls, 1)
+    }
+
+    func testTheTriesRunOutAndTheLastErrorComesThrough() async {
+        var calls = 0
+        do {
+            _ = try await Downloader.retrying(attempts: 2, pause: { _ in }) { () throws -> Int in
+                calls += 1
+                throw DownloadError.badStatus(503)
+            }
+            XCTFail("the tries run out")
+        } catch {
+            guard case DownloadError.badStatus(503) = error else { return XCTFail("\(error)") }
+        }
+        XCTAssertEqual(calls, 3, "the first try and two more")
+    }
+
     // MARK: The checksum
 
     func testTheChecksumIsTheOneEveryOtherToolReports() throws {
@@ -83,7 +126,7 @@ final class DownloaderTests: XCTestCase {
         let url = directory.appendingPathComponent("body")
         try FileTools.write(Data(count: 20 * 1024 * 1024), to: url)
         var reported: [Double] = []
-        _ = try Downloader.md5(of: url) { reported.append($0) }
+        _ = try Downloader.md5(of: url, progress: { reported.append($0) })
         XCTAssertFalse(reported.isEmpty)
         XCTAssertEqual(reported.last ?? 0, 1, accuracy: 1e-9)
         XCTAssertEqual(reported, reported.sorted(), "the fraction went backwards")
