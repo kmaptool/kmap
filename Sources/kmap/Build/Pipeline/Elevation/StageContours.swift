@@ -220,6 +220,19 @@ extension BuildPipeline {
     /// Directories under the .hgt cache holding elevation files, finest first. mkgmap
     /// searches `--dem` paths in order and takes the first tile it finds.
     func demSearchPaths() -> [URL] {
+        if let kept = state.withLock({ $0.demPaths }) { return kept }
+        let ranked = walkDEMSearchPaths()
+        state.withLock { $0.demPaths = ranked }
+        return ranked
+    }
+
+    /// Forgets the ranked directories: called where tiles land or are burned, so the
+    /// next ask walks the cache again. A walk per contour cell was the cost before.
+    func forgetDEMSearchPaths() {
+        state.withLock { $0.demPaths = nil }
+    }
+
+    private func walkDEMSearchPaths() -> [URL] {
         var directories = Set<URL>()
         guard
             let walker = FileManager.default.enumerator(
@@ -314,6 +327,7 @@ extension BuildPipeline {
             }
         }
         burnedElevationDirectories = burned
+        forgetDEMSearchPaths()
     }
 
     /// Whether the finest cached elevation data is 1 arc-second.

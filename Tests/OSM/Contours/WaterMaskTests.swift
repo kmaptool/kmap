@@ -209,4 +209,70 @@ final class WaterMaskTests: XCTestCase {
         XCTAssertGreaterThan(WaterMask.shortestBetweenShores, 25)
         XCTAssertLessThan(WaterMask.shortestBetweenShores, 35)
     }
+
+    // MARK: The fill against the plain scan
+
+    /// The scanline fill as it was first written: every edge asked about every row.
+    private static func plainWet(_ ring: WaterBodies.Ring, side: Int, minLat: Double, minLon: Double) -> Set<Int> {
+        var wet = Set<Int>()
+        let n = ring.count
+        var loLat = Double.infinity, hiLat = -Double.infinity
+        for i in 0..<n { loLat = min(loLat, ring.lat(i)); hiLat = max(hiLat, ring.lat(i)) }
+        let scale = Double(side)
+        let firstRow = max(0, Int(((loLat - minLat) * scale).rounded(.down)))
+        let lastRow = min(side - 1, Int(((hiLat - minLat) * scale).rounded(.down)))
+        guard firstRow <= lastRow else { return wet }
+        for row in firstRow...lastRow {
+            let y = minLat + (Double(row) + 0.5) / scale
+            var crossings: [Double] = []
+            var j = n - 1
+            for i in 0..<n {
+                let yi = ring.lat(i), yj = ring.lat(j)
+                if (yi > y) != (yj > y) {
+                    crossings.append((ring.lon(j) - ring.lon(i)) * (y - yi) / (yj - yi) + ring.lon(i))
+                }
+                j = i
+            }
+            guard crossings.count >= 2 else { continue }
+            crossings.sort()
+            var at = 0
+            while at + 1 < crossings.count {
+                let from = max(0, Int(((crossings[at] - minLon) * scale - 0.5).rounded(.up)))
+                let upTo = min(side - 1, Int(((crossings[at + 1] - minLon) * scale - 0.5).rounded(.down)))
+                if from <= upTo { for column in from...upTo { wet.insert(row * side + column) } }
+                at += 2
+            }
+        }
+        return wet
+    }
+
+    func testTheBucketedFillMatchesThePlainScanOnRaggedShores() throws {
+        // A jagged shoreline of a few thousand points: the answer at every cell must be
+        // the one the plain scan gives.
+        var random = SplitMix64(state: 20_260_930)
+        let side = WaterMask.cellsPerDegree
+        for _ in 0..<2 {
+            var points: [Float] = []
+            let count = 700
+            for k in 0..<count {
+                let angle = Double(k) / Double(count) * 2 * Double.pi
+                let radius = 0.3 + Double.random(in: -0.05...0.05, using: &random)
+                points.append(Float(44.5 + radius * sin(angle)))
+                points.append(Float(34.5 + radius * cos(angle)))
+            }
+            points.append(points[0]); points.append(points[1])
+            let ring = WaterBodies.Ring(points: points, island: false, standalone: true)
+            let mask = try XCTUnwrap(WaterMask(cellAt: 44, 34, water: water(ring)))
+            let wet = Self.plainWet(ring, side: side, minLat: 44, minLon: 34)
+            for _ in 0..<8000 {
+                let row = Int.random(in: 0..<side, using: &random), column = Int.random(in: 0..<side, using: &random)
+                let lat = 44 + (Double(row) + 0.5) / Double(side), lon = 34 + (Double(column) + 0.5) / Double(side)
+                XCTAssertEqual(
+                    mask.isWater(lat: lat, lon: lon),
+                    wet.contains(row * side + column),
+                    "row \(row) column \(column)"
+                )
+            }
+        }
+    }
 }

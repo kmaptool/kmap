@@ -41,6 +41,8 @@ final class BuildPipeline: Sendable {
         /// Private copies of elevation tiles carrying OSM summit heights, written by
         /// `burnPeakElevations` and searched ahead of the shared cache.
         var burnedElevationDirectories: [URL] = []
+        /// The ranked .hgt directories, walked once and kept until tiles change.
+        var demPaths: [URL]?
         /// Where kmap's own marks ended up when the chosen TYP already drew their
         /// numbers. The rules emitting them are moved to match, in this build's style
         /// snapshot.

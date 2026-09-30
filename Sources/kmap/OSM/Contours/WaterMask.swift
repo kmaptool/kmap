@@ -60,17 +60,33 @@ struct WaterMask {
         let lastRow = min(side - 1, Int(((hiLat - minLat) * scale).rounded(.down)))
         guard firstRow <= lastRow else { return }
 
+        // Edges bucketed by the first row they can cross, a row of slack either side; the
+        // crossing test itself is unchanged, so this only spares the edges far from the
+        // row. A sea coast of a hundred thousand points against 7200 rows was the cost.
+        var startsAt = [[Int]](repeating: [], count: lastRow - firstRow + 1)
+        var endsAfter = [Int](repeating: 0, count: n)
+        for i in 0..<n {
+            let j = i == 0 ? n - 1 : i - 1
+            let lo = min(ring.lat(i), ring.lat(j)), hi = max(ring.lat(i), ring.lat(j))
+            let from = max(firstRow, Int(((lo - minLat) * scale).rounded(.down)) - 1)
+            let upTo = min(lastRow, Int(((hi - minLat) * scale).rounded(.up)) + 1)
+            guard from <= upTo else { continue }
+            startsAt[from - firstRow].append(i)
+            endsAfter[i] = upTo
+        }
+        var active: [Int] = []
         var crossings: [Double] = []
         for row in firstRow...lastRow {
             let y = minLat + (Double(row) + 0.5) / scale
+            active.append(contentsOf: startsAt[row - firstRow])
+            active.removeAll { endsAfter[$0] < row }
             crossings.removeAll(keepingCapacity: true)
-            var j = n - 1
-            for i in 0..<n {
+            for i in active {
+                let j = i == 0 ? n - 1 : i - 1
                 let yi = ring.lat(i), yj = ring.lat(j)
                 if (yi > y) != (yj > y) {
                     crossings.append((ring.lon(j) - ring.lon(i)) * (y - yi) / (yj - yi) + ring.lon(i))
                 }
-                j = i
             }
             guard crossings.count >= 2 else { continue }
             crossings.sort()

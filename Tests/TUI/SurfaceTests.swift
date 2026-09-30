@@ -106,4 +106,72 @@ final class SurfaceTests: XCTestCase {
         XCTAssertEqual(stripControlSequences(plain), plain)
         XCTAssertEqual(stripControlSequences(""), "")
     }
+
+    // MARK: Characters two columns wide
+
+    func testAWideCharacterTakesTwoColumnsAndTheRowStaysInStep() {
+        let surface = Surface()
+        surface.resize(10, 1)
+        surface.clear(.plain)
+        let end = surface.text(0, 0, "a中b", .plain)
+        XCTAssertEqual(end, 4, "one narrow, one wide, one narrow")
+        XCTAssertEqual(surface.cell(3, 0)?.ch, "b")
+        XCTAssertEqual(surface.cell(2, 0)?.ch, Surface.wideFiller)
+        // The frame sends the wide glyph once and nothing for its second column.
+        let row = stripControlSequences(surface.compose())
+        XCTAssertTrue(row.contains("a中b"))
+        XCTAssertEqual(surface.asText(), "a中 b".replacingOccurrences(of: " b", with: " b"))
+    }
+
+    func testOverwritingHalfAWideCharacterClearsTheOtherHalf() {
+        let surface = Surface()
+        surface.resize(6, 1)
+        surface.clear(.plain)
+        surface.text(0, 0, "中", .plain)
+        surface.put(0, 0, "x", .plain)
+        XCTAssertEqual(surface.cell(1, 0)?.ch, " ", "the filler went with the glyph")
+        surface.text(2, 0, "中", .plain)
+        surface.put(3, 0, "y", .plain)
+        XCTAssertEqual(surface.cell(2, 0)?.ch, " ", "the glyph went with its filler")
+    }
+
+    func testAWideCharacterAtTheEdgeIsNotDrawnByHalf() {
+        let surface = Surface()
+        surface.resize(3, 1)
+        surface.clear(.plain)
+        surface.text(0, 0, "ab中", .plain)
+        XCTAssertEqual(surface.cell(2, 0)?.ch, " ")
+    }
+
+    func testWidthsTruncationAndRightAlignmentCountColumns() {
+        XCTAssertEqual(Text.cellWidth("Крым"), 4)
+        XCTAssertEqual(Text.cellWidth("中文"), 4)
+        XCTAssertEqual(Text.cellWidth("e\u{0301}"), 1, "a combining accent adds nothing")
+        XCTAssertEqual(Text.cellWidth("\u{1F600}"), 2)
+        XCTAssertEqual(truncate("中文字", to: 4), "中" + String(Glyph.ellipsis))
+        XCTAssertEqual(truncate("abc", to: 3), "abc")
+        XCTAssertEqual(wrapText("中文字", width: 1), ["中", "文", "字"])
+        let surface = Surface()
+        surface.resize(6, 1)
+        surface.clear(.plain)
+        surface.textRight(6, 0, "中b", .plain)
+        XCTAssertEqual(surface.cell(3, 0)?.ch, "中")
+        XCTAssertEqual(surface.cell(5, 0)?.ch, "b")
+    }
+
+    func testAFillerFollowsOnlyAGlyphThatIsWideAsDrawn() {
+        // The console may be sent a narrow stand-in (on Windows the fullwidth plus of
+        // the icon screen is drawn as a plain one): a filler behind it would put the rest
+        // of the row a column out, so the width is the drawn glyph's.
+        for key in Array(Glyph.windowsSubstitutes.keys) + ["中", "a"] {
+            let surface = Surface()
+            surface.resize(4, 1)
+            surface.clear(.plain)
+            let end = surface.text(0, 0, String(key) + "a", .plain)
+            guard let drawn = surface.cell(0, 0)?.ch else { return XCTFail("nothing drawn for \(key)") }
+            let wide = Text.cellWidth(drawn) == 2
+            XCTAssertEqual(surface.cell(1, 0)?.ch == Surface.wideFiller, wide, "\(key) drawn as \(drawn)")
+            XCTAssertEqual(end, wide ? 3 : 2, "\(key): the next letter follows the drawn glyph")
+        }
+    }
 }

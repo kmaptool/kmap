@@ -12,9 +12,22 @@ struct MakeGPI {
         "natural", "amenity", "tourism", "historic", "shop", "leisure",
         "man_made", "waterway", "mountain_pass", "information"
     ]
+    private static let poiKeySet = Set(poiKeys)
 
-    var source: URL
+    /// The extracts to read: one region, or every region of a joined map. A point that
+    /// two overlapping extracts both carry is written once.
+    var sources: [URL]
     var destination: URL
+
+    init(source: URL, destination: URL) {
+        self.sources = [source]
+        self.destination = destination
+    }
+
+    init(sources: [URL], destination: URL) {
+        self.sources = sources
+        self.destination = destination
+    }
     var codepage = "cp1251"
     var category = "kmap"
     var prefer = "ru"
@@ -40,13 +53,16 @@ struct MakeGPI {
 
     func run() throws -> Report {
         var scan = Scan(prefer: prefer, exclude: Self.parse(exclude))
-        try PBFReader(url: source).readInOrder(make: {
-            Scan(prefer: prefer, exclude: MakeGPI.parse(exclude))
-        }) { part in
-            scan.take(part)
-            part.clear()
+        for source in sources {
+            try PBFReader(url: source).readInOrder(make: {
+                Scan(prefer: prefer, exclude: MakeGPI.parse(exclude))
+            }) { part in
+                scan.take(part)
+                part.clear()
+            }
         }
-        let points = try scan.resolve(url: source)
+        var points = try scan.resolve(urls: sources)
+        if sources.count > 1 { points = Self.withoutRepeats(points) }
         guard !points.isEmpty else { throw Trouble.nothingToWrite }
 
         let page = Self.codePage(named: codepage)
@@ -131,6 +147,20 @@ struct MakeGPI {
 
 extension MakeGPI {
     /// First pass: the objects worth carrying, and the node ids the closed ways need.
+    /// Geofabrik extracts overlap at their borders, so a joined map reads a border point
+    /// once per region; the first copy stands.
+    private static func withoutRepeats(_ points: [Point]) -> [Point] {
+        struct Key: Hashable {
+            let lat: UInt64, lon: UInt64
+            let name: String, description: String
+        }
+        var seen = Set<Key>()
+        return points.filter {
+            seen.insert(Key(lat: $0.lat.bitPattern, lon: $0.lon.bitPattern, name: $0.name, description: $0.description))
+                .inserted
+        }
+    }
+
     struct Scan: OSMSink {
         let prefer: String
         let exclude: (exact: Set<String>, wildcard: Set<String>)
@@ -172,8 +202,17 @@ extension MakeGPI {
             tags: ArraySlice<Int32>,
             block: OSMBlock
         ) {
-            var pairs: [String: String] = [:]
+            // Most tagged nodes are not points of interest: the keys are looked at before
+            // any dictionary is built for them.
+            var wanted = false
             var at = tags.startIndex
+            while at + 1 < tags.endIndex {
+                if MakeGPI.poiKeySet.contains(block.text(Int(tags[at]))) { wanted = true; break }
+                at += 2
+            }
+            guard wanted else { return }
+            var pairs: [String: String] = [:]
+            at = tags.startIndex
             while at + 1 < tags.endIndex {
                 pairs[block.text(Int(tags[at]))] = block.text(Int(tags[at + 1]))
                 at += 2
@@ -256,16 +295,21 @@ extension MakeGPI {
 
         /// Second pass: where the closed ways are. Each is placed at the centre of its
         /// bounding box.
-        func resolve(url: URL) throws -> [Point] {
+        func resolve(urls: [URL]) throws -> [Point] {
             guard !areaName.isEmpty else { return points }
-            let places = try NodePlaces.gather(NodePlaces.wantedIDs(from: areaRefs), from: url)
+            let wanted = NodePlaces.wantedIDs(from: areaRefs)
+            let gathered = try urls.map { try NodePlaces.gather(wanted, from: $0) }
+            func placeOf(_ id: Int64) -> (lat: Double, lon: Double)? {
+                for places in gathered { if let place = places.place(of: id) { return place } }
+                return nil
+            }
 
             var out = points
             for i in 0..<areaName.count {
                 var minLat = Double.infinity, maxLat = -Double.infinity
                 var minLon = Double.infinity, maxLon = -Double.infinity
                 for at in Int(areaStart[i])..<Int(areaStart[i + 1]) {
-                    guard let point = places.place(of: areaRefs[at]) else { continue }
+                    guard let point = placeOf(areaRefs[at]) else { continue }
                     minLat = min(minLat, point.lat); maxLat = max(maxLat, point.lat)
                     minLon = min(minLon, point.lon); maxLon = max(maxLon, point.lon)
                 }

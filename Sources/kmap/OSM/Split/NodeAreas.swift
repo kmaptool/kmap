@@ -27,9 +27,18 @@ extension TileSplitter {
         var bandSets: [(strict: [UInt16], shape: [UInt16])] = []
         private var bandIndex: [[UInt16]: UInt16] = [:]
 
+        /// Set when a table ran out of names. A band set has 14 bits for its index, so
+        /// 16384 of them; a plain set is read by its own flag first and has 15, less the
+        /// one that would spell `outside`. A node past that is filed as outside, and the
+        /// caller refuses the split rather than lose it.
+        private(set) var overflowed = false
+        private static let mostSets = Int(outside & ~setFlag)
+        private static let mostBandSets = Int(bandFlag)
+
         func intern(_ set: [UInt16]) -> UInt16 {
             let sorted = set.sorted()
             if let hit = setIndex[sorted] { return hit }
+            guard sets.count < Self.mostSets else { overflowed = true; return Self.outside }
             let index = UInt16(sets.count) | Self.setFlag
             sets.append(sorted)
             setIndex[sorted] = index
@@ -40,6 +49,7 @@ extension TileSplitter {
         /// allocating only when the set is a new one.
         func intern(_ hits: AreaLookup.Hits) -> UInt16 {
             if let hit = hitsIndex[hits] { return hit }
+            guard sets.count < Self.mostSets else { overflowed = true; return Self.outside }
             let index = UInt16(sets.count) | Self.setFlag
             sets.append(hits.sorted)
             hitsIndex[hits] = index
@@ -51,10 +61,7 @@ extension TileSplitter {
         func internBand(strict: AreaLookup.Hits, shape: AreaLookup.Hits) -> UInt16 {
             let key = BandKey(strict: strict, shape: shape)
             if let hit = bandHitsIndex[key] { return hit }
-            precondition(
-                bandSets.count < Int(Self.bandFlag),
-                "more distinct band sets than the value can name"
-            )
+            guard bandSets.count < Self.mostBandSets else { overflowed = true; return Self.outside }
             let index = UInt16(bandSets.count) | Self.bandFlag
             bandSets.append((strict.sorted, shape.sorted))
             bandHitsIndex[key] = index
@@ -64,10 +71,7 @@ extension TileSplitter {
         func internBand(strict: [UInt16], shape: [UInt16]) -> UInt16 {
             let key = strict.sorted() + [UInt16.max] + shape.sorted()
             if let hit = bandIndex[key] { return hit }
-            precondition(
-                bandSets.count < Int(Self.bandFlag),
-                "more distinct band sets than the value can name"
-            )
+            guard bandSets.count < Self.mostBandSets else { overflowed = true; return Self.outside }
             let index = UInt16(bandSets.count) | Self.bandFlag
             bandSets.append((strict.sorted(), shape.sorted()))
             bandIndex[key] = index
@@ -322,6 +326,4 @@ extension TileSplitter {
             }
         }
     }
-
-    // MARK: Pass 1 — nodes
 }

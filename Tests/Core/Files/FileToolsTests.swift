@@ -111,4 +111,20 @@ final class FileToolsTests: XCTestCase {
         XCTAssertTrue(FileTools.exists(source))
         XCTAssertThrowsError(try FileTools.copy(source, to: copy))
     }
+
+    func testOpeningForWritingCreatesAppendsOrStartsOver() throws {
+        let url = directory.appendingPathComponent("stream.txt")
+        let first = try FileTools.openForWriting(url)
+        try first.write(contentsOf: Data("one".utf8))
+        try first.close()
+        let second = try FileTools.openForWriting(url)
+        try second.write(contentsOf: Data("two".utf8))
+        try second.close()
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), "onetwo")
+        let fresh = try FileTools.openForWriting(url, appending: false)
+        try fresh.write(contentsOf: Data("x".utf8))
+        try fresh.close()
+        // Not appending is a fresh file: nothing of "onetwo" is left behind the "x".
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), "x")
+    }
 }

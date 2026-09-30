@@ -31,6 +31,28 @@ extension FileTools {
         #endif
     }
 
+    /// Opens a file for streaming writes, creating it if it is not there: positioned at
+    /// the end when `appending`, and emptied otherwise, so nothing of an older file stays
+    /// behind what is written. The one write that cannot be atomic: a download part, a
+    /// join of parts, a log. On Windows a file a scanner holds is tried again.
+    static func openForWriting(_ url: URL, appending: Bool = true) throws -> FileHandle {
+        func open() throws -> FileHandle {
+            if !FileManager.default.fileExists(atPath: url.path) {
+                guard FileManager.default.createFile(atPath: url.path, contents: nil) else {
+                    throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: url.path])
+                }
+            }
+            let handle = try FileHandle(forWritingTo: url)
+            if appending { try handle.seekToEnd() } else { try handle.truncate(atOffset: 0) }
+            return handle
+        }
+        #if os(Windows)
+        return try FileRetry.attempt(isTransient: Win32File.foundationErrorIsTransient, open)
+        #else
+        return try open()
+        #endif
+    }
+
     /// Copies a file or a directory. Fails where the destination already exists.
     static func copy(_ source: URL, to destination: URL) throws {
         #if os(Windows)

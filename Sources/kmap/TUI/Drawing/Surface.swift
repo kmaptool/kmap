@@ -52,11 +52,22 @@ final class Surface {
 
     // MARK: Drawing
 
+    /// The second column of a wide character. Nothing is sent for it: the terminal
+    /// drew it with the first. `asText` shows it as a space.
+    static let wideFiller: Character = "\u{0}"
+
     func put(_ x: Int, _ y: Int, _ ch: Character, _ style: Style) {
         guard inBounds(x, y) else { return }
+        let at = y * width + x
+        // Half a wide character left behind would put the row a column out.
+        if cells[at].ch == Self.wideFiller, x > 0 {
+            cells[at - 1].ch = " "
+        } else if x + 1 < width, cells[at + 1].ch == Self.wideFiller {
+            cells[at + 1].ch = " "
+        }
         // Every character on screen passes here, which is where a console that cannot
         // draw one is given something it can.
-        cells[y * width + x] = Cell(ch: Glyph.drawable(ch), style: style)
+        cells[at] = Cell(ch: Glyph.drawable(ch), style: style)
     }
 
     /// Draws text starting at (x, y), clipped to `limit` columns and the surface bounds.
@@ -78,8 +89,24 @@ final class Surface {
                 continue
             }
             if let scalar = ch.unicodeScalars.first, Text.isControl(scalar) { continue }
-            put(cx, y, ch, style)
-            cx += 1
+            switch Text.cellWidth(ch) {
+            case 0:
+                continue
+            case 2:
+                // Both columns or neither: half a glyph at the edge is a space.
+                guard cx + 1 < stopX else {
+                    put(cx, y, " ", style)
+                    cx += 1
+                    Surface.noteClipped(at: x, y, string)
+                    continue
+                }
+                put(cx, y, ch, style)
+                put(cx + 1, y, Self.wideFiller, style)
+                cx += 2
+            default:
+                put(cx, y, ch, style)
+                cx += 1
+            }
         }
         return cx
     }
@@ -87,7 +114,7 @@ final class Surface {
     /// Draws text right-aligned so that it ends at `rightEdge` (exclusive).
     @discardableResult
     func textRight(_ rightEdge: Int, _ y: Int, _ string: String, _ style: Style) -> Int {
-        let x = max(0, rightEdge - string.count)
+        let x = max(0, rightEdge - Text.cellWidth(string))
         return text(x, y, string, style)
     }
 
@@ -150,6 +177,7 @@ final class Surface {
             var lastStyle: Style? = nil
             for x in 0..<width {
                 let cell = cells[y * width + x]
+                if cell.ch == Self.wideFiller { continue }
                 if lastStyle != cell.style {
                     out += cell.style.sgr(trueColour: trueColour)
                     lastStyle = cell.style

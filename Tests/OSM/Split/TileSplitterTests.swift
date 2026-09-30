@@ -179,6 +179,35 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertNil(table.get(50))
     }
 
+    func testATableOutOfNamesForItsSetsSaysSoRatherThanTrapping() {
+        // A plain set is read by its own flag first, so its index has 15 bits, less the
+        // one value that would spell `outside`; a set past 16384 is still a set.
+        let table = TileSplitter.NodeAreas(expecting: 4)
+        for i in 0..<32767 {
+            let set = [UInt16(i & 0xFFF), UInt16(i >> 12) + 0x1000]
+            let value = table.intern(set)
+            XCTAssertNotEqual(value, TileSplitter.NodeAreas.outside)
+            XCTAssertEqual(table.areas(of: value), set, "set \(i) reads back as itself")
+        }
+        XCTAssertFalse(table.overflowed)
+        XCTAssertEqual(table.intern([1, 2, 3, 4, 5]), TileSplitter.NodeAreas.outside)
+        XCTAssertTrue(table.overflowed)
+    }
+
+    func testATableOutOfNamesForItsBandSetsSaysSoRatherThanTrapping() {
+        // A band set has 14 bits: the next one used to be a precondition.
+        let table = TileSplitter.NodeAreas(expecting: 4)
+        for i in 0..<16384 {
+            let strict = [UInt16(i & 0xFFF)], shape = [UInt16(i & 0xFFF), UInt16(i >> 12) + 0x1000]
+            let value = table.internBand(strict: strict, shape: shape)
+            XCTAssertEqual(value & TileSplitter.NodeAreas.flags, TileSplitter.NodeAreas.bandFlag)
+            XCTAssertEqual(table.shapeAreas(of: value), shape, "band set \(i) reads back as itself")
+        }
+        XCTAssertFalse(table.overflowed)
+        XCTAssertEqual(table.internBand(strict: [1], shape: [1, 2, 3, 4, 5]), TileSplitter.NodeAreas.outside)
+        XCTAssertTrue(table.overflowed)
+    }
+
     func testAnIDStoredTwiceAnswersWithTheLaterOne() {
         // The same node in the overlap of two extracts: the later value wins.
         let table = TileSplitter.NodeAreas(expecting: 4)

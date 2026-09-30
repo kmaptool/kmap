@@ -49,10 +49,14 @@ struct PartFiles {
             }
             try FileTools.move(parts[0], to: destination)
         } else {
-            guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {
-                throw DownloadError.io("could not create \(destination.lastPathComponent)")
+            let out: FileHandle
+            do {
+                out = try FileTools.openForWriting(destination, appending: false)
+            } catch {
+                throw DownloadError.io(
+                    "could not create \(destination.lastPathComponent): \(error.localizedDescription)"
+                )
             }
-            let out = try FileHandle(forWritingTo: destination)
             defer { try? out.close() }
             for url in parts {
                 let input = try FileHandle(forReadingFrom: url)

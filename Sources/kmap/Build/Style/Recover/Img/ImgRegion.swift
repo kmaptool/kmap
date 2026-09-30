@@ -304,6 +304,8 @@ extension ImgElements {
 
         /// The attribute bytes an extended element may carry after its geometry - read
         /// past, the way mkgmap reads them, because their length is in their first byte.
+        /// The three tests are mkgmap's own (RGNFileReader.extractExtraBytes), in its
+        /// order: the second and third never fire, and neither do they there.
         private func skipExtraBytes(_ r: inout Bytes, tile: String) throws {
             guard r.position < data.count else { throw Trouble.malformed(tile, "extra bytes past the end") }
             let b1 = r.u8()

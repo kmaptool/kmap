@@ -121,7 +121,38 @@ final class MakeGPITests: XCTestCase {
             found.take(part)
             part.clear()
         }
-        return try found.resolve(url: url)
+        return try found.resolve(urls: [url])
+    }
+
+    func testTwoOverlappingExtractsWriteABorderPointOnce() throws {
+        // Geofabrik regions overlap at their borders: a joined map reads the same
+        // described node from each extract, and the .gpi must carry it once.
+        var urls: [URL] = []
+        for name in ["a", "b"] {
+            let url = directory.appendingPathComponent("\(name).osm.pbf")
+            let writer = try PBFWriter(to: url)
+            writer.header()
+            writer.nodes([
+                PBFWriter.Node(
+                    id: 1,
+                    lat: 44.5,
+                    lon: 33.5,
+                    tags: [("tourism", "viewpoint"), ("name", "Ай-Петри"), ("description", "вид на море и горы")]
+                ),
+                PBFWriter.Node(
+                    id: name == "a" ? 2 : 3,
+                    lat: 44.6,
+                    lon: 33.6,
+                    tags: [("natural", "spring"), ("name", name), ("description", "вода круглый год")]
+                )
+            ])
+            try writer.finish()
+            urls.append(url)
+        }
+        var gpi = MakeGPI(sources: urls, destination: directory.appendingPathComponent("out.gpi"))
+        gpi.codepage = "cp1251"
+        let report = try gpi.run()
+        XCTAssertEqual(report.written, 3, "the shared point once, the two others each")
     }
 
     func testADescribedNodeBecomesAPoint() throws {

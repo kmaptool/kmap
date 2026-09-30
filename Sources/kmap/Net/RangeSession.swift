@@ -69,11 +69,7 @@ final class RangeSession: Sendable {
         }
 
         Paths.ensure(part.url.deletingLastPathComponent())
-        if !FileManager.default.fileExists(atPath: part.url.path) {
-            _ = FileManager.default.createFile(atPath: part.url.path, contents: nil)
-        }
-        let handle = try FileHandle(forWritingTo: part.url)
-        try handle.seekToEnd()
+        let handle = try FileTools.openForWriting(part.url)
 
         let task = session.dataTask(with: request)
         try await withTaskCancellationHandler {

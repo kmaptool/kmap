@@ -228,6 +228,15 @@ final class TypDecompilerTests: XCTestCase {
         XCTAssertEqual(section.picture?.pixels()?[1].first ?? "x", String?.none)
     }
 
+    func testATrueColourIconWithNoPaletteIsLeftOutWithTheNote() throws {
+        // A zero colour count means one RGB a pixel; the text form has no way to write
+        // it, and a point section with no Xpm is refused by the compiler.
+        let image = TypBinary.PointImage(width: 2, height: 2, palette: [], pixels: [[0, 0], [0, 0]])
+        let source = roundTrip(binary([element(.point, type: 0x2b, colours: [], dayImage: image)]))
+        XCTAssertNil(source.section(.point, 0x2b00))
+        XCTAssertTrue(source.text.contains("left out"), "the header says what was dropped")
+    }
+
     func testAPointIconKeepsItsSizeAndPalette() throws {
         let image = TypBinary.PointImage(
             width: 3,

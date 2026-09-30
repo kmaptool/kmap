@@ -13,7 +13,11 @@ extension CLI {
     nonisolated(unsafe) private static var interrupted = false
 
     private static func interrupt() {
-        if interrupted { exit(CLIOutput.Exit.cancelled) }
+        if interrupted {
+            // `exit` skips the defer that puts the console's code page back.
+            ConsoleCodePage.restoreFound()
+            exit(CLIOutput.Exit.cancelled)
+        }
         interrupted = true
         onInterrupt?()
     }

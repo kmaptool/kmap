@@ -38,6 +38,16 @@ enum Win32File {
         (error as? Failure).map { isTransient($0.code) } ?? false
     }
 
+    /// The same question of an error Foundation raised: it keeps the system's code in
+    /// the underlying error, whatever domain it files it under.
+    static func foundationErrorIsTransient(_ error: Error) -> Bool {
+        if isTransient(error) { return true }
+        let underlying = (error as NSError).userInfo[NSUnderlyingErrorKey] as? NSError
+        if let code = underlying?.code, isTransient(DWORD(clamping: code)) { return true }
+        let cocoa = (error as NSError).code
+        return cocoa == CocoaError.fileWriteNoPermission.rawValue || cocoa == CocoaError.fileLocking.rawValue
+    }
+
     // MARK: Writing
 
     /// Writes `data` beside `url` into a temporary file nobody else may open, then renames

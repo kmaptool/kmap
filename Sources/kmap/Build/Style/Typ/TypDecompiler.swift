@@ -10,7 +10,10 @@ enum TypDecompiler {
     /// than given an invented colour: a section with no `Xpm` is refused by the compiler,
     /// and a type with no section is left for the device to draw its own way.
     static func isUsable(_ element: TypBinary.Element) -> Bool {
-        if element.dayImage != nil || element.bitmap != nil { return true }
+        // A true-colour icon carries no palette, and the text form has no way to write
+        // one: dropped with the note rather than written as a point with no picture.
+        if let image = element.dayImage, !image.palette.isEmpty { return true }
+        if element.bitmap != nil { return true }
         return element.colours.contains { $0 != nil }
     }
 

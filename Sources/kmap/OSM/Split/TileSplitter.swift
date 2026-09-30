@@ -68,11 +68,13 @@ final class TileSplitter {
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case empty
         case tooManyAreas(Int)
+        case tooManyTileSets
 
         var description: String {
             switch self {
             case .empty: "the extract holds no nodes"
             case .tooManyAreas(let n): "the split needs \(n) tiles, which is past every limit"
+            case .tooManyTileSets: "the tiles meet in more ways than a split can name; build the region in parts"
             }
         }
     }
@@ -256,6 +258,7 @@ final class TileSplitter {
             }
             nodes.markFileEnd()
         }
+        guard !nodes.overflowed else { throw Trouble.tooManyTileSets }
         nodes.seal()
         return Assignment(nodes: nodes, total: nodes.count)
     }

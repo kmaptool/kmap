@@ -50,8 +50,7 @@ final class LogFile: LogSink {
 
     init?(at url: URL) {
         Paths.ensure(url.deletingLastPathComponent())
-        _ = FileManager.default.createFile(atPath: url.path, contents: nil)
-        guard let handle = try? FileHandle(forWritingTo: url) else { return nil }
+        guard let handle = try? FileTools.openForWriting(url, appending: false) else { return nil }
         self.handle = handle
     }
 

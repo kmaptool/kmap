@@ -136,12 +136,13 @@ extension BuildPipeline {
     /// an OSM description; the map's own POI records have no description field.
     /// Best-effort: a failure warns and leaves the build successful.
     private func writeCustomPOIs(to directory: URL) async {
-        let extract = Paths.cachedExtract(forRegion: recipe.region.id)
-        guard FileTools.exists(extract) else { return }
+        // Every region of a joined map, not the first alone.
+        let extracts = recipe.regions.map { Paths.cachedExtract(forRegion: $0.id) }.filter(FileTools.exists)
+        guard !extracts.isEmpty else { return }
         let destination = directory.appendingPathComponent("\(recipe.slug).gpi")
 
         log.step("writing custom POIs with descriptions")
-        var gpi = MakeGPI(source: extract, destination: destination)
+        var gpi = MakeGPI(sources: extracts, destination: destination)
         // The same code page the map is built with, or the labels come out as `?`.
         switch recipe.codePage {
         case 1251: gpi.codepage = "cp1251"

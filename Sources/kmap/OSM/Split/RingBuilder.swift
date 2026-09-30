@@ -15,32 +15,49 @@ extension TileSplitter {
             refs: [Int64: [Int64]],
             coords: [Int64: (lat: Int32, lon: Int32)]
         ) -> RingBuilder {
-            // Chains of node ids, joined by shared endpoints, either direction.
-            var pieces: [[Int64]] = ways.compactMap { refs[$0] }.filter { $0.count >= 2 }
+            // Chains of node ids, joined by shared endpoints, either direction. The last
+            // piece seeds a chain, and the lowest-numbered piece sharing an end with it
+            // joins on, until none does: the same order a full scan gave, found through
+            // an index of ends, and grown at the front without moving the whole chain.
+            let pieces: [[Int64]] = ways.compactMap { refs[$0] }.filter { $0.count >= 2 }
+            var byEnd: [Int64: [Int]] = [:]
+            for (index, piece) in pieces.enumerated() {
+                byEnd[piece[0], default: []].append(index)
+                if piece[piece.count - 1] != piece[0] { byEnd[piece[piece.count - 1], default: []].append(index) }
+            }
+            var alive = [Bool](repeating: true, count: pieces.count)
             var closedIDs: [[Int64]] = []
             var open: [[Int64]] = []
-            while var chain = pieces.popLast() {
-                var grew = true
-                while grew {
-                    grew = false
-                    if chain.first == chain.last { break }
-                    for (index, piece) in pieces.enumerated() {
-                        if piece.first == chain.last {
-                            chain.append(contentsOf: piece.dropFirst())
-                        } else if piece.last == chain.last {
-                            chain.append(contentsOf: piece.reversed().dropFirst())
-                        } else if piece.last == chain.first {
-                            chain.insert(contentsOf: piece.dropLast(), at: 0)
-                        } else if piece.first == chain.first {
-                            chain.insert(contentsOf: piece.reversed().dropLast(), at: 0)
-                        } else {
-                            continue
-                        }
-                        pieces.remove(at: index)
-                        grew = true
-                        break
+            var seed = pieces.count - 1
+            while seed >= 0 {
+                guard alive[seed] else { seed -= 1; continue }
+                alive[seed] = false
+                // The chain is `head` reversed, then `body`.
+                var head: [Int64] = []
+                var body = pieces[seed]
+                seed -= 1
+                while true {
+                    let first = head.last ?? body[0]
+                    let last = body[body.count - 1]
+                    if first == last { break }
+                    var next = Int.max
+                    for id in [last, first] {
+                        for index in byEnd[id] ?? [] where alive[index] && index < next { next = index }
                     }
+                    guard next != Int.max else { break }
+                    let piece = pieces[next]
+                    if piece.first == last {
+                        body.append(contentsOf: piece.dropFirst())
+                    } else if piece.last == last {
+                        body.append(contentsOf: piece.reversed().dropFirst())
+                    } else if piece.last == first {
+                        head.append(contentsOf: piece.dropLast().reversed())
+                    } else {
+                        head.append(contentsOf: piece.dropFirst())
+                    }
+                    alive[next] = false
                 }
+                let chain = head.reversed() + body
                 if chain.first == chain.last && chain.count > 3 {
                     closedIDs.append(chain)
                 } else {

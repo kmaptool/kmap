@@ -34,6 +34,7 @@ extension BuildPipeline {
         // is only the backstop for a source that returned without reaching that point.
         elevationDownloadsFinished()
         elevationBuildStarted("preparing")
+        forgetDEMSearchPaths()
 
         let contourDir = workDirectory.appendingPathComponent("contours", isDirectory: true)
         FileTools.removeIfPresent(contourDir)
