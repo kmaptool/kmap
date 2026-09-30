@@ -71,3 +71,13 @@ struct Dialog {
         return .none
     }
 }
+
+extension Optional where Wrapped == Dialog {
+    /// Routes a key to the open dialog, if any. An answer closes it; nil when none is up.
+    mutating func take(_ key: KeyEvent) -> Dialog.Outcome? {
+        guard var open = self else { return nil }
+        let outcome = open.handle(key)
+        self = outcome == .none ? open : nil
+        return outcome
+    }
+}

@@ -17,10 +17,10 @@ extension CLI {
         static let heapGB = 1...512
         static let memoryGB = 1...4096
         static let connections = 1...PartFiles.maxParts
-        static let parts = 1...64
+        static let parts = 1...SplitMode.mostParts
         static let contourInterval = 1...1000
         static let nodesPerTile = 100_000...20_000_000
-        static let familyID = 1...65535
+        static let familyID = BuildRecipe.familyIDRange
         static let overlap = 0...BuildChoices.overlapCeiling
         static let repairRadiusMetres = 0.0...50.0
         /// The words `--split` takes, in the spelling `SplitMode.settingsID` stores.

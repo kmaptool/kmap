@@ -165,11 +165,16 @@ struct TypSection {
     }
 
     /// The label for language 0x00, the device's fallback.
-    var englishLabel: String? { label(language: 0x00) }
-    /// The label for language 0x19.
-    var russianLabel: String? { label(language: 0x19) }
+    var englishLabel: String? { label(language: TypLanguage.english) }
+    var russianLabel: String? { label(language: TypLanguage.russian) }
 
     func label(language: Int) -> String? {
         labels.first { $0.language == language }?.text
     }
+}
+
+/// The language codes a TYP numbers its labels with.
+enum TypLanguage {
+    static let english = 0x00
+    static let russian = 0x19
 }

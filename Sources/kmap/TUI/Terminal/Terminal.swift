@@ -23,6 +23,8 @@ final class Terminal {
 
     private var mouseTracking = false
     private var keys: KeyDecoder
+
+    func clearScreen() { output(VT.clear) }
     /// Whether the whole screen is to be drawn again rather than the difference. Read and
     /// cleared by the render loop.
     private var repaintWanted = false

@@ -7,6 +7,9 @@ import Foundation
 /// draws them together, so tiles, their ids and the routing graph are the same either way;
 /// the split decides only what can be installed or left off separately.
 enum SplitMode: Equatable {
+    /// A continent-sized extract cut to fit a card needs this many.
+    static let mostParts = 64
+
     /// As few files as the FAT32 file-size limit allows. Tiles are weighed after they are
     /// compiled rather than estimated.
     case fitCard

@@ -128,7 +128,9 @@ struct BuildRecipe {
     /// The Garmin product identity of this map. Two maps sharing a family id read as one
     /// product and only one is shown. A borrowed TYP's family id is not inherited: mkgmap
     /// rewrites the embedded TYP to whatever `--family-id` says.
-    var familyID: Int = 6324
+    static let defaultFamilyID = 6324
+    static let familyIDRange = 1...65535
+    var familyID: Int = BuildRecipe.defaultFamilyID
 
     /// Tile ids are `familyID x 10000 + n`, the convention Garmin's own products follow.
     /// Distinct per map, so two maps never claim the same tiles.

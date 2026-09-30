@@ -1,0 +1,244 @@
+import Foundation
+
+/// Watches a running build: stage list on top, live output below.
+final class BuildScreen: Screen {
+    var page: Page {
+        // The primary region plus a count: several names overflow the bar.
+        let extra = pipeline.recipe.extraRegions.count
+        return Page(t("build"), subject: pipeline.recipe.region.name + (extra > 0 ? " +\(extra)" : ""), keys: keys)
+    }
+
+    private var keys: [Hint] {
+        let snapshot = pipeline.snapshot()
+        let detail = Hint(key: "v", label: showingDetail ? t("hide detail") : t("detail"))
+        if snapshot.finished {
+            var hints = [Hint(key: Glyph.enter, label: t("done"))]
+            if Platform.canReveal { hints.append(Hint(key: "o", label: Platform.revealLabel())) }
+            hints += [Hint(key: "l", label: t("library")), Hint(key: "↑↓", label: t("scroll log")), detail]
+            return hints
+        }
+        return [Hint(key: "^C", label: t("cancel build")), Hint(key: "↑↓", label: t("scroll log")), detail]
+    }
+
+    private static let titleColumns = 24
+    private static let detailColumn = 26
+    private static let leastWidthForBars = 60
+    private static let barWidth = 10...24
+    private static let roomAfterBar = 30
+
+    private let pipeline: BuildPipeline
+    private var started = false
+    private var logScroll = 0
+    /// Whether the pane shows what the tools printed as well as what kmap says.
+    private var showingDetail = false
+
+    init(pipeline: BuildPipeline) {
+        self.pipeline = pipeline
+    }
+
+    func tick(_ ctx: AppContext) {
+        guard !started else { return }
+        started = true
+        pipeline.start()
+    }
+
+    func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        let snapshot = pipeline.snapshot()
+        switch key.command {
+        case .ctrl("c"):
+            if snapshot.finished { return .quit }
+            pipeline.cancel()
+        case .up, .char("k"): logScroll += 1
+        case .down, .char("j"): logScroll = max(0, logScroll - 1)
+        case .pageUp: logScroll += ListState.pageStep
+        case .pageDown: logScroll = max(0, logScroll - ListState.pageStep)
+        case .end: logScroll = 0
+        case .char("v"): showingDetail.toggle()
+        case .enter:
+            if snapshot.finished { return .popToRoot }
+        case .char("o"):
+            // Reveal rather than open: the next step is copying the file to the device.
+            if snapshot.finished, let first = snapshot.outputs.first { Reveal.show(first.url) }
+        case .char("l"):
+            if snapshot.finished { return .replace(LibraryScreen()) }
+        case .esc:
+            // Only once the work is over: a running pipeline would be unreachable.
+            if snapshot.finished { return .popToRoot }
+        default: break
+        }
+        return .none
+    }
+
+    func render(into s: Surface, rect: Rect, ctx: AppContext) {
+        let theme = ctx.theme
+        let snapshot = pipeline.snapshot()
+        var y = rect.y
+        renderOverallBar(snapshot, into: s, rect: rect, ctx: ctx, theme: theme, y: &y)
+        renderStages(snapshot, into: s, rect: rect, ctx: ctx, theme: theme, y: &y)
+        y += 1
+        renderResult(snapshot, into: s, rect: rect, theme: theme, y: &y)
+        renderLog(into: s, rect: rect, theme: theme, y: &y)
+    }
+
+    private func renderOverallBar(
+        _ snapshot: BuildPipeline.Snapshot,
+        into s: Surface,
+        rect: Rect,
+        ctx: AppContext,
+        theme: Theme,
+        y: inout Int
+    ) {
+        let elapsed = (snapshot.finishedAt ?? Date()).timeIntervalSince(snapshot.startedAt)
+        let headline: String
+        let tone: Color
+        if snapshot.failure != nil {
+            headline = t("failed")
+            tone = theme.danger
+        } else if snapshot.cancelled {
+            headline = t("cancelled")
+            tone = theme.warn
+        } else if snapshot.finished {
+            headline = t("done")
+            tone = theme.ok
+        } else {
+            headline = t("building %@", String(Widgets.spinner(ctx.frame)))
+            tone = theme.accent
+        }
+        s.text(rect.x, y, headline, Style(fg: tone, bg: theme.appBg, bold: true))
+        s.textRight(rect.maxX, y, Fmt.duration(elapsed), Style(fg: theme.dim, bg: theme.appBg))
+        y += 1
+        Widgets.progressBar(
+            s,
+            x: rect.x,
+            y: y,
+            width: rect.w,
+            fraction: snapshot.overall,
+            theme: theme,
+            fillColor: tone
+        )
+        y += 2
+    }
+
+    /// One row per stage: marker, title, and either its bar or its detail line.
+    private func renderStages(
+        _ snapshot: BuildPipeline.Snapshot,
+        into s: Surface,
+        rect: Rect,
+        ctx: AppContext,
+        theme: Theme,
+        y: inout Int
+    ) {
+        for stage in snapshot.stages {
+            guard y < rect.maxY - 4 else { break }
+            let (marker, markerTone) = marker(for: stage.status, theme: theme, frame: ctx.frame)
+            // A stage that runs beside the others: a rule down the gutter and an indent.
+            let indent = stage.id.runsBeside ? 2 : 0
+            if stage.id.runsBeside {
+                s.put(rect.x, y, Glyph.v, Style(fg: theme.rule, bg: theme.appBg))
+            }
+            s.text(rect.x + indent, y, marker, Style(fg: markerTone, bg: theme.appBg))
+            let quiet = stage.status == .pending || stage.status == .skipped
+            s.text(
+                rect.x + indent + 2,
+                y,
+                stage.id.title,
+                Style(fg: quiet ? theme.faint : theme.text, bg: theme.appBg, bold: stage.status == .running),
+                limit: max(0, Self.titleColumns - indent)
+            )
+
+            let detailX = rect.x + Self.detailColumn
+            if stage.status == .running, let fraction = stage.fraction, rect.w > Self.leastWidthForBars {
+                let barWidth = min(
+                    Self.barWidth.upperBound,
+                    max(Self.barWidth.lowerBound, rect.w - detailX - Self.roomAfterBar)
+                )
+                Widgets.progressBar(s, x: detailX, y: y, width: barWidth, fraction: fraction, theme: theme)
+                s.text(
+                    detailX + barWidth + 2,
+                    y,
+                    truncate(stage.detail, to: max(0, rect.maxX - detailX - barWidth - 2)),
+                    Style(fg: theme.dim, bg: theme.appBg)
+                )
+            } else if !stage.detail.isEmpty {
+                s.text(
+                    detailX,
+                    y,
+                    truncate(stage.detail, to: max(0, rect.maxX - detailX)),
+                    Style(fg: stage.status == .running ? theme.dim : theme.faint, bg: theme.appBg)
+                )
+            }
+            y += 1
+        }
+    }
+
+    private func marker(for status: BuildPipeline.StageStatus, theme: Theme, frame: Int) -> (String, Color) {
+        switch status {
+        case .pending: return ("·", theme.faint)
+        case .running: return (String(Widgets.spinner(frame)), theme.accent)
+        case .done: return (String(Glyph.check), theme.ok)
+        case .skipped: return ("–", theme.faint)
+        case .failed: return (String(Glyph.cross), theme.danger)
+        }
+    }
+
+    /// The failure, or the finished outputs and where they landed.
+    private func renderResult(
+        _ snapshot: BuildPipeline.Snapshot,
+        into s: Surface,
+        rect: Rect,
+        theme: Theme,
+        y: inout Int
+    ) {
+        if let failure = snapshot.failure {
+            y = s.paragraph(
+                failure,
+                x: rect.x,
+                y: y,
+                width: rect.w,
+                style: Style(fg: theme.danger, bg: theme.appBg),
+                maxY: rect.maxY - 2
+            )
+            y += 1
+        } else if snapshot.finished && !snapshot.outputs.isEmpty {
+            s.sectionRule(
+                rect,
+                y,
+                t("output"),
+                labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+                ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+            )
+            y += 1
+            for output in snapshot.outputs {
+                guard y < rect.maxY - 2 else { break }
+                s.text(rect.x, y, output.name, Style(fg: theme.ok, bg: theme.appBg, bold: true))
+                s.textRight(rect.maxX, y, Fmt.bytes(output.size), Style(fg: theme.dim, bg: theme.appBg))
+                y += 1
+            }
+            guard y < rect.maxY - 1 else { return }
+            s.text(
+                rect.x,
+                y,
+                Paths.display(pipeline.recipe.destinationDirectory),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
+            y += 2
+        }
+    }
+
+    /// The log, scrolled back however far the person has gone.
+    private func renderLog(into s: Surface, rect: Rect, theme: Theme, y: inout Int) {
+        guard y < rect.maxY - 1 else { return }
+        s.sectionRule(
+            rect,
+            y,
+            logScroll > 0 ? t("output") + " · " + t("scrolled back %d", logScroll) : t("output"),
+            labelStyle: Style(fg: theme.dim, bg: theme.appBg),
+            ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
+        )
+        y += 1
+        let logRect = Rect(x: rect.x, y: y, w: rect.w, h: max(0, rect.maxY - y))
+        let lines = pipeline.log.snapshot().filter { showingDetail || $0.severity > .debug }
+        logScroll = min(logScroll, max(0, lines.count - 1))
+        Widgets.logPane(s, rect: logRect, lines: lines, theme: theme, scrollOffset: logScroll)
+    }
+}
