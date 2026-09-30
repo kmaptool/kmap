@@ -21,44 +21,8 @@ final class PBFRewriterTests: XCTestCase {
 
     private func path(_ name: String) -> URL { directory.appendingPathComponent(name) }
 
-    private struct Collected: OSMSink {
-        var nodes: [(id: Int64, lat: Double, lon: Double, tags: [(String, String)])] = []
-        var ways: [(id: Int64, refs: [Int64], tags: [(String, String)])] = []
-
-        mutating func node(
-            id: Int64,
-            lat: Double,
-            lon: Double,
-            tags: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            var pairs: [(String, String)] = []
-            var i = tags.startIndex
-            while i + 1 < tags.endIndex {
-                pairs.append((block.text(Int(tags[i])), block.text(Int(tags[i + 1]))))
-                i += 2
-            }
-            nodes.append((id, lat, lon, pairs))
-        }
-
-        mutating func way(
-            id: Int64,
-            refs: ArraySlice<Int64>,
-            keys: ArraySlice<Int32>,
-            values: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            ways.append(
-                (
-                    id, Array(refs),
-                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
-                )
-            )
-        }
-    }
-
-    private func read(_ url: URL) throws -> Collected {
-        var collected = Collected()
+    private func read(_ url: URL) throws -> CollectedElements {
+        var collected = CollectedElements()
         try PBFReader(url: url).read(into: &collected)
         return collected
     }
@@ -268,22 +232,67 @@ final class PBFRewriterTests: XCTestCase {
 
         // A PBF is read front to back and mkgmap wants every node before the ways that
         // name it: the contour nodes must land before the contour way.
-        let lastNode = after.nodes.count
-        _ = lastNode
-        XCTAssertEqual(after.ways.last?.id, 6_000_000)
+        var order = ElementSequence()
+        try PBFReader(url: out).read(into: &order)
+        XCTAssertTrue(order.nodesPrecedeWays, "a node after the first way")
+        XCTAssertEqual(order.seen.last?.id, 6_000_000)
+    }
+
+    /// A block holding nodes as well as ways, which other tools write. The added nodes
+    /// go after the block's own nodes and before its ways, so ids still ascend and every
+    /// node still precedes every way.
+    func testAMixedBlockKeepsTheAddedNodesBetweenItsNodesAndItsWays() throws {
+        let source = path("mixed.osm.pbf")
+        let block = PBFBytes.mixedBlock(
+            nodes: [(1, 44.5, 33.5), (2, 44.6, 33.5), (3, 44.7, 33.5)],
+            ways: [(10, [1, 2, 3])]
+        )
+        try FileTools.write(
+            Data(PBFBytes.rawBlob(kind: "OSMHeader", payload: []) + PBFBytes.rawBlob(kind: "OSMData", payload: block)),
+            to: source
+        )
+        let contours = path("contours.osm.pbf")
+        let writer = try PBFWriter(to: contours)
+        writer.header()
+        writer.nodes([PBFWriter.Node(id: 5_000_001, lat: 44.6, lon: 33.6, tags: [])])
+        writer.ways([PBFWriter.Way(id: 6_000_000, refs: [5_000_001], tags: [("contour", "elevation")])])
+        try writer.finish()
+
+        let out = path("out.osm.pbf")
+        var pass = rewriter(source)
+        pass.contours = [contours]
+        _ = try pass.write(to: out)
+
+        var order = ElementSequence()
+        try PBFReader(url: out).read(into: &order)
+        XCTAssertEqual(order.seen.map(\.id), [1, 2, 3, 5_000_001, 10, 6_000_000])
+        XCTAssertTrue(order.nodesPrecedeWays)
     }
 
     // MARK: Files that are wrong
 
-    func testATruncatedExtractIsRefusedRatherThanCrashing() throws {
+    func testATruncatedExtractIsRefusedOrReadShortNeverCrashing() throws {
+        // A cut inside a blob is refused; a cut on a blob boundary is a shorter file, and
+        // the copy then holds no more than the original did.
         let source = try makeExtract(path("in.osm.pbf"))
         let whole = try Data(contentsOf: source)
+        let full = try read(source)
+        var refused = 0
         for cut in stride(from: 4, to: whole.count, by: max(1, whole.count / 12)) {
             let cutURL = path("cut-\(cut).osm.pbf")
-            try whole.prefix(cut).write(to: cutURL)
+            try FileTools.write(whole.prefix(cut), to: cutURL)
             var made = rewriter(cutURL)
-            _ = try? made.write(to: path("out-\(cut).osm.pbf"))
+            let outURL = path("out-\(cut).osm.pbf")
+            do {
+                _ = try made.write(to: outURL)
+                let short = try read(outURL)
+                XCTAssertLessThanOrEqual(short.nodes.count, full.nodes.count)
+                XCTAssertLessThanOrEqual(short.ways.count, full.ways.count)
+            } catch {
+                refused += 1
+            }
         }
+        XCTAssertGreaterThan(refused, 0, "no cut landed inside a blob")
     }
 
     // MARK: Tidying, on its own
@@ -296,14 +305,19 @@ final class PBFRewriterTests: XCTestCase {
         }
         // The same, but for case and surrounding space.
         XCTAssertEqual(dropped([("name", "Родник"), ("description", " родник ")]).count, 1)
-        // The same but for a full stop -- close enough in length to be the same thing.
+        // The same but for punctuation and spacing.
         XCTAssertEqual(dropped([("name", "Родник"), ("description", "Родник.")]).count, 1)
+        XCTAssertEqual(dropped([("name", "Кафе 24/7"), ("description", "Кафе 24 / 7")]).count, 1)
         // Empty says nothing at all.
         XCTAssertEqual(dropped([("name", "Родник"), ("description", "")]).count, 1)
         // Genuinely more to say, and it stays.
         XCTAssertEqual(dropped([("name", "Родник"), ("description", "вода круглый год")]).count, 2)
-        // Longer by six characters or more is more to say, even if it contains the name.
         XCTAssertEqual(dropped([("name", "Родник"), ("description", "Родник у дороги")]).count, 2)
+        // One added word can be the whole point: a dry spring on a hiking map.
+        XCTAssertEqual(dropped([("name", "Родник"), ("description", "Родник сух")]).count, 2)
+        XCTAssertEqual(dropped([("name", "Кафе"), ("description", "Кафе 24/7")]).count, 2)
+        // Less than the name is not the name either.
+        XCTAssertEqual(dropped([("name", "Родник Святой"), ("description", "Родник")]).count, 2)
         // No name, nothing to compare against.
         XCTAssertEqual(dropped([("description", "Родник")]).count, 1)
         // An empty name is no name.
@@ -311,6 +325,9 @@ final class PBFRewriterTests: XCTestCase {
         // The language-tagged pairs travel together.
         XCTAssertEqual(dropped([("name:ru", "Родник"), ("description:ru", "Родник")]).count, 1)
         XCTAssertEqual(dropped([("name", "Spring"), ("description:en", "spring")]).count, 1)
+        // `name` is measured against first, whatever order the tags come in.
+        XCTAssertEqual(dropped([("name:ru", "Родник"), ("name", "Spring"), ("description", "Родник")]).count, 3)
+        XCTAssertEqual(dropped([("name:ru", "Родник"), ("name", "Spring"), ("description", "Spring")]).count, 2)
         // Other tags are never touched.
         XCTAssertEqual(
             dropped([

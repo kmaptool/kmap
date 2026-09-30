@@ -23,85 +23,20 @@ final class PBFReaderTests: XCTestCase {
         directory.appendingPathComponent(name)
     }
 
-    private struct Collected: OSMSink {
-        var nodes: [(id: Int64, lat: Double, lon: Double, tags: [(String, String)])] = []
-        var ways: [(id: Int64, refs: [Int64], tags: [(String, String)])] = []
-        var relations: [(id: Int64, kinds: [Int32], ids: [Int64], roles: [String])] = []
-
-        mutating func node(
-            id: Int64,
-            lat: Double,
-            lon: Double,
-            tags: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            var pairs: [(String, String)] = []
-            var i = tags.startIndex
-            while i + 1 < tags.endIndex {
-                pairs.append((block.text(Int(tags[i])), block.text(Int(tags[i + 1]))))
-                i += 2
-            }
-            nodes.append((id, lat, lon, pairs))
-        }
-
-        mutating func way(
-            id: Int64,
-            refs: ArraySlice<Int64>,
-            keys: ArraySlice<Int32>,
-            values: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            ways.append(
-                (
-                    id, Array(refs),
-                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
-                )
-            )
-        }
-
-        mutating func relation(
-            id: Int64,
-            memberKinds: ArraySlice<Int32>,
-            memberIDs: ArraySlice<Int64>,
-            memberRoles: ArraySlice<Int32>,
-            keys: ArraySlice<Int32>,
-            values: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            relations.append(
-                (
-                    id, Array(memberKinds), Array(memberIDs),
-                    memberRoles.map { block.text(Int($0)) }
-                )
-            )
-        }
-    }
-
     @discardableResult
-    private func read(_ url: URL) throws -> Collected {
-        var collected = Collected()
+    private func read(_ url: URL) throws -> CollectedElements {
+        var collected = CollectedElements()
         try PBFReader(url: url).read(into: &collected)
         return collected
     }
 
     // MARK: Building a file by hand
 
-    /// A blob carrying its payload uncompressed, as the format allows.
     private func rawBlob(kind: String, payload: [UInt8]) -> [UInt8] {
-        var blob = ProtoWriter()
-        blob.bytesField(1, payload)  // raw
-        var header = ProtoWriter()
-        header.stringField(1, kind)
-        header.varintField(3, Int64(blob.bytes.count))
-        return framed(header: header.bytes) + blob.bytes
+        PBFBytes.rawBlob(kind: kind, payload: payload)
     }
 
-    private func framed(header: [UInt8]) -> [UInt8] {
-        var big = UInt32(header.count).bigEndian
-        var out: [UInt8] = []
-        withUnsafeBytes(of: &big) { out.append(contentsOf: $0) }
-        return out + header
-    }
+    private func framed(header: [UInt8]) -> [UInt8] { PBFBytes.framed(header: header) }
 
     /// A PrimitiveBlock with one dense node whose tag run is given verbatim.
     private func blockWithDenseTags(_ keysVals: [Int64], strings: [String]) -> [UInt8] {
@@ -189,25 +124,25 @@ final class PBFReaderTests: XCTestCase {
         XCTAssertEqual(out.nodes.map(\.id), Array(1...4000))
     }
 
-    func testManyBlocksSurviveTheWholeWayRound() throws {
-        // Past any batching the reader does inside, with tags so the string tables differ.
+    /// Forty blocks, past any batching the reader does inside, with tags so the string
+    /// tables differ.
+    private func manyBlocks() throws -> URL {
         let url = path("many.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
         for batch in 0..<40 {
             writer.nodes(
                 (0..<2000).map { i in
-                    PBFWriter.Node(
-                        id: Int64(batch * 2000 + i + 1),
-                        lat: 45,
-                        lon: 33,
-                        tags: [("block", "\(batch)")]
-                    )
+                    PBFWriter.Node(id: Int64(batch * 2000 + i + 1), lat: 45, lon: 33, tags: [("block", "\(batch)")])
                 }
             )
         }
         try writer.finish()
-        let out = try read(url)
+        return url
+    }
+
+    func testManyBlocksSurviveTheWholeWayRound() throws {
+        let out = try read(try manyBlocks())
         XCTAssertEqual(out.nodes.count, 80_000)
         XCTAssertEqual(out.nodes[0].tags.map(\.1), ["0"])
         XCTAssertEqual(out.nodes[79_999].tags.map(\.1), ["39"])
@@ -306,6 +241,66 @@ final class PBFReaderTests: XCTestCase {
         let url = path("longheader.osm.pbf")
         try write([0x7F, 0xFF, 0xFF, 0xFF, 1, 2, 3], to: url)
         XCTAssertThrowsError(try read(url))
+    }
+
+    func testABlobSizePastAnyIntIsRefusedRatherThanOverflowing() throws {
+        // The datasize inside the header, not the header length: it clamps to Int.max,
+        // and added to an offset that would trap.
+        let url = path("hugesize.osm.pbf")
+        var header = ProtoWriter()
+        header.stringField(PBFSchema.blobHeaderKind, "OSMData")
+        header.varintField(PBFSchema.blobHeaderSize, Int64(bitPattern: UInt64.max))
+        try write(framed(header: header.bytes) + [0], to: url)
+        XCTAssertThrowsError(try read(url))
+        XCTAssertNil(try? PBFReader(url: url).headerBBox())
+    }
+
+    func testRandomDamageNeverCrashesTheReader() throws {
+        // A few thousand mutations of a real file: bytes replaced, inserted and cut.
+        // The reader may refuse each one; it may not trap. The seed is fixed.
+        let url = path("small.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        for batch in 0..<6 {
+            writer.nodes(
+                (0..<300).map {
+                    PBFWriter.Node(id: Int64(batch * 300 + $0 + 1), lat: 45, lon: 33, tags: [("b", "\(batch)")])
+                }
+            )
+            writer.ways([PBFWriter.Way(id: Int64(batch + 1), refs: [1, 2, 3], tags: [("highway", "path")])])
+        }
+        try writer.finish()
+        let whole = [UInt8](try Data(contentsOf: url))
+        var random = SplitMix64(state: 20_260_930)
+        var sink = CollectedElements()
+        var fields = PBFReader.Scratch()
+        var scratch = [UInt8]()
+        for _ in 0..<3000 {
+            var bytes = whole
+            for _ in 0...Int.random(in: 0...2, using: &random) {
+                let at = Int.random(in: 0..<bytes.count, using: &random)
+                switch Int.random(in: 0..<3, using: &random) {
+                case 0: bytes[at] = UInt8.random(in: 0...255, using: &random)
+                case 1: bytes.insert(UInt8.random(in: 0...255, using: &random), at: at)
+                default: bytes.removeSubrange(at..<min(bytes.count, at + Int.random(in: 1...64, using: &random)))
+                }
+            }
+            _ = try? bytes.withUnsafeBytes { file in
+                try PBFReader.forEachBlob(in: file) { _, kind, blob in
+                    guard kind == PBFSchema.dataBlob else { return }
+                    let size = try PBFReader.inflate(blob, into: &scratch)
+                    try scratch.withUnsafeBytes { payload in
+                        try PBFReader.decodeBlock(
+                            UnsafeRawBufferPointer(rebasing: payload[0..<size]),
+                            into: &sink,
+                            fields: &fields
+                        )
+                    }
+                }
+            }
+            sink.nodes.removeAll(keepingCapacity: true)
+            sink.ways.removeAll(keepingCapacity: true)
+        }
     }
 
     func testAPayloadClaimingToInflateToATerabyteIsRefused() throws {
@@ -453,13 +448,13 @@ final class PBFReaderTests: XCTestCase {
         let url = try threeBlobs()
         var reader = PBFReader(url: url)
         reader.shouldStop = { true }
-        var collected = Collected()
+        var collected = CollectedElements()
         XCTAssertThrowsError(try reader.read(into: &collected)) { XCTAssertTrue($0 is CancellationError) }
         XCTAssertTrue(collected.nodes.isEmpty, "nothing was decoded")
-        XCTAssertThrowsError(try reader.readInOrder(make: { Collected() }, apply: { _ in })) {
+        XCTAssertThrowsError(try reader.readInOrder(make: { CollectedElements() }, apply: { _ in })) {
             XCTAssertTrue($0 is CancellationError)
         }
-        XCTAssertThrowsError(try reader.readConcurrently(workers: 2, make: { Collected() })) {
+        XCTAssertThrowsError(try reader.readConcurrently(workers: 2, make: { CollectedElements() })) {
             XCTAssertTrue($0 is CancellationError)
         }
     }
@@ -471,9 +466,49 @@ final class PBFReaderTests: XCTestCase {
         reader.shouldStop = {
             asked += 1; return asked > 1
         }
-        var collected = Collected()
+        var collected = CollectedElements()
         XCTAssertThrowsError(try reader.read(into: &collected))
-        XCTAssertEqual(asked, 2, "the first blob went through, the second was refused")
+        XCTAssertEqual(asked, 2, "the first blob was taken into the batch, the second was refused")
+    }
+
+    // MARK: The readers that use every core
+
+    func testWorkersInOrderReproduceTheFileOrder() throws {
+        let parts = try PBFReader(url: try manyBlocks()).readConcurrently(workers: 3, make: { CollectedElements() })
+        XCTAssertEqual(parts.count, 3)
+        XCTAssertEqual(parts.flatMap(\.nodes).map(\.id), Array(1...80_000))
+    }
+
+    func testAnApplyThatThrowsLeavesNothingRunning() throws {
+        // A throw in the middle of a batch: the batch decoding on the other cores must
+        // be waited for before the mapped file goes. Reliable only under the address
+        // sanitizer; here it checks that the throw comes through as itself.
+        struct Stop: Error {}
+        let url = try manyBlocks()
+        var applied = 0
+        XCTAssertThrowsError(
+            try PBFReader(url: url).readInOrder(make: { CollectedElements() }) { sink in
+                applied += 1
+                if applied == 3 { throw Stop() }
+                sink.nodes.removeAll()
+            }
+        ) { XCTAssertTrue($0 is Stop) }
+        XCTAssertEqual(applied, 3)
+    }
+
+    func testACorruptBlobInTheMiddleFailsEveryReaderRatherThanHanging() throws {
+        let source = try manyBlocks()
+        var bytes = [UInt8](try Data(contentsOf: source))
+        // Well inside a compressed payload past the first batches.
+        let at = bytes.count / 2
+        for i in at..<(at + 32) { bytes[i] = 0xFF }
+        let url = path("corrupt.osm.pbf")
+        try write(bytes, to: url)
+        let reader = PBFReader(url: url)
+        var sink = CollectedElements()
+        XCTAssertThrowsError(try reader.read(into: &sink))
+        XCTAssertThrowsError(try reader.readInOrder(make: { CollectedElements() }, apply: { $0.nodes.removeAll() }))
+        XCTAssertThrowsError(try reader.readConcurrently(workers: 3, make: { CollectedElements() }))
     }
 
     func testACancelledTaskStopsTheReadOnItsOwn() async throws {
@@ -481,7 +516,7 @@ final class PBFReaderTests: XCTestCase {
         let task = Task<Int, Error> {
             // Held until the cancel has landed, so the read starts in a cancelled task.
             while !Task.isCancelled { await Task.yield() }
-            var collected = Collected()
+            var collected = CollectedElements()
             try PBFReader(url: url).read(into: &collected)
             return collected.nodes.count
         }

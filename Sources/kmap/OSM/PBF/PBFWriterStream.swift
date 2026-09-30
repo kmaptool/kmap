@@ -116,22 +116,35 @@ extension PBFWriter {
         withUnsafeBytes(of: &big) { buffer.append(contentsOf: $0) }
     }
 
+    /// Once a write has failed the rest is dropped: the file is lost either way, and
+    /// `finish` reports the first failure.
     private func flush() {
         guard !buffer.isEmpty else { return }
-        handle.write(Data(buffer))
-        buffer.removeAll(keepingCapacity: true)
+        defer { buffer.removeAll(keepingCapacity: true) }
+        guard writeFailure == nil else { return }
+        do {
+            try handle.write(contentsOf: Data(buffer))
+        } catch {
+            writeFailure = error
+        }
     }
 
     /// Finishes the file. Nothing may be written afterwards.
+    /// - Throws: the first write that failed, or the close.
     func finish() throws {
         guard !finished else { return }
         finished = true
         // Drained synchronously, so the file is complete on return.
-        queue.sync {
+        let failure = queue.sync { () -> Error? in
             drain()
             flush()
+            return writeFailure
         }
         Self.live.leave()
+        if let failure {
+            try? handle.close()
+            throw failure
+        }
         try handle.close()
     }
 

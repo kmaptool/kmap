@@ -51,6 +51,9 @@ final class PBFWriter {
     var pending: [Piece] = []
     var buffer: [UInt8] = []
     var finished = false
+    /// The first write that failed, kept for `finish` to throw: a full disk is an
+    /// ordinary event here, not a crash.
+    var writeFailure: Error?
 
     enum Piece {
         /// A blob already compressed by its original writer, passed through unchanged.

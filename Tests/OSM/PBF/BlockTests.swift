@@ -248,6 +248,14 @@ final class BlockTests: XCTestCase {
         XCTAssertEqual(b.wayTags[0].map(\.1), ["track", "gravel"])
     }
 
+    func testAStoredWayDoesNotKeepTheScratchBuffersRoom() {
+        // Both ways decode through one scratch buffer, grown by the first. The second
+        // must be a copy of its two refs, not a share of that buffer.
+        let b = decode(block(ways: [RawWay(id: 1, refs: Array(1...2000)), RawWay(id: 2, refs: [1, 2])]))
+        XCTAssertEqual(b.wayRefs[1], [1, 2])
+        XCTAssertLessThan(b.wayRefs[1].capacity, 64, "a two-node way holding room for two thousand")
+    }
+
     func testAWayWithNoRefsIsStillReported() {
         let b = decode(block(ways: [RawWay(id: 9, refs: [])]))
         XCTAssertEqual(b.wayIDs, [9])

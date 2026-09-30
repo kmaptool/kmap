@@ -1,11 +1,12 @@
 import Foundation
 
 /// A Bloom-style rejection test for a set of OSM ids, sized to stay in cache. It never
-/// says no to an id that is present, and says yes to about one absent id in five hundred,
-/// which costs one lookup in the set behind it.
+/// says no to an id that is present, and says yes to an absent id about once in seventy
+/// to once in three hundred, which costs one lookup in the set behind it.
 struct IDFilter {
-    /// Bits kept per id: sixteen puts the false-yes rate near one in five hundred at two
-    /// probes, for two bytes an id.
+    /// Bits kept per id, before rounding up to a power of two. At two probes, sixteen
+    /// bits give a false-yes rate of (1 - e^(-1/8))^2, about 1/72; the rounding takes it
+    /// as low as 1/270.
     private static let bitsPerID = 16
 
     private var words: [UInt64] = []

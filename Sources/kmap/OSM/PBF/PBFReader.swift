@@ -48,7 +48,7 @@ struct PBFReader {
             at += headerLength
             let blobHeader = Self.blobHeader(header)
             guard blobHeader.kind == PBFSchema.headerBlob,
-                at + blobHeader.size <= file.count
+                blobHeader.size <= file.count - at
             else { return nil }
             let blob = UnsafeRawBufferPointer(rebasing: file[at..<(at + blobHeader.size)])
             let size = try Self.inflate(blob, into: &scratch)
@@ -195,7 +195,8 @@ struct PBFReader {
             at += headerLength
 
             let parsed = blobHeader(header)
-            guard at + parsed.size <= file.count else { throw PBFError.truncated("a blob") }
+            // Subtracted, not added: a clamped length can be Int.max.
+            guard parsed.size <= file.count - at else { throw PBFError.truncated("a blob") }
             let blob = UnsafeRawBufferPointer(rebasing: file[at..<(at + parsed.size)])
             at += parsed.size
             try body(header, parsed.kind, blob)
@@ -229,8 +230,8 @@ struct PBFReader {
         }
     }
 
-    /// Returns a BlobHeader's kind and payload length. The length is clamped so it can be
-    /// added to an offset without trapping; the caller checks it against the file.
+    /// Returns a BlobHeader's kind and payload length. The length is clamped to Int and
+    /// may be Int.max: the caller compares it against the room left, never adds it.
     private static func blobHeader(_ bytes: UnsafeRawBufferPointer) -> (kind: String, size: Int) {
         var kind = ""
         var size = 0

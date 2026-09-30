@@ -28,6 +28,9 @@ extension PBFReader {
             nonisolated(unsafe) let batch = blobs
 
             let group = DispatchGroup()
+            // Whatever is in flight reads the mapped file: a throw below must wait for it
+            // before the mapping goes.
+            defer { group.wait() }
             let pool = DispatchQueue.global(qos: .userInitiated)
 
             /// Decodes one batch of blobs into one half's slots.
@@ -90,13 +93,11 @@ extension PBFReader {
                 for i in 0..<batch.count {
                     if let failure = half.failures[i] {
                         half.failures = [Error?](repeating: nil, count: width)
-                        group.wait()
                         throw failure
                     }
                     try apply(&half.sinks[i])
                 }
             }
-            group.wait()
         }
     }
 

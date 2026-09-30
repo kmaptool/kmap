@@ -23,77 +23,17 @@ final class PBFWriterTests: XCTestCase {
         directory.appendingPathComponent(name)
     }
 
-    /// Everything a written file gave back, in the order the reader handed it over.
-    private struct Collected: OSMSink {
-        var nodes: [(id: Int64, lat: Double, lon: Double, tags: [(String, String)])] = []
-        var ways: [(id: Int64, refs: [Int64], tags: [(String, String)])] = []
-        var relations:
-            [(
-                id: Int64, kinds: [Int32], ids: [Int64], roles: [String],
-                tags: [(String, String)]
-            )] = []
-
-        mutating func node(
-            id: Int64,
-            lat: Double,
-            lon: Double,
-            tags: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            var pairs: [(String, String)] = []
-            var i = tags.startIndex
-            while i + 1 < tags.endIndex {
-                pairs.append((block.text(Int(tags[i])), block.text(Int(tags[i + 1]))))
-                i += 2
-            }
-            nodes.append((id, lat, lon, pairs))
-        }
-
-        mutating func way(
-            id: Int64,
-            refs: ArraySlice<Int64>,
-            keys: ArraySlice<Int32>,
-            values: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            ways.append(
-                (
-                    id, Array(refs),
-                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
-                )
-            )
-        }
-
-        mutating func relation(
-            id: Int64,
-            memberKinds: ArraySlice<Int32>,
-            memberIDs: ArraySlice<Int64>,
-            memberRoles: ArraySlice<Int32>,
-            keys: ArraySlice<Int32>,
-            values: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            relations.append(
-                (
-                    id, Array(memberKinds), Array(memberIDs),
-                    memberRoles.map { block.text(Int($0)) },
-                    zip(keys, values).map { (block.text(Int($0)), block.text(Int($1))) }
-                )
-            )
-        }
-    }
-
     @discardableResult
     private func roundTrip(
         _ write: (PBFWriter) -> Void,
         file: URL? = nil
-    ) throws -> Collected {
+    ) throws -> CollectedElements {
         let url = file ?? path()
         let writer = try PBFWriter(to: url)
         writer.header()
         write(writer)
         try writer.finish()
-        var collected = Collected()
+        var collected = CollectedElements()
         try PBFReader(url: url).read(into: &collected)
         return collected
     }
@@ -352,8 +292,8 @@ final class PBFWriterTests: XCTestCase {
     }
 
     func testAFileLargerThanTheFlushThresholdIsWrittenWhole() throws {
-        // Four megabytes are buffered before the writer touches the disk; this crosses
-        // that threshold several times.
+        // A megabyte is buffered before the writer touches the disk; this crosses that
+        // several times over.
         let url = path("streamed.osm.pbf")
         let out = try roundTrip(
             { writer in
@@ -404,4 +344,25 @@ final class PBFWriterTests: XCTestCase {
         }
         return kinds
     }
+
+    // MARK: When the disk says no
+
+    func testAWriteThatFailsIsReportedByFinishRatherThanCrashing() throws {
+        // The handle is closed underneath the writer, which is what a full disk looks
+        // like from here: the write throws, and the error comes out of finish.
+        let writer = try PBFWriter(to: path("closed.osm.pbf"))
+        writer.header()
+        try writer.handle.close()
+        writer.nodes((1...50_000).map { PBFWriter.Node(id: Int64($0), lat: 45, lon: 33, tags: [("name", "n\($0)")]) })
+        XCTAssertThrowsError(try writer.finish())
+    }
+
+    #if os(Linux)
+    func testAFullDiskIsReportedNotFatal() throws {
+        let writer = try PBFWriter(to: URL(fileURLWithPath: "/dev/full"))
+        writer.header()
+        writer.nodes((1...50_000).map { PBFWriter.Node(id: Int64($0), lat: 45, lon: 33, tags: [("name", "n\($0)")]) })
+        XCTAssertThrowsError(try writer.finish())
+    }
+    #endif
 }

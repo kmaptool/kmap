@@ -165,18 +165,8 @@ struct PBFRewriter {
             try decodeBatch()
         }
 
-        if !addedNodes {
-            tally.contourBlocks += try copyContours(.nodes, into: writer, scratch: &scratch)
-            let batch = inventedNodes()
-            writer.nodes(batch)
-            tally.addedNodes = batch.count
-        }
-        if !addedWays {
-            tally.contourBlocks += try copyContours(.ways, into: writer, scratch: &scratch)
-            let batch = inventedWays()
-            writer.ways(batch)
-            tally.addedWays = batch.count
-        }
+        if !addedNodes { try addNodes(into: writer, tally: &tally, scratch: &scratch) }
+        if !addedWays { try addWays(into: writer, tally: &tally, scratch: &scratch) }
         try writer.finish()
         return tally
     }
@@ -262,17 +252,22 @@ struct PBFRewriter {
         // new ways before the first relation.
         if block.hasWays && !addedNodes {
             addedNodes = true
-            tally.contourBlocks += try copyContours(.nodes, into: writer, scratch: &scratch)
-            let batch = inventedNodes()
-            writer.nodes(batch)
-            tally.addedNodes = batch.count
+            // A block holding nodes as well as ways is written in two parts, so the
+            // file's own nodes stay ahead of the added ones and every node ahead of
+            // the ways.
+            if block.hasNodes {
+                writer.nodes(ready?.nodes ?? block.nodes(movedBy: [:], filter: IDFilter()))
+                try addNodes(into: writer, tally: &tally, scratch: &scratch)
+                writer.ways(ready?.ways ?? block.ways(inserting: [:], merging: [:]))
+                tally.rebuilt += 1
+                count(ready, in: &tally)
+                return
+            }
+            try addNodes(into: writer, tally: &tally, scratch: &scratch)
         }
         if block.hasRelations && !addedWays {
             addedWays = true
-            tally.contourBlocks += try copyContours(.ways, into: writer, scratch: &scratch)
-            let batch = inventedWays()
-            writer.ways(batch)
-            tally.addedWays = batch.count
+            try addWays(into: writer, tally: &tally, scratch: &scratch)
         }
 
         guard let ready, ready.touched else {
@@ -281,10 +276,30 @@ struct PBFRewriter {
             return
         }
         tally.rebuilt += 1
+        count(ready, in: &tally)
+        if let nodes = ready.nodes { writer.nodes(nodes) }
+        if let ways = ready.ways { writer.ways(ways) }
+    }
+
+    private func count(_ ready: Rebuilt?, in tally: inout Tally) {
+        guard let ready else { return }
         tally.tagged += ready.tagged
         tally.dropped += ready.dropped
         tally.marked += ready.marked
-        if let nodes = ready.nodes { writer.nodes(nodes) }
-        if let ways = ready.ways { writer.ways(ways) }
+    }
+
+    /// The contour nodes, then the nodes this pass invents.
+    private mutating func addNodes(into writer: PBFWriter, tally: inout Tally, scratch: inout [UInt8]) throws {
+        tally.contourBlocks += try copyContours(.nodes, into: writer, scratch: &scratch)
+        let batch = inventedNodes()
+        writer.nodes(batch)
+        tally.addedNodes = batch.count
+    }
+
+    private mutating func addWays(into writer: PBFWriter, tally: inout Tally, scratch: inout [UInt8]) throws {
+        tally.contourBlocks += try copyContours(.ways, into: writer, scratch: &scratch)
+        let batch = inventedWays()
+        writer.ways(batch)
+        tally.addedWays = batch.count
     }
 }

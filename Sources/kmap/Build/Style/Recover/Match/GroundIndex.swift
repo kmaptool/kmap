@@ -188,7 +188,7 @@ struct GroundIndex {
             guard kind == GroundIndex.multipolygonType || kind == GroundIndex.boundaryType
             else { return }
             relationTags[id] = tags
-            let kinds = Array(memberKinds), ids = Array(memberIDs), roles = Array(memberRoles)
+            let kinds = memberKinds.exactly, ids = memberIDs.exactly, roles = memberRoles.exactly
             for i in 0..<kinds.count where kinds[i] == 1 {
                 let role = block.text(Int(roles[i]))
                 if role == GroundIndex.innerRole { inner.insert(ids[i]); continue }

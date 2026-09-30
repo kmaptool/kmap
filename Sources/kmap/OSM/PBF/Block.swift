@@ -74,7 +74,8 @@ struct Block: OSMSink {
         block: OSMBlock
     ) {
         wayIDs.append(id)
-        wayRefs.append(Array(refs))
+        // `exactly`: `Array(refs)` would share the decoder's scratch buffer.
+        wayRefs.append(refs.exactly)
         wayTags.append(zip(keys, values).map { (text(Int($0)), text(Int($1))) })
     }
 

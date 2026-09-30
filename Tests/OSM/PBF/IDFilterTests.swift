@@ -47,8 +47,8 @@ final class IDFilterTests: XCTestCase {
     }
 
     func testTheFalseYesRateIsSmallEnoughToBeWorthIt() {
-        // At sixteen bits an id and two probes the expected false-yes rate is near one in
-        // five hundred; the bound below leaves slack.
+        // At sixteen bits an id and two probes the false-yes rate is about 1/72, lower
+        // once the table is rounded up to a power of two; the bound below leaves slack.
         let ids: [Int64] = (0..<20_000).map { Int64($0) * 104_729 }
         let filter = IDFilter(ids)
         let present = Set(ids)

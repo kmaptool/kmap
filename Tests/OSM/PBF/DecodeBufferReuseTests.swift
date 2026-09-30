@@ -167,4 +167,42 @@ final class DecodeBufferReuseTests: XCTestCase {
             "dense tags are not running end to end through one buffer"
         )
     }
+
+    /// A sink that keeps its slices decides whether the buffer stays reusable. `Array(slice)`
+    /// over a whole buffer shares it, so the next refill has to copy; `exactly` does not.
+    func testASinkThatKeepsCopiesDecidesWhetherTheBufferStaysShared() throws {
+        struct Keeps: OSMSink {
+            let exact: Bool
+            var kept: [[Int64]] = []
+            var addresses = Set<UInt>()
+            mutating func node(id: Int64, lat: Double, lon: Double, tags: ArraySlice<Int32>, block: OSMBlock) {}
+            mutating func way(
+                id: Int64,
+                refs: ArraySlice<Int64>,
+                keys: ArraySlice<Int32>,
+                values: ArraySlice<Int32>,
+                block: OSMBlock
+            ) {
+                refs.withUnsafeBufferPointer { if let at = $0.baseAddress { addresses.insert(UInt(bitPattern: at)) } }
+                kept.append(exact ? refs.exactly : Array(refs))
+            }
+            mutating func relation(
+                id: Int64,
+                memberKinds: ArraySlice<Int32>,
+                memberIDs: ArraySlice<Int64>,
+                memberRoles: ArraySlice<Int32>,
+                keys: ArraySlice<Int32>,
+                values: ArraySlice<Int32>,
+                block: OSMBlock
+            ) {}
+        }
+        let url = try fileWithManyWays(2000)
+        var sharing = Keeps(exact: false)
+        try PBFReader(url: url).read(into: &sharing)
+        var copying = Keeps(exact: true)
+        try PBFReader(url: url).read(into: &copying)
+        XCTAssertGreaterThan(sharing.addresses.count, 100, "Array(refs) is expected to take the buffer with it")
+        XCTAssertLessThan(copying.addresses.count, 8, "exactly leaves the buffer to be refilled")
+        XCTAssertEqual(copying.kept.map(\.count), sharing.kept.map(\.count))
+    }
 }
