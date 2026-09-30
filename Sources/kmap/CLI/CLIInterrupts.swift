@@ -1,0 +1,62 @@
+import Foundation
+
+#if os(Windows)
+import WinSDK
+#endif
+
+/// Ctrl+C and a polite kill, routed to the running pipeline rather than the default
+/// action, so child processes are stopped and the output stream ends with its last event.
+/// A second Ctrl+C leaves at once, as a shell user expects when a cancellation hangs.
+extension CLI {
+    /// What an interrupt does: the first cancels, the next one exits.
+    nonisolated(unsafe) private static var onInterrupt: (@Sendable () -> Void)?
+    nonisolated(unsafe) private static var interrupted = false
+
+    private static func interrupt() {
+        if interrupted { exit(CLIOutput.Exit.cancelled) }
+        interrupted = true
+        onInterrupt?()
+    }
+
+    /// The watch, held for as long as the build runs.
+    final class InterruptWatch {
+        #if !os(Windows)
+        fileprivate var sources: [DispatchSourceSignal] = []
+        #endif
+
+        func stop() {
+            #if os(Windows)
+            SetConsoleCtrlHandler(CLI.controlHandler, false)
+            #else
+            for source in sources { source.cancel() }
+            #endif
+        }
+    }
+
+    #if os(Windows)
+    /// A control handler runs on a thread of its own; returning true keeps the process.
+    private static let controlHandler: @convention(c) (DWORD) -> WindowsBool = { _ in
+        CLI.interrupt()
+        return true
+    }
+
+    static func watchInterrupts(_ cancel: @escaping @Sendable () -> Void) -> InterruptWatch {
+        onInterrupt = cancel
+        SetConsoleCtrlHandler(controlHandler, true)
+        return InterruptWatch()
+    }
+    #else
+    static func watchInterrupts(_ cancel: @escaping @Sendable () -> Void) -> InterruptWatch {
+        onInterrupt = cancel
+        let watch = InterruptWatch()
+        watch.sources = [SIGINT, SIGTERM].map { number in
+            signal(number, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
+            source.setEventHandler { CLI.interrupt() }
+            source.resume()
+            return source
+        }
+        return watch
+    }
+    #endif
+}

@@ -42,25 +42,32 @@ struct PartFiles {
     func assemble(_ parts: [URL], expectedSize: Int64) throws {
         FileTools.removeIfPresent(destination)
         if parts.count == 1 {
-            try FileTools.move(parts[0], to: destination)
-            return
-        }
-        guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {
-            throw DownloadError.io("could not create \(destination.lastPathComponent)")
-        }
-        let out = try FileHandle(forWritingTo: destination)
-        defer { try? out.close() }
-        for url in parts {
-            let input = try FileHandle(forReadingFrom: url)
-            defer { try? input.close() }
-            while let block = try input.read(upToCount: Self.joinBlock), !block.isEmpty {
-                try out.write(contentsOf: block)
+            // Checked before the move, so a short part stays where a resume can grow it.
+            let size = FileTools.size(of: parts[0])
+            guard size == expectedSize else {
+                throw DownloadError.io("received \(Fmt.bytes(size)), expected \(Fmt.bytes(expectedSize))")
             }
+            try FileTools.move(parts[0], to: destination)
+        } else {
+            guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {
+                throw DownloadError.io("could not create \(destination.lastPathComponent)")
+            }
+            let out = try FileHandle(forWritingTo: destination)
+            defer { try? out.close() }
+            for url in parts {
+                let input = try FileHandle(forReadingFrom: url)
+                defer { try? input.close() }
+                while let block = try input.read(upToCount: Self.joinBlock), !block.isEmpty {
+                    try out.write(contentsOf: block)
+                }
+            }
+            try out.close()
         }
-        try out.close()
 
+        // Checked on both paths: a single connection can end short without an error.
         let finalSize = FileTools.size(of: destination)
         guard finalSize == expectedSize else {
+            FileTools.removeIfPresent(destination)
             throw DownloadError.io("assembled \(Fmt.bytes(finalSize)), expected \(Fmt.bytes(expectedSize))")
         }
         for url in parts { FileTools.removeIfPresent(url) }

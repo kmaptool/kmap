@@ -17,7 +17,7 @@ extension CLI {
             CLILog.line(String(format: "step %.12f lon, %.12f lat", tiff.stepLon, tiff.stepLat))
             if let dump = flags.value("dump") {
                 let out = try samples(of: tiff)
-                try out.write(to: URL(fileURLWithPath: dump))
+                try FileTools.write(out, to: URL(fileURLWithPath: dump))
                 CLILog.line("wrote \(out.count) bytes")
             }
             let seconds = Date().timeIntervalSince(started)

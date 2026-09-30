@@ -35,7 +35,8 @@ extension Contours {
             let sampleSize = MemoryLayout<Int16>.size
             let count = data.count / sampleSize
             let side = Int(Double(count).squareRoot().rounded())
-            guard side * side * sampleSize == data.count else {
+            // Two rows at least: a cell needs corners, and an empty file passes the square test.
+            guard side >= 2, side * side * sampleSize == data.count else {
                 throw Trouble.notSquare(url.lastPathComponent)
             }
             var values = [Int16](repeating: 0, count: count)

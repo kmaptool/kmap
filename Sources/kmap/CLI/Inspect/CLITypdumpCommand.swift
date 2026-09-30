@@ -18,19 +18,19 @@ extension CLI {
 
         // A map rather than a TYP: lifted into a place that goes away again.
         var typURL = url
-        var lifted: URL?
-        defer { if let lifted { FileTools.removeIfPresent(lifted.deletingLastPathComponent()) } }
+        var staging: URL?
+        defer { if let staging { FileTools.removeIfPresent(staging) } }
         if ImgContainer.isImg(url) {
-            let staging = FileManager.default.temporaryDirectory
+            let landing = FileManager.default.temporaryDirectory
                 .appendingPathComponent("kmap-typdump-\(UUID().uuidString.prefix(8))")
-            Paths.ensure(staging)
+            Paths.ensure(landing)
+            staging = landing
             // A file path, not the directory: extractTYP writes to the exact URL given.
-            let landed = staging.appendingPathComponent(url.deletingPathExtension().lastPathComponent + ".typ")
+            let landed = landing.appendingPathComponent(url.deletingPathExtension().lastPathComponent + ".typ")
             guard ImgContainer.extractTYP(from: url, to: landed) else {
                 return CLIOutput.failure("\(url.lastPathComponent): " + t("no TYP inside"))
             }
             typURL = landed
-            lifted = landed
         }
 
         let typ: TypBinary

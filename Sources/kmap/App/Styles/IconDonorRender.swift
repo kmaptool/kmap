@@ -113,7 +113,10 @@ extension IconDonorScreen {
             )
             y += 1
         }
-        for (index, style) in styles.enumerated() {
+        // The picture row above is always shown; the styles scroll under it.
+        let visible = max(1, rect.maxY - 1 - y)
+        let first = max(0, list.selected - visible)
+        for (index, style) in styles.enumerated().dropFirst(first) {
             guard y < rect.maxY - 1 else { break }
             Widgets.row(
                 s,

@@ -21,7 +21,8 @@ extension CLI {
         choices.styleID = "plain"
         choices.contours = false
         choices.demLayer = false
-        choices.fixSummits = false
+        // A modifier of the DEM, on as the usage says, and idle until --dem switches that on.
+        choices.fixSummits = true
         choices.routable = false
         choices.searchIndex = false
         choices.splitNameIndex = false

@@ -67,6 +67,10 @@ struct GeoTIFF {
     private let bigEndian: Bool
     private let tileWidth: Int
     private let tileHeight: Int
+
+    /// A tile past this many samples is refused: the largest published DEM tile is
+    /// 3600 x 3600, and a header can claim anything.
+    private static let mostSamplesPerTile = 64 * 1024 * 1024
     private let offsets: [Int]
     private let counts: [Int]
     private let compression: Int
@@ -83,6 +87,15 @@ struct GeoTIFF {
         let lock = NSLock()
     }
 
+    /// Forgets the decoded tiles; the file stays open and a tile asked again is decoded
+    /// again. Called once the cell this file covers is written, so a mosaic over hundreds
+    /// of cells does not hold every one of them decoded.
+    func dropDecoded() {
+        cache.lock.lock()
+        cache.tiles.removeAll()
+        cache.lock.unlock()
+    }
+
     init(contentsOf url: URL) throws {
         data = try Data(contentsOf: url, options: .alwaysMapped)
         guard data.count > 8 else { throw Trouble.notTIFF }
@@ -97,8 +110,12 @@ struct GeoTIFF {
 
         let tags = try Self.readTagDirectory(in: data, bigEndian: bigEndian)
 
+        // A tag value is a Double; only a finite one in range becomes an Int.
+        func whole(_ value: Double) -> Int? {
+            value.isFinite && value >= 0 && value < 1e15 ? Int(value) : nil
+        }
         func one(_ tag: Int, _ fallback: Int) -> Int {
-            tags[tag]?.first.map { Int($0) } ?? fallback
+            tags[tag]?.first.flatMap(whole) ?? fallback
         }
 
         width = one(Tag.imageWidth, 0)
@@ -121,19 +138,26 @@ struct GeoTIFF {
         }
 
         if let tw = tags[Tag.tileWidth]?.first, let th = tags[Tag.tileLength]?.first {
-            tileWidth = Int(tw)
-            tileHeight = Int(th)
-            offsets = (tags[Tag.tileOffsets] ?? []).map { Int($0) }
-            counts = (tags[Tag.tileByteCounts] ?? []).map { Int($0) }
+            tileWidth = whole(tw) ?? 0
+            tileHeight = whole(th) ?? 0
+            offsets = (tags[Tag.tileOffsets] ?? []).map { whole($0) ?? -1 }
+            counts = (tags[Tag.tileByteCounts] ?? []).map { whole($0) ?? -1 }
         } else {
-            // A stripped file is a tiled one whose tiles are full width.
+            // A stripped file is a tiled one whose tiles are full width. A strip count
+            // past the height (some writers put 2^32 - 1) means one strip.
             tileWidth = width
-            tileHeight = one(Tag.rowsPerStrip, height)
-            offsets = (tags[Tag.stripOffsets] ?? []).map { Int($0) }
-            counts = (tags[Tag.stripByteCounts] ?? []).map { Int($0) }
+            tileHeight = min(one(Tag.rowsPerStrip, height), height)
+            offsets = (tags[Tag.stripOffsets] ?? []).map { whole($0) ?? -1 }
+            counts = (tags[Tag.stripByteCounts] ?? []).map { whole($0) ?? -1 }
         }
         guard !offsets.isEmpty, offsets.count == counts.count else {
             throw Trouble.unsupported("no tile offsets")
+        }
+        guard width > 0, height > 0, tileWidth > 0, tileHeight > 0,
+            tileWidth <= width, tileHeight <= height,
+            tileWidth * tileHeight <= Self.mostSamplesPerTile
+        else {
+            throw Trouble.unsupported("tile geometry \(tileWidth) x \(tileHeight) in \(width) x \(height)")
         }
         tilesAcross = (width + tileWidth - 1) / tileWidth
 
@@ -201,10 +225,11 @@ struct GeoTIFF {
         // Point registration is the default where the key is absent.
         var rasterType = Self.rasterIsPoint
         if let keys = tags[Tag.geoKeyDirectory], keys.count >= 4 {
-            let count = Int(keys[3])
+            let count = keys[3].isFinite ? Int(min(max(keys[3], 0), 65536)) : 0
             for k in 0..<count {
                 let at = 4 + k * 4
                 guard at + 3 < keys.count else { break }
+                guard keys[at].isFinite, keys[at + 3].isFinite else { continue }
                 if Int(keys[at]) == Self.rasterTypeKey { rasterType = Int(keys[at + 3]) }
             }
         }

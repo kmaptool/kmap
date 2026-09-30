@@ -63,4 +63,36 @@ final class RealMapReaderTests: XCTestCase {
         }
         try XCTSkipUnless(seen > 0, "none of the listed maps is on this machine")
     }
+
+    func testRandomDamageToARealMapIsRefusedOrReadNeverFatal() throws {
+        // Every offset in TRE and RGN comes from the file. The smallest local map, with
+        // bytes replaced and stretches cut, must throw or read short, never trap.
+        let maps = (LocalTestMaps.load()?.reader ?? []).map { URL(fileURLWithPath: $0.path) }
+            .filter { FileTools.exists($0) && FileTools.size(of: $0) <= 32 << 20 }
+        guard let smallest = maps.min(by: { FileTools.size(of: $0) < FileTools.size(of: $1) }) else {
+            throw XCTSkip("no local map under 32 MB")
+        }
+        let whole = [UInt8](try Data(contentsOf: smallest))
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kmap-damage-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var random = SplitMix64(state: 20_260_930)
+        let planet = ImgElements.Ground(BBox(minLon: -180, minLat: -90, maxLon: 180, maxLat: 90))
+        for i in 0..<120 {
+            var bytes = whole
+            for _ in 0...Int.random(in: 0...3, using: &random) {
+                let at = Int.random(in: 0..<bytes.count, using: &random)
+                switch Int.random(in: 0..<3, using: &random) {
+                case 0: bytes[at] = UInt8.random(in: 0...255, using: &random)
+                case 1: for k in at..<min(bytes.count, at + 16) { bytes[k] = 0xFF }
+                default: bytes.removeSubrange(at..<min(bytes.count, at + Int.random(in: 1...4096, using: &random)))
+                }
+            }
+            let url = folder.appendingPathComponent("damaged-\(i).img")
+            try FileTools.write(Data(bytes), to: url)
+            _ = try? ImgElements.read(img: url, grounds: [planet], extendedAreasAndPoints: true, tick: {}) { _, _, _ in
+            }
+        }
+    }
 }

@@ -265,13 +265,15 @@ final class BuildPipeline: Sendable {
         // On overflow only the tiles mkgmap names are cut; halving the cap is the
         // fallback for an overflow reported without them.
         var areas: [TileSplitter.Area]? = nil
+        var annotated: [String]? = nil
         var rounds = 0
         while true {
             let tiles = try await splitIntoTiles(
                 extracts: extracts,
                 contours: elevationTask,
                 maxNodes: cap,
-                areas: areas
+                areas: areas,
+                annotated: &annotated
             )
             try stopIfCancelled()
             do {

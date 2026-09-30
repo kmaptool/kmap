@@ -164,7 +164,9 @@ extension BuildPipeline {
         }
         guard FileTools.exists(annotated), FileTools.size(of: annotated) > 0 else {
             log.warn("annotation produced nothing — building without the barrier split")
-            return [extract.path] + contours.map(\.path)
+            // With features on the contours were the pass's to fold in; they still go.
+            let fallback = try await contoursReady?() ?? contours
+            return [extract.path] + fallback.map(\.path)
         }
         return [annotated.path]
     }

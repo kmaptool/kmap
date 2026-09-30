@@ -71,7 +71,8 @@ struct RoadNetworkLoader {
 
     /// Ways on different decks do not meet, whatever the map looks like from above.
     static func level(layer: String, bridge: String, tunnel: String) -> Int32 {
-        let deck = Int32(layer) ?? 0
+        // Clamped: layer is free text, and a junk value must not overflow the arithmetic.
+        let deck = min(max(Int32(layer) ?? 0, -1000), 1000)
         return deck * 4 + (bridge == "no" ? 0 : 1) * 2 + (tunnel == "no" ? 0 : 1)
     }
 

@@ -202,7 +202,8 @@ extension SettingsStore {
     }
 
     /// Writes a profile back over the one with its id, or adds it if it has gone.
-    func saveProfile(_ profile: BuildProfile) {
+    @discardableResult
+    func saveProfile(_ profile: BuildProfile) -> Result<Void, Error> {
         update {
             if let at = $0.profiles.firstIndex(where: { $0.id == profile.id }) {
                 $0.profiles[at] = profile

@@ -13,6 +13,19 @@ extension TileSplitter {
                 .appendingPathComponent("\(options.mapID + index).osm.pbf")
             writers.append(try TileWriter(url: url, area: area))
         }
+        do {
+            return try write(into: writers, assignment: assignment, plan: plan)
+        } catch {
+            // A tile half written looks whole to the next stage; none stays.
+            for writer in writers {
+                try? writer.finish()
+                FileTools.removeIfPresent(writer.url)
+            }
+            throw error
+        }
+    }
+
+    private func write(into writers: [TileWriter], assignment: Assignment, plan: Plan) throws -> [Int] {
         // Two sweeps, so that with several inputs every tile still comes out nodes first,
         // then ways, then relations -- the order the format demands.
         let overlapping = options.inputs.count > 1
@@ -59,6 +72,7 @@ extension TileSplitter {
                     }
                 }
                 pass.clear()
+                try Self.stopIfAnyFailed(writers)
             }
         }
         if Measured.reported {
@@ -86,6 +100,7 @@ extension TileSplitter {
                     for tile in pass.spans[Int(span)] { writers[Int(tile)].add(relation) }
                 }
                 pass.clear()
+                try Self.stopIfAnyFailed(writers)
             }
         }
         // Each writer finishes independently: the last batches compress and the file
@@ -103,11 +118,20 @@ extension TileSplitter {
         return writers.map(\.nodeCount)
     }
 
+    /// A disk that filled during the first tile must not cost the sweep of the others.
+    private static func stopIfAnyFailed(_ writers: [TileWriter]) throws {
+        for writer in writers {
+            if let failure = writer.failure { throw failure }
+        }
+    }
+
     /// One tile being written: batches of a few thousand objects, flushed as they fill.
     final class TileWriter {
         let url: URL
         let area: Area
         private let writer: PBFWriter
+        /// The first write that failed, as soon as the writer's queue saw it.
+        var failure: Error? { writer.writeFailure }
         private var nodes: [PBFWriter.Node] = []
         private var ways: [PBFWriter.Way] = []
         private var relations: [PBFWriter.Relation] = []

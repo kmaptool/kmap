@@ -22,6 +22,22 @@ final class PartFilesTests: XCTestCase {
         return url
     }
 
+    func testASinglePartThatCameUpShortIsRefusedNotInstalled() throws {
+        // One connection, no ranges: the server can close early without an error, and
+        // the short part must not be renamed into place as if whole.
+        let part = try makeFile("region-b.osm.pbf.part0", bytes: 16)
+        let files = PartFiles(destination: directory.appendingPathComponent("region-b.osm.pbf"))
+        XCTAssertThrowsError(try files.assemble([part], expectedSize: 100))
+        XCTAssertFalse(FileTools.exists(directory.appendingPathComponent("region-b.osm.pbf")))
+    }
+
+    func testASinglePartOfTheRightSizeIsMovedIntoPlace() throws {
+        let part = try makeFile("region-c.osm.pbf.part0", bytes: 16)
+        let files = PartFiles(destination: directory.appendingPathComponent("region-c.osm.pbf"))
+        try files.assemble([part], expectedSize: 16)
+        XCTAssertEqual(FileTools.size(of: directory.appendingPathComponent("region-c.osm.pbf")), 16)
+    }
+
     /// A part is a leftover once the whole file it belongs to exists.
     func testAPartIsClearedOnceItsFileHasArrivedWhole() throws {
         let whole = try makeFile("region-a.osm.pbf")

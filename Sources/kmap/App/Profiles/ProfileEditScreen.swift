@@ -39,7 +39,7 @@ final class ProfileEditScreen: Screen {
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
         if !form.isPicking && !form.isEditingText {
             switch key {
-            case .esc: save(ctx); return .pop
+            case .esc: return save(ctx) ? .pop : .none
             case .ctrl("c"): return .quit
             default: break
             }
@@ -47,14 +47,19 @@ final class ProfileEditScreen: Screen {
         switch form.handle(key, ctx: ctx) {
         case .none: return .none
         case .route(let route): return route
-        case .commit: save(ctx); return .pop
+        case .commit: return save(ctx) ? .pop : .none
         case .profileChosen: return .none
         }
     }
 
-    private func save(_ ctx: AppContext) {
+    /// False when the file could not be written: the screen stays, saying why.
+    private func save(_ ctx: AppContext) -> Bool {
         profile.choices = form.recipe.choices
-        ctx.settings.saveProfile(profile)
+        if case .failure(let error) = ctx.settings.saveProfile(profile) {
+            form.message = t("could not save the settings: %@", error.localizedDescription)
+            return false
+        }
+        return true
     }
 
     func tick(_ ctx: AppContext) {

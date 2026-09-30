@@ -27,6 +27,20 @@ extension CLI {
         }
 
         var asked = BuildOptions(flags)
+        for name in unknownBuildOptions(in: flags) {
+            asked.refused.append("--\(name) is not an option of `kmap build` — see `kmap help`")
+        }
+        if let sources = flags.value("sources") {
+            let unknown = unknownSources(in: sources)
+            if !unknown.isEmpty || CopernicusDEM.canonicalSourceList(sources).isEmpty {
+                asked.refused.append(
+                    "--sources: "
+                        + (unknown.isEmpty
+                            ? "the list is empty" : "no source called \(unknown.joined(separator: ", "))")
+                        + " — copernicus1, copernicus3, view1, view3, srtm1, srtm3 or alos1"
+                )
+            }
+        }
         let heap = asked.number("heap", in: BuildOptions.heapGB)
         let connections = asked.number("connections", in: BuildOptions.connections)
         if let memory = asked.number("memory", in: BuildOptions.memoryGB) { Machine.told(memory) }
@@ -110,6 +124,10 @@ extension CLI {
             showing: CLIOutput.showing
         )
         pipeline.start()
+        // Ctrl+C reaches the pipeline's own cancellation rather than the default action,
+        // so the child processes are stopped and the stream ends with its last event.
+        let interrupts = watchInterrupts { pipeline.cancel() }
+        defer { interrupts.stop() }
         return await follow(pipeline, landingIn: recipe.destinationDirectory)
     }
 

@@ -43,8 +43,8 @@ enum SubstitutionSheet {
             new = []
         }
 
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
-            let line = String(rawLine)
+        // Hand-edited, so possibly saved with CRLF: every ending counts.
+        for line in Lines.of(text) {
             if line.hasPrefix("@@ ") {
                 flush()
                 file = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)

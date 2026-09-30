@@ -44,7 +44,8 @@ struct TypInfo {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         var family: Int? = nil
         var product = 1
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: true).prefix(200) {
+        // Lines.of, not split: a CRLF file would be one line and no TYP at all.
+        for rawLine in Lines.of(text).prefix(200) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard let eq = line.firstIndex(of: "=") else { continue }
             let key = line[line.startIndex..<eq].trimmingCharacters(in: .whitespaces).uppercased()

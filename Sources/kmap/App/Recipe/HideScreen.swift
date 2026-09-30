@@ -120,6 +120,9 @@ final class HideScreen: Screen {
             s.text(rect.x, y, filter.nothingMatches, Style(fg: theme.faint, bg: theme.appBg))
             return
         }
+        // The first row is a heading, which the cursor never rests on.
+        filter.list.clamp(count: rows.count, visible: visible)
+        if case .heading = rows[filter.list.selected] { step(1, in: rows) }
         let listTop = y
         for index in filter.list.window(count: rows.count, visible: visible) {
             let ry = listTop + index - filter.list.offset

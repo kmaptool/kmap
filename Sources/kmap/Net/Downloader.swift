@@ -138,6 +138,8 @@ final class Downloader: Sendable {
             } catch {
                 if Task.isCancelled { throw error }
                 let written = part.written
+                // Every byte is on disk: a drop after the last one is not a failure.
+                if written >= part.length { return }
                 // Bytes arrived before the drop, so the count starts again.
                 if written > before { failures = 0 }
                 // Without ranges there is no picking up, only starting over.

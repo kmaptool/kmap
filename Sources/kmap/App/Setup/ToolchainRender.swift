@@ -28,11 +28,10 @@ extension ToolchainScreen {
             )
             return
         }
-        list.clamp(count: tools.count, visible: max(1, tools.count * Self.rowHeight))
-
-        for (i, tool) in tools.enumerated() {
+        let visible = max(1, (rect.maxY - y) / Self.rowHeight)
+        for i in list.window(count: tools.count, visible: visible) {
             guard y + 2 < rect.maxY else { break }
-            draw(tool, into: s, rect: rect, y: y, selected: i == list.selected, ctx: ctx)
+            draw(tools[i], into: s, rect: rect, y: y, selected: i == list.selected, ctx: ctx)
             y += Self.rowHeight
         }
 

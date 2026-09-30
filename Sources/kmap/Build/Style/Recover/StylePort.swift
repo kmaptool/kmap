@@ -19,7 +19,7 @@ enum StylePort {
         /// How wide the line is drawn, where that is not the picture's own width: a
         /// number of ours drawn at every zoom wears the far rung's width and the near
         /// rung's paint, and no road is wider than one above it in the hierarchy.
-        let width: Int?
+        var width: Int?
         /// What settles a number two meanings share: the ground covered for a fill,
         /// the sightings for anything else.
         var weight: Double = 0
@@ -296,14 +296,10 @@ enum StylePort {
         return ported.map { port in
             guard let width = capped[port.ours], port.kind == .line, width != port.width
             else { return port }
-            return Ported(
-                ours: port.ours,
-                theirs: port.theirs,
-                kind: port.kind,
-                meaning: port.meaning,
-                witnesses: port.witnesses,
-                width: width
-            )
+            // A copy, not a rebuild: the rivals and weight that settled the number stay.
+            var capped = port
+            capped.width = width
+            return capped
         }
     }
 

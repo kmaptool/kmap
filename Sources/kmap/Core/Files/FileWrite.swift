@@ -31,6 +31,15 @@ extension FileTools {
         #endif
     }
 
+    /// Copies a file or a directory. Fails where the destination already exists.
+    static func copy(_ source: URL, to destination: URL) throws {
+        #if os(Windows)
+        try Win32File.copy(source, to: destination)
+        #else
+        try FileManager.default.copyItem(at: source, to: destination)
+        #endif
+    }
+
     /// Removes a file, or a directory and everything in it.
     static func remove(_ url: URL) throws {
         #if os(Windows)

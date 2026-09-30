@@ -108,6 +108,7 @@ final class TileSplitter {
 
     /// Garmin map units: 24 bits to the full circle.
     private static let unitsPerCircle = Double(1 << 24), degreesPerCircle = 360.0
+    private static let halfCircle = Double(1 << 23)
     /// The node table's slack for the fringe: a sixteenth more, and never fewer than this.
     private static let fringeShare = 16, fringeFloor = 1024
 
@@ -116,9 +117,11 @@ final class TileSplitter {
     static func mapUnits(_ degrees: Double) -> Int32 {
         // Clamping, not trapping: a corrupt coordinate must miscount a node rather than
         // kill the split.
+        // To the planet's edge, not Int32's: then any two differ by less than 2^24, and a
+        // grid sized by the spread of nodes stays a planet, not a memory error.
         let units = (degrees * unitsPerCircle / degreesPerCircle + 0.5).rounded(.down)
-        if units >= Double(Int32.max) { return Int32.max }
-        if units <= Double(Int32.min) { return Int32.min }
+        if !(units < halfCircle) { return Int32(halfCircle) }
+        if units <= -halfCircle { return -Int32(halfCircle) }
         return Int32(units)
     }
 

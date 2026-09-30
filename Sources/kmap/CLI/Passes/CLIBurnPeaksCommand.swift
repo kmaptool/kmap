@@ -20,6 +20,8 @@ extension CLI {
             hgt: URL(fileURLWithPath: source),
             out: URL(fileURLWithPath: out)
         )
+        let bad = flags.notNumbers(["threshold", "radius"])
+        guard bad.isEmpty else { return CLIOutput.refuse("--\(bad[0]) must be a number") }
         burn.threshold = flags.double("threshold") ?? burn.threshold
         burn.radius = flags.double("radius") ?? burn.radius
 

@@ -253,6 +253,20 @@ final class ContoursTests: XCTestCase {
 
     // MARK: What the lines look like
 
+    func testAnEmptyOrOneSampleFileIsRefusedRatherThanTrapping() throws {
+        // Zero bytes is a perfect square of side zero; the tracer then indexed samples[0].
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("kmap-contours-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let empty = directory.appendingPathComponent("N44E033.hgt")
+        try FileTools.write(Data(), to: empty)
+        XCTAssertThrowsError(try Contours.Grid(contentsOf: empty))
+        let one = directory.appendingPathComponent("N44E034.hgt")
+        try FileTools.write(Data([0, 1]), to: one)
+        XCTAssertThrowsError(try Contours.Grid(contentsOf: one))
+    }
+
     func testEveryPointOfEveryLineIsInsideTheTile() {
         let lines = trace(
             [

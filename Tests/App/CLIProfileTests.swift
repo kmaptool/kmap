@@ -41,7 +41,8 @@ final class CLIProfileTests: XCTestCase {
         XCTAssertEqual(CLI.bare.styleID, "plain")
         XCTAssertFalse(CLI.bare.contours)
         XCTAssertFalse(CLI.bare.demLayer)
-        XCTAssertFalse(CLI.bare.fixSummits)
+        // Summits follow the DEM: idle without it, on with it as the usage promises.
+        XCTAssertTrue(CLI.bare.fixSummits)
         XCTAssertFalse(CLI.bare.routable)
         XCTAssertFalse(CLI.bare.searchIndex)
         XCTAssertFalse(CLI.bare.splitNameIndex)
@@ -158,6 +159,16 @@ extension CLIProfileTests {
             let code = await CLI.run(["build", "region-a", bad])
             XCTAssertEqual(code, 2, "\(bad) should be refused")
         }
+    }
+
+    func testAFlagBuildDoesNotKnowIsRefusedNotIgnored() async {
+        // A typo used to be silent, and the hour-long build got the profile's value.
+        for bad in ["--no-contorus", "--sources=copernikus1", "--sources=", "--dem=yes"] {
+            let code = await CLI.run(["build", "region-a", bad])
+            XCTAssertEqual(code, 2, "\(bad) should be refused")
+        }
+        XCTAssertEqual(CLI.unknownSources(in: "copernicus1, view3,srtm1,alos1,copernicus90"), [])
+        XCTAssertEqual(CLI.unknownSources(in: "copernicus1,mars"), ["mars"])
     }
 
     /// What `--memory` says is what the lanes are worked out from.

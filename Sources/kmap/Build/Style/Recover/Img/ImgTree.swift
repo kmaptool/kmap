@@ -23,8 +23,8 @@ extension ImgElements {
         /// A subdivision states its centre and its size; anything it holds is inside that.
         /// The size is doubled here, erring towards reading a subdivision too many.
         func near(_ ground: Ground) -> Bool {
-            let halfLat = Int32((height << shift) * 2 + 2)
-            let halfLon = Int32((width << shift) * 2 + 2)
+            let halfLat = Int32(clamping: (height << shift) * 2 + 2)
+            let halfLon = Int32(clamping: (width << shift) * 2 + 2)
             return lat &+ halfLat >= ground.minLat && lat &- halfLat <= ground.maxLat
                 && lon &+ halfLon >= ground.minLon && lon &- halfLon <= ground.maxLon
         }
@@ -58,6 +58,7 @@ extension ImgElements {
                 headerLength: headerLength,
                 count: data.count
             )
+            guard !r.overran else { throw Trouble.malformed(tile, "TRE subdivisions past the end") }
         }
 
         /// The map levels: level, resolution, and how many subdivisions each holds. A
@@ -96,10 +97,12 @@ extension ImgElements {
         ) {
             r.position = subdivPos
             let end = subdivPos + subdivSize
+            guard subdivSize >= 3 else { return }
             var lastRgnOffset = Int(r.u24())
             for (index, rung) in ladder.enumerated() {
+                let width = index < ladder.count - 1 ? 16 : 14
                 for _ in 0..<rung.count {
-                    guard r.position < end else { break }
+                    guard r.position + width <= end else { break }
                     let flags = r.u8()
                     let lon = r.s24()
                     let lat = r.s24()
@@ -141,8 +144,8 @@ extension ImgElements {
             let extPos = Int(r.u32(at: 0x7C)), extSize = Int(r.u32(at: 0x80))
             let recordSize = Int(r.u16(at: 0x84))
             let magic = Int(r.u32(at: 0x86))
-            guard magic & 7 != 0, recordSize > 0, extSize % recordSize == 0,
-                extPos + extSize <= count
+            guard magic & 7 != 0, recordSize >= 4 * (magic & 7).nonzeroBitCount, extSize % recordSize == 0,
+                extPos >= 0, extPos + extSize <= count
             else { return }
             // With a record size past 13 there may be no data for the first level(s):
             // count records back from the finest level to see where they begin.
@@ -160,7 +163,8 @@ extension ImgElements {
             for (index, rung) in ladder.enumerated() {
                 if index < firstLevel { at += rung.count; continue }
                 for _ in 0..<rung.count {
-                    guard r.position < extEnd else { break }
+                    // The subdivision table may have come up short of the ladder's counts.
+                    guard r.position + recordSize <= extEnd, at < subdivisions.count else { return }
                     let next = r.position + recordSize
                     if magic & 1 != 0 { subdivisions[at].extAreasOffset = Int(r.u32()) }
                     if magic & 2 != 0 { subdivisions[at].extLinesOffset = Int(r.u32()) }

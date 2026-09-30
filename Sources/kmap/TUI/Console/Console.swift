@@ -31,8 +31,8 @@ protocol ConsoleBackend {
     /// or a negative number on error.
     static func read(into buffer: inout [UInt8]) -> Int
 
-    /// Calls `handler` on ^C or a closing console. The handler runs in a signal-handler
-    /// context: it may touch only what `Terminal.stop()` touches.
+    /// Calls `handler` on ^C or a closing console. On POSIX the handler runs in a
+    /// signal-handler context: a write and a tcsetattr, no lock and no allocation.
     static func onInterrupt(_ handler: @escaping () -> Void)
 }
 

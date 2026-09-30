@@ -40,6 +40,7 @@ final class RecoverScreen: Screen {
     /// The download offer, about the regions it would fetch.
     var offering: Question<[Region]>?
     var downloader: Downloader?
+    private var runner: ProcessRunner?
     var fetching = ""
 
     init(img: URL, typ: URL) {
@@ -99,14 +100,16 @@ final class RecoverScreen: Screen {
         let log = self.log
         let progress = self.progress
         let img = self.img
-        // Leaving the screen cancels the task.
+        // Esc cancels the task, the runner and any download.
+        let runner = ProcessRunner()
+        self.runner = runner
         work = Task.detached(priority: .userInitiated) { [weak self] in
             guard let self else { return }
             do {
                 // Against the pristine rule stage, never against what the last build hid.
                 let settings = SettingsStore()
                 let catalog = StyleCatalog(settings: settings, toolchain: Toolchain(settings: settings))
-                let neutral = try await catalog.neutralRulesForRecovery(log: log, runner: ProcessRunner())
+                let neutral = try await catalog.neutralRulesForRecovery(log: log, runner: runner)
                 defer { FileTools.removeIfPresent(neutral) }
                 let report = try await StyleRecovery.run(
                     img: img,
@@ -132,6 +135,7 @@ final class RecoverScreen: Screen {
     /// Stops the reading, the matching loop and any download.
     private func cancel() {
         downloader?.cancel()
+        runner?.cancel()
         work?.cancel()
     }
 

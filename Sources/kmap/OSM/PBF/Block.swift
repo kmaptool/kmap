@@ -136,7 +136,10 @@ struct Block: OSMSink {
                     }
                     at = index
                 }
-                if let at { refs.insert(insert.node, at: at + 1) }
+                // So may the inserted node, if a later join gave it a partner.
+                var node = insert.node
+                while let stands = merges[node] { node = stands }
+                if let at { refs.insert(node, at: at + 1) }
             }
             return PBFWriter.Way(id: wayIDs[i], refs: refs, tags: wayTags[i])
         }

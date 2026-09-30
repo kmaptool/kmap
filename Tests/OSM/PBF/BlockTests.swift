@@ -389,6 +389,12 @@ final class BlockTests: XCTestCase {
         XCTAssertEqual(moved[1].lon, 20.0)
     }
 
+    func testAnInsertedNodeThatWasMergedAwayIsInsertedUnderItsNewName() {
+        let b = decode(block(ways: [RawWay(id: 1, refs: [10, 20])]))
+        let ways = b.ways(inserting: [1: [(after: 10, segment: 0, along: 0.5, node: 7)]], merging: [7: 99])
+        XCTAssertEqual(ways[0].refs, [10, 99, 20])
+    }
+
     func testAMergedNodeGivesUpItsIDEverywhereInAWay() {
         let b = decode(block(ways: [RawWay(id: 1, refs: [10, 20, 10])]))
         let ways = b.ways(inserting: [:], merging: [10: 99])

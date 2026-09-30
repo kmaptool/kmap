@@ -28,8 +28,8 @@ extension BuildPipeline {
                 )
                 linked += 1
             } catch {
-                if (try? FileManager.default.copyItem(
-                    at: found.appendingPathComponent(name),
+                if (try? FileTools.copy(
+                    found.appendingPathComponent(name),
                     to: staged.appendingPathComponent(name)
                 )) != nil {
                     linked += 1

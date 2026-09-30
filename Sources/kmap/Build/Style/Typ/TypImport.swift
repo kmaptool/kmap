@@ -243,14 +243,10 @@ extension TypLibrary {
             + "\t\(source.path)\t\(note)\n"
         let url = importLog(in: directory)
         Paths.ensure(directory)
-        guard let data = line.data(using: .utf8) else { return }
-        if let handle = try? FileHandle(forWritingTo: url) {
-            defer { try? handle.close() }
-            _ = try? handle.seekToEnd()
-            try? handle.write(contentsOf: data)
-        } else {
-            try? data.write(to: url)
-        }
+        // Read, appended and rewritten whole: the log is small, and only FileTools
+        // writes files, so Windows gets its retries.
+        let sofar = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        try? FileTools.write(sofar + line, to: url)
     }
 
     /// The map a library entry was taken out of, from the latest import-log line naming
@@ -342,7 +338,7 @@ extension TypLibrary {
         guard info.isBinary else {
             let destination = datedName(base, extension: "txt", in: directory, on: day)
             do {
-                try FileManager.default.copyItem(at: binary, to: destination)
+                try FileTools.copy(binary, to: destination)
             } catch {
                 throw ImportError.failed(error.localizedDescription)
             }
@@ -360,7 +356,7 @@ extension TypLibrary {
         // beside it, the decompiled source being a reconstruction.
         guard let decoded = try? TypBinary.read(binary) else {
             let destination = datedName(base, extension: "typ", in: directory, on: day)
-            try? FileManager.default.copyItem(at: binary, to: destination)
+            try? FileTools.copy(binary, to: destination)
             throw ImportError.failed(
                 "\(url.lastPathComponent) could not be decoded — the copy at "
                     + "\(Paths.display(destination)) can still be built with, but not edited"
@@ -382,7 +378,7 @@ extension TypLibrary {
                 .deletingPathExtension().lastPathComponent + ".typ"
         )
         FileTools.removeIfPresent(kept)
-        try? FileManager.default.copyItem(at: binary, to: kept)
+        try? FileTools.copy(binary, to: kept)
 
         return Imported(
             url: destination,

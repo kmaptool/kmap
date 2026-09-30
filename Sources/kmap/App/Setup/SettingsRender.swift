@@ -8,10 +8,13 @@ extension SettingsScreen {
     func render(into s: Surface, rect: Rect, ctx: AppContext) {
         let theme = ctx.theme
         let fields = fields(ctx)
-        list.clamp(count: fields.count, visible: rect.h)
+        // Two rows a field; the window keeps the selected one on a short terminal.
+        let visible = max(1, rect.h / 2)
+        pickerRow = nil
 
         var y = rect.y
-        for (i, field) in fields.enumerated() {
+        for i in list.window(count: fields.count, visible: visible) {
+            let field = fields[i]
             guard y + 1 < rect.maxY else { break }
             Widgets.field(
                 s,
@@ -35,6 +38,7 @@ extension SettingsScreen {
             y += 1
         }
 
+        Widgets.scrollHint(s, rect: rect, offset: list.offset, count: fields.count, visible: visible, theme: theme)
         if let message, y < rect.maxY {
             s.text(rect.x + 2, y, message, Style(fg: theme.ok, bg: theme.appBg))
         }

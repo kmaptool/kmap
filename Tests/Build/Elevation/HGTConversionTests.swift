@@ -157,6 +157,20 @@ final class HGTConversionTests: XCTestCase {
         XCTAssertEqual(height(data, row: 0, column: 3000), 0)
     }
 
+    func testASampleThatIsNotANumberIsLeftUnwrittenRatherThanTrapping() throws {
+        // Float DEMs carry NaN as nodata; Int(NaN) is a trap in the middle of a lane.
+        let url = try tallSource(cell: (44, 33), width: 4) { r, c in
+            r == 1 && c == 1 ? Float.nan : (r == 2 && c == 2 ? Float.infinity : Float(r + c + 1))
+        }
+        let out = directory.appendingPathComponent("nan.hgt")
+        try HGTConversion.write(cell: (lat: 44, lon: 33), from: mosaic(["N44E033": url]), to: out)
+        let data = try Data(contentsOf: out)
+        XCTAssertEqual(height(data, row: 0, column: 0), 1)
+        XCTAssertEqual(height(data, row: 1, column: 1), 0)
+        XCTAssertEqual(height(data, row: 2, column: 2), 0)
+        XCTAssertEqual(height(data, row: 3, column: 0), 4)
+    }
+
     func testHeightsAreRoundedHalvesAwayFromZeroAsGDALDoes() throws {
         // Matches `gdal_translate -ot Int16`: halves away from zero, and a negative height
         // written as a signed value rather than a large unsigned one.

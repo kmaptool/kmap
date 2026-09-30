@@ -15,6 +15,9 @@ extension CLI {
             return CLIOutput.refuse("usage: kmap coverage <map.img> [--step \(coverageStep)] [--quiet]")
         }
         let step = flags.double("step") ?? coverageStep
+        guard flags.notNumbers(["step"]).isEmpty, step > 0, step.isFinite else {
+            return CLIOutput.refuse("--step must be a positive number of degrees")
+        }
         let url = URL(fileURLWithPath: path)
         let tiles = MapCoverage.tiles(in: url)
         guard let report = MapCoverage.check(tiles, step: step) else {

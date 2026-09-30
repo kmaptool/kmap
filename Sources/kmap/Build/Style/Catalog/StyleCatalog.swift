@@ -61,7 +61,7 @@ final class StyleCatalog: Sendable {
     func snapshot(_ directory: URL, to destination: URL) throws {
         try holdingStyles {
             FileTools.removeIfPresent(destination)
-            try FileManager.default.copyItem(at: directory, to: destination)
+            try FileTools.copy(directory, to: destination)
         }
     }
 

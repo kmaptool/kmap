@@ -51,7 +51,25 @@ final class Terminal {
         output(VT.alternateScreenOn + VT.hideCursor + VT.bracketedPasteOn)
         output(VT.pushTitle + VT.setTitle)
         output(VT.clear)
+        Terminal.restoreBytes = Array(
+            (VT.mouseOff + VT.popTitle + VT.bracketedPasteOff + VT.showCursor + VT.alternateScreenOff).utf8
+        )
+        #if os(Windows)
+        // A control handler runs on a thread of its own, where a lock is allowed.
         Console.onInterrupt { Terminal.shared?.stop() }
+        #else
+        Console.onInterrupt { Terminal.restoreFromSignal() }
+        #endif
+    }
+
+    /// The bytes that put the terminal back, ready before any signal can arrive.
+    nonisolated(unsafe) private static var restoreBytes: [UInt8] = []
+
+    /// Called from a signal handler: a write and a tcsetattr, nothing that takes a lock
+    /// or allocates, since the interrupted thread may hold the very lock.
+    static func restoreFromSignal() {
+        Console.write(restoreBytes)
+        Console.restore()
     }
 
     func stop() {

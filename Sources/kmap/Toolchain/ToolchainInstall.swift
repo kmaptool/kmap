@@ -350,12 +350,12 @@ extension Toolchain {
 
         FileTools.removeIfPresent(destination)
         Paths.ensure(destination)
-        try FileManager.default.copyItem(at: jar, to: destination.appendingPathComponent(jarName))
+        try FileTools.copy(jar, to: destination.appendingPathComponent(jarName))
 
         // mkgmap ships a lib/ of dependencies next to the jar.
         let lib = jar.deletingLastPathComponent().appendingPathComponent("lib")
         if FileTools.exists(lib) {
-            try? FileManager.default.copyItem(at: lib, to: destination.appendingPathComponent("lib"))
+            try? FileTools.copy(lib, to: destination.appendingPathComponent("lib"))
         }
         log.ok("installed \(jarName) → \(Paths.display(destination))")
     }

@@ -10,7 +10,9 @@ final class LineCollector: @unchecked Sendable {
     static let tailLength = 40
 
     private let lock = NSLock()
-    private var pending = ""
+    /// Bytes, not text: a pipe hands over whatever fits, and a cut inside a multibyte
+    /// character must not lose the chunk. Lines are decoded once complete.
+    private var pending: [UInt8] = []
     private var tail: [String] = []
     private let onLine: (String) -> Void
     /// Set by `finish()`. Removing the readability handler does not wait for a call
@@ -21,23 +23,27 @@ final class LineCollector: @unchecked Sendable {
         self.onLine = onLine
     }
 
+    func ingest(_ chunk: String) { ingest(bytes: Array(chunk.utf8)) }
+
     /// Takes a chunk as it arrives and calls `onLine` for every complete line in it.
-    /// Splits on unicode scalars, not Characters: Swift counts `\r\n` as one grapheme
-    /// cluster, so a Character search never finds the end of a CRLF line.
-    func ingest(_ chunk: String) {
+    func ingest<Bytes: Collection>(bytes chunk: Bytes) where Bytes.Element == UInt8 {
         var complete: [String] = []
         lock.lock()
-        pending += chunk
-        while let newline = pending.unicodeScalars.firstIndex(of: "\n") {
-            let scalars = pending.unicodeScalars
-            let line = String(scalars[scalars.startIndex..<newline])
-            pending = String(scalars[scalars.index(after: newline)...])
+        pending.append(contentsOf: chunk)
+        var lineStart = 0
+        var at = 0
+        while at < pending.count {
+            guard pending[at] == 0x0A else { at += 1; continue }
+            let line = String(decoding: pending[lineStart..<at], as: UTF8.self)
+            at += 1
+            lineStart = at
             let cleaned = stripControlSequences(line)
                 .trimmingCharacters(in: CharacterSet(charactersIn: "\r"))
             guard !cleaned.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
             remember(cleaned)
             complete.append(cleaned)
         }
+        if lineStart > 0 { pending.removeFirst(lineStart) }
         let late = finishing
         lock.unlock()
         for line in complete { onLine(line) }
@@ -55,8 +61,8 @@ final class LineCollector: @unchecked Sendable {
     /// Emits whatever is left without a trailing newline.
     func flush() {
         lock.lock()
-        let rest = pending
-        pending = ""
+        let rest = String(decoding: pending, as: UTF8.self)
+        pending = []
         lock.unlock()
         guard !rest.isEmpty else { return }
         // `Lines.of` splits on scalars and handles all three kinds of line ending.

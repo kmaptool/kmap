@@ -150,7 +150,8 @@ struct TypBinary {
         section: (Int, Int)
     ) -> [(type: Int, subtype: Int, offset: Int, length: Int)] {
         let (position, itemSize, length) = index
-        guard itemSize >= 3, length > 0 else { return [] }
+        // Two bytes of type and up to four of offset: a wider pointer is not a TYP's.
+        guard itemSize >= 3, itemSize <= 6, length > 0 else { return [] }
         let pointerSize = itemSize - 2
 
         var raw: [(type: Int, subtype: Int, offset: Int)] = []
@@ -159,6 +160,7 @@ struct TypBinary {
             guard cursor.has(itemSize) else { break }
             let packed = cursor.u2()
             let offset = cursor.un(pointerSize)
+            guard offset >= 0, offset <= section.1 else { continue }
             raw.append((packed >> 5, packed & 0x1F, offset))
         }
         raw.sort { $0.offset < $1.offset }

@@ -254,6 +254,7 @@ extension BuildPipeline {
         let destination = flavor.cachedTile(lat: cell.lat, lon: cell.lon)
         FileTools.removeIfPresent(destination)
         try HGTConversion.write(cell: cell, from: mosaic, to: destination, nodes: flavor.nodes)
+        mosaic.release(cellLat: cell.lat, cellLon: cell.lon)
 
         // A cell on the rim of the region has no neighbour to sample its outermost row and
         // column from, and they land in the file as zero; this fills them from inside.

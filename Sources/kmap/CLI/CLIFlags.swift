@@ -29,7 +29,7 @@ extension CLI {
                     let key = String(body[body.startIndex..<eq])
                     values[key, default: []].append(String(body[body.index(after: eq)...]))
                     present.insert(key)
-                } else if valued.contains(body), index < arguments.count {
+                } else if valued.contains(body), index < arguments.count, !arguments[index].hasPrefix("--") {
                     values[body, default: []].append(arguments[index])
                     present.insert(body)
                     index += 1
@@ -46,6 +46,11 @@ extension CLI {
         /// Every flag that was written, for a command that refuses the ones it does not
         /// know rather than skipping a typo.
         var names: Set<String> { present }
+
+        /// The flags among `names` that are present but do not hold a number.
+        func notNumbers(_ names: [String]) -> [String] {
+            names.filter { has($0) && (value($0).flatMap { Double($0) } == nil) }
+        }
 
         /// The flag's value; the last one where it was written more than once.
         func value(_ name: String) -> String? { values[name]?.last }

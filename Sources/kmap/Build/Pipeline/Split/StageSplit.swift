@@ -20,11 +20,14 @@ extension BuildPipeline {
         let inputSize: Int64
     }
 
+    /// `annotated` carries the classified extracts across re-split rounds: the inputs do
+    /// not change when only the tile cut does, and the pass is the slow half of the stage.
     func splitIntoTiles(
         extracts: [URL],
         contours contoursTask: Task<[URL], Error>,
         maxNodes: Int,
-        areas: [TileSplitter.Area]? = nil
+        areas: [TileSplitter.Area]? = nil,
+        annotated: inout [String]?
     ) async throws -> TileSet {
         set(.split, .running, t("starting"))
 
@@ -34,9 +37,12 @@ extension BuildPipeline {
 
         // Contours travel inside the first extract rather than beside it, so they are kept
         // complete across tile borders. Each extract is annotated separately.
-        var inputs: [String] = []
-        try await measure(.split, "classify and repair") {
-            inputs = try await annotateExtracts(extracts, contoursTask: contoursTask)
+        var inputs: [String] = annotated ?? []
+        if annotated == nil {
+            try await measure(.split, "classify and repair") {
+                inputs = try await annotateExtracts(extracts, contoursTask: contoursTask)
+            }
+            annotated = inputs
         }
 
         log.step("splitting into tiles (\(inputs.count) input file(s))")

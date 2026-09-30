@@ -52,8 +52,12 @@ final class PBFWriter {
     var buffer: [UInt8] = []
     var finished = false
     /// The first write that failed, kept for `finish` to throw: a full disk is an
-    /// ordinary event here, not a crash.
-    var writeFailure: Error?
+    /// ordinary event here, not a crash. Behind a lock so a caller can ask between batches.
+    let failure = Locked<Error?>(nil)
+    var writeFailure: Error? {
+        get { failure.withLock { $0 } }
+        set { failure.withLock { $0 = newValue } }
+    }
 
     enum Piece {
         /// A blob already compressed by its original writer, passed through unchanged.

@@ -37,6 +37,15 @@ final class RoadNetworkTests: XCTestCase {
         )
     }
 
+    func testAnAbsurdLayerValueIsClampedRatherThanOverflowing() {
+        // layer is free text; taginfo has values past any deck count.
+        let high = RoadNetworkLoader.level(layer: "999999999", bridge: "no", tunnel: "no")
+        let low = RoadNetworkLoader.level(layer: "-999999999", bridge: "no", tunnel: "no")
+        XCTAssertEqual(high, RoadNetworkLoader.level(layer: "1000", bridge: "no", tunnel: "no"))
+        XCTAssertEqual(low, RoadNetworkLoader.level(layer: "-1000", bridge: "no", tunnel: "no"))
+        XCTAssertNotEqual(high, low)
+    }
+
     func testANonsenseLayerReadsAsTheGround() {
         // A layer value that is not a number falls back to the ground.
         XCTAssertEqual(

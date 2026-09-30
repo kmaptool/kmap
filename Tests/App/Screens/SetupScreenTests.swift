@@ -94,4 +94,24 @@ final class SetupScreenTests: XCTestCase {
         XCTAssertTrue(screen.isStoppedForTesting)
         XCTAssertEqual(screen.page.subject, t("did not finish"))
     }
+
+    func testEnterAfterAStopStartsOneFreshInstall() async {
+        let ctx = AppContext()
+        let installs = InstallStandIn()
+        let screen = SetupScreen(missing: [tool("java", ready: false)]) { _ in .pop }
+        screen.useForTesting(installer: installs.installer, wanted: [tool("java", ready: false)])
+        _ = screen.handle(.right, ctx: ctx)
+        _ = screen.handle(.enter, ctx: ctx)
+        await expectSettled { installs.startedIDs == ["java"] }
+        _ = screen.handle(.ctrl("c"), ctx: ctx)
+        await expectSettled { installs.cancelledIDs == ["java"] }
+
+        _ = screen.handle(.enter, ctx: ctx)
+        await expectSettled { installs.timesStarted("java") == 2 }
+        XCTAssertFalse(screen.isStoppedForTesting, "the second install is running")
+        // The first task ending, however it ends, says nothing about the second.
+        installs.release("java")
+        await expectSettled { installs.timesStarted("java") == 2 }
+        XCTAssertFalse(screen.isStoppedForTesting)
+    }
 }

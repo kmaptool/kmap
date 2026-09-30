@@ -17,6 +17,7 @@ extension CLI {
             source: URL(fileURLWithPath: files[0]),
             destination: URL(fileURLWithPath: files[1])
         )
+        guard flags.notNumbers(["limit"]).isEmpty else { return CLIOutput.refuse("--limit must be a number of metres") }
         pass.repairRadius = flags.double("limit") ?? BuildRecipe.defaultHealRadius
         pass.bridgeObstacles = !flags.has("no-bridges")
         pass.language = flags.value("labels") ?? pass.language

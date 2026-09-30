@@ -144,8 +144,7 @@ struct HideableFeature: Equatable {
             pendingID = nil; pendingName = nil; pendingTag = nil; pendingRules = []
         }
 
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
-            let line = String(rawLine)
+        for line in Lines.of(text) {
             if line.hasPrefix("@@ ") {
                 flush()
                 category = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)

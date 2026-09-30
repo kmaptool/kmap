@@ -189,7 +189,8 @@ struct GroundIndex {
             else { return }
             relationTags[id] = tags
             let kinds = memberKinds.exactly, ids = memberIDs.exactly, roles = memberRoles.exactly
-            for i in 0..<kinds.count where kinds[i] == 1 {
+            // Three packed fields the decoder does not reconcile: the shortest bounds them.
+            for i in 0..<min(kinds.count, ids.count, roles.count) where kinds[i] == 1 {
                 let role = block.text(Int(roles[i]))
                 if role == GroundIndex.innerRole { inner.insert(ids[i]); continue }
                 guard role.isEmpty || role == GroundIndex.outerRole else { continue }

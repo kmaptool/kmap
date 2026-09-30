@@ -38,6 +38,8 @@ extension ProfilesScreen {
         list.clamp(count: shown.count, visible: listHeight)
         if shown.isEmpty {
             s.text(rect.x, y, search.nothingMatches, Style(fg: theme.faint, bg: theme.appBg))
+            // A name prompt or a notice must show even over an empty list.
+            drawFooterLine(s, rect: rect, theme: theme)
             return
         }
 
@@ -66,16 +68,17 @@ extension ProfilesScreen {
             theme: theme
         )
 
-        guard let profile = shown[safe: list.selected], y + 2 < rect.maxY else { return }
-        y += 1
-        s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
-        y += 1
-        for line in ProfilesScreen.summary(of: profile.choices) {
-            guard y < rect.maxY - 1 else { break }
-            s.text(rect.x, y, truncate(line, to: rect.w), Style(fg: theme.text, bg: theme.appBg))
+        if let profile = shown[safe: list.selected], y + 2 < rect.maxY {
             y += 1
+            s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
+            y += 1
+            for line in ProfilesScreen.summary(of: profile.choices) {
+                guard y < rect.maxY - 1 else { break }
+                s.text(rect.x, y, truncate(line, to: rect.w), Style(fg: theme.text, bg: theme.appBg))
+                y += 1
+            }
         }
-
+        // Whatever the height: the prompts take keys, so they must be seen.
         drawFooterLine(s, rect: rect, theme: theme)
     }
 

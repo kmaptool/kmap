@@ -148,8 +148,8 @@ final class ProcessRunner: @unchecked Sendable {
         let handle = pipe.fileHandleForReading
         handle.readabilityHandler = { fh in
             let data = fh.availableData
-            guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { return }
-            collector.ingest(chunk)
+            guard !data.isEmpty else { return }
+            collector.ingest(bytes: data)
         }
 
         do {
@@ -201,6 +201,6 @@ final class ProcessRunner: @unchecked Sendable {
     /// Reads whatever is already in the pipe and returns without waiting for more. The
     /// platform-specific part is in `ChildProcess`.
     private func drainWithoutWaiting(_ handle: FileHandle, into collector: LineCollector) {
-        ChildProcess.readWhatIsWaiting(handle) { collector.ingest($0) }
+        ChildProcess.readWhatIsWaiting(handle) { collector.ingest(bytes: $0) }
     }
 }

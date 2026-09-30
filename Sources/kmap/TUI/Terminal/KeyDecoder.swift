@@ -133,7 +133,10 @@ struct KeyDecoder {
     /// An SGR pointer report, `ESC [ < button;column;row M` for a press and `m` for a
     /// release. In the button field bit 5 marks motion and bit 6 upwards marks the wheel.
     private mutating func decodeMouse() -> KeyEvent? {
-        let params = readParameters(toppingUp: false)
+        // Topped up like any other sequence: motion reports stream, and a read boundary
+        // inside one would leave its tail to be typed as digits.
+        let params = readParameters(toppingUp: true)
+        input.ensure(1, within: Self.splitKeyMilliseconds)
         guard let final = input.popFirst() else { return nil }
         guard params.count >= 3,
             let button = Int(params[0]),
@@ -175,24 +178,38 @@ struct KeyDecoder {
     private mutating func collectPaste() -> KeyEvent {
         var buf = input.drain()
         var emptyReads = 0
-        while Self.index(of: Self.pasteEnd, in: buf) == nil && emptyReads < Self.pasteEmptyReadsLimit {
+        // Only the bytes since the last look are searched: a large paste arrives in
+        // thousands of chunks, and a whole-buffer scan each time was quadratic.
+        var searched = 0
+        var end = Self.index(of: Self.pasteEnd, in: buf, from: 0)
+        while end == nil && emptyReads < Self.pasteEmptyReadsLimit {
             guard input.fill(within: Self.pollMilliseconds, size: Self.pasteChunk) else {
                 emptyReads += 1
                 continue
             }
+            searched = max(0, buf.count - Self.pasteEnd.count + 1)
             buf += input.drain()
+            end = Self.index(of: Self.pasteEnd, in: buf, from: searched)
             emptyReads = 0
         }
-        if let idx = Self.index(of: Self.pasteEnd, in: buf) {
+        if let idx = end {
             input.replace(with: Array(buf[(idx + Self.pasteEnd.count)...]))
-            return .paste(String(bytes: buf[0..<idx], encoding: .utf8) ?? "")
+            return .paste(Self.pastedText(buf[0..<idx]))
         }
-        return .paste(String(bytes: buf, encoding: .utf8) ?? "")
+        return .paste(Self.pastedText(buf[...]))
     }
 
-    private static func index(of needle: [UInt8], in haystack: [UInt8]) -> Int? {
+    /// Terminals send a pasted line break as CR or CRLF; a text field expects LF.
+    private static func pastedText(_ bytes: ArraySlice<UInt8>) -> String {
+        String(decoding: bytes, as: UTF8.self)
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+    }
+
+    private static func index(of needle: [UInt8], in haystack: [UInt8], from start: Int) -> Int? {
         guard !needle.isEmpty, haystack.count >= needle.count else { return nil }
-        for i in 0...(haystack.count - needle.count) where Array(haystack[i..<(i + needle.count)]) == needle {
+        for i in max(0, start)...(haystack.count - needle.count)
+        where haystack[i..<(i + needle.count)].elementsEqual(needle) {
             return i
         }
         return nil

@@ -19,6 +19,21 @@ extension CLI {
         "max-nodes", "family-id", "repair-radius", "json", "verbose"
     ]
 
+    /// Every flag `kmap build` reads; anything else on its line is a mistake, not a no-op.
+    static func unknownBuildOptions(in flags: Flags) -> [String] {
+        flags.names.subtracting(profileOptions).subtracting(perRunOptions).sorted()
+    }
+
+    /// The elevation source ids a list may name: the Copernicus flavors, the two
+    /// Viewfinder resolutions, and pyhgtmap's own (srtm and alos). Returns the rest.
+    static func unknownSources(in csv: String) -> [String] {
+        let known = Set(CopernicusDEM.flavors.map(\.sourceID) + ["view1", "view3"])
+        return csv.split(separator: ",").map {
+            CopernicusDEM.canonicalSourceID($0.trimmingCharacters(in: .whitespaces))
+        }
+        .filter { !$0.isEmpty && !known.contains($0) && !$0.hasPrefix("srtm") && !$0.hasPrefix("alos") }
+    }
+
     /// Applies `flags` to `choices`, collecting every refusal so one run reports
     /// everything wrong with it. Nothing is applied where anything was refused.
     static func apply(_ flags: Flags, to choices: inout BuildChoices, store: SettingsStore) -> [String] {
@@ -81,6 +96,15 @@ extension CLI {
             if let style = asked.style(in: catalog) { choices.styleID = style.id }
         }
         if let sources = flags.value("sources") {
+            let unknown = unknownSources(in: sources)
+            if !unknown.isEmpty || CopernicusDEM.canonicalSourceList(sources).isEmpty {
+                asked.refused.append(
+                    "--sources: "
+                        + (unknown.isEmpty
+                            ? "the list is empty" : "no source called \(unknown.joined(separator: ", "))")
+                        + " — copernicus1, copernicus3, view1, view3, srtm1, srtm3 or alos1"
+                )
+            }
             choices.demSources = CopernicusDEM.canonicalSourceList(sources)
         }
         if let codePage = asked.codePage() { choices.codePage = codePage }

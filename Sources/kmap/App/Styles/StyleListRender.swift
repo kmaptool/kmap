@@ -37,6 +37,8 @@ extension StyleListScreen {
                 styles.isEmpty ? t("no styles found") : search.nothingMatches,
                 Style(fg: theme.faint, bg: theme.appBg)
             )
+            drawFooterLine(s, rect: rect, theme: theme)
+            asking?.render(into: s, rect: rect, theme: theme)
             return
         }
 
@@ -68,9 +70,10 @@ extension StyleListScreen {
 
         if let style = shown[safe: list.selected], y + 2 < rect.maxY {
             drawSelected(style, into: s, rect: rect, y: y + 1, theme: theme)
-            drawFooterLine(s, rect: rect, theme: theme)
-            asking?.render(into: s, rect: rect, theme: theme)
         }
+        // Whatever the height: a question or a prompt takes the keys, so it must be seen.
+        drawFooterLine(s, rect: rect, theme: theme)
+        asking?.render(into: s, rect: rect, theme: theme)
     }
 
     /// The summary of the selected style under a rule, and where its file is.

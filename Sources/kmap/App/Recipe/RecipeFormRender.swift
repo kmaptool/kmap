@@ -9,25 +9,25 @@ extension RecipeForm {
         let theme = ctx.theme
         let fields = self.fields
         zoomPlanCount = ctx.settings.zoomPlans.count
-        list.clamp(count: fields.count, visible: rect.h)
+        list.clamp(count: fields.count, visible: fields.count)
+        let rows = scrollToSelected(fields, visible: rect.h)
+        fieldRows.removeAll(keepingCapacity: true)
 
-        var y = rect.y
+        var y = rect.y - scroll
         for (i, field) in fields.enumerated() {
-            guard y < rect.maxY else { break }
             let selected = i == list.selected
 
             if field == .build || field == .save {
                 y += 1
-                guard y < rect.maxY else { break }
-                drawButton(field, into: s, rect: rect, y: y, selected: selected, theme: theme)
-                fieldRows[field] = y
+                if y >= rect.y && y < rect.maxY {
+                    drawButton(field, into: s, rect: rect, y: y, selected: selected, theme: theme)
+                    fieldRows[field] = y
+                }
                 y += 1
                 continue
             }
-            if startsGroup(field) {
-                y += 1
-                guard y < rect.maxY else { break }
-            }
+            if startsGroup(field) { y += 1 }
+            guard y >= rect.y && y < rect.maxY else { y += 1; continue }
             Widgets.field(
                 s,
                 rect: rect,
@@ -42,11 +42,32 @@ extension RecipeForm {
             fieldRows[field] = y
             y += 1
         }
+        Widgets.scrollHint(s, rect: rect, offset: scroll, count: rows, visible: rect.h, theme: theme)
 
         if let message {
-            let my = min(rect.maxY - 1, y + 1)
+            let my = max(rect.y, min(rect.maxY - 1, y + 1))
             s.text(rect.x + 2, my, truncate(message, to: rect.w - 2), Style(fg: theme.warn, bg: theme.appBg))
         }
+    }
+
+    /// Rows the fields take, gaps and buttons included, and `scroll` moved so the
+    /// selected field is inside `visible` rows: a short terminal used to draw the bottom
+    /// of the form, the Build button included, nowhere at all.
+    @discardableResult
+    private func scrollToSelected(_ fields: [Field], visible: Int) -> Int {
+        var rowOf: [Int] = []
+        var rows = 0
+        for field in fields {
+            if field == .build || field == .save || startsGroup(field) { rows += 1 }
+            rowOf.append(rows)
+            rows += 1
+        }
+        let selected = rowOf[safe: list.selected] ?? 0
+        let shown = max(1, visible)
+        if selected < scroll { scroll = selected }
+        if selected >= scroll + shown { scroll = selected - shown + 1 }
+        scroll = max(0, min(scroll, max(0, rows - shown)))
+        return rows
     }
 
     private func drawButton(_ field: Field, into s: Surface, rect: Rect, y: Int, selected: Bool, theme: Theme) {

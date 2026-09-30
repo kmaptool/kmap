@@ -216,7 +216,7 @@ enum MapVerifier {
                 detail: "none embedded — the device picks its own colours"
             )
         }
-        let mapFamily = tiles.compactMap { Int($0.prefix(4)) }.first
+        let mapFamily = tiles.sorted().compactMap { Int($0.prefix(4)) }.first
         if let mapFamily, mapFamily != identity.familyID {
             return Finding(
                 level: .fail,

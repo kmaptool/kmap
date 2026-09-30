@@ -49,6 +49,59 @@ final class GeoTIFFTests: XCTestCase {
         }
     }
 
+    /// Rewrites one u32 tag value in a written file: the fixture only writes sane headers.
+    private func patchTag(_ url: URL, tag: Int, value: UInt32) throws {
+        var bytes = [UInt8](try Data(contentsOf: url))
+        let big = bytes[0] == 0x4D
+        func u16(_ at: Int) -> Int {
+            big ? Int(bytes[at]) << 8 | Int(bytes[at + 1]) : Int(bytes[at]) | Int(bytes[at + 1]) << 8
+        }
+        func u32(_ at: Int) -> Int { big ? u16(at) << 16 | u16(at + 2) : u16(at) | u16(at + 2) << 16 }
+        let directory = u32(4)
+        let count = u16(directory)
+        for i in 0..<count {
+            let entry = directory + 2 + i * 12
+            guard u16(entry) == tag else { continue }
+            let out =
+                big
+                ? [UInt8(value >> 24), UInt8(value >> 16 & 0xFF), UInt8(value >> 8 & 0xFF), UInt8(value & 0xFF)]
+                : [UInt8(value & 0xFF), UInt8(value >> 8 & 0xFF), UInt8(value >> 16 & 0xFF), UInt8(value >> 24)]
+            bytes.replaceSubrange((entry + 8)..<(entry + 12), with: out)
+            try FileTools.write(Data(bytes), to: url)
+            return
+        }
+        XCTFail("tag \(tag) not in the file")
+    }
+
+    func testAZeroTileWidthIsRefusedRatherThanDividingByIt() throws {
+        var fixture = Fixture()
+        fixture.samples = ramp(4, 3)
+        fixture.tile = (width: 2, height: 2)
+        let url = try write(fixture)
+        try patchTag(url, tag: 322, value: 0)
+        XCTAssertThrowsError(try GeoTIFF(contentsOf: url))
+    }
+
+    func testAStripCountPastAnyRasterMeansOneStrip() throws {
+        // Some writers put 2^32 - 1 in RowsPerStrip for a single-strip file. That used
+        // to size a tile buffer of width x 4G samples before anything was checked.
+        var fixture = Fixture()
+        fixture.samples = ramp(4, 3)
+        let url = try write(fixture)
+        try patchTag(url, tag: 278, value: UInt32.max)
+        let tiff = try GeoTIFF(contentsOf: url)
+        XCTAssertEqual(try tiff.value(row: 2, column: 3), 110)
+    }
+
+    func testATileLargerThanTheRasterIsRefused() throws {
+        var fixture = Fixture()
+        fixture.samples = ramp(4, 3)
+        fixture.tile = (width: 2, height: 2)
+        let url = try write(fixture)
+        try patchTag(url, tag: 323, value: 1 << 20)
+        XCTAssertThrowsError(try GeoTIFF(contentsOf: url))
+    }
+
     func testAskingOutsideTheRasterAnswersNothingRatherThanRubbish() throws {
         var fixture = Fixture()
         fixture.samples = ramp(4, 3)

@@ -87,9 +87,9 @@ extension ReassignScreen {
             )
             return
         }
-        filter.list.clamp(count: rules.count, visible: max(1, rect.maxY - y - 2))
-        for (index, rule) in rules.enumerated() {
+        for index in filter.list.window(count: rules.count, visible: max(1, rect.maxY - y - 1)) {
             guard y < rect.maxY - 1 else { break }
+            let rule = rules[index]
             Widgets.row(
                 s,
                 rect: Rect(x: rect.x, y: y, w: rect.w, h: 1),

@@ -47,7 +47,7 @@ extension ColourPicker {
         let column = gridColumn
         let row = gridRow
         let cell = Self.cellWidth
-        for r in 0...Self.levels {
+        for r in 0...Self.levels where y + r < box.maxY - 1 {
             for c in 0..<hues {
                 let x = box.x + 2 + c * cell
                 guard x + cell <= box.maxX - 1 else { continue }
@@ -73,7 +73,7 @@ extension ColourPicker {
         var x = box.x + 2
         let row = y + 1
         let width = Self.paletteSwatchWidth
-        for (index, colour) in palette.enumerated() {
+        for (index, colour) in palette.enumerated() where row < box.maxY - 1 {
             guard x + width < box.maxX - 1 else { break }
             if let parsed = Color.hex(colour) {
                 s.fill(Rect(x: x, y: row, w: width, h: 1), Style(fg: parsed, bg: parsed))

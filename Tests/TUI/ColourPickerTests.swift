@@ -70,6 +70,19 @@ final class ColourPickerTests: XCTestCase {
 
     // MARK: Getting exactly the colour wanted
 
+    func testHomeOnTheHueSliderStaysOnTheCircle() {
+        // Home ran a thousand degrees back and left the hue at -280.
+        var picker = ColourPicker(start: "#FF0000")
+        _ = picker.handle(.tab)
+        _ = picker.handle(.home)
+        XCTAssertGreaterThanOrEqual(picker.hue, 0)
+        XCTAssertLessThan(picker.hue, 360)
+        XCTAssertNotNil(Color.hex(picker.current))
+        _ = picker.handle(.end)
+        XCTAssertGreaterThanOrEqual(picker.hue, 0)
+        XCTAssertLessThan(picker.hue, 360)
+    }
+
     /// The sliders reach colours the grid does not; one step is 0.01.
     func testASliderMovesOneStepAtATime() {
         var picker = ColourPicker(start: "#808080")

@@ -46,6 +46,13 @@ final class TypFileTests: XCTestCase {
 
     // MARK: Binary
 
+    func testATextStyleSavedWithWindowsLineEndingsIsStillAStyle() throws {
+        let url = try text("[_id]\r\nFID=1540\r\nProductCode=1\r\nCodePage=1251\r\n[end]\r\n")
+        let info = TypInfo.read(url)
+        XCTAssertEqual(info?.familyID, 1540)
+        XCTAssertEqual(info?.productID, 1)
+    }
+
     func testABinaryStyleGivesUpItsFamilyAndProduct() throws {
         let info = try XCTUnwrap(TypInfo.read(try binary(family: 6324, product: 2)))
         XCTAssertEqual(info.familyID, 6324)

@@ -21,6 +21,10 @@ struct XpmBlock: Equatable {
     /// True when this carries colours only and no picture.
     var isSolid: Bool { width == 0 || height == 0 }
 
+    /// Garmin icons stop at 255 x 255 and patterns at 32 wide; a million cells is past
+    /// anything a file could mean.
+    static let mostPixels = 1 << 20
+
     /// Colours in declaration order, transparency included as nil.
     var colours: [String?] { palette.map(\.colour) }
 
@@ -137,7 +141,8 @@ struct XpmBlock: Equatable {
     ///
     /// Returns nil for a solid block, which has no picture to resolve.
     func pixels() -> [[String?]]? {
-        guard !isSolid, charsPerPixel > 0 else { return nil }
+        // A negative or absurd size is a malformed header: nothing to draw, not a trap.
+        guard !isSolid, charsPerPixel > 0, width > 0, height > 0, width * height <= Self.mostPixels else { return nil }
         var lookup: [String: String?] = [:]
         for entry in palette { lookup[entry.key] = entry.colour }
 

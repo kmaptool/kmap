@@ -100,6 +100,24 @@ final class RepairPlannerTests: XCTestCase {
         XCTAssertTrue(result.inserts.isEmpty)
     }
 
+    func testAnEndAlreadyPutIntoALineIsNotMergedAwayByAThirdLine() {
+        // Way 11 ends on way 10 and is inserted into it without moving. Way 12 then ends
+        // within reach of that same node: taking it as a partner and merging it into way
+        // 12's end would leave way 10 holding a node no other line has any more.
+        let result = plan(
+            network([
+                Line(id: 10, points: [(45, 33), (45, 33.002)]),
+                Line(id: 11, points: [(45 + 0.001, 33.001), (45, 33.001)]),
+                Line(id: 12, points: [(45 + 3 * metre, 33.001 + 1 * metre), (45 + 3 * metre, 33.003)])
+            ])
+        )
+        XCTAssertEqual(result.counts["joined"], 2)
+        let inserted = Set(result.inserts.values.flatMap { $0.map(\.node) })
+        for (gone, _) in result.merges {
+            XCTAssertFalse(inserted.contains(gone), "node \(gone) is inserted into a line and merged away")
+        }
+    }
+
     func testAnEndAlreadyOnTheLineIsLeftAlone() {
         var net = network([
             Line(id: 10, points: [(45, 33), (45, 33.002)]),

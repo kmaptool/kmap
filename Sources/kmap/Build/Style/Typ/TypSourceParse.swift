@@ -224,7 +224,9 @@ extension TypSource {
         let width = Int(numbers[0]) ?? 0
         let height = Int(numbers[1]) ?? 0
         let declared = Int(numbers[2]) ?? 0
-        let perPixel = Int(numbers[3]) ?? 0
+        // One or two characters a pixel is what the format has; a wild number is a
+        // typo, not an alphabet, and was an overflow further down.
+        let perPixel = min(max(Int(numbers[3]) ?? 0, 0), 8)
 
         var palette: [(key: String, colour: String?)] = []
         var rows: [String] = []

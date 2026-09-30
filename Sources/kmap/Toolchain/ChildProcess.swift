@@ -80,7 +80,7 @@ enum ChildProcess {
     /// `PeekNamedPipe`, there being no non-blocking mode for a pipe there.
     static func readWhatIsWaiting(
         _ handle: FileHandle,
-        into ingest: (String) -> Void
+        into ingest: (ArraySlice<UInt8>) -> Void
     ) {
         #if os(Windows)
         let pipe = handle._handle
@@ -95,7 +95,7 @@ enum ChildProcess {
                 ReadFile(pipe, $0.baseAddress, wanted, &read, nil)
             }
             guard ok, read > 0 else { return }
-            ingest(String(decoding: buffer[0..<Int(read)], as: UTF8.self))
+            ingest(buffer[0..<Int(read)])
         }
         #else
         let descriptor = handle.fileDescriptor
@@ -107,7 +107,7 @@ enum ChildProcess {
                 read(descriptor, raw.baseAddress, raw.count)
             }
             guard count > 0 else { return }  // 0 is end of file, -1 is "nothing waiting"
-            ingest(String(decoding: buffer[0..<count], as: UTF8.self))
+            ingest(buffer[0..<count])
         }
         #endif
     }

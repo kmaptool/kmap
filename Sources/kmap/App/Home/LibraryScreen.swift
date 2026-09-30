@@ -57,10 +57,14 @@ final class LibraryScreen: Screen {
             message = t("delete %@? press ⏎ to confirm, any other key to cancel", file.lastPathComponent)
         case .enter:
             if let target = pendingDelete {
-                FileTools.removeIfPresent(target)
                 pendingDelete = nil
+                do {
+                    try FileTools.remove(target)
+                    message = t("deleted")
+                } catch {
+                    message = t("could not delete: %@", error.localizedDescription)
+                }
                 rescan(ctx)
-                message = t("deleted")
             }
         case .esc: return .pop
         case .ctrl("c"): return .quit

@@ -211,7 +211,7 @@ enum TypLibrary {
         let base = url.deletingPathExtension().lastPathComponent
         let destination = datedName(base, extension: url.pathExtension, in: library, on: day)
         do {
-            try FileManager.default.copyItem(at: url, to: destination)
+            try FileTools.copy(url, to: destination)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -221,13 +221,13 @@ enum TypLibrary {
             let beside = originalsDirectory(in: library).appendingPathComponent(
                 destination.deletingPathExtension().lastPathComponent + ".typ"
             )
-            try? FileManager.default.copyItem(at: kept, to: beside)
+            try? FileTools.copy(kept, to: beside)
         }
         if let kept = sheet(of: url, library: library) {
             let beside = sheetsDirectory(in: library).appendingPathComponent(
                 destination.deletingPathExtension().lastPathComponent + ".txt"
             )
-            try? FileManager.default.copyItem(at: kept, to: beside)
+            try? FileTools.copy(kept, to: beside)
         }
         return destination
     }

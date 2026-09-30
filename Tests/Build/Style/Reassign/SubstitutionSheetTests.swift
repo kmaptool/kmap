@@ -21,6 +21,13 @@ final class SubstitutionSheetTests: XCTestCase {
         + highway=path [0x10016 resolution 23 continue]
         """
 
+    func testASheetSavedWithWindowsLineEndingsLosesNothing() {
+        // "Safe to edit by hand" includes an editor that writes CRLF.
+        let crlf = sheet.replacingOccurrences(of: "\n", with: "\r\n")
+        XCTAssertEqual(SubstitutionSheet.parse(crlf), SubstitutionSheet.parse(sheet))
+        XCTAssertEqual(SubstitutionSheet.parse(crlf).count, 4)
+    }
+
     func testEveryShapeASheetCanTakeReadsAsItsOwnEntry() {
         let entries = SubstitutionSheet.parse(sheet)
         XCTAssertEqual(entries.map(\.file), ["points", "points", "points", "lines"])

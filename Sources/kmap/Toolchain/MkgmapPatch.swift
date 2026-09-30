@@ -453,7 +453,7 @@ extension Toolchain {
         let home = Toolchain.patchedMkgmapURL.deletingLastPathComponent()
         Paths.ensure(home)
         FileTools.removeIfPresent(Toolchain.patchedMkgmapURL)
-        try FileManager.default.copyItem(at: stock, to: Toolchain.patchedMkgmapURL)
+        try FileTools.copy(stock, to: Toolchain.patchedMkgmapURL)
 
         // The mkgmap manifest names its dependencies with a relative Class-Path, so the jar
         // runs only with lib/ beside it, and the patched copy lands in another directory.
@@ -461,7 +461,7 @@ extension Toolchain {
         let ourLibs = home.appendingPathComponent("lib")
         if FileTools.exists(stockLibs), stockLibs != ourLibs {
             FileTools.removeIfPresent(ourLibs)
-            try FileManager.default.copyItem(at: stockLibs, to: ourLibs)
+            try FileTools.copy(stockLibs, to: ourLibs)
             log.append("copied lib/ beside the patched jar")
         }
 
@@ -500,8 +500,10 @@ extension Toolchain {
             invalidate()
         }
         guard
+            // Never the patched jar itself: an install killed between the copy and the
+            // marker leaves one without a version, and it is about to be replaced.
             let stock = mkgmapCandidates().first(where: {
-                FileTools.exists($0) && Toolchain.patchVersion(of: $0) == 0
+                $0 != Toolchain.patchedMkgmapURL && FileTools.exists($0) && Toolchain.patchVersion(of: $0) == 0
             })
         else {
             throw InstallError.unsupported("no unpatched mkgmap.jar to build from")

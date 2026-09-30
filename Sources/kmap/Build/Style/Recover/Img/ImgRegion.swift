@@ -38,7 +38,7 @@ extension ImgElements {
             // one for every section that has something before it.
             let start = dataOffset + division.rgnStart
             let whole = division.rgnEnd - division.rgnStart
-            guard start >= 0, start + whole <= data.count else {
+            guard start >= 0, whole >= 0, start + whole <= data.count else {
                 throw Trouble.malformed(tile, "subdivision past the end of RGN")
             }
             r.position = start
@@ -57,6 +57,7 @@ extension ImgElements {
                 let end = start + lineEnd
                 while r.position < end {
                     let type = try line(&r, division, polygon: false, tile: tile, into: &coords)
+                    try wholeRecord(r, tile)
                     try emit(.line, type, coords)
                 }
             }
@@ -65,6 +66,7 @@ extension ImgElements {
                 let end = r.position + division.extLinesSize
                 while r.position < end {
                     let type = try extendedLine(&r, division, polygon: false, tile: tile, into: &coords)
+                    try wholeRecord(r, tile)
                     try emit(.line, type, coords)
                 }
             }
@@ -73,6 +75,7 @@ extension ImgElements {
                 let end = start + areaEnd
                 while r.position < end {
                     let type = try line(&r, division, polygon: true, tile: tile, into: &coords)
+                    try wholeRecord(r, tile)
                     try emit(.area, type, coords)
                 }
             }
@@ -81,6 +84,7 @@ extension ImgElements {
                 let end = r.position + division.extAreasSize
                 while r.position < end {
                     let type = try extendedLine(&r, division, polygon: true, tile: tile, into: &coords)
+                    try wholeRecord(r, tile)
                     try emit(.area, type, coords)
                 }
             }
@@ -88,10 +92,12 @@ extension ImgElements {
                 if division.hasIndexedPoints {
                     r.position = begin(indexedOffset)
                     try points(&r, division, until: start + indexedEnd, tile: tile, emit: emit)
+                    try wholeRecord(r, tile)
                 }
                 if division.hasPoints {
                     r.position = begin(0)
                     try points(&r, division, until: start + pointEnd, tile: tile, emit: emit)
+                    try wholeRecord(r, tile)
                 }
             }
             if extendedAreasAndPoints, division.extPointsSize > 0 {
@@ -99,8 +105,14 @@ extension ImgElements {
                 let end = r.position + division.extPointsSize
                 while r.position < end {
                     try extendedPoint(&r, division, tile: tile, emit: emit)
+                    try wholeRecord(r, tile)
                 }
             }
+        }
+
+        /// A record that ran past the RGN is a malformed file, not a trap.
+        private func wholeRecord(_ r: ImgElements.Bytes, _ tile: String) throws {
+            if r.overran { throw Trouble.malformed(tile, "an element runs past the end of RGN") }
         }
 
         /// Where each plain element kind's records begin and end inside one
@@ -333,7 +345,7 @@ extension ImgElements {
             var ybase = 2
             ybase += n <= 9 ? n : 2 * n - 9
 
-            var bits = BitReader(data.bytes, from: offset)
+            var bits = BitReader(data.bytes, from: offset, length: length)
             var xneg = false
             let xsame = bits.get1()
             if xsame { xneg = bits.get1() } else { xbase += 1 }
@@ -362,6 +374,8 @@ extension ImgElements {
                 }
                 var isNode = false
                 if extra { isNode = bits.get1() }
+                // An escape-coded delta can keep asking past the record; the stream is over.
+                if bits.overran { break }
                 // Some zero bits at the end of the stream would read as one more vertex.
                 if !isNode && dx == 0 && dy == 0 { continue }
                 lat = lat &+ Int32(truncatingIfNeeded: dy << shift)

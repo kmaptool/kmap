@@ -130,40 +130,44 @@ enum ImgElements {
     /// A cursor over a subfile's bytes, little-endian, with the three-byte reads the
     /// format is made of. An array, so the bit reader can look into it by offset with
     /// nothing borrowed from a closure.
+    /// Every offset and length comes from the file, so a read past the end answers zero
+    /// and raises `overran` rather than trapping; the caller checks it per record.
     struct Bytes {
         let bytes: [UInt8]
         var position = 0
+        private(set) var overran = false
 
         init(_ data: Data) { bytes = [UInt8](data) }
 
         var count: Int { bytes.count }
 
-        func u8(at offset: Int) -> UInt8 { bytes[offset] }
+        func u8(at offset: Int) -> UInt8 { offset >= 0 && offset < bytes.count ? bytes[offset] : 0 }
         func u16(at offset: Int) -> UInt16 {
-            UInt16(bytes[offset]) | UInt16(bytes[offset + 1]) << 8
+            UInt16(u8(at: offset)) | UInt16(u8(at: offset + 1)) << 8
         }
         func u32(at offset: Int) -> UInt32 {
             UInt32(u16(at: offset)) | UInt32(u16(at: offset + 2)) << 16
         }
 
-        mutating func u8() -> UInt8 { defer { position += 1 }; return bytes[position] }
-        mutating func u16() -> UInt16 { defer { position += 2 }; return u16(at: position) }
+        mutating func u8() -> UInt8 { u8(at: take(1)) }
+        mutating func u16() -> UInt16 { u16(at: take(2)) }
         mutating func s16() -> Int16 { Int16(bitPattern: u16()) }
         mutating func u24() -> UInt32 {
-            defer { position += 3 }
-            return UInt32(bytes[position]) | UInt32(bytes[position + 1]) << 8
-                | UInt32(bytes[position + 2]) << 16
+            let at = take(3)
+            return UInt32(u8(at: at)) | UInt32(u8(at: at + 1)) << 8 | UInt32(u8(at: at + 2)) << 16
         }
         mutating func s24() -> Int32 {
             let raw = u24()
             return raw & 0x800000 != 0 ? Int32(bitPattern: raw | 0xFF000000) : Int32(raw)
         }
-        mutating func u32() -> UInt32 { defer { position += 4 }; return u32(at: position) }
+        mutating func u32() -> UInt32 { u32(at: take(4)) }
 
         /// Steps over `count` bytes and says where they began, for the bit reader.
         mutating func take(_ count: Int) -> Int {
-            defer { position += count }
-            return position
+            let at = position
+            position += count
+            if at < 0 || position > bytes.count { overran = true }
+            return at
         }
     }
 
@@ -171,15 +175,25 @@ enum ImgElements {
     struct BitReader {
         private let bytes: [UInt8]
         private let base: Int
+        /// One past the last byte the stream may read; a bit past it reads as zero and
+        /// raises `overran`.
+        private let end: Int
         private(set) var position = 0
+        private(set) var overran = false
 
-        init(_ bytes: [UInt8], from base: Int) {
+        init(_ bytes: [UInt8], from base: Int, length: Int = Int.max) {
             self.bytes = bytes
-            self.base = base
+            self.base = max(0, base)
+            self.end = min(bytes.count, length == Int.max ? bytes.count : base + length)
+        }
+
+        private mutating func byte(at index: Int) -> Int {
+            guard index >= 0, index < end else { overran = true; return 0 }
+            return Int(bytes[index])
         }
 
         mutating func get1() -> Bool {
-            let byte = bytes[base + position / 8]
+            let byte = byte(at: base + position / 8)
             let off = position % 8
             position += 1
             return (byte >> off) & 1 == 1
@@ -190,7 +204,7 @@ enum ImgElements {
             var got = 0
             while got < n {
                 let off = position % 8
-                let byte = Int(bytes[base + position / 8]) >> off
+                let byte = byte(at: base + position / 8) >> off
                 var take = n - got
                 if take > 8 - off { take = 8 - off }
                 let mask = (1 << take) - 1

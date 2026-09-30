@@ -30,6 +30,11 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertEqual(TileSplitter.mapUnits(180), 1 << 23)
         XCTAssertEqual(TileSplitter.mapUnits(-180), -(1 << 23))
         XCTAssertEqual(TileSplitter.mapUnits(90), 1 << 22)
+        // A corrupt coordinate stops at the planet's edge, where every difference of two
+        // still fits an Int32 and no grid is sized by it.
+        XCTAssertEqual(TileSplitter.mapUnits(1e9), 1 << 23)
+        XCTAssertEqual(TileSplitter.mapUnits(-1e9), -(1 << 23))
+        XCTAssertEqual(TileSplitter.mapUnits(.nan), 1 << 23)
         // Halfway between two units rounds up on both sides of zero.
         let unit = 360.0 / Double(1 << 24)
         XCTAssertEqual(TileSplitter.mapUnits(unit * 0.5), 1)

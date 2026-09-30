@@ -80,6 +80,8 @@ final class RecipeForm {
     var currentProfileID = ""
 
     var list = ListState()
+    /// The first form row on screen, in rows the fields take with their gaps.
+    var scroll = 0
     private(set) var styleChoices: [MapStyle] = []
     private(set) var scanningStyles = false
     /// The style asked for, kept while the disk scan is still finding it.

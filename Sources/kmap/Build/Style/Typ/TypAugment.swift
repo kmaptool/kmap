@@ -48,7 +48,7 @@ enum TypAugment {
         var mended = false
         var out: [String] = []
         for line in text.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespaces).lowercased()
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             if trimmed == "[_draworder]" { inside = true } else if trimmed == "[end]" { inside = false }
             guard inside, line.contains(";"),
                 trimmed.hasPrefix("type="), let cut = line.firstIndex(of: ";")

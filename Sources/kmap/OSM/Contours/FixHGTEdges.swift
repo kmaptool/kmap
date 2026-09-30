@@ -55,7 +55,7 @@ enum FixHGTEdges {
         }
 
         guard !filled.isEmpty else { return nil }
-        try Data(data).write(to: url)
+        try FileTools.write(Data(data), to: url)
         return filled.joined(separator: ",")
     }
 }

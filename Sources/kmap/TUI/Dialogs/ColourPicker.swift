@@ -133,7 +133,8 @@ struct ColourPicker {
     private mutating func nudge(_ steps: Int) {
         switch slider {
         case .hue:
-            hue = (hue + Double(steps) + HSL.degrees).truncatingRemainder(dividingBy: HSL.degrees)
+            let turned = (hue + Double(steps)).truncatingRemainder(dividingBy: HSL.degrees)
+            hue = turned < 0 ? turned + HSL.degrees : turned
         case .saturation:
             saturation = min(1, max(0, saturation + Double(steps) / 100))
         case .lightness:

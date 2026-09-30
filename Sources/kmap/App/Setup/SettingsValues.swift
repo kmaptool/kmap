@@ -24,7 +24,7 @@ extension SettingsScreen {
 
     func commit(_ field: Field, _ ctx: AppContext) {
         let value = draft.trimmingCharacters(in: .whitespaces)
-        ctx.settings.update { settings in
+        let saved = ctx.settings.update { settings in
             switch field {
             case .output: if !value.isEmpty { settings.outputDirectory = value }
             case .work: settings.workDirectory = value.isEmpty ? Paths.work.path : value
@@ -39,7 +39,10 @@ extension SettingsScreen {
             default: break
             }
         }
-        message = t("saved")
+        switch saved {
+        case .success: message = t("saved")
+        case .failure(let error): message = t("could not save the settings: %@", error.localizedDescription)
+        }
         // The verdict decides whether srtm and alos are offered at all.
         if let service = field.service { verifyLogin(service) }
     }

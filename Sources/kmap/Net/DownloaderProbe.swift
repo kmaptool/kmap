@@ -63,7 +63,13 @@ extension Downloader {
 
     /// Streams `url` through MD5 block by block, so no whole file is held in memory. The
     /// next block is read on another queue while the current one is hashed.
-    static func md5(of url: URL, progress: ((Double) -> Void)? = nil) throws -> String {
+    /// `shouldStop` is asked between blocks: a multi-gigabyte extract takes minutes to
+    /// hash, and Ctrl+C must not wait for the end of it.
+    static func md5(
+        of url: URL,
+        shouldStop: () -> Bool = { false },
+        progress: ((Double) -> Void)? = nil
+    ) throws -> String {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
         let total = Double(FileTools.size(of: url))
@@ -90,6 +96,7 @@ extension Downloader {
             done += Double(block.count)
             if total > 0 { progress?(done / total) }
             ready.wait()
+            if shouldStop() { throw CancellationError() }
             if let failure = handoff.failure { throw failure }
             current = handoff.block
         }

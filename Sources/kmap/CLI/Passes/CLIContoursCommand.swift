@@ -22,6 +22,10 @@ extension CLI {
             return CLIOutput.refuse("usage: kmap contours <tile.hgt> [--step \(defaultStepMetres)]")
         }
         let step = flags.int("step") ?? defaultStepMetres
+        guard flags.value("step") == nil || flags.int("step") != nil, (1...10_000).contains(step) else {
+            return CLIOutput.refuse("--step must be a whole number of metres from 1 to 10000")
+        }
+        guard flags.notNumbers(["flatness"]).isEmpty else { return CLIOutput.refuse("--flatness must be a number") }
         do {
             let started = Date()
             let grid = try Contours.Grid(contentsOf: URL(fileURLWithPath: path))

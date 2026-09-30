@@ -70,6 +70,7 @@ enum CLILog {
             return
         }
         let handle = isError ? FileHandle.standardError : FileHandle.standardOutput
-        handle.write(Data(text.utf8))
+        // A closed pipe or a full disk is not a crash; the exit code says how the run went.
+        try? handle.write(contentsOf: Data(text.utf8))
     }
 }

@@ -186,6 +186,23 @@ enum Win32File {
         return root.withUnsafeBufferPointer { String(decodingCString: $0.baseAddress!, as: UTF16.self) }.lowercased()
     }
 
+    /// Copies a file or a directory tree, failing where the destination exists. A file
+    /// held by another process is tried again, as a move is; any other refusal is final.
+    static func copy(_ source: URL, to destination: URL) throws {
+        let from = source.nativePath
+        let to = destination.nativePath
+        if isDirectory(from) {
+            try copyTree(from, to: to)
+            return
+        }
+        try FileRetry.attempt(isTransient: isTransient) {
+            let copied = from.withCString(encodedAs: UTF16.self) { wideFrom in
+                to.withCString(encodedAs: UTF16.self) { wideTo in CopyFileW(wideFrom, wideTo, true) }
+            }
+            guard copied else { throw Failure(operation: "copy", path: to, code: GetLastError()) }
+        }
+    }
+
     /// Copies a directory tree, failing where the destination exists. A failure midway
     /// takes the partial copy away again.
     private static func copyTree(_ from: String, to: String) throws {

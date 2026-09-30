@@ -50,6 +50,16 @@ enum HGTConversion {
             Self.neighbourhood.contains { tile(lat: cellLat + $0.0, lon: cellLon + $0.1) != nil }
         }
 
+        /// Lets the cell's own file forget its decoded tiles. A neighbour still to come
+        /// decodes the edge it borrows again, which is far cheaper than keeping every
+        /// cell of a large region decoded until the pass ends.
+        func release(cellLat: Int, cellLon: Int) {
+            lock.lock()
+            let tiff = open[cellLat * 1000 + cellLon]
+            lock.unlock()
+            tiff?.dropDecoded()
+        }
+
         func tile(lat: Int, lon: Int) -> GeoTIFF? {
             // Keyed by number rather than by name: this is asked once per node in the slow
             // path, and building the name was a String(format:) each time.
@@ -269,7 +279,10 @@ enum HGTConversion {
         var written = 0
 
         func put(_ height: Double, _ row: Int, _ column: Int) {
-            let metres = Int16(clamping: Int(height.rounded(.toNearestOrAwayFromZero)))
+            // A float DEM may carry NaN as its nodata; Int(NaN) traps.
+            guard height.isFinite else { return }
+            let bounded = min(max(height, Double(Int16.min)), Double(Int16.max))
+            let metres = Int16(clamping: Int(bounded.rounded(.toNearestOrAwayFromZero)))
             let at = (row * n + column) * 2
             out[at] = UInt8(truncatingIfNeeded: Int(metres) >> 8)
             out[at + 1] = UInt8(truncatingIfNeeded: Int(metres))

@@ -47,6 +47,8 @@ final class SetupScreen: Screen {
     private var installer: ToolInstaller?
     private var wantedForTesting: [ToolStatus]?
     private var started = false
+    /// Which start the running task belongs to: a stopped one must not set the stage.
+    private var run = 0
 
     init(missing: [ToolStatus], whenReady: @escaping (AppContext) -> Route) {
         self.missing = missing
@@ -110,6 +112,7 @@ final class SetupScreen: Screen {
     /// The task as well as the process: a download stops only through its task.
     private func stop() {
         task?.cancel()
+        task = nil
         runner.cancel()
         log.warn(t("stopped"))
         stage = .failed(t("stopped"))
@@ -117,6 +120,8 @@ final class SetupScreen: Screen {
 
     private func start(_ ctx: AppContext) {
         started = true
+        run += 1
+        let id = run
         runner = ProcessRunner()
         let runner = self.runner
         let toolchain = ctx.toolchain
@@ -126,10 +131,14 @@ final class SetupScreen: Screen {
             installer ?? { id, log, runner, progress in
                 try await toolchain.install(id, log: log, runner: runner, progress: progress)
             }
-        // Re-read: an earlier attempt may have installed some of it.
-        let wanted = wantedForTesting ?? Toolchain.missingRequirements(in: toolchain.status())
-
+        let known = wantedForTesting
         task = Task { [weak self] in
+            // Re-read, off the main actor: the probe spawns processes. An earlier
+            // attempt may have installed some of it.
+            var wanted = known ?? []
+            if known == nil {
+                wanted = await Task.detached { Toolchain.missingRequirements(in: toolchain.status()) }.value
+            }
             var failure: String?
             for (index, tool) in wanted.enumerated() {
                 progress.begin(tool.name, index: index + 1, of: wanted.count)
@@ -147,6 +156,7 @@ final class SetupScreen: Screen {
             progress.finish()
             guard let self else { return }
             await MainActor.run {
+                guard self.run == id else { return }
                 ctx.refreshTools(force: true)
                 if let failure {
                     self.stage = .failed(failure)
@@ -175,9 +185,7 @@ final class SetupScreen: Screen {
 
     // MARK: Drawing
 
-    func tick(_ ctx: AppContext) {
-        if case .installing = stage, !started { start(ctx) }
-    }
+    func tick(_ ctx: AppContext) {}
 
     func render(into s: Surface, rect: Rect, ctx: AppContext) {
         let theme = ctx.theme

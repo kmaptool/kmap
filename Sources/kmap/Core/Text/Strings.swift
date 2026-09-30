@@ -467,6 +467,8 @@ enum Strings {
             "удалить %@? ⏎ — подтвердить, любая другая клавиша — отменить",
         "delete %@? the file goes for good  (y/n)": "удалить %@? файл уйдёт насовсем  (y/n)",
         "deleted": "удалено",
+        "could not delete: %@": "не удалось удалить: %@",
+        "could not save the settings: %@": "не удалось сохранить настройки: %@",
         "deleted %@": "удалён %@",
         "deleted %@ — it was the default, which is now %@": "удалён %@ — он был по умолчанию, теперь это %@",
         "deleted %@ — nothing is left to be the default": "удалён %@ — быть по умолчанию больше нечему",

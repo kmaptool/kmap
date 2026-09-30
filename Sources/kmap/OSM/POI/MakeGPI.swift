@@ -69,7 +69,7 @@ struct MakeGPI {
             fileName: destination.lastPathComponent,
             icon: showOnMap ? GPIFile.Icon.dot : nil
         )
-        try file.write(to: destination)
+        try FileTools.write(file, to: destination)
 
         var report = Report()
         report.written = points.count

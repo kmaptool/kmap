@@ -127,10 +127,12 @@ final class MalformedInputTests: XCTestCase {
             "[_point]",
             "[_point]\nType=0x2a00\n",  // no [end]
             "[_point]\nType=not a number\n[end]",
-            "[_point]\nXpm=\"999999 999999 99 9\"\n[end]",  // sizes that are not sizes
-            "[_point]\nXpm=\"4 4 2 1\"\n\"! c #FF0000\"\n\"##\"\n[end]",  // short rows
-            "[_polygon]\nXpm=\"0 0 -1 -1\"\n[end]",
-            "[_line]\nXpm=\"2 2 1 1\"\n\"! c none\"\n\"!!!!!!!!!!!!\"\n[end]",  // long rows
+            "[_point]\nType=0x2a00\nXpm=\"999999 999999 99 9\"\n[end]",  // sizes that are not sizes
+            "[_point]\nType=0x2a00\nXpm=\"4 4 2 1\"\n\"! c #FF0000\"\n\"##\"\n[end]",  // short rows
+            "[_polygon]\nType=0x01\nXpm=\"0 0 -1 -1\"\n[end]",
+            "[_polygon]\nType=0x01\nXpm=\"4 -1 1 1\"\n\"! c #FF0000\"\n[end]",  // a negative height
+            "[_point]\nType=0x2a00\nXpm=\"0 0 1 9223372036854775807\"\n\"a c #FF0000\"\n[end]",  // chars a pixel
+            "[_line]\nType=0x01\nXpm=\"2 2 1 1\"\n\"! c none\"\n\"!!!!!!!!!!!!\"\n[end]",  // long rows
             String(repeating: "[_point]\n", count: 500)
         ]
         for text in bad {

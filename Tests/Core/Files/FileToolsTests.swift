@@ -101,4 +101,14 @@ final class FileToolsTests: XCTestCase {
         // Read before a build to refuse one that cannot finish; zero would refuse them all.
         XCTAssertGreaterThan(FileTools.freeSpaceBytes(at: directory), 0)
     }
+
+    func testCopyingMakesASecondFileAndRefusesToOverwriteOne() throws {
+        let source = directory.appendingPathComponent("a.txt")
+        let copy = directory.appendingPathComponent("b.txt")
+        try FileTools.write("hello", to: source)
+        try FileTools.copy(source, to: copy)
+        XCTAssertEqual(try String(contentsOf: copy, encoding: .utf8), "hello")
+        XCTAssertTrue(FileTools.exists(source))
+        XCTAssertThrowsError(try FileTools.copy(source, to: copy))
+    }
 }

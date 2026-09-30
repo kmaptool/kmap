@@ -34,6 +34,11 @@ extension CLI {
             }
             areas = parsed
         }
+        let bad = flags.notNumbers(["mapid", "max-nodes"])
+        guard bad.isEmpty else { return CLIOutput.refuse("--\(bad[0]) must be a whole number") }
+        guard (flags.int("mapid") ?? defaultMapID) > 0, (flags.int("max-nodes") ?? defaultMaxNodes) >= 1000 else {
+            return CLIOutput.refuse("--mapid must be positive and --max-nodes at least 1000")
+        }
         let outputURL = URL(fileURLWithPath: outputDir, isDirectory: true)
         Paths.ensure(outputURL)
         let splitter = TileSplitter(

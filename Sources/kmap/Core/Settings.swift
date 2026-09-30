@@ -164,12 +164,13 @@ final class SettingsStore: Sendable {
 
     /// Applies a durable change: written to the file, and visible to this run unless an
     /// override covers the same field.
-    func update(_ mutate: (inout Settings) -> Void) {
+    @discardableResult
+    func update(_ mutate: (inout Settings) -> Void) -> Result<Void, Error> {
         state.withLock {
             mutate(&$0.persisted)
             $0.refresh()
         }
-        save()
+        return save()
     }
 
     /// Applies a change for this process only, as command-line flags do.
@@ -196,12 +197,19 @@ final class SettingsStore: Sendable {
         return candidate
     }
 
-    func save() {
+    /// Writes the file. The failure is the caller's to show: a read-only home or a full
+    /// disk must not be reported as saved.
+    @discardableResult
+    func save() -> Result<Void, Error> {
         Paths.bootstrap()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? encoder.encode(state.withLock({ $0.persisted })) {
-            try? FileTools.write(data, to: Paths.settingsFile)
+        do {
+            let data = try encoder.encode(state.withLock({ $0.persisted }))
+            try FileTools.write(data, to: Paths.settingsFile)
+            return .success(())
+        } catch {
+            return .failure(error)
         }
     }
 }

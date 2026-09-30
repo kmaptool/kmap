@@ -50,6 +50,31 @@ final class TerminalKeysTests: XCTestCase {
         XCTAssertEqual(read.last?.command, .char("q"))
     }
 
+    func testAMouseReportCutByTheReadIsStillOneReport() {
+        // 60 dots, then a motion report across the 64-byte boundary. Its tail used to
+        // arrive as the keys "0", ";", "4", "0", "M", and a digit picks a palette colour.
+        let read = keys(from: String(repeating: ".", count: 60) + "\u{1B}[<35;100;40M")
+        XCTAssertEqual(read.count, 61)
+        guard case .mouse(let event) = read[60] else { return XCTFail("read \(read[60]), not a mouse report") }
+        XCTAssertEqual(event.x, 99)
+        XCTAssertEqual(event.y, 39)
+        XCTAssertEqual(event.action, .move)
+    }
+
+    func testAPastedLineBreakArrivesAsANewline() {
+        // Terminals send a pasted line break as CR or CRLF; text fields expect LF.
+        let read = keys(from: "\u{1B}[200~one\r\ntwo\rthree\u{1B}[201~")
+        XCTAssertEqual(read, [.paste("one\ntwo\nthree")])
+    }
+
+    func testALargePasteIsCollectedInOneGo() {
+        let text = String(repeating: "0123456789abcdef", count: 8192)
+        let read = keys(from: "\u{1B}[200~" + text + "\u{1B}[201~x")
+        XCTAssertEqual(read.count, 2)
+        XCTAssertEqual(read.first, .paste(text))
+        XCTAssertEqual(read.last, .char("x"))
+    }
+
     func testBufferedKeysAreTakenWithoutAnotherWait() {
         let terminal = Terminal(reading: Script("\u{1B}[B\u{1B}[B"))
         XCTAssertNotNil(terminal.readKey())

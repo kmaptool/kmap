@@ -85,7 +85,7 @@ struct BurnPeaks {
             for peak in summits { burn(peak, into: tile, report: &report) }
             guard tile.dirty else { continue }
             let name = tile.path.lastPathComponent
-            try Data(tile.samples).write(to: out.appendingPathComponent(name))
+            try FileTools.write(Data(tile.samples), to: out.appendingPathComponent(name))
             report.written.append(name)
         }
         return report
@@ -218,7 +218,7 @@ struct BurnPeaks {
             self.samples = [UInt8](try Data(contentsOf: path))
             let count = samples.count / 2
             self.n = Int(Double(count).squareRoot().rounded())
-            guard n * n * 2 == samples.count else {
+            guard n >= 2, n * n * 2 == samples.count else {
                 throw Trouble.notSquare(path.lastPathComponent, samples.count)
             }
             let corner = HGTName.corner(of: path.lastPathComponent)

@@ -40,6 +40,7 @@ final class AppContext {
     private var lastOverviewFrame = AppContext.never
     private var lastElevationFrame = AppContext.never
     private var probing = false
+    private var probeAgain = false
     private var askingPacks = false
     /// Set by the tests: the list is theirs, and no probe replaces it.
     private var toolsFrozen = false
@@ -94,7 +95,10 @@ final class AppContext {
 
     /// Probes the toolchain off the render loop. Cached until `force` asks again.
     func refreshTools(force: Bool = false) {
-        guard !probing, !toolsFrozen else { return }
+        guard !toolsFrozen else { return }
+        // A forced ask during a probe is kept: the running probe read the folders
+        // before whatever changed landed.
+        if probing { probeAgain = probeAgain || force; return }
         if toolsProbed && !force { return }
         probing = true
         if force { toolchain.invalidate() }
@@ -108,6 +112,10 @@ final class AppContext {
                 self.tools = probed
                 self.toolsProbed = true
                 self.probing = false
+                if self.probeAgain {
+                    self.probeAgain = false
+                    self.refreshTools(force: true)
+                }
             }
         }
     }

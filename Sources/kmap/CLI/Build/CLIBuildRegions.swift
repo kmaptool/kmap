@@ -10,7 +10,9 @@ extension CLI {
     /// exist and have an extract to download.
     static func chosenRegions(_ regionID: String, in index: RegionIndex) -> Result<[Region], Refusal> {
         var chosen: [Region] = []
-        for id in regionID.split(separator: "+").map(String.init) {
+        let ids = regionID.split(separator: "+").map(String.init)
+        guard !ids.isEmpty else { return .failure(Refusal(why: "build needs a region id, e.g. austria")) }
+        for id in ids {
             guard let found = index.region(id) else {
                 return .failure(Refusal(why: "no region with id \"\(id)\" — try `kmap regions \(id)`"))
             }

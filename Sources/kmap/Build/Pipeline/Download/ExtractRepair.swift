@@ -18,9 +18,11 @@ extension BuildPipeline {
         extracts.filter { extract in
             guard let recorded = CacheStamp.read(besides: extract)?.md5 else { return true }
             let what = t("verifying cached copy")
-            let found = try? Downloader.md5(of: extract) { fraction in
+            let found = try? Downloader.md5(of: extract, shouldStop: stopAsked) { fraction in
                 self.detail(.download, what + " · " + Fmt.percent(fraction))
             }
+            // A hash cut short by a cancellation says nothing about the file.
+            if isCancelled { return false }
             return found != recorded
         }
     }

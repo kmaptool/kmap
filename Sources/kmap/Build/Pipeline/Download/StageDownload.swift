@@ -251,7 +251,7 @@ extension BuildPipeline {
     /// The MD5 of the job's file, its progress reported in the stage's text.
     private func checksum(of job: ExtractJob, saying what: String) throws -> String {
         detail(.download, what)
-        return try Downloader.md5(of: job.destination) { fraction in
+        return try Downloader.md5(of: job.destination, shouldStop: stopAsked) { fraction in
             self.detail(.download, what + " · " + Fmt.percent(fraction))
         }
     }

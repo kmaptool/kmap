@@ -22,6 +22,22 @@ final class CLIFlagsTests: XCTestCase {
         XCTAssertEqual(flags.double("step"), 0.5)
     }
 
+    func testAValuedFlagDoesNotSwallowTheFlagAfterIt() {
+        // `--out --attach` used to write a file called "--attach" and lose the flag.
+        let flags = CLI.Flags(["map.img", "--out", "--attach"], valued: ["out"])
+        XCTAssertTrue(flags.has("out"))
+        XCTAssertNil(flags.value("out"))
+        XCTAssertTrue(flags.has("attach"))
+    }
+
+    func testAFlagThatShouldHoldANumberButDoesNotIsNamed() {
+        let flags = CLI.Flags(["--step=nan", "--mapid=12,000", "--limit=4.5", "--raw"], valued: [])
+        XCTAssertEqual(flags.notNumbers(["step", "mapid", "limit", "absent"]), ["mapid"])
+        // A valued flag with nothing after it holds no number either.
+        let bare = CLI.Flags(["--step", "--raw"], valued: ["step"])
+        XCTAssertEqual(bare.notNumbers(["step"]), ["step"])
+    }
+
     func testARepeatedFlagKeepsEveryValue() {
         let flags = CLI.Flags(
             ["map.img", "--extract", "a.pbf", "--extract=b.pbf"],

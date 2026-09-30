@@ -125,7 +125,7 @@ extension BuildPipeline {
         do {
             try FileTools.move(source, to: destination)
         } catch {
-            try FileManager.default.copyItem(at: source, to: destination)
+            try FileTools.copy(source, to: destination)
         }
         let size = FileTools.isDirectory(destination) ? directorySize(destination) : FileTools.size(of: destination)
         log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(size))")

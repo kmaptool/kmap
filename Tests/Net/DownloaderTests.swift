@@ -60,6 +60,10 @@ final class DownloaderTests: XCTestCase {
         let empty = directory.appendingPathComponent("empty")
         try FileTools.write(Data(), to: empty)
         XCTAssertEqual(try Downloader.md5(of: empty), "d41d8cd98f00b204e9800998ecf8427e")
+        // Asked between blocks, so Ctrl+C does not wait for gigabytes to be hashed.
+        XCTAssertThrowsError(try Downloader.md5(of: url, shouldStop: { true })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
     }
 
     func testAFileLargerThanOneReadIsHashedWhole() throws {

@@ -69,6 +69,9 @@ struct RepairPlanner {
         let obstacles = obstacleGrid(near: candidates, cell: cell)
         var graph = LocalGraph(network: network, around: candidates)
         var plan = RepairPlan()
+        // Ends this plan has already put into another line, as an insert or a bridge end.
+        // Such a node holds two lines together and is no longer loose for a third.
+        var placed = Set<Int64>()
         // Invented nodes are numbered from far above any OSM node id, and from this pass's
         // own slice of that space, so two regions' inventions cannot share an id.
         let made: Int64 = inventedIDBase
@@ -153,6 +156,7 @@ struct RepairPlanner {
                             segment: Int32(segment - otherRange.lowerBound), along: along, node: node
                         )
                     )
+                    placed.insert(ref)
                     link(&graph, ref, ends, (qlat, qlon), (alat, alon), (blat, blon))
                     note(&plan, Verdict.bridged(hit.word), candidate, told)
                     continue
@@ -167,6 +171,7 @@ struct RepairPlanner {
                     other: other,
                     loose: loose,
                     plan: plan,
+                    placed: placed,
                     kx: kx
                 ) {
                     // A node already put in place holds two lines together; moving it
@@ -201,6 +206,7 @@ struct RepairPlanner {
                         segment: Int32(segment - otherRange.lowerBound), along: along, node: ref
                     )
                 )
+                placed.insert(ref)
                 link(&graph, ref, ends, (qlat, qlon), (alat, alon), (blat, blon))
                 note(&plan, Verdict.joined, candidate, told)
             }
@@ -225,6 +231,7 @@ struct RepairPlanner {
         other: Int,
         loose: [Bool],
         plan: RepairPlan,
+        placed: Set<Int64>,
         kx: Double
     ) -> (point: Int, ref: Int64)? {
         for point in [segment, segment + 1] {
@@ -234,7 +241,7 @@ struct RepairPlanner {
             let dx = (network.lon[point] - place.lon) * kx
             let dy = (network.lat[point] - place.lat) * RoadRepair.metresPerDegree
             if isEnd, loose[slot], plan.moves[candidateRef] == nil,
-                plan.merges[candidateRef] == nil,
+                plan.merges[candidateRef] == nil, !placed.contains(candidateRef),
                 (dx * dx + dy * dy).squareRoot() <= limit
             {
                 return (point, candidateRef)

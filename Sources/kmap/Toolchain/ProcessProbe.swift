@@ -91,16 +91,17 @@ enum ProcessProbe {
             lock.unlock()
         }
 
-        func append(_ text: String) {
+        func append(_ bytes: ArraySlice<UInt8>) {
             lock.lock()
-            data.append(Data(text.utf8))
+            data.append(contentsOf: bytes)
             lock.unlock()
         }
 
         var text: String? {
             lock.lock()
             defer { lock.unlock() }
-            return String(data: data, encoding: .utf8)
+            // Lossy rather than nil: a localized JVM banner with one stray byte is still a JVM.
+            return String(decoding: data, as: UTF8.self)
         }
     }
 }
