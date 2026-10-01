@@ -3,7 +3,7 @@ import XCTest
 @testable import kmap
 
 /// The packed decoders against `ProtoReader`: the same values out of every stream,
-/// well formed or not.
+/// well formed or not, at every tier of vector code the machine has.
 final class PackedVarintsTests: XCTestCase {
     /// What `ProtoReader` gives, value by value, which is the definition.
     private func reference(_ bytes: [UInt8]) -> [UInt64] {
@@ -18,7 +18,10 @@ final class PackedVarintsTests: XCTestCase {
     private func zigzag(_ raw: UInt64) -> Int64 { Int64(bitPattern: raw >> 1) ^ -Int64(bitPattern: raw & 1) }
 
     private func check(_ bytes: [UInt8], _ note: String) {
-        let expected = reference(bytes)
+        VectorTiers.each { tier in check(bytes, "\(note), tier \(tier)", expecting: reference(bytes)) }
+    }
+
+    private func check(_ bytes: [UInt8], _ note: String, expecting expected: [UInt64]) {
         bytes.withUnsafeBytes { raw in
             var plain = [Int64](repeating: 0, count: bytes.count + 1)
             let n = plain.withUnsafeMutableBufferPointer { PackedVarints.zigzag(raw, into: $0.baseAddress!) }
@@ -50,6 +53,21 @@ final class PackedVarintsTests: XCTestCase {
         }
         out.append(UInt8(v))
         return out
+    }
+
+    func testEveryTierBelowTheMachinesOwnIsReached() {
+        var tiers: [Int32] = []
+        VectorTiers.each { tiers.append($0) }
+        XCTAssertEqual(tiers, tiers.sorted(by: >), "from the machine's own tier down")
+        XCTAssertEqual(tiers.last, 0, "the lowest is no vector code at all")
+        XCTAssertEqual(tiers.count, Int(tiers[0]) + 1, "no tier skipped on the way down")
+        // A build given KMAP_NO_VECTOR has the lowest tier and no other.
+        guard tiers != [0] else { return }
+        #if arch(arm64)
+        XCTAssertEqual(tiers, [1, 0], "NEON, then none")
+        #elseif arch(x86_64)
+        XCTAssertTrue(tiers.contains(1), "SSE2 is part of every x86-64")
+        #endif
     }
 
     func testEveryLengthOfVarintComesOutAsTheReaderReadsIt() {

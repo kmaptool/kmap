@@ -47,8 +47,8 @@ let package = Package(
                 // still per-thread, which is all this was ever asking for.
             ]
         ),
-        // The loops written in NEON and SSE4.1. They turn on moving bytes about inside
-        // a vector, which Swift's SIMD types have no way to say.
+        // The loops written in NEON and SSE. They turn on moving bytes about inside a
+        // vector, which Swift's SIMD types have no way to say.
         .target(
             name: "CVector",
             path: "Sources/CVector"
@@ -72,7 +72,7 @@ let package = Package(
         // Sources/kmap/OSM/PBF/ProtoReader.swift.
         .testTarget(
             name: "kmapTests",
-            dependencies: ["kmap"],
+            dependencies: ["kmap", "CVector"],
             path: "Tests"
         )
     ]

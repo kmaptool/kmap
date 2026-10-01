@@ -298,22 +298,26 @@ final class GeoTIFFTests: XCTestCase {
         for width in [1, 2, 3, 4, 5, 15, 16, 17, 31, 32, 33, 63, 64, 65, 100, 512] {
             let rows = 3
             let raw = (0..<(width * 4 * rows)).map { _ in UInt8.random(in: 0...255, using: &random) }
-            var plainBytes = raw, vectorBytes = raw
+            var plainBytes = raw
             var plain = [Float](repeating: 0, count: width * rows)
-            var vector = [Float](repeating: 0, count: width * rows)
             plainBytes.withUnsafeMutableBufferPointer { bytes in
                 plain.withUnsafeMutableBufferPointer {
                     GeoTIFF.floatRows(bytes.baseAddress!, width: width, rows: rows, into: $0.baseAddress!)
                 }
             }
-            let done = vectorBytes.withUnsafeMutableBufferPointer { bytes in
-                vector.withUnsafeMutableBufferPointer {
-                    GeoTIFF.vectorFloatRows(bytes.baseAddress!, width: width, rows: rows, into: $0.baseAddress!)
+            VectorTiers.each { tier in
+                var vectorBytes = raw
+                var vector = [Float](repeating: 0, count: width * rows)
+                let done = vectorBytes.withUnsafeMutableBufferPointer { bytes in
+                    vector.withUnsafeMutableBufferPointer {
+                        GeoTIFF.vectorFloatRows(bytes.baseAddress!, width: width, rows: rows, into: $0.baseAddress!)
+                    }
                 }
+                XCTAssertEqual(done, tier > 0, "tier \(tier): only the lowest does nothing")
+                guard done else { return }
+                XCTAssertEqual(vector.map(\.bitPattern), plain.map(\.bitPattern), "width \(width), tier \(tier)")
+                XCTAssertEqual(vectorBytes, plainBytes, "width \(width), tier \(tier): the sums left in place")
             }
-            guard done else { continue }
-            XCTAssertEqual(vector.map(\.bitPattern), plain.map(\.bitPattern), "width \(width)")
-            XCTAssertEqual(vectorBytes, plainBytes, "width \(width): the sums left in place")
         }
     }
 }

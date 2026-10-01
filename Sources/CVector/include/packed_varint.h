@@ -11,11 +11,11 @@
 // they took. The caller decodes what is left. `out` needs room for 16 values more
 // than have been written, which a buffer of 1 value a byte of input always has.
 
+// Which instructions do the work is `kmap_vector_tier`'s to say; at tier 0 the calls
+// decode nothing.
+
 // Builds the tables. Call it before anything else, from 1 thread.
 void kmap_varints_prepare(void);
-
-// Whether this machine has the instructions; without them the calls decode nothing.
-int kmap_varints_vectored(void);
 
 // Zigzag varints as signed 64-bit values.
 size_t kmap_varints_zigzag64(const uint8_t *in, size_t count, int64_t *out, size_t *used);

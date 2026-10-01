@@ -8,15 +8,24 @@
 
 enum { VECTOR = 16 };
 
+// What a vector loop left of a row, a byte at a time.
+static inline void rest(uint8_t *row, size_t i, size_t count, uint8_t last) {
+    for (; i < count; i++) {
+        last = (uint8_t)(last + row[i]);
+        row[i] = last;
+    }
+}
+
 // The running sum of the bytes of 1 row, 16 at a time: within a vector by adding it
 // to itself moved along by 1, 2, 4 and 8 bytes, and across vectors by its last byte.
-KMAP_TARGET
-static inline void sums(uint8_t *row, size_t count) {
-    size_t i = 0;
-    uint8_t last = 0;
+
 #if defined(KMAP_NEON)
+
+static void sums(uint8_t *row, size_t count, int tier) {
+    (void)tier;
     const uint8x16_t zero = vdupq_n_u8(0);
     uint8x16_t carry = zero;
+    size_t i = 0;
     for (; i + VECTOR <= count; i += VECTOR) {
         uint8x16_t x = vld1q_u8(row + i);
         x = vaddq_u8(x, vextq_u8(zero, x, 15));
@@ -27,30 +36,57 @@ static inline void sums(uint8_t *row, size_t count) {
         carry = vdupq_laneq_u8(x, 15);
         vst1q_u8(row + i, x);
     }
-    last = vgetq_lane_u8(carry, 0);
+    rest(row, i, count, vgetq_lane_u8(carry, 0));
+}
+
 #else
+
+// The sums inside 1 vector.
+static inline __m128i within(__m128i x) {
+    x = _mm_add_epi8(x, _mm_slli_si128(x, 1));
+    x = _mm_add_epi8(x, _mm_slli_si128(x, 2));
+    x = _mm_add_epi8(x, _mm_slli_si128(x, 4));
+    return _mm_add_epi8(x, _mm_slli_si128(x, 8));
+}
+
+// SSE2 has no byte shuffle, so the last byte reaches all 16 in 3 steps: doubled into
+// the top word, then the word and the doubleword it is in spread over the rest.
+static void sums_sse2(uint8_t *row, size_t count) {
+    __m128i carry = _mm_setzero_si128();
+    size_t i = 0;
+    for (; i + VECTOR <= count; i += VECTOR) {
+        __m128i x = _mm_add_epi8(within(_mm_loadu_si128((const __m128i *)(row + i))), carry);
+        carry = _mm_shuffle_epi32(_mm_shufflehi_epi16(_mm_unpackhi_epi8(x, x), 0xFF), 0xFF);
+        _mm_storeu_si128((__m128i *)(row + i), x);
+    }
+    rest(row, i, count, (uint8_t)_mm_cvtsi128_si32(carry));
+}
+
+KMAP_SSSE3
+static void sums_ssse3(uint8_t *row, size_t count) {
     const __m128i end = _mm_set1_epi8(15);
     __m128i carry = _mm_setzero_si128();
+    size_t i = 0;
     for (; i + VECTOR <= count; i += VECTOR) {
-        __m128i x = _mm_loadu_si128((const __m128i *)(row + i));
-        x = _mm_add_epi8(x, _mm_slli_si128(x, 1));
-        x = _mm_add_epi8(x, _mm_slli_si128(x, 2));
-        x = _mm_add_epi8(x, _mm_slli_si128(x, 4));
-        x = _mm_add_epi8(x, _mm_slli_si128(x, 8));
-        x = _mm_add_epi8(x, carry);
+        __m128i x = _mm_add_epi8(within(_mm_loadu_si128((const __m128i *)(row + i))), carry);
         carry = _mm_shuffle_epi8(x, end);
         _mm_storeu_si128((__m128i *)(row + i), x);
     }
-    last = (uint8_t)_mm_cvtsi128_si32(carry);
-#endif
-    for (; i < count; i++) {
-        last = (uint8_t)(last + row[i]);
-        row[i] = last;
+    rest(row, i, count, (uint8_t)_mm_cvtsi128_si32(carry));
+}
+
+static void sums(uint8_t *row, size_t count, int tier) {
+    if (tier >= KMAP_TIER_SSSE3) {
+        sums_ssse3(row, count);
+    } else {
+        sums_sse2(row, count);
     }
 }
 
+#endif
+
 // 1 byte from each plane makes a sample, the first plane its most significant byte.
-KMAP_TARGET
+// On x86 nothing here is past SSE2.
 static inline void gather(const uint8_t *row, size_t width, float *out) {
     const uint8_t *p0 = row, *p1 = row + width, *p2 = row + 2 * width, *p3 = row + 3 * width;
     size_t s = 0;
@@ -78,14 +114,12 @@ static inline void gather(const uint8_t *row, size_t width, float *out) {
     }
 }
 
-KMAP_TARGET
 int kmap_float_rows(uint8_t *raw, size_t width, size_t rows, float *out) {
-#if defined(KMAP_SSE)
-    if (!kmap_has_sse41()) return 0;
-#endif
+    int tier = kmap_vector_tier();
+    if (tier == KMAP_TIER_NONE) return 0;
     for (size_t r = 0; r < rows; r++) {
         uint8_t *row = raw + r * width * 4;
-        sums(row, width * 4);
+        sums(row, width * 4, tier);
         gather(row, width, out + r * width);
     }
     return 1;

@@ -92,7 +92,7 @@ enum PackedVarints {
     /// on the first asking.
     private static let vectored: Bool = {
         kmap_varints_prepare()
-        return kmap_varints_vectored() != 0
+        return kmap_vector_tier() != 0
     }()
 
     /// The vector decoder reads 64 bytes at a time; a shorter field is not worth the call.

@@ -8,7 +8,7 @@
 //
 // Each row of `raw` is 4 planes of `width` bytes, most significant first, differenced
 // as 1 run. The running sum is put back in place and `out` receives `rows * width`
-// samples. Answers 0, having done nothing, where this machine lacks the instructions.
+// samples. Answers 0, having done nothing, at tier 0 of `kmap_vector_tier`.
 int kmap_float_rows(uint8_t *raw, size_t width, size_t rows, float *out);
 
 #endif

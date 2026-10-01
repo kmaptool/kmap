@@ -418,8 +418,8 @@ struct GeoTIFF {
         }
     }
 
-    /// The rows undone 16 bytes at a time, or false, having done nothing, on a machine
-    /// without the instructions.
+    /// The rows undone 16 bytes at a time, or false, having done nothing, in a build
+    /// with no vector code.
     static func vectorFloatRows(
         _ start: UnsafeMutablePointer<UInt8>,
         width: Int,
@@ -429,8 +429,8 @@ struct GeoTIFF {
         kmap_float_rows(start, width, rows, floats) != 0
     }
 
-    /// The same a byte at a time: for a machine without the instructions, and for the
-    /// tests to hold the other against.
+    /// The same a byte at a time: for a build with no vector code, and for the tests
+    /// to hold the other against.
     static func floatRows(
         _ start: UnsafeMutablePointer<UInt8>,
         width: Int,
