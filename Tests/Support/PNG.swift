@@ -25,7 +25,7 @@ enum PNG {
 
         var out = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
         out.append(chunk("IHDR", header))
-        out.append(chunk("IDAT", Zlib.deflate(raw) ?? []))
+        out.append(chunk("IDAT", Deflate.deflate(raw) ?? []))
         out.append(chunk("IEND", []))
         return out
     }
@@ -66,7 +66,7 @@ enum PNG {
         ]
     }
 
-    /// CRC-32 as PNG specifies it, written out rather than taken from zlib.
+    /// CRC-32 as PNG specifies it, written out rather than taken from a library.
     private static func crc32(_ bytes: [UInt8]) -> UInt32 {
         var crc: UInt32 = 0xFFFF_FFFF
         for byte in bytes {

@@ -26,9 +26,9 @@ struct PBFReader {
 
     private static let megabyte = 1 << 20
 
-    /// The shortest thing that could be a zlib stream at all: two header bytes, at least
-    /// one of body, and a four-byte adler32.
-    private static let smallestZlibStream = 7
+    /// The shortest thing that could be a deflated blob at all: 2 header bytes, at least
+    /// 1 of body, and a 4-byte adler32.
+    private static let smallestDeflatedBlob = 7
 
     /// Returns the bounding box the file's header declares, in degrees, or nil if it
     /// declares none. Tile areas are cut inside this box; anything outside is fringe.
@@ -249,21 +249,21 @@ struct PBFReader {
     }
 
     /// Inflates a blob into `scratch`, growing it if needed, and returns the byte count. A
-    /// blob is stored raw or zlib-wrapped; a wrapped one is passed to zlib whole, header,
+    /// blob is stored raw or deflated; a deflated one is inflated whole, header,
     /// body and checksum, so the checksum is verified.
     static func inflate(
         _ blob: UnsafeRawBufferPointer,
         into scratch: inout [UInt8]
     ) throws -> Int {
         var raw: UnsafeRawBufferPointer?
-        var zlib: UnsafeRawBufferPointer?
+        var deflated: UnsafeRawBufferPointer?
         var plainSize = 0
         var reader = ProtoReader(blob)
         while let field = reader.nextField() {
             switch field.number {
             case PBFSchema.blobRaw: raw = reader.lengthDelimited()
             case PBFSchema.blobRawSize: plainSize = Int(clamping: reader.varint())
-            case PBFSchema.blobZlib: zlib = reader.lengthDelimited()
+            case PBFSchema.blobDeflated: deflated = reader.lengthDelimited()
             case PBFSchema.blobLzma: throw PBFError.unsupportedCompression("lzma")
             case PBFSchema.blobLz4: throw PBFError.unsupportedCompression("lz4")
             case PBFSchema.blobZstd: throw PBFError.unsupportedCompression("zstd")
@@ -279,7 +279,7 @@ struct PBFReader {
             }
             return raw.count
         }
-        guard let zlib, plainSize > 0 else { throw PBFError.truncated("a blob's payload") }
+        guard let deflated, plainSize > 0 else { throw PBFError.truncated("a blob's payload") }
         // Untrusted size: past the format's ceiling it would be allocated as claimed.
         guard plainSize <= PBFSchema.maxUncompressedBlob else {
             throw PBFError.truncated(
@@ -287,12 +287,12 @@ struct PBFReader {
                     + " format's \(PBFSchema.maxUncompressedBlob / megabyte)"
             )
         }
-        guard zlib.count >= smallestZlibStream else { throw PBFError.truncated("a compressed blob") }
+        guard deflated.count >= smallestDeflatedBlob else { throw PBFError.truncated("a compressed blob") }
         if scratch.count < plainSize { scratch = [UInt8](repeating: 0, count: plainSize) }
         do {
             try scratch.withUnsafeMutableBufferPointer { out in
-                try Zlib.inflate(
-                    zlib,
+                try Deflate.inflate(
+                    deflated,
                     into: UnsafeMutableBufferPointer(rebasing: out[0..<plainSize]),
                     expecting: plainSize
                 )

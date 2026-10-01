@@ -15,7 +15,7 @@ LICENSE.md — upstream's own where the project publishes one, otherwise one tha
 it does say — beside a PROVENANCE.md recording what was taken and what was changed. The
 attribution also rides in each file's header and — where the licence asks to be credited —
 in every map built with that style. Vendored code:
-stb_image (public domain) and, on Windows only, zlib 1.3.1 (zlib licence). Each folder's
+stb_image (public domain) and libdeflate 1.26 (MIT). Each folder's
 own README or PROVENANCE.md has the details.
 
 mkgmap (GPL v2), pyhgtmap (GPL v2) and Java (Eclipse Temurin from Adoptium) are not
@@ -25,3 +25,32 @@ redistributed. The tile splitter is kmap's own. Map data is OpenStreetMap (ODbL,
 Geofabrik) and so is everything built from it; coastline and boundary packs come from
 thkukuk.de; elevation comes from Copernicus DEM, Viewfinder Panoramas, SRTM or ALOS, each
 under its provider's own terms.
+
+## libdeflate
+
+Deflate and inflate are libdeflate 1.26, compiled into the binary, under its own licence:
+
+```
+Copyright 2016 Eric Biggers
+Copyright 2024 Google LLC
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation files
+(the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

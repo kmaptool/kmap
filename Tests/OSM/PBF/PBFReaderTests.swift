@@ -308,7 +308,7 @@ final class PBFReaderTests: XCTestCase {
         let url = path("huge.osm.pbf")
         var blob = ProtoWriter()
         blob.varintField(2, 1 << 40)  // raw_size
-        blob.bytesField(3, [0x78, 0x9C, 0x03, 0x00])  // an empty zlib stream
+        blob.bytesField(3, [0x78, 0x9C, 0x03, 0x00])  // an empty deflated stream
         var header = ProtoWriter()
         header.stringField(1, "OSMData")
         header.varintField(3, Int64(blob.bytes.count))
@@ -332,7 +332,7 @@ final class PBFReaderTests: XCTestCase {
         }
     }
 
-    func testAZlibFieldTooShortToHoldItsOwnHeaderIsRefused() throws {
+    func testADeflatedFieldTooShortToHoldItsOwnHeaderIsRefused() throws {
         let url = path("stub.osm.pbf")
         var blob = ProtoWriter()
         blob.varintField(2, 100)

@@ -60,7 +60,7 @@ final class ExtractRepairTests: XCTestCase {
 
     func testOnlyAFailureToDecodeTheExtractPointsAtTheExtract() {
         XCTAssertTrue(BuildPipeline.readsLikeADamagedExtract(PBFError.truncated("a blob")))
-        XCTAssertTrue(BuildPipeline.readsLikeADamagedExtract(Zlib.Failure.corrupt(-3)))
+        XCTAssertTrue(BuildPipeline.readsLikeADamagedExtract(Deflate.Failure.corrupt(Deflate.badData)))
         XCTAssertFalse(BuildPipeline.readsLikeADamagedExtract(BuildError.notDownloadable("x")))
         XCTAssertFalse(BuildPipeline.readsLikeADamagedExtract(DownloadError.badStatus(503)))
         XCTAssertFalse(BuildPipeline.readsLikeADamagedExtract(CancellationError()))

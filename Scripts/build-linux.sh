@@ -9,8 +9,8 @@
 # none, makes the loader print a warning on each run. Amazon Linux 2 has no tags to ask
 # for, and its glibc 2.26 is older than any distribution still in use.
 #
-# The binary is linked with a static Swift standard library and needs only glibc, libcurl
-# and zlib, which every distribution carries.
+# The binary is linked with a static Swift standard library and needs only glibc and
+# libcurl, which every distribution carries.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

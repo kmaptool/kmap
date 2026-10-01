@@ -1,30 +1,6 @@
 // swift-tools-version:5.9
 import PackageDescription
 
-// zlib, the same module either way.
-//
-// On the Unixes it is the system's own: macOS ships it in the SDK and every Linux
-// in libz-dev, and the one kmap wants is the one the rest of the machine is
-// already using. Windows has none and nowhere to send somebody for one — kmap
-// arrives there as an installer and an .exe, and a person who wants a Garmin map
-// should not have to set up vcpkg first — so there the sources come with it. See
-// Sources/CZlibVendored/README.md.
-//
-// The condition is on the host because that is what a Windows build is built on;
-// nothing here cross-compiles.
-#if os(Windows)
-let zlib: Target = .target(
-    name: "CZlib",
-    path: "Sources/CZlibVendored",
-    exclude: ["README.md", "LICENSE-zlib"]
-)
-#else
-let zlib: Target = .systemLibrary(
-    name: "CZlib",
-    path: "Sources/CZlib"
-)
-#endif
-
 let package = Package(
     name: "kmap",
     // A floor for the Apple platforms, not a fence around them: SwiftPM reads
@@ -34,7 +10,16 @@ let package = Package(
         .macOS(.v13)
     ],
     targets: [
-        zlib,
+        // Deflate and inflate, of whole buffers, which is all kmap compresses. The
+        // sources come with kmap on every platform, so a tile is the same bytes
+        // whichever machine wrote it. See Sources/CLibdeflate/README.md.
+        .target(
+            name: "CLibdeflate",
+            path: "Sources/CLibdeflate",
+            exclude: ["README.md", "COPYING"],
+            // Upstream's code, unmodified, under upstream's warning flags and not ours.
+            cSettings: [.unsafeFlags(["-w"])]
+        ),
         // The image decoder, vendored. See Sources/CStbImage/stb_image.c for why it is
         // here rather than ImageIO, and Sources/kmap/Core/Raster.swift for what kmap
         // asks of it.
@@ -70,7 +55,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "kmap",
-            dependencies: ["CZlib", "CStbImage", "CVector"],
+            dependencies: ["CLibdeflate", "CStbImage", "CVector"],
             path: "Sources/kmap",
             linkerSettings: [
                 // Where Windows keeps the dialogs kmap shows itself, rather than through a

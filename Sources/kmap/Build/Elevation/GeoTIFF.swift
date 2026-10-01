@@ -304,12 +304,12 @@ struct GeoTIFF {
             guard out.count >= wanted else { throw Trouble.truncated }
             raw = Array(out[0..<wanted])
         } else {
-            // Adobe DEFLATE is a zlib stream: header, body and adler32 checksum together.
+            // Adobe DEFLATE is a wrapped stream: header, body and adler32 checksum together.
             guard count > 2 else { throw Trouble.truncated }
             do {
                 try data.withUnsafeBytes { bytes in
                     try raw.withUnsafeMutableBufferPointer { out in
-                        try Zlib.inflate(
+                        try Deflate.inflate(
                             UnsafeRawBufferPointer(rebasing: bytes[offset..<(offset + count)]),
                             into: out,
                             expecting: wanted

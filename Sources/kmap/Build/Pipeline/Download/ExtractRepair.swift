@@ -8,7 +8,7 @@ extension BuildPipeline {
     /// Whether a failure reads like an extract that would not decode, rather than anything
     /// the build itself did.
     static func readsLikeADamagedExtract(_ error: Error) -> Bool {
-        error is PBFError || error is Zlib.Failure
+        error is PBFError || error is Deflate.Failure
     }
 
     /// The extracts whose bytes are no longer the ones that were downloaded. One without a

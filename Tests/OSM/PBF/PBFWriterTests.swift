@@ -5,7 +5,7 @@ import XCTest
 /// Writing a PBF, and reading it back with kmap's own reader.
 ///
 /// A round trip covers most of it. What a round trip cannot see -- the blob framing, the
-/// zlib wrapper, how many blocks a batch was cut into -- is checked directly.
+/// deflate wrapper, how many blocks a batch was cut into -- is checked directly.
 final class PBFWriterTests: XCTestCase {
     private var directory = URL(fileURLWithPath: "/tmp")
 

@@ -212,7 +212,7 @@ sudo apt install ./kmap_<версия>_<арх>.deb
 Ubuntu 20.04, Debian 11 и выше; Intel или ARM. Так же работает и под WSL.
 
 Для остальных дистрибутивов (Arch, Fedora, openSUSE и др.) есть `.tar.xz`: распакуйте
-архив и положите `kmap` в каталог из `PATH`. Нужны только glibc, libcurl и zlib.
+архив и положите `kmap` в каталог из `PATH`. Нужны только glibc и libcurl.
 
 ```sh
 tar -xf kmap_<версия>_linux_<арх>.tar.xz
@@ -264,10 +264,9 @@ make install    # бинарник — в .build/release/kmap, копия — в
 
 **Linux, в том числе WSL.** Установите Swift по инструкции на
 [swift.org/install/linux](https://www.swift.org/install/linux/) — через `swiftly` или из
-архива, — и заголовки zlib:
+архива:
 
 ```sh
-sudo apt install zlib1g-dev
 git clone https://github.com/kmaptool/kmap.git && cd kmap
 make install    # или make install PREFIX=~/.local
 ```

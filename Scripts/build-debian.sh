@@ -91,8 +91,8 @@ mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/bin" "$STAGE/usr/share/doc/kmap" \
 install -m 755 "$BINARY" "$STAGE/usr/bin/kmap"
 
 # Shared-library dependencies are read out of the binary by dpkg-shlibdeps rather than
-# listed by hand: -static-stdlib links the Swift runtime in but leaves libcurl, libxml2
-# and zlib outside. It insists on a source tree with debian/control; without one it
+# listed by hand: -static-stdlib links the Swift runtime in but leaves libcurl and the
+# C libraries outside. It insists on a source tree with debian/control; without one it
 # prints nothing and the dependency list comes out empty.
 SHLIBDEPS="$SCRATCH/shlibdeps"
 rm -rf "$SHLIBDEPS"

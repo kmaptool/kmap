@@ -3,7 +3,7 @@ import Foundation
 /// Field numbers from the OSM PBF schema, and the units the format fixes.
 enum PBFSchema {
     static let blobHeaderKind = 1, blobHeaderSize = 3
-    static let blobRaw = 1, blobRawSize = 2, blobZlib = 3
+    static let blobRaw = 1, blobRawSize = 2, blobDeflated = 3
     static let blobLzma = 4, blobLz4 = 6, blobZstd = 7
     static let stringTable = 1, primitiveGroup = 2
     static let granularity = 17, latOffset = 19, lonOffset = 20

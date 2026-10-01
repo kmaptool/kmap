@@ -83,7 +83,7 @@ extension PBFWriter {
                     blob.bytesField(PBFSchema.blobRaw, payload)
                 } else {
                     blob.varintField(PBFSchema.blobRawSize, Int64(payload.count))
-                    blob.bytesField(PBFSchema.blobZlib, packed.bodies[index])
+                    blob.bytesField(PBFSchema.blobDeflated, packed.bodies[index])
                 }
                 var header = ProtoWriter()
                 header.stringField(PBFSchema.blobHeaderKind, kind)
@@ -132,9 +132,9 @@ extension PBFWriter {
         try handle.close()
     }
 
-    /// Deflates as a PBF requires: zlib header, body and adler32 tail. Returns an empty
-    /// array where zlib declines; the caller then writes the bytes uncompressed.
+    /// Deflates as a PBF requires: 2-byte header, body and adler32 tail. Returns an empty
+    /// array where the compressor declines; the caller then writes the bytes uncompressed.
     private static func deflate(_ payload: [UInt8]) -> [UInt8] {
-        Zlib.deflate(payload) ?? []
+        Deflate.deflate(payload) ?? []
     }
 }
