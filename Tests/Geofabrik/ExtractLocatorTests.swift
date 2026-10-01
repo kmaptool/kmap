@@ -95,6 +95,60 @@ final class ExtractLocatorTests: XCTestCase {
         XCTAssertEqual(pauses.withLock { $0 }, [1])
     }
 
+    func testARegionThatIsGoneIsNotAskedForAgain() async {
+        // The alias and every dated name answer 404: final, and 3 rounds of it would
+        // only say so 6 seconds later.
+        let calls = Locked(0)
+        let pauses = Locked(0)
+        do {
+            _ = try await ExtractLocator.locate(
+                latest,
+                today: today,
+                probe: { _, _ in
+                    calls.withLock { $0 += 1 }
+                    throw DownloadError.badStatus(404)
+                },
+                pause: { _ in pauses.withLock { $0 += 1 } }
+            )
+            XCTFail("nothing is there")
+        } catch {
+            guard case DownloadError.badStatus(404) = error else { return XCTFail("\(error)") }
+        }
+        XCTAssertEqual(calls.withLock { $0 }, 8, "the alias and seven days, once")
+        XCTAssertEqual(pauses.withLock { $0 }, 0)
+    }
+
+    func testTheLikeliestDaysAreAskedFirstAndTheRestOnlyIfNeeded() async throws {
+        let asked = Locked<[String]>([])
+        let found = try await ExtractLocator.locate(latest, today: today) { url, _ in
+            asked.withLock { $0.append(url.lastPathComponent) }
+            if url.lastPathComponent.contains("260929") { return Self.info(url) }
+            throw URLError(.httpTooManyRedirects)
+        }
+        XCTAssertEqual(found.standIn, "crimean-fed-district-260929.osm.pbf")
+        XCTAssertEqual(asked.withLock { $0 }.count, 4, "the alias and the three newest days")
+    }
+
+    func testAThrottledMirrorIsGivenALongerPauseAndNoBurst() async throws {
+        let calls = Locked<[String]>([])
+        let pauses = Locked<[Int]>([])
+        let found = try await ExtractLocator.locate(
+            latest,
+            today: today,
+            probe: { url, _ in
+                let n = calls.withLock { list -> Int in
+                    list.append(url.lastPathComponent); return list.count
+                }
+                if n == 1 { throw DownloadError.badStatus(429) }
+                return Self.info(url)
+            },
+            pause: { round in pauses.withLock { $0.append(round) } }
+        )
+        XCTAssertEqual(found.url, latest)
+        XCTAssertEqual(calls.withLock { $0 }.count, 2, "a 429 on the alias sends no dated requests")
+        XCTAssertEqual(pauses.withLock { $0 }, [3])
+    }
+
     func testAMirrorThatAnswersNothingReportsTheAliasError() async {
         let calls = Locked(0)
         do {

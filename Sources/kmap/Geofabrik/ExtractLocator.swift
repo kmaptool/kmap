@@ -56,8 +56,23 @@ enum ExtractLocator {
         }
     }
 
+    /// The dated names are asked for in 2 waves, the likeliest first: 3 requests
+    /// answer most outages, and 7 at once per region is more than a mirror is owed.
+    private static let firstWave = 3
+    /// The round a throttled mirror is given before it is asked again, as `pause` counts.
+    private static let throttledPause = 3
+
+    private static let notFound = 404, tooManyRequests = 429
+
+    private static func status(of error: Error) -> Int? {
+        if case DownloadError.badStatus(let code) = error { return code }
+        return nil
+    }
+
     /// Probes `latest`, and where it does not answer, the dated files of the last days.
-    /// Throws what the alias's last probe threw when nothing answers in any round.
+    /// Throws what the alias's last probe threw when nothing answers in any round. A 404
+    /// from the alias and from every dated name is final: the region is gone, and asking
+    /// again says so more slowly. A 429 stops the asking for that round.
     static func locate(
         _ latest: URL,
         today: Date = Date(),
@@ -71,31 +86,64 @@ enum ExtractLocator {
                 return ExtractSource(url: latest, md5: checksum(of: latest), info: info, standIn: nil)
             } catch {
                 if Task.isCancelled { throw error }
-                if let found = await newestAnswering(datedFiles(for: latest, today: today), probe: probe) {
-                    return found
+                var throttled = status(of: error) == tooManyRequests
+                var gone = status(of: error) == notFound
+                if !throttled {
+                    let dated = datedFiles(for: latest, today: today)
+                    for wave in [dated.prefix(firstWave), dated.dropFirst(firstWave)] where !wave.isEmpty {
+                        let asked = await newestAnswering(Array(wave), probe: probe)
+                        if let found = asked.found { return found }
+                        gone = gone && asked.allGone
+                        if asked.throttled { throttled = true; break }
+                    }
                 }
                 round += 1
-                guard round < rounds else { throw error }
-                try await pause(round)
+                guard round < rounds, !gone else { throw error }
+                try await pause(throttled ? throttledPause : round)
             }
         }
     }
 
+    private struct Asked {
+        var found: ExtractSource?
+        /// Every name answered 404: none of them exists.
+        var allGone = true
+        /// The mirror said it is being asked too often.
+        var throttled = false
+    }
+
     /// Asks for every candidate at once and takes the newest that answers. They are in
     /// date order, newest first.
-    private static func newestAnswering(_ candidates: [URL], probe: @escaping Probe) async -> ExtractSource? {
-        await withTaskGroup(of: (Int, Downloader.RemoteInfo?).self) { group in
+    private static func newestAnswering(_ candidates: [URL], probe: @escaping Probe) async -> Asked {
+        await withTaskGroup(of: (Int, Result<Downloader.RemoteInfo, Error>).self) { group in
             for (index, url) in candidates.enumerated() {
-                group.addTask { (index, try? await probe(url, datedTimeout)) }
+                group.addTask {
+                    do { return (index, .success(try await probe(url, datedTimeout))) } catch {
+                        return (index, .failure(error))
+                    }
+                }
             }
+            var asked = Asked()
             var best: (index: Int, info: Downloader.RemoteInfo)?
-            for await (index, info) in group {
-                guard let info else { continue }
-                if best.map({ index < $0.index }) ?? true { best = (index, info) }
+            for await (index, answer) in group {
+                switch answer {
+                case .success(let info):
+                    if best.map({ index < $0.index }) ?? true { best = (index, info) }
+                case .failure(let error):
+                    if status(of: error) != notFound { asked.allGone = false }
+                    if status(of: error) == tooManyRequests { asked.throttled = true }
+                }
             }
-            guard let best else { return nil }
-            let url = candidates[best.index]
-            return ExtractSource(url: url, md5: checksum(of: url), info: best.info, standIn: url.lastPathComponent)
+            if let best {
+                let url = candidates[best.index]
+                asked.found = ExtractSource(
+                    url: url,
+                    md5: checksum(of: url),
+                    info: best.info,
+                    standIn: url.lastPathComponent
+                )
+            }
+            return asked
         }
     }
 

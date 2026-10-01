@@ -258,7 +258,7 @@ final class Toolchain: @unchecked Sendable {
 
     // MARK: Aggregate status
 
-    func status(includeContours: Bool = true) -> [ToolStatus] {
+    func status() -> [ToolStatus] {
         cacheLock.lock()
         if let hit = statusCache {
             cacheLock.unlock()
@@ -266,7 +266,7 @@ final class Toolchain: @unchecked Sendable {
         }
         cacheLock.unlock()
 
-        let computed = probeStatus(includeContours: includeContours)
+        let computed = probeStatus()
 
         cacheLock.lock()
         statusCache = computed
@@ -274,7 +274,7 @@ final class Toolchain: @unchecked Sendable {
         return computed
     }
 
-    private func probeStatus(includeContours: Bool) -> [ToolStatus] {
+    private func probeStatus() -> [ToolStatus] {
         let installs = Installability.detect()
         var out: [ToolStatus] = []
         let java = findJava()
@@ -303,10 +303,8 @@ final class Toolchain: @unchecked Sendable {
                 missingNote: t("without it, the city and region on an address are a best guess")
             )
         )
-        if includeContours {
-            out.append(pyhgtmapStatus(installs: installs))
-            if let archiver = archiverStatus(installs: installs) { out.append(archiver) }
-        }
+        out.append(pyhgtmapStatus(installs: installs))
+        if let archiver = archiverStatus(installs: installs) { out.append(archiver) }
         return out
     }
 
