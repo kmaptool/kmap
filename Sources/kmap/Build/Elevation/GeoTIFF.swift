@@ -154,9 +154,11 @@ struct GeoTIFF {
         guard !offsets.isEmpty, offsets.count == counts.count else {
             throw Trouble.unsupported("no tile offsets")
         }
+        // A tile may be wider or taller than the image: the format pads it, and the DEM
+        // tiles north of 80 deg are 720 samples wide in tiles of 1024.
+        let (samples, overflow) = tileWidth.multipliedReportingOverflow(by: tileHeight)
         guard width > 0, height > 0, tileWidth > 0, tileHeight > 0,
-            tileWidth <= width, tileHeight <= height,
-            tileWidth * tileHeight <= Self.mostSamplesPerTile
+            !overflow, samples <= Self.mostSamplesPerTile
         else {
             throw Trouble.unsupported("tile geometry \(tileWidth) x \(tileHeight) in \(width) x \(height)")
         }
