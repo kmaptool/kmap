@@ -234,6 +234,11 @@ extension TileSplitter {
             ids = wanted.sorted()
         }
 
+        /// From ids already in order and unique.
+        init(sorted: [Int64]) {
+            ids = sorted
+        }
+
         var isEmpty: Bool { ids.isEmpty }
 
         mutating func wants(_ id: Int64) -> Bool {

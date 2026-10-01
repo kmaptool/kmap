@@ -75,7 +75,6 @@ extension TileSplitter {
         var wanted: Set<Int64> = []
         var wantedWays = WantedIDs([])
         var refs = WayRefs(wanted: WantedIDs([]))
-        var coordWanted: Set<Int64> = []
         var wantedNodes = WantedIDs([])
         var coords = NodeCoords(wanted: WantedIDs([]))
         var carriedTiles: [Int64: Set<UInt16>] = [:]
@@ -190,49 +189,66 @@ extension TileSplitter {
 
     /// Coordinates for the ring nodes of the fill candidates.
     private func readRingCoordinates(_ s: ProblemScaffold) throws {
+        // Every node of every member way, sorted and made unique across the cores.
+        var runs: [[Int64]] = []
         for rel in s.fillRelations {
             for way in s.relations[rel]?.memberWays ?? [] {
-                for node in s.refs.refs[way] ?? [] { s.coordWanted.insert(node) }
+                if let refs = s.refs.refs[way] { runs.append(refs) }
             }
         }
-        s.wantedNodes = WantedIDs(s.coordWanted)
+        let wanted = IDSort.unique(of: runs)
+        s.wantedNodes = WantedIDs(sorted: wanted)
         s.coords = NodeCoords(wanted: s.wantedNodes)
+        s.coords.coords.reserveCapacity(wanted.count)
         let wantedNodes = s.wantedNodes
+        // A node repeats only between files, and then the first stands.
+        let overlapping = options.inputs.count > 1
         if !wantedNodes.isEmpty {
             for input in options.inputs {
                 try reader(input).readInOrder(
                     make: { NodeCoords(wanted: wantedNodes) }) { part in
-                        s.coords.coords.merge(part.coords) { first, _ in first }
-                        part.coords.removeAll(keepingCapacity: true)
+                        for found in part.found where !overlapping || s.coords.coords[found.id] == nil {
+                            s.coords.coords[found.id] = (found.lat, found.lon)
+                        }
+                        part.found.removeAll(keepingCapacity: true)
                     }
             }
         }
     }
 
     /// Claims tiles for the fill relations: closed rings claim every tile they enclose,
-    /// open ones fall back to their bounding box.
+    /// open ones fall back to their bounding box. Each relation is worked out on a core
+    /// of its own, from tables nothing writes to meanwhile.
     private func fillRings(_ s: ProblemScaffold, areas: [Area]) {
         for rel in s.carriedRelations {
             s.carriedTiles[rel] = s.relations[rel]?.directTiles ?? []
         }
-        for rel in s.fillRelations {
-            guard let record = s.relations[rel] else { continue }
-            let rings = RingBuilder.rings(
-                of: record.memberWays,
-                refs: s.refs.refs,
-                coords: s.coords.coords
-            )
-            var claimed = s.carriedTiles[rel] ?? []
-            for (index, area) in areas.enumerated() {
-                let tile = UInt16(index)
-                guard !claimed.contains(tile) else { continue }
+        let relations = Array(s.fillRelations)
+        var claims = [Set<UInt16>?](repeating: nil, count: relations.count)
+        let grown = areas.map { $0.grown(by: options.shapeOverlap) }
+        claims.withUnsafeMutableBufferPointer { slots in
+            // Each lane writes only its own slot, and reads tables no lane changes.
+            nonisolated(unsafe) let slots = slots
+            nonisolated(unsafe) let s = s
+            DispatchQueue.concurrentPerform(iterations: relations.count) { at in
+                let rel = relations[at]
+                guard let record = s.relations[rel] else { return }
+                let rings = RingBuilder.rings(
+                    of: record.memberWays,
+                    refs: s.refs.refs,
+                    coords: s.coords.coords
+                )
+                var claimed = s.carriedTiles[rel] ?? []
                 // Against the frame widened by the shape overlap: a multipolygon is a
                 // shape, and a tile paints shapes a little past its own edge.
-                if rings.claims(area.grown(by: options.shapeOverlap)) {
-                    claimed.insert(tile)
+                for (index, area) in grown.enumerated() where !claimed.contains(UInt16(index)) {
+                    if rings.claims(area) { claimed.insert(UInt16(index)) }
                 }
+                slots[at] = claimed
             }
-            s.carriedTiles[rel] = claimed
+        }
+        for (at, rel) in relations.enumerated() {
+            if let claimed = claims[at] { s.carriedTiles[rel] = claimed }
         }
     }
 

@@ -254,6 +254,13 @@ extension TileSplitter {
         /// each later run against each earlier one.
         private func reconcileRuns() {
             guard runs.count > 1 else { return }
+            // An unsorted file has a run at every backward step, and merging each against
+            // each is quadratic: the table is sorted instead. Nothing then depends on where
+            // a file's stretch of it ends.
+            if filesInterleave, runs.count > Self.mostRunsMerged {
+                sortIntoOneRun()
+                return
+            }
             keys.withUnsafeBufferPointer { k in
                 for later in 1..<runs.count {
                     let laterStart = runs[later]
@@ -276,6 +283,71 @@ extension TileSplitter {
                     }
                 }
             }
+        }
+
+        /// Past this many runs they are sorted into 1 run rather than merged pairwise.
+        private static let mostRunsMerged = 64
+
+        /// The whole table in id order, 1 entry an id, the latest value standing. Done
+        /// in place: the only thing beside the table is 1 index an entry, 4 bytes wide
+        /// while the table has fewer than 2^32 of them.
+        private func sortIntoOneRun() {
+            if keys.count <= Int(UInt32.max) {
+                sortInPlace(indexedBy: UInt32.self)
+            } else {
+                sortInPlace(indexedBy: Int.self)
+            }
+            runs = [0]
+            lastKey = keys.last ?? Int64.min
+            fileEnds = fileEnds.map { _ in keys.count }
+        }
+
+        private func sortInPlace<Index: BinaryInteger>(indexedBy: Index.Type) {
+            let count = keys.count
+            // Where each sorted entry comes from. By id, and for the same id by arrival,
+            // so the last of a repeat is the latest; each run is already in order, which
+            // the sort finds for itself.
+            var order = [Index](unsafeUninitializedCapacity: count) { buffer, filled in
+                for i in 0..<count { buffer[i] = Index(i) }
+                filled = count
+            }
+            keys.withUnsafeBufferPointer { k in
+                order.sort { a, b in
+                    let ka = k[Int(a)], kb = k[Int(b)]
+                    return ka != kb ? ka < kb : a < b
+                }
+            }
+            // The permutation applied cycle by cycle; a place already filled names itself.
+            for first in 0..<count where Int(order[first]) != first {
+                let key = keys[first], value = values[first]
+                var at = first
+                while true {
+                    let from = Int(order[at])
+                    order[at] = Index(at)
+                    if from == first {
+                        keys[at] = key
+                        values[at] = value
+                        break
+                    }
+                    keys[at] = keys[from]
+                    values[at] = values[from]
+                    at = from
+                }
+            }
+            order = []
+            // Repeats are neighbours now, the latest last: closed up towards the front.
+            var kept = 0
+            for at in 0..<count {
+                if kept > 0, keys[kept - 1] == keys[at] {
+                    values[kept - 1] = values[at]
+                } else {
+                    keys[kept] = keys[at]
+                    values[kept] = values[at]
+                    kept += 1
+                }
+            }
+            keys.removeLast(count - kept)
+            values.removeLast(count - kept)
         }
 
         func get(_ id: Int64) -> UInt16? {

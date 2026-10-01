@@ -62,9 +62,15 @@ let package = Package(
                 // still per-thread, which is all this was ever asking for.
             ]
         ),
+        // The loops written in NEON and SSE4.1. They turn on moving bytes about inside
+        // a vector, which Swift's SIMD types have no way to say.
+        .target(
+            name: "CVector",
+            path: "Sources/CVector"
+        ),
         .executableTarget(
             name: "kmap",
-            dependencies: ["CZlib", "CStbImage"],
+            dependencies: ["CZlib", "CStbImage", "CVector"],
             path: "Sources/kmap",
             linkerSettings: [
                 // Where Windows keeps the dialogs kmap shows itself, rather than through a

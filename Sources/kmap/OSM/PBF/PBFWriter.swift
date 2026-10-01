@@ -1,8 +1,8 @@
 import Foundation
 
 /// Writes an OSM PBF. A blob handed over already compressed is copied through as it
-/// stands; the rest are deflated a batch at a time across every core and appended in the
-/// order they were handed over. Output is streamed to the file rather than held whole.
+/// stands; the rest are built and deflated on whichever cores are free and appended in
+/// the order they were handed over. Output is streamed to the file rather than held whole.
 final class PBFWriter {
     /// One node. Version and timestamp are not carried; mkgmap reads neither.
     struct Node {
@@ -41,14 +41,19 @@ final class PBFWriter {
     // Not private: the compression pipeline is a file of its own, and Swift's `private`
     // is one file.
 
-    /// Serializing and compressing a block depends on no other block, so each writer works
-    /// on a queue of its own.
+    /// The writer's own serial queue: only the appending happens here, in ticket order.
+    /// Building and compressing a block depends on no other block and runs elsewhere.
     let queue: DispatchQueue
     let handle: FileHandle
     let url: URL
-    /// Blocks awaiting compression, in the order handed over. Bounded by one batch, so the
-    /// file streams rather than accumulates.
-    var pending: [Piece] = []
+    /// The next ticket to hand out; a batch's ticket is its place in the file.
+    let tickets = Locked(0)
+    /// Batches handed over and not yet appended, for `finish` to wait on.
+    let inFlight = DispatchGroup()
+    /// Batches compressed ahead of their turn, by ticket; and the ticket whose turn it is.
+    /// Both belong to `queue`.
+    var ready: [Int: Packed] = [:]
+    var appended = 0
     var buffer: [UInt8] = []
     var finished = false
     /// The first write that failed, kept for `finish` to throw: a full disk is an
@@ -59,10 +64,16 @@ final class PBFWriter {
         set { failure.withLock { $0 = newValue } }
     }
 
-    enum Piece {
+    enum Piece: Sendable {
         /// A blob already compressed by its original writer, passed through unchanged.
         case copied(header: [UInt8], blob: [UInt8])
         case toCompress(kind: String, payload: [UInt8])
+    }
+
+    /// A batch's blocks with their deflated bodies, empty where there is none.
+    struct Packed: Sendable {
+        let pieces: [Piece]
+        let bodies: [[UInt8]]
     }
 
     init(to url: URL) throws {
@@ -71,11 +82,9 @@ final class PBFWriter {
         handle = try FileHandle(forWritingTo: url)
         buffer.reserveCapacity(Self.flushThreshold)
         queue = DispatchQueue(label: "kmap.pbf.\(url.lastPathComponent)")
-        Self.live.enter()
     }
 
     deinit {
-        if !finished { Self.live.leave() }
         try? handle.close()
     }
 
@@ -102,7 +111,7 @@ final class PBFWriter {
         }
         block.stringField(PBFSchema.headerWritingProgram, PBFSchema.writingProgram)
         let payload = block.bytes
-        submit { [self] in emit(kind: PBFSchema.headerBlob, payload: payload) }
+        submit { [.toCompress(kind: PBFSchema.headerBlob, payload: payload)] }
     }
 
     private static func nanodegrees(_ degrees: Double) -> Int64 {
@@ -112,18 +121,19 @@ final class PBFWriter {
     /// Writes nodes dense: ids and coordinates delta-encoded, tags in one flat run.
     func nodes(_ batch: [Node]) {
         guard !batch.isEmpty else { return }
-        submit { [self] in
+        submit {
             // Ascending ids, as the delta encoding and readers require.
             let ordered = batch.sorted { $0.id < $1.id }
-            for start in stride(from: 0, to: ordered.count, by: Self.maxElementsPerBlock) {
-                writeNodeBlock(
-                    ordered[start..<min(start + Self.maxElementsPerBlock, ordered.count)]
+            return stride(from: 0, to: ordered.count, by: Self.maxElementsPerBlock).map { start in
+                .toCompress(
+                    kind: PBFSchema.dataBlob,
+                    payload: Self.nodeBlock(ordered[start..<min(start + Self.maxElementsPerBlock, ordered.count)])
                 )
             }
         }
     }
 
-    private func writeNodeBlock(_ batch: ArraySlice<Node>) {
+    private static func nodeBlock(_ batch: ArraySlice<Node>) -> [UInt8] {
         var strings = StringTable()
         var ids = ProtoWriter(), lats = ProtoWriter(), lons = ProtoWriter()
         var tags = ProtoWriter()
@@ -150,19 +160,22 @@ final class PBFWriter {
         dense.bytesField(PBFSchema.denseLat, lats.bytes)
         dense.bytesField(PBFSchema.denseLon, lons.bytes)
         dense.bytesField(PBFSchema.denseKeysVals, tags.bytes)
-        emitBlock(strings: strings) { $0.bytesField(PBFSchema.groupDense, dense.bytes) }
+        return block(strings: strings) { $0.bytesField(PBFSchema.groupDense, dense.bytes) }
     }
 
     func ways(_ batch: [Way]) {
         guard !batch.isEmpty else { return }
-        submit { [self] in
-            for start in stride(from: 0, to: batch.count, by: Self.maxElementsPerBlock) {
-                writeWayBlock(batch[start..<min(start + Self.maxElementsPerBlock, batch.count)])
+        submit {
+            stride(from: 0, to: batch.count, by: Self.maxElementsPerBlock).map { start in
+                .toCompress(
+                    kind: PBFSchema.dataBlob,
+                    payload: Self.wayBlock(batch[start..<min(start + Self.maxElementsPerBlock, batch.count)])
+                )
             }
         }
     }
 
-    private func writeWayBlock(_ batch: ArraySlice<Way>) {
+    private static func wayBlock(_ batch: ArraySlice<Way>) -> [UInt8] {
         var strings = StringTable()
         var bodies: [[UInt8]] = []
         bodies.reserveCapacity(batch.count)
@@ -194,7 +207,7 @@ final class PBFWriter {
             body.bytesField(PBFSchema.wayRefs, refs.bytes)
             bodies.append(body.bytes)
         }
-        emitBlock(strings: strings) { group in
+        return block(strings: strings) { group in
             for body in bodies { group.bytesField(PBFSchema.groupWays, body) }
         }
     }
@@ -203,16 +216,17 @@ final class PBFWriter {
     /// roles as string-table indices, ids delta-encoded, kinds as the 0/1/2 enum.
     func relations(_ batch: [Relation]) {
         guard !batch.isEmpty else { return }
-        submit { [self] in
-            for start in stride(from: 0, to: batch.count, by: Self.maxElementsPerBlock) {
-                writeRelationBlock(
-                    batch[start..<min(start + Self.maxElementsPerBlock, batch.count)]
+        submit {
+            stride(from: 0, to: batch.count, by: Self.maxElementsPerBlock).map { start in
+                .toCompress(
+                    kind: PBFSchema.dataBlob,
+                    payload: Self.relationBlock(batch[start..<min(start + Self.maxElementsPerBlock, batch.count)])
                 )
             }
         }
     }
 
-    private func writeRelationBlock(_ batch: ArraySlice<Relation>) {
+    private static func relationBlock(_ batch: ArraySlice<Relation>) -> [UInt8] {
         var strings = StringTable()
         var bodies: [[UInt8]] = []
         bodies.reserveCapacity(batch.count)
@@ -243,12 +257,13 @@ final class PBFWriter {
             }
             bodies.append(body.bytes)
         }
-        emitBlock(strings: strings) { group in
+        return block(strings: strings) { group in
             for body in bodies { group.bytesField(PBFSchema.groupRelations, body) }
         }
     }
 
-    private func emitBlock(strings: StringTable, _ body: (inout ProtoWriter) -> Void) {
+    /// A whole PrimitiveBlock: its string table, then the group `body` fills.
+    private static func block(strings: StringTable, _ body: (inout ProtoWriter) -> Void) -> [UInt8] {
         var group = ProtoWriter()
         body(&group)
         var block = ProtoWriter()
@@ -256,11 +271,7 @@ final class PBFWriter {
             for word in strings.words { table.bytesField(PBFSchema.stringEntry, Array(word.utf8)) }
         }
         block.bytesField(PBFSchema.primitiveGroup, group.bytes)
-        emit(kind: PBFSchema.dataBlob, payload: block.bytes)
-    }
-
-    private func emit(kind: String, payload: [UInt8]) {
-        enqueue(.toCompress(kind: kind, payload: payload))
+        return block.bytes
     }
 }
 

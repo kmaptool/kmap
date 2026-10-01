@@ -7,8 +7,24 @@ import Foundation
 /// members. So the rings are built and asked directly whether they cover the tile.
 extension TileSplitter {
     struct RingBuilder {
-        var closed: [[(lat: Int32, lon: Int32)]]
-        var openBBox: Area?
+        let closed: [[(lat: Int32, lon: Int32)]]
+        let openBBox: Area?
+        /// The box around each closed ring, in step with `closed`: most rings lie far
+        /// from most tiles, and the box says so without walking the ring.
+        private let boxes: [Area]
+
+        init(closed: [[(lat: Int32, lon: Int32)]], openBBox: Area?) {
+            self.closed = closed
+            self.openBBox = openBBox
+            boxes = closed.map { ring in
+                var box = Area(minLat: .max, minLon: .max, maxLat: .min, maxLon: .min)
+                for point in ring {
+                    box.minLat = min(box.minLat, point.lat); box.maxLat = max(box.maxLat, point.lat)
+                    box.minLon = min(box.minLon, point.lon); box.maxLon = max(box.maxLon, point.lon)
+                }
+                return box
+            }
+        }
 
         static func rings(
             of ways: [Int64],
@@ -112,7 +128,15 @@ extension TileSplitter {
             let centreLat = Int64(area.minLat) + Int64(area.maxLat - area.minLat) / 2
             let centreLon = Int64(area.minLon) + Int64(area.maxLon - area.minLon) / 2
             var inside = false
-            for ring in closed {
+            for (index, ring) in closed.enumerated() {
+                // A ring wholly beside the tile touches it nowhere and crosses the centre's
+                // line an even number of times: it changes nothing below.
+                let box = boxes[index]
+                if box.maxLat < area.minLat || box.minLat >= area.maxLat
+                    || box.maxLon < area.minLon || box.minLon >= area.maxLon
+                {
+                    continue
+                }
                 for i in 0..<(ring.count - 1) {
                     let a = ring[i], b = ring[i + 1]
                     // Any edge touching the tile rectangle claims it.

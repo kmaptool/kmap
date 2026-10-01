@@ -208,6 +208,57 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertTrue(table.overflowed)
     }
 
+    func testAFileInNoOrderAtAllIsSortedOnceRatherThanMergedRunByRun() {
+        // Ids shuffled: a run at every backward step. The answers must be the ones a
+        // sorted file gives, the later copy of a repeated id standing.
+        var random = SplitMix64(state: 20_261_001)
+        let ids = (Int64(1)...60_000).shuffled(using: &random)
+        let table = TileSplitter.NodeAreas(expecting: ids.count)
+        for id in ids { table.set(id, UInt16(id % 7)) }
+        for id in stride(from: Int64(3), through: 60_000, by: 1000) { table.set(id, 99) }
+        table.markFileEnd()
+        XCTAssertTrue(table.filesInterleave)
+        let started = Date()
+        table.seal()
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
+        XCTAssertEqual(table.count, 60_000, "one entry an id")
+        for id in stride(from: Int64(1), through: 60_000, by: 97) {
+            XCTAssertEqual(table.get(id), (id - 3) % 1000 == 0 ? 99 : UInt16(id % 7), "id \(id)")
+        }
+        XCTAssertNil(table.get(60_001))
+        let cursor = TileSplitter.NodeAreas.Cursor(table)
+        XCTAssertEqual(cursor.value(for: 3), 99)
+        XCTAssertEqual(cursor.value(for: 59_999), UInt16(59_999 % 7))
+    }
+
+    func testALargeTableFindsEveryIDAndNoOther() {
+        // Past 4096 entries the table is fenced and a lookup starts inside a window.
+        // Ids in clumps and with wide gaps: every id must be found, and no other.
+        var random = SplitMix64(state: 20_261_002)
+        var ids: [Int64] = []
+        var id: Int64 = 100
+        for _ in 0..<60_000 {
+            id +=
+                Int64.random(in: 0..<50, using: &random) == 0
+                ? Int64.random(in: 1000...500_000, using: &random) : Int64.random(in: 1...3, using: &random)
+            ids.append(id)
+        }
+        let table = TileSplitter.NodeAreas(expecting: ids.count)
+        for (index, id) in ids.enumerated() { table.set(id, UInt16(index % 4000)) }
+        table.markFileEnd()
+        table.seal()
+        for (index, id) in ids.enumerated() {
+            XCTAssertEqual(table.get(id), UInt16(index % 4000), "id \(id)")
+        }
+        let present = Set(ids)
+        for _ in 0..<60_000 {
+            let probe = Int64.random(in: 0...(id + 1000), using: &random)
+            if !present.contains(probe) { XCTAssertNil(table.get(probe), "id \(probe)") }
+        }
+        XCTAssertNil(table.get(99))
+        XCTAssertNil(table.get(id + 1))
+    }
+
     func testAnIDStoredTwiceAnswersWithTheLaterOne() {
         // The same node in the overlap of two extracts: the later value wins.
         let table = TileSplitter.NodeAreas(expecting: 4)

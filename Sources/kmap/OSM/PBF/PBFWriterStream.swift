@@ -1,42 +1,62 @@
 import Foundation
 
-/// The writer's pipeline: blocks are deflated a batch at a time across every core and
-/// appended in the order handed over, streamed to the file rather than held whole.
+/// The writer's pipeline. A batch is built and deflated on whichever core is free, and
+/// appended to its file in the order it was handed over.
+/// The compressing is shared between writers: a split has a writer per tile, and the
+/// nodes of an extract arrive in long runs for 1 tile at a time.
 extension PBFWriter {
-    /// How many batches may await writing across every writer at once. Shared, so the memory
-    /// held is bounded by the machine rather than by the number of writers open.
+    /// How many batches may be in flight across every writer at once, built or waiting
+    /// their turn. Shared, so the memory held is bounded by the machine rather than by
+    /// the number of writers open.
     static let room = DispatchSemaphore(value: pendingBatches)
-    private static let pendingBatches = 8
+    private static let pendingBatches = max(leastPending, Machine.cores)
+    private static let leastPending = 8
 
-    /// Writers currently open. A lone writer compresses its batch across every core; with
-    /// several open, each keeps to its own queue.
-    static let live = LiveCount()
-
-    /// `value` is reached only under `lock`, which is what `@unchecked Sendable` stands on.
-    final class LiveCount: @unchecked Sendable {
-        private let lock = NSLock()
-        private var value = 0
-        func enter() { lock.lock(); value += 1; lock.unlock() }
-        func leave() { lock.lock(); value -= 1; lock.unlock() }
-        var count: Int { lock.lock(); defer { lock.unlock() }; return value }
-    }
-
-    /// How many blocks are compressed in one go: one per core.
-    private static let compressionBatch = max(leastBatch, Machine.cores)
-    private static let leastBatch = 2
+    /// Where blocks are built and deflated, whichever writer they belong to.
+    private static let compressors = DispatchQueue(
+        label: "kmap.pbf.compress",
+        qos: .userInitiated,
+        attributes: .concurrent
+    )
 
     /// Bytes gathered before writing to disk. Small, since a split keeps one writer open per
     /// tile and each holds this much.
     static let flushThreshold = 1 << 20
 
-    /// Hands a batch to this writer's own queue, waiting if one is already there.
-    func submit(_ work: @escaping () -> Void) {
+    /// Hands a batch over: `make` builds its blocks on another core, they are deflated
+    /// there, and the result is appended when every batch before it has been. Waits while
+    /// too many are in flight. Called from 1 thread a writer; the ticket is the order.
+    func submit(_ make: @escaping () -> [Piece]) {
         Self.room.wait()
-        // Run once, on this writer's own serial queue, after the caller has let go of it.
-        nonisolated(unsafe) let work = work
-        queue.async {
-            work()
+        let ticket = tickets.withLock { next -> Int in
+            defer { next += 1 }
+            return next
+        }
+        inFlight.enter()
+        // Neither closure is shared, and `finish` waits for the group, so the writer
+        // outlives them.
+        nonisolated(unsafe) let make = make
+        nonisolated(unsafe) let writer = self
+        Self.compressors.async {
+            let pieces = make()
+            let bodies = pieces.map { piece -> [UInt8] in
+                if case .toCompress(_, let payload) = piece { return Self.deflate(payload) }
+                return []
+            }
+            let packed = Packed(pieces: pieces, bodies: bodies)
+            writer.queue.async { writer.take(packed, ticket: ticket) }
+        }
+    }
+
+    /// On the writer's queue: keeps a batch until its turn, then appends it and every
+    /// one after it that is already here. A PBF's block order is significant.
+    private func take(_ packed: Packed, ticket: Int) {
+        ready[ticket] = packed
+        while let next = ready.removeValue(forKey: appended) {
+            append(next)
+            appended += 1
             Self.room.signal()
+            inFlight.leave()
         }
     }
 
@@ -46,46 +66,11 @@ extension PBFWriter {
         // still walking.
         let headerBytes = Array(header)
         let blobBytes = Array(blob)
-        submit { [self] in enqueue(.copied(header: headerBytes, blob: blobBytes)) }
+        submit { [.copied(header: headerBytes, blob: blobBytes)] }
     }
 
-    // MARK: Compressing a batch at a time
-
-    func enqueue(_ piece: Piece) {
-        pending.append(piece)
-        // Batching pays only where the batch is compressed across the cores, which needs
-        // this to be the only writer open.
-        let batch = Self.live.count > 1 ? 1 : Self.compressionBatch
-        if pending.count >= batch { drain() }
-    }
-
-    /// Compresses everything waiting, across every core, and appends the results in the
-    /// order they were handed over; a PBF's block order is significant.
-    private func drain() {
-        guard !pending.isEmpty else { return }
-        let work = pending
-        pending.removeAll(keepingCapacity: true)
-
-        var packed = [[UInt8]](repeating: [], count: work.count)
-        if work.count == 1 || Self.live.count > 1 {
-            for (index, piece) in work.enumerated() {
-                if case .toCompress(_, let payload) = piece {
-                    packed[index] = Self.deflate(payload)
-                }
-            }
-        } else {
-            packed.withUnsafeMutableBufferPointer { slots in
-                // Each lane writes only its own slot, which no type can say: nothing is shared.
-                nonisolated(unsafe) let slots = slots
-                DispatchQueue.concurrentPerform(iterations: work.count) { i in
-                    if case .toCompress(_, let payload) = work[i] {
-                        slots[i] = Self.deflate(payload)
-                    }
-                }
-            }
-        }
-
-        for (index, piece) in work.enumerated() {
+    private func append(_ packed: Packed) {
+        for (index, piece) in packed.pieces.enumerated() {
             switch piece {
             case .copied(let header, let blob):
                 appendLength(header.count)
@@ -93,12 +78,12 @@ extension PBFWriter {
                 buffer.append(contentsOf: blob)
             case .toCompress(let kind, let payload):
                 var blob = ProtoWriter()
-                if packed[index].isEmpty {
+                if packed.bodies[index].isEmpty {
                     // Deflate may decline; the format allows a blob to carry raw bytes.
                     blob.bytesField(PBFSchema.blobRaw, payload)
                 } else {
                     blob.varintField(PBFSchema.blobRawSize, Int64(payload.count))
-                    blob.bytesField(PBFSchema.blobZlib, packed[index])
+                    blob.bytesField(PBFSchema.blobZlib, packed.bodies[index])
                 }
                 var header = ProtoWriter()
                 header.stringField(PBFSchema.blobHeaderKind, kind)
@@ -134,13 +119,12 @@ extension PBFWriter {
     func finish() throws {
         guard !finished else { return }
         finished = true
-        // Drained synchronously, so the file is complete on return.
+        // Every batch appended, then the tail written, so the file is complete on return.
+        inFlight.wait()
         let failure = queue.sync { () -> Error? in
-            drain()
             flush()
             return writeFailure
         }
-        Self.live.leave()
         if let failure {
             try? handle.close()
             throw failure

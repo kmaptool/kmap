@@ -6,9 +6,27 @@ extension PBFReader {
     /// Decode buffers, filled and refilled block by block. One set per thread, never
     /// shared: the concurrent readers each make their own.
     struct Scratch {
-        var refs = [Int64](), keys = [Int32](), values = [Int32]()
-        var ids = [Int64](), lats = [Int64](), lons = [Int64](), tags = [Int32]()
-        var roles = [Int32](), kinds = [Int32]()
+        var refs = ReusedBuffer<Int64>(zero: 0)
+        var keys = ReusedBuffer<Int32>(zero: 0), values = ReusedBuffer<Int32>(zero: 0)
+        var ids = ReusedBuffer<Int64>(zero: 0)
+        var lats = ReusedBuffer<Int64>(zero: 0), lons = ReusedBuffer<Int64>(zero: 0)
+        var tags = ReusedBuffer<Int32>(zero: 0)
+        var roles = ReusedBuffer<Int32>(zero: 0), kinds = ReusedBuffer<Int32>(zero: 0)
+    }
+
+    @inline(__always)
+    private static func zigzags(_ bytes: UnsafeRawBufferPointer, into out: inout ReusedBuffer<Int64>) {
+        out.append(atMost: bytes.count) { PackedVarints.zigzag(bytes, into: $0) }
+    }
+
+    @inline(__always)
+    private static func zigzagSums(_ bytes: UnsafeRawBufferPointer, into out: inout ReusedBuffer<Int64>) {
+        out.append(atMost: bytes.count) { PackedVarints.zigzagSums(bytes, into: $0) }
+    }
+
+    @inline(__always)
+    private static func int32s(_ bytes: UnsafeRawBufferPointer, into out: inout ReusedBuffer<Int32>) {
+        out.append(atMost: bytes.count) { PackedVarints.int32(bytes, into: $0) }
     }
 
     /// Decodes one inflated PrimitiveBlock into a sink. The same decoder serves every pass
@@ -91,44 +109,66 @@ extension PBFReader {
         into sink: inout Sink,
         fields: inout Scratch
     ) {
-        fields.ids.removeAll(keepingCapacity: true)
-        fields.lats.removeAll(keepingCapacity: true)
-        fields.lons.removeAll(keepingCapacity: true)
-        fields.tags.removeAll(keepingCapacity: true)
+        fields.ids.removeAll()
+        fields.lats.removeAll()
+        fields.lons.removeAll()
+        fields.tags.removeAll()
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
-            case PBFSchema.denseID: Self.packedZigzag(reader.lengthDelimited(), into: &fields.ids)
-            case PBFSchema.denseLat: Self.packedZigzag(reader.lengthDelimited(), into: &fields.lats)
-            case PBFSchema.denseLon: Self.packedZigzag(reader.lengthDelimited(), into: &fields.lons)
-            case PBFSchema.denseKeysVals:
-                Self.packedVarint32(reader.lengthDelimited(), into: &fields.tags)
+            case PBFSchema.denseID: Self.zigzags(reader.lengthDelimited(), into: &fields.ids)
+            case PBFSchema.denseLat: Self.zigzags(reader.lengthDelimited(), into: &fields.lats)
+            case PBFSchema.denseLon: Self.zigzags(reader.lengthDelimited(), into: &fields.lons)
+            case PBFSchema.denseKeysVals: Self.int32s(reader.lengthDelimited(), into: &fields.tags)
             default: reader.skip(wire: field.wire)
             }
         }
-        // Local names for the scratch buffers; no copy is made.
-        let ids = fields.ids, lats = fields.lats, lons = fields.lons, tags = fields.tags
+        // The buffers keep their full size; the counts say how much is in use.
+        let ids = fields.ids.storage, lats = fields.lats.storage, lons = fields.lons.storage
+        let tags = fields.tags.storage
+        let idCount = fields.ids.count, latCount = fields.lats.count, lonCount = fields.lons.count
+        let tagCount = fields.tags.count
+        // Most nodes carry no tag: they are handed this, not a slice made for each.
+        let noTags = ArraySlice<Int32>()
 
-        var id: Int64 = 0, lat: Int64 = 0, lon: Int64 = 0, cursor = 0
-        for i in 0..<ids.count {
-            // Wrapping: deltas summing past Int64.max in a corrupt file must give a wrong
-            // node rather than trap.
-            id &+= ids[i]
-            lat &+= i < lats.count ? lats[i] : 0
-            lon &+= i < lons.count ? lons[i] : 0
-            // A pair needs both halves: stepping on a lone trailing key would run the
-            // cursor past the end and trap on the slice below.
-            let start = cursor
-            while cursor + 1 < tags.count && tags[cursor] != 0 { cursor += 2 }
-            let end = min(cursor, tags.count)
-            if cursor < tags.count { cursor += 1 }  // step over the terminator
-            sink.node(
-                id: id,
-                lat: block.latitude(lat),
-                lon: block.longitude(lon),
-                tags: tags[start..<end],
-                block: block
-            )
+        ids.withUnsafeBufferPointer { ids in
+            lats.withUnsafeBufferPointer { lats in
+                lons.withUnsafeBufferPointer { lons in
+                    var id: Int64 = 0, lat: Int64 = 0, lon: Int64 = 0, cursor = 0
+                    for i in 0..<idCount {
+                        // Wrapping: deltas summing past Int64.max in a corrupt file must
+                        // give a wrong node rather than trap.
+                        id &+= ids[i]
+                        lat &+= i < latCount ? lats[i] : 0
+                        lon &+= i < lonCount ? lons[i] : 0
+                        // A pair needs both halves: stepping on a lone trailing key would
+                        // run the cursor past the end and trap on the slice below.
+                        let start = cursor
+                        while cursor + 1 < tagCount && tags[cursor] != 0 { cursor += 2 }
+                        let end = min(cursor, tagCount)
+                        if cursor < tagCount { cursor += 1 }  // step over the terminator
+                        // 2 calls, not 1 with a choice of slice in it: the choice is a
+                        // copy, and a copy is a retain and a release for every node.
+                        if start == end {
+                            sink.node(
+                                id: id,
+                                lat: block.latitude(lat),
+                                lon: block.longitude(lon),
+                                tags: noTags,
+                                block: block
+                            )
+                        } else {
+                            sink.node(
+                                id: id,
+                                lat: block.latitude(lat),
+                                lon: block.longitude(lon),
+                                tags: tags[start..<end],
+                                block: block
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -139,33 +179,26 @@ extension PBFReader {
         fields: inout Scratch
     ) {
         var id: Int64 = 0
-        // Emptied, not replaced: assigning a new array would discard the kept capacity.
-        fields.refs.removeAll(keepingCapacity: true)
-        fields.keys.removeAll(keepingCapacity: true)
-        fields.values.removeAll(keepingCapacity: true)
+        fields.refs.removeAll()
+        fields.keys.removeAll()
+        fields.values.removeAll()
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
             case PBFSchema.elementID: id = Int64(bitPattern: reader.varint())
-            case PBFSchema.elementKeys:
-                Self.packedVarint32(reader.lengthDelimited(), into: &fields.keys)
-            case PBFSchema.elementVals:
-                Self.packedVarint32(reader.lengthDelimited(), into: &fields.values)
+            case PBFSchema.elementKeys: Self.int32s(reader.lengthDelimited(), into: &fields.keys)
+            case PBFSchema.elementVals: Self.int32s(reader.lengthDelimited(), into: &fields.values)
             case PBFSchema.wayRefs:
-                var delta: Int64 = 0
-                var packed = ProtoReader(reader.lengthDelimited())
-                while !packed.isAtEnd {
-                    delta &+= packed.zigzag()
-                    fields.refs.append(delta)
-                }
+                // A field in 2 pieces starts its sums again.
+                Self.zigzagSums(reader.lengthDelimited(), into: &fields.refs)
             default: reader.skip(wire: field.wire)
             }
         }
         sink.way(
             id: id,
-            refs: fields.refs[...],
-            keys: fields.keys[...],
-            values: fields.values[...],
+            refs: fields.refs.slice,
+            keys: fields.keys.slice,
+            values: fields.values.slice,
             block: block
         )
     }
@@ -177,56 +210,31 @@ extension PBFReader {
         fields: inout Scratch
     ) {
         var id: Int64 = 0
-        fields.refs.removeAll(keepingCapacity: true)
-        fields.keys.removeAll(keepingCapacity: true)
-        fields.values.removeAll(keepingCapacity: true)
-        fields.kinds.removeAll(keepingCapacity: true)
-        fields.roles.removeAll(keepingCapacity: true)
+        fields.refs.removeAll()
+        fields.keys.removeAll()
+        fields.values.removeAll()
+        fields.kinds.removeAll()
+        fields.roles.removeAll()
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
             case PBFSchema.elementID: id = Int64(bitPattern: reader.varint())
-            case PBFSchema.elementKeys:
-                Self.packedVarint32(reader.lengthDelimited(), into: &fields.keys)
-            case PBFSchema.elementVals:
-                Self.packedVarint32(reader.lengthDelimited(), into: &fields.values)
-            case PBFSchema.memberRoles:
-                Self.packedVarint32(reader.lengthDelimited(), into: &fields.roles)
-            case PBFSchema.memberIDs:
-                var delta: Int64 = 0
-                var packed = ProtoReader(reader.lengthDelimited())
-                while !packed.isAtEnd {
-                    delta &+= packed.zigzag()
-                    fields.refs.append(delta)
-                }
-            case PBFSchema.memberKinds:
-                Self.packedVarint32(reader.lengthDelimited(), into: &fields.kinds)
+            case PBFSchema.elementKeys: Self.int32s(reader.lengthDelimited(), into: &fields.keys)
+            case PBFSchema.elementVals: Self.int32s(reader.lengthDelimited(), into: &fields.values)
+            case PBFSchema.memberRoles: Self.int32s(reader.lengthDelimited(), into: &fields.roles)
+            case PBFSchema.memberIDs: Self.zigzagSums(reader.lengthDelimited(), into: &fields.refs)
+            case PBFSchema.memberKinds: Self.int32s(reader.lengthDelimited(), into: &fields.kinds)
             default: reader.skip(wire: field.wire)
             }
         }
         sink.relation(
             id: id,
-            memberKinds: fields.kinds[...],
-            memberIDs: fields.refs[...],
-            memberRoles: fields.roles[...],
-            keys: fields.keys[...],
-            values: fields.values[...],
+            memberKinds: fields.kinds.slice,
+            memberIDs: fields.refs.slice,
+            memberRoles: fields.roles.slice,
+            keys: fields.keys.slice,
+            values: fields.values.slice,
             block: block
         )
-    }
-
-    /// Appends into a buffer the caller owns and keeps. The reserve is half the byte
-    /// count, these streams averaging near two bytes per varint; a buffer needing more
-    /// grows once and stays grown.
-    static func packedZigzag(_ bytes: UnsafeRawBufferPointer, into out: inout [Int64]) {
-        if out.capacity < bytes.count / 2 { out.reserveCapacity(bytes.count / 2) }
-        var reader = ProtoReader(bytes)
-        while !reader.isAtEnd { out.append(reader.zigzag()) }
-    }
-
-    static func packedVarint32(_ bytes: UnsafeRawBufferPointer, into out: inout [Int32]) {
-        if out.capacity < bytes.count / 2 { out.reserveCapacity(bytes.count / 2) }
-        var reader = ProtoReader(bytes)
-        while !reader.isAtEnd { out.append(Int32(truncatingIfNeeded: reader.varint())) }
     }
 }

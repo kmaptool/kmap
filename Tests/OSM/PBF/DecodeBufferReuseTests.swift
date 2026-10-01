@@ -80,31 +80,39 @@ final class DecodeBufferReuseTests: XCTestCase {
         return url
     }
 
-    /// The helpers append into the buffer they are given and never hand back a new one:
-    /// a replacement resets capacity to the count, a refill does not.
-    func testTheHelpersAppendIntoTheBufferTheyAreGiven() {
-        var out = [Int32]()
-        out.reserveCapacity(4096)
-        let capacity = out.capacity
+    /// A reused buffer is filled after what it holds and keeps its storage: a refill
+    /// writes into the same memory, and only emptying starts it over.
+    func testAReusedBufferAppendsAndKeepsItsStorage() {
+        var out = ReusedBuffer<Int32>(zero: 0)
         let bytes: [UInt8] = [0x01, 0x02, 0x03, 0x04, 0x05]
-
-        bytes.withUnsafeBytes { PBFReader.packedVarint32($0, into: &out) }
-        XCTAssertEqual(out, [1, 2, 3, 4, 5])
-        XCTAssertEqual(out.capacity, capacity, "a fill must not move the buffer")
+        func fill() {
+            bytes.withUnsafeBytes { raw in out.append(atMost: raw.count) { PackedVarints.int32(raw, into: $0) } }
+        }
+        fill()
+        XCTAssertEqual(Array(out.slice), [1, 2, 3, 4, 5])
 
         // Appends rather than replaces: what was there is still there in front.
-        bytes.withUnsafeBytes { PBFReader.packedVarint32($0, into: &out) }
-        XCTAssertEqual(out, [1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
-        XCTAssertEqual(out.capacity, capacity)
+        fill()
+        XCTAssertEqual(Array(out.slice), [1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
+        let address = out.storage.withUnsafeBufferPointer { $0.baseAddress }
 
-        var wide = [Int64]()
-        wide.reserveCapacity(4096)
-        let wideCapacity = wide.capacity
+        out.removeAll()
+        fill()
+        XCTAssertEqual(Array(out.slice), [1, 2, 3, 4, 5])
+        XCTAssertEqual(
+            out.storage.withUnsafeBufferPointer { $0.baseAddress },
+            address,
+            "a refill must not move the buffer"
+        )
+
+        var wide = ReusedBuffer<Int64>(zero: 0)
         // Zigzag: 2 is 1, 4 is 2, 1 is -1.
         let zigzagged: [UInt8] = [0x02, 0x04, 0x01]
-        zigzagged.withUnsafeBytes { PBFReader.packedZigzag($0, into: &wide) }
-        XCTAssertEqual(wide, [1, 2, -1])
-        XCTAssertEqual(wide.capacity, wideCapacity)
+        zigzagged.withUnsafeBytes { raw in wide.append(atMost: raw.count) { PackedVarints.zigzag(raw, into: $0) } }
+        XCTAssertEqual(Array(wide.slice), [1, 2, -1])
+        wide.removeAll()
+        zigzagged.withUnsafeBytes { raw in wide.append(atMost: raw.count) { PackedVarints.zigzagSums(raw, into: $0) } }
+        XCTAssertEqual(Array(wide.slice), [1, 3, 2], "each a step from the one before")
     }
 
     /// Catches the scattered case only: an allocator may hand back the same address for a
@@ -168,8 +176,10 @@ final class DecodeBufferReuseTests: XCTestCase {
         )
     }
 
-    /// A sink that keeps its slices decides whether the buffer stays reusable. `Array(slice)`
-    /// over a whole buffer shares it, so the next refill has to copy; `exactly` does not.
+    /// A sink that keeps what it is handed must not take the decode buffer with it.
+    /// `Array(slice)` over a whole buffer shares it; the decoder hands over a part of a
+    /// larger buffer, so either way of keeping is a copy. The first ways here have 8
+    /// refs of 1 byte each, which fill a buffer sized by the bytes to the brim.
     func testASinkThatKeepsCopiesDecidesWhetherTheBufferStaysShared() throws {
         struct Keeps: OSMSink {
             let exact: Bool
@@ -201,8 +211,16 @@ final class DecodeBufferReuseTests: XCTestCase {
         try PBFReader(url: url).read(into: &sharing)
         var copying = Keeps(exact: true)
         try PBFReader(url: url).read(into: &copying)
-        XCTAssertGreaterThan(sharing.addresses.count, 100, "Array(refs) is expected to take the buffer with it")
-        XCTAssertLessThan(copying.addresses.count, 8, "exactly leaves the buffer to be refilled")
+        XCTAssertLessThan(
+            sharing.addresses.count,
+            8,
+            "Array(refs) took the buffer away: \(sharing.addresses.count) addresses"
+        )
+        XCTAssertLessThan(
+            copying.addresses.count,
+            8,
+            "exactly took the buffer away: \(copying.addresses.count) addresses"
+        )
         XCTAssertEqual(copying.kept.map(\.count), sharing.kept.map(\.count))
     }
 }

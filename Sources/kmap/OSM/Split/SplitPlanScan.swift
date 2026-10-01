@@ -175,7 +175,10 @@ extension TileSplitter {
         let wantedParts: OSMParts = .nodes
 
         var wanted: WantedIDs
+        /// Every wanted node's place, in the instance the readers hand theirs to.
         var coords: [Int64: (lat: Int32, lon: Int32)] = [:]
+        /// What a reader found in its blocks, kept flat so nothing is hashed again.
+        var found: [(id: Int64, lat: Int32, lon: Int32)] = []
         mutating func node(
             id: Int64,
             lat: Double,
@@ -184,7 +187,7 @@ extension TileSplitter {
             block: OSMBlock
         ) {
             if wanted.wants(id) {
-                coords[id] = (TileSplitter.mapUnits(lat), TileSplitter.mapUnits(lon))
+                found.append((id, TileSplitter.mapUnits(lat), TileSplitter.mapUnits(lon)))
             }
         }
     }
