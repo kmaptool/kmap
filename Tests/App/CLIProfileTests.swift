@@ -163,12 +163,22 @@ extension CLIProfileTests {
 
     func testAFlagBuildDoesNotKnowIsRefusedNotIgnored() async {
         // A typo used to be silent, and the hour-long build got the profile's value.
-        for bad in ["--no-contorus", "--sources=copernikus1", "--sources=", "--dem=yes"] {
+        for bad in ["--no-contorus", "--sources=copernikus1", "--sources=", "--dem=yes", "--dem=no", "--no-sea=1"] {
             let code = await CLI.run(["build", "region-a", bad])
             XCTAssertEqual(code, 2, "\(bad) should be refused")
         }
         XCTAssertEqual(CLI.unknownSources(in: "copernicus1, view3,srtm1,alos1,copernicus90"), [])
         XCTAssertEqual(CLI.unknownSources(in: "copernicus1,mars"), ["mars"])
+    }
+
+    /// A switch is on by being written, so `--dem=no` used to turn the layer on. A value
+    /// on one is refused, for a profile as for a build.
+    func testASwitchGivenAValueIsRefusedRatherThanTurnedOn() {
+        var choices = BuildChoices()
+        choices.demLayer = false
+        let refused = CLI.apply(CLI.Flags(["--dem=no"]), to: &choices, store: store)
+        XCTAssertEqual(refused, ["--dem takes no value: write --dem or --no-dem"])
+        XCTAssertTrue(CLI.apply(CLI.Flags(["--dem", "--no-sea"]), to: &choices, store: store).isEmpty)
     }
 
     /// What `--memory` says is what the lanes are worked out from.

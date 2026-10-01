@@ -10,7 +10,25 @@ extension CLI {
         /// Every unreadable flag lands here; the build is refused while it is not empty.
         var refused: [String] = []
 
-        init(_ flags: Flags) { self.flags = flags }
+        init(_ flags: Flags) {
+            self.flags = flags
+            // A switch is read by its presence alone, so a value it was given went
+            // unread: `--dem=no` turned the layer on. Refused here, before any download.
+            for name in Self.switches.sorted() where flags.value(name) != nil {
+                let base = name.hasPrefix("no-") ? String(name.dropFirst(3)) : name
+                refused.append("--\(name) takes no value: write --\(base) or --no-\(base)")
+            }
+        }
+
+        /// The flags that are on or off by being written: each, its `no-` twin, and the
+        /// retired `--lean-index`.
+        static let switches: Set<String> = {
+            let both = [
+                "contours", "dem", "summits", "route", "repair-ends", "index", "word-index",
+                "house-numbers", "sea", "custom-pois"
+            ]
+            return Set(both + both.map { "no-" + $0 } + ["lean-index", "keep-work"])
+        }()
 
         // MARK: What a flag may say
 
