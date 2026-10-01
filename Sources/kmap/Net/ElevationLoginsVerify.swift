@@ -79,6 +79,7 @@ extension ElevationLogins {
     /// JAXA serves the archives from a Basic-auth directory: a HEAD settles it, 401 or 403
     /// being a refusal.
     private static func verifyBasic(_ login: (user: String, password: String)) async -> Verdict {
+        guard Network.isOpen else { return .unreachable }
         guard let url = URL(string: "https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2303/"),
             let credentials = "\(login.user):\(login.password)"
                 .data(using: .utf8)?.base64EncodedString()
@@ -97,6 +98,7 @@ extension ElevationLogins {
     /// USGS keeps SRTM behind the EROS registration system: a form, a CSRF token in hidden
     /// inputs, and a session cookie afterwards.
     private static func verifyUSGSForm(_ login: (user: String, password: String)) async -> Verdict {
+        guard Network.isOpen else { return .unreachable }
         guard let entry = URL(string: "https://ers.cr.usgs.gov/login") else { return .unreachable }
         let session = URLSession(configuration: .ephemeral)
         guard let (data, _) = try? await session.data(from: entry),

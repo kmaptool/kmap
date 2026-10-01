@@ -44,6 +44,8 @@ final class AppContext {
     private var askingPacks = false
     /// Set by the tests: the list is theirs, and no probe replaces it.
     private var toolsFrozen = false
+    /// The same for the packs' news: no mirror is asked, and nothing overwrites it.
+    private var packsFrozen = false
 
     struct Overview {
         var cachedExtracts = 0
@@ -123,7 +125,7 @@ final class AppContext {
     /// Asks the mirrors about the installed packs, off the render loop. Not on the
     /// build's schedule, which can be `never`: opening the screen is the asking.
     func refreshPackNews(force: Bool = false) {
-        guard !askingPacks else { return }
+        guard !packsFrozen, !askingPacks else { return }
         if packsChecked && !force { return }
         askingPacks = true
         Task.detached(priority: .utility) { [weak self] in
@@ -153,9 +155,12 @@ final class AppContext {
     }
 
     /// What a check found, without making one: the screen is testable with no network.
+    /// Frozen, as the tools are: a forced re-check after an install would otherwise ask
+    /// the mirror, and an answer landing after the test ended has crashed the process.
     func useForTesting(packNews: [String: DataPack.News]) {
         self.packNews = packNews
         packsChecked = true
+        packsFrozen = true
     }
 
     // MARK: The machine and the caches

@@ -11,6 +11,7 @@ enum Fetch {
 
     /// The body at `url`. A status outside 2xx throws `DownloadError.badStatus`.
     static func data(_ url: URL, timeout: TimeInterval = timeout) async throws -> Data {
+        try Network.ensureOpen()
         var request = URLRequest(url: url)
         request.timeoutInterval = timeout
         let (data, response) = try await URLSession.shared.data(for: request)

@@ -59,6 +59,7 @@ extension Downloader {
     }
 
     static func probe(_ url: URL, timeout: TimeInterval) async throws -> RemoteInfo {
+        try Network.ensureOpen()
         var request = URLRequest(url: url)
         request.httpMethod = "HEAD"
         request.timeoutInterval = timeout

@@ -601,6 +601,9 @@ final class ScreenKeysTests: XCTestCase {
             tool("sea", "coastlines"),
             tool("bounds", "boundaries")
         ])
+        // Before the first tick, which asks the mirrors about the installed packs: a
+        // probe still in flight when the process exits crashed it inside libcurl.
+        ctx.useForTesting(packNews: [:])
         let screen = ToolchainScreen()
         screen.tick(ctx)
         return screen

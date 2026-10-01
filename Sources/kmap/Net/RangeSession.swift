@@ -58,6 +58,7 @@ final class RangeSession: Sendable {
         // A retry sleep can end after `cancel()` invalidated the session, and a task made
         // on a dead session never completes.
         if isCancelled { throw DownloadError.cancelled }
+        try Network.ensureOpen()
         var request = URLRequest(url: url)
         if ranged {
             request.setValue(
