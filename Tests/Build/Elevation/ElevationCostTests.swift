@@ -48,9 +48,9 @@ final class ElevationCostTests: XCTestCase {
         XCTAssertEqual(split.bbox.demTileCount, 1)
     }
 
-    func testNoRegionsCostNothing() async {
-        let estimate = await ElevationCost.estimate(sources: "copernicus1", regions: [])
-        XCTAssertTrue(estimate.isEmpty)
+    func testNoRegionsCostNothing() throws {
+        let empty = try blocking { await ElevationCost.estimate(sources: "copernicus1", regions: []).isEmpty }
+        XCTAssertTrue(empty)
     }
 }
 

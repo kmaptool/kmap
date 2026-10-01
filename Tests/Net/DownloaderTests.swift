@@ -66,29 +66,38 @@ final class DownloaderTests: XCTestCase {
         XCTAssertEqual(pauses, [1, 2], "a growing pause between the tries")
     }
 
-    func testAFinalAnswerIsNotAskedAgain() async {
-        var calls = 0
-        do {
-            _ = try await Downloader.retrying(pause: { _ in }) { () throws -> Int in
-                calls += 1
-                throw DownloadError.badStatus(404)
+    func testAFinalAnswerIsNotAskedAgain() throws {
+        let (calls, gaveUp) = try blocking { () async -> (Int, Bool) in
+            var calls = 0
+            do {
+                _ = try await Downloader.retrying(pause: { _ in }) { () throws -> Int in
+                    calls += 1
+                    throw DownloadError.badStatus(404)
+                }
+                return (calls, false)
+            } catch {
+                return (calls, true)
             }
-            XCTFail("a 404 is final")
-        } catch {}
+        }
+        XCTAssertTrue(gaveUp, "a 404 is final")
         XCTAssertEqual(calls, 1)
     }
 
-    func testTheTriesRunOutAndTheLastErrorComesThrough() async {
-        var calls = 0
-        do {
-            _ = try await Downloader.retrying(attempts: 2, pause: { _ in }) { () throws -> Int in
-                calls += 1
-                throw DownloadError.badStatus(503)
+    func testTheTriesRunOutAndTheLastErrorComesThrough() throws {
+        let (calls, last) = try blocking { () async -> (Int, String) in
+            var calls = 0
+            do {
+                _ = try await Downloader.retrying(attempts: 2, pause: { _ in }) { () throws -> Int in
+                    calls += 1
+                    throw DownloadError.badStatus(503)
+                }
+                return (calls, "the tries did not run out")
+            } catch {
+                guard case DownloadError.badStatus(503) = error else { return (calls, "\(error)") }
+                return (calls, "503")
             }
-            XCTFail("the tries run out")
-        } catch {
-            guard case DownloadError.badStatus(503) = error else { return XCTFail("\(error)") }
         }
+        XCTAssertEqual(last, "503", "the last error comes through")
         XCTAssertEqual(calls, 3, "the first try and two more")
     }
 
