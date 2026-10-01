@@ -143,8 +143,10 @@ final class Downloader: Sendable {
                 // Bytes arrived before the drop, so the count starts again.
                 if written > before { failures = 0 }
                 // Without ranges there is no picking up, only starting over.
-                guard ranged, written < part.length,
-                    failures < Self.retriesPerPart, Self.worthRetrying(error)
+                // A redirect loop too: a mirror's proxies can disagree, one looping while
+                // the next serves the file.
+                let passing = Self.worthRetrying(error) || (error as? URLError)?.code == .httpTooManyRedirects
+                guard ranged, written < part.length, failures < Self.retriesPerPart, passing
                 else { throw error }
                 failures += 1
                 if failures == 1 {

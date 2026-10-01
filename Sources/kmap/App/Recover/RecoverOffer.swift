@@ -105,8 +105,10 @@ extension RecoverScreen {
             guard let self else { return }
             do {
                 for region in regions {
-                    guard let url = region.pbfURL else { continue }
+                    guard let latest = region.pbfURL else { continue }
                     await MainActor.run { self.fetching = region.name }
+                    // The dated file where the mirror's `-latest` alias is broken.
+                    let url = (try? await ExtractLocator.locate(latest))?.url ?? latest
                     try await downloader.download(
                         url: url,
                         to: RegionSuggestion.cacheDestination(for: region),

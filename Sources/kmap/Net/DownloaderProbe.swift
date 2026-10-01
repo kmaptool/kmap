@@ -14,8 +14,11 @@ extension Downloader {
         let lastModified: String?
     }
 
-    private static let probeTimeout: TimeInterval = 45
+    /// A HEAD answers in under a second from a healthy server. One that hangs is a broken
+    /// proxy, and the next try may reach a good one: better four short waits than one long.
+    private static let probeTimeout: TimeInterval = 15
     private static let probeRetries = 3
+    private static let checksumTimeout: TimeInterval = 10
 
     /// Files are hashed in blocks of this size.
     private static let hashBlock = 8 << 20
@@ -52,9 +55,13 @@ extension Downloader {
     ///
     /// - Throws: `DownloadError.badStatus`, `.noContentLength`, or `.io`.
     static func probe(_ url: URL) async throws -> RemoteInfo {
+        try await probe(url, timeout: probeTimeout)
+    }
+
+    static func probe(_ url: URL, timeout: TimeInterval) async throws -> RemoteInfo {
         var request = URLRequest(url: url)
         request.httpMethod = "HEAD"
-        request.timeoutInterval = probeTimeout
+        request.timeoutInterval = timeout
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw DownloadError.io("no HTTP response")
@@ -118,8 +125,9 @@ extension Downloader {
     /// Fetches an `.md5` file, "<hash>  <filename>", and returns the lowercased hash, or
     /// nil where it is missing or malformed.
     static func fetchExpectedMD5(_ url: URL) async -> String? {
-        // Retried like the probe: a missed .md5 costs a whole extract read or refetch.
-        let data = try? await retrying { try await Fetch.data(url, timeout: probeTimeout) }
+        // Asked twice, briefly: a missed .md5 costs a read of the whole extract, but a
+        // mirror that hangs on it must not hold the build for minutes.
+        let data = try? await retrying(attempts: 1) { try await Fetch.data(url, timeout: checksumTimeout) }
         guard let data, let text = String(data: data, encoding: .utf8) else { return nil }
         let token = text.split(separator: " ").first.map(String.init)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
