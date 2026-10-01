@@ -167,43 +167,175 @@ struct SHA256 {
     // MARK: The compression function
 
     /// Folds one 64-byte block into the state.
+    ///
+    /// The 64 rounds are written out, each naming 8 working words in the order that
+    /// round sees them, so no word is moved between rounds; the schedule is 16 words
+    /// kept in registers and renewed in place. The constants are read from `k`, which
+    /// the tests derive again.
     private mutating func absorb(_ block: UnsafeRawPointer) {
+        @inline(__always)
+        func word(_ index: Int) -> UInt32 {
+            UInt32(bigEndian: block.loadUnaligned(fromByteOffset: index * 4, as: UInt32.self))
+        }
         @inline(__always)
         func rotated(_ value: UInt32, _ by: UInt32) -> UInt32 {
             (value >> by) | (value << (32 - by))
         }
+        /// The next word of the schedule, from the word 16 back and 3 others.
+        @inline(__always)
+        func mixed(_ w0: UInt32, _ w1: UInt32, _ w9: UInt32, _ w14: UInt32) -> UInt32 {
+            let s0 = rotated(w1, 7) ^ rotated(w1, 18) ^ (w1 >> 3)
+            let s1 = rotated(w14, 17) ^ rotated(w14, 19) ^ (w14 >> 10)
+            return w0 &+ s0 &+ w9 &+ s1
+        }
+        /// A round. Only `d` and `h` change; the caller turns the names instead.
+        @inline(__always)
+        func round(
+            _ a: UInt32,
+            _ b: UInt32,
+            _ c: UInt32,
+            _ d: inout UInt32,
+            _ e: UInt32,
+            _ f: UInt32,
+            _ g: UInt32,
+            _ h: inout UInt32,
+            _ k: UInt32,
+            _ w: UInt32
+        ) {
+            let s1 = rotated(e, 6) ^ rotated(e, 11) ^ rotated(e, 25)
+            let choice = g ^ (e & (f ^ g))
+            // The constant and the word first: neither waits on the round before.
+            let temp1 = (k &+ w &+ h) &+ choice &+ s1
+            let s0 = rotated(a, 2) ^ rotated(a, 13) ^ rotated(a, 22)
+            let majority = (a & b) | (c & (a | b))
+            d &+= temp1
+            h = temp1 &+ s0 &+ majority
+        }
 
-        // The message schedule: sixteen words from the block, then forty-eight derived.
-        var w = [UInt32](repeating: 0, count: 64)
-        for i in 0..<16 {
-            w[i] = UInt32(
-                bigEndian: block.loadUnaligned(
-                    fromByteOffset: i * 4,
-                    as: UInt32.self
-                )
-            )
-        }
-        for i in 16..<64 {
-            let s0 = rotated(w[i - 15], 7) ^ rotated(w[i - 15], 18) ^ (w[i - 15] >> 3)
-            let s1 = rotated(w[i - 2], 17) ^ rotated(w[i - 2], 19) ^ (w[i - 2] >> 10)
-            w[i] = w[i - 16] &+ s0 &+ w[i - 7] &+ s1
-        }
+        var w00 = word(0), w01 = word(1), w02 = word(2), w03 = word(3)
+        var w04 = word(4), w05 = word(5), w06 = word(6), w07 = word(7)
+        var w08 = word(8), w09 = word(9), w10 = word(10), w11 = word(11)
+        var w12 = word(12), w13 = word(13), w14 = word(14), w15 = word(15)
 
         var a = h.0, b = h.1, c = h.2, d = h.3
         var e = h.4, f = h.5, g = h.6, hh = h.7
 
-        for i in 0..<64 {
-            let s1 = rotated(e, 6) ^ rotated(e, 11) ^ rotated(e, 25)
-            let choice = (e & f) ^ (~e & g)
-            let temp1 = hh &+ s1 &+ choice &+ SHA256.k[i] &+ w[i]
-            let s0 = rotated(a, 2) ^ rotated(a, 13) ^ rotated(a, 22)
-            let majority = (a & b) ^ (a & c) ^ (b & c)
-            let temp2 = s0 &+ majority
+        SHA256.k.withUnsafeBufferPointer { k in
+            round(a, b, c, &d, e, f, g, &hh, k[0], w00)
+            round(hh, a, b, &c, d, e, f, &g, k[1], w01)
+            round(g, hh, a, &b, c, d, e, &f, k[2], w02)
+            round(f, g, hh, &a, b, c, d, &e, k[3], w03)
+            round(e, f, g, &hh, a, b, c, &d, k[4], w04)
+            round(d, e, f, &g, hh, a, b, &c, k[5], w05)
+            round(c, d, e, &f, g, hh, a, &b, k[6], w06)
+            round(b, c, d, &e, f, g, hh, &a, k[7], w07)
+            round(a, b, c, &d, e, f, g, &hh, k[8], w08)
+            round(hh, a, b, &c, d, e, f, &g, k[9], w09)
+            round(g, hh, a, &b, c, d, e, &f, k[10], w10)
+            round(f, g, hh, &a, b, c, d, &e, k[11], w11)
+            round(e, f, g, &hh, a, b, c, &d, k[12], w12)
+            round(d, e, f, &g, hh, a, b, &c, k[13], w13)
+            round(c, d, e, &f, g, hh, a, &b, k[14], w14)
+            round(b, c, d, &e, f, g, hh, &a, k[15], w15)
 
-            hh = g; g = f; f = e
-            e = d &+ temp1
-            d = c; c = b; b = a
-            a = temp1 &+ temp2
+            w00 = mixed(w00, w01, w09, w14)
+            round(a, b, c, &d, e, f, g, &hh, k[16], w00)
+            w01 = mixed(w01, w02, w10, w15)
+            round(hh, a, b, &c, d, e, f, &g, k[17], w01)
+            w02 = mixed(w02, w03, w11, w00)
+            round(g, hh, a, &b, c, d, e, &f, k[18], w02)
+            w03 = mixed(w03, w04, w12, w01)
+            round(f, g, hh, &a, b, c, d, &e, k[19], w03)
+            w04 = mixed(w04, w05, w13, w02)
+            round(e, f, g, &hh, a, b, c, &d, k[20], w04)
+            w05 = mixed(w05, w06, w14, w03)
+            round(d, e, f, &g, hh, a, b, &c, k[21], w05)
+            w06 = mixed(w06, w07, w15, w04)
+            round(c, d, e, &f, g, hh, a, &b, k[22], w06)
+            w07 = mixed(w07, w08, w00, w05)
+            round(b, c, d, &e, f, g, hh, &a, k[23], w07)
+            w08 = mixed(w08, w09, w01, w06)
+            round(a, b, c, &d, e, f, g, &hh, k[24], w08)
+            w09 = mixed(w09, w10, w02, w07)
+            round(hh, a, b, &c, d, e, f, &g, k[25], w09)
+            w10 = mixed(w10, w11, w03, w08)
+            round(g, hh, a, &b, c, d, e, &f, k[26], w10)
+            w11 = mixed(w11, w12, w04, w09)
+            round(f, g, hh, &a, b, c, d, &e, k[27], w11)
+            w12 = mixed(w12, w13, w05, w10)
+            round(e, f, g, &hh, a, b, c, &d, k[28], w12)
+            w13 = mixed(w13, w14, w06, w11)
+            round(d, e, f, &g, hh, a, b, &c, k[29], w13)
+            w14 = mixed(w14, w15, w07, w12)
+            round(c, d, e, &f, g, hh, a, &b, k[30], w14)
+            w15 = mixed(w15, w00, w08, w13)
+            round(b, c, d, &e, f, g, hh, &a, k[31], w15)
+
+            w00 = mixed(w00, w01, w09, w14)
+            round(a, b, c, &d, e, f, g, &hh, k[32], w00)
+            w01 = mixed(w01, w02, w10, w15)
+            round(hh, a, b, &c, d, e, f, &g, k[33], w01)
+            w02 = mixed(w02, w03, w11, w00)
+            round(g, hh, a, &b, c, d, e, &f, k[34], w02)
+            w03 = mixed(w03, w04, w12, w01)
+            round(f, g, hh, &a, b, c, d, &e, k[35], w03)
+            w04 = mixed(w04, w05, w13, w02)
+            round(e, f, g, &hh, a, b, c, &d, k[36], w04)
+            w05 = mixed(w05, w06, w14, w03)
+            round(d, e, f, &g, hh, a, b, &c, k[37], w05)
+            w06 = mixed(w06, w07, w15, w04)
+            round(c, d, e, &f, g, hh, a, &b, k[38], w06)
+            w07 = mixed(w07, w08, w00, w05)
+            round(b, c, d, &e, f, g, hh, &a, k[39], w07)
+            w08 = mixed(w08, w09, w01, w06)
+            round(a, b, c, &d, e, f, g, &hh, k[40], w08)
+            w09 = mixed(w09, w10, w02, w07)
+            round(hh, a, b, &c, d, e, f, &g, k[41], w09)
+            w10 = mixed(w10, w11, w03, w08)
+            round(g, hh, a, &b, c, d, e, &f, k[42], w10)
+            w11 = mixed(w11, w12, w04, w09)
+            round(f, g, hh, &a, b, c, d, &e, k[43], w11)
+            w12 = mixed(w12, w13, w05, w10)
+            round(e, f, g, &hh, a, b, c, &d, k[44], w12)
+            w13 = mixed(w13, w14, w06, w11)
+            round(d, e, f, &g, hh, a, b, &c, k[45], w13)
+            w14 = mixed(w14, w15, w07, w12)
+            round(c, d, e, &f, g, hh, a, &b, k[46], w14)
+            w15 = mixed(w15, w00, w08, w13)
+            round(b, c, d, &e, f, g, hh, &a, k[47], w15)
+
+            w00 = mixed(w00, w01, w09, w14)
+            round(a, b, c, &d, e, f, g, &hh, k[48], w00)
+            w01 = mixed(w01, w02, w10, w15)
+            round(hh, a, b, &c, d, e, f, &g, k[49], w01)
+            w02 = mixed(w02, w03, w11, w00)
+            round(g, hh, a, &b, c, d, e, &f, k[50], w02)
+            w03 = mixed(w03, w04, w12, w01)
+            round(f, g, hh, &a, b, c, d, &e, k[51], w03)
+            w04 = mixed(w04, w05, w13, w02)
+            round(e, f, g, &hh, a, b, c, &d, k[52], w04)
+            w05 = mixed(w05, w06, w14, w03)
+            round(d, e, f, &g, hh, a, b, &c, k[53], w05)
+            w06 = mixed(w06, w07, w15, w04)
+            round(c, d, e, &f, g, hh, a, &b, k[54], w06)
+            w07 = mixed(w07, w08, w00, w05)
+            round(b, c, d, &e, f, g, hh, &a, k[55], w07)
+            w08 = mixed(w08, w09, w01, w06)
+            round(a, b, c, &d, e, f, g, &hh, k[56], w08)
+            w09 = mixed(w09, w10, w02, w07)
+            round(hh, a, b, &c, d, e, f, &g, k[57], w09)
+            w10 = mixed(w10, w11, w03, w08)
+            round(g, hh, a, &b, c, d, e, &f, k[58], w10)
+            w11 = mixed(w11, w12, w04, w09)
+            round(f, g, hh, &a, b, c, d, &e, k[59], w11)
+            w12 = mixed(w12, w13, w05, w10)
+            round(e, f, g, &hh, a, b, c, &d, k[60], w12)
+            w13 = mixed(w13, w14, w06, w11)
+            round(d, e, f, &g, hh, a, b, &c, k[61], w13)
+            w14 = mixed(w14, w15, w07, w12)
+            round(c, d, e, &f, g, hh, a, &b, k[62], w14)
+            w15 = mixed(w15, w00, w08, w13)
+            round(b, c, d, &e, f, g, hh, &a, k[63], w15)
         }
 
         h = (
