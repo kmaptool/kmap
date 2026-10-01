@@ -102,23 +102,26 @@ final class DataPackUpdateTests: XCTestCase {
         XCTAssertNil(news)
     }
 
-    func testAPackNobodyInstalledIsNotChecked() async throws {
+    func testAPackNobodyInstalledIsNotChecked() throws {
         let missing = DataPack(
             id: "test",
             url: URL(string: "https://example.invalid/pack.zip")!,
             file: folder.appendingPathComponent("absent.zip"),
             what: "test pack"
         )
-        var asked = false
-        _ = await missing.newer(probe: { url in
-            asked = true
-            return Downloader.RemoteInfo(
-                finalURL: url,
-                size: 1,
-                acceptsRanges: false,
-                lastModified: nil
-            )
-        })
+        let asked = try blocking { () async -> Bool in
+            var asked = false
+            _ = await missing.newer(probe: { url in
+                asked = true
+                return Downloader.RemoteInfo(
+                    finalURL: url,
+                    size: 1,
+                    acceptsRanges: false,
+                    lastModified: nil
+                )
+            })
+            return asked
+        }
         XCTAssertFalse(asked, "an uninstalled pack is a choice, not an omission")
     }
 
