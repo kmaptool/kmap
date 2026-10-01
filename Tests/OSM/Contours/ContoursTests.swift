@@ -323,4 +323,20 @@ final class ContoursTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(line.points.count, 2)
         }
     }
+
+    /// The order crossings are walked in decides which end of a line comes first, so
+    /// the radix sort must give what sorting by edge and then by number gives.
+    func testCrossingsAreOrderedByEdgeAndThenByNumber() {
+        var random = SplitMix64(state: 20_261_007)
+        for (count, top) in [(0, 1), (1, 1), (2, 5), (50, 3), (3000, 2047), (3000, 2048), (40_000, 26_000_000)] {
+            let edge = (0..<count).map { _ in Int32.random(in: 0...Int32(top), using: &random) }
+            let expected = edge.indices
+                .map { UInt64(UInt32(bitPattern: edge[$0])) << 32 | UInt64($0) }
+                .sorted()
+                .map { Int32(truncatingIfNeeded: $0) }
+            XCTAssertEqual(Contours.byEdge(edge), expected, "\(count) crossings on edges up to \(top)")
+        }
+        let wide: [Int32] = [.max, 0, -1, .min, 7, -1]
+        XCTAssertEqual(Contours.byEdge(wide), [1, 4, 0, 3, 2, 5], "by bit pattern, as the keys are packed")
+    }
 }

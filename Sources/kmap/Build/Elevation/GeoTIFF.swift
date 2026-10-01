@@ -1,3 +1,4 @@
+import CVector
 import Foundation
 
 /// Reads an elevation tile from a GeoTIFF without GDAL. Accepts classic TIFF, one band,
@@ -261,8 +262,8 @@ struct GeoTIFF {
             let start = across * tileWidth
             let span = min(tileWidth, width - start)
             let from = inside * tileWidth
-            guard from + span <= tile.count else { continue }
-            for k in 0..<span { out[start + k] = tile[from + k] }
+            guard span > 0, from + span <= tile.count else { continue }
+            out.replaceSubrange(start..<(start + span), with: tile[from..<(from + span)])
         }
         return out
     }
@@ -318,8 +319,13 @@ struct GeoTIFF {
             }
         }
 
-        undoPredictor(&raw, bytesPerSample: bytesPerSample)
-        let floats = samples(raw, bytesPerSample: bytesPerSample)
+        let floats: [Float]
+        if predictor == Predictor.floatingPoint, bytesPerSample == 4, sampleFormat == SampleFormat.float {
+            floats = floatsFromPlanes(&raw)
+        } else {
+            undoPredictor(&raw, bytesPerSample: bytesPerSample)
+            floats = samples(raw, bytesPerSample: bytesPerSample)
+        }
 
         cache.lock.lock()
         cache.tiles[index] = floats
@@ -333,45 +339,116 @@ struct GeoTIFF {
     private func undoPredictor(_ raw: inout [UInt8], bytesPerSample: Int) {
         guard predictor == Predictor.horizontal || predictor == Predictor.floatingPoint else { return }
         let stride = tileWidth * bytesPerSample
-        for r in 0..<tileHeight {
-            let base = r * stride
-            guard base + stride <= raw.count else { break }
-            if predictor == Predictor.horizontal {
-                // The horizontal predictor differences samples, not bytes, so a 16-bit band
-                // is reassembled before the sum and split again after.
-                if bytesPerSample == 1 {
-                    for i in 1..<stride { raw[base + i] = raw[base + i] &+ raw[base + i - 1] }
+        let width = tileWidth, bigEndian = self.bigEndian
+        let rows = min(tileHeight, raw.count / max(1, stride))
+        let floating = predictor == Predictor.floatingPoint
+        // Through pointers: every byte of every tile passes here.
+        raw.withUnsafeMutableBufferPointer { buffer in
+            guard let start = buffer.baseAddress, stride > 0 else { return }
+            let gathered = UnsafeMutablePointer<UInt8>.allocate(capacity: floating ? stride : 1)
+            defer { gathered.deallocate() }
+            for r in 0..<rows {
+                let row = start + r * stride
+                if floating {
+                    // The bytes of a row were differenced as 1 run, then stored a plane
+                    // at a time: every sample's first byte, then every second, and on.
+                    var sum = row[0]
+                    for i in 1..<stride {
+                        sum &+= row[i]
+                        row[i] = sum
+                    }
+                    for byte in 0..<bytesPerSample {
+                        let plane = row + byte * width
+                        for sample in 0..<width { gathered[sample * bytesPerSample + byte] = plane[sample] }
+                    }
+                    row.update(from: gathered, count: stride)
+                } else if bytesPerSample == 1 {
+                    var sum = row[0]
+                    for i in 1..<stride {
+                        sum &+= row[i]
+                        row[i] = sum
+                    }
                 } else {
+                    // The horizontal predictor differences samples, not bytes, so a 16-bit
+                    // band is reassembled before the sum and split again after.
                     var previous: UInt16 = 0
-                    for k in 0..<tileWidth {
-                        let at = base + k * 2
+                    for k in 0..<width {
+                        let at = row + k * 2
                         let raw16 =
                             bigEndian
-                            ? (UInt16(raw[at]) << 8) | UInt16(raw[at + 1])
-                            : (UInt16(raw[at + 1]) << 8) | UInt16(raw[at])
+                            ? (UInt16(at[0]) << 8) | UInt16(at[1])
+                            : (UInt16(at[1]) << 8) | UInt16(at[0])
                         let value = k == 0 ? raw16 : raw16 &+ previous
                         previous = value
                         if bigEndian {
-                            raw[at] = UInt8(truncatingIfNeeded: value >> 8)
-                            raw[at + 1] = UInt8(truncatingIfNeeded: value)
+                            at[0] = UInt8(truncatingIfNeeded: value >> 8)
+                            at[1] = UInt8(truncatingIfNeeded: value)
                         } else {
-                            raw[at + 1] = UInt8(truncatingIfNeeded: value >> 8)
-                            raw[at] = UInt8(truncatingIfNeeded: value)
+                            at[1] = UInt8(truncatingIfNeeded: value >> 8)
+                            at[0] = UInt8(truncatingIfNeeded: value)
                         }
                     }
                 }
-            } else {
-                for i in 1..<stride {
-                    raw[base + i] = raw[base + i] &+ raw[base + i - 1]
+            }
+        }
+    }
+
+    /// A 32-bit float tile under predictor 3, straight to numbers: the published DEM
+    /// tiles are all this kind. Each row is 4 planes of bytes, most significant first,
+    /// differenced as 1 run; the sum is undone in place and a sample is then 1 byte
+    /// from each plane.
+    private func floatsFromPlanes(_ raw: inout [UInt8]) -> [Float] {
+        let width = tileWidth
+        let stride = width * 4
+        let count = width * tileHeight
+        let rows = min(tileHeight, raw.count / max(1, stride))
+        return [Float](unsafeUninitializedCapacity: count) { out, filled in
+            filled = count
+            guard let floats = out.baseAddress else { return }
+            // Rows the tile did not hold are 0.
+            (floats + rows * width).initialize(repeating: 0, count: count - rows * width)
+            raw.withUnsafeMutableBufferPointer { buffer in
+                guard let start = buffer.baseAddress else { return }
+                if !Self.vectorFloatRows(start, width: width, rows: rows, into: floats) {
+                    Self.floatRows(start, width: width, rows: rows, into: floats)
                 }
-                var gathered = [UInt8](repeating: 0, count: stride)
-                for sample in 0..<tileWidth {
-                    for byte in 0..<bytesPerSample {
-                        gathered[sample * bytesPerSample + byte] =
-                            raw[base + byte * tileWidth + sample]
-                    }
-                }
-                for i in 0..<stride { raw[base + i] = gathered[i] }
+            }
+        }
+    }
+
+    /// The rows undone 16 bytes at a time, or false, having done nothing, on a machine
+    /// without the instructions.
+    static func vectorFloatRows(
+        _ start: UnsafeMutablePointer<UInt8>,
+        width: Int,
+        rows: Int,
+        into floats: UnsafeMutablePointer<Float>
+    ) -> Bool {
+        kmap_float_rows(start, width, rows, floats) != 0
+    }
+
+    /// The same a byte at a time: for a machine without the instructions, and for the
+    /// tests to hold the other against.
+    static func floatRows(
+        _ start: UnsafeMutablePointer<UInt8>,
+        width: Int,
+        rows: Int,
+        into floats: UnsafeMutablePointer<Float>
+    ) {
+        let stride = width * 4
+        guard stride > 0 else { return }
+        for r in 0..<rows {
+            let row = start + r * stride
+            var sum = row[0]
+            for i in 1..<stride {
+                sum &+= row[i]
+                row[i] = sum
+            }
+            let p0 = row, p1 = row + width, p2 = row + 2 * width, p3 = row + 3 * width
+            let line = floats + r * width
+            for s in 0..<width {
+                let bits = UInt32(p0[s]) << 24 | UInt32(p1[s]) << 16 | UInt32(p2[s]) << 8 | UInt32(p3[s])
+                line[s] = Float(bitPattern: bits)
             }
         }
     }
@@ -382,28 +459,24 @@ struct GeoTIFF {
         let count = tileWidth * tileHeight
         var out = [Float](repeating: 0, count: count)
         let msbFirst = predictor == Predictor.floatingPoint ? true : bigEndian
-        for i in 0..<count {
-            let at = i * bytesPerSample
-            guard at + bytesPerSample <= raw.count else { break }
-            if bytesPerSample == 4 {
-                var bits: UInt32 = 0
-                if msbFirst {
-                    for k in 0..<4 { bits = (bits << 8) | UInt32(raw[at + k]) }
+        let held = min(count, raw.count / max(1, bytesPerSample))
+        let isFloat = sampleFormat == SampleFormat.float, isSigned = sampleFormat == SampleFormat.signed
+        raw.withUnsafeBytes { bytes in
+            out.withUnsafeMutableBufferPointer { out in
+                // Each branch is a plain loop over 2 pointers, which the compiler vectorises.
+                if bytesPerSample == 4 {
+                    for i in 0..<held {
+                        let word = bytes.loadUnaligned(fromByteOffset: i * 4, as: UInt32.self)
+                        let bits = msbFirst ? UInt32(bigEndian: word) : UInt32(littleEndian: word)
+                        out[i] = isFloat ? Float(bitPattern: bits) : Float(Int32(bitPattern: bits))
+                    }
                 } else {
-                    for k in (0..<4).reversed() { bits = (bits << 8) | UInt32(raw[at + k]) }
+                    for i in 0..<held {
+                        let word = bytes.loadUnaligned(fromByteOffset: i * 2, as: UInt16.self)
+                        let bits = msbFirst ? UInt16(bigEndian: word) : UInt16(littleEndian: word)
+                        out[i] = isSigned ? Float(Int16(bitPattern: bits)) : Float(bits)
+                    }
                 }
-                out[i] =
-                    sampleFormat == SampleFormat.float
-                    ? Float(bitPattern: bits)
-                    : Float(Int32(bitPattern: bits))
-            } else {
-                var bits: UInt16 = 0
-                if msbFirst {
-                    bits = (UInt16(raw[at]) << 8) | UInt16(raw[at + 1])
-                } else {
-                    bits = (UInt16(raw[at + 1]) << 8) | UInt16(raw[at])
-                }
-                out[i] = sampleFormat == SampleFormat.signed ? Float(Int16(bitPattern: bits)) : Float(bits)
             }
         }
         return out

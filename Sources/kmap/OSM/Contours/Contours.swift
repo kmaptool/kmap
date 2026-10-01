@@ -330,13 +330,8 @@ struct Contours {
         var linkB = sweep.linkB; sweep.linkB = []
 
         // Ascending by edge key, which fixes which end of an open line becomes its first
-        // point and hence the node order in the file. Edge and crossing number are packed
-        // into one integer: no two crossings in a level share an edge, so this sorts by edge.
-        var order = [UInt64](repeating: 0, count: count)
-        for id in 0..<count {
-            order[id] = UInt64(UInt32(bitPattern: edge[id])) << UInt32.bitWidth | UInt64(UInt32(id))
-        }
-        order.sort()
+        // point and hence the node order in the file.
+        let order = Self.byEdge(edge)
 
         var lines: [Line] = []
 
@@ -419,15 +414,59 @@ struct Contours {
 
         // Loose ends first, so an open contour is walked from one of its ends and comes out
         // whole; anything still linked after that can only be a closed ring.
-        for packed in order {
-            let id = Int32(truncatingIfNeeded: packed)
+        for id in order {
             let degree = (linkA[Int(id)] >= 0 ? 1 : 0) + (linkB[Int(id)] >= 0 ? 1 : 0)
             if degree == 1 { emit(walk(from: id)) }
         }
-        for packed in order {
-            let id = Int32(truncatingIfNeeded: packed)
-            if linkA[Int(id)] >= 0 || linkB[Int(id)] >= 0 { emit(walk(from: id)) }
+        for id in order where linkA[Int(id)] >= 0 || linkB[Int(id)] >= 0 {
+            emit(walk(from: id))
         }
         return lines
+    }
+
+    /// The crossings of a level in ascending order of the edge each sits on, and by
+    /// number where 2 share an edge. A radix sort, 11 bits a pass: the keys are small
+    /// whole numbers, and each pass keeps the order the one before left.
+    static func byEdge(_ edge: [Int32]) -> [Int32] {
+        let count = edge.count
+        var order = [Int32](unsafeUninitializedCapacity: count) { ids, filled in
+            for id in 0..<count { ids[id] = Int32(id) }
+            filled = count
+        }
+        guard count > 1 else { return order }
+        let digitBits = 11, buckets = 1 << digitBits
+        var scratch = [Int32](repeating: 0, count: count)
+        var starts = [Int](repeating: 0, count: buckets)
+        edge.withUnsafeBufferPointer { edge in
+            var highest: UInt32 = 0
+            for key in edge { highest = max(highest, UInt32(bitPattern: key)) }
+            let passes = max(1, (UInt32.bitWidth - highest.leadingZeroBitCount + digitBits - 1) / digitBits)
+            for pass in 0..<passes {
+                let shift = UInt32(pass * digitBits), mask = UInt32(buckets - 1)
+                order.withUnsafeBufferPointer { from in
+                    scratch.withUnsafeMutableBufferPointer { to in
+                        starts.withUnsafeMutableBufferPointer { starts in
+                            starts.update(repeating: 0)
+                            for id in from {
+                                starts[Int(UInt32(bitPattern: edge[Int(id)]) >> shift & mask)] += 1
+                            }
+                            var at = 0
+                            for bucket in 0..<buckets {
+                                let held = starts[bucket]
+                                starts[bucket] = at
+                                at += held
+                            }
+                            for id in from {
+                                let bucket = Int(UInt32(bitPattern: edge[Int(id)]) >> shift & mask)
+                                to[starts[bucket]] = id
+                                starts[bucket] += 1
+                            }
+                        }
+                    }
+                }
+                swap(&order, &scratch)
+            }
+        }
+        return order
     }
 }

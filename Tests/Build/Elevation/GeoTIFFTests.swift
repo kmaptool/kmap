@@ -258,4 +258,30 @@ final class GeoTIFFTests: XCTestCase {
             XCTAssertTrue("\(error)".contains("geo-referencing"), "\(error)")
         }
     }
+
+    /// The vector undoing of predictor 3 against the plain one, at widths that end a
+    /// vector exactly, fall short of one and run past several.
+    func testTheFloatPredictorIsUndoneTheSameWayAVectorAtATime() {
+        var random = SplitMix64(state: 20_261_006)
+        for width in [1, 2, 3, 4, 5, 15, 16, 17, 31, 32, 33, 63, 64, 65, 100, 512] {
+            let rows = 3
+            let raw = (0..<(width * 4 * rows)).map { _ in UInt8.random(in: 0...255, using: &random) }
+            var plainBytes = raw, vectorBytes = raw
+            var plain = [Float](repeating: 0, count: width * rows)
+            var vector = [Float](repeating: 0, count: width * rows)
+            plainBytes.withUnsafeMutableBufferPointer { bytes in
+                plain.withUnsafeMutableBufferPointer {
+                    GeoTIFF.floatRows(bytes.baseAddress!, width: width, rows: rows, into: $0.baseAddress!)
+                }
+            }
+            let done = vectorBytes.withUnsafeMutableBufferPointer { bytes in
+                vector.withUnsafeMutableBufferPointer {
+                    GeoTIFF.vectorFloatRows(bytes.baseAddress!, width: width, rows: rows, into: $0.baseAddress!)
+                }
+            }
+            guard done else { continue }
+            XCTAssertEqual(vector.map(\.bitPattern), plain.map(\.bitPattern), "width \(width)")
+            XCTAssertEqual(vectorBytes, plainBytes, "width \(width): the sums left in place")
+        }
+    }
 }

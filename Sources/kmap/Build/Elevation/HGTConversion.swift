@@ -99,12 +99,54 @@ enum HGTConversion {
             return nil
         }
 
-        /// A whole output row at once, or nil if no single tile carries it.
+        /// Where each node of an output row falls on a source row: the sample to its
+        /// west, and how far past it the node is, in the lattice's unit. The same for
+        /// every row of a tile, so it is worked out for the first and kept.
+        struct RowPlan {
+            fileprivate let originLon: Int, stepLon: Int, cellLon: Int, step: Int
+            /// -1 where the node lies west of the tile.
+            fileprivate var west: [Int]
+            fileprivate var past: [Double]
+
+            fileprivate init(originLon: Int, stepLon: Int, cellLon: Int, step: Int, width n: Int) {
+                self.originLon = originLon
+                self.stepLon = stepLon
+                self.cellLon = cellLon
+                self.step = step
+                west = [Int](repeating: -1, count: n)
+                past = [Double](repeating: 0, count: n)
+                for column in 0..<n {
+                    let east =
+                        (cellLon * HGTConversion.arcSecondsPerDegree + column * step)
+                        * HGTConversion.latticePerArcSecond - originLon
+                    guard east >= 0 else { continue }
+                    let x0 = Mosaic.floorDiv(east, stepLon)
+                    west[column] = x0
+                    past[column] = Double(east - x0 * stepLon)
+                }
+            }
+
+            fileprivate func serves(originLon: Int, stepLon: Int, cellLon: Int, step: Int, width n: Int) -> Bool {
+                self.originLon == originLon && self.stepLon == stepLon && self.cellLon == cellLon
+                    && self.step == step && west.count == n
+            }
+        }
+
+        /// A whole output row at once into `out`, which has room for `n` heights, or
+        /// false if no single tile carries it. A node with nothing under it is NaN.
         ///
         /// Latitude is sampled once an arc-second everywhere, so the source row is read once
         /// and interpolated along. `step` is the output grid's spacing in arc-seconds - 1 for
-        /// a 3601-node cell, 3 for a 1201-node one; a source of another step returns nil.
-        func row(cellLat: Int, cellLon: Int, row: Int, width n: Int, step: Int = 1) -> [Double?]? {
+        /// a 3601-node cell, 3 for a 1201-node one; a source of another step is refused.
+        func row(
+            cellLat: Int,
+            cellLon: Int,
+            row: Int,
+            width n: Int,
+            step: Int = 1,
+            plan: inout RowPlan?,
+            into out: UnsafeMutablePointer<Double>
+        ) -> Bool {
             let lat =
                 ((cellLat + 1) * HGTConversion.arcSecondsPerDegree - row * step)
                 * HGTConversion.latticePerArcSecond
@@ -113,14 +155,14 @@ enum HGTConversion {
             let owner = row < n - 1 ? cellLat : cellLat - 1
             guard let tiff = tile(lat: owner, lon: cellLon), let grid = lattice(of: tiff),
                 grid.stepLat == step * 1000
-            else { return nil }
+            else { return false }
             let south = grid.originLat - lat
-            guard south >= 0, south % grid.stepLat == 0 else { return nil }
+            guard south >= 0, south % grid.stepLat == 0 else { return false }
             let y = south / grid.stepLat
-            guard y >= 0, y < tiff.height, let source = try? tiff.row(y) else { return nil }
+            guard y >= 0, y < tiff.height, let source = try? tiff.row(y) else { return false }
 
             // The tile to the east, for nodes past this one's last sample.
-            var beyond: [Float]?
+            var beyond: [Float] = []
             let neighbour = tile(
                 lat: owner,
                 lon: Self.floorDiv(grid.originLon, HGTConversion.latticePerDegree) + 1
@@ -132,34 +174,49 @@ enum HGTConversion {
                 if theirSouth >= 0, theirSouth % far.stepLat == 0 {
                     let theirRow = theirSouth / far.stepLat
                     if theirRow >= 0, theirRow < neighbour.height {
-                        beyond = try? neighbour.row(theirRow)
+                        beyond = (try? neighbour.row(theirRow)) ?? []
                     }
                 }
             }
 
-            func at(_ x: Int) -> Double? {
-                if x >= 0, x < source.count { return Double(source[x]) }
-                guard let beyond, x >= source.count else { return nil }
-                let over = x - source.count
-                return over < beyond.count ? Double(beyond[over]) : nil
+            if plan?.serves(originLon: grid.originLon, stepLon: grid.stepLon, cellLon: cellLon, step: step, width: n)
+                != true
+            {
+                plan = RowPlan(
+                    originLon: grid.originLon,
+                    stepLon: grid.stepLon,
+                    cellLon: cellLon,
+                    step: step,
+                    width: n
+                )
             }
-
-            var out = [Double?](repeating: nil, count: n)
-            for column in 0..<n {
-                let east =
-                    (cellLon * HGTConversion.arcSecondsPerDegree + column * step)
-                    * HGTConversion.latticePerArcSecond - grid.originLon
-                guard east >= 0 else { continue }
-                let x0 = Self.floorDiv(east, grid.stepLon)
-                let remainder = east - x0 * grid.stepLon
-                guard let left = at(x0) else { continue }
-                if remainder == 0 {
-                    out[column] = left
-                } else if let right = at(x0 + 1) {
-                    out[column] = left + (right - left) * Double(remainder) / Double(grid.stepLon)
+            guard let plan else { return false }
+            let stepLon = Double(grid.stepLon)
+            source.withUnsafeBufferPointer { near in
+                beyond.withUnsafeBufferPointer { far in
+                    plan.west.withUnsafeBufferPointer { west in
+                        plan.past.withUnsafeBufferPointer { past in
+                            let nearCount = near.count, total = near.count + far.count
+                            @inline(__always)
+                            func at(_ x: Int) -> Double {
+                                if x < nearCount { return Double(near[x]) }
+                                return x < total ? Double(far[x - nearCount]) : .nan
+                            }
+                            for column in 0..<n {
+                                let x = west[column]
+                                guard x >= 0 else {
+                                    out[column] = .nan
+                                    continue
+                                }
+                                let left = at(x)
+                                let over = past[column]
+                                out[column] = over == 0 ? left : left + (at(x + 1) - left) * over / stepLon
+                            }
+                        }
+                    }
                 }
             }
-            return out
+            return true
         }
 
         /// Where a node sits inside one tile, and the height there.
@@ -250,7 +307,7 @@ enum HGTConversion {
             return (Int(originLon), Int(originLat), Int(stepLon), Int(stepLat))
         }
 
-        private static func floorDiv(_ a: Int, _ b: Int) -> Int {
+        fileprivate static func floorDiv(_ a: Int, _ b: Int) -> Int {
             let q = a / b
             return (a % b != 0 && (a < 0) != (b < 0)) ? q - 1 : q
         }
@@ -278,11 +335,17 @@ enum HGTConversion {
         var out = [UInt8](repeating: 0, count: n * n * 2)
         var written = 0
 
-        func put(_ height: Double, _ row: Int, _ column: Int) {
-            // A float DEM may carry NaN as its nodata; Int(NaN) traps.
-            guard height.isFinite else { return }
+        /// The 2 bytes of a height, or nil for one that is not a number: a float DEM
+        /// may carry NaN as its nodata, and Int(NaN) traps.
+        @inline(__always)
+        func metres(_ height: Double) -> Int16? {
+            guard height.isFinite else { return nil }
             let bounded = min(max(height, Double(Int16.min)), Double(Int16.max))
-            let metres = Int16(clamping: Int(bounded.rounded(.toNearestOrAwayFromZero)))
+            return Int16(clamping: Int(bounded.rounded(.toNearestOrAwayFromZero)))
+        }
+
+        func put(_ height: Double, _ row: Int, _ column: Int) {
+            guard let metres = metres(height) else { return }
             let at = (row * n + column) * 2
             out[at] = UInt8(truncatingIfNeeded: Int(metres) >> 8)
             out[at + 1] = UInt8(truncatingIfNeeded: Int(metres))
@@ -291,16 +354,35 @@ enum HGTConversion {
 
         // Every published source samples latitude once an arc-second, so a whole output row
         // is lifted at once; longitude thins past 50 deg, so the row is interpolated across.
+        var line = [Double](repeating: .nan, count: n)
+        var plan: Mosaic.RowPlan?
         for row in 0..<n {
-            if let line = mosaic.row(
-                cellLat: cell.lat,
-                cellLon: cell.lon,
-                row: row,
-                width: n,
-                step: step
-            ) {
-                for column in 0..<n {
-                    if let height = line[column] { put(height, row, column) }
+            let lifted = line.withUnsafeMutableBufferPointer { heights -> Bool in
+                guard let base = heights.baseAddress else { return false }
+                return mosaic.row(
+                    cellLat: cell.lat,
+                    cellLon: cell.lon,
+                    row: row,
+                    width: n,
+                    step: step,
+                    plan: &plan,
+                    into: base
+                )
+            }
+            if lifted {
+                written += out.withUnsafeMutableBufferPointer { bytes -> Int in
+                    line.withUnsafeBufferPointer { heights -> Int in
+                        var at = row * n * 2, stored = 0
+                        for column in 0..<n {
+                            if let metres = metres(heights[column]) {
+                                bytes[at] = UInt8(truncatingIfNeeded: Int(metres) >> 8)
+                                bytes[at + 1] = UInt8(truncatingIfNeeded: Int(metres))
+                                stored += 1
+                            }
+                            at += 2
+                        }
+                        return stored
+                    }
                 }
                 continue
             }
