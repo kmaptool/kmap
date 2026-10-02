@@ -165,8 +165,8 @@ final class Toolchain: @unchecked Sendable {
     /// Where a patched jar is written, and the marker that says a jar carries the patch.
     static let patchedMkgmapName = "mkgmap-patched.jar"
     static let patchMarker = "kmap-patch.properties"
-    /// Raise when the edits change. A jar carrying a lower number counts as unpatched, so
-    /// the rebuild is offered rather than the stale patch being used.
+    /// Raise when the edits change. A jar carrying a lower number counts as unpatched and
+    /// is rebuilt at the next start or build, see `renewStalePatch`.
     static let patchVersion = 19
 
     static var patchedMkgmapURL: URL {
@@ -361,7 +361,7 @@ final class Toolchain: @unchecked Sendable {
                 : !canCompile
                     ? t("built here from source — install a full JDK first")
                     : found > 0
-                        ? t("an older patch — reinstall to pick up the new edits")
+                        ? t("an older patch — kmap rebuilds it at the next start or build")
                         : t("without it tiles meet on a line and it shows"),
             installable: canCompile,
             isOptional: true,

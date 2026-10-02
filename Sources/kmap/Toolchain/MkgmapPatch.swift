@@ -499,6 +499,53 @@ extension Toolchain {
         return edits
     }()
 
+    /// The patch was asked for once and an older kmap built it: its edits have changed.
+    static func isStalePatch(_ jar: URL) -> Bool {
+        let found = patchVersion(of: jar)
+        return found > 0 && found < patchVersion
+    }
+
+    var patchIsStale: Bool { Toolchain.isStalePatch(Toolchain.patchedMkgmapURL) }
+
+    /// The rebuild in flight, and whether one has failed in this process.
+    private static let renewal = Locked<(running: Task<Bool, Never>?, failed: Bool)>((nil, false))
+
+    /// Rebuilds the patch an older kmap left, so asking for the patch once is enough.
+    /// Nothing is installed where no patched jar is. One rebuild runs at a time and every
+    /// caller waits for it; a failed one leaves the old jar, which builds as the stock
+    /// mkgmap does, and is not tried again by this process.
+    /// - Returns: whether the patch is the current one now.
+    @discardableResult
+    func renewStalePatch(log: Log, runner: ProcessRunner = ProcessRunner()) async -> Bool {
+        let task: Task<Bool, Never>? = Toolchain.renewal.withLock { state in
+            if let running = state.running { return running }
+            guard !state.failed else { return nil }
+            let made = Task.detached { [self] in
+                defer { Toolchain.renewal.withLock { $0.running = nil } }
+                guard patchIsStale else { return mkgmapIsPatched }
+                do {
+                    try await install("mkgmap-patch", log: log, runner: runner)
+                    return true
+                } catch {
+                    if !Task.isCancelled { Toolchain.renewal.withLock { $0.failed = true } }
+                    log.warn(
+                        "the mkgmap patch was not rebuilt: "
+                            + ((error as? LocalizedError)?.errorDescription ?? "\(error)")
+                    )
+                    return false
+                }
+            }
+            state.running = made
+            return made
+        }
+        guard let task else { return false }
+        return await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
+    }
+
     func patchMkgmap(
         log: Log,
         runner: ProcessRunner,
@@ -560,10 +607,12 @@ extension Toolchain {
         log.step("compiling")
         try await runner.run(javac, arguments) { line in log.output(line) }
 
+        // Built aside and moved in whole: a build that fails or is stopped leaves the jar
+        // that was there, with its marker, so an older patch is still seen as one.
         let home = Toolchain.patchedMkgmapURL.deletingLastPathComponent()
         Paths.ensure(home)
-        FileTools.removeIfPresent(Toolchain.patchedMkgmapURL)
-        try FileTools.copy(stock, to: Toolchain.patchedMkgmapURL)
+        let built = staging.appendingPathComponent(Toolchain.patchedMkgmapName)
+        try FileTools.copy(stock, to: built)
 
         // The mkgmap manifest names its dependencies with a relative Class-Path, so the jar
         // runs only with lib/ beside it, and the patched copy lands in another directory.
@@ -586,16 +635,17 @@ extension Toolchain {
             jarTool,
             java.toolOptions
                 + [
-                    "uf", Toolchain.patchedMkgmapURL.nativePath,
+                    "uf", built.nativePath,
                     "-C", classes.nativePath, "uk",
                     "-C", classes.nativePath, Toolchain.patchMarker
                 ]
         ) { line in log.output(line) }
 
-        guard Toolchain.isPatched(Toolchain.patchedMkgmapURL) else {
-            FileTools.removeIfPresent(Toolchain.patchedMkgmapURL)
+        guard Toolchain.isPatched(built) else {
             throw InstallError.failed("the patched jar came out without its marker")
         }
+        FileTools.removeIfPresent(Toolchain.patchedMkgmapURL)
+        try FileTools.move(built, to: Toolchain.patchedMkgmapURL)
         log.ok("patched mkgmap at \(Paths.display(Toolchain.patchedMkgmapURL))")
     }
 
@@ -648,10 +698,26 @@ extension Toolchain {
         guard let url = URL(string: "https://www.mkgmap.org.uk/download/" + file) else {
             throw InstallError.failed("bad source URL for \(file)")
         }
+        // Kept beside the jar once it has unpacked, so rebuilding the patch for a newer
+        // kmap needs no network.
+        let kept = Toolchain.patchedMkgmapURL.deletingLastPathComponent().appendingPathComponent(file)
         let zip = staging.appendingPathComponent(file)
-        try await Downloader(log: log).download(url: url, to: zip, connections: 4)
+        if FileTools.exists(kept) {
+            try FileTools.copy(kept, to: zip)
+        } else {
+            try await Downloader(log: log).download(url: url, to: zip, connections: 4)
+        }
         let unpack = archive.unpack(zip, into: staging)
-        try await runner.run(unpack.executable, unpack.arguments) { _ in }
+        do {
+            try await runner.run(unpack.executable, unpack.arguments) { _ in }
+        } catch {
+            FileTools.removeIfPresent(kept)
+            throw error
+        }
+        if !FileTools.exists(kept) {
+            Paths.ensure(kept.deletingLastPathComponent())
+            try? FileTools.copy(zip, to: kept)
+        }
 
         guard
             let root =

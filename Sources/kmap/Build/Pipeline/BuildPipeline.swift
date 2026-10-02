@@ -323,6 +323,15 @@ final class BuildPipeline: Sendable {
         guard toolchain.findMkgmap() != nil else {
             throw BuildError.missingTool("mkgmap — install it from the Toolchain screen")
         }
+        if toolchain.patchIsStale {
+            detail(.preflight, t("rebuilding the mkgmap patch"))
+            log.step("the mkgmap patch is from an older kmap, rebuilding it")
+            if await toolchain.renewStalePatch(log: log, runner: makeRunner()) {
+                log.ok("the mkgmap patch is rebuilt")
+            } else {
+                log.warn("building without the patch, as with the stock mkgmap")
+            }
+        }
         // Copernicus and Viewfinder are read and converted in-process; pyhgtmap is needed
         // only by the sources that require an account.
         if recipe.needsElevationData, !credentialedSources.isEmpty,

@@ -239,6 +239,31 @@ final class ToolchainTests: XCTestCase {
         XCTAssertTrue(Toolchain.isPatched(patched), "carries the marker under another name")
     }
 
+    /// Only a jar that carries an older patch is rebuilt on its own: one that was never
+    /// patched stays as it is, and the current one has nothing to rebuild.
+    func testOnlyAnOlderPatchIsStale() throws {
+        try XCTSkipUnless(
+            Archive.isAvailable && Platform.which("zip") != nil,
+            "this reads a jar with the machine's zip and unzip"
+        )
+        let stock = directory.appendingPathComponent("stock.jar")
+        try makeZip(at: stock, holding: ["something.properties": "nothing to see"])
+        XCTAssertFalse(Toolchain.isStalePatch(stock), "never patched")
+        XCTAssertFalse(Toolchain.isStalePatch(directory.appendingPathComponent("absent.jar")))
+
+        let current = directory.appendingPathComponent("current.jar")
+        try makeZip(at: current, holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion)\n"])
+        XCTAssertFalse(Toolchain.isStalePatch(current))
+
+        let older = directory.appendingPathComponent("older.jar")
+        try makeZip(at: older, holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion - 1)\n"])
+        XCTAssertTrue(Toolchain.isStalePatch(older))
+
+        let unnumbered = directory.appendingPathComponent("unnumbered.jar")
+        try makeZip(at: unnumbered, holding: [Toolchain.patchMarker: "option: --x-shape-clip-overlap\n"])
+        XCTAssertTrue(Toolchain.isStalePatch(unnumbered), "from before the marker carried a number")
+    }
+
     func testAnOlderPatchReadsAsOutdatedNotAsPatched() throws {
         try XCTSkipUnless(
             Archive.isAvailable && Platform.which("zip") != nil,

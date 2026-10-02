@@ -382,8 +382,11 @@ enum Strings {
         "already in this style": "уже есть в этом стиле",
         "another build already uses this name — files carry -%d":
             "это имя уже занято другой сборкой — файлы получают -%d",
-        "an older patch — reinstall to pick up the new edits":
-            "патч постарее — переустановите, чтобы взять новые правки",
+        "an older patch — kmap rebuilds it at the next start or build":
+            "патч от прежней версии — kmap пересоберёт его сам при запуске или сборке",
+        "rebuilding the mkgmap patch": "пересборка патча mkgmap",
+        "kmap is rebuilding the patch on its own — a moment":
+            "kmap сам пересобирает патч — минуту",
         "and %d more": "и ещё %d",
         "applied (v%d)": "применён (v%d)",
         "apply": "применить",

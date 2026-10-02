@@ -30,6 +30,7 @@ final class App {
 
         stack.append(MainMenuScreen())
         ctx.loadIndexIfNeeded()
+        ctx.renewPatchIfStale()
 
         while running, let active = stack.last {
             takeKeys(for: active)

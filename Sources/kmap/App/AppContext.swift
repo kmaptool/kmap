@@ -32,6 +32,8 @@ final class AppContext {
     /// screen asks.
     private(set) var packNews: [String: DataPack.News] = [:]
     private(set) var packsChecked = false
+    /// Set while a patch from an older kmap is being rebuilt, so no install runs into it.
+    private(set) var renewingPatch = false
 
     /// What the machine is doing, sampled for the header bar.
     private(set) var load = MachineLoad(cpu: nil, usedMemory: 0, totalMemory: 0)
@@ -118,6 +120,21 @@ final class AppContext {
                     self.probeAgain = false
                     self.refreshTools(force: true)
                 }
+            }
+        }
+    }
+
+    /// Rebuilds the mkgmap patch an older kmap left, off the render loop. Nothing happens
+    /// where the patch was never installed.
+    func renewPatchIfStale() {
+        guard !toolsFrozen, !renewingPatch else { return }
+        renewingPatch = true
+        let toolchain = self.toolchain
+        Task.detached(priority: .utility) { [weak self] in
+            let renewed = toolchain.patchIsStale ? await toolchain.renewStalePatch(log: Log()) : false
+            await MainActor.run { [weak self] in
+                self?.renewingPatch = false
+                if renewed { self?.refreshTools(force: true) }
             }
         }
     }

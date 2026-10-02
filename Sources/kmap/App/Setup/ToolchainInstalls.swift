@@ -44,6 +44,7 @@ extension ToolchainScreen {
             message = t("%@ cannot be removed", tool.name)
             return
         }
+        guard !isBeingRenewed(tool, ctx) else { return }
         do {
             try ctx.toolchain.remove(tool.id, log: log)
             message = t("%@ removed", tool.name)
@@ -92,6 +93,15 @@ extension ToolchainScreen {
         }
     }
 
+    /// Whether kmap is rebuilding the patch itself, which an install or a removal of the
+    /// patch, or of what the patch is built from, would run into. Says so.
+    private func isBeingRenewed(_ tool: ToolStatus, _ ctx: AppContext) -> Bool {
+        let patch = "mkgmap-patch"
+        guard ctx.renewingPatch, tool.id == patch || Toolchain.overlap(tool.id, patch) else { return false }
+        message = t("kmap is rebuilding the patch on its own — a moment")
+        return true
+    }
+
     func start(_ tool: ToolStatus, _ ctx: AppContext, force: Bool = false) {
         guard force || !tool.isFinished else {
             message = t("%@ is already installed", tool.name)
@@ -101,6 +111,7 @@ extension ToolchainScreen {
             message = tool.note ?? t("%@ has to be installed by hand", tool.name)
             return
         }
+        guard !isBeingRenewed(tool, ctx) else { return }
         message = nil
         if queue.admit(tool.id) {
             launch(tool, ctx)
