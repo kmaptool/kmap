@@ -290,36 +290,18 @@ extension Toolchain {
         log.ok("\(pack.file.lastPathComponent) ready — \(Fmt.bytes(FileTools.size(of: pack.file)))")
     }
 
-    /// Downloads a mkgmap.org.uk zip, finds the jar inside it, and installs it plus its lib/.
+    /// Downloads a pinned mkgmap.org.uk zip, checks it, finds the jar inside it, and
+    /// installs it plus its lib/.
     private func installJarBundle(
-        pageURL: String,
-        pattern: String,
-        fallbackFile: String,
+        _ pinned: Toolchain.PinnedDownload,
         jarName: String,
         destination: URL,
         log: Log,
         progress: InstallProgress? = nil
     ) async throws {
-        let base = "https://www.mkgmap.org.uk/download/"
-        var file = fallbackFile
-
-        progress?.step(t("looking up the latest %@ release", jarName))
-        log.step("looking up the latest \(jarName) release")
-        if let url = URL(string: pageURL),
-            let (data, _) = try? await URLSession.shared.data(from: url),
-            let html = String(data: data, encoding: .utf8)
-        {
-            let matches = html.allMatches(pattern)
-            // Releases are revision-numbered; take the highest.
-            let best = matches.compactMap { match -> (Int, String)? in
-                guard let digits = match.allMatches("[0-9]+").first, let n = Int(digits) else { return nil }
-                return (n, match)
-            }.max(by: { $0.0 < $1.0 })
-            if let best { file = best.1 }
-        }
+        let file = pinned.file
         log.append("using \(file)")
-
-        guard let downloadURL = URL(string: base + file) else {
+        guard let downloadURL = pinned.url else {
             throw InstallError.failed("bad download URL for \(file)")
         }
 
@@ -328,7 +310,13 @@ extension Toolchain {
         let downloader = Downloader(log: log)
         progress?.downloading(t("downloading %@", file), downloader.progress)
         try await downloader.download(url: downloadURL, to: zipURL, connections: 4)
-        log.ok("downloaded \(Fmt.bytes(FileTools.size(of: zipURL)))")
+        do {
+            try Toolchain.verify(zipURL, against: pinned)
+        } catch {
+            FileTools.removeIfPresent(zipURL)
+            throw error
+        }
+        log.ok("downloaded \(Fmt.bytes(FileTools.size(of: zipURL))), checksum verified")
 
         // Unpack into a staging dir, then lift the jar (and any lib/) into place.
         let staging = Paths.tools.appendingPathComponent("unpack-\(UUID().uuidString.prefix(8))")
@@ -370,23 +358,23 @@ extension Toolchain {
         return nil
     }
 
-    /// Installs the latest mkgmap release, or `fallbackFile` where the release page cannot
-    /// be read.
+    /// Installs the mkgmap release kmap knows, `Toolchain.mkgmapRelease`.
     func installMkgmap(
         log: Log,
         runner: ProcessRunner,
         progress: InstallProgress? = nil
     ) async throws {
         try await installJarBundle(
-            pageURL: "https://www.mkgmap.org.uk/download/mkgmap.html",
-            pattern: "mkgmap-r([0-9]+)\\.zip",
-            fallbackFile: "mkgmap-r4924.zip",
+            Toolchain.mkgmapRelease,
             jarName: "mkgmap.jar",
             destination: Paths.tools.appendingPathComponent("mkgmap", isDirectory: true),
             log: log,
             progress: progress
         )
     }
+
+    /// The pyhgtmap release kmap installs: a newer one is taken only by a newer kmap.
+    static let pyhgtmapVersion = "4.1"
 
     private func installPyhgtmap(
         log: Log,
@@ -423,7 +411,7 @@ extension Toolchain {
             pip,
             [
                 "install", "--upgrade", "--disable-pip-version-check",
-                "pyhgtmap"
+                "pyhgtmap==\(Toolchain.pyhgtmapVersion)"
             ]
         ) { line in
             // pip is chatty; keep the useful lines.

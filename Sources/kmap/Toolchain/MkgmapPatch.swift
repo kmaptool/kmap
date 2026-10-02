@@ -901,18 +901,26 @@ extension Toolchain {
         log: Log,
         runner: ProcessRunner
     ) async throws -> URL {
-        let file = "mkgmap-r\(revision)-src.zip"
-        guard let url = URL(string: "https://www.mkgmap.org.uk/download/" + file) else {
-            throw InstallError.failed("bad source URL for \(file)")
+        guard let pinned = Toolchain.mkgmapSources[revision], let url = pinned.url else {
+            throw InstallError.unsupported(
+                t(
+                    "the patch is built for mkgmap r%@ only, and this mkgmap is r%@",
+                    Toolchain.mkgmapSources.keys.sorted().joined(separator: ", r"),
+                    revision
+                )
+            )
         }
+        let file = pinned.file
         // Kept beside the jar once it has unpacked, so rebuilding the patch for a newer
-        // kmap needs no network.
+        // kmap needs no network. Checked like a download: it is compiled all the same.
         let kept = Toolchain.patchedMkgmapURL.deletingLastPathComponent().appendingPathComponent(file)
         let zip = staging.appendingPathComponent(file)
-        if FileTools.exists(kept) {
+        if FileTools.exists(kept), (try? Toolchain.verify(kept, against: pinned)) != nil {
             try FileTools.copy(kept, to: zip)
         } else {
+            FileTools.removeIfPresent(kept)
             try await Downloader(log: log).download(url: url, to: zip, connections: 4)
+            try Toolchain.verify(zip, against: pinned)
         }
         let unpack = archive.unpack(zip, into: staging)
         do {

@@ -58,7 +58,6 @@ enum Strings {
         "something is still missing": "чего-то всё ещё не хватает",
         "Everything is in place — press ⏎ to build.":
             "Всё на месте — нажмите ⏎, чтобы собрать.",
-        "looking up the latest %@ release": "ищу последний выпуск %@",
         "creating a private Python environment": "создаю отдельное окружение Python",
         "installing pyhgtmap": "устанавливаю pyhgtmap",
         "building the patched mkgmap": "собираю пропатченный mkgmap",
@@ -472,6 +471,10 @@ enum Strings {
         "deleted": "удалено",
         "could not delete: %@": "не удалось удалить: %@",
         "could not save the settings: %@": "не удалось сохранить настройки: %@",
+        "%@ is not the file kmap knows (SHA-256 %@) — refused":
+            "%@ — не тот файл, который знает kmap (SHA-256 %@), отклонён",
+        "the patch is built for mkgmap r%@ only, and this mkgmap is r%@":
+            "патч собирается только для mkgmap r%@, а здесь r%@",
         "deleted %@": "удалён %@",
         "deleted %@ — it was the default, which is now %@": "удалён %@ — он был по умолчанию, теперь это %@",
         "deleted %@ — nothing is left to be the default": "удалён %@ — быть по умолчанию больше нечему",
