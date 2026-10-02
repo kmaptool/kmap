@@ -24,13 +24,11 @@ ifeq ($(UNAME), Linux)
     SWIFT_FLAGS += -Xswiftc -static-stdlib
 endif
 
-# Every bounds and overflow check removed. Measured, it buys nothing here: Crimea builds
-# in 18.6 s either way, and the binary is 200 kB smaller because the checks really are
-# gone. The hot loops already read through unsafe buffer pointers, which is where the
-# time was; what is left to check is the arithmetic on numbers that came off the wire,
-# and those checks are what turn a malformed PBF into a clean stop instead of into
-# silently wrong terrain. So: off, and here only to be measured again --
-# `make release UNCHECKED=1`.
+# Every bounds and overflow check removed. The hot loops already read through unsafe
+# buffer pointers, which is where the time was; what is left to check is the
+# arithmetic on numbers that came off the wire, and those checks are what turn a malformed
+# PBF into a clean stop instead of into silently wrong terrain. So: off, and here only
+# to be measured again -- `make release UNCHECKED=1`.
 ifdef UNCHECKED
     SWIFT_FLAGS += -Xswiftc -Ounchecked
 endif

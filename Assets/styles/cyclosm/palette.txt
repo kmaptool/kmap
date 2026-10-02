@@ -25,7 +25,6 @@ summary the CyclOSM look — an outdoor palette, warmer and quieter than carto's
 # draws it where the land polygon has not arrived yet, and shows black
 # without it. The ground colour the style paints land with.
 poly 0x4b 1 #eee5dc  Background
-poly 0x32 2 #8ecbeb  Sea
 poly 0x27 3 #eee5dc  Land
 poly 0x1c 5 #fbf0e3  Farmland
 poly 0x29 5 #fbf0e3  Greenhouses  # filled, not theirs
@@ -38,6 +37,7 @@ poly 0x55 5 #c2debd  Grassland
 poly 0x15 5 #c2debd  Village green
 poly 0x1d 5 #c2debd  Common  # filled, not theirs
 poly 0x4f 5 #c8d7ab  Scrub
+poly 0x5b 5 #c8d7ab  Scrub
 poly 0x1e 5 #b2c068  Heath
 poly 0x50 5 #95bd84  Forest
 poly 0x57 5 #95bd84  Coniferous forest
@@ -59,7 +59,10 @@ poly 0x0e 6 #d4d4d4  Runway  # filled, not theirs
 poly 0x05 6 #eeeeee  Parking
 poly 0x06 6 #eeeeee  Covered parking
 poly 0x1a 6 #d6ded2  Cemetery
-poly 0x25 6 #dce3e0  Square
+# The sea over the fills and what grows: a fill drawn across the shoreline in
+# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #8ecbeb  Sea
+poly 0x25 8 #dce3e0  Square
 poly 0x08 6 #e0e0e0  Food and drink  # filled, not theirs
 poly 0x0a 6 #e0e0e0  Kindergarten
 poly 0x0b 6 #e0e0e0  Hospital
@@ -68,26 +71,26 @@ poly 0x12 6 #ded8dd  Services  # filled, not theirs
 poly 0x21 6 #eee5dc  Tourism  # filled, not theirs
 poly 0x22 6 #eee5dc  Historic  # filled, not theirs
 poly 0x23 6 #eee5dc  Amenity  # filled, not theirs
-poly 0x24 6 #eee5dc  Man-made  # filled, not theirs
-poly 0x17 7 #c2debd  Park
-poly 0x20 7 #c2debd  Garden
-poly 0x18 7 #c2debd  Golf course  # filled, not theirs
-poly 0x19 7 #e0e0e0  Ice rink
-poly 0x09 7 #c2debd  Water park  # filled, not theirs
-poly 0x3c 8 #8ecbeb  Water
-poly 0x41 8 #8ecbeb  Small water
-poly 0x46 8 #8ecbeb  Riverbank
-poly 0x48 8 #8ecbeb  Canal
-poly 0x3d 8 #8ecbeb  Bay
-poly 0x3b 8 #8ecbeb  Waterway area
-poly 0x28 8 #8ecbeb  Salt pond
-poly 0x3f 8 #8ecbeb  Basin
-poly 0x4c 8 #8ecbeb  Dock
-poly 0x47 8 #8ecbeb  Waterfall
-poly 0x51 9 #c2debd  Marsh
+poly 0x24 8 #eee5dc  Man-made  # filled, not theirs
+poly 0x17 8 #c2debd  Park
+poly 0x20 8 #c2debd  Garden
+poly 0x18 8 #c2debd  Golf course  # filled, not theirs
+poly 0x19 8 #e0e0e0  Ice rink
+poly 0x09 8 #c2debd  Water park  # filled, not theirs
+poly 0x3c 9 #8ecbeb  Water
+poly 0x41 9 #8ecbeb  Small water
+poly 0x46 9 #8ecbeb  Riverbank
+poly 0x48 9 #8ecbeb  Canal
+poly 0x3d 9 #8ecbeb  Bay
+poly 0x3b 9 #8ecbeb  Waterway area
+poly 0x28 9 #8ecbeb  Salt pond
+poly 0x3f 9 #8ecbeb  Basin
+poly 0x4c 9 #8ecbeb  Dock
+poly 0x47 9 #8ecbeb  Waterfall
+poly 0x51 10 #c2debd  Marsh
 poly 0x16 4 #d8d6c5  Nature reserve  # worked out: their wash, 15% of a darkened @wooded over the ground
-poly 0x11 9 #eee5dc  Military  # ground: theirs draws the edge, not the field
-poly 0x13 10 #e4dfdb  Building
+poly 0x11 10 #eee5dc  Military  # ground: theirs draws the edge, not the field
+poly 0x13 11 #e4dfdb  Building
 # --- lines --------------------------------------------------------------------
 line 0x01 5 #d4d4d4 #f6f6f6    Motorway
 line 0x09 4 #d4d4d4 #f6f6f6    Motorway link

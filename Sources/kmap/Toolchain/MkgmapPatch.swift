@@ -46,6 +46,116 @@ extension Toolchain {
                     + "\t\t\tMapArea.kmapLineRank = kmapRanks;\n"
                     + "\t\t}"
             ),
+            // Which of 2 fills covers the other is the TYP's draw order, a rule about types.
+            // A wood is drawn over a settlement and a settlement over a meadow, so by
+            // types alone a wood covers a meadow, and a glade drawn across a wood in OSM
+            // with no hole cut for it is lost. These edits let open ground that lies on a
+            // wood larger than itself take a second type, which the TYP draws over the woods.
+            (
+                builder,
+                "\tprivate boolean orderByDecreasingArea;",
+                """
+                \tprivate boolean orderByDecreasingArea;
+                \t/** kmap: --x-shape-lift=0x55>0x5d,0x4f>0x5e:0x59,0x50 -- each fill with the
+                \t * type it takes on a larger cover, and after the colon the covers. */
+                \tprivate final java.util.Map<Integer, Integer> kmapLift = new java.util.HashMap<>();
+                \tprivate final java.util.Set<Integer> kmapLiftCovers = new java.util.HashSet<>();
+
+                \t/** kmap: a fill lying on a cover larger than itself takes the type drawn over
+                \t * the covers. The areas are the ones before any clipping, so a wood cut by the
+                \t * tile frame is still as large as it is on the ground. A fill counts as lying
+                \t * on a cover when 1/4 of its corners are inside one: a meadow whose edge only
+                \t * strays under the treeline stays where it is. */
+                \tprivate void kmapLiftShapes(List<MapShape> shapes) {
+                \t\tif (kmapLift.isEmpty())
+                \t\t\treturn;
+                \t\tList<MapShape> fills = new ArrayList<>();
+                \t\tList<MapShape> covers = new ArrayList<>();
+                \t\tfor (MapShape s : shapes) {
+                \t\t\tif (kmapLift.containsKey(s.getType()))
+                \t\t\t\tfills.add(s);
+                \t\t\telse if (kmapLiftCovers.contains(s.getType()))
+                \t\t\t\tcovers.add(s);
+                \t\t}
+                \t\tif (fills.isEmpty() || covers.isEmpty())
+                \t\t\treturn;
+                \t\t// The covers by the cells they reach, 2048 map units a side.
+                \t\tfinal int kmapCell = 11;
+                \t\tjava.util.Map<Long, List<MapShape>> grid = new java.util.HashMap<>();
+                \t\tfor (MapShape c : covers) {
+                \t\t\tArea b = c.getBounds();
+                \t\t\tfor (int y = b.getMinLat() >> kmapCell; y <= b.getMaxLat() >> kmapCell; y++)
+                \t\t\t\tfor (int x = b.getMinLong() >> kmapCell; x <= b.getMaxLong() >> kmapCell; x++)
+                \t\t\t\t\tgrid.computeIfAbsent(((long) y << 32) ^ (x & 0xffffffffL),
+                \t\t\t\t\t\t\tk -> new ArrayList<>()).add(c);
+                \t\t}
+                \t\tfinal int kmapMostCorners = 32;
+                \t\tfor (MapShape f : fills) {
+                \t\t\tlong area = Math.abs(f.getFullArea());
+                \t\t\tArea fb = f.getBounds();
+                \t\t\tjava.util.Set<MapShape> larger = java.util.Collections.newSetFromMap(
+                \t\t\t\t\tnew java.util.IdentityHashMap<>());
+                \t\t\tfor (int y = fb.getMinLat() >> kmapCell; y <= fb.getMaxLat() >> kmapCell; y++)
+                \t\t\t\tfor (int x = fb.getMinLong() >> kmapCell; x <= fb.getMaxLong() >> kmapCell; x++) {
+                \t\t\t\t\tList<MapShape> here = grid.get(((long) y << 32) ^ (x & 0xffffffffL));
+                \t\t\t\t\tif (here == null)
+                \t\t\t\t\t\tcontinue;
+                \t\t\t\t\tfor (MapShape c : here)
+                \t\t\t\t\t\tif (Math.abs(c.getFullArea()) > area && c.getBounds().intersects(fb))
+                \t\t\t\t\t\t\tlarger.add(c);
+                \t\t\t\t}
+                \t\t\tif (larger.isEmpty())
+                \t\t\t\tcontinue;
+                \t\t\tList<Coord> corners = f.getPoints();
+                \t\t\tint count = corners.size() - 1;
+                \t\t\tif (count < 3)
+                \t\t\t\tcontinue;
+                \t\t\tint step = Math.max(1, count / kmapMostCorners);
+                \t\t\tint tried = 0;
+                \t\t\tint inside = 0;
+                \t\t\tfor (int i = 0; i < count; i += step) {
+                \t\t\t\tCoord corner = corners.get(i);
+                \t\t\t\ttried++;
+                \t\t\t\tfor (MapShape c : larger) {
+                \t\t\t\t\tif (c.getBounds().contains(corner) && uk.me.parabola.util.IsInUtil
+                \t\t\t\t\t\t\t.isPointInShape(corner, c.getPoints()) == uk.me.parabola.util.IsInUtil.IN) {
+                \t\t\t\t\t\tinside++;
+                \t\t\t\t\t\tbreak;
+                \t\t\t\t\t}
+                \t\t\t\t}
+                \t\t\t}
+                \t\t\tif (inside * 4 >= tried)
+                \t\t\t\tf.setType(kmapLift.get(f.getType()));
+                \t\t}
+                \t}
+                """
+            ),
+            (
+                builder,
+                "\t\tpathsToHGT = props.getProperty(\"dem\", null);",
+                """
+                \t\tString kmapLiftOption = props.getProperty("shape-lift", null);
+                \t\tint kmapOn = kmapLiftOption == null ? -1 : kmapLiftOption.indexOf(':');
+                \t\tif (kmapOn > 0) {
+                \t\t\tfor (String kmapPair : kmapLiftOption.substring(0, kmapOn).split(",")) {
+                \t\t\t\tint kmapTo = kmapPair.indexOf('>');
+                \t\t\t\tif (kmapTo > 0)
+                \t\t\t\t\tkmapLift.put(Integer.decode(kmapPair.substring(0, kmapTo).trim()),
+                \t\t\t\t\t\t\tInteger.decode(kmapPair.substring(kmapTo + 1).trim()));
+                \t\t\t}
+                \t\t\tfor (String kmapOne : kmapLiftOption.substring(kmapOn + 1).split(","))
+                \t\t\t\tif (!kmapOne.trim().isEmpty())
+                \t\t\t\t\tkmapLiftCovers.add(Integer.decode(kmapOne.trim()));
+                \t\t}
+                \t\tpathsToHGT = props.getProperty("dem", null);
+                """
+            ),
+            (
+                builder,
+                "\tprivate void makeMapAreas(Map map, LoadableMapDataSource src) {\n",
+                "\tprivate void makeMapAreas(Map map, LoadableMapDataSource src) {\n"
+                    + "\t\tkmapLiftShapes(src.getShapes());\n"
+            ),
             (
                 area,
                 "\tprivate final boolean splitPolygonsIntoArea;",
@@ -470,6 +580,7 @@ extension Toolchain {
             "built-from: r\(revision)\npatch-version: \(Toolchain.patchVersion)\n"
             + "option: --x-shape-clip-overlap\n"
             + "option: --x-line-draw-order\n"
+            + "option: --x-shape-lift\n"
         try FileTools.write(stamp, to: marker)
         try await runner.run(
             jarTool,

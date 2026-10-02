@@ -18,7 +18,6 @@ summary the look of openstreetmap.org — carto's own colours
 # draws it where the land polygon has not arrived yet, and shows black
 # without it. The ground colour the style paints land with.
 poly 0x4b 1 #f2efe9  Background
-poly 0x32 2 #aad3df  Sea
 poly 0x27 3 #f2efe9  Land
 poly 0x1c 5 #eef0d5  Farmland
 poly 0x29 5 #eef0d5  Greenhouses
@@ -31,6 +30,7 @@ poly 0x55 5 #cdebb0  Grassland
 poly 0x15 5 #cdebb0  Village green
 poly 0x1d 5 #cdebb0  Common
 poly 0x4f 5 #c8d7ab  Scrub
+poly 0x5b 5 #c8d7ab  Scrub
 poly 0x1e 5 #d6d99f  Heath
 poly 0x50 5 #add19e  Forest
 poly 0x57 5 #add19e  Coniferous forest
@@ -52,7 +52,10 @@ poly 0x0e 6 #bbbbc8  Runway
 poly 0x05 6 #eeeeee  Parking
 poly 0x06 6 #eeeeee  Covered parking
 poly 0x1a 6 #aacbaf  Cemetery
-poly 0x25 6 #dddde8  Square
+# The sea over the fills and what grows: a fill drawn across the shoreline in
+# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #aad3df  Sea
+poly 0x25 8 #dddde8  Square
 poly 0x08 6 #ffd6d1  Food and drink
 poly 0x0a 6 #ffffe5  Kindergarten
 poly 0x0b 6 #ffffe5  Hospital
@@ -61,26 +64,26 @@ poly 0x12 6 #e9e7e2  Services
 poly 0x21 6 #f2efe9  Tourism
 poly 0x22 6 #f2efe9  Historic
 poly 0x23 6 #f2efe9  Amenity
-poly 0x24 6 #f2efe9  Man-made
-poly 0x17 7 #c8facc  Park
-poly 0x20 7 #c8facc  Garden
-poly 0x18 7 #b5e3b5  Golf course
-poly 0x19 7 #ddecec  Ice rink
-poly 0x09 7 #c8facc  Water park
-poly 0x3c 8 #aad3df  Water
-poly 0x41 8 #aad3df  Small water
-poly 0x46 8 #aad3df  Riverbank
-poly 0x48 8 #aad3df  Canal
-poly 0x3d 8 #aad3df  Bay
-poly 0x3b 8 #aad3df  Waterway area
-poly 0x28 8 #aad3df  Salt pond
-poly 0x3f 8 #aad3df  Basin
-poly 0x4c 8 #aad3df  Dock
-poly 0x47 8 #aad3df  Waterfall
-poly 0x51 9 #cdebb0  Marsh
+poly 0x24 8 #f2efe9  Man-made
+poly 0x17 8 #c8facc  Park
+poly 0x20 8 #c8facc  Garden
+poly 0x18 8 #b5e3b5  Golf course
+poly 0x19 8 #ddecec  Ice rink
+poly 0x09 8 #c8facc  Water park
+poly 0x3c 9 #aad3df  Water
+poly 0x41 9 #aad3df  Small water
+poly 0x46 9 #aad3df  Riverbank
+poly 0x48 9 #aad3df  Canal
+poly 0x3d 9 #aad3df  Bay
+poly 0x3b 9 #aad3df  Waterway area
+poly 0x28 9 #aad3df  Salt pond
+poly 0x3f 9 #aad3df  Basin
+poly 0x4c 9 #aad3df  Dock
+poly 0x47 9 #aad3df  Waterfall
+poly 0x51 10 #cdebb0  Marsh
 poly 0x16 4 #c8facc  Nature reserve
-poly 0x11 9 #ff5555  Military
-poly 0x13 10 #d9d0c9  Building
+poly 0x11 10 #ff5555  Military
+poly 0x13 11 #d9d0c9  Building
 
 # --- lines --------------------------------------------------------------------
 line 0x01 5 #e892a2 #dc2a67  Motorway

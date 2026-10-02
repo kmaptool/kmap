@@ -10,6 +10,14 @@ final class RulePassesTests: XCTestCase {
     private var directory = URL(fileURLWithPath: "/tmp")
     private let ruleFiles = ["points", "lines", "polygons", "relations"]
     private let woodland = "landuse=forest | landuse=wood [0x50"
+    private let scrub = "natural=scrub [0x4f"
+
+    /// A stock line as it stands after the passes: the 2 that are shown earlier keep
+    /// everything but their resolution.
+    private func surviving(_ line: Substring) -> Substring {
+        for rewritten in [woodland, scrub] where line.hasPrefix(rewritten) { return Substring(rewritten) }
+        return line
+    }
 
     /// The stock lines the anchored passes aim at, as mkgmap's default style spells them.
     private let anchors = [
@@ -17,7 +25,10 @@ final class RulePassesTests: XCTestCase {
             "amenity=drinking_water [0x5000 resolution 24]",
             "natural=spring [0x6511 resolution 24]"
         ],
-        "polygons": ["landuse=forest | landuse=wood [0x50 resolution 20]"]
+        "polygons": [
+            "landuse=forest | landuse=wood [0x50 resolution 20]",
+            "natural=scrub [0x4f resolution 20]"
+        ]
     ]
 
     override func setUpWithError() throws {
@@ -70,9 +81,9 @@ final class RulePassesTests: XCTestCase {
         for name in ruleFiles {
             let after = try read(name)
             for line in try XCTUnwrap(before[name]).split(separator: "\n") {
-                // The one stock rule a pass rewrites on purpose: woodland is shown earlier,
-                // so its resolution changes and the rest of the line stays.
-                let kept = line.hasPrefix(woodland) ? Substring(woodland) : line
+                // The stock rules a pass rewrites on purpose: woodland and scrub are shown
+                // earlier, so their resolution changes and the rest of the line stays.
+                let kept = surviving(line)
                 XCTAssertTrue(after.contains(kept), "\(name) lost its stock line: \(line)")
             }
         }
@@ -134,7 +145,7 @@ final class RulePassesTests: XCTestCase {
         for (name, stockLines) in anchors {
             let text = try read(name)
             for stock in stockLines {
-                let sought = stock.hasPrefix(woodland) ? woodland : stock
+                let sought = String(surviving(Substring(stock)))
                 let at = try XCTUnwrap(text.range(of: sought), sought).lowerBound
                 XCTAssertFalse(
                     markers(in: String(text[..<at])).isEmpty,
@@ -144,12 +155,22 @@ final class RulePassesTests: XCTestCase {
         }
     }
 
+    func testScrubLaysAFloorAheadOfItsOwnNumber() throws {
+        // The floor carries on to the texture, so it has to come first and say `continue`.
+        try writeStandIn()
+        try catalog().applyRulePasses(in: directory, cyrillicLabels: false, log: Log(showing: .error))
+        let lines = try read("polygons").components(separatedBy: "\n")
+        let floor = try XCTUnwrap(lines.firstIndex(of: "natural=scrub [0x5b resolution 18 continue]"))
+        let texture = try XCTUnwrap(lines.firstIndex { $0.hasPrefix(scrub) })
+        XCTAssertEqual(floor + 1, texture, "nothing may match a scrub between its floor and its own rule")
+    }
+
     func testAStockRuleThatHasMovedIsReportedRatherThanGuessedAt() throws {
         try writeStandIn(withAnchors: false)
         let log = Log(showing: .debug)
         try catalog().applyRulePasses(in: directory, cyrillicLabels: false, log: log)
         let warnings = log.snapshot().filter { $0.severity == .warn }
-        XCTAssertGreaterThanOrEqual(warnings.count, 3, "one per anchored pass that found nothing")
+        XCTAssertGreaterThanOrEqual(warnings.count, 4, "one per anchored pass that found nothing")
     }
 
     func testAStyleWithoutRuleFilesIsLeftAlone() throws {

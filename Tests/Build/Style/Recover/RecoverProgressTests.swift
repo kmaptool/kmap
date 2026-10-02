@@ -23,7 +23,7 @@ final class RecoverProgressTests: XCTestCase {
 
     func testMatchingAndPlacingHaveATrueTotal() {
         let progress = RecoverProgress()
-        for stage in [RecoverProgress.Stage.matching("crimea"), .placing("crimea")] {
+        for stage in [RecoverProgress.Stage.matching("australia"), .placing("australia")] {
             progress.move(to: stage)
             XCTAssertNil(progress.snapshot.fraction, "no total yet")
             progress.count(0, of: 200)

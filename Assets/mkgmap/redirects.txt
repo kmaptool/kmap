@@ -139,6 +139,30 @@
 - landuse=meadow | landuse=grass [0x1c resolution 19]
 + landuse=meadow | landuse=grass [0x55 resolution 19]  # kmap: grass with the grassland, not the fields
 
+# --- a settlement begins where the wood does. kmap lays every wood's floor from
+# resolution 18 and mkgmap begins these 3 at 19, where a settlement under a wood
+# would show as the wood at 18. Resolution 24 stays mkgmap's: the
+# fill ends at 23 and leaves the closest zoom to the buildings and what grows there.
+- landuse=residential [0x10 resolution 19-23]
++ landuse=residential [0x10 resolution 18-23]  # kmap: from 18, with the wood it lies on
+- place=village [0x03 resolution 19]
++ place=village [0x03 resolution 18]  # kmap: from 18, with the wood it lies on
+- place=suburb [0x02 resolution 19]
++ place=suburb [0x02 resolution 18]  # kmap: from 18, with the wood it lies on
+
+# --- still water arrives with the river that feeds it. kmap draws the river from 19;
+# mkgmap begins a reservoir of any size at 20 and a lake under 100000 square units
+# (40 ha at 45 degrees north) at 22, and a river would run to nothing. A large reservoir
+# begins at 18 with the large lake, the rest at 19, and the size limit of each level
+# drops what is too small to see there.
+- landuse=reservoir | (natural=water & water=reservoir) [0x3f resolution 20]
++ (landuse=reservoir | (natural=water & water=reservoir)) & area_size() >= 100000 [0x3f resolution 18]  # kmap: with the large lake
++ landuse=reservoir | (natural=water & water=reservoir) [0x3f resolution 19]  # kmap: with the river
+- natural=water & area_size() < 100000 [0x41 resolution 22]  # Small Lake
++ natural=water & area_size() < 100000 [0x41 resolution 19]  # kmap: with the river
+- waterway=riverbank [0x46 resolution 20]
++ waterway=riverbank [0x46 resolution 19]  # kmap: with the river's line
+
 @@ points
 # --- a viewpoint, an attraction and an artwork shared 0x2c04, which is the viewpoint's
 # number in Garmin's vocabulary and in every icon set kmap ships. On one number the

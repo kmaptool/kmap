@@ -18,7 +18,7 @@ final class StyleCatalog: Sendable {
     static let contourLineCodes = Set(contourLineTypes.compactMap { Int($0.dropFirst(2), radix: 16) })
 
     /// Bump when the materialized style layout changes, to force a refresh.
-    private static let materializedVersion = "85"
+    private static let materializedVersion = "92"
 
     private let settings: SettingsStore
 
@@ -264,6 +264,7 @@ final class StyleCatalog: Sendable {
         try addLandUnderEverything(in: dir, log: log)
         try lowerWoodlandResolution(in: dir, log: log)
         try addForestTypeRules(in: dir, cyrillic: cyrillicLabels, log: log)
+        try addScrubFloor(in: dir, log: log)
         try addPlateauEdgeRules(in: dir, log: log)
         try addParkingRules(in: dir, cyrillic: cyrillicLabels, log: log)
         try addLandformRules(in: dir, log: log)

@@ -335,4 +335,178 @@ final class TypAugmentTests: XCTestCase {
         let clean = "[_drawOrder]\nType=0x16,1\n[end]\n"
         XCTAssertEqual(TypAugment.repairedDrawOrder(clean), clean)
     }
+
+    // MARK: A settlement, the wood drawn across it and the field drawn round it
+
+    /// A TYP with a ground, a wood floor, a forest, an orchard, grass and 2 settlement
+    /// tints, in the order a style usually has them: the tints over all that grows.
+    private static let settled = """
+        [_id]
+        FID=1
+        ProductCode=1
+        CodePage=1252
+        [end]
+
+        [_drawOrder]
+        Type=0x027,1
+        Type=0x059,2
+        Type=0x04e,3
+        Type=0x050,3
+        Type=0x055,3
+        Type=0x003,4
+        Type=0x010,4
+        Type=0x01a,4
+        Type=0x013,5
+        [end]
+
+        [_polygon]
+        Type=0x10
+        Xpm="0 0 2 0"
+        "1 c #E9E5DD"
+        "2 c #404040"
+        String=0x00,Residential
+        [end]
+
+        [_polygon]
+        Type=0x59
+        Xpm="0 0 2 0"
+        "1 c #B8DCA0"
+        "2 c #1E401E"
+        String=0x00,Woodland
+        [end]
+        """
+
+    private func levels(in text: String) -> [Int: Int] {
+        Dictionary(uniqueKeysWithValues: TypSource.parse(text).drawOrder.map { ($0.code, $0.level) })
+    }
+
+    /// Grass stays under the tints; the tints go right over it, the wood and the orchard
+    /// over the tints in the order they had, and what was over the tints stays over all.
+    func testWoodsGoOverTheSettlementTintsAndOpenGroundStaysUnder() throws {
+        let url = try write(Self.settled)
+        let scratch = folder.appendingPathComponent("build", isDirectory: true)
+
+        let result = try XCTUnwrap(TypAugment.prepare(url, into: scratch))
+        let order = levels(in: try String(contentsOf: result.url, encoding: .utf8))
+
+        XCTAssertTrue(result.woodsLaidOver)
+        XCTAssertEqual(order[0x27], 1)
+        XCTAssertEqual(order[0x55], 3, "a meadow does not move")
+        XCTAssertEqual(order[0x10], 4, "the tints right over it")
+        XCTAssertEqual(order[0x03], 4)
+        XCTAssertEqual(order[0x59], 5, "the wood's floor over the tints")
+        XCTAssertEqual(order[0x50], 6, "and its symbols over the floor, as they were")
+        XCTAssertEqual(order[0x4e], 6, "an orchard with them")
+        XCTAssertEqual(order[0x1a], 7, "a cemetery stays over the wood")
+        XCTAssertEqual(order[0x13], 8)
+        XCTAssertEqual(
+            try String(contentsOf: url, encoding: .utf8),
+            Self.settled,
+            "the file the user owns is not written to"
+        )
+    }
+
+    /// A style that already has the 3 in that order is not touched.
+    func testATableAlreadyInThatOrderIsLeftAlone() {
+        let arranged = [
+            "[_drawOrder]", "Type=0x027,1", "Type=0x055,2", "Type=0x010,3", "Type=0x059,4", "Type=0x050,5",
+            "[end]"
+        ]
+        var lines = arranged
+        XCTAssertFalse(
+            TypEdit.layWoodsOverTints(&lines, tints: [0x10, 0x03], woods: [0x59, 0x50], covers: [0x55])
+        )
+        XCTAssertEqual(lines, arranged)
+    }
+
+    /// Tints under everything that grows are lifted over the open ground and no further.
+    func testTintsUnderOpenGroundComeUpOverIt() {
+        var lines = [
+            "[_drawOrder]", "Type=0x027,1", "Type=0x010,2", "Type=0x059,3", "Type=0x050,4", "Type=0x055,4",
+            "Type=0x056,5", "[end]"
+        ]
+        XCTAssertTrue(TypEdit.layWoodsOverTints(&lines, tints: [0x10], woods: [0x59, 0x50], covers: [0x55]))
+        let order = levels(in: lines.joined(separator: "\n"))
+        XCTAssertEqual(order[0x55], 4)
+        XCTAssertEqual(order[0x10], 5)
+        XCTAssertEqual(order[0x59], 6)
+        XCTAssertEqual(order[0x50], 7)
+        XCTAssertEqual(order[0x56], 8, "bare rock stays over the wood")
+    }
+
+    /// With no open ground in the table the 2 go back where the lower of them was.
+    func testWithoutOpenGroundTheWoodStillGoesOverTheTint() {
+        var lines = ["[_drawOrder]", "Type=0x027,1", "Type=0x059,2", "Type=0x010,3", "Type=0x013,4", "[end]"]
+        XCTAssertTrue(TypEdit.layWoodsOverTints(&lines, tints: [0x10], woods: [0x59], covers: [0x55]))
+        let order = levels(in: lines.joined(separator: "\n"))
+        XCTAssertEqual(order[0x27], 1)
+        XCTAssertEqual(order[0x10], 2)
+        XCTAssertEqual(order[0x59], 3)
+        XCTAssertEqual(order[0x13], 6)
+    }
+
+    /// No wood or no tint: the table is not touched.
+    func testATableWithoutAWoodOrATintIsNotTouched() {
+        let bare = ["[_drawOrder]", "Type=0x027,1", "Type=0x010,2", "[end]"]
+        var lines = bare
+        XCTAssertFalse(TypEdit.layWoodsOverTints(&lines, tints: [0x10], woods: [0x59], covers: [0x55]))
+        XCTAssertEqual(lines, bare)
+    }
+
+    // MARK: A glade and the wood it is drawn across
+
+    /// With the mkgmap that hands them out, each kind of open ground the style draws
+    /// gets a copy on a free number, on a level right over the woods, and the option
+    /// names the pairs and the woods.
+    func testOpenGroundGetsACopyOverTheWoods() throws {
+        let meadow =
+            Self.settled
+            + "\n\n[_polygon]\nType=0x55\nXpm=\"0 0 2 0\"\n\"1 c #D0E8B0\"\n\"2 c #304030\"\n"
+            + "String=0x00,Grassland\n[end]\n"
+        let url = try write(meadow)
+        let scratch = folder.appendingPathComponent("build", isDirectory: true)
+
+        let result = try XCTUnwrap(TypAugment.prepare(url, into: scratch, liftingOpenGround: true))
+        let text = try String(contentsOf: result.url, encoding: .utf8)
+        let source = TypSource.parse(text)
+        let order = levels(in: text)
+
+        XCTAssertEqual(result.shapeLift, "--x-shape-lift=0x55>0x5c:0x59,0x50")
+        XCTAssertEqual(source.section(.polygon, 0x5c)?.englishLabel, "Grassland", "the same picture")
+        XCTAssertEqual(order[0x55], 3, "the meadow itself stays under the tints")
+        XCTAssertEqual(order[0x50], 6)
+        XCTAssertEqual(order[0x5c], 8, "its copy over the woods, a step above the floor copies")
+        XCTAssertEqual(order[0x1a], 9, "and what was over the woods over the copy too")
+    }
+
+    /// Without that mkgmap nothing is added: the order alone decides, and a glade
+    /// drawn across a wood lies under it.
+    func testWithoutTheLiftNoCopyIsAdded() throws {
+        let meadow =
+            Self.settled
+            + "\n\n[_polygon]\nType=0x55\nXpm=\"0 0 2 0\"\n\"1 c #D0E8B0\"\n\"2 c #304030\"\n"
+            + "String=0x00,Grassland\n[end]\n"
+        let url = try write(meadow)
+        let scratch = folder.appendingPathComponent("build", isDirectory: true)
+
+        let result = try XCTUnwrap(TypAugment.prepare(url, into: scratch))
+        let source = TypSource.parse(try String(contentsOf: result.url, encoding: .utf8))
+
+        XCTAssertNil(result.shapeLift)
+        XCTAssertNil(source.section(.polygon, 0x5c))
+        XCTAssertTrue(result.woodsLaidOver, "the order is still put right")
+    }
+
+    /// The copies stand on the steps asked for, and everything over the woods moves up.
+    func testCopiesStandOnTheirStepsOverTheWoods() {
+        var lines = [
+            "[_drawOrder]", "Type=0x027,1", "Type=0x059,2", "Type=0x050,3", "Type=0x013,4", "[end]"
+        ]
+        XCTAssertTrue(TypEdit.layOverWoods(&lines, lifted: [(0x5c, 0), (0x5d, 1)], woods: [0x59, 0x50]))
+        let order = levels(in: lines.joined(separator: "\n"))
+        XCTAssertEqual(order[0x50], 3)
+        XCTAssertEqual(order[0x5c], 4)
+        XCTAssertEqual(order[0x5d], 5)
+        XCTAssertEqual(order[0x13], 6)
+    }
 }

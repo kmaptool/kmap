@@ -137,7 +137,8 @@ extension BuildPipeline {
         outputDir: URL,
         tileCount: Int,
         gmapsupp: Bool = true,
-        typ: URL? = nil
+        typ: URL? = nil,
+        shapeLift: String? = nil
     ) -> [String] {
         var options: [String] = []
         /// The rule files this build compiles from, once the snapshot is decided: the
@@ -243,6 +244,9 @@ extension BuildPipeline {
             if !whole.isEmpty {
                 options.append("--x-shape-clip-whole=" + whole.joined(separator: ","))
             }
+            // A glade drawn across a wood larger than itself takes a number the TYP this
+            // build compiles draws over the woods.
+            if let shapeLift { options.append(shapeLift) }
             // Land is opaque and tile-sized, so it gets a narrower band: enough to cover a
             // receiver clipping a tile to its frame, never past the delivery overlap.
             let landBand = min(recipe.landOverlap, recipe.shapeOverlap)

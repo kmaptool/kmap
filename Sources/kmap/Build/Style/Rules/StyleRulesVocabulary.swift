@@ -16,6 +16,7 @@ extension StyleCatalog {
         (.polygon, 0x1b, 0x4e),  // a vineyard, drawn as an orchard before
         (.polygon, 0x1e, 0x4f),  // heath, drawn as scrub before
         (.polygon, 0x1f, nil),  // a mountain plateau: new, and only where drawn
+        (.polygon, 0x5b, nil),  // the floor under scrub: new, and only where drawn
         (.polygon, 0x28, nil),  // a salt pond: new
         (.polygon, 0x29, nil),  // greenhouses: new
         (.line, 0x0e, 0x16),  // a path, drawn as a footway before

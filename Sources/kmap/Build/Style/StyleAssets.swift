@@ -218,6 +218,30 @@ how the map looks on the device.
 - landuse=meadow | landuse=grass [0x1c resolution 19]
 + landuse=meadow | landuse=grass [0x55 resolution 19]  # kmap: grass with the grassland, not the fields
 
+# --- a settlement begins where the wood does. kmap lays every wood's floor from
+# resolution 18 and mkgmap begins these 3 at 19, where a settlement under a wood
+# would show as the wood at 18. Resolution 24 stays mkgmap's: the
+# fill ends at 23 and leaves the closest zoom to the buildings and what grows there.
+- landuse=residential [0x10 resolution 19-23]
++ landuse=residential [0x10 resolution 18-23]  # kmap: from 18, with the wood it lies on
+- place=village [0x03 resolution 19]
++ place=village [0x03 resolution 18]  # kmap: from 18, with the wood it lies on
+- place=suburb [0x02 resolution 19]
++ place=suburb [0x02 resolution 18]  # kmap: from 18, with the wood it lies on
+
+# --- still water arrives with the river that feeds it. kmap draws the river from 19;
+# mkgmap begins a reservoir of any size at 20 and a lake under 100000 square units
+# (40 ha at 45 degrees north) at 22, and a river would run to nothing. A large reservoir
+# begins at 18 with the large lake, the rest at 19, and the size limit of each level
+# drops what is too small to see there.
+- landuse=reservoir | (natural=water & water=reservoir) [0x3f resolution 20]
++ (landuse=reservoir | (natural=water & water=reservoir)) & area_size() >= 100000 [0x3f resolution 18]  # kmap: with the large lake
++ landuse=reservoir | (natural=water & water=reservoir) [0x3f resolution 19]  # kmap: with the river
+- natural=water & area_size() < 100000 [0x41 resolution 22]  # Small Lake
++ natural=water & area_size() < 100000 [0x41 resolution 19]  # kmap: with the river
+- waterway=riverbank [0x46 resolution 20]
++ waterway=riverbank [0x46 resolution 19]  # kmap: with the river's line
+
 @@ points
 # --- a viewpoint, an attraction and an artwork shared 0x2c04, which is the viewpoint's
 # number in Garmin's vocabulary and in every icon set kmap ships. On one number the
@@ -255,7 +279,6 @@ summary the look of openstreetmap.org — carto's own colours
 # draws it where the land polygon has not arrived yet, and shows black
 # without it. The ground colour the style paints land with.
 poly 0x4b 1 #f2efe9  Background
-poly 0x32 2 #aad3df  Sea
 poly 0x27 3 #f2efe9  Land
 poly 0x1c 5 #eef0d5  Farmland
 poly 0x29 5 #eef0d5  Greenhouses
@@ -268,6 +291,7 @@ poly 0x55 5 #cdebb0  Grassland
 poly 0x15 5 #cdebb0  Village green
 poly 0x1d 5 #cdebb0  Common
 poly 0x4f 5 #c8d7ab  Scrub
+poly 0x5b 5 #c8d7ab  Scrub
 poly 0x1e 5 #d6d99f  Heath
 poly 0x50 5 #add19e  Forest
 poly 0x57 5 #add19e  Coniferous forest
@@ -289,7 +313,10 @@ poly 0x0e 6 #bbbbc8  Runway
 poly 0x05 6 #eeeeee  Parking
 poly 0x06 6 #eeeeee  Covered parking
 poly 0x1a 6 #aacbaf  Cemetery
-poly 0x25 6 #dddde8  Square
+# The sea over the fills and what grows: a fill drawn across the shoreline in
+# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #aad3df  Sea
+poly 0x25 8 #dddde8  Square
 poly 0x08 6 #ffd6d1  Food and drink
 poly 0x0a 6 #ffffe5  Kindergarten
 poly 0x0b 6 #ffffe5  Hospital
@@ -298,26 +325,26 @@ poly 0x12 6 #e9e7e2  Services
 poly 0x21 6 #f2efe9  Tourism
 poly 0x22 6 #f2efe9  Historic
 poly 0x23 6 #f2efe9  Amenity
-poly 0x24 6 #f2efe9  Man-made
-poly 0x17 7 #c8facc  Park
-poly 0x20 7 #c8facc  Garden
-poly 0x18 7 #b5e3b5  Golf course
-poly 0x19 7 #ddecec  Ice rink
-poly 0x09 7 #c8facc  Water park
-poly 0x3c 8 #aad3df  Water
-poly 0x41 8 #aad3df  Small water
-poly 0x46 8 #aad3df  Riverbank
-poly 0x48 8 #aad3df  Canal
-poly 0x3d 8 #aad3df  Bay
-poly 0x3b 8 #aad3df  Waterway area
-poly 0x28 8 #aad3df  Salt pond
-poly 0x3f 8 #aad3df  Basin
-poly 0x4c 8 #aad3df  Dock
-poly 0x47 8 #aad3df  Waterfall
-poly 0x51 9 #cdebb0  Marsh
+poly 0x24 8 #f2efe9  Man-made
+poly 0x17 8 #c8facc  Park
+poly 0x20 8 #c8facc  Garden
+poly 0x18 8 #b5e3b5  Golf course
+poly 0x19 8 #ddecec  Ice rink
+poly 0x09 8 #c8facc  Water park
+poly 0x3c 9 #aad3df  Water
+poly 0x41 9 #aad3df  Small water
+poly 0x46 9 #aad3df  Riverbank
+poly 0x48 9 #aad3df  Canal
+poly 0x3d 9 #aad3df  Bay
+poly 0x3b 9 #aad3df  Waterway area
+poly 0x28 9 #aad3df  Salt pond
+poly 0x3f 9 #aad3df  Basin
+poly 0x4c 9 #aad3df  Dock
+poly 0x47 9 #aad3df  Waterfall
+poly 0x51 10 #cdebb0  Marsh
 poly 0x16 4 #c8facc  Nature reserve
-poly 0x11 9 #ff5555  Military
-poly 0x13 10 #d9d0c9  Building
+poly 0x11 10 #ff5555  Military
+poly 0x13 11 #d9d0c9  Building
 
 # --- lines --------------------------------------------------------------------
 line 0x01 5 #e892a2 #dc2a67  Motorway
@@ -387,7 +414,6 @@ summary the OpenTopoMap look — its own Garmin colours where the maps share a m
 # draws it where the land polygon has not arrived yet, and shows black
 # without it. Their own background, 0x4b in their TYP.
 poly 0x4b 1 #ffffff  Background
-poly 0x32 2 #72ceff  Sea
 poly 0x27 3 #ffffff  Land  # the ground, in their own background colour
 poly 0x1c 5 #eef0d5  Farmland  # filled, not theirs
 poly 0x29 5 #eef0d5  Greenhouses  # filled, not theirs
@@ -399,6 +425,7 @@ poly 0x55 5 #cdebb0  Grassland  # filled, not theirs
 poly 0x15 5 #cdebb0  Village green  # filled, not theirs
 poly 0x1d 5 #cdebb0  Common  # filled, not theirs
 poly 0x4f 5 #00c000  Scrub
+poly 0x5b 5 #00c000  Scrub
 poly 0x1e 5 #c8d7ab  Heath  # filled, not theirs
 poly 0x50 5 #77cc77  Forest
 poly 0x57 5 #77cc77  Coniferous forest
@@ -421,7 +448,10 @@ poly 0x0e 6 #ffffff  Runway  # ground: their style draws nothing here, and their
 poly 0x05 6 #ffffff  Parking  # ground: their style draws nothing here, and their own background is white
 poly 0x06 6 #ffffff  Covered parking  # ground: their style draws nothing here, and their own background is white
 poly 0x1a 6 #000000  Cemetery
-poly 0x25 6 #ffffff  Square  # ground: their style draws nothing here, and their own background is white
+# The sea over the fills and what grows: a fill drawn across the shoreline in
+# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #72ceff  Sea
+poly 0x25 8 #ffffff  Square  # ground: their style draws nothing here, and their own background is white
 poly 0x08 6 #ffffff  Food and drink  # ground: their style draws nothing here, and their own background is white
 poly 0x0a 6 #ffffff  Kindergarten  # ground: their style draws nothing here, and their own background is white
 poly 0x0b 6 #ffffff  Hospital  # ground: their style draws nothing here, and their own background is white
@@ -430,26 +460,26 @@ poly 0x12 6 #ffffff  Services  # ground: their style draws nothing here, and the
 poly 0x21 6 #ffffff  Tourism  # ground: their style draws nothing here, and their own background is white
 poly 0x22 6 #ffffff  Historic  # ground: their style draws nothing here, and their own background is white
 poly 0x23 6 #ffffff  Amenity  # ground: their style draws nothing here, and their own background is white
-poly 0x24 6 #ffffff  Man-made  # ground: their style draws nothing here, and their own background is white
-poly 0x17 7 #00c000  Park
-poly 0x20 7 #00c000  Garden
-poly 0x18 7 #ffffff  Golf course  # ground: their style draws nothing here, and their own background is white
-poly 0x19 7 #beffba  Ice rink
-poly 0x09 7 #ffffff  Water park  # ground: their style draws nothing here, and their own background is white
-poly 0x28 8 #72ceff  Salt pond  # filled, not theirs
-poly 0x3c 8 #72ceff  Water
-poly 0x41 8 #72ceff  Small water
-poly 0x46 8 #72ceff  Riverbank
-poly 0x48 8 #72ceff  Canal
-poly 0x3d 8 #72ceff  Bay  # their water: their rules make a bay water
-poly 0x3b 8 #72ceff  Waterway area  # their water: a waterway area is their riverbank
-poly 0x3f 8 #72ceff  Basin  # their water: a basin and a reservoir are water in their rules
-poly 0x4c 8 #72ceff  Dock  # their water: a lock is water in their rules
-poly 0x47 8 #72ceff  Waterfall
-poly 0x51 9 #ffffff  Marsh  # their number for it, but their TYP draws it nowhere
+poly 0x24 8 #ffffff  Man-made  # ground: their style draws nothing here, and their own background is white
+poly 0x17 8 #00c000  Park
+poly 0x20 8 #00c000  Garden
+poly 0x18 8 #ffffff  Golf course  # ground: their style draws nothing here, and their own background is white
+poly 0x19 8 #beffba  Ice rink
+poly 0x09 8 #ffffff  Water park  # ground: their style draws nothing here, and their own background is white
+poly 0x28 9 #72ceff  Salt pond  # filled, not theirs
+poly 0x3c 9 #72ceff  Water
+poly 0x41 9 #72ceff  Small water
+poly 0x46 9 #72ceff  Riverbank
+poly 0x48 9 #72ceff  Canal
+poly 0x3d 9 #72ceff  Bay  # their water: their rules make a bay water
+poly 0x3b 9 #72ceff  Waterway area  # their water: a waterway area is their riverbank
+poly 0x3f 9 #72ceff  Basin  # their water: a basin and a reservoir are water in their rules
+poly 0x4c 9 #72ceff  Dock  # their water: a lock is water in their rules
+poly 0x47 9 #72ceff  Waterfall
+poly 0x51 10 #ffffff  Marsh  # their number for it, but their TYP draws it nowhere
 poly 0x16 4 #ffffff  Nature reserve  # not drawn: their style has no reserve section at all, so this is the ground
-poly 0x11 9 #ffffff  Military  # ground: their style draws nothing here, and their own background is white
-poly 0x13 10 #a5a5a5  Building  # filled, not theirs
+poly 0x11 10 #ffffff  Military  # ground: their style draws nothing here, and their own background is white
+poly 0x13 11 #a5a5a5  Building  # filled, not theirs
 line 0x01 3 #fdb548 #000000  Motorway
 line 0x09 3 #fdb548 #000000  Motorway link
 line 0x0b 3 #ffffff #000000  Motorway exit
@@ -5346,7 +5376,6 @@ summary the CyclOSM look — an outdoor palette, warmer and quieter than carto's
 # draws it where the land polygon has not arrived yet, and shows black
 # without it. The ground colour the style paints land with.
 poly 0x4b 1 #eee5dc  Background
-poly 0x32 2 #8ecbeb  Sea
 poly 0x27 3 #eee5dc  Land
 poly 0x1c 5 #fbf0e3  Farmland
 poly 0x29 5 #fbf0e3  Greenhouses  # filled, not theirs
@@ -5359,6 +5388,7 @@ poly 0x55 5 #c2debd  Grassland
 poly 0x15 5 #c2debd  Village green
 poly 0x1d 5 #c2debd  Common  # filled, not theirs
 poly 0x4f 5 #c8d7ab  Scrub
+poly 0x5b 5 #c8d7ab  Scrub
 poly 0x1e 5 #b2c068  Heath
 poly 0x50 5 #95bd84  Forest
 poly 0x57 5 #95bd84  Coniferous forest
@@ -5380,7 +5410,10 @@ poly 0x0e 6 #d4d4d4  Runway  # filled, not theirs
 poly 0x05 6 #eeeeee  Parking
 poly 0x06 6 #eeeeee  Covered parking
 poly 0x1a 6 #d6ded2  Cemetery
-poly 0x25 6 #dce3e0  Square
+# The sea over the fills and what grows: a fill drawn across the shoreline in
+# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #8ecbeb  Sea
+poly 0x25 8 #dce3e0  Square
 poly 0x08 6 #e0e0e0  Food and drink  # filled, not theirs
 poly 0x0a 6 #e0e0e0  Kindergarten
 poly 0x0b 6 #e0e0e0  Hospital
@@ -5389,26 +5422,26 @@ poly 0x12 6 #ded8dd  Services  # filled, not theirs
 poly 0x21 6 #eee5dc  Tourism  # filled, not theirs
 poly 0x22 6 #eee5dc  Historic  # filled, not theirs
 poly 0x23 6 #eee5dc  Amenity  # filled, not theirs
-poly 0x24 6 #eee5dc  Man-made  # filled, not theirs
-poly 0x17 7 #c2debd  Park
-poly 0x20 7 #c2debd  Garden
-poly 0x18 7 #c2debd  Golf course  # filled, not theirs
-poly 0x19 7 #e0e0e0  Ice rink
-poly 0x09 7 #c2debd  Water park  # filled, not theirs
-poly 0x3c 8 #8ecbeb  Water
-poly 0x41 8 #8ecbeb  Small water
-poly 0x46 8 #8ecbeb  Riverbank
-poly 0x48 8 #8ecbeb  Canal
-poly 0x3d 8 #8ecbeb  Bay
-poly 0x3b 8 #8ecbeb  Waterway area
-poly 0x28 8 #8ecbeb  Salt pond
-poly 0x3f 8 #8ecbeb  Basin
-poly 0x4c 8 #8ecbeb  Dock
-poly 0x47 8 #8ecbeb  Waterfall
-poly 0x51 9 #c2debd  Marsh
+poly 0x24 8 #eee5dc  Man-made  # filled, not theirs
+poly 0x17 8 #c2debd  Park
+poly 0x20 8 #c2debd  Garden
+poly 0x18 8 #c2debd  Golf course  # filled, not theirs
+poly 0x19 8 #e0e0e0  Ice rink
+poly 0x09 8 #c2debd  Water park  # filled, not theirs
+poly 0x3c 9 #8ecbeb  Water
+poly 0x41 9 #8ecbeb  Small water
+poly 0x46 9 #8ecbeb  Riverbank
+poly 0x48 9 #8ecbeb  Canal
+poly 0x3d 9 #8ecbeb  Bay
+poly 0x3b 9 #8ecbeb  Waterway area
+poly 0x28 9 #8ecbeb  Salt pond
+poly 0x3f 9 #8ecbeb  Basin
+poly 0x4c 9 #8ecbeb  Dock
+poly 0x47 9 #8ecbeb  Waterfall
+poly 0x51 10 #c2debd  Marsh
 poly 0x16 4 #d8d6c5  Nature reserve  # worked out: their wash, 15% of a darkened @wooded over the ground
-poly 0x11 9 #eee5dc  Military  # ground: theirs draws the edge, not the field
-poly 0x13 10 #e4dfdb  Building
+poly 0x11 10 #eee5dc  Military  # ground: theirs draws the edge, not the field
+poly 0x13 11 #e4dfdb  Building
 # --- lines --------------------------------------------------------------------
 line 0x01 5 #d4d4d4 #f6f6f6    Motorway
 line 0x09 4 #d4d4d4 #f6f6f6    Motorway link
@@ -5557,7 +5590,6 @@ summary a minimal topographic look — quiet ground, orange roads, contour brown
 # draws it where the land polygon has not arrived yet, and shows black
 # without it. The ground colour the style paints land with.
 poly 0x4b 1 #efefef  Background
-poly 0x32 2 #9ebdff  Sea
 poly 0x27 3 #efefef  Land
 poly 0x1c 5 #efefef  Farmland  # ground
 poly 0x29 5 #efefef  Greenhouses  # ground
@@ -5570,6 +5602,7 @@ poly 0x55 5 #b0d59a  Grassland
 poly 0x15 5 #b0d59a  Village green
 poly 0x1d 5 #b0d59a  Common
 poly 0x4f 5 #efefef  Scrub  # ground
+poly 0x5b 5 #efefef  Scrub
 poly 0x1e 5 #efefef  Heath  # ground
 poly 0x50 5 #ace38c  Forest
 poly 0x57 5 #ace38c  Coniferous forest
@@ -5591,7 +5624,10 @@ poly 0x0e 6 #f0ede9  Runway
 poly 0x05 6 #efefef  Parking  # ground
 poly 0x06 6 #efefef  Covered parking  # ground
 poly 0x1a 6 #d8e0bd  Cemetery  # worked out
-poly 0x25 6 #efefef  Square  # ground
+# The sea over the fills and what grows: a fill drawn across the shoreline in
+# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #9ebdff  Sea
+poly 0x25 8 #efefef  Square  # ground
 poly 0x08 6 #efefef  Food and drink  # ground
 poly 0x0a 6 #eceecc  Kindergarten
 poly 0x0b 6 #ffddee  Hospital
@@ -5600,26 +5636,26 @@ poly 0x12 6 #efefef  Services  # ground
 poly 0x21 6 #efefef  Tourism  # ground
 poly 0x22 6 #efefef  Historic  # ground
 poly 0x23 6 #efefef  Amenity  # ground
-poly 0x24 6 #efefef  Man-made  # ground
-poly 0x17 7 #d8e8c8  Park
-poly 0x20 7 #d8e8c8  Garden
-poly 0x18 7 #d8e8c8  Golf course
-poly 0x19 7 #efefef  Ice rink  # ground
-poly 0x09 7 #d8e8c8  Water park
-poly 0x3c 8 #9ebdff  Water
-poly 0x41 8 #9ebdff  Small water
-poly 0x46 8 #9ebdff  Riverbank
-poly 0x48 8 #9ebdff  Canal
-poly 0x3d 8 #9ebdff  Bay
-poly 0x3b 8 #9ebdff  Waterway area
-poly 0x28 8 #9ebdff  Salt pond
-poly 0x3f 8 #9ebdff  Basin
-poly 0x4c 8 #9ebdff  Dock
-poly 0x47 8 #9ebdff  Waterfall
-poly 0x51 9 #b0d59a  Marsh  # ground
+poly 0x24 8 #efefef  Man-made  # ground
+poly 0x17 8 #d8e8c8  Park
+poly 0x20 8 #d8e8c8  Garden
+poly 0x18 8 #d8e8c8  Golf course
+poly 0x19 8 #efefef  Ice rink  # ground
+poly 0x09 8 #d8e8c8  Water park
+poly 0x3c 9 #9ebdff  Water
+poly 0x41 9 #9ebdff  Small water
+poly 0x46 9 #9ebdff  Riverbank
+poly 0x48 9 #9ebdff  Canal
+poly 0x3d 9 #9ebdff  Bay
+poly 0x3b 9 #9ebdff  Waterway area
+poly 0x28 9 #9ebdff  Salt pond
+poly 0x3f 9 #9ebdff  Basin
+poly 0x4c 9 #9ebdff  Dock
+poly 0x47 9 #9ebdff  Waterfall
+poly 0x51 10 #b0d59a  Marsh  # ground
 poly 0x16 4 #d8e8c8  Nature reserve  # ground
-poly 0x11 9 #efefef  Military  # ground
-poly 0x13 10 #dcd9d6  Building
+poly 0x11 10 #efefef  Military  # ground
+poly 0x13 11 #dcd9d6  Building
 # --- lines --------------------------------------------------------------------
 line 0x01 5 #ffcc88 #e9ac77    Motorway
 line 0x09 4 #ffcc88 #e9ac77    Motorway link
@@ -13445,8 +13481,7 @@ wilderness hut|Изба
 # mkgmap's stock rules end in mop-ups that turn a raw tag value into a label --
 # `add name='${amenity|subst:"_=> "}'` -- so an unnamed shop comes out as
 # SUPERMARKET and an unnamed pier as PIER. On a Russian map that is machine
-# text in the wrong alphabet. Measured in the Crimea extract: 238 tag pairs
-# reach the labels this way, carrying 16797 objects.
+# text in the wrong alphabet.
 #
 # One line per pair: key=value|label. Applied only when the map is built with
 # Cyrillic labels; other languages keep mkgmap's English, which is the

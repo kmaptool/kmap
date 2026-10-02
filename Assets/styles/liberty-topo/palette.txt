@@ -22,7 +22,6 @@ summary a minimal topographic look — quiet ground, orange roads, contour brown
 # draws it where the land polygon has not arrived yet, and shows black
 # without it. The ground colour the style paints land with.
 poly 0x4b 1 #efefef  Background
-poly 0x32 2 #9ebdff  Sea
 poly 0x27 3 #efefef  Land
 poly 0x1c 5 #efefef  Farmland  # ground
 poly 0x29 5 #efefef  Greenhouses  # ground
@@ -35,6 +34,7 @@ poly 0x55 5 #b0d59a  Grassland
 poly 0x15 5 #b0d59a  Village green
 poly 0x1d 5 #b0d59a  Common
 poly 0x4f 5 #efefef  Scrub  # ground
+poly 0x5b 5 #efefef  Scrub
 poly 0x1e 5 #efefef  Heath  # ground
 poly 0x50 5 #ace38c  Forest
 poly 0x57 5 #ace38c  Coniferous forest
@@ -56,7 +56,10 @@ poly 0x0e 6 #f0ede9  Runway
 poly 0x05 6 #efefef  Parking  # ground
 poly 0x06 6 #efefef  Covered parking  # ground
 poly 0x1a 6 #d8e0bd  Cemetery  # worked out
-poly 0x25 6 #efefef  Square  # ground
+# The sea over the fills and what grows: a fill drawn across the shoreline in
+# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #9ebdff  Sea
+poly 0x25 8 #efefef  Square  # ground
 poly 0x08 6 #efefef  Food and drink  # ground
 poly 0x0a 6 #eceecc  Kindergarten
 poly 0x0b 6 #ffddee  Hospital
@@ -65,26 +68,26 @@ poly 0x12 6 #efefef  Services  # ground
 poly 0x21 6 #efefef  Tourism  # ground
 poly 0x22 6 #efefef  Historic  # ground
 poly 0x23 6 #efefef  Amenity  # ground
-poly 0x24 6 #efefef  Man-made  # ground
-poly 0x17 7 #d8e8c8  Park
-poly 0x20 7 #d8e8c8  Garden
-poly 0x18 7 #d8e8c8  Golf course
-poly 0x19 7 #efefef  Ice rink  # ground
-poly 0x09 7 #d8e8c8  Water park
-poly 0x3c 8 #9ebdff  Water
-poly 0x41 8 #9ebdff  Small water
-poly 0x46 8 #9ebdff  Riverbank
-poly 0x48 8 #9ebdff  Canal
-poly 0x3d 8 #9ebdff  Bay
-poly 0x3b 8 #9ebdff  Waterway area
-poly 0x28 8 #9ebdff  Salt pond
-poly 0x3f 8 #9ebdff  Basin
-poly 0x4c 8 #9ebdff  Dock
-poly 0x47 8 #9ebdff  Waterfall
-poly 0x51 9 #b0d59a  Marsh  # ground
+poly 0x24 8 #efefef  Man-made  # ground
+poly 0x17 8 #d8e8c8  Park
+poly 0x20 8 #d8e8c8  Garden
+poly 0x18 8 #d8e8c8  Golf course
+poly 0x19 8 #efefef  Ice rink  # ground
+poly 0x09 8 #d8e8c8  Water park
+poly 0x3c 9 #9ebdff  Water
+poly 0x41 9 #9ebdff  Small water
+poly 0x46 9 #9ebdff  Riverbank
+poly 0x48 9 #9ebdff  Canal
+poly 0x3d 9 #9ebdff  Bay
+poly 0x3b 9 #9ebdff  Waterway area
+poly 0x28 9 #9ebdff  Salt pond
+poly 0x3f 9 #9ebdff  Basin
+poly 0x4c 9 #9ebdff  Dock
+poly 0x47 9 #9ebdff  Waterfall
+poly 0x51 10 #b0d59a  Marsh  # ground
 poly 0x16 4 #d8e8c8  Nature reserve  # ground
-poly 0x11 9 #efefef  Military  # ground
-poly 0x13 10 #dcd9d6  Building
+poly 0x11 10 #efefef  Military  # ground
+poly 0x13 11 #dcd9d6  Building
 # --- lines --------------------------------------------------------------------
 line 0x01 5 #ffcc88 #e9ac77    Motorway
 line 0x09 4 #ffcc88 #e9ac77    Motorway link

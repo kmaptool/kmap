@@ -3,8 +3,7 @@
 # mkgmap's stock rules end in mop-ups that turn a raw tag value into a label --
 # `add name='${amenity|subst:"_=> "}'` -- so an unnamed shop comes out as
 # SUPERMARKET and an unnamed pier as PIER. On a Russian map that is machine
-# text in the wrong alphabet. Measured in the Crimea extract: 238 tag pairs
-# reach the labels this way, carrying 16797 objects.
+# text in the wrong alphabet.
 #
 # One line per pair: key=value|label. Applied only when the map is built with
 # Cyrillic labels; other languages keep mkgmap's English, which is the

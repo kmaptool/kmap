@@ -3,7 +3,7 @@ import Foundation
 /// `kmap dem-cost`: what the elevation for a region will weigh, per source, before any
 /// build. The same cells and the same source chain the build fetches.
 ///
-///     kmap dem-cost crimean-fed-district --sources=copernicus1,copernicus3
+///     kmap dem-cost australia --sources=copernicus1,copernicus3
 extension CLI {
     static func demCost(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["sources"])

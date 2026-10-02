@@ -23,12 +23,21 @@ extension BuildPipeline {
             recipe.style.typURL,
             theme: recipe.theme,
             into: recipe.workDirectory.appendingPathComponent("typ", isDirectory: true),
-            rules: recipe.style.styleDirectory
+            rules: recipe.style.styleDirectory,
+            // Only with the mkgmap that hands the copies out: a copy nothing is typed as
+            // costs nothing, but there is no call to add it.
+            liftingOpenGround: toolchain.mkgmapIsPatched
         )
         if let typ {
             for added in typ.added { log.append("added to the TYP for this build: \(added)") }
             if let note = typ.theme { log.append("TYP: " + note) }
             if let refusal = typ.refusal { log.warn(refusal) }
+            if typ.shapeLift != nil {
+                log.append("TYP: open ground lying on a larger wood is drawn over it, for this build")
+            }
+            if typ.woodsLaidOver {
+                log.append("TYP: woods drawn over the settlement tints, and those over open ground, for this build")
+            }
             // A mark that had to move takes its rules with it, or the repair links
             // would still be emitted under the number the borrowed style draws. The
             // rules are moved in this build's own snapshot of the style, never in the
@@ -59,7 +68,8 @@ extension BuildPipeline {
             outputDir: tileDir,
             tileCount: tiles.tiles.count,
             gmapsupp: false,
-            typ: typ?.url
+            typ: typ?.url,
+            shapeLift: typ?.shapeLift
         )
         arguments += ["-c", argsFile.path]
 

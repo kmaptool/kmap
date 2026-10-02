@@ -59,6 +59,84 @@ extension TypEdit {
         return lines.joined(separator: "\n")
     }
 
+    /// Rearranges the table so that the `tints` are drawn over every one of `covers` and
+    /// the `woods` over the tints: the 2 are taken out and put back, the tints on 1 new
+    /// level and the woods above them, right over the highest cover. The woods keep the
+    /// order they had among themselves, and everything that was above that cover stays
+    /// above the woods.
+    ///
+    /// - Returns: false where nothing was changed: no table, no tint or no wood in it, or
+    ///   the 3 already in that order.
+    @discardableResult
+    static func layWoodsOverTints(
+        _ lines: inout [String],
+        tints: [Int],
+        woods: [Int],
+        covers: Set<Int>
+    ) -> Bool {
+        guard let table = drawOrderTable(in: lines) else { return false }
+        let entries = table.compactMap { drawOrderEntry(of: lines[$0]) }
+        let heldTints = entries.filter { tints.contains($0.code) }
+        let heldWoods = entries.filter { woods.contains($0.code) }
+        guard let lowestTint = heldTints.map(\.level).min(), let highestTint = heldTints.map(\.level).max(),
+            let lowestWood = heldWoods.map(\.level).min()
+        else { return false }
+        let highestCover = entries.filter { covers.contains($0.code) }.map(\.level).max()
+        if highestTint < lowestWood, (highestCover ?? Int.min) < lowestTint { return false }
+
+        // Where the 2 go back in: over the highest cover, or where the lower of them was.
+        let under = highestCover ?? (min(lowestTint, lowestWood) - 1)
+        let woodLevels = Array(Set(heldWoods.map(\.level))).sorted()
+        let room = 1 + woodLevels.count
+        for code in (heldTints + heldWoods).map(\.code) { removeFromDrawOrder(&lines, code: code) }
+        guard let rest = drawOrderTable(in: lines) else { return false }
+        for number in rest {
+            guard let entry = drawOrderEntry(of: lines[number]), entry.level > under else { continue }
+            lines[number] = indentation(of: lines[number]) + "\(entry.spelling),\(entry.level + room)"
+        }
+        for tint in heldTints {
+            guard let now = drawOrderTable(in: lines) else { return false }
+            placeInDrawOrder(&lines, table: now, entry: tint.spelling, level: under + 1, note: nil)
+        }
+        for wood in heldWoods {
+            guard let now = drawOrderTable(in: lines), let step = woodLevels.firstIndex(of: wood.level)
+            else { return false }
+            placeInDrawOrder(&lines, table: now, entry: wood.spelling, level: under + 2 + step, note: nil)
+        }
+        return true
+    }
+
+    /// Puts new polygons on levels of their own right over the highest of `woods`: each
+    /// with the step it is to stand on, 0 the lowest, and everything that was over the
+    /// woods moving up to make room.
+    ///
+    /// - Returns: false where nothing was changed: no table, or no wood in it.
+    @discardableResult
+    static func layOverWoods(_ lines: inout [String], lifted: [(code: Int, step: Int)], woods: [Int]) -> Bool {
+        guard let table = drawOrderTable(in: lines), !lifted.isEmpty else { return false }
+        let entries = table.compactMap { number in
+            drawOrderEntry(of: lines[number]).map { (number: number, entry: $0) }
+        }
+        guard let top = entries.filter({ woods.contains($0.entry.code) }).map(\.entry.level).max()
+        else { return false }
+        let room = (lifted.map(\.step).max() ?? 0) + 1
+        for (number, entry) in entries where entry.level > top {
+            lines[number] = indentation(of: lines[number]) + "\(entry.spelling),\(entry.level + room)"
+        }
+        for one in lifted {
+            removeFromDrawOrder(&lines, code: one.code)
+            guard let now = drawOrderTable(in: lines) else { return false }
+            placeInDrawOrder(
+                &lines,
+                table: now,
+                entry: "Type=\(TypeMeaning.hex(one.code))",
+                level: top + 1 + one.step,
+                note: addedNote
+            )
+        }
+        return true
+    }
+
     /// Writes an entry after the last one at or below its level, or at the top where
     /// none is. The note goes on its own line: the TYP compiler reads an entry to the
     /// end of the line, and a comment behind the level breaks the whole file.

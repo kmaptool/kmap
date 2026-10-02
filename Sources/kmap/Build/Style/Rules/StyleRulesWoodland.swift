@@ -136,6 +136,30 @@ extension StyleCatalog {
         }
     }
 
+    /// A plain floor under scrub, 0x5b, as every wood has 0x59. The scrub's own number
+    /// carries a drawn texture and waits for the resolution the paths arrive at; without
+    /// a floor the ground under it is bare until then.
+    func addScrubFloor(in directory: URL, log: Log) throws {
+        let marker = "# --- kmap: scrub floor"
+        let rules = [
+            marker + " ------------------------------------------------",
+            "# The floor from 18, with the wood's; the texture follows on its own number.",
+            "natural=scrub [0x5b resolution 18 continue]",
+            ""
+        ]
+        switch try insertRules(
+            rules.joined(separator: "\n"),
+            marked: marker,
+            beforeLineWith: "natural=scrub [0x4f",
+            intoFile: "polygons",
+            in: directory
+        ) {
+        case .added: log.append("scrub given a plain floor, as the woods have")
+        case .missingAnchor: log.warn("the stock scrub rule was not found - scrub left without a floor")
+        case .leftAlone: break
+        }
+    }
+
     /// Ground cover the stock rule set leaves blank: `natural=grassland`, `natural=bare_rock`
     /// and `natural=scree` appear in no mkgmap rule. Each gets a type of its own;
     /// bare rock does not reuse 0x52, which is tundra.
