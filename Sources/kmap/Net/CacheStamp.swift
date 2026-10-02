@@ -46,6 +46,21 @@ struct CacheStamp: Codable, Equatable {
         return md5 != remoteMD5
     }
 
+    /// Whether what the server offers was published before the cached copy: a mirror that
+    /// has lost `-latest` stands in with an older dated file, and taking it would swap the
+    /// newer extract for an older one. Only a readable date on both sides says so, and
+    /// only by more than `olderBy`: extracts come out a day apart, and a proxy's clock
+    /// that is a few hours off must not hold a fresh extract back.
+    func isNewer(thanOffered remoteModified: String?) -> Bool {
+        guard let lastModified, let remoteModified,
+            let cached = DataPack.date(of: lastModified),
+            let offered = DataPack.date(of: remoteModified)
+        else { return false }
+        return cached.timeIntervalSince(offered) > Self.olderBy
+    }
+
+    static let olderBy: TimeInterval = 12 * 3600
+
     /// Whether the server is still offering exactly what was cached.
     ///
     /// Both halves have to agree, and a server that reports neither is not taken as

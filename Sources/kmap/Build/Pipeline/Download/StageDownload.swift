@@ -44,7 +44,9 @@ extension BuildPipeline {
         let slices = DownloadSlices(sizes: sizes)
         // What each region will cost to fetch: nothing where the cached copy is current.
         let toFetch = regions.indices.map {
-            cachedCopyIsCurrent(at: cached[$0], remote: probes[$0].source?.info) ? 0 : sizes[$0]
+            let remote = probes[$0].source?.info
+            return cachedCopyIsCurrent(at: cached[$0], remote: remote)
+                || cachedCopyIsNewer(at: cached[$0], remote: remote) != nil ? 0 : sizes[$0]
         }
 
         var out: [URL] = []
@@ -159,6 +161,20 @@ extension BuildPipeline {
             && stamp.matches(size: remote.size, lastModified: remote.lastModified)
     }
 
+    /// The 2 publication dates where the cached copy, whole, is newer than what the server
+    /// offers; nil where it is not, or where a date is missing.
+    private func cachedCopyIsNewer(
+        at destination: URL,
+        remote: Downloader.RemoteInfo?
+    ) -> (cached: String, offered: String)? {
+        guard let stamp = CacheStamp.read(besides: destination),
+            FileTools.size(of: destination) == stamp.size,
+            stamp.isNewer(thanOffered: remote?.lastModified),
+            let cached = stamp.lastModified, let offered = remote?.lastModified
+        else { return nil }
+        return (cached, offered)
+    }
+
     /// Reports the region as served from the cache, filling its slice of the bar.
     private func settleOnCachedCopy(_ job: ExtractJob) {
         let size = Fmt.bytes(FileTools.size(of: job.destination))
@@ -176,6 +192,15 @@ extension BuildPipeline {
 
         if cachedCopyIsCurrent(at: job.destination, remote: job.remote) {
             log.ok("cached extract is current (\(Fmt.bytes(FileTools.size(of: job.destination))))")
+            settleOnCachedCopy(job)
+            return true
+        }
+
+        if let dates = cachedCopyIsNewer(at: job.destination, remote: job.remote) {
+            log.ok(
+                "the server offers an extract published \(dates.offered), older than the cached one"
+                    + " (\(dates.cached)) — keeping the cached extract"
+            )
             settleOnCachedCopy(job)
             return true
         }

@@ -50,6 +50,26 @@ final class CacheStampTests: XCTestCase {
         )
     }
 
+    // MARK: An older extract on offer
+
+    func testAnOlderExtractOnOfferIsSeenAsOlder() {
+        // A mirror without `-latest` offers the day before's dated file.
+        XCTAssertTrue(stamp().isNewer(thanOffered: "Tue, 18 Aug 2026 10:30:49 GMT"))
+    }
+
+    func testTheSameOrANewerExtractIsNotOlder() {
+        XCTAssertFalse(stamp().isNewer(thanOffered: modified))
+        // A few hours apart is a clock, not an older extract.
+        XCTAssertFalse(stamp().isNewer(thanOffered: "Wed, 19 Aug 2026 15:14:11 GMT"))
+        XCTAssertFalse(stamp().isNewer(thanOffered: "Thu, 20 Aug 2026 10:30:49 GMT"))
+    }
+
+    func testWithoutADateOnBothSidesNothingIsOlder() {
+        XCTAssertFalse(stamp().isNewer(thanOffered: nil))
+        XCTAssertFalse(undated().isNewer(thanOffered: modified))
+        XCTAssertFalse(stamp().isNewer(thanOffered: "yesterday"))
+    }
+
     func testAServerThatSaysNothingIsNotTakenAsAgreement() {
         // With no date, nothing here can tell a new extract from the old one.
         XCTAssertFalse(stamp().matches(size: 1000, lastModified: nil))
