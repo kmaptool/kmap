@@ -16,8 +16,107 @@ extension Toolchain {
         let area = "uk/me/parabola/mkgmap/build/MapArea.java"
         let splitter = "uk/me/parabola/mkgmap/build/MapSplitter.java"
         let remover = "uk/me/parabola/mkgmap/reader/osm/UnusedElementsRemoverHook.java"
+        let preparer = "uk/me/parabola/imgfmt/app/trergn/LinePreparer.java"
 
         let edits: [(String, String, String)] = [
+            // mkgmap tries a few bases for a line's deltas and writes the whole stream for
+            // each, only to compare the lengths. The lengths are counted here instead, and
+            // only a stream that can be returned is written: the same bytes, sooner.
+            (
+                preparer,
+                "\tpublic BitWriter makeShortestBitStream(int minPointsRequired) {\n"
+                    + "\t\tBitWriter bsSimple = makeBitStream(minPointsRequired, xBase, yBase);",
+                """
+                \tpublic BitWriter makeShortestBitStream(int minPointsRequired) {
+                \t\tBitWriter bsSimple = makeBitStream(minPointsRequired, xBase, yBase);
+                \t\tif (bsSimple == null)
+                \t\t\treturn bsSimple;
+                \t\tint bestBits = bsSimple.getBitPosition();
+                \t\tint xBestBase = xBase;
+                \t\tint yBestBase = yBase;
+                \t\tif (xBase > 0) {
+                \t\t\tint notBetter = 0;
+                \t\t\tint xTestBase = xBase - 1;
+                \t\t\tboolean xSameSignBak = xSameSign;
+                \t\t\tif (xSameSign) {
+                \t\t\t\txSameSign = false;
+                \t\t\t\t--xTestBase;
+                \t\t\t}
+                \t\t\tfor (; xTestBase >= 0; xTestBase--) {
+                \t\t\t\tint bits = kmapBitLength(minPointsRequired, xTestBase, yBase);
+                \t\t\t\tif (bits >= bestBits) {
+                \t\t\t\t\tif (++notBetter >= 2)
+                \t\t\t\t\t\tbreak;
+                \t\t\t\t} else {
+                \t\t\t\t\txBestBase = xTestBase;
+                \t\t\t\t\tbestBits = bits;
+                \t\t\t\t\txSameSignBak = false;
+                \t\t\t\t}
+                \t\t\t}
+                \t\t\txSameSign = xSameSignBak;
+                \t\t}
+                \t\tif (yBase > 0) {
+                \t\t\tint notBetter = 0;
+                \t\t\tint yTestBase = yBase - 1;
+                \t\t\tboolean ySameSignBak = ySameSign;
+                \t\t\tif (ySameSign) {
+                \t\t\t\tySameSign = false;
+                \t\t\t\t--yTestBase;
+                \t\t\t}
+                \t\t\tfor (; yTestBase >= 0; yTestBase--) {
+                \t\t\t\tint bits = kmapBitLength(minPointsRequired, xBestBase, yTestBase);
+                \t\t\t\tif (bits >= bestBits) {
+                \t\t\t\t\tif (++notBetter >= 2)
+                \t\t\t\t\t\tbreak;
+                \t\t\t\t} else {
+                \t\t\t\t\tyBestBase = yTestBase;
+                \t\t\t\t\tbestBits = bits;
+                \t\t\t\t\tySameSignBak = false;
+                \t\t\t\t}
+                \t\t\t}
+                \t\t\tySameSign = ySameSignBak;
+                \t\t}
+                \t\tif (xBestBase == xBase && yBestBase == yBase)
+                \t\t\treturn bsSimple;
+                \t\t// The sign flags now are the ones the best trial was counted with.
+                \t\tBitWriter bsBest = makeBitStream(minPointsRequired, xBestBase, yBestBase);
+                \t\treturn bsSimple.getLength() == bsBest.getLength() ? bsSimple : bsBest;
+                \t}
+
+                \t/** kmap: the bit position makeBitStream would end at, counted instead of written.
+                \t * A width the writer refuses goes to the writer, so it fails as it would. */
+                \tprivate int kmapBitLength(int minPointsRequired, int xb, int yb) {
+                \t\tint xbits = base2Bits(xb) + (xSameSign ? 0 : 1);
+                \t\tint ybits = base2Bits(yb) + (ySameSign ? 0 : 1);
+                \t\tif (xbits >= 24 || ybits >= 24)
+                \t\t\treturn makeBitStream(minPointsRequired, xb, yb).getBitPosition();
+                \t\tint bits = 8 + (xSameSign ? 2 : 1) + (ySameSign ? 2 : 1) + (extTypeLine ? 1 : 0) + (extraBit ? 1 : 0);
+                \t\tfor (int i = 0; i < deltas.length; i += 2) {
+                \t\t\tint dx = deltas[i];
+                \t\t\tint dy = deltas[i + 1];
+                \t\t\tif (dx == 0 && dy == 0 && extraBit && !nodes[i / 2 + 1] && i + 2 != deltas.length)
+                \t\t\t\tcontinue;
+                \t\t\tbits += xSameSign ? xbits : kmapSignedBits(dx, xbits);
+                \t\t\tbits += ySameSign ? ybits : kmapSignedBits(dy, ybits);
+                \t\t\tif (extraBit)
+                \t\t\t\tbits++;
+                \t\t}
+                \t\treturn bits;
+                \t}
+
+                \t/** kmap: what BitWriter.sputn writes for a value: nb bits, and nb more for every
+                \t * extended-range flag put before a value that does not fit. */
+                \tprivate static int kmapSignedBits(int v, int nb) {
+                \t\tint mask = (1 << (nb - 1)) - 1;
+                \t\tint val = Math.abs(v);
+                \t\treturn val > mask ? nb * (1 + (val - 1) / mask) : nb;
+                \t}
+
+                \t/** kmap: mkgmap's own search, which writes every trial stream out; unused. */
+                \tprivate BitWriter kmapWritingEachTrial(int minPointsRequired) {
+                \t\tBitWriter bsSimple = makeBitStream(minPointsRequired, xBase, yBase);
+                """
+            ),
             // What covers what, where two lines are drawn over the same ground, is decided
             // by the order the map stores them in — and mkgmap stores them in the order
             // they happened to arrive. These edits give that order a rule: kmap reads the
@@ -79,6 +178,7 @@ extension Toolchain {
                 \t\t}
                 \t\tif (fills.isEmpty() || covers.isEmpty())
                 \t\t\treturn;
+                \t\tjava.util.Map<List<Coord>, KmapRing> rings = new java.util.IdentityHashMap<>();
                 \t\t// The covers by the cells they reach, 2048 map units a side.
                 \t\tfinal int kmapCell = 11;
                 \t\tjava.util.Map<Long, List<MapShape>> grid = new java.util.HashMap<>();
@@ -117,8 +217,8 @@ extension Toolchain {
                 \t\t\t\tCoord corner = corners.get(i);
                 \t\t\t\ttried++;
                 \t\t\t\tfor (MapShape c : larger) {
-                \t\t\t\t\tif (c.getBounds().contains(corner) && uk.me.parabola.util.IsInUtil
-                \t\t\t\t\t\t\t.isPointInShape(corner, c.getPoints()) == uk.me.parabola.util.IsInUtil.IN) {
+                \t\t\t\t\tif (c.getBounds().contains(corner)
+                \t\t\t\t\t\t\t&& rings.computeIfAbsent(c.getPoints(), KmapRing::new).isIn(corner)) {
                 \t\t\t\t\t\tinside++;
                 \t\t\t\t\t\tbreak;
                 \t\t\t\t\t}
@@ -126,6 +226,113 @@ extension Toolchain {
                 \t\t\t}
                 \t\t\tif (inside * 4 >= tried)
                 \t\t\t\tf.setType(kmapLift.get(f.getType()));
+                \t\t}
+                \t}
+                \t/** kmap: IsInUtil.isPointInShape with the same answer, asking only the edges that
+                \t * reach the point's latitude: the others can neither cross the ray nor touch the
+                \t * point. The edges are kept in bands of latitude, about 8 to a band. */
+                \tprivate static final class KmapRing {
+                \t\tprivate static final int EPS = 4;
+                \t\tprivate final int[] lat;
+                \t\tprivate final int[] lon;
+                \t\tprivate int base;
+                \t\tprivate int top = -1;
+                \t\tprivate int shift;
+                \t\tprivate int[] bandStart;
+                \t\tprivate int[] bandEdges;
+
+                \t\tKmapRing(List<Coord> points) {
+                \t\t\tint n = points.size();
+                \t\t\tlat = new int[n];
+                \t\t\tlon = new int[n];
+                \t\t\tfor (int i = 0; i < n; i++) {
+                \t\t\t\tlat[i] = points.get(i).getHighPrecLat();
+                \t\t\t\tlon[i] = points.get(i).getHighPrecLon();
+                \t\t\t}
+                \t\t\tint edges = n - 1;
+                \t\t\tif (edges < 1)
+                \t\t\t\treturn;
+                \t\t\tint[] lo = new int[edges];
+                \t\t\tint[] hi = new int[edges];
+                \t\t\tbase = Integer.MAX_VALUE;
+                \t\t\ttop = Integer.MIN_VALUE;
+                \t\t\tfor (int i = 0; i < edges; i++) {
+                \t\t\t\tlo[i] = Math.min(lat[i], lat[i + 1]) - EPS;
+                \t\t\t\thi[i] = Math.max(lat[i], lat[i + 1]) + EPS;
+                \t\t\t\tbase = Math.min(base, lo[i]);
+                \t\t\t\ttop = Math.max(top, hi[i]);
+                \t\t\t}
+                \t\t\tlong span = (long) top - base + 1;
+                \t\t\twhile ((span >> shift) > Math.max(1, edges / 8))
+                \t\t\t\tshift++;
+                \t\t\tint bands = (int) ((span - 1) >> shift) + 1;
+                \t\t\tint[] at = new int[bands + 1];
+                \t\t\tfor (int i = 0; i < edges; i++)
+                \t\t\t\tfor (int b = (lo[i] - base) >> shift; b <= (hi[i] - base) >> shift; b++)
+                \t\t\t\t\tat[b + 1]++;
+                \t\t\tfor (int b = 0; b < bands; b++)
+                \t\t\t\tat[b + 1] += at[b];
+                \t\t\tbandStart = at.clone();
+                \t\t\tbandEdges = new int[at[bands]];
+                \t\t\tfor (int i = 0; i < edges; i++)
+                \t\t\t\tfor (int b = (lo[i] - base) >> shift; b <= (hi[i] - base) >> shift; b++)
+                \t\t\t\t\tbandEdges[at[b]++] = i;
+                \t\t}
+
+                \t\tboolean isIn(Coord node) {
+                \t\t\tint nodeLat = node.getHighPrecLat();
+                \t\t\tint nodeLon = node.getHighPrecLon();
+                \t\t\tif (nodeLat < base || nodeLat > top)
+                \t\t\t\treturn false;
+                \t\t\tint b = (nodeLat - base) >> shift;
+                \t\t\tint rhs = 0;
+                \t\t\tfor (int k = bandStart[b]; k < bandStart[b + 1]; k++) {
+                \t\t\t\tint r = edge(bandEdges[k], nodeLat, nodeLon);
+                \t\t\t\tif (r == 3)
+                \t\t\t\t\treturn false;
+                \t\t\t\tif (r == 1)
+                \t\t\t\t\trhs++;
+                \t\t\t}
+                \t\t\treturn (rhs & 1) == 1;
+                \t\t}
+
+                \t\t/** The body of isPointInShape's loop for the edge from point i to i + 1:
+                \t\t * 0 nothing, 1 a crossing on the right, 2 one on the left, 3 ON. */
+                \t\tprivate int edge(int i, int nodeLat, int nodeLon) {
+                \t\t\tint trailLat = lat[i], trailLon = lon[i];
+                \t\t\tint leadLat = lat[i + 1], leadLon = lon[i + 1];
+                \t\t\tint dLat = nodeLat - leadLat;
+                \t\t\tint dLon = ((nodeLon - leadLon) << 2) >> 2;
+                \t\t\tif ((long) dLat * dLat + (long) dLon * dLon < EPS * EPS)
+                \t\t\t\treturn 3;
+                \t\t\tint minLat = Math.min(leadLat, trailLat), maxLat = Math.max(leadLat, trailLat);
+                \t\t\tint minLon = Math.min(leadLon, trailLon), maxLon = Math.max(leadLon, trailLon);
+                \t\t\tif (minLat - EPS > nodeLat || maxLat + EPS < nodeLat)
+                \t\t\t\treturn 0;
+                \t\t\tif (minLon - EPS > nodeLon && minLat < nodeLat && maxLat > nodeLat)
+                \t\t\t\treturn 1;
+                \t\t\tif (maxLon + EPS < nodeLon && minLat < nodeLat && maxLat > nodeLat)
+                \t\t\t\treturn 2;
+                \t\t\tdouble lonDif = leadLat == trailLat ? Double.POSITIVE_INFINITY
+                \t\t\t\t\t: nodeLon - trailLon - (double) (nodeLat - trailLat) / (leadLat - trailLat) * (leadLon - trailLon);
+                \t\t\tif (minLon - EPS <= nodeLon && maxLon + EPS >= nodeLon) {
+                \t\t\t\tdouble latDif = leadLon == trailLon ? Double.POSITIVE_INFINITY
+                \t\t\t\t\t\t: nodeLat - trailLat - (double) (nodeLon - trailLon) / (leadLon - trailLon) * (leadLat - trailLat);
+                \t\t\t\tdouble distSqrd;
+                \t\t\t\tif (Double.isInfinite(lonDif))
+                \t\t\t\t\tdistSqrd = latDif * latDif;
+                \t\t\t\telse if (Double.isInfinite(latDif))
+                \t\t\t\t\tdistSqrd = lonDif * lonDif;
+                \t\t\t\telse if (Math.abs(lonDif) < EPS || Math.abs(latDif) < EPS)
+                \t\t\t\t\treturn 3;
+                \t\t\t\telse
+                \t\t\t\t\tdistSqrd = lonDif * lonDif * latDif * latDif / (lonDif * lonDif + latDif * latDif);
+                \t\t\t\tif (distSqrd < EPS * EPS)
+                \t\t\t\t\treturn 3;
+                \t\t\t}
+                \t\t\tif ((trailLat <= nodeLat && leadLat > nodeLat) || (trailLat > nodeLat && leadLat <= nodeLat))
+                \t\t\t\treturn lonDif < 0 ? 1 : 2;
+                \t\t\treturn 0;
                 \t\t}
                 \t}
                 """

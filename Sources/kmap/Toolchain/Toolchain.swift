@@ -167,7 +167,7 @@ final class Toolchain: @unchecked Sendable {
     static let patchMarker = "kmap-patch.properties"
     /// Raise when the edits change. A jar carrying a lower number counts as unpatched and
     /// is rebuilt at the next start or build, see `renewStalePatch`.
-    static let patchVersion = 19
+    static let patchVersion = 20
 
     static var patchedMkgmapURL: URL {
         Paths.tools.appendingPathComponent("mkgmap/\(patchedMkgmapName)")
