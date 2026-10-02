@@ -114,37 +114,48 @@ enum ExtractLocator {
 
     /// Asks for every candidate at once and takes the newest that answers. They are in
     /// date order, newest first.
+    ///
+    /// Each answer goes to its own place and is read once the group is done, never passed
+    /// back through it: on x86-64 Windows, Swift 6.3 corrupts an index a group's task returns.
     private static func newestAnswering(_ candidates: [URL], probe: @escaping Probe) async -> Asked {
-        await withTaskGroup(of: (Int, Result<Downloader.RemoteInfo, Error>).self) { group in
+        let answers = Locked([Result<Downloader.RemoteInfo, Error>?](repeating: nil, count: candidates.count))
+        await withTaskGroup(of: Void.self) { group in
             for (index, url) in candidates.enumerated() {
                 group.addTask {
-                    do { return (index, .success(try await probe(url, datedTimeout))) } catch {
-                        return (index, .failure(error))
-                    }
+                    let answer: Result<Downloader.RemoteInfo, Error>
+                    do { answer = .success(try await probe(url, datedTimeout)) } catch { answer = .failure(error) }
+                    answers.withLock { $0[index] = answer }
                 }
             }
-            var asked = Asked()
-            var best: (index: Int, info: Downloader.RemoteInfo)?
-            for await (index, answer) in group {
-                switch answer {
-                case .success(let info):
-                    if best.map({ index < $0.index }) ?? true { best = (index, info) }
-                case .failure(let error):
-                    if status(of: error) != notFound { asked.allGone = false }
-                    if status(of: error) == tooManyRequests { asked.throttled = true }
-                }
-            }
-            if let best {
-                let url = candidates[best.index]
-                asked.found = ExtractSource(
-                    url: url,
-                    md5: checksum(of: url),
-                    info: best.info,
-                    standIn: url.lastPathComponent
-                )
-            }
-            return asked
         }
+        return pickNewest(candidates, answers.withLock { $0 })
+    }
+
+    /// The first candidate that answered, and what the rest said.
+    private static func pickNewest(
+        _ candidates: [URL],
+        _ answers: [Result<Downloader.RemoteInfo, Error>?]
+    ) -> Asked {
+        var asked = Asked()
+        for (url, answer) in zip(candidates, answers) {
+            switch answer {
+            case .success(let info):
+                if asked.found == nil {
+                    asked.found = ExtractSource(
+                        url: url,
+                        md5: checksum(of: url),
+                        info: info,
+                        standIn: url.lastPathComponent
+                    )
+                }
+            case .failure(let error):
+                if status(of: error) != notFound { asked.allGone = false }
+                if status(of: error) == tooManyRequests { asked.throttled = true }
+            case nil:
+                asked.allGone = false
+            }
+        }
+        return asked
     }
 
     private static func checksum(of file: URL) -> URL? {
