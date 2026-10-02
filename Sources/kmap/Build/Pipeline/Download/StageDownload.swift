@@ -127,17 +127,21 @@ extension BuildPipeline {
     /// again. A build of one region has nothing to apportion and asks later.
     private func probeExtracts() async -> [Probe] {
         let regions = recipe.regions
-        var answers = [Probe](repeating: (nil, nil), count: regions.count)
-        guard regions.count > 1 else { return answers }
+        // Each answer goes to its own place, not back through the group: see
+        // `ExtractLocator.newestAnswering`.
+        let answers = Locked([Probe](repeating: (nil, nil), count: regions.count))
+        guard regions.count > 1 else { return answers.withLock { $0 } }
         set(.download, .running, t("checking for a newer extract"))
-        await withTaskGroup(of: (Int, Probe).self) { group in
+        await withTaskGroup(of: Void.self) { group in
             for (index, region) in regions.enumerated() {
                 guard let url = region.pbfURL else { continue }
-                group.addTask { (index, await Self.probeOnce(url)) }
+                group.addTask {
+                    let answer = await Self.probeOnce(url)
+                    answers.withLock { $0[index] = answer }
+                }
             }
-            for await (index, answer) in group { answers[index] = answer }
         }
-        return answers
+        return answers.withLock { $0 }
     }
 
     /// The retried probe, its failure kept as words rather than thrown.

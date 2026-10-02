@@ -251,7 +251,10 @@ enum CoarseEvidence {
         )
         let span = (wanted.count + cores - 1) / cores
         let all = wanted
-        await withTaskGroup(of: (Evidence, [Int]).self) { group in
+        // Each core's part goes to its own place, not back through the group: see
+        // `ExtractLocator.newestAnswering`. Merged in core order once all are done.
+        let parts = Locked([(Evidence, [Int])?](repeating: nil, count: cores))
+        await withTaskGroup(of: Void.self) { group in
             for core in 0..<cores {
                 let from = core * span
                 let upTo = min(all.count, from + span)
@@ -281,13 +284,14 @@ enum CoarseEvidence {
                         )
                         rescued.append(at)
                     }
-                    return (mine, rescued)
+                    let part = (mine, rescued)
+                    parts.withLock { $0[core] = part }
                 }
             }
-            for await (part, rescued) in group {
-                evidence.merge(part)
-                for at in rescued { matches[at] = Evidence.Match.matched.rawValue }
-            }
+        }
+        for case let (part, rescued)? in parts.withLock({ $0 }) {
+            evidence.merge(part)
+            for at in rescued { matches[at] = Evidence.Match.matched.rawValue }
         }
     }
 

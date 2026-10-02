@@ -39,8 +39,10 @@ extension BuildPipeline {
                     + " \(atOnce == 1 ? "one region" : "\(atOnce) regions") at a time"
             )
         }
-        var results = [[String]](repeating: [], count: extracts.count)
-        try await withThrowingTaskGroup(of: (Int, [String]).self) { group in
+        // Each region's files go to its own place, not back through the group: see
+        // `ExtractLocator.newestAnswering`.
+        let results = Locked([[String]](repeating: [], count: extracts.count))
+        try await withThrowingTaskGroup(of: Void.self) { group in
             var next = 0
             var running = 0
             func launch(_ index: Int) {
@@ -54,16 +56,14 @@ extension BuildPipeline {
                     contours = nil
                 }
                 group.addTask { [weak self] in
-                    guard let self else { return (index, []) }
-                    return (
-                        index,
-                        try await self.annotateBarriersIfNeeded(
-                            extract,
-                            contoursReady: contours,
-                            suffix: extracts.count > 1 ? "-\(index)" : "",
-                            regionIndex: index
-                        )
+                    guard let self else { return }
+                    let files = try await self.annotateBarriersIfNeeded(
+                        extract,
+                        contoursReady: contours,
+                        suffix: extracts.count > 1 ? "-\(index)" : "",
+                        regionIndex: index
                     )
+                    results.withLock { $0[index] = files }
                 }
                 next += 1
                 running += 1
@@ -71,9 +71,7 @@ extension BuildPipeline {
             while next < extracts.count && running < atOnce { launch(next) }
             var done = 0
             while running > 0 {
-                if let (index, files) = try await group.next() {
-                    results[index] = files
-                }
+                try await group.next()
                 running -= 1
                 done += 1
                 advance(
@@ -84,7 +82,7 @@ extension BuildPipeline {
                 if next < extracts.count { launch(next) }
             }
         }
-        return results.flatMap { $0 }
+        return results.withLock { $0 }.flatMap { $0 }
     }
 
     /// Rewrites one extract with what mkgmap's rule language cannot express: barriers
