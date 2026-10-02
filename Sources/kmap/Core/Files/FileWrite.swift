@@ -22,6 +22,33 @@ extension FileTools {
         try write(Data(text.utf8), to: url)
     }
 
+    /// Writes atomically a file only its owner may read, such as one holding passwords.
+    /// On the Unixes the file is created with mode 0600, so it is never readable by others,
+    /// not even before the rename; on Windows the profile's own permissions keep it.
+    static func writePrivate(_ text: String, to url: URL) throws {
+        #if os(Windows)
+        try write(text, to: url)
+        #else
+        let temporary = url.deletingLastPathComponent()
+            .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString.prefix(8))")
+        let descriptor = open(temporary.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+        guard descriptor >= 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        do {
+            let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+            try handle.write(contentsOf: Data(text.utf8))
+            try handle.close()
+            guard rename(temporary.path, url.path) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+        } catch {
+            unlink(temporary.path)
+            throw error
+        }
+        #endif
+    }
+
     /// Moves a file or a directory. Fails where the destination already exists.
     static func move(_ source: URL, to destination: URL) throws {
         #if os(Windows)

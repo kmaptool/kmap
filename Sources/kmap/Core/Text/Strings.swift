@@ -471,10 +471,13 @@ enum Strings {
         "deleted": "удалено",
         "could not delete: %@": "не удалось удалить: %@",
         "could not save the settings: %@": "не удалось сохранить настройки: %@",
+        "could not save the login: %@": "не удалось сохранить логин: %@",
         "%@ is not the file kmap knows (SHA-256 %@) — refused":
             "%@ — не тот файл, который знает kmap (SHA-256 %@), отклонён",
         "the patch is built for mkgmap r%@ only, and this mkgmap is r%@":
             "патч собирается только для mkgmap r%@, а здесь r%@",
+        "pyhgtmap's file cannot hold a value with a line break or in square brackets":
+            "файл pyhgtmap не может хранить значение с переводом строки или в квадратных скобках",
         "deleted %@": "удалён %@",
         "deleted %@ — it was the default, which is now %@": "удалён %@ — он был по умолчанию, теперь это %@",
         "deleted %@ — nothing is left to be the default": "удалён %@ — быть по умолчанию больше нечему",

@@ -24,16 +24,25 @@ extension SettingsScreen {
 
     func commit(_ field: Field, _ ctx: AppContext) {
         let value = draft.trimmingCharacters(in: .whitespaces)
+        // Logins live in pyhgtmap's file, not in the settings.
+        if let service = field.service {
+            let login = ElevationLogins.load(service)
+            do {
+                switch field {
+                case .usgsUser, .jaxaUser: try ElevationLogins.save(service, user: value, password: login.password)
+                default: try ElevationLogins.save(service, user: login.user, password: value)
+                }
+                message = t("saved")
+                verifyLogin(service)
+            } catch {
+                message = t("could not save the login: %@", error.localizedDescription)
+            }
+            return
+        }
         let saved = ctx.settings.update { settings in
             switch field {
             case .output: if !value.isEmpty { settings.outputDirectory = value }
             case .work: settings.workDirectory = value.isEmpty ? Paths.work.path : value
-            case .usgsUser, .jaxaUser:
-                guard let service = field.service else { return }
-                ElevationLogins.save(service, user: value, password: ElevationLogins.load(service).password)
-            case .usgsPassword, .jaxaPassword:
-                guard let service = field.service else { return }
-                ElevationLogins.save(service, user: ElevationLogins.load(service).user, password: value)
             case .mkgmapJar: settings.mkgmapJar = value
             case .javaBinary: settings.javaBinary = value
             default: break
@@ -43,8 +52,6 @@ extension SettingsScreen {
         case .success: message = t("saved")
         case .failure(let error): message = t("could not save the settings: %@", error.localizedDescription)
         }
-        // The verdict decides whether srtm and alos are offered at all.
-        if let service = field.service { verifyLogin(service) }
     }
 
     private func verifyLogin(_ service: ElevationLogins.Service) {

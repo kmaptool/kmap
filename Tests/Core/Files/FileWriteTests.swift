@@ -22,6 +22,40 @@ final class FileWriteTests: XCTestCase {
         XCTAssertEqual(FileTools.contents(of: dir).map(\.lastPathComponent), ["lines"], "no temporary file left")
     }
 
+    func testAPrivateFileIsTheOwnersAloneFromTheStart() throws {
+        #if os(Windows)
+        throw XCTSkip("Windows keeps a profile's files by its own permissions")
+        #else
+        let file = dir.appendingPathComponent("config.yaml")
+        try FileTools.writePrivate("srtm-password: \"secret\"\n", to: file)
+        let mode = try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? Int
+        XCTAssertEqual(mode, 0o600)
+        XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "srtm-password: \"secret\"\n")
+        XCTAssertEqual(FileTools.contents(of: dir).map(\.lastPathComponent), ["config.yaml"], "no temporary file left")
+        #endif
+    }
+
+    func testAPrivateWriteReplacesAWiderFileAndNarrowsIt() throws {
+        #if os(Windows)
+        throw XCTSkip("Windows keeps a profile's files by its own permissions")
+        #else
+        let file = dir.appendingPathComponent("config.yaml")
+        try FileTools.write("old: \"readable by all\"\n", to: file)
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path)
+        try FileTools.writePrivate("new: \"secret\"\n", to: file)
+        let mode = try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? Int
+        XCTAssertEqual(mode, 0o600)
+        XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "new: \"secret\"\n")
+        XCTAssertEqual(FileTools.contents(of: dir).map(\.lastPathComponent), ["config.yaml"], "no temporary file left")
+        #endif
+    }
+
+    func testAPrivateWriteIntoAMissingFolderIsRefused() {
+        let file = dir.appendingPathComponent("nowhere/config.yaml")
+        XCTAssertThrowsError(try FileTools.writePrivate("x", to: file))
+        XCTAssertFalse(FileTools.exists(file))
+    }
+
     func testDataComesBackByteForByte() throws {
         let file = dir.appendingPathComponent("blob.bin")
         let bytes = Data((0..<70_000).map { UInt8(truncatingIfNeeded: $0 &* 31) })

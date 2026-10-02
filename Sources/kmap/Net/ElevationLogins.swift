@@ -40,19 +40,33 @@ enum ElevationLogins {
     /// pyhgtmap uses ConfigArgParse: keys are its long option names without the leading
     /// dashes. A nested `srtm:` block would collapse to `--srtm=`, which it rejects as
     /// ambiguous against `--srtm-user` and `--srtm-password`.
+    ///
+    /// The file is ConfigArgParse's own format, not YAML: `key: value`, with 1 pair of
+    /// matching quotes taken off and no escapes. Read here by the same expression.
+    private static let line = try? NSRegularExpression(
+        pattern: #"^(?<key>[^:=;#\s]+)\s*"#
+            + #"(?:(?<equal>[:=\s])\s*(['"]?)(?<value>.+?)?\3)?"#
+            + #"\s*(?:\s[;#]\s*(?<comment>.*?)\s*)?$"#
+    )
+
     private static func parse() -> [String: String] {
         guard let text = try? String(contentsOf: configFile, encoding: .utf8) else { return [:] }
+        return parse(text)
+    }
+
+    static func parse(_ text: String) -> [String: String] {
+        guard let line else { return [:] }
         var values: [String: String] = [:]
+        // `Lines.of` strips a trailing carriage return, which would end up in the value.
         for rawLine in Lines.of(text) {
-            // `Lines.of` strips a trailing carriage return, which `split` would leave on
-            // the value.
-            let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !line.hasPrefix("#"), let colon = line.firstIndex(of: ":") else { continue }
-            let key = line[line.startIndex..<colon].trimmingCharacters(in: .whitespacesAndNewlines)
-            let value = line[line.index(after: colon)...]
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-            values[key] = value
+            let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, !"#;[".contains(trimmed.first!), !trimmed.hasPrefix("---") else { continue }
+            let range = NSRange(trimmed.startIndex..., in: trimmed)
+            guard let match = line.firstMatch(in: trimmed, range: range),
+                let key = Range(match.range(withName: "key"), in: trimmed)
+            else { continue }
+            let value = Range(match.range(withName: "value"), in: trimmed).map { String(trimmed[$0]) } ?? ""
+            values[String(trimmed[key])] = value
         }
         return values
     }
@@ -65,22 +79,41 @@ enum ElevationLogins {
         )
     }
 
-    static func save(_ service: Service, user: String, password: String) {
+    enum Trouble: Error, LocalizedError {
+        /// What pyhgtmap's file cannot hold: a line break, or a value it would read as a list.
+        case unwritable
+
+        var errorDescription: String? {
+            t("pyhgtmap's file cannot hold a value with a line break or in square brackets")
+        }
+    }
+
+    /// Whether pyhgtmap would read back exactly this value from between double quotes.
+    static func isWritable(_ value: String) -> Bool {
+        !value.contains(where: { $0 == "\n" || $0 == "\r" }) && !(value.hasPrefix("[") && value.hasSuffix("]"))
+    }
+
+    /// The file's text. In double quotes: a `#` or `;` after a space would otherwise start
+    /// a comment.
+    static func render(_ values: [String: String]) -> String {
+        var text = "# Written by kmap. Used by pyhgtmap to fetch elevation data.\n"
+        for (key, value) in values.sorted(by: { $0.key < $1.key }) where !value.isEmpty {
+            text += "\(key): \"\(value)\"\n"
+        }
+        return text
+    }
+
+    static func save(_ service: Service, user: String, password: String) throws {
+        guard isWritable(user), isWritable(password) else { throw Trouble.unwritable }
         var values = parse()
         values["\(service.rawValue)-user"] = user
         values["\(service.rawValue)-password"] = password
 
-        Paths.ensure(configFile.deletingLastPathComponent())
-        var yaml = "# Written by kmap. Used by pyhgtmap to fetch elevation data.\n"
-        for (key, value) in values.sorted(by: { $0.key < $1.key }) where !value.isEmpty {
-            yaml += "\(key): \(value)\n"
-        }
-        try? FileTools.write(yaml, to: configFile)
-        // Mode 0600: the file holds passwords.
-        try? FileManager.default.setAttributes(
-            [.posixPermissions: 0o600],
-            ofItemAtPath: configFile.path
+        try FileManager.default.createDirectory(
+            at: configFile.deletingLastPathComponent(),
+            withIntermediateDirectories: true
         )
+        try FileTools.writePrivate(render(values), to: configFile)
         // The stored verdict belongs to the previous credentials.
         forget(service)
     }
