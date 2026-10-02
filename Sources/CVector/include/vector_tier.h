@@ -8,6 +8,7 @@
 //   1  NEON on ARM; on x86, SSE2, which every x86-64 has
 //   2  SSSE3, which adds the byte shuffle by a table
 //   3  SSE4.1, which adds widening a lane in 1 instruction
+//   4  AVX2, which does the same 32 bytes at a time
 int kmap_vector_tier(void);
 
 // For the tests: allows no tier above `most` from here on, and answers the tier that

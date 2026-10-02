@@ -4,8 +4,8 @@
 #include "vector_tier.h"
 
 // Which vector instructions this build may use. NEON is part of every 64-bit ARM and
-// SSE2 of every x86-64; SSSE3 and SSE4.1 are not, so the functions that use them are
-// compiled for them by themselves and chosen by `kmap_vector_tier`.
+// SSE2 of every x86-64; SSSE3, SSE4.1 and AVX2 are not, so the functions that use them
+// are compiled for them by themselves and chosen by `kmap_vector_tier`.
 //
 // The loops read a vector's bytes as wider lanes lowest byte first, so a big-endian
 // build gets none of them, and neither does one given KMAP_NO_VECTOR: the calls then
@@ -24,8 +24,9 @@
 #include <immintrin.h>
 #define KMAP_SSSE3 __attribute__((target("ssse3")))
 #define KMAP_SSE41 __attribute__((target("sse4.1")))
+#define KMAP_AVX2 __attribute__((target("avx2")))
 #endif
 
-enum { KMAP_TIER_NONE = 0, KMAP_TIER_BASE = 1, KMAP_TIER_SSSE3 = 2, KMAP_TIER_SSE41 = 3 };
+enum { KMAP_TIER_NONE = 0, KMAP_TIER_BASE = 1, KMAP_TIER_SSSE3 = 2, KMAP_TIER_SSE41 = 3, KMAP_TIER_AVX2 = 4 };
 
 #endif

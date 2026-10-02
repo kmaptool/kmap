@@ -103,10 +103,18 @@ typedef uint8x16_t bytes16;
 
 typedef __m128i bytes16;
 
-#define SUFFIX _sse41
-#define TARGET KMAP_SSE41
+#define SUFFIX _avx2
+#define TARGET KMAP_AVX2
 #define WITH_SHUFFLE 1
 #define WITH_WIDENING 1
+#define WITH_AVX2 1
+#include "packed_varint_loops.h"
+#undef SUFFIX
+#undef TARGET
+#undef WITH_AVX2
+
+#define SUFFIX _sse41
+#define TARGET KMAP_SSE41
 #include "packed_varint_loops.h"
 #undef SUFFIX
 #undef TARGET
@@ -132,6 +140,7 @@ size_t kmap_varints_zigzag64(const uint8_t *in, size_t count, int64_t *out, size
 #if defined(KMAP_NEON)
     case KMAP_TIER_BASE: return zigzag64_neon(in, count, out, used);
 #else
+    case KMAP_TIER_AVX2: return zigzag64_avx2(in, count, out, used);
     case KMAP_TIER_SSE41: return zigzag64_sse41(in, count, out, used);
     case KMAP_TIER_SSSE3: return zigzag64_ssse3(in, count, out, used);
     case KMAP_TIER_BASE: return zigzag64_sse2(in, count, out, used);
@@ -147,6 +156,7 @@ size_t kmap_varints_low32(const uint8_t *in, size_t count, int32_t *out, size_t 
 #if defined(KMAP_NEON)
     case KMAP_TIER_BASE: return low32_neon(in, count, out, used);
 #else
+    case KMAP_TIER_AVX2: return low32_avx2(in, count, out, used);
     case KMAP_TIER_SSE41: return low32_sse41(in, count, out, used);
     case KMAP_TIER_SSSE3: return low32_ssse3(in, count, out, used);
     case KMAP_TIER_BASE: return low32_sse2(in, count, out, used);

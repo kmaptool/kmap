@@ -4,7 +4,9 @@
 //   SUFFIX          what the names here end in
 //   TARGET          the attribute that compiles a function for the instructions
 //   WITH_SHUFFLE    where a byte shuffle by a table exists: NEON, SSSE3 and up
-//   WITH_WIDENING   on x86, where 1 instruction widens a lane: SSE4.1
+//   WITH_WIDENING   on x86, where 1 instruction widens a lane: SSE4.1 and up
+//   WITH_AVX2       on x86, where the widening and the gathering of bits go 32 bytes
+//                   at a time
 //
 // Without a shuffle only runs of 1-byte values go a vector at a time, and the rest
 // a byte at a time.
@@ -107,17 +109,25 @@ static inline bytes16 NAME(load)(const uint8_t *p) { return _mm_loadu_si128((con
 // The continuation bits of 64 bytes, 1 bit a byte.
 TARGET
 static inline uint64_t NAME(continuations)(const uint8_t *p) {
+#if defined(WITH_AVX2)
+    uint64_t low = (uint32_t)_mm256_movemask_epi8(_mm256_loadu_si256((const __m256i *)p));
+    uint64_t high = (uint32_t)_mm256_movemask_epi8(_mm256_loadu_si256((const __m256i *)(p + 32)));
+    return low | high << 32;
+#else
     uint64_t a = (uint32_t)_mm_movemask_epi8(NAME(load)(p));
     uint64_t b = (uint32_t)_mm_movemask_epi8(NAME(load)(p + 16));
     uint64_t c = (uint32_t)_mm_movemask_epi8(NAME(load)(p + 32));
     uint64_t d = (uint32_t)_mm_movemask_epi8(NAME(load)(p + 48));
     return a | b << 16 | c << 32 | d << 48;
+#endif
 }
 
 // 4 signed 32-bit lanes stored as 4 of 64 bits.
 TARGET
 static inline void NAME(store64)(__m128i lanes, int64_t *o) {
-#if defined(WITH_WIDENING)
+#if defined(WITH_AVX2)
+    _mm256_storeu_si256((__m256i *)o, _mm256_cvtepi32_epi64(lanes));
+#elif defined(WITH_WIDENING)
     _mm_storeu_si128((__m128i *)o, _mm_cvtepi32_epi64(lanes));
     _mm_storeu_si128((__m128i *)(o + 2), _mm_cvtepi32_epi64(_mm_srli_si128(lanes, 8)));
 #else
@@ -135,7 +145,12 @@ static inline void NAME(zigzagBytes)(bytes16 bytes, int64_t *o) {
     __m128i z = _mm_xor_si128(
         _mm_and_si128(_mm_srli_epi16(bytes, 1), _mm_set1_epi8(0x7F)),
         _mm_sub_epi8(_mm_setzero_si128(), _mm_and_si128(bytes, _mm_set1_epi8(1))));
-#if defined(WITH_WIDENING)
+#if defined(WITH_AVX2)
+    for (int i = 0; i < 4; i++) {
+        _mm256_storeu_si256((__m256i *)(o + 4 * i), _mm256_cvtepi8_epi64(z));
+        z = _mm_srli_si128(z, 4);
+    }
+#elif defined(WITH_WIDENING)
     for (int i = 0; i < 8; i++) {
         _mm_storeu_si128((__m128i *)(o + 2 * i), _mm_cvtepi8_epi64(z));
         z = _mm_srli_si128(z, 2);
@@ -153,7 +168,10 @@ static inline void NAME(zigzagBytes)(bytes16 bytes, int64_t *o) {
 
 TARGET
 static inline void NAME(lowBytes)(bytes16 bytes, int32_t *o) {
-#if defined(WITH_WIDENING)
+#if defined(WITH_AVX2)
+    _mm256_storeu_si256((__m256i *)o, _mm256_cvtepu8_epi32(bytes));
+    _mm256_storeu_si256((__m256i *)(o + 8), _mm256_cvtepu8_epi32(_mm_srli_si128(bytes, 8)));
+#elif defined(WITH_WIDENING)
     _mm_storeu_si128((__m128i *)o, _mm_cvtepu8_epi32(bytes));
     _mm_storeu_si128((__m128i *)(o + 4), _mm_cvtepu8_epi32(_mm_srli_si128(bytes, 4)));
     _mm_storeu_si128((__m128i *)(o + 8), _mm_cvtepu8_epi32(_mm_srli_si128(bytes, 8)));
