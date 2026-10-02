@@ -21,7 +21,9 @@ own README or PROVENANCE.md has the details.
 mkgmap (GPL v2), pyhgtmap (GPL v2) and Java (Eclipse Temurin from Adoptium) are not
 shipped: kmap downloads them onto the user's machine on request. kmap also patches mkgmap
 from source on that machine; the patched jar is GPL v2, lives in `~/.kmap` and is never
-redistributed. The tile splitter is kmap's own. Map data is OpenStreetMap (ODbL, via
+redistributed. The Java of those edits, in `Sources/kmap/Toolchain/MkgmapPatch.swift`,
+quotes mkgmap's source and carries parts of it over, so it is GPL as mkgmap is (version 2,
+and version 3 or later where the file it edits says so), not MIT. The tile splitter is kmap's own. Map data is OpenStreetMap (ODbL, via
 Geofabrik) and so is everything built from it; coastline and boundary packs come from
 thkukuk.de; elevation comes from Copernicus DEM, Viewfinder Panoramas, SRTM or ALOS, each
 under its provider's own terms.

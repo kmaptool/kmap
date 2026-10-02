@@ -4,6 +4,9 @@ import Foundation
 ///
 /// The patched jar sits beside the original under a name of its own and carries a marker
 /// naming the patch version; it is rebuilt whenever that version changes.
+///
+/// The Java below is a patch to mkgmap: it quotes and adapts mkgmap's own source, so it is
+/// GPL as mkgmap is, not MIT. See NOTICE.md.
 extension Toolchain {
     /// The source edits the patch consists of: (file, anchor, replacement). A missing
     /// anchor means the release has changed and the patch must be revisited.
