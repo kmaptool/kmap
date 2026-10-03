@@ -61,15 +61,27 @@ extension PBFReader {
         log: BlobParts.Log?
     ) throws {
         let claimed = Locked(0)
+        // Set by a failing worker, so the rest stop at their next blob.
+        let failed = Locked(false)
         var failures = [Error?](repeating: nil, count: sinks.count)
         try sinks.withUnsafeMutableBufferPointer { targets in
             try Self.acrossCores(targets.count, failures: &failures) { worker in
                 var scratch = [UInt8]()
                 var fields = Scratch()
-                while case let index = claimed.takeNext(), index < blobs.count {
-                    if shouldStop() { throw CancellationError() }
-                    let held = try Self.decode(blobs[index], into: &targets[worker], scratch: &scratch, fields: &fields)
-                    log?.note(index, holds: held)
+                do {
+                    while case let index = claimed.takeNext(), index < blobs.count, !failed.withLock({ $0 }) {
+                        if shouldStop() { throw CancellationError() }
+                        let held = try Self.decode(
+                            blobs[index],
+                            into: &targets[worker],
+                            scratch: &scratch,
+                            fields: &fields
+                        )
+                        log?.note(index, holds: held)
+                    }
+                } catch {
+                    failed.withLock { $0 = true }
+                    throw error
                 }
             }
         }
