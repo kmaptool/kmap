@@ -5,9 +5,14 @@
 
 #include "vector_support.h"
 
+// The loops test |h| < inf and NaN; finite-only math would fold both to true.
+#if defined(__FAST_MATH__) || (defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__)
+#error "elevation_rows.c needs IEEE infinities and NaN: build it without -ffast-math"
+#endif
+
 #if defined(KMAP_NEON) || defined(KMAP_SSE)
 
-// What a vector loop left of a row, 1 word at a time, the sum so far in `carry`.
+// The scalar tail of a row, adding into `carry`.
 static void words_rest(const uint8_t *row, size_t i, size_t width, uint32_t carry, float *out) {
     for (; i < width; i++) {
         uint32_t word;
