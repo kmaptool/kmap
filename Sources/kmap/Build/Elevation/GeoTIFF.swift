@@ -79,6 +79,8 @@ struct GeoTIFF {
     private let bitsPerSample: Int
     private let sampleFormat: Int
     private let tilesAcross: Int
+    /// Strips: the last one may hold only the rows left.
+    private let stripped: Bool
 
     /// Decoded tiles, by index, guarded by its own lock.
     private let cache = Cache()
@@ -143,6 +145,7 @@ struct GeoTIFF {
             tileHeight = whole(th) ?? 0
             offsets = (tags[Tag.tileOffsets] ?? []).map { whole($0) ?? -1 }
             counts = (tags[Tag.tileByteCounts] ?? []).map { whole($0) ?? -1 }
+            stripped = false
         } else {
             // A stripped file is a tiled one whose tiles are full width. A strip count
             // past the height (some writers put 2^32 - 1) means one strip.
@@ -150,6 +153,7 @@ struct GeoTIFF {
             tileHeight = min(one(Tag.rowsPerStrip, height), height)
             offsets = (tags[Tag.stripOffsets] ?? []).map { whole($0) ?? -1 }
             counts = (tags[Tag.stripByteCounts] ?? []).map { whole($0) ?? -1 }
+            stripped = true
         }
         guard !offsets.isEmpty, offsets.count == counts.count else {
             throw Trouble.unsupported("no tile offsets")
@@ -281,18 +285,22 @@ struct GeoTIFF {
         guard index >= 0, index < offsets.count else { throw Trouble.truncated }
         let bytesPerSample = bitsPerSample / 8
         let wanted = tileWidth * tileHeight * bytesPerSample
-        // Every path below fills all of it or throws.
+        // The last strip may stop at the image's last row, padded or not.
+        let least = leastBytes(of: index, bytesPerSample: bytesPerSample) ?? wanted
+        // Every path below fills `held` bytes or throws; the rest is zeroed.
         var raw = [UInt8](unsafeUninitializedCapacity: wanted) { _, filled in filled = wanted }
+        var held = wanted
 
         let offset = offsets[index], count = counts[index]
         guard offset >= 0, count >= 0, offset + count <= data.count else {
             throw Trouble.truncated
         }
         if compression == Compression.none {
-            guard count >= wanted else { throw Trouble.truncated }
+            guard count >= least else { throw Trouble.truncated }
+            held = count >= wanted ? wanted : least
             data.withUnsafeBytes { bytes in
                 _ = raw.withUnsafeMutableBytes { out in
-                    UnsafeRawBufferPointer(rebasing: bytes[offset..<(offset + wanted)])
+                    UnsafeRawBufferPointer(rebasing: bytes[offset..<(offset + held)])
                         .copyBytes(to: out)
                 }
             }
@@ -302,24 +310,29 @@ struct GeoTIFF {
                 compression == Compression.lzw
                 ? Self.lzw(body, expecting: wanted)
                 : Self.packBits(body, expecting: wanted)
-            guard out.count >= wanted else { throw Trouble.truncated }
-            raw = Array(out[0..<wanted])
+            guard out.count >= least else { throw Trouble.truncated }
+            held = out.count >= wanted ? wanted : least
+            raw.replaceSubrange(0..<held, with: out[0..<held])
         } else {
             // Adobe DEFLATE is a wrapped stream: header, body and adler32 checksum together.
             guard count > 2 else { throw Trouble.truncated }
             do {
-                try data.withUnsafeBytes { bytes in
+                held = try data.withUnsafeBytes { bytes in
                     try raw.withUnsafeMutableBufferPointer { out in
                         try Deflate.inflate(
                             UnsafeRawBufferPointer(rebasing: bytes[offset..<(offset + count)]),
-                            into: out,
-                            expecting: wanted
+                            into: out
                         )
                     }
                 }
             } catch {
                 throw Trouble.truncated
             }
+            // Only the 2 sizes a strip can have are accepted.
+            guard held == wanted || held == least else { throw Trouble.truncated }
+        }
+        if held < wanted {
+            raw.withUnsafeMutableBufferPointer { ($0.baseAddress! + held).update(repeating: 0, count: wanted - held) }
         }
 
         let floats: [Float]
@@ -349,6 +362,14 @@ struct GeoTIFF {
         cache.tiles[index] = floats
         cache.lock.unlock()
         return floats
+    }
+
+    /// The bytes a short last strip must hold; nil for tiles and full strips.
+    private func leastBytes(of index: Int, bytesPerSample: Int) -> Int? {
+        guard stripped else { return nil }
+        let rows = height - index * tileHeight
+        guard rows > 0, rows < tileHeight else { return nil }
+        return rows * tileWidth * bytesPerSample
     }
 
     /// Predictor 2 stores each sample as the difference from its left neighbour; predictor 3

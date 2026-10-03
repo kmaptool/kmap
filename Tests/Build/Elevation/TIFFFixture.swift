@@ -15,6 +15,8 @@ struct TIFFFixture {
     /// 2 signed integer, 3 floating point — as the TIFF sample format tag has it.
     var format = 2
     var tile: (width: Int, height: Int)?
+    /// Without `tile`: rows per strip, the last one short; 1 strip when nil.
+    var rowsPerStrip: Int?
     var predictor = 1
     var bigEndian = false
     /// 1 says the tiepoint is a cell corner, 2 that it is the sample itself.
@@ -64,7 +66,7 @@ struct TIFFFixture {
 
         let bytesPerSample = fixture.bits / 8
         let tileWidth = fixture.tile?.width ?? fixture.width
-        let tileHeight = fixture.tile?.height ?? fixture.height
+        let tileHeight = fixture.tile?.height ?? fixture.rowsPerStrip ?? fixture.height
         let across = (fixture.width + tileWidth - 1) / tileWidth
         let down = (fixture.height + tileHeight - 1) / tileHeight
 
@@ -74,6 +76,8 @@ struct TIFFFixture {
             for tileColumn in 0..<across {
                 var block: [UInt8] = []
                 for r in 0..<tileHeight {
+                    // A strip stops at the image's last row; a tile is padded.
+                    if fixture.tile == nil, tileRow * tileHeight + r >= fixture.height { break }
                     var line: [Float] = []
                     for c in 0..<tileWidth {
                         let row = tileRow * tileHeight + r

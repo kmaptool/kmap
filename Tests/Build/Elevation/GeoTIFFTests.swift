@@ -189,6 +189,33 @@ final class GeoTIFFTests: XCTestCase {
         XCTAssertEqual(try tiff.row(5), [200, 210, 220, 230])
     }
 
+    /// 5 rows in strips of 2 end in a strip of 1: read whole, at both sizes and predictors.
+    func testAShortLastStripIsReadToTheImagesLastRow() throws {
+        for (bits, format, predictor) in [(16, 2, 1), (32, 3, 1), (32, 3, 2), (16, 2, 2)] {
+            var fixture = Fixture()
+            fixture.width = 4; fixture.height = 5; fixture.samples = ramp(4, 5)
+            fixture.bits = bits; fixture.format = format; fixture.predictor = predictor
+            fixture.rowsPerStrip = 2
+            let tiff = try GeoTIFF(contentsOf: try write(fixture, as: "short-\(bits)-\(predictor).tif"))
+            for row in 0..<5 {
+                XCTAssertEqual(try tiff.row(row), Array(fixture.samples[(row * 4)..<(row * 4 + 4)]), "row \(row)")
+            }
+            XCTAssertNil(try tiff.value(row: 5, column: 0), "past the image, not the strip's padding")
+        }
+    }
+
+    /// A strip shorter than the rows the image has left is still refused.
+    func testAStripShortOfTheImagesRowsIsRefused() throws {
+        var fixture = Fixture()
+        fixture.width = 4; fixture.height = 5; fixture.samples = ramp(4, 5)
+        fixture.rowsPerStrip = 2
+        let url = try write(fixture)
+        // RowsPerStrip raised to 4: the first strip, of 2 rows, now holds too few.
+        try patchTag(url, tag: 278, value: 4)
+        let tiff = try GeoTIFF(contentsOf: url)
+        XCTAssertThrowsError(try tiff.value(row: 0, column: 0))
+    }
+
     func testAFloatingPointFileIsReadAsWrittenIncludingItsFractions() throws {
         var fixture = Fixture()
         fixture.bits = 32; fixture.format = 3
