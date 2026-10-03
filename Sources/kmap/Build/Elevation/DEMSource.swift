@@ -66,23 +66,58 @@ extension DEMTileSource {
     }
 
     /// Cells the source publishes, from the cached list or the source; nil if neither
-    /// answers, and the caller samples blind. The list is kept for good.
+    /// answers. A list older than `DEMTileList.maxAge` is asked for again; the old one
+    /// serves if that fails.
     func availableCells() async -> Set<String>? {
         let file = tileListCache
+        var kept: Set<String>?
         if let text = try? String(contentsOf: file, encoding: .utf8) {
             let cells = parseTileList(text)
-            if !cells.isEmpty { return cells }
+            if !cells.isEmpty {
+                guard DEMTileList.isStale(modified: DEMTileList.modified(file), now: Date()) else { return cells }
+                kept = cells
+            }
         }
-        guard let url = tileListURL else { return nil }
-        // Retried: without the list every cell is sampled blind, sea included.
-        guard let data = try? await Downloader.retrying({ try await Fetch.data(url) }),
-            let text = String(data: data, encoding: .utf8)
-        else { return nil }
-        let cells = parseTileList(text)
-        guard !cells.isEmpty else { return nil }
+        guard let url = tileListURL else { return kept }
+        // Retried only with no list at all: an old list is good enough to build on.
+        let data =
+            kept == nil
+            ? try? await Downloader.retrying({ try await Fetch.data(url) })
+            : try? await Fetch.data(url)
+        guard let data, let text = String(data: data, encoding: .utf8), case let cells = parseTileList(text),
+            !cells.isEmpty
+        else {
+            if kept != nil { DEMTileList.postpone(file, from: Date()) }
+            return kept
+        }
         Paths.ensure(file.deletingLastPathComponent())
         try? FileTools.write(data, to: file)
         return cells
+    }
+}
+
+/// How long a source's list of its tiles is trusted.
+enum DEMTileList {
+    /// A list older than this is asked for again.
+    static let maxAge: TimeInterval = 30 * 86400
+    /// After a refresh that failed, the old list serves this long before the next try.
+    static let retryAfter: TimeInterval = 86400
+
+    /// Whether a list written at `modified` is due again; undated or future-dated is.
+    static func isStale(modified: Date?, now: Date) -> Bool {
+        guard let modified else { return true }
+        let age = now.timeIntervalSince(modified)
+        return age < 0 || age > maxAge
+    }
+
+    static func modified(_ file: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: file.path))?[.modificationDate] as? Date
+    }
+
+    /// Dates the list so that it is stale again `retryAfter` from `now`.
+    static func postpone(_ file: URL, from now: Date) {
+        let date = now.addingTimeInterval(retryAfter - maxAge)
+        try? FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: file.path)
     }
 }
 

@@ -125,6 +125,7 @@ struct GEDTM30: DEMSource {
         do {
             return try await body()
         } catch {
+            // Any failure: a bad header can also send the next read past the end of the file.
             readsKept.withLock { $0 = ReadsKept() }
             throw error
         }

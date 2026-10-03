@@ -53,7 +53,7 @@ extension BuildPipeline {
         // offline.
         let (asked, unpublished) = Self.published(missing, in: await ElevationCost.tileCoverage(flavor))
         if unpublished > 0 {
-            log.append("\(unpublished) cell(s) \(flavor.label) does not publish (open sea) — not asked for")
+            log.append("\(unpublished) cell(s) \(flavor.label) does not publish, sea or beyond it — not asked for")
         }
         if !asked.isEmpty { log.step("fetching \(asked.count) \(flavor.label) tile(s)") }
 

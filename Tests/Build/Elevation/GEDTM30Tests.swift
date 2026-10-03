@@ -233,6 +233,28 @@ final class GEDTM30Tests: XCTestCase {
         XCTAssertTrue(FileTools.exists(other), "another cell's mark is not this one's to take")
     }
 
+    /// A source's list of its tiles is asked for again once it is a month old.
+    func testATileListIsStaleAfterAMonth() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        XCTAssertFalse(DEMTileList.isStale(modified: now.addingTimeInterval(-86400), now: now))
+        XCTAssertFalse(DEMTileList.isStale(modified: now.addingTimeInterval(-29 * 86400), now: now))
+        XCTAssertTrue(DEMTileList.isStale(modified: now.addingTimeInterval(-31 * 86400), now: now))
+        XCTAssertTrue(DEMTileList.isStale(modified: nil, now: now))
+        XCTAssertTrue(DEMTileList.isStale(modified: now.addingTimeInterval(3600), now: now), "dated ahead of the clock")
+    }
+
+    /// A refresh that failed is put off a day, not tried again at every build.
+    func testAFailedRefreshIsPutOffADay() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("kmap-list-\(UUID().uuidString)")
+        try FileTools.write(Data("x".utf8), to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let now = Date()
+        DEMTileList.postpone(file, from: now)
+        let modified = DEMTileList.modified(file)
+        XCTAssertFalse(DEMTileList.isStale(modified: modified, now: now.addingTimeInterval(3600)))
+        XCTAssertTrue(DEMTileList.isStale(modified: modified, now: now.addingTimeInterval(86400 + 60)))
+    }
+
     /// Only the cells a source's list names are asked for; with no list, all of them.
     func testOnlyPublishedCellsAreAskedFor() {
         let cells: [(lat: Int, lon: Int)] = [(44, 33), (44, 34), (43, 33)]
