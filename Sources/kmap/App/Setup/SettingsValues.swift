@@ -30,7 +30,8 @@ extension SettingsScreen {
             do {
                 switch field {
                 case .usgsUser, .jaxaUser: try ElevationLogins.save(service, user: value, password: login.password)
-                default: try ElevationLogins.save(service, user: login.user, password: value)
+                // As typed: edge spaces may be part of the password.
+                default: try ElevationLogins.save(service, user: login.user, password: draft)
                 }
                 message = t("saved")
                 verifyLogin(service)

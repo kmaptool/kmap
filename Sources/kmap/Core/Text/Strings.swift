@@ -476,8 +476,8 @@ enum Strings {
             "%@ — не тот файл, который знает kmap (SHA-256 %@), отклонён",
         "the patch is built for mkgmap r%@ only, and this mkgmap is r%@":
             "патч собирается только для mkgmap r%@, а здесь r%@",
-        "pyhgtmap's file cannot hold a value with a line break or in square brackets":
-            "файл pyhgtmap не может хранить значение с переводом строки или в квадратных скобках",
+        "pyhgtmap's file cannot hold this value: a line break, square brackets, or a quote before # or ;":
+            "файл pyhgtmap не может хранить значения: перевод строки, квадратные скобки или кавычка перед # или ;",
         "deleted %@": "удалён %@",
         "deleted %@ — it was the default, which is now %@": "удалён %@ — он был по умолчанию, теперь это %@",
         "deleted %@ — nothing is left to be the default": "удалён %@ — быть по умолчанию больше нечему",
