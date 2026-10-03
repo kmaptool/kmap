@@ -287,9 +287,9 @@ enum ElevationCost {
     ) async -> Estimate {
         let cached = cells.filter { FileTools.exists(source.cachedTile(lat: $0.lat, lon: $0.lon)) }
         covered.formUnion(cached.map(name(of:)))
-        // A cell found to be sea costs nothing here, and stays open to later sources.
+        // Sea or outside the raster: free here, open to later sources.
         let toFetch = cells.filter {
-            !covered.contains(name(of: $0)) && !FileTools.exists(source.seaMark(lat: $0.lat, lon: $0.lon))
+            !covered.contains(name(of: $0)) && !source.holdsNothing(lat: $0.lat, lon: $0.lon)
         }
         func estimate(published: Int, bytes: Int64?, note: String?) -> Estimate {
             Estimate(
@@ -308,7 +308,7 @@ enum ElevationCost {
         guard !toFetch.isEmpty else { return estimate(published: 0, bytes: 0, note: nil) }
         do {
             let read = gedtmRead(source)
-            let layout = try await GEDTM30.layout(read: read)
+            let layout = try await GEDTM30.parsing { try await GEDTM30.layout(read: read) }
             var tiles = Set<Int>()
             var published: [(lat: Int, lon: Int)] = []
             for cell in toFetch {
@@ -325,7 +325,8 @@ enum ElevationCost {
                     note: tn("the %d cell(s) left are open sea or unsurveyed — nothing to fetch", toFetch.count)
                 )
             }
-            let spans = try await GEDTM30.spans(of: tiles, in: layout, read: read)
+            let under = tiles
+            let spans = try await GEDTM30.parsing { try await GEDTM30.spans(of: under, in: layout, read: read) }
             let bytes = spans.filter { !FileTools.exists(source.chunk($0.value)) }
                 .reduce(Int64(0)) { $0 + Int64($1.value.count) }
             return estimate(published: published.count, bytes: bytes, note: nil)

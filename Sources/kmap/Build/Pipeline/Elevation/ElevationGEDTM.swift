@@ -29,16 +29,22 @@ extension BuildPipeline {
         source.dropStaleChunks()
         log.step("reading the \(source.label) tile index")
         let read = source.remote()
-        let layout = try await GEDTM30.layout(read: read)
+        let layout = try await GEDTM30.parsing { try await GEDTM30.layout(read: read) }
         var needs: [(cell: (lat: Int, lon: Int), tiles: [Int])] = []
         for cell in unconverted {
             let tiles = try layout.tiles(lat: cell.lat, lon: cell.lon, nodes: source.nodes)
-            if !tiles.isEmpty { needs.append((cell, tiles)) }
+            if tiles.isEmpty {
+                // Remembered, so a rebuild skips the index.
+                try? source.leave(source.outsideMark(lat: cell.lat, lon: cell.lon))
+            } else {
+                needs.append((cell, tiles))
+            }
         }
         if needs.count < unconverted.count {
             log.append("\(unconverted.count - needs.count) cell(s) lie outside \(source.label), 65S to 85N")
         }
-        let spans = try await GEDTM30.spans(of: Set(needs.flatMap(\.tiles)), in: layout, read: read)
+        let under = Set(needs.flatMap(\.tiles))
+        let spans = try await GEDTM30.parsing { try await GEDTM30.spans(of: under, in: layout, read: read) }
         // A chunk on disk is whole: it is moved in only once complete.
         let missing = spans.filter { $0.value.count > 0 && !FileTools.exists(source.chunk($0.value)) }
             .sorted { $0.key < $1.key }
@@ -59,7 +65,7 @@ extension BuildPipeline {
             "\(outcome.converted) \(source.label) tile(s) converted"
                 + (outcome.sea > 0 ? ", \(outcome.sea) open sea" : "")
         )
-        guard outcome.converted > 0 || hgtFileCount() > 0 else {
+        if outcome.converted == 0, Self.endsWithNoTiles(last: last, onHand: hgtFileCount()) {
             throw BuildError.noElevationTiles
         }
     }
@@ -165,7 +171,7 @@ extension BuildPipeline {
                         if ground > 0 {
                             converted.increment()
                         } else {
-                            try FileTools.write(Data(), to: source.seaMark(lat: cell.lat, lon: cell.lon))
+                            try source.leave(source.seaMark(lat: cell.lat, lon: cell.lon))
                             sea.increment()
                         }
                     } catch {

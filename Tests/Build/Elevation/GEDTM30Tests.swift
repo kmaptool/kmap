@@ -187,6 +187,72 @@ final class GEDTM30Tests: XCTestCase {
         XCTAssertFalse(RangeSession.serves("bytes 0-99/1000", asked: "bytes=100-199"))
         XCTAssertTrue(RangeSession.serves("", asked: "bytes=100-199"), "unreadable is taken on trust")
     }
+
+    // MARK: A cell with nothing in it
+
+    /// An outside mark is distinct from a sea mark.
+    func testACellOutsideTheRasterHasAMarkOfItsOwn() {
+        let source = GEDTM30.v12
+        let outside = source.outsideMark(lat: 86, lon: 20), sea = source.seaMark(lat: 86, lon: 20)
+        XCTAssertEqual(outside.lastPathComponent, "N86E020.v1.2.out")
+        XCTAssertEqual(sea.lastPathComponent, "N86E020.v1.2.sea")
+        // Another edition has marks of its own.
+        var later = source
+        later.edition = "v1.3"
+        XCTAssertNotEqual(later.seaMark(lat: 86, lon: 20), sea)
+        XCTAssertNotEqual(outside, sea)
+        XCTAssertEqual(outside.deletingLastPathComponent(), source.cacheDirectory)
+    }
+
+    /// A failing read rethrows; a successful one returns its value.
+    func testAFailedReadingIsPassedOnAndAGoodOneReturned() async throws {
+        let answer = try await GEDTM30.parsing { 7 }
+        XCTAssertEqual(answer, 7)
+        do {
+            _ = try await GEDTM30.parsing { () async throws -> Int in throw GEDTM30.Trouble.notTIFF }
+            XCTFail("the failure was swallowed")
+        } catch GEDTM30.Trouble.notTIFF {
+            XCTAssertEqual(GEDTM30.keptReads, 0, "nothing read is kept after a failure")
+        }
+    }
+
+    /// A new mark replaces the 1.7.0 mark without an edition.
+    func testLeavingAMarkClearsTheUnnamedOneBeforeIt() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("kmap-marks-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let old = folder.appendingPathComponent("N44E033.sea")
+        let other = folder.appendingPathComponent("N44E034.sea")
+        try FileTools.write(Data(), to: old)
+        try FileTools.write(Data(), to: other)
+
+        let mark = folder.appendingPathComponent("N44E033.v1.2.sea")
+        try GEDTM30.v12.leave(mark)
+        XCTAssertTrue(FileTools.exists(mark))
+        XCTAssertFalse(FileTools.exists(old))
+        XCTAssertTrue(FileTools.exists(other), "another cell's mark is not this one's to take")
+    }
+
+    /// Only the cells a source's list names are asked for; with no list, all of them.
+    func testOnlyPublishedCellsAreAskedFor() {
+        let cells: [(lat: Int, lon: Int)] = [(44, 33), (44, 34), (43, 33)]
+        let some = BuildPipeline.published(cells, in: ["N44E033", "N43E033", "N50E050"])
+        XCTAssertEqual(some.asked.map { HGTName.of(lat: $0.lat, lon: $0.lon) }, ["N44E033", "N43E033"])
+        XCTAssertEqual(some.unpublished, 1)
+        let blind = BuildPipeline.published(cells, in: nil)
+        XCTAssertEqual(blind.asked.count, 3)
+        XCTAssertEqual(blind.unpublished, 0)
+        let none = BuildPipeline.published(cells, in: ["N50E050"])
+        XCTAssertTrue(none.asked.isEmpty)
+        XCTAssertEqual(none.unpublished, 3)
+    }
+
+    /// Only the last source, with no tile on hand, ends the build.
+    func testOnlyTheLastSourceWithNothingOnHandEndsTheBuild() {
+        XCTAssertFalse(BuildPipeline.endsWithNoTiles(last: false, onHand: 0))
+        XCTAssertTrue(BuildPipeline.endsWithNoTiles(last: true, onHand: 0))
+        XCTAssertFalse(BuildPipeline.endsWithNoTiles(last: true, onHand: 3))
+    }
 }
 
 private extension UInt64 {

@@ -14,6 +14,8 @@ struct GEDTM30: DEMSource {
     )
 
     let url: URL
+    /// Names the absence marks, so a newer edition is asked afresh.
+    var edition = "v1.2"
     let sourceID = "gedtm1"
     let directoryName = "GED1"
     /// Settable for tests.
@@ -31,12 +33,30 @@ struct GEDTM30: DEMSource {
 
     /// Marks an all-sea cell so a rebuild skips it; later sources may still fill it.
     func seaMark(lat: Int, lon: Int) -> URL {
-        cacheDirectory.appendingPathComponent("\(HGTName.of(lat: lat, lon: lon)).sea")
+        cacheDirectory.appendingPathComponent("\(HGTName.of(lat: lat, lon: lon)).\(edition).sea")
+    }
+
+    /// Marks a cell the raster does not hold whole (85N, 65S); later sources may fill it.
+    func outsideMark(lat: Int, lon: Int) -> URL {
+        cacheDirectory.appendingPathComponent("\(HGTName.of(lat: lat, lon: lon)).\(edition).out")
+    }
+
+    /// Leaves `mark`, removing the edition-less mark of 1.7.0.
+    func leave(_ mark: URL) throws {
+        try FileTools.write(Data(), to: mark)
+        let name = mark.lastPathComponent
+        guard let cell = name.split(separator: ".").first, name.hasSuffix(".sea") else { return }
+        FileTools.removeIfPresent(mark.deletingLastPathComponent().appendingPathComponent("\(cell).sea"))
+    }
+
+    /// Whether the cell is known to be sea or outside the raster.
+    func holdsNothing(lat: Int, lon: Int) -> Bool {
+        FileTools.exists(seaMark(lat: lat, lon: lon)) || FileTools.exists(outsideMark(lat: lat, lon: lon))
     }
 
     /// Whether the cell needs nothing more from this source.
     func isDone(lat: Int, lon: Int) -> Bool {
-        FileTools.exists(cachedTile(lat: lat, lon: lon)) || FileTools.exists(seaMark(lat: lat, lon: lon))
+        FileTools.exists(cachedTile(lat: lat, lon: lon)) || holdsNothing(lat: lat, lon: lon)
     }
 
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
@@ -59,16 +79,59 @@ struct GEDTM30: DEMSource {
     typealias Read = @Sendable (_ offset: Int64, _ count: Int) async throws -> Data
 
     /// HTTP reads via a part file, so a 200 for the whole file is refused before its body.
+    /// Reads are kept for the run: estimates and builds ask for the same header and index.
     func remote() -> Read {
         let url = url
         return { offset, count in
+            let key = ReadKey(url: url, offset: offset, count: count)
+            if let known = Self.readsKept.withLock({ $0.data[key] }) { return known }
             let file = FileManager.default.temporaryDirectory
                 .appendingPathComponent("kmap-gedtm-\(UUID().uuidString)")
-            defer { FileTools.removeIfPresent(file) }
+            // A failed or stopped read leaves its part file.
+            defer {
+                FileTools.removeIfPresent(file)
+                FileTools.removeIfPresent(PartFiles(destination: file).part(0))
+            }
             try await Downloader(log: Log()).download(url: url, from: offset, count: Int64(count), to: file)
-            return try Data(contentsOf: file)
+            let data = try Data(contentsOf: file)
+            Self.readsKept.withLock { $0.keep(data, for: key) }
+            return data
         }
     }
+
+    private struct ReadKey: Hashable {
+        let url: URL
+        let offset: Int64
+        let count: Int
+    }
+
+    /// Up to `mostKept` bytes; past that nothing more is kept.
+    private struct ReadsKept {
+        var data: [ReadKey: Data] = [:]
+        var bytes = 0
+
+        mutating func keep(_ read: Data, for key: ReadKey) {
+            guard data[key] == nil, bytes + read.count <= GEDTM30.mostKept else { return }
+            data[key] = read
+            bytes += read.count
+        }
+    }
+
+    private static let mostKept = 32 << 20
+    private static let readsKept = Locked(ReadsKept())
+
+    /// Forgets the kept reads if parsing fails, so a bad read is not served again.
+    static func parsing<T>(_ body: () async throws -> T) async throws -> T {
+        do {
+            return try await body()
+        } catch {
+            readsKept.withLock { $0 = ReadsKept() }
+            throw error
+        }
+    }
+
+    /// For the tests.
+    static var keptReads: Int { readsKept.withLock { $0.data.count } }
 }
 
 // MARK: The layout

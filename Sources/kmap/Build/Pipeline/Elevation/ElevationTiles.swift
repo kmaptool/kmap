@@ -49,19 +49,26 @@ extension BuildPipeline {
                 "\(unconverted.count - missing.count) \(flavor.label) tile(s) already downloaded — kept from an interrupted run"
             )
         }
-        log.step("fetching \(missing.count) \(flavor.label) tile(s)")
+        // Cells the source's list lacks are sea and not asked for, so a cached build works
+        // offline.
+        let (asked, unpublished) = Self.published(missing, in: await ElevationCost.tileCoverage(flavor))
+        if unpublished > 0 {
+            log.append("\(unpublished) cell(s) \(flavor.label) does not publish (open sea) — not asked for")
+        }
+        if !asked.isEmpty { log.step("fetching \(asked.count) \(flavor.label) tile(s)") }
 
         // Two phases: downloads run several at a time, then conversion warps from a mosaic
         // of all the tiles. A `.hgt` grid is half a cell wider than the source square on
         // every side, so its outer nodes need the neighbour's data to sample.
-        let absent = try await downloadDEMTifs(missing, flavor: flavor, into: scratch)
+        let absent =
+            unpublished + (asked.isEmpty ? 0 : try await downloadDEMTifs(asked, flavor: flavor, into: scratch))
 
         let downloaded = unconverted.filter {
             FileTools.exists(flavor.downloadedTif(lat: $0.lat, lon: $0.lon))
         }
         guard !downloaded.isEmpty else {
             log.ok("no \(flavor.label) tiles here — \(absent) cell(s) are open sea")
-            guard hgtFileCount() > 0 else { throw BuildError.noElevationTiles }
+            if Self.endsWithNoTiles(last: last, onHand: hgtFileCount()) { throw BuildError.noElevationTiles }
             return
         }
 
@@ -93,9 +100,25 @@ extension BuildPipeline {
             "\(converted) \(flavor.label) tile(s) converted"
                 + (absent > 0 ? ", \(absent) not in the bucket (open sea)" : "")
         )
-        guard converted > 0 || hgtFileCount() > 0 else {
+        if converted == 0, Self.endsWithNoTiles(last: last, onHand: hgtFileCount()) {
             throw BuildError.noElevationTiles
         }
+    }
+
+    /// The cells the source's list names, and how many it lacks; all of them with no list.
+    static func published(
+        _ cells: [(lat: Int, lon: Int)],
+        in list: Set<String>?
+    ) -> (asked: [(lat: Int, lon: Int)], unpublished: Int) {
+        guard let list else { return (cells, 0) }
+        let asked = cells.filter { list.contains(HGTName.of(lat: $0.lat, lon: $0.lon)) }
+        return (asked, cells.count - asked.count)
+    }
+
+    /// Only the last source, with no tile on hand, ends the build; an earlier one leaves
+    /// the gaps to the next.
+    static func endsWithNoTiles(last: Bool, onHand: Int) -> Bool {
+        last && onHand == 0
     }
 
     /// Downloads the missing tiles, several at a time, with a live progress line. A tile
