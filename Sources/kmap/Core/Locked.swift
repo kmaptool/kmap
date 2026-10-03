@@ -20,3 +20,13 @@ final class Locked<Value>: @unchecked Sendable {
         return try body(&value)
     }
 }
+
+extension Locked where Value == Int {
+    /// Hands out the counter's value and moves it on: the next item for whoever asks.
+    func takeNext() -> Int {
+        withLock { next in
+            defer { next += 1 }
+            return next
+        }
+    }
+}

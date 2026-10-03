@@ -28,10 +28,7 @@ extension PBFWriter {
     /// too many are in flight. Called from 1 thread a writer; the ticket is the order.
     func submit(_ make: @escaping () -> [Piece]) {
         Self.room.wait()
-        let ticket = tickets.withLock { next -> Int in
-            defer { next += 1 }
-            return next
-        }
+        let ticket = tickets.takeNext()
         inFlight.enter()
         // Neither closure is shared, and `finish` waits for the group, so the writer
         // outlives them.

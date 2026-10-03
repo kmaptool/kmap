@@ -54,12 +54,15 @@ protocol OSMSink: LaneSafeMetatype {
     mutating func sawGroup(_ part: OSMParts)
     /// The block's string table is ready and its groups are about to be read.
     mutating func begin(_ block: OSMBlock)
+    /// Every group of the block has been read, on the thread that read them.
+    mutating func end(_ block: OSMBlock)
 }
 
 extension OSMSink {
     var wantedParts: OSMParts { .all }
     mutating func sawGroup(_ part: OSMParts) {}
     mutating func begin(_ block: OSMBlock) {}
+    mutating func end(_ block: OSMBlock) {}
 
     mutating func node(
         id: Int64,

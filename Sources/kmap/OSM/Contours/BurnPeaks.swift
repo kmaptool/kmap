@@ -52,8 +52,8 @@ struct BurnPeaks {
                 found.append(contentsOf: part.peaks)
             }
         }
-        // Sorted: the workers finish in any order.
-        found.sort { ($0.lat, $0.lon, $0.name) < ($1.lat, $1.lon, $1.name) }
+        // Sorted, on everything a peak holds: the workers take blocks in any order.
+        found.sort { ($0.lat, $0.lon, $0.name, $0.ele) < ($1.lat, $1.lon, $1.name, $1.ele) }
         return found
     }
 

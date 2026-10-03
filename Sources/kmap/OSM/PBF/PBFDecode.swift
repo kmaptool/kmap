@@ -31,26 +31,33 @@ extension PBFReader {
 
     /// Decodes one inflated PrimitiveBlock into a sink. The same decoder serves every pass
     /// and the rewriter, so they cannot disagree about deltas, tag runs or coordinates.
+    /// - Returns: every kind of group the block holds, asked for or not.
+    @discardableResult
     static func decodeBlock<Sink: OSMSink>(
         _ bytes: UnsafeRawBufferPointer,
         into sink: inout Sink,
         fields: inout Scratch
-    ) throws {
+    ) throws -> OSMParts {
+        let (block, groups) = blockHeader(bytes)
+        sink.begin(block)
+        let wanted = sink.wantedParts
+        var held: OSMParts = []
+        for group in groups {
+            held.formUnion(decodeGroup(group, block: block, wanted: wanted, into: &sink, fields: &fields))
+        }
+        sink.end(block)
+        return held
+    }
+
+    /// The block's string table and coordinate frame, and its groups still unread.
+    private static func blockHeader(_ bytes: UnsafeRawBufferPointer) -> (OSMBlock, [UnsafeRawBufferPointer]) {
         var block = OSMBlock()
         var words: [UnsafeRawBufferPointer] = []
         var groups: [UnsafeRawBufferPointer] = []
         var reader = ProtoReader(bytes)
         while let field = reader.nextField() {
             switch field.number {
-            case PBFSchema.stringTable:
-                var table = ProtoReader(reader.lengthDelimited())
-                while let entry = table.nextField() {
-                    if entry.number == PBFSchema.stringEntry {
-                        words.append(table.lengthDelimited())
-                    } else {
-                        table.skip(wire: entry.wire)
-                    }
-                }
+            case PBFSchema.stringTable: readStrings(reader.lengthDelimited(), into: &words)
             case PBFSchema.primitiveGroup: groups.append(reader.lengthDelimited())
             // Bit patterns, not range-checked conversions: a corrupt value must give a
             // wrong coordinate rather than trap.
@@ -60,45 +67,60 @@ extension PBFReader {
             default: reader.skip(wire: field.wire)
             }
         }
-
         block.strings = StringPool(words)
-        sink.begin(block)
-        let wanted = sink.wantedParts
-        for group in groups {
-            var reader = ProtoReader(group)
-            while let field = reader.nextField() {
-                switch field.number {
-                case PBFSchema.groupDense:
-                    sink.sawGroup(.nodes)
-                    guard wanted.contains(.nodes) else { reader.skip(wire: field.wire); break }
-                    decodeDense(
-                        reader.lengthDelimited(),
-                        block: block,
-                        into: &sink,
-                        fields: &fields
-                    )
-                case PBFSchema.groupWays:
-                    sink.sawGroup(.ways)
-                    guard wanted.contains(.ways) else { reader.skip(wire: field.wire); break }
-                    decodeWay(
-                        reader.lengthDelimited(),
-                        block: block,
-                        into: &sink,
-                        fields: &fields
-                    )
-                case PBFSchema.groupRelations:
-                    sink.sawGroup(.relations)
-                    guard wanted.contains(.relations) else { reader.skip(wire: field.wire); break }
-                    decodeRelation(
-                        reader.lengthDelimited(),
-                        block: block,
-                        into: &sink,
-                        fields: &fields
-                    )
-                default: reader.skip(wire: field.wire)
-                }
+        return (block, groups)
+    }
+
+    private static func readStrings(_ bytes: UnsafeRawBufferPointer, into words: inout [UnsafeRawBufferPointer]) {
+        var table = ProtoReader(bytes)
+        while let entry = table.nextField() {
+            if entry.number == PBFSchema.stringEntry {
+                words.append(table.lengthDelimited())
+            } else {
+                table.skip(wire: entry.wire)
             }
         }
+    }
+
+    /// Which part a group's field holds, or nil for a field that holds none.
+    private static func part(of field: Int) -> OSMParts? {
+        switch field {
+        case PBFSchema.groupDense: return .nodes
+        case PBFSchema.groupWays: return .ways
+        case PBFSchema.groupRelations: return .relations
+        default: return nil
+        }
+    }
+
+    /// Decodes the parts of 1 group the sink asks for, and reports every part it holds.
+    private static func decodeGroup<Sink: OSMSink>(
+        _ group: UnsafeRawBufferPointer,
+        block: OSMBlock,
+        wanted: OSMParts,
+        into sink: inout Sink,
+        fields: inout Scratch
+    ) -> OSMParts {
+        var held: OSMParts = []
+        var reader = ProtoReader(group)
+        while let field = reader.nextField() {
+            guard let part = part(of: field.number) else {
+                reader.skip(wire: field.wire)
+                continue
+            }
+            held.insert(part)
+            sink.sawGroup(part)
+            guard wanted.contains(part) else {
+                reader.skip(wire: field.wire)
+                continue
+            }
+            let bytes = reader.lengthDelimited()
+            switch part {
+            case .nodes: decodeDense(bytes, block: block, into: &sink, fields: &fields)
+            case .ways: decodeWay(bytes, block: block, into: &sink, fields: &fields)
+            default: decodeRelation(bytes, block: block, into: &sink, fields: &fields)
+            }
+        }
+        return held
     }
 
     /// Dense nodes are packed and delta-encoded, with every node's tags in one flat run of
@@ -109,6 +131,52 @@ extension PBFReader {
         into sink: inout Sink,
         fields: inout Scratch
     ) {
+        readDense(bytes, into: &fields)
+        // The buffers keep their full size; the counts say how much is in use.
+        let tags = fields.tags.storage
+        let tagCount = fields.tags.count
+        let latCount = fields.lats.count, lonCount = fields.lons.count
+        // Most nodes carry no tag: they are handed this, not a slice made for each.
+        let noTags = ArraySlice<Int32>()
+        let idCount = fields.ids.count
+        fields.ids.storage.withUnsafeBufferPointer { ids in
+            fields.lats.storage.withUnsafeBufferPointer { lats in
+                fields.lons.storage.withUnsafeBufferPointer { lons in
+                    var id: Int64 = 0, lat: Int64 = 0, lon: Int64 = 0, cursor = 0
+                    for i in 0..<idCount {
+                        // Wrapping: deltas summing past Int64.max in a corrupt file must
+                        // give a wrong node rather than trap.
+                        id &+= ids[i]
+                        lat &+= i < latCount ? lats[i] : 0
+                        lon &+= i < lonCount ? lons[i] : 0
+                        let run = tagRun(tags, count: tagCount, from: &cursor)
+                        // 2 calls, not 1 with a choice of slice in it: the choice is a
+                        // copy, and a copy is a retain and a release for every node.
+                        if run.isEmpty {
+                            sink.node(
+                                id: id,
+                                lat: block.latitude(lat),
+                                lon: block.longitude(lon),
+                                tags: noTags,
+                                block: block
+                            )
+                        } else {
+                            sink.node(
+                                id: id,
+                                lat: block.latitude(lat),
+                                lon: block.longitude(lon),
+                                tags: tags[run],
+                                block: block
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// The dense group's packed fields, unpacked into `fields`.
+    private static func readDense(_ bytes: UnsafeRawBufferPointer, into fields: inout Scratch) {
         fields.ids.removeAll()
         fields.lats.removeAll()
         fields.lons.removeAll()
@@ -123,53 +191,18 @@ extension PBFReader {
             default: reader.skip(wire: field.wire)
             }
         }
-        // The buffers keep their full size; the counts say how much is in use.
-        let ids = fields.ids.storage, lats = fields.lats.storage, lons = fields.lons.storage
-        let tags = fields.tags.storage
-        let idCount = fields.ids.count, latCount = fields.lats.count, lonCount = fields.lons.count
-        let tagCount = fields.tags.count
-        // Most nodes carry no tag: they are handed this, not a slice made for each.
-        let noTags = ArraySlice<Int32>()
+    }
 
-        ids.withUnsafeBufferPointer { ids in
-            lats.withUnsafeBufferPointer { lats in
-                lons.withUnsafeBufferPointer { lons in
-                    var id: Int64 = 0, lat: Int64 = 0, lon: Int64 = 0, cursor = 0
-                    for i in 0..<idCount {
-                        // Wrapping: deltas summing past Int64.max in a corrupt file must
-                        // give a wrong node rather than trap.
-                        id &+= ids[i]
-                        lat &+= i < latCount ? lats[i] : 0
-                        lon &+= i < lonCount ? lons[i] : 0
-                        // A pair needs both halves: stepping on a lone trailing key would
-                        // run the cursor past the end and trap on the slice below.
-                        let start = cursor
-                        while cursor + 1 < tagCount && tags[cursor] != 0 { cursor += 2 }
-                        let end = min(cursor, tagCount)
-                        if cursor < tagCount { cursor += 1 }  // step over the terminator
-                        // 2 calls, not 1 with a choice of slice in it: the choice is a
-                        // copy, and a copy is a retain and a release for every node.
-                        if start == end {
-                            sink.node(
-                                id: id,
-                                lat: block.latitude(lat),
-                                lon: block.longitude(lon),
-                                tags: noTags,
-                                block: block
-                            )
-                        } else {
-                            sink.node(
-                                id: id,
-                                lat: block.latitude(lat),
-                                lon: block.longitude(lon),
-                                tags: tags[start..<end],
-                                block: block
-                            )
-                        }
-                    }
-                }
-            }
-        }
+    /// The next node's key/value run in the dense tags, the cursor stepped past its zero.
+    @inline(__always)
+    private static func tagRun(_ tags: [Int32], count: Int, from cursor: inout Int) -> Range<Int> {
+        // A pair needs both halves: stepping on a lone trailing key would run the cursor
+        // past the end and trap on the slice.
+        let start = cursor
+        while cursor + 1 < count && tags[cursor] != 0 { cursor += 2 }
+        let end = min(cursor, count)
+        if cursor < count { cursor += 1 }  // step over the terminator
+        return start..<end
     }
 
     private static func decodeWay<Sink: OSMSink>(

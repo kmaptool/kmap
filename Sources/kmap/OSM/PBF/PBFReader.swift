@@ -39,43 +39,50 @@ struct PBFReader {
         let data = try Data(contentsOf: url, options: .alwaysMapped)
         var scratch = [UInt8](repeating: 0, count: Self.megabyte)
         return try data.withUnsafeBytes { file -> (Double, Double, Double, Double)? in
-            var at = 0
-            guard at + PBFSchema.lengthPrefix <= file.count else { return nil }
-            let headerLength = Int(file.loadUnaligned(fromByteOffset: at, as: UInt32.self).bigEndian)
-            at += PBFSchema.lengthPrefix
-            guard at + headerLength <= file.count else { return nil }
-            let header = UnsafeRawBufferPointer(rebasing: file[at..<(at + headerLength)])
-            at += headerLength
-            let blobHeader = Self.blobHeader(header)
-            guard blobHeader.kind == PBFSchema.headerBlob,
-                blobHeader.size <= file.count - at
-            else { return nil }
-            let blob = UnsafeRawBufferPointer(rebasing: file[at..<(at + blobHeader.size)])
+            guard let blob = Self.headerBlob(in: file) else { return nil }
             let size = try Self.inflate(blob, into: &scratch)
-            return scratch.withUnsafeBytes { payload -> (Double, Double, Double, Double)? in
-                var block = ProtoReader(UnsafeRawBufferPointer(rebasing: payload[0..<size]))
-                while let field = block.nextField() {
-                    guard field.number == PBFSchema.headerBBox else {
-                        block.skip(wire: field.wire)
-                        continue
-                    }
-                    var box = ProtoReader(block.lengthDelimited())
-                    var left = 0.0, right = 0.0, top = 0.0, bottom = 0.0
-                    while let corner = box.nextField() {
-                        let value = Double(box.zigzag()) / PBFSchema.bboxScale
-                        switch corner.number {
-                        case PBFSchema.bboxLeft: left = value
-                        case PBFSchema.bboxRight: right = value
-                        case PBFSchema.bboxTop: top = value
-                        case PBFSchema.bboxBottom: bottom = value
-                        default: break
-                        }
-                    }
-                    return (bottom, left, top, right)
-                }
-                return nil
+            return scratch.withUnsafeBytes { payload in
+                Self.bbox(inHeaderBlock: UnsafeRawBufferPointer(rebasing: payload[0..<size]))
             }
         }
+    }
+
+    /// The file's first blob, when it is the header blob and whole.
+    private static func headerBlob(in file: UnsafeRawBufferPointer) -> UnsafeRawBufferPointer? {
+        var at = 0
+        guard at + PBFSchema.lengthPrefix <= file.count else { return nil }
+        let headerLength = Int(file.loadUnaligned(fromByteOffset: at, as: UInt32.self).bigEndian)
+        at += PBFSchema.lengthPrefix
+        guard at + headerLength <= file.count else { return nil }
+        let header = blobHeader(UnsafeRawBufferPointer(rebasing: file[at..<(at + headerLength)]))
+        at += headerLength
+        guard header.kind == PBFSchema.headerBlob, header.size <= file.count - at else { return nil }
+        return UnsafeRawBufferPointer(rebasing: file[at..<(at + header.size)])
+    }
+
+    /// The box an inflated header block declares, as (bottom, left, top, right).
+    private static func bbox(inHeaderBlock bytes: UnsafeRawBufferPointer) -> (Double, Double, Double, Double)? {
+        var block = ProtoReader(bytes)
+        while let field = block.nextField() {
+            guard field.number == PBFSchema.headerBBox else {
+                block.skip(wire: field.wire)
+                continue
+            }
+            var box = ProtoReader(block.lengthDelimited())
+            var left = 0.0, right = 0.0, top = 0.0, bottom = 0.0
+            while let corner = box.nextField() {
+                let value = Double(box.zigzag()) / PBFSchema.bboxScale
+                switch corner.number {
+                case PBFSchema.bboxLeft: left = value
+                case PBFSchema.bboxRight: right = value
+                case PBFSchema.bboxTop: top = value
+                case PBFSchema.bboxBottom: bottom = value
+                default: break
+                }
+            }
+            return (bottom, left, top, right)
+        }
+        return nil
     }
 
     /// The box this file's nodes fall in, for one whose header carries none; nil where it
@@ -121,52 +128,86 @@ struct PBFReader {
     /// a batch at a time across every core, then decoded on this thread in file order.
     func read<Sink: OSMSink>(into sink: inout Sink) throws {
         let data = try Data(contentsOf: url, options: .alwaysMapped)
-        var fields = Scratch()
-
         let width = Machine.readers
-        var scratches = [[UInt8]](repeating: [], count: width)
-        var sizes = [Int](repeating: 0, count: width)
-        var failures = [Error?](repeating: nil, count: width)
-        var batch: [UnsafeRawBufferPointer] = []
-        batch.reserveCapacity(width)
-
+        var batch = InflatedBatch(width: width)
+        var fields = Scratch()
         try data.withUnsafeBytes { file in
-            /// Inflates everything waiting, then decodes it in the order read.
-            func drain() throws {
-                guard !batch.isEmpty else { return }
-                let blobs = batch
-                if blobs.count == 1 {
-                    sizes[0] = try Self.inflate(blobs[0], into: &scratches[0])
-                } else {
-                    try scratches.withUnsafeMutableBufferPointer { slots in
-                        try sizes.withUnsafeMutableBufferPointer { lengths in
-                            try Self.acrossCores(blobs.count, failures: &failures) { i in
-                                lengths[i] = try Self.inflate(blobs[i], into: &slots[i])
-                            }
-                        }
-                    }
+            // Only the blobs holding something the sink asks for, once the file is known.
+            let (blobs, log) = BlobParts.select(try Self.dataBlobs(in: file), of: url, wanted: sink.wantedParts)
+            for first in stride(from: 0, to: blobs.count, by: width) {
+                let range = first..<min(first + width, blobs.count)
+                // Asked before each blob is taken into the batch, not once a batch.
+                for _ in range where stopped() { throw CancellationError() }
+                try batch.inflate(blobs[range])
+                for i in range {
+                    log?.note(i, holds: try batch.decode(i - first, into: &sink, fields: &fields))
                 }
-                for i in 0..<blobs.count {
-                    let size = sizes[i]
-                    try scratches[i].withUnsafeBytes { payload in
-                        try Self.decodeBlock(
-                            UnsafeRawBufferPointer(rebasing: payload[0..<size]),
-                            into: &sink,
-                            fields: &fields
-                        )
-                    }
-                }
-                batch.removeAll(keepingCapacity: true)
             }
+            log?.keep()
+        }
+    }
 
-            try Self.forEachBlob(in: file) { _, kind, blob in
-                // The header block holds nothing the sink wants.
-                guard kind == PBFSchema.dataBlob else { return }
-                if stopped() { throw CancellationError() }
-                batch.append(blob)
-                if batch.count == width { try drain() }
+    /// A batch of blobs inflated side by side, each into a buffer kept for the next batch.
+    private struct InflatedBatch {
+        private var scratches: [[UInt8]]
+        private var sizes: [Int]
+        private var failures: [Error?]
+
+        init(width: Int) {
+            scratches = [[UInt8]](repeating: [], count: width)
+            sizes = [Int](repeating: 0, count: width)
+            failures = [Error?](repeating: nil, count: width)
+        }
+
+        mutating func inflate(_ blobs: ArraySlice<UnsafeRawBufferPointer>) throws {
+            let blobs = Array(blobs)
+            // 1 alone is inflated here: a lane would cost more than it does.
+            if blobs.count == 1 {
+                sizes[0] = try PBFReader.inflate(blobs[0], into: &scratches[0])
+                return
             }
-            try drain()
+            try scratches.withUnsafeMutableBufferPointer { slots in
+                try sizes.withUnsafeMutableBufferPointer { lengths in
+                    try PBFReader.acrossCores(blobs.count, failures: &failures) { i in
+                        lengths[i] = try PBFReader.inflate(blobs[i], into: &slots[i])
+                    }
+                }
+            }
+        }
+
+        /// Decodes the `i`th blob of the batch into `sink`.
+        func decode<Sink: OSMSink>(_ i: Int, into sink: inout Sink, fields: inout Scratch) throws -> OSMParts {
+            let size = sizes[i]
+            return try scratches[i].withUnsafeBytes { payload in
+                try PBFReader.decodeBlock(
+                    UnsafeRawBufferPointer(rebasing: payload[0..<size]),
+                    into: &sink,
+                    fields: &fields
+                )
+            }
+        }
+    }
+
+    /// The file's data blobs, in order; the header blob holds nothing a sink wants.
+    static func dataBlobs(in file: UnsafeRawBufferPointer) throws -> [UnsafeRawBufferPointer] {
+        var blobs: [UnsafeRawBufferPointer] = []
+        try forEachBlob(in: file) { _, kind, blob in
+            if kind == PBFSchema.dataBlob { blobs.append(blob) }
+        }
+        return blobs
+    }
+
+    /// Inflates a blob into `scratch` and decodes it into `sink`.
+    /// - Returns: every kind of group the block holds.
+    static func decode<Sink: OSMSink>(
+        _ blob: UnsafeRawBufferPointer,
+        into sink: inout Sink,
+        scratch: inout [UInt8],
+        fields: inout Scratch
+    ) throws -> OSMParts {
+        let size = try inflate(blob, into: &scratch)
+        return try scratch.withUnsafeBytes { payload in
+            try decodeBlock(UnsafeRawBufferPointer(rebasing: payload[0..<size]), into: &sink, fields: &fields)
         }
     }
 
@@ -248,6 +289,28 @@ struct PBFReader {
         return (kind, size)
     }
 
+    /// A blob's payload as stored: raw, or deflated with its size once inflated.
+    private struct BlobPayload {
+        var raw: UnsafeRawBufferPointer?
+        var deflated: UnsafeRawBufferPointer?
+        var plainSize = 0
+
+        init(_ blob: UnsafeRawBufferPointer) throws {
+            var reader = ProtoReader(blob)
+            while let field = reader.nextField() {
+                switch field.number {
+                case PBFSchema.blobRaw: raw = reader.lengthDelimited()
+                case PBFSchema.blobRawSize: plainSize = Int(clamping: reader.varint())
+                case PBFSchema.blobDeflated: deflated = reader.lengthDelimited()
+                case PBFSchema.blobLzma: throw PBFError.unsupportedCompression("lzma")
+                case PBFSchema.blobLz4: throw PBFError.unsupportedCompression("lz4")
+                case PBFSchema.blobZstd: throw PBFError.unsupportedCompression("zstd")
+                default: reader.skip(wire: field.wire)
+                }
+            }
+        }
+    }
+
     /// Inflates a blob into `scratch`, growing it if needed, and returns the byte count. A
     /// blob is stored raw or deflated; a deflated one is inflated whole, header,
     /// body and checksum, so the checksum is verified.
@@ -255,22 +318,8 @@ struct PBFReader {
         _ blob: UnsafeRawBufferPointer,
         into scratch: inout [UInt8]
     ) throws -> Int {
-        var raw: UnsafeRawBufferPointer?
-        var deflated: UnsafeRawBufferPointer?
-        var plainSize = 0
-        var reader = ProtoReader(blob)
-        while let field = reader.nextField() {
-            switch field.number {
-            case PBFSchema.blobRaw: raw = reader.lengthDelimited()
-            case PBFSchema.blobRawSize: plainSize = Int(clamping: reader.varint())
-            case PBFSchema.blobDeflated: deflated = reader.lengthDelimited()
-            case PBFSchema.blobLzma: throw PBFError.unsupportedCompression("lzma")
-            case PBFSchema.blobLz4: throw PBFError.unsupportedCompression("lz4")
-            case PBFSchema.blobZstd: throw PBFError.unsupportedCompression("zstd")
-            default: reader.skip(wire: field.wire)
-            }
-        }
-        if let raw {
+        let payload = try BlobPayload(blob)
+        if let raw = payload.raw {
             if scratch.count < raw.count {
                 scratch = [UInt8](repeating: 0, count: raw.count)
             }
@@ -279,15 +328,9 @@ struct PBFReader {
             }
             return raw.count
         }
-        guard let deflated, plainSize > 0 else { throw PBFError.truncated("a blob's payload") }
-        // Untrusted size: past the format's ceiling it would be allocated as claimed.
-        guard plainSize <= PBFSchema.maxUncompressedBlob else {
-            throw PBFError.truncated(
-                "a blob claiming \(plainSize / megabyte) MB, past the"
-                    + " format's \(PBFSchema.maxUncompressedBlob / megabyte)"
-            )
-        }
-        guard deflated.count >= smallestDeflatedBlob else { throw PBFError.truncated("a compressed blob") }
+        let plainSize = payload.plainSize
+        guard let deflated = payload.deflated, plainSize > 0 else { throw PBFError.truncated("a blob's payload") }
+        try checkDeflated(deflated, claiming: plainSize)
         if scratch.count < plainSize { scratch = [UInt8](repeating: 0, count: plainSize) }
         do {
             try scratch.withUnsafeMutableBufferPointer { out in
@@ -301,5 +344,17 @@ struct PBFReader {
             throw PBFError.truncated("a compressed blob")
         }
         return plainSize
+    }
+
+    /// Refuses a deflated blob too short to be one, or claiming more than the format allows:
+    /// the size is untrusted, and past the ceiling it would be allocated as claimed.
+    private static func checkDeflated(_ deflated: UnsafeRawBufferPointer, claiming plainSize: Int) throws {
+        guard plainSize <= PBFSchema.maxUncompressedBlob else {
+            throw PBFError.truncated(
+                "a blob claiming \(plainSize / megabyte) MB, past the"
+                    + " format's \(PBFSchema.maxUncompressedBlob / megabyte)"
+            )
+        }
+        guard deflated.count >= smallestDeflatedBlob else { throw PBFError.truncated("a compressed blob") }
     }
 }

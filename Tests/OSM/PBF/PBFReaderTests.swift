@@ -473,10 +473,11 @@ final class PBFReaderTests: XCTestCase {
 
     // MARK: The readers that use every core
 
-    func testWorkersInOrderReproduceTheFileOrder() throws {
+    func testTheWorkersBetweenThemSeeEveryNodeOnce() throws {
+        // Which worker gets which block is not fixed; that each block is read once is.
         let parts = try PBFReader(url: try manyBlocks()).readConcurrently(workers: 3, make: { CollectedElements() })
         XCTAssertEqual(parts.count, 3)
-        XCTAssertEqual(parts.flatMap(\.nodes).map(\.id), Array(1...80_000))
+        XCTAssertEqual(parts.flatMap(\.nodes).map(\.id).sorted(), Array(1...80_000))
     }
 
     func testAnApplyThatThrowsLeavesNothingRunning() throws {
