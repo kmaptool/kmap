@@ -268,11 +268,23 @@ extension Toolchain {
                 \t\t\tlong span = (long) top - base + 1;
                 \t\t\twhile ((span >> shift) > Math.max(1, edges / 8))
                 \t\t\t\tshift++;
-                \t\t\tint bands = (int) ((span - 1) >> shift) + 1;
-                \t\t\tint[] at = new int[bands + 1];
-                \t\t\tfor (int i = 0; i < edges; i++)
-                \t\t\t\tfor (int b = (lo[i] - base) >> shift; b <= (hi[i] - base) >> shift; b++)
-                \t\t\t\t\tat[b + 1]++;
+                \t\t\t// Long edges are filed in many bands: widen them until that stays under 4 per edge.
+                \t\t\tint bands;
+                \t\t\tint[] at;
+                \t\t\twhile (true) {
+                \t\t\t\tbands = (int) ((span - 1) >> shift) + 1;
+                \t\t\t\tat = new int[bands + 1];
+                \t\t\t\tlong room = bands == 1 ? Long.MAX_VALUE : 4L * edges;
+                \t\t\t\tfor (int i = 0; i < edges && room >= 0; i++) {
+                \t\t\t\t\tint last = (hi[i] - base) >> shift;
+                \t\t\t\t\tfor (int b = (lo[i] - base) >> shift; b <= last; b++)
+                \t\t\t\t\t\tat[b + 1]++;
+                \t\t\t\t\troom -= last - ((lo[i] - base) >> shift) + 1;
+                \t\t\t\t}
+                \t\t\t\tif (room >= 0)
+                \t\t\t\t\tbreak;
+                \t\t\t\tshift++;
+                \t\t\t}
                 \t\t\tfor (int b = 0; b < bands; b++)
                 \t\t\t\tat[b + 1] += at[b];
                 \t\t\tbandStart = at.clone();
