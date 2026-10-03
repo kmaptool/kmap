@@ -1,23 +1,42 @@
 import Foundation
 
-/// The ground, read straight off the .hgt tiles the contour step already downloaded.
+/// The ground, read straight off the .hgt tiles of the build's elevation sources.
 ///
 /// The posts are 30 m apart while the gaps this is asked about are metres, so it serves
 /// only as a backstop against a drop big enough to swallow a path; the tags decide the rest.
 final class Terrain {
-    private let directory: URL
-    private let size = 3601
+    /// Asked in order: a tile is read from the first directory holding it.
+    private let directories: [URL]
+    /// Posts along a tile's side: 3601 at 1 arc-second, 1201 at 3. A tile is read by the
+    /// grid its length names.
+    private static let sides = [3601, 1201]
     /// SRTM marks a void with -32768; nothing that low is a reading.
     private static let voidBelow: Int16 = -32000
-    /// One arc second along a meridian, in metres.
-    private static let metresPerPost = 30.9
-    private var tiles: [Int32: Data?] = [:]
+    /// 1 arc-second along a meridian, in metres.
+    private static let metresPerArcSecond = 30.9
+    private static let arcSecondsPerDegree = 3600
 
-    init(directory: URL) {
-        self.directory = directory
+    private struct Tile {
+        let data: Data
+        let side: Int
+    }
+
+    private var tiles: [Int32: Tile?] = [:]
+
+    init(directories: [URL]) {
+        self.directories = directories
+    }
+
+    convenience init(directory: URL) {
+        self.init(directories: [directory])
     }
 
     func elevation(_ lat: Double, _ lon: Double) -> Double? {
+        post(lat, lon)?.height
+    }
+
+    /// The reading nearest the point, and the side of the tile it came from.
+    private func post(_ lat: Double, _ lon: Double) -> (height: Double, side: Int)? {
         // Tiles share their edges, so a point exactly on a degree line belongs to either.
         // The northern tile is asked first; the one below answers when it is absent.
         let south = Int(lat.rounded(.down)), west = Int(lon.rounded(.down))
@@ -29,21 +48,23 @@ final class Terrain {
         return nil
     }
 
-    private func read(_ lat: Double, _ lon: Double, _ south: Int, _ west: Int) -> Double? {
-        guard let data = tile(south, west) else { return nil }
+    private func read(_ lat: Double, _ lon: Double, _ south: Int, _ west: Int) -> (height: Double, side: Int)? {
+        guard let tile = tile(south, west) else { return nil }
+        let size = tile.side, data = tile.data
         let row = max(0, min(size - 1, Int(((Double(south) + 1 - lat) * Double(size - 1)).rounded())))
         let column = max(0, min(size - 1, Int(((lon - Double(west)) * Double(size - 1)).rounded())))
         let at = (row * size + column) * 2
         guard at + 1 < data.count else { return nil }
         let value = Int16(bitPattern: UInt16(data[at]) << 8 | UInt16(data[at + 1]))
-        return value <= Terrain.voidBelow ? nil : Double(value)
+        return value <= Terrain.voidBelow ? nil : (Double(value), size)
     }
 
-    /// Steepest gradient in degrees across the cells around the point.
+    /// Steepest gradient in degrees around the point, a post of the tile's own grid away.
     func slope(_ lat: Double, _ lon: Double) -> Double? {
-        guard let here = elevation(lat, lon) else { return nil }
-        let step = 1.0 / Double(size - 1)
-        let span = Terrain.metresPerPost
+        guard let (here, side) = post(lat, lon) else { return nil }
+        let step = 1.0 / Double(side - 1)
+        // Arc-seconds per post: 1 or 3.
+        let span = Terrain.metresPerArcSecond * Double(Terrain.arcSecondsPerDegree / (side - 1))
         let east = span * cos(lat * .pi / 180)
         var worst = 0.0
         for (dlat, dlon, run) in [
@@ -57,13 +78,19 @@ final class Terrain {
         return atan(worst) * 180 / .pi
     }
 
-    private func tile(_ south: Int, _ west: Int) -> Data? {
+    /// The tile from the first directory holding it. A file of neither length is a 1
+    /// arc-second tile cut short and answers for the posts it holds.
+    private func tile(_ south: Int, _ west: Int) -> Tile? {
         let key = Int32(south * 1000 + west)
         if let cached = tiles[key] { return cached }
         let name = HGTName.of(lat: south, lon: west) + ".hgt"
-        let url = directory.appendingPathComponent(name)
-        let data = try? Data(contentsOf: url, options: .alwaysMapped)
-        tiles[key] = data
-        return data
+        let found = directories.lazy.compactMap { directory -> Tile? in
+            guard let data = try? Data(contentsOf: directory.appendingPathComponent(name), options: .alwaysMapped)
+            else { return nil }
+            let side = Terrain.sides.first { data.count == $0 * $0 * 2 } ?? Terrain.sides[0]
+            return Tile(data: data, side: side)
+        }.first
+        tiles[key] = found
+        return found
     }
 }

@@ -20,8 +20,11 @@ struct AnnotatePass {
     var inventedIDBase: Int64 = 1 << 40
     var dropDuplicateDescriptions = false
     var markDuplicateVenues = false
-    /// Where the .hgt tiles are, if the contour step has already fetched them.
-    var dem: URL?
+    /// Where the .hgt tiles are, asked in order.
+    var dem: [URL] = []
+    /// When set, the repair waits on it for `dem` before planning: the elevation stage is
+    /// still fetching while the scans run.
+    var demReady: (@Sendable () async throws -> [URL])?
     /// Contour files to fold into the output, so splitter is handed one input file and
     /// keeps every contour whole where it crosses a tile boundary.
     var contours: [URL] = []
@@ -43,20 +46,7 @@ struct AnnotatePass {
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
                     let tally = try held.runScansThenWrite(
-                        contoursReady: { () throws -> [URL] in
-                            // Bridged with a semaphore: the scans run on a plain queue thread,
-                            // never the cooperative pool, so blocking here starves nothing.
-                            let gate = DispatchSemaphore(value: 0)
-                            let landed = Locked<Result<[URL], Error>>(.success([]))
-                            Task {
-                                let answer: Result<[URL], Error>
-                                do { answer = .success(try await contoursReady()) } catch { answer = .failure(error) }
-                                landed.withLock { $0 = answer }
-                                gate.signal()
-                            }
-                            gate.wait()
-                            return try landed.withLock { $0 }.get()
-                        },
+                        contoursReady: Self.blocking(contoursReady),
                         log: log
                     )
                     done.resume(returning: tally)
@@ -64,6 +54,25 @@ struct AnnotatePass {
                     done.resume(throwing: error)
                 }
             }
+        }
+    }
+
+    /// An async answer for the scans, which run on plain queue threads, never the
+    /// cooperative pool, so blocking there on a semaphore starves nothing.
+    private static func blocking(
+        _ answer: @escaping @Sendable () async throws -> [URL]
+    ) -> () throws -> [URL] {
+        {
+            let gate = DispatchSemaphore(value: 0)
+            let landed = Locked<Result<[URL], Error>>(.success([]))
+            Task {
+                let result: Result<[URL], Error>
+                do { result = .success(try await answer()) } catch { result = .failure(error) }
+                landed.withLock { $0 = result }
+                gate.signal()
+            }
+            gate.wait()
+            return try landed.withLock { $0 }.get()
         }
     }
 
@@ -204,10 +213,11 @@ struct AnnotatePass {
         let (found, loose) = RoadRepair(network: loaded, limit: repairRadius)
             .candidates()
         part("found the loose ends")
-        let terrain = dem.flatMap {
-            FileManager.default.fileExists(atPath: $0.path)
-                ? Terrain(directory: $0) : nil
-        }
+        // Awaited only now, with the network loaded and the ends found.
+        let directories = try demReady.map { try Self.blocking($0)() } ?? dem
+        let existing = directories.filter { FileManager.default.fileExists(atPath: $0.path) }
+        let terrain = existing.isEmpty ? nil : Terrain(directories: existing)
+        part("waited for the elevation")
         let made = RepairPlanner(
             network: loaded,
             terrain: terrain,

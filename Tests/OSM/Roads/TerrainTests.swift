@@ -52,6 +52,54 @@ final class TerrainTests: XCTestCase {
         )
     }
 
+    func testEachTileIsReadFromTheFirstDirectoryHoldingIt() throws {
+        // The DEM layer's order: the chosen source first, the next only for its gaps.
+        let first = directory.appendingPathComponent("first")
+        let second = directory.appendingPathComponent("second")
+        for dir in [first, second] {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        try HGTFixture.constant(100, at: first.appendingPathComponent("N44E033.hgt"))
+        try HGTFixture.constant(200, at: second.appendingPathComponent("N44E033.hgt"))
+        try HGTFixture.constant(300, at: second.appendingPathComponent("N45E033.hgt"))
+        let terrain = Terrain(directories: [first, second])
+        XCTAssertEqual(terrain.elevation(44.5, 33.5), 100)
+        XCTAssertEqual(terrain.elevation(45.5, 33.5), 300)
+        XCTAssertNil(terrain.elevation(46.5, 33.5))
+    }
+
+    /// A 3 arc-second tile, 1201 posts a side, with a height per row: row r holds r.
+    private func writeCoarse(_ url: URL) throws {
+        let side = 1201
+        var bytes = [UInt8](repeating: 0, count: side * side * 2)
+        for row in 0..<side {
+            for column in 0..<side {
+                bytes[(row * side + column) * 2] = UInt8(row >> 8)
+                bytes[(row * side + column) * 2 + 1] = UInt8(row & 0xFF)
+            }
+        }
+        try FileTools.write(Data(bytes), to: url)
+    }
+
+    /// The elevation directories hold tiles of either grid; one of 1201 posts is read by
+    /// its own grid, all the way to its southern edge.
+    func testA3ArcSecondTileIsReadByItsOwnGrid() throws {
+        try writeCoarse(directory.appendingPathComponent("N44E033.hgt"))
+        let terrain = Terrain(directory: directory)
+        XCTAssertEqual(terrain.elevation(45.0, 33.5), 0, "the northern edge is row 0")
+        XCTAssertEqual(terrain.elevation(44.5, 33.5), 600, "halfway down is row 600 of 1200")
+        XCTAssertEqual(terrain.elevation(44.0, 33.5), 1200, "the southern edge is the last row")
+    }
+
+    /// The slope across a coarse tile is taken a post of that tile away: 1 m a row over
+    /// 3 arc-seconds, 92.7 m, is 0.62 degrees, not the 1.85 a 1 arc-second step would give.
+    func testTheSlopeOfACoarseTileStepsByItsOwnPosts() throws {
+        try writeCoarse(directory.appendingPathComponent("N44E033.hgt"))
+        let terrain = Terrain(directory: directory)
+        let slope = try XCTUnwrap(terrain.slope(44.5, 33.5))
+        XCTAssertEqual(slope, atan(1 / 92.7) * 180 / .pi, accuracy: 0.01)
+    }
+
     func testColumnsRunEastFromTheTilesWesternEdge() throws {
         try writeColumns("N44E033.hgt") { column in Int16(column % 30000) }
         let terrain = Terrain(directory: directory)

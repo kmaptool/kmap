@@ -464,8 +464,9 @@ kmap contours <tile.hgt> [--step 20] [--out <file.pbf>] [--clip S,W,N,E]
                               оттрассировать один тайл рельефа; диагностика трассировщика:
                               --raw --no-split --flatness D --dump-paths F
                               --deviation --collinear --lengths --per-level
-kmap repair-roads <in.osm.pbf> <out.osm.pbf>
-                              починка концов дорог отдельным шагом
+kmap repair-roads <in.osm.pbf> <out.osm.pbf> [--sources=<список>]
+                              починка концов дорог отдельным шагом; с --sources
+                              рельеф читается так же, как в сборке с этими источниками
 kmap burn-peaks --pbf <extract> --hgt-dir <dir> --out <dir>
                               поднять вершины в тайлах рельефа до их высоты из OSM
 kmap make-gpi <extract> <out.gpi>

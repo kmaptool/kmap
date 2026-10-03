@@ -4,14 +4,29 @@ import Foundation
 /// junction, barriers, descriptions and repeated venues, written to a repaired copy.
 extension CLI {
     static func repairRoads(_ arguments: [String]) -> Int32 {
-        let flags = Flags(arguments, valued: ["labels", "limit"])
+        let flags = Flags(arguments, valued: ["labels", "limit", "sources"])
         let files = flags.positionals
         guard files.count >= 2 else {
             return CLIOutput.refuse(
                 "usage: kmap repair-roads <in.osm.pbf> <out.osm.pbf> [--labels ru|en]"
                     + " [--limit M] [--drop-duplicate-descriptions] [--mark-duplicate-venues]"
-                    + " [--no-bridges]"
+                    + " [--no-bridges] [--sources=<list>]"
             )
+        }
+        // With --sources the ground is read as a build naming them reads it; without, from
+        // COP1 alone.
+        var ground = [CopernicusDEM.cacheDirectory]
+        if let sources = flags.value("sources") {
+            let unknown = unknownSources(in: sources)
+            let chosen = CopernicusDEM.canonicalSourceList(sources).split(separator: ",").map(String.init)
+            guard unknown.isEmpty, !chosen.isEmpty else {
+                return CLIOutput.refuse(
+                    "--sources: "
+                        + (unknown.isEmpty
+                            ? "the list is empty" : "no source called \(unknown.joined(separator: ", "))")
+                )
+            }
+            ground = BuildPipeline.rankedDEMDirectories(chosen: chosen)
         }
         var pass = AnnotatePass(
             source: URL(fileURLWithPath: files[0]),
@@ -23,7 +38,7 @@ extension CLI {
         pass.language = flags.value("labels") ?? pass.language
         pass.dropDuplicateDescriptions = flags.has("drop-duplicate-descriptions")
         pass.markDuplicateVenues = flags.has("mark-duplicate-venues")
-        pass.dem = CopernicusDEM.cacheDirectory
+        pass.dem = ground
 
         let started = Date()
         do {

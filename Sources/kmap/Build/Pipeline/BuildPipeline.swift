@@ -255,9 +255,14 @@ final class BuildPipeline: Sendable {
     /// Everything between the download and the collection: elevation, split and compile.
     private func buildMap(from extracts: [URL]) async throws {
         // Elevation runs beside the split; only the first region's write waits on it,
-        // where the contours are folded in. A retried split awaits the same task.
+        // where the contours are folded in, and the road repair waits on its tiles. A
+        // retried split awaits the same task.
+        let terrain = Gate<[URL]>()
         let elevationTask = Task { [self] in
-            try await buildElevation(extracts: extracts)
+            // Opened however the stage ends, so a waiting repair never hangs; a second open is
+            // ignored.
+            defer { terrain.open(demSearchPaths()) }
+            return try await buildElevation(extracts: extracts, terrain: terrain)
         }
         retain(elevation: elevationTask)
         defer { elevationTask.cancel() }
@@ -273,6 +278,7 @@ final class BuildPipeline: Sendable {
             let tiles = try await splitIntoTiles(
                 extracts: extracts,
                 contours: elevationTask,
+                terrain: terrain,
                 maxNodes: cap,
                 areas: areas,
                 annotated: &annotated

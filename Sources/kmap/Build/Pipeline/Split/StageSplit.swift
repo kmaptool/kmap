@@ -25,6 +25,7 @@ extension BuildPipeline {
     func splitIntoTiles(
         extracts: [URL],
         contours contoursTask: Task<[URL], Error>,
+        terrain: Gate<[URL]>,
         maxNodes: Int,
         areas: [TileSplitter.Area]? = nil,
         annotated: inout [String]?
@@ -40,7 +41,7 @@ extension BuildPipeline {
         var inputs: [String] = annotated ?? []
         if annotated == nil {
             try await measure(.split, "classify and repair") {
-                inputs = try await annotateExtracts(extracts, contoursTask: contoursTask)
+                inputs = try await annotateExtracts(extracts, contoursTask: contoursTask, terrain: terrain)
             }
             annotated = inputs
         }

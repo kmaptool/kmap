@@ -154,8 +154,9 @@ extension CLI {
                                         trace one elevation tile; tracer diagnostics:
                                         --raw --no-split --flatness D --dump-paths F
                                         --deviation --collinear --lengths --per-level
-          kmap repair-roads <in.osm.pbf> <out.osm.pbf>
-                                        the road-repair pass on its own
+          kmap repair-roads <in.osm.pbf> <out.osm.pbf> [--sources=<list>]
+                                        the road-repair pass on its own; with --sources it
+                                        reads the ground as a build naming them does
           kmap burn-peaks --pbf <extract> --hgt-dir <dir> --out <dir>
                                         raise summits in the elevation tiles to their OSM height
           kmap make-gpi <extract> <out.gpi>

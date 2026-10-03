@@ -243,6 +243,12 @@ extension BuildPipeline {
     }
 
     private func walkDEMSearchPaths() -> [URL] {
+        Self.rankedDEMDirectories(chosen: demSourceList, burned: burnedElevationDirectories)
+    }
+
+    /// The cache's elevation directories as a map naming `chosen` reads them, finest
+    /// first, each of `burned` ahead of its original. The road repair reads the same.
+    static func rankedDEMDirectories(chosen: [String], burned burnedDirectories: [URL] = []) -> [URL] {
         var directories = Set<URL>()
         guard
             let walker = FileManager.default.enumerator(
@@ -256,8 +262,7 @@ extension BuildPipeline {
         }
         // The cache is shared between builds and holds sources this one did not ask for,
         // so the chosen sources rank first or the DEM disagrees with the contours.
-        let chosen = demSourceList
-        let uncredited = Self.uncreditedDirectories(chosen: chosen)
+        let uncredited = uncreditedDirectories(chosen: chosen)
         func rank(_ url: URL) -> Int {
             let name = url.lastPathComponent.lowercased()
             // The direct sources' directory names (COP1, FAB1) differ from their ids, so the
@@ -280,7 +285,7 @@ extension BuildPipeline {
         // Each burned directory is paired directly ahead of the cache it came from, so it
         // shadows only its own tiles and never outranks a finer source.
         return cached.flatMap { dir -> [URL] in
-            let burned = burnedElevationDirectories.first {
+            let burned = burnedDirectories.first {
                 $0.lastPathComponent == dir.lastPathComponent
             }
             return [burned, dir].compactMap { $0 }

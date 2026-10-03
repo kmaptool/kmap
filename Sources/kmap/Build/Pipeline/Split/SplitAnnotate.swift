@@ -12,7 +12,8 @@ extension BuildPipeline {
     /// files the splitter should read. Only the first region folds the contours in.
     func annotateExtracts(
         _ extracts: [URL],
-        contoursTask: Task<[URL], Error>
+        contoursTask: Task<[URL], Error>,
+        terrain: Gate<[URL]>
     ) async throws -> [String] {
         // Announced once for the whole group; the per-region lines carry a prefix.
         if recipe.needsBarrierContext || recipe.descriptions != .off
@@ -60,6 +61,7 @@ extension BuildPipeline {
                     let files = try await self.annotateBarriersIfNeeded(
                         extract,
                         contoursReady: contours,
+                        terrain: terrain,
                         suffix: extracts.count > 1 ? "-\(index)" : "",
                         regionIndex: index
                     )
@@ -91,6 +93,7 @@ extension BuildPipeline {
     private func annotateBarriersIfNeeded(
         _ extract: URL,
         contoursReady: (@Sendable () async throws -> [URL])? = nil,
+        terrain: Gate<[URL]>,
         suffix: String = "",
         regionIndex: Int = 0
     ) async throws -> [String] {
@@ -129,9 +132,9 @@ extension BuildPipeline {
             pass.bridgeObstacles = true
             // The link is named in the map's own alphabet, saying what was crossed.
             pass.language = recipe.codePage == 1251 ? "ru" : "en"
-            // The DEM distinguishes a slope from a face, so an end above a drop is left
-            // alone. Present only where the contour step already fetched it.
-            pass.dem = CopernicusDEM.cacheDirectory
+            // The DEM tells a slope from a face. Read from the DEM layer's tiles once fetched, so
+            // a first build and a rebuild repair alike.
+            pass.demReady = { await terrain.value }
             // Each region's pass invents ids from its own 2^32 range, or the ids collide
             // once the annotated files are merged into one splitter stream.
             pass.inventedIDBase = (1 << 40) + Int64(regionIndex) << 32

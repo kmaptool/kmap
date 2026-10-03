@@ -9,8 +9,12 @@ extension BuildPipeline {
 
     /// Populates the .hgt cache (used by the DEM layer) and, when asked, generates contour
     /// line files. Both come from the same downloaded elevation tiles.
-    func buildElevation(extracts: [URL]) async throws -> [URL] {
+    /// `terrain` opens with the directories the DEM layer reads, once their tiles are on
+    /// disk: before the contours are traced and the summits raised.
+    func buildElevation(extracts: [URL], terrain: Gate<[URL]>? = nil) async throws -> [URL] {
         guard recipe.needsElevationData else {
+            // Nothing fetched: the repair takes what the cache holds of the chosen sources.
+            terrain?.open(demSearchPaths())
             set(.elevation, .skipped, t("not requested"))
             set(.elevationBuild, .skipped, t("not requested"))
             return []
@@ -35,6 +39,7 @@ extension BuildPipeline {
         elevationDownloadsFinished()
         elevationBuildStarted("preparing")
         forgetDEMSearchPaths()
+        terrain?.open(demSearchPaths())
 
         let contourDir = workDirectory.appendingPathComponent("contours", isDirectory: true)
         FileTools.removeIfPresent(contourDir)
