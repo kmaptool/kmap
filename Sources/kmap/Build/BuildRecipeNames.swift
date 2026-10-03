@@ -184,6 +184,13 @@ extension BuildRecipe {
                     + (contours ? ", contours \(contourInterval) m" : "")
             )
         }
+        // Elevation sources whose licence requires credit.
+        if contours || demLayer {
+            let listed = Set(CopernicusDEM.canonicalSourceList(demSources).split(separator: ",").map(String.init))
+            for source in DEMSources.all where listed.contains(source.sourceID) {
+                for line in source.credits where !lines.contains(line) { lines.append(line) }
+            }
+        }
         // A borrowed look whose licence asks to be credited is credited here, where the
         // receiver shows it: the map is the product the licence speaks of.
         if let shipped = StyleCatalog.shippedPalette(id: style.id), !shipped.credit.isEmpty {

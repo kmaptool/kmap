@@ -339,7 +339,7 @@ final class BuildPipeline: Sendable {
         {
             throw BuildError.missingTool(
                 "pyhgtmap — needed for \(credentialedSources.joined(separator: ", "))."
-                    + " Install it from the Toolchain screen, or pick copernicus or view1/view3"
+                    + " Install it from the Toolchain screen, or pick copernicus, fabdem, gedtm or view1/view3"
             )
         }
 

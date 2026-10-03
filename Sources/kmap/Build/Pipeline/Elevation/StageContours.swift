@@ -247,13 +247,18 @@ extension BuildPipeline {
         // The cache is shared between builds and holds sources this one did not ask for,
         // so the chosen sources rank first or the DEM disagrees with the contours.
         let chosen = demSourceList
+        // A source that must be credited fills nothing in a map that does not name it.
+        let uncredited = Set(
+            DEMSources.all.filter { !$0.credits.isEmpty && !chosen.contains($0.sourceID) }
+                .map { $0.directoryName.lowercased() }
+        )
         func rank(_ url: URL) -> Int {
             let name = url.lastPathComponent.lowercased()
-            // Copernicus directory names (COP1/COP3) differ from its source ids, so the
+            // The direct sources' directory names (COP1, FAB1) differ from their ids, so the
             // generic name match below cannot connect them.
-            for flavor in CopernicusDEM.flavors
-            where name == flavor.directoryName.lowercased() {
-                if let index = chosen.firstIndex(of: flavor.sourceID) { return index }
+            for source in DEMSources.all
+            where name == source.directoryName.lowercased() {
+                if let index = chosen.firstIndex(of: source.sourceID) { return index }
             }
             if let index = chosen.firstIndex(of: name) { return index }
             // Sources not asked for still fill holes, matching resolution first, so a
@@ -261,10 +266,11 @@ extension BuildPipeline {
             let wantsOneArc = chosen.first.map { $0.contains("1") } ?? true
             return name.contains("1") == wantsOneArc ? 100 : 200
         }
-        let cached = directories.sorted { a, b in
-            let ra = rank(a), rb = rank(b)
-            return ra == rb ? a.path < b.path : ra < rb
-        }
+        let cached = directories.filter { !uncredited.contains($0.lastPathComponent.lowercased()) }
+            .sorted { a, b in
+                let ra = rank(a), rb = rank(b)
+                return ra == rb ? a.path < b.path : ra < rb
+            }
         // Each burned directory is paired directly ahead of the cache it came from, so it
         // shadows only its own tiles and never outranks a finer source.
         return cached.flatMap { dir -> [URL] in
@@ -335,7 +341,9 @@ extension BuildPipeline {
         demSearchPaths().first.map {
             let p = $0.path.lowercased()
             return p.contains("view1") || p.contains("srtm1") || p.contains("alos1")
-                || p.contains(CopernicusDEM.directoryName.lowercased())
+                || DEMSources.all.contains {
+                    $0.nodes == 3601 && p.contains($0.directoryName.lowercased())
+                }
         } ?? false
     }
 }

@@ -3,13 +3,10 @@ import Foundation
 /// Which elevation sources one build asked for, read from the recipe.
 
 extension BuildPipeline {
-    var usesCopernicus: Bool { !copernicusFlavors.isEmpty }
-
-    /// The Copernicus resolutions this build asked for, in the order asked. Matched by
-    /// whole id, never by prefix: "copernicus90" contains "copernicus" and a substring
-    /// test would fetch both.
-    var copernicusFlavors: [CopernicusDEM.Flavor] {
-        demSourceList.compactMap { id in CopernicusDEM.flavors.first { $0.sourceID == id } }
+    /// The sources kmap reads itself that this build asked for, in the order asked.
+    /// Matched by whole id, never by prefix.
+    var directSources: [any DEMSource] {
+        demSourceList.compactMap(DEMSources.named)
     }
 
     /// The sources the recipe names, in the order it names them, which is the order they
@@ -45,8 +42,8 @@ extension BuildPipeline {
         var out: [URL] = []
         for id in demSourceList {
             if id == source { break }
-            if let flavor = CopernicusDEM.flavors.first(where: { $0.sourceID == id }) {
-                out.append(flavor.cacheDirectory)
+            if let source = DEMSources.named(id) {
+                out.append(source.cacheDirectory)
             } else if id.hasPrefix("view"), let resolution = Int(id.dropFirst(4)) {
                 out.append(ViewfinderDEM.cacheDirectory(resolution))
             } else {

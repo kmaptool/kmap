@@ -2,8 +2,8 @@ import Foundation
 
 /// Stage 3: the elevation data every contour and the DEM layer are made from.
 ///
-/// Four sources — Copernicus GeoTIFF, Viewfinder zip archives, SRTM and ALOS through
-/// pyhgtmap — all converted to one `.hgt` grid of 3601×3601 nodes per degree.
+/// Copernicus and FABDEM GeoTIFF, GEDTM30 by range, Viewfinder zip archives, SRTM and ALOS
+/// through pyhgtmap: all converted to a `.hgt` grid of 3601x3601 nodes per degree.
 extension BuildPipeline {
     // MARK: 3 — elevation
 
@@ -195,18 +195,6 @@ extension BuildPipeline {
             lanes: concurrency
         ) {
             log.debug(line, stage: StageID.elevationBuild.rawValue)
-        }
-    }
-
-    /// Which of the three ways elevation arrives.
-    enum Source { case copernicus, viewfinder, credentialed }
-
-    /// Nothing more is going to be fetched after this source.
-    func isLastFetching(_ source: Source) -> Bool {
-        switch source {
-        case .copernicus: return viewfinderResolutions.isEmpty && credentialedSources.isEmpty
-        case .viewfinder: return credentialedSources.isEmpty
-        case .credentialed: return true
         }
     }
 

@@ -391,7 +391,7 @@ of range, stops the build instead of silently replacing it with a default value.
 | `--interval=<metres>` | contour interval |
 | `--dem`, `--no-dem` | the DEM layer — shaded relief and the elevation profile |
 | `--summits`, `--no-summits` | lifts the DEM at each summit to its OSM height. On with `--dem` unless switched off |
-| `--sources=<list>` | elevation sources, tried in order — each fills only what the ones before it lack. Default `view1,view3`; `copernicus1,copernicus3` is recommended (global, no login); also `srtm1`, `alos1` |
+| `--sources=<list>` | elevation sources, tried in order — each fills only what the ones before it lack. Default `view1,view3`; `copernicus1,copernicus3` is recommended (global, no login); also `fabdem1`, `gedtm1`, `srtm1`, `alos1` — see [Elevation sources](#elevation-sources) |
 | `--levels=<plan>` | how many zoom levels the map has: `standard` or `smooth` |
 | `--labels=<language>` | which OSM name tag to label with: `local`, `ru` or `en` |
 | `--code-page=<n>` | which alphabet the map keeps, a number or `auto` — see *Good to know* |
@@ -509,6 +509,22 @@ with any style, built-in or imported, and does not affect build time.
 lines, at the interval you choose. *The DEM layer* is what gives you shaded relief and the
 elevation profile. You can have either, both, or neither; the data for both comes from one
 download.
+
+### Elevation sources
+
+`--sources` lists them in order; each fills only the cells the ones before it left.
+
+| Source | Data | Coverage | Licence |
+|---|---|---|---|
+| `copernicus1`, `copernicus3` | Copernicus DEM GLO-30 / GLO-90: the surface, forest and buildings included | world | Copernicus DEM licence: free, commercial use included, with attribution |
+| `fabdem1` | FABDEM v1.2 (University of Bristol): GLO-30 with forests and buildings removed | 60°S–80°N | CC BY-NC-SA 4.0: **non-commercial use only** |
+| `gedtm1` | GEDTM30 v1.2 (OpenGeoHub): a global bare-earth model | 65°S–85°N | CC BY 4.0 |
+| `view1`, `view3` | Viewfinder Panoramas | world, patchy at 1″ | the provider's terms |
+| `srtm1`, `alos1` | NASA SRTM, JAXA ALOS AW3D30 | SRTM 56°S–60°N, ALOS 82°S–82°N | the provider's terms |
+
+The bare-earth models (FABDEM, GEDTM30) put valleys and slopes under forest at the ground,
+not the treetops; summits come out a few metres lower than on Copernicus, which kmap's
+summit burn-in corrects where OSM knows the height.
 
 **Code page: important for non-Latin maps.** `--code-page` decides which alphabet the map
 keeps: 1252 for western Europe, 1251 for Cyrillic. A wrong value silently turns local
@@ -796,4 +812,7 @@ repositories. The tile splitter is kmap's own. See [NOTICE.md](NOTICE.md) for mo
 details.
 
 Maps you build are covered by OpenStreetMap's terms, not kmap's: the data is
-[ODbL](https://www.openstreetmap.org/copyright), and so is anything made from it.
+[ODbL](https://www.openstreetmap.org/copyright), and so is anything made from it. The
+elevation in a map is under its source's licence (see [Elevation sources](#elevation-sources));
+kmap writes the required attribution into the map's copyright lines, shown under
+Map Info. A map built with `fabdem1` may not be used commercially.

@@ -24,10 +24,10 @@ extension CLI {
         flags.names.subtracting(profileOptions).subtracting(perRunOptions).sorted()
     }
 
-    /// The elevation source ids a list may name: the Copernicus flavors, the two
-    /// Viewfinder resolutions, and pyhgtmap's own (srtm and alos). Returns the rest.
+    /// The elevation source ids a list may name: the direct sources, the 2 Viewfinder
+    /// resolutions, and pyhgtmap's own (srtm and alos). Returns the rest.
     static func unknownSources(in csv: String) -> [String] {
-        let known = Set(CopernicusDEM.flavors.map(\.sourceID) + ["view1", "view3"])
+        let known = Set(DEMSources.all.map(\.sourceID) + ["view1", "view3"])
         return csv.split(separator: ",").map {
             CopernicusDEM.canonicalSourceID($0.trimmingCharacters(in: .whitespaces))
         }
@@ -102,7 +102,7 @@ extension CLI {
                     "--sources: "
                         + (unknown.isEmpty
                             ? "the list is empty" : "no source called \(unknown.joined(separator: ", "))")
-                        + " — copernicus1, copernicus3, view1, view3, srtm1, srtm3 or alos1"
+                        + " — copernicus1, copernicus3, fabdem1, gedtm1, view1, view3, srtm1, srtm3 or alos1"
                 )
             }
             choices.demSources = CopernicusDEM.canonicalSourceList(sources)

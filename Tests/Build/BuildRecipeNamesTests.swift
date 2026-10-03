@@ -104,6 +104,29 @@ final class BuildRecipeNamesTests: RecipeTestCase {
         }
     }
 
+    func testFABDEMIsCreditedOnlyWhenTheMapUsesIt() {
+        var made = dated(recipe([region("a", "A")]))
+        made.demLayer = true
+        made.demSources = "fabdem1,copernicus1"
+        XCTAssertTrue(made.copyrightLines.contains { $0.hasPrefix("FABDEM:") })
+        for line in made.copyrightLines { XCTAssertTrue(line.allSatisfy { $0.isASCII }, line) }
+        XCTAssertEqual(
+            made.copyrightLines.filter { $0.hasPrefix("Copernicus DEM:") }.count,
+            1,
+            "FABDEM is made from it"
+        )
+        made.demSources = "copernicus1,copernicus3"
+        XCTAssertFalse(made.copyrightLines.contains { $0.hasPrefix("FABDEM:") })
+        XCTAssertEqual(made.copyrightLines.filter { $0.hasPrefix("Copernicus DEM:") }.count, 1, "once for 2 flavors")
+        made.demSources = "gedtm1,view3"
+        XCTAssertTrue(made.copyrightLines.contains { $0.hasPrefix("GEDTM30:") })
+        XCTAssertFalse(made.copyrightLines.contains { $0.hasPrefix("Copernicus DEM:") })
+        made.demSources = "fabdem1"
+        made.contours = false
+        made.demLayer = false
+        XCTAssertFalse(made.copyrightLines.contains { $0.hasPrefix("FABDEM:") })
+    }
+
     func testTheElevationLineOnlyAppearsWhenThereIsElevation() {
         var made = dated(recipe([region("a", "A")]))
         made.contours = false

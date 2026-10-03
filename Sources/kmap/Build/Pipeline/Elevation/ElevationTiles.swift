@@ -1,15 +1,15 @@
 import Foundation
 
-/// Copernicus GLO-30/GLO-90: GeoTIFF from the open bucket, downloaded in lanes
-/// and resampled onto the arc-second grid.
+/// The sources published as a GeoTIFF per degree (Copernicus, FABDEM): downloaded in
+/// lanes and resampled onto the arc-second grid.
 
 extension BuildPipeline {
-    /// Downloads the Copernicus tiles covering the region and converts each to `.hgt`.
+    /// Downloads the source's tiles covering the region and converts each to `.hgt`.
     ///
-    /// A missing tile is not an error: the bucket simply has nothing over open sea, and a
+    /// A missing tile is not an error: the source simply has nothing over open sea, and a
     /// coastal region routinely asks for degrees that are entirely water.
-    func fetchCopernicusTiles(
-        _ flavor: CopernicusDEM.Flavor,
+    func fetchDEMTiles<Source: DEMTileSource>(
+        _ flavor: Source,
         covering bbox: BBox,
         last: Bool
     ) async throws {
@@ -36,7 +36,7 @@ extension BuildPipeline {
         // to conversion, and only the rest go over the network.
         let unconverted = wanted.filter { !FileTools.exists(flavor.cachedTile(lat: $0.lat, lon: $0.lon)) }
         guard !unconverted.isEmpty else {
-            log.append("all \(wanted.count) Copernicus tile(s) already converted")
+            log.append("all \(wanted.count) \(flavor.label) tile(s) already converted")
             return
         }
         let scratch = flavor.tifCacheDirectory
@@ -46,23 +46,21 @@ extension BuildPipeline {
         }
         if missing.count < unconverted.count {
             log.append(
-                "\(unconverted.count - missing.count) Copernicus tile(s) already downloaded — kept from an interrupted run"
+                "\(unconverted.count - missing.count) \(flavor.label) tile(s) already downloaded — kept from an interrupted run"
             )
         }
-        log.step(
-            "fetching \(missing.count) Copernicus \(flavor.sourceID == CopernicusDEM.glo90.sourceID ? "GLO-90" : "GLO-30") tile(s)"
-        )
+        log.step("fetching \(missing.count) \(flavor.label) tile(s)")
 
         // Two phases: downloads run several at a time, then conversion warps from a mosaic
         // of all the tiles. A `.hgt` grid is half a cell wider than the source square on
         // every side, so its outer nodes need the neighbour's data to sample.
-        let absent = try await downloadCopernicusTifs(missing, flavor: flavor, into: scratch)
+        let absent = try await downloadDEMTifs(missing, flavor: flavor, into: scratch)
 
         let downloaded = unconverted.filter {
             FileTools.exists(flavor.downloadedTif(lat: $0.lat, lon: $0.lon))
         }
         guard !downloaded.isEmpty else {
-            log.ok("no Copernicus tiles here — \(absent) cell(s) are open sea")
+            log.ok("no \(flavor.label) tiles here — \(absent) cell(s) are open sea")
             guard hgtFileCount() > 0 else { throw BuildError.noElevationTiles }
             return
         }
@@ -76,9 +74,9 @@ extension BuildPipeline {
 
         // Downloading is over for this source; the download half closes only when nothing
         // else is going to fetch. The two halves overlap across sources.
-        if last, isLastFetching(.copernicus) { elevationDownloadsFinished() }
+        if last { elevationDownloadsFinished() }
         elevationBuildStarted("converting")
-        let converted = try await convertCopernicusTiles(
+        let converted = try await convertDEMTiles(
             downloaded,
             from: mosaic,
             flavor: flavor
@@ -92,7 +90,7 @@ extension BuildPipeline {
         }
 
         log.ok(
-            "\(converted) Copernicus tile(s) converted"
+            "\(converted) \(flavor.label) tile(s) converted"
                 + (absent > 0 ? ", \(absent) not in the bucket (open sea)" : "")
         )
         guard converted > 0 || hgtFileCount() > 0 else {
@@ -100,13 +98,13 @@ extension BuildPipeline {
         }
     }
 
-    /// Downloads the missing Copernicus tiles, several at a time, with a live progress
-    /// line. A tile the bucket does not hold is open sea, not a failure.
+    /// Downloads the missing tiles, several at a time, with a live progress line. A tile
+    /// the source does not hold is open sea, not a failure.
     ///
     /// - Returns: how many cells came back absent.
-    private func downloadCopernicusTifs(
+    private func downloadDEMTifs<Source: DEMTileSource>(
         _ missing: [(lat: Int, lon: Int)],
-        flavor: CopernicusDEM.Flavor,
+        flavor: Source,
         into scratch: URL
     ) async throws -> Int {
         let lanes = max(2, min(6, Machine.workers))
@@ -126,6 +124,7 @@ extension BuildPipeline {
                 let done = fetched.value + absent.value
                 pace.note(done: done)
                 let text = BuildPipeline.fetchLine(
+                    source: flavor.family,
                     done: done,
                     of: total,
                     received: flight.received,
@@ -150,7 +149,7 @@ extension BuildPipeline {
                 let cell = missing[index]
                 group.addTask { [weak self] in
                     guard let self else { return }
-                    let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+                    let name = HGTName.of(lat: cell.lat, lon: cell.lon)
                     guard let url = flavor.tileURL(lat: cell.lat, lon: cell.lon) else {
                         return
                     }
@@ -168,7 +167,7 @@ extension BuildPipeline {
                         try FileTools.move(assembling, to: tif)
                         flight.left(downloader, carrying: FileTools.size(of: tif))
                         fetched.increment()
-                    } catch let error where CopernicusDEM.isAbsent(error) {
+                    } catch let error where flavor.isAbsent(error) {
                         // Nothing in the bucket means open sea, which is not a failure.
                         flight.left(downloader, carrying: 0)
                         absent.increment()
@@ -198,10 +197,10 @@ extension BuildPipeline {
     /// and every cell writes its own file, so order changes nothing.
     ///
     /// - Returns: how many tiles converted; a failed cell warns and keeps its download.
-    private func convertCopernicusTiles(
+    private func convertDEMTiles<Source: DEMTileSource>(
         _ downloaded: [(lat: Int, lon: Int)],
         from mosaic: HGTConversion.Mosaic,
-        flavor: CopernicusDEM.Flavor
+        flavor: Source
     ) async throws -> Int {
         let converted = Counter()
         let done = Counter()
@@ -212,9 +211,9 @@ extension BuildPipeline {
                 let cell = downloaded[index]
                 group.addTask { [weak self] in
                     guard let self else { return }
-                    let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+                    let name = HGTName.of(lat: cell.lat, lon: cell.lon)
                     do {
-                        try self.convertCopernicusTile(cell, from: mosaic, flavor: flavor)
+                        try self.convertDEMTile(cell, from: mosaic, flavor: flavor)
                         converted.increment()
                     } catch {
                         self.log.warn("\(name): could not be converted — \(error)")
@@ -245,12 +244,12 @@ extension BuildPipeline {
     /// Resamples one degree cell of GeoTIFF onto the arc-second nodes and writes it as
     /// `.hgt`. Sampling each tile directly, rather than through an averaged VRT mosaic,
     /// avoids a second resampling where neighbouring tiles differ in sample spacing.
-    private func convertCopernicusTile(
+    private func convertDEMTile<Source: DEMTileSource>(
         _ cell: (lat: Int, lon: Int),
         from mosaic: HGTConversion.Mosaic,
-        flavor: CopernicusDEM.Flavor
+        flavor: Source
     ) throws {
-        let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+        let name = HGTName.of(lat: cell.lat, lon: cell.lon)
         let destination = flavor.cachedTile(lat: cell.lat, lon: cell.lon)
         FileTools.removeIfPresent(destination)
         try HGTConversion.write(cell: cell, from: mosaic, to: destination, nodes: flavor.nodes)

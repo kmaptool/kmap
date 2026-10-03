@@ -127,6 +127,33 @@ final class Downloader: Sendable {
         return info.size - alreadyOnDisk
     }
 
+    /// Downloads bytes `start..<start + count` of `url`, resuming a part file. The server
+    /// must serve ranges.
+    func download(url: URL, from start: Int64, count: Int64, to destination: URL) async throws {
+        Paths.ensure(destination.deletingLastPathComponent())
+        let part = RangeSession.Part(
+            index: 0,
+            start: start,
+            end: start + count - 1,
+            url: PartFiles(destination: destination).part(0)
+        )
+        if part.written > part.length { FileTools.removeIfPresent(part.url) }
+        progress.begin(total: count, partTotals: [count], alreadyOnDisk: part.written)
+        progress.seedPart(0, bytes: part.written)
+        progress.setStage("downloading")
+        // A clean answer can still end short; each retry picks up where it stopped.
+        for _ in 0..<3 where part.written < part.length {
+            try await fetch(part: part, from: url, ranged: true)
+            try Task.checkCancellation()
+        }
+        guard part.written == count else {
+            FileTools.removeIfPresent(part.url)
+            throw DownloadError.io("\(url.lastPathComponent): \(part.written) of \(count) bytes arrived")
+        }
+        FileTools.removeIfPresent(destination)
+        try FileTools.move(part.url, to: destination)
+    }
+
     /// Fetches one part, resuming where it stopped for as long as it makes progress.
     private func fetch(part: RangeSession.Part, from url: URL, ranged: Bool) async throws {
         var failures = 0
@@ -165,7 +192,7 @@ final class Downloader: Sendable {
     /// Whether `error` is transient: a 5xx status, or a connection-level `URLError`. A
     /// 4xx, a checksum failure, a full disk and a cancellation are all final.
     static func worthRetrying(_ error: Error) -> Bool {
-        if case DownloadError.badStatus(let code) = error { return (500...599).contains(code) }
+        if case DownloadError.badStatus(let code) = error { return code == 429 || (500...599).contains(code) }
         guard let url = error as? URLError else { return false }
         switch url.code {
         case .timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost,

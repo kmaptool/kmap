@@ -37,7 +37,7 @@ extension CLI {
                     "--sources: "
                         + (unknown.isEmpty
                             ? "the list is empty" : "no source called \(unknown.joined(separator: ", "))")
-                        + " — copernicus1, copernicus3, view1, view3, srtm1, srtm3 or alos1"
+                        + " — copernicus1, copernicus3, fabdem1, gedtm1, view1, view3, srtm1, srtm3 or alos1"
                 )
             }
         }

@@ -258,7 +258,7 @@ enum Strings {
         "coverage list unavailable — a sampled guess": "список покрытия недоступен — оценка по выборке",
         "about %@ to download": "качать около %@",
         "behind a login, so its size is only known once it starts": "за логином, размер известен только после старта",
-        "the bucket did not answer, so this is unmeasured": "хранилище не ответило, размер не измерен",
+        "the source did not answer, so this is unmeasured": "источник не ответил, размер не измерен",
         "the coverage map could not be read, so which archives this needs is not known":
             "карту покрытия прочитать не удалось, поэтому какие архивы нужны — неизвестно",
         "no archive covers this ground": "эту землю не покрывает ни один архив",
@@ -750,7 +750,8 @@ enum Strings {
         "not downloadable": "не скачивается",
         "not found": "не найден",
         "not installed": "не установлен",
-        "not needed for copernicus, view1 or view3": "для copernicus, view1 и view3 не нужен",
+        "not needed for copernicus, fabdem, gedtm, view1 or view3":
+            "для copernicus, fabdem, gedtm, view1 и view3 не нужен",
         "not set": "не задан",
         "not set — 3 arc-second data only": "не задан — только данные в 3 угловые секунды",
         "not styled by this TYP — the device draws its own": "этот TYP его не оформляет — прибор рисует своё",

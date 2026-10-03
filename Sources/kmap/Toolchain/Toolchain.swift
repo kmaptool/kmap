@@ -409,7 +409,7 @@ final class Toolchain: @unchecked Sendable {
             note: python == nil
                 ? t("needs python3 — %@", installs.note(.python))
                 : (pyhgtmap == nil
-                    ? t("not needed for copernicus, view1 or view3") : nil),
+                    ? t("not needed for copernicus, fabdem, gedtm, view1 or view3") : nil),
             // Where python3 is missing but installable, kmap installs it first.
             installable: python != nil || installs.canInstall(.python),
             isOptional: true

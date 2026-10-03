@@ -59,19 +59,19 @@ final class ElevationCostTests: XCTestCase {
 /// a small fetch has every file asked its size.
 final class ElevationCostChainTests: XCTestCase {
     private var probe: (@Sendable (URL) async throws -> Int64)!
-    private var coverage: (@Sendable (CopernicusDEM.Flavor) async -> Set<String>?)!
+    private var coverage: (@Sendable (any DEMTileSource) async -> Set<String>?)!
     private var viewIndex: (@Sendable (Int) async -> ViewfinderDEM.Index?)!
 
     override func setUp() {
         super.setUp()
         probe = ElevationCost.probeSize
-        coverage = ElevationCost.copernicusCoverage
+        coverage = ElevationCost.tileCoverage
         viewIndex = ElevationCost.viewfinderIndex
     }
 
     override func tearDown() {
         ElevationCost.probeSize = probe
-        ElevationCost.copernicusCoverage = coverage
+        ElevationCost.tileCoverage = coverage
         ElevationCost.viewfinderIndex = viewIndex
         super.tearDown()
     }
@@ -83,7 +83,7 @@ final class ElevationCostChainTests: XCTestCase {
 
     func testLaterSourcesPayOnlyForTheGapsEarlierOnesLeave() async {
         // GLO-30 publishes two of the four cells, GLO-90 three; one is open sea for both.
-        ElevationCost.copernicusCoverage = { flavor in
+        ElevationCost.tileCoverage = { flavor in
             flavor.sourceID == "copernicus1"
                 ? ["S09W140", "S09W139"]
                 : ["S09W140", "S09W139", "S10W140"]
@@ -104,7 +104,7 @@ final class ElevationCostChainTests: XCTestCase {
     }
 
     func testACellNoSourcePublishesCostsNothing() async {
-        ElevationCost.copernicusCoverage = { _ in [] }
+        ElevationCost.tileCoverage = { _ in [] }
         ElevationCost.probeSize = { _ in
             XCTFail("nothing should be probed"); return 1
         }
@@ -118,7 +118,7 @@ final class ElevationCostChainTests: XCTestCase {
         // A hundred cells, far past the ask-them-all limit.
         let many: [(lat: Int, lon: Int)] = (0..<100).map { (-80, $0 - 170) }
         let names = Set(many.map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) })
-        ElevationCost.copernicusCoverage = { _ in names }
+        ElevationCost.tileCoverage = { _ in names }
         // Counted under a lock: the probes run six lanes at once.
         let probes = Counter()
         ElevationCost.probeSize = { _ in
@@ -132,7 +132,7 @@ final class ElevationCostChainTests: XCTestCase {
     }
 
     func testTheCoverageListFailingFallsBackToBlindSampling() async {
-        ElevationCost.copernicusCoverage = { _ in nil }
+        ElevationCost.tileCoverage = { _ in nil }
         ElevationCost.probeSize = { _ in 25 }
         let out = await ElevationCost.estimate(sources: "copernicus1", cells: cells)
         XCTAssertEqual(out.first?.bytes, 100, "mean times all four, sea unknowable")
@@ -158,7 +158,7 @@ final class ElevationCostChainTests: XCTestCase {
     }
 
     func testViewfinderAfterCopernicusPaysOnlyForWhatIsLeft() async {
-        ElevationCost.copernicusCoverage = { _ in ["S09W140", "S09W139"] }
+        ElevationCost.tileCoverage = { _ in ["S09W140", "S09W139"] }
         ElevationCost.viewfinderIndex = { _ in
             var index = ViewfinderDEM.Index()
             index.entries = [
@@ -175,7 +175,7 @@ final class ElevationCostChainTests: XCTestCase {
     }
 
     func testACredentialedSourceReportsWhatIsLeftWithANote() async {
-        ElevationCost.copernicusCoverage = { _ in ["S09W140"] }
+        ElevationCost.tileCoverage = { _ in ["S09W140"] }
         ElevationCost.probeSize = { _ in 10 }
         let out = await ElevationCost.estimate(sources: "copernicus1,srtm1", cells: cells)
         XCTAssertEqual(out[1].wanted, 3, "the three cells GLO-30 does not settle")

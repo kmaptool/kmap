@@ -45,13 +45,14 @@ extension BuildPipeline {
     /// left. The total size is not known in advance, so the estimate rests on the weight
     /// of the tiles already finished.
     static func fetchLine(
+        source: String = "Copernicus",
         done: Int,
         of total: Int,
         received: Int64,
         elapsed: TimeInterval,
         secondsLeft: Double?
     ) -> String {
-        var text = "Copernicus \(done)/\(total) · \(Fmt.bytes(received))"
+        var text = "\(source) \(done)/\(total) · \(Fmt.bytes(received))"
         // No rate for the first second: the first tiles are still opening their
         // connections and the figure would swing wildly.
         guard elapsed > Remaining.settlesAfter, received > 0 else { return text }

@@ -52,6 +52,16 @@ final class RangeSession: Sendable {
 
     var isCancelled: Bool { receiver.isCancelled }
 
+    /// Whether a `Content-Range` ("bytes 100-199/1000") starts where the `Range` asked
+    /// ("bytes=100-199" or "bytes=100-"). An answer it cannot read is taken on trust.
+    static func serves(_ contentRange: String, asked range: String) -> Bool {
+        func start(_ text: Substring) -> Int64? { Int64(text.prefix { $0.isNumber }) }
+        guard let askedFrom = range.split(separator: "=").last.flatMap(start),
+            let servedFrom = contentRange.split(separator: " ").last.flatMap(start)
+        else { return true }
+        return askedFrom == servedFrom
+    }
+
     /// Fetches what is left of `part` in one request, appending to its file. Without
     /// ranges the server sends the file from the top, so the part starts over.
     func fetch(_ part: Part, from url: URL, ranged: Bool) async throws {
@@ -163,6 +173,15 @@ private final class Receiver: NSObject, URLSessionDataDelegate, Sendable {
         // oversized part, so it is refused before the transfer.
         if http.statusCode == 200,
             dataTask.originalRequest?.value(forHTTPHeaderField: "Range") != nil
+        {
+            fail(dataTask, with: DownloadError.rangesIgnored)
+            return completionHandler(.cancel)
+        }
+        // A 206 for bytes other than those asked would be appended at the wrong place.
+        if http.statusCode == 206,
+            let asked = dataTask.originalRequest?.value(forHTTPHeaderField: "Range"),
+            let served = http.value(forHTTPHeaderField: "Content-Range"),
+            !RangeSession.serves(served, asked: asked)
         {
             fail(dataTask, with: DownloadError.rangesIgnored)
             return completionHandler(.cancel)

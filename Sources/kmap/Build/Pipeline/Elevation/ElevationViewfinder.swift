@@ -8,13 +8,13 @@ extension BuildPipeline {
     /// A cell is tried at each resolution the recipe names until one answers: `view1,view3`
     /// takes the finer where it exists and the coarser where it does not. A cell no
     /// resolution carries is open sea, which is not a failure.
-    func fetchViewfinderTiles(covering bbox: BBox) async throws {
+    func fetchViewfinderTiles(_ resolutions: [Int], covering bbox: BBox, last: Bool) async throws {
         // Cells a source listed before the first view entry already converted are
         // settled; Viewfinder fills what they left. view1 against view3 is chained
         // below, per cell.
         let all = degreeCellNames(of: bbox)
         let earlier =
-            viewfinderResolutions.first
+            resolutions.first
             .map { earlierSourceDirectories(before: ViewfinderDEM.sourceID($0)) } ?? []
         let cells = all.filter { name in
             !earlier.contains { FileTools.exists($0.appendingPathComponent("\(name).hgt")) }
@@ -27,13 +27,13 @@ extension BuildPipeline {
         }
         guard !cells.isEmpty else {
             log.append("nothing left for Viewfinder — every cell is already held")
-            if isLastFetching(.viewfinder) { elevationDownloadsFinished() }
+            if last { elevationDownloadsFinished() }
             return
         }
         let downloader = Downloader(log: log)
         let runner = makeRunner()
         var indexes: [Int: ViewfinderDEM.Index] = [:]
-        for resolution in viewfinderResolutions {
+        for resolution in resolutions {
             indexes[resolution] = try await ViewfinderDEM.index(
                 resolution,
                 downloader: downloader
@@ -45,7 +45,7 @@ extension BuildPipeline {
         var have = 0, missing: [String] = []
         for (position, cell) in cells.enumerated() {
             var found = false
-            for resolution in viewfinderResolutions {
+            for resolution in resolutions {
                 let cached = ViewfinderDEM.cachedTile(cell, resolution: resolution)
                 if ViewfinderDEM.isComplete(cached, resolution: resolution) {
                     found = true
@@ -79,7 +79,7 @@ extension BuildPipeline {
                 fraction: Double(position + 1) / Double(max(1, cells.count))
             )
         }
-        if isLastFetching(.viewfinder) { elevationDownloadsFinished() }
+        if last { elevationDownloadsFinished() }
         log.ok(
             "Viewfinder: \(have)/\(cells.count) tile(s) in the cache"
                 + (missing.isEmpty ? "" : ", \(missing.count) not published (open sea)")

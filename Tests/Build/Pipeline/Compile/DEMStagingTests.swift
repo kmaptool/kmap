@@ -104,6 +104,43 @@ final class DEMStagingTests: XCTestCase {
         XCTAssertTrue(destination.contains("VIEW3"), destination)
     }
 
+    func testACreditedSourceTheMapDoesNotNameFillsNothing() throws {
+        // FABDEM's licence asks for credit, and only named sources are credited.
+        try plant("COP1", ["N44E034"])
+        try plant("FAB1", ["N44E034", "N44E035"])
+        let dir = try XCTUnwrap(pipeline.stageDEMCells().first)
+        XCTAssertTrue(FileTools.exists(dir.appendingPathComponent("N44E034.hgt")))
+        XCTAssertFalse(FileTools.exists(dir.appendingPathComponent("N44E035.hgt")))
+    }
+
+    func testTheFetchesFollowTheRecipesOrder() {
+        func steps(_ sources: String) -> [String] {
+            var recipe = pipeline.recipe
+            recipe.demSources = sources
+            let settings = SettingsStore()
+            let toolchain = Toolchain(settings: settings)
+            let built = BuildPipeline(
+                recipe: recipe,
+                settings: settings,
+                toolchain: toolchain,
+                styles: StyleCatalog(settings: settings, toolchain: toolchain)
+            )
+            return built.fetchSteps.map { step in
+                switch step {
+                case .direct(let source): source.sourceID
+                case .viewfinder(let resolutions): "view" + resolutions.map(String.init).joined(separator: "+")
+                case .credentialed(let ids): ids.joined(separator: "+")
+                }
+            }
+        }
+        // A later source fills only what the earlier ones leave, so it must come later.
+        XCTAssertEqual(steps("view1,fabdem1"), ["view1", "fabdem1"])
+        XCTAssertEqual(steps("view1,view3,copernicus1"), ["view1+3", "copernicus1"])
+        XCTAssertEqual(steps("view1,gedtm1,view3"), ["view1", "gedtm1", "view3"])
+        XCTAssertEqual(steps("srtm1,fabdem1,alos1"), ["srtm1+alos1", "fabdem1"])
+        XCTAssertEqual(steps("copernicus1,copernicus3"), ["copernicus1", "copernicus3"])
+    }
+
     func testNothingStagedMeansNoDEMOption() throws {
         XCTAssertEqual(
             pipeline.stageDEMCells(),

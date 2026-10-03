@@ -53,7 +53,10 @@ extension CLI {
           --sources=<list>              elevation sources, tried in order — each fills only what
                                         the ones before it lack. Default view1,view3;
                                         copernicus1,copernicus3 is recommended (global, no
-                                        login); also srtm1, alos1
+                                        login); fabdem1 is the same with forests and
+                                        buildings removed, 60S to 80N, non-commercial use
+                                        only; gedtm1 is OpenGeoHub's bare-earth model,
+                                        65S to 85N; also srtm1, alos1
           --levels=<plan>               how many zoom levels the map has: standard or smooth
           --labels=<language>           which OSM name tag to label with: local, ru or en
           --code-page=<n>               which alphabet the map keeps, a number or auto: 1252

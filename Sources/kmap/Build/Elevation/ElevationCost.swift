@@ -50,9 +50,10 @@ enum ElevationCost {
     /// network. Estimation is read-only, so a test overriding these touches no cache.
     private struct Seams {
         var probeSize: @Sendable (URL) async throws -> Int64 = { try await Downloader.probe($0).size }
-        var copernicusCoverage: @Sendable (CopernicusDEM.Flavor) async -> Set<String>? = {
-            await CopernicusDEM.availableCells($0)
+        var tileCoverage: @Sendable (any DEMTileSource) async -> Set<String>? = {
+            await $0.availableCells()
         }
+        var gedtmRead: @Sendable (GEDTM30) -> GEDTM30.Read = { $0.remote() }
         var viewfinderIndex: @Sendable (Int) async -> ViewfinderDEM.Index? = { resolution in
             if let index = ViewfinderDEM.Index.load(ViewfinderDEM.indexFile(resolution)) {
                 return index
@@ -72,9 +73,14 @@ enum ElevationCost {
         set { seams.withLock { $0.probeSize = newValue } }
     }
 
-    static var copernicusCoverage: @Sendable (CopernicusDEM.Flavor) async -> Set<String>? {
-        get { seams.withLock { $0.copernicusCoverage } }
-        set { seams.withLock { $0.copernicusCoverage = newValue } }
+    static var tileCoverage: @Sendable (any DEMTileSource) async -> Set<String>? {
+        get { seams.withLock { $0.tileCoverage } }
+        set { seams.withLock { $0.tileCoverage = newValue } }
+    }
+
+    static var gedtmRead: @Sendable (GEDTM30) -> GEDTM30.Read {
+        get { seams.withLock { $0.gedtmRead } }
+        set { seams.withLock { $0.gedtmRead = newValue } }
     }
 
     static var viewfinderIndex: @Sendable (Int) async -> ViewfinderDEM.Index? {
@@ -120,8 +126,11 @@ enum ElevationCost {
         cells: [(lat: Int, lon: Int)],
         covered: inout Set<String>
     ) async -> Estimate {
-        if let flavor = CopernicusDEM.flavors.first(where: { $0.sourceID == source }) {
-            return await copernicus(flavor, cells: cells, covered: &covered)
+        if let tiled = DEMSources.tiled(source) {
+            return await perCell(tiled, cells: cells, covered: &covered)
+        }
+        if let gedtm = DEMSources.named(source) as? GEDTM30 {
+            return await gedtmCost(gedtm, cells: cells, covered: &covered)
         }
         if source.hasPrefix("view"), let resolution = Int(source.dropFirst(4)) {
             return await viewfinder(
@@ -150,12 +159,12 @@ enum ElevationCost {
         CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
     }
 
-    // MARK: Copernicus
+    // MARK: A GeoTIFF per degree
 
-    /// Copernicus is one object per degree. The bucket's tile list says exactly which of
-    /// the wanted cells it publishes; only their sizes are asked or sampled.
-    private static func copernicus(
-        _ flavor: CopernicusDEM.Flavor,
+    /// Copernicus and FABDEM are 1 object per degree. The source's tile list says exactly
+    /// which of the wanted cells it publishes; only their sizes are asked or sampled.
+    private static func perCell(
+        _ flavor: any DEMTileSource,
         cells: [(lat: Int, lon: Int)],
         covered: inout Set<String>
     ) async -> Estimate {
@@ -182,7 +191,7 @@ enum ElevationCost {
             )
         }
 
-        guard let available = await copernicusCoverage(flavor) else {
+        guard let available = await tileCoverage(flavor) else {
             // The list did not answer: sampled blind over every wanted cell, with the
             // absent ones counted as the zero they cost, as the estimate always used to.
             let (bytes, sampled) = await blindSample(toFetch, flavor: flavor)
@@ -197,7 +206,7 @@ enum ElevationCost {
                 sampled: sampled,
                 archives: 0,
                 note: bytes == nil
-                    ? t("the bucket did not answer, so this is unmeasured")
+                    ? t("the source did not answer, so this is unmeasured")
                     : t("coverage list unavailable — a sampled guess")
             )
         }
@@ -238,7 +247,7 @@ enum ElevationCost {
             sampled: sampled,
             archives: 0,
             note: bytes == nil
-                ? t("the bucket did not answer, so this is unmeasured") : nil
+                ? t("the source did not answer, so this is unmeasured") : nil
         )
     }
 
@@ -246,7 +255,7 @@ enum ElevationCost {
     /// across the map, an absent object counting as the zero it costs.
     private static func blindSample(
         _ cells: [(lat: Int, lon: Int)],
-        flavor: CopernicusDEM.Flavor
+        flavor: any DEMTileSource
     ) async -> (Int64?, Int) {
         let step = max(1, cells.count / sampleSize)
         var sizes: [Int64] = []
@@ -256,7 +265,7 @@ enum ElevationCost {
             guard let url = flavor.tileURL(lat: cell.lat, lon: cell.lon) else { continue }
             do {
                 sizes.append(try await probeSize(url))
-            } catch let error where CopernicusDEM.isAbsent(error) {
+            } catch let error where flavor.isAbsent(error) {
                 sizes.append(0)
             } catch {
                 continue
@@ -265,6 +274,68 @@ enum ElevationCost {
         guard !sizes.isEmpty else { return (nil, 0) }
         let mean = sizes.reduce(0, +) / Int64(sizes.count)
         return (mean * Int64(cells.count), sizes.count)
+    }
+
+    // MARK: GEDTM30
+
+    /// GEDTM30 is 1 file: the cost is the sizes of the tiles under the wanted cells, from
+    /// its index.
+    private static func gedtmCost(
+        _ source: GEDTM30,
+        cells: [(lat: Int, lon: Int)],
+        covered: inout Set<String>
+    ) async -> Estimate {
+        let cached = cells.filter { FileTools.exists(source.cachedTile(lat: $0.lat, lon: $0.lon)) }
+        covered.formUnion(cached.map(name(of:)))
+        // A cell found to be sea costs nothing here, and stays open to later sources.
+        let toFetch = cells.filter {
+            !covered.contains(name(of: $0)) && !FileTools.exists(source.seaMark(lat: $0.lat, lon: $0.lon))
+        }
+        func estimate(published: Int, bytes: Int64?, note: String?) -> Estimate {
+            Estimate(
+                source: source.sourceID,
+                cells: cells.count,
+                cached: cached.count,
+                wanted: toFetch.count,
+                published: published,
+                bytes: bytes,
+                exact: bytes != nil,
+                sampled: 0,
+                archives: 0,
+                note: note
+            )
+        }
+        guard !toFetch.isEmpty else { return estimate(published: 0, bytes: 0, note: nil) }
+        do {
+            let read = gedtmRead(source)
+            let layout = try await GEDTM30.layout(read: read)
+            var tiles = Set<Int>()
+            var published: [(lat: Int, lon: Int)] = []
+            for cell in toFetch {
+                let under = try layout.tiles(lat: cell.lat, lon: cell.lon, nodes: source.nodes)
+                guard !under.isEmpty else { continue }
+                published.append(cell)
+                tiles.formUnion(under)
+            }
+            covered.formUnion(published.map(name(of:)))
+            guard !published.isEmpty else {
+                return estimate(
+                    published: 0,
+                    bytes: 0,
+                    note: tn("the %d cell(s) left are open sea or unsurveyed — nothing to fetch", toFetch.count)
+                )
+            }
+            let spans = try await GEDTM30.spans(of: tiles, in: layout, read: read)
+            let bytes = spans.filter { !FileTools.exists(source.chunk($0.value)) }
+                .reduce(Int64(0)) { $0 + Int64($1.value.count) }
+            return estimate(published: published.count, bytes: bytes, note: nil)
+        } catch {
+            return estimate(
+                published: toFetch.count,
+                bytes: nil,
+                note: t("the source did not answer, so this is unmeasured")
+            )
+        }
     }
 
     // MARK: Viewfinder

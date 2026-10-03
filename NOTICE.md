@@ -25,8 +25,9 @@ redistributed. The Java of those edits, in `Sources/kmap/Toolchain/MkgmapPatch.s
 quotes mkgmap's source and carries parts of it over, so it is GPL as mkgmap is (version 2,
 and version 3 or later where the file it edits says so), not MIT. The tile splitter is kmap's own. Map data is OpenStreetMap (ODbL, via
 Geofabrik) and so is everything built from it; coastline and boundary packs come from
-thkukuk.de; elevation comes from Copernicus DEM, Viewfinder Panoramas, SRTM or ALOS, each
-under its provider's own terms.
+thkukuk.de; elevation comes from Copernicus DEM (Copernicus DEM licence), FABDEM (CC BY-NC-SA 4.0,
+non-commercial), GEDTM30 (CC BY 4.0), Viewfinder Panoramas, SRTM or ALOS, each under its
+provider's own terms. kmap downloads them on the user's machine and ships none of them.
 
 ## libdeflate
 

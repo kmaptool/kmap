@@ -317,7 +317,10 @@ final class RecipeForm {
 
     /// The elevation sources on offer. SRTM and ALOS need pyhgtmap and a working login.
     func sourceChoices(_ ctx: AppContext) -> [String] {
-        var choices = [BuildRecipe.recommendedDEMSources, "copernicus1", "copernicus3", "view1,view3", "view1", "view3"]
+        var choices = [
+            BuildRecipe.recommendedDEMSources, "copernicus1", "copernicus3", "fabdem1,copernicus1,copernicus3",
+            "gedtm1,copernicus1,copernicus3", "view1,view3", "view1", "view3"
+        ]
         if ctx.toolchain.findPyhgtmap() != nil {
             if ElevationLogins.usable(.srtm) { choices.append("srtm1,view3") }
             if ElevationLogins.usable(.alos) { choices.append("alos1,view3") }

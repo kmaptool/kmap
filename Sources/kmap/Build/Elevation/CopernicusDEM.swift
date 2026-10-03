@@ -5,47 +5,25 @@ import Foundation
 /// of the bytes. `HGTConversion` handles the two differences - a `.hgt` covers its degree
 /// inclusively, and the bucket thins longitude sampling north of 50 deg.
 enum CopernicusDEM {
-    /// Whether a download error means the bucket holds no such tile - open sea, not a
-    /// failure. 404 is the plain answer; 403 is what S3 says for a missing key when
-    /// listing is not allowed. Anything else is a failure.
-    static func isAbsent(_ error: Error) -> Bool {
-        if case DownloadError.badStatus(let code) = error { return code == 404 || code == 403 }
-        return false
-    }
-
     /// One resolution of the survey: its id in settings, its cache names, its grid.
-    struct Flavor {
-        /// The source id shown in the build screen and stored in settings.
+    struct Flavor: DEMTileSource {
         let sourceID: String
-        /// Cache directory under hgt/. The 1 or 3 in the name is load-bearing: the DEM
-        /// layer's finest-source-wins ordering reads it, as does the dem-dists choice.
         let directoryName: String
-        /// Nodes per `.hgt` side: 3601 for one arc-second, 1201 for three.
         let nodes: Int
         /// The public bucket, and the resolution field in its object names.
         let bucket: String
         let cogField: String
-        /// Where a downloaded GeoTIFF waits for its conversion; see tifCacheDirectory.
         let tifCacheName: String
+        let label: String
 
-        var cacheDirectory: URL {
-            Paths.hgtCache.appendingPathComponent(directoryName, isDirectory: true)
-        }
+        var family: String { "Copernicus" }
+        var credits: [String] { [CopernicusDEM.credit] }
 
-        func cachedTile(lat: Int, lon: Int) -> URL {
-            cacheDirectory.appendingPathComponent("\(HGTName.of(lat: lat, lon: lon)).hgt")
-        }
+        /// The bucket's tile list: a stem per line, 1 MB.
+        var tileListURL: URL? { URL(string: "https://\(bucket).s3.amazonaws.com/tileList.txt") }
+        var tileListCacheName: String { "\(bucket)-tiles.txt" }
 
-        /// Where a downloaded GeoTIFF waits for its conversion. A cache, not scratch: a
-        /// `.tif` appears here only complete, a rerun skips every cell that has one, and
-        /// each is deleted once its `.hgt` is written and verified. One per resolution.
-        var tifCacheDirectory: URL {
-            Paths.cache.appendingPathComponent(tifCacheName, isDirectory: true)
-        }
-
-        func downloadedTif(lat: Int, lon: Int) -> URL {
-            tifCacheDirectory.appendingPathComponent("\(HGTName.of(lat: lat, lon: lon)).tif")
-        }
+        func parseTileList(_ text: String) -> Set<String> { CopernicusDEM.parseTileList(text) }
 
         func tileURL(lat: Int, lon: Int) -> URL? {
             // The bucket's own name for the tile: the same corner, with the hemisphere
@@ -56,6 +34,9 @@ enum CopernicusDEM {
         }
     }
 
+    /// The attribution the Copernicus DEM licence asks for, in the map's alphabet.
+    static let credit = "Copernicus DEM: (c) DLR 2010-2014, Airbus 2014-2018, ESA"
+
     // The ids follow the other sources' convention, the digit being arc-seconds as in
     // view1, srtm1 and alos1, rather than the survey's own metre branding.
     static let glo30 = Flavor(
@@ -64,7 +45,8 @@ enum CopernicusDEM {
         nodes: 3601,
         bucket: "copernicus-dem-30m",
         cogField: "10",
-        tifCacheName: "copernicus-tif"
+        tifCacheName: "copernicus-tif",
+        label: "Copernicus GLO-30"
     )
 
     static let glo90 = Flavor(
@@ -73,7 +55,8 @@ enum CopernicusDEM {
         nodes: 1201,
         bucket: "copernicus-dem-90m",
         cogField: "30",
-        tifCacheName: "copernicus3-tif"
+        tifCacheName: "copernicus3-tif",
+        label: "Copernicus GLO-90"
     )
 
     static let flavors = [glo30, glo90]
@@ -111,18 +94,6 @@ enum CopernicusDEM {
 
     // MARK: What the bucket holds
 
-    /// The bucket's own list of every tile it publishes, one stem per line. Ground the
-    /// survey covers has a tile; open sea and the few unreleased areas have none. About
-    /// twenty-six thousand lines, a megabyte, cached beside the other indexes.
-    static func tileListURL(_ flavor: Flavor) -> URL? {
-        URL(string: "https://\(flavor.bucket).s3.amazonaws.com/tileList.txt")
-    }
-
-    static func tileListCache(_ flavor: Flavor) -> URL {
-        Paths.cache.appendingPathComponent("dem-index", isDirectory: true)
-            .appendingPathComponent("\(flavor.bucket)-tiles.txt")
-    }
-
     /// Cell names (`N44E034`) out of the list's stems
     /// (`Copernicus_DSM_COG_10_N44_00_E034_00_DEM`).
     static func parseTileList(_ text: String) -> Set<String> {
@@ -135,27 +106,6 @@ enum CopernicusDEM {
             out.insert(String(fields[4] + fields[6]))
         }
         return out
-    }
-
-    /// Which cells the bucket publishes, from the cache or the bucket itself. Nil when it
-    /// cannot be had, and the caller falls back to sampling blind. The survey does not
-    /// change, so a fetched list is kept for good.
-    static func availableCells(_ flavor: Flavor) async -> Set<String>? {
-        let file = tileListCache(flavor)
-        if let text = try? String(contentsOf: file, encoding: .utf8) {
-            let cells = parseTileList(text)
-            if !cells.isEmpty { return cells }
-        }
-        guard let url = tileListURL(flavor) else { return nil }
-        // Retried: without the list every cell is sampled blind, sea included.
-        guard let data = try? await Downloader.retrying({ try await Fetch.data(url) }),
-            let text = String(data: data, encoding: .utf8)
-        else { return nil }
-        let cells = parseTileList(text)
-        guard !cells.isEmpty else { return nil }
-        Paths.ensure(file.deletingLastPathComponent())
-        try? FileTools.write(data, to: file)
-        return cells
     }
 
     /// An osmosis `.poly` rectangle. pyhgtmap discards `--area` once handed a file to
