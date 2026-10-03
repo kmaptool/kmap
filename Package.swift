@@ -53,6 +53,11 @@ let package = Package(
             name: "CVector",
             path: "Sources/CVector"
         ),
+        // Test-only: keeps a lost main-queue wake-up from hanging a Linux test run.
+        .target(
+            name: "CMainQueueNudge",
+            path: "Tests/CMainQueueNudge"
+        ),
         .executableTarget(
             name: "kmap",
             dependencies: ["CLibdeflate", "CStbImage", "CVector"],
@@ -72,8 +77,9 @@ let package = Package(
         // Sources/kmap/OSM/PBF/ProtoReader.swift.
         .testTarget(
             name: "kmapTests",
-            dependencies: ["kmap", "CVector"],
-            path: "Tests"
+            dependencies: ["kmap", "CVector", "CMainQueueNudge"],
+            path: "Tests",
+            exclude: ["CMainQueueNudge"]
         )
     ]
 )
