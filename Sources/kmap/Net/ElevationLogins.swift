@@ -59,14 +59,18 @@ enum ElevationLogins {
         var values: [String: String] = [:]
         // `Lines.of` strips a trailing carriage return, which would end up in the value.
         for rawLine in Lines.of(text) {
-            guard let (key, value) = pair(in: rawLine, by: line) else { continue }
-            values[key] = value
+            guard let found = pair(in: rawLine, by: line) else { continue }
+            values[found.key] = found.value
         }
         return values
     }
 
-    /// The key and value a line sets; nil for anything the reader skips.
-    private static func pair(in rawLine: String, by line: NSRegularExpression) -> (key: String, value: String)? {
+    /// The key and value a line sets, and the comment after them; nil for anything the
+    /// reader skips.
+    private static func pair(
+        in rawLine: String,
+        by line: NSRegularExpression
+    ) -> (key: String, value: String, comment: String)? {
         let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !"#;[".contains(trimmed.first!), !trimmed.hasPrefix("---") else { return nil }
         let range = NSRange(trimmed.startIndex..., in: trimmed)
@@ -74,7 +78,23 @@ enum ElevationLogins {
             let key = Range(match.range(withName: "key"), in: trimmed)
         else { return nil }
         let value = Range(match.range(withName: "value"), in: trimmed).map { String(trimmed[$0]) } ?? ""
-        return (String(trimmed[key]), value)
+        let comment = Range(match.range(withName: "comment"), in: trimmed).map { String(trimmed[$0]) } ?? ""
+        return (String(trimmed[key]), value, comment)
+    }
+
+    /// A line setting `key`, keeping the old line's comment unless it would change what
+    /// the reader gets back.
+    private static func line(
+        _ key: String,
+        _ value: String,
+        keeping comment: String,
+        by line: NSRegularExpression
+    ) -> String {
+        let plain = "\(key): \"\(value)\""
+        guard !comment.isEmpty else { return plain }
+        let noted = plain + "  # " + comment
+        guard let read = pair(in: noted, by: line), read.key == key, read.value == value else { return plain }
+        return noted
     }
 
     static func load(_ service: Service) -> (user: String, password: String) {
@@ -88,9 +108,16 @@ enum ElevationLogins {
     enum Trouble: Error, LocalizedError {
         /// What pyhgtmap's file cannot hold: a line break, a list, or a value it would cut short.
         case unwritable
+        /// The file is there and is not text: saving would replace all of it.
+        case unreadable
 
         var errorDescription: String? {
-            t("pyhgtmap's file cannot hold this value: a line break, square brackets, or a quote before # or ;")
+            switch self {
+            case .unwritable:
+                t("pyhgtmap's file cannot hold this value: a line break, square brackets, or a quote before # or ;")
+            case .unreadable:
+                t("%@ is not UTF-8 text, so it is left as it is", Paths.display(ElevationLogins.configFile))
+            }
         }
     }
 
@@ -138,13 +165,15 @@ enum ElevationLogins {
             let ending = piece.unicodeScalars.last == "\r" ? "\r" : ""
             if !ending.isEmpty { carriage = ending }
             let body = String(String.UnicodeScalarView(piece.unicodeScalars.dropLast(ending.unicodeScalars.count)))
-            guard let key = pair(in: body, by: line)?.key, let value = changes[key]
+            guard let old = pair(in: body, by: line), let value = changes[old.key]
             else {
                 out.append(piece)
                 continue
             }
             // Once: the reader takes the last repeat, so repeats are dropped.
-            if written.insert(key).inserted, !value.isEmpty { out.append("\(key): \"\(value)\"" + ending) }
+            if written.insert(old.key).inserted, !value.isEmpty {
+                out.append(Self.line(old.key, value, keeping: old.comment, by: line) + ending)
+            }
         }
         for (key, value) in changes.sorted(by: { $0.key < $1.key }) where !value.isEmpty && !written.contains(key) {
             out.append("\(key): \"\(value)\"" + carriage)
@@ -154,7 +183,12 @@ enum ElevationLogins {
 
     static func save(_ service: Service, user: String, password: String) throws {
         guard isWritable(user), isWritable(password) else { throw Trouble.unwritable }
-        let text = (try? String(contentsOf: configFile, encoding: .utf8)) ?? ""
+        // A file that does not read is not an empty one.
+        var text = ""
+        if let stored = try? Data(contentsOf: configFile) {
+            guard let read = String(data: stored, encoding: .utf8) else { throw Trouble.unreadable }
+            text = read
+        }
         let changed = updating(
             text,
             with: ["\(service.rawValue)-user": user, "\(service.rawValue)-password": password]

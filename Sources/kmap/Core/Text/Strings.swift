@@ -478,6 +478,7 @@ enum Strings {
             "патч собирается только для mkgmap r%@, а здесь r%@",
         "pyhgtmap's file cannot hold this value: a line break, square brackets, or a quote before # or ;":
             "файл pyhgtmap не может хранить значения: перевод строки, квадратные скобки или кавычка перед # или ;",
+        "%@ is not UTF-8 text, so it is left as it is": "%@ — не текст в UTF-8, файл оставлен как есть",
         "deleted %@": "удалён %@",
         "deleted %@ — it was the default, which is now %@": "удалён %@ — он был по умолчанию, теперь это %@",
         "deleted %@ — nothing is left to be the default": "удалён %@ — быть по умолчанию больше нечему",

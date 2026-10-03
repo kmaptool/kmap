@@ -89,6 +89,19 @@ final class ElevationLoginsFileTests: XCTestCase {
         )
     }
 
+    /// A note after a login stays on its line, unless the value would then read back wrong.
+    func testTheCommentAfterAChangedLoginIsKept() {
+        let text = "srtm-user = someone   # my work account\nsrtm-password: old ; rotate in May\n"
+        let changed = ElevationLogins.updating(text, with: ["srtm-user": "other", "srtm-password": "new"])
+        XCTAssertEqual(
+            changed,
+            "srtm-user: \"other\"  # my work account\nsrtm-password: \"new\"  # rotate in May\n"
+        )
+        let read = ElevationLogins.parse(changed)
+        XCTAssertEqual(read["srtm-user"], "other")
+        XCTAssertEqual(read["srtm-password"], "new")
+    }
+
     func testANewFileIsWhatRenderWrites() {
         let values = ["srtm-user": "someone", "srtm-password": "secret"]
         XCTAssertEqual(ElevationLogins.updating("", with: values), ElevationLogins.render(values))
