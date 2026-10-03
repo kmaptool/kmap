@@ -230,6 +230,19 @@ final class GeoTIFFTests: XCTestCase {
         XCTAssertEqual(try tiff.row(1), [0, 1, 2, 3])
     }
 
+    func testTheHorizontalPredictorUndoesFloatWordsAsIntegers() throws {
+        // FABDEM and GEDTM30 write float32 under predictor 2: the words are differenced
+        // as integers, so a sum of floats would give the wrong heights.
+        for bigEndian in [false, true] {
+            var fixture = Fixture()
+            fixture.bits = 32; fixture.format = 3; fixture.predictor = 2; fixture.bigEndian = bigEndian
+            fixture.samples = [1.5, 900.25, -12.5, 0, 3806.5, -9999, 0.125, 7, 8, 9, 10, 11]
+            let tiff = try GeoTIFF(contentsOf: try write(fixture, as: "p2-\(bigEndian).tif"))
+            XCTAssertEqual(try tiff.row(0), [1.5, 900.25, -12.5, 0], "big endian \(bigEndian)")
+            XCTAssertEqual(try tiff.row(1), [3806.5, -9999, 0.125, 7], "big endian \(bigEndian)")
+        }
+    }
+
     func testTheFloatingPointPredictorIsUndoneInBothItsPasses() throws {
         // Predictor 3 shuffles the bytes into columns and then differences them, so
         // undoing it is the sum and then the gather.

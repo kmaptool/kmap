@@ -1,3 +1,4 @@
+import CVector
 import Foundation
 
 /// Turns GeoTIFF elevation tiles into the `.hgt` grid the rest of the pipeline reads.
@@ -10,6 +11,52 @@ enum HGTConversion {
     static let arcSecondsPerDegree = 3600
     static let latticePerArcSecond = 1000
     private static let latticePerDegree = arcSecondsPerDegree * latticePerArcSecond
+
+    /// Writes heights as big-endian Int16, held to the type's range and rounded half away
+    /// from zero. A height that is not finite, or is `nodata`, is written as 0 and not
+    /// counted. Returns how many were stored.
+    static func storeHeights(
+        _ heights: UnsafePointer<Float>,
+        count: Int,
+        nodata: Float?,
+        into out: UnsafeMutablePointer<UInt8>
+    ) -> Int {
+        let stored = kmap_heights_f32(heights, count, nodata ?? 0, nodata == nil ? 0 : 1, out)
+        if stored >= 0 { return Int(stored) }
+        return plainStoreHeights(count: count, into: out) { i in
+            let height = heights[i]
+            return height == nodata ? nil : Double(height)
+        }
+    }
+
+    static func storeHeights(
+        _ heights: UnsafePointer<Double>,
+        count: Int,
+        into out: UnsafeMutablePointer<UInt8>
+    ) -> Int {
+        let stored = kmap_heights_f64(heights, count, out)
+        if stored >= 0 { return Int(stored) }
+        return plainStoreHeights(count: count, into: out) { heights[$0] }
+    }
+
+    /// The same a height at a time: no vector code, and the tests. A nil height is a hole.
+    static func plainStoreHeights(
+        count: Int,
+        into out: UnsafeMutablePointer<UInt8>,
+        height: (Int) -> Double?
+    ) -> Int {
+        var stored = 0
+        for i in 0..<count {
+            var metres: Int16 = 0
+            if let h = height(i), h.isFinite {
+                metres = Int16(min(max(h, Double(Int16.min)), Double(Int16.max)).rounded(.toNearestOrAwayFromZero))
+                stored += 1
+            }
+            out[i * 2] = UInt8(truncatingIfNeeded: metres >> 8)
+            out[i * 2 + 1] = UInt8(truncatingIfNeeded: metres)
+        }
+        return stored
+    }
 
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case noData(String)
@@ -370,18 +417,10 @@ enum HGTConversion {
                 )
             }
             if lifted {
+                // A hole stores 0, which the fresh row already holds.
                 written += out.withUnsafeMutableBufferPointer { bytes -> Int in
                     line.withUnsafeBufferPointer { heights -> Int in
-                        var at = row * n * 2, stored = 0
-                        for column in 0..<n {
-                            if let metres = metres(heights[column]) {
-                                bytes[at] = UInt8(truncatingIfNeeded: Int(metres) >> 8)
-                                bytes[at + 1] = UInt8(truncatingIfNeeded: Int(metres))
-                                stored += 1
-                            }
-                            at += 2
-                        }
-                        return stored
+                        Self.storeHeights(heights.baseAddress!, count: n, into: bytes.baseAddress! + row * n * 2)
                     }
                 }
                 continue

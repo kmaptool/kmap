@@ -84,7 +84,18 @@ struct TIFFFixture {
                         )
                     }
                     var bytes = line.flatMap(sample)
-                    if fixture.predictor == 2 {
+                    if fixture.predictor == 2, fixture.bits == 32 {
+                        // 32-bit words differenced as integers, floats included, as
+                        // libtiff and GDAL write them.
+                        var previous: UInt32 = 0
+                        bytes = []
+                        for value in line {
+                            let word =
+                                fixture.format == 3 ? value.bitPattern : UInt32(bitPattern: Int32(value.rounded()))
+                            bytes += u32(Int(word &- previous))
+                            previous = word
+                        }
+                    } else if fixture.predictor == 2 {
                         // Each sample as the difference from its left neighbour.
                         var previous: Int32 = 0
                         bytes = []

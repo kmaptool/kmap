@@ -281,7 +281,8 @@ struct GeoTIFF {
         guard index >= 0, index < offsets.count else { throw Trouble.truncated }
         let bytesPerSample = bitsPerSample / 8
         let wanted = tileWidth * tileHeight * bytesPerSample
-        var raw = [UInt8](repeating: 0, count: wanted)
+        // Every path below fills all of it or throws.
+        var raw = [UInt8](unsafeUninitializedCapacity: wanted) { _, filled in filled = wanted }
 
         let offset = offsets[index], count = counts[index]
         guard offset >= 0, count >= 0, offset + count <= data.count else {
@@ -324,6 +325,21 @@ struct GeoTIFF {
         let floats: [Float]
         if predictor == Predictor.floatingPoint, bytesPerSample == 4, sampleFormat == SampleFormat.float {
             floats = floatsFromPlanes(&raw)
+        } else if bytesPerSample == 4, sampleFormat == SampleFormat.float {
+            let count = tileWidth * tileHeight
+            floats = [Float](unsafeUninitializedCapacity: count) { out, filled in
+                filled = count
+                raw.withUnsafeMutableBufferPointer {
+                    Self.wordRows(
+                        $0.baseAddress!,
+                        width: tileWidth,
+                        rows: tileHeight,
+                        bigEndian: bigEndian,
+                        differenced: predictor == Predictor.horizontal,
+                        into: out.baseAddress!
+                    )
+                }
+            }
         } else {
             undoPredictor(&raw, bytesPerSample: bytesPerSample)
             floats = samples(raw, bytesPerSample: bytesPerSample)
@@ -370,6 +386,19 @@ struct GeoTIFF {
                         sum &+= row[i]
                         row[i] = sum
                     }
+                } else if bytesPerSample == 4 {
+                    // The same over 32-bit integer samples.
+                    let words = UnsafeMutableRawPointer(row)
+                    var previous: UInt32 = 0
+                    for k in 0..<width {
+                        let word = words.loadUnaligned(fromByteOffset: k * 4, as: UInt32.self)
+                        previous &+= bigEndian ? UInt32(bigEndian: word) : UInt32(littleEndian: word)
+                        words.storeBytes(
+                            of: bigEndian ? previous.bigEndian : previous.littleEndian,
+                            toByteOffset: k * 4,
+                            as: UInt32.self
+                        )
+                    }
                 } else {
                     // The horizontal predictor differences samples, not bytes, so a 16-bit
                     // band is reassembled before the sum and split again after.
@@ -414,6 +443,45 @@ struct GeoTIFF {
                 if !Self.vectorFloatRows(start, width: width, rows: rows, into: floats) {
                     Self.floatRows(start, width: width, rows: rows, into: floats)
                 }
+            }
+        }
+    }
+
+    /// Rows of 32-bit float words to numbers, each row summed first under predictor 2
+    /// (as integers, as libtiff does).
+    static func wordRows(
+        _ raw: UnsafeMutablePointer<UInt8>,
+        width: Int,
+        rows: Int,
+        bigEndian: Bool,
+        differenced: Bool,
+        into floats: UnsafeMutablePointer<Float>
+    ) {
+        if !bigEndian, kmap_word_rows(raw, width, rows, differenced ? 1 : 0, floats) != 0 { return }
+        plainWordRows(raw, width: width, rows: rows, bigEndian: bigEndian, differenced: differenced, into: floats)
+    }
+
+    /// The same a word at a time: no vector code, big-endian files, and the tests.
+    static func plainWordRows(
+        _ raw: UnsafeMutablePointer<UInt8>,
+        width: Int,
+        rows: Int,
+        bigEndian: Bool,
+        differenced: Bool,
+        into floats: UnsafeMutablePointer<Float>
+    ) {
+        let words = UnsafeRawPointer(raw)
+        for r in 0..<rows {
+            let line = floats + r * width
+            var previous: UInt32 = 0
+            for k in 0..<width {
+                let word = words.loadUnaligned(fromByteOffset: (r * width + k) * 4, as: UInt32.self)
+                var value = bigEndian ? UInt32(bigEndian: word) : UInt32(littleEndian: word)
+                if differenced {
+                    value &+= previous
+                    previous = value
+                }
+                line[k] = Float(bitPattern: value)
             }
         }
     }
