@@ -195,7 +195,11 @@ final class TileSplitter {
         let counts = try write(areas: areas, assignment: assignment, plan: plan)
         took("wrote the tiles")
         progress?(1)
+        return try listTiles(areas, counts: counts)
+    }
 
+    /// The tiles written, named and counted, and the 2 companion files that list them.
+    private func listTiles(_ areas: [Area], counts: [Int]) throws -> Result {
         let listURL = options.outputDirectory.appendingPathComponent(Self.areasListName)
         let argsURL = options.outputDirectory.appendingPathComponent(Self.templateArgsName)
         var tiles: [(mapID: String, area: Area, nodes: Int)] = []
@@ -245,14 +249,9 @@ final class TileSplitter {
                 for entry in pass.shared {
                     nodes.setValue(at: base + entry.at, to: nodes.intern(entry.areas))
                 }
+                let named = pass.bands.map { nodes.internBand(strict: $0.strict, shape: $0.shape) }
                 for entry in pass.banded {
-                    nodes.setValue(
-                        at: base + entry.at,
-                        to: nodes.internBand(
-                            strict: entry.strict,
-                            shape: entry.shape
-                        )
-                    )
+                    nodes.setValue(at: base + entry.at, to: named[entry.band])
                 }
                 pass.clear()
             }
@@ -288,7 +287,16 @@ final class TileSplitter {
         var shared: [(at: Int, areas: AreaLookup.Hits)] = []
         /// Position in `values` to the pair it stands for, for a node in a neighbour's
         /// shape band: where it lives, and where a shape through it must be delivered.
-        var banded: [(at: Int, strict: AreaLookup.Hits, shape: AreaLookup.Hits)] = []
+        /// The block's pairs are listed once each, in the order first met, and interned
+        /// in that order when applied.
+        var banded: [(at: Int, band: Int)] = []
+        var bands: [NodeAreas.BandKey] = []
+        private var bandIndex: [NodeAreas.BandKey: Int] = [:]
+        private var lastBand = 0
+
+        init(lookup: AreaLookup) {
+            self.lookup = lookup
+        }
 
         mutating func node(
             id: Int64,
@@ -305,9 +313,10 @@ final class TileSplitter {
             // Only a node that belongs somewhere can widen; one outside every tile is
             // beyond the map.
             if hits.count > 0 {
-                let shape = lookup.shapeAreas(lat: mapLat, lon: mapLon)
+                let shape = lookup.shapeAreas(lat: mapLat, lon: mapLon, widening: hits)
                 if shape.count > hits.count {
-                    banded.append((values.count, hits.inOrder, shape.inOrder))
+                    let band = band(of: NodeAreas.BandKey(strict: hits.inOrder, shape: shape.inOrder))
+                    banded.append((values.count, band))
                     values.append(NodeAreas.outside)
                     return
                 }
@@ -321,11 +330,28 @@ final class TileSplitter {
             }
         }
 
+        /// The block's number for a pair of answers, the pair listed if it is new.
+        private mutating func band(of key: NodeAreas.BandKey) -> Int {
+            // Neighbouring nodes mostly share a pair.
+            if lastBand < bands.count, bands[lastBand] == key { return lastBand }
+            if let known = bandIndex[key] {
+                lastBand = known
+            } else {
+                bands.append(key)
+                lastBand = bands.count - 1
+                bandIndex[key] = lastBand
+            }
+            return lastBand
+        }
+
         mutating func clear() {
             ids.removeAll(keepingCapacity: true)
             values.removeAll(keepingCapacity: true)
             shared.removeAll(keepingCapacity: true)
             banded.removeAll(keepingCapacity: true)
+            bands.removeAll(keepingCapacity: true)
+            bandIndex.removeAll(keepingCapacity: true)
+            lastBand = 0
         }
     }
 

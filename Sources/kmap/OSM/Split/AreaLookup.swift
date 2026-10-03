@@ -11,6 +11,9 @@ extension TileSplitter {
         static let none = UInt16.max
 
         private var grid: [UInt16] = []
+        /// Per cell: its 3x3 neighbourhood names 1 value throughout, so no neighbour can
+        /// widen a shape answer there.
+        private var plain: [Bool] = []
         private var rects: [Area] = []
         private var shapeOverlap: Int32 = TileSplitter.shapeClipOverlap
         private var minLatCell: Int32 = 0, minLonCell: Int32 = 0
@@ -27,6 +30,21 @@ extension TileSplitter {
             private var values = SIMD16<UInt16>(repeating: AreaLookup.none)
 
             var first: UInt16 { values[0] }
+
+            // Slots past `count` always hold `none`, so the slots in use decide equality,
+            // and hashing the words that hold them is enough.
+            static func == (a: Hits, b: Hits) -> Bool { a.values == b.values }
+
+            /// Slots in each 64-bit word hashed.
+            private static let perWord = 4
+
+            func hash(into hasher: inout Hasher) {
+                let words = unsafeBitCast(values, to: SIMD4<UInt64>.self)
+                hasher.combine(words[0])
+                for i in stride(from: 1, to: (count + Self.perWord - 1) / Self.perWord, by: 1) {
+                    hasher.combine(words[i])
+                }
+            }
 
             subscript(index: Int) -> UInt16 { values[index] }
 
@@ -84,8 +102,14 @@ extension TileSplitter {
             minLonCell = minLon
             rows = Int(maxLat - minLat) + 1
             cols = Int(maxLon - minLon) + 1
+            fillGrid()
+            markPlainCells()
+        }
+
+        /// Every cell names the area covering it.
+        private mutating func fillGrid() {
             grid = [UInt16](repeating: Self.none, count: rows * cols)
-            for (index, area) in areas.enumerated() {
+            for (index, area) in rects.enumerated() {
                 var lat = area.minLat >> TileSplitter.gridShift
                 while lat < area.maxLat >> TileSplitter.gridShift {
                     let row = Int(lat - minLatCell) * cols
@@ -97,6 +121,26 @@ extension TileSplitter {
                     lat += 1
                 }
             }
+        }
+
+        private mutating func markPlainCells() {
+            plain = [Bool](repeating: false, count: rows * cols)
+            for row in 0..<rows {
+                for column in 0..<cols { plain[row * cols + column] = isPlain(row: row, column: column) }
+            }
+        }
+
+        /// Whether the cell and the 8 round it name 1 value, beyond the grid counting as none.
+        private func isPlain(row: Int, column: Int) -> Bool {
+            let here = grid[row * cols + column]
+            for dRow in -1...1 {
+                for dColumn in -1...1 {
+                    let r = row + dRow, c = column + dColumn
+                    let near = r >= 0 && r < rows && c >= 0 && c < cols ? grid[r * cols + c] : Self.none
+                    if near != here { return false }
+                }
+            }
+            return true
         }
 
         private func area(latCell: Int32, lonCell: Int32) -> UInt16 {
@@ -142,10 +186,18 @@ extension TileSplitter {
         /// The overlap is at most one cell wide, so the 3×3 neighbourhood bounds the search
         /// and the rectangle test decides.
         func shapeAreas(lat: Int32, lon: Int32) -> Hits {
-            var hits = areas(lat: lat, lon: lon)
+            shapeAreas(lat: lat, lon: lon, widening: areas(lat: lat, lon: lon))
+        }
+
+        /// The same, given what `areas` answered for the point.
+        func shapeAreas(lat: Int32, lon: Int32, widening strict: Hits) -> Hits {
+            var hits = strict
             let latCell = lat >> TileSplitter.gridShift
             let lonCell = lon >> TileSplitter.gridShift
             guard shapeOverlap > 0 else { return hits }
+            let row = Int(latCell - minLatCell)
+            let column = Int(lonCell - minLonCell)
+            if row >= 0, row < rows, column >= 0, column < cols, plain[row * cols + column] { return hits }
             let margin = shapeOverlap
             for dLat in Int32(-1)...1 {
                 for dLon in Int32(-1)...1 {

@@ -1,3 +1,4 @@
+import CVector
 import Foundation
 
 /// Which tile each node belongs to, for every node in the extract: ids and the area each
@@ -11,7 +12,7 @@ extension TileSplitter {
         static let bandFlag: UInt16 = 0x4000
         static let flags: UInt16 = setFlag | bandFlag
 
-        var sets: [[UInt16]] = []
+        private(set) var sets: [[UInt16]] = []
         private var setIndex: [[UInt16]: UInt16] = [:]
         /// The same table keyed by the lookup's own answer, so a node on a border needs no
         /// array built for it.
@@ -24,7 +25,7 @@ extension TileSplitter {
         }
 
         /// The strict answer and the shape answer, in that order, for a node in a band.
-        var bandSets: [(strict: [UInt16], shape: [UInt16])] = []
+        private(set) var bandSets: [(strict: [UInt16], shape: [UInt16])] = []
         private var bandIndex: [[UInt16]: UInt16] = [:]
 
         /// Set when a table ran out of names. A band set has 14 bits for its index, so
@@ -35,12 +36,47 @@ extension TileSplitter {
         private static let mostSets = Int(outside & ~setFlag)
         private static let mostBandSets = Int(bandFlag)
 
+        /// The sets again, end to end, for the workers: a run is read in place rather than
+        /// handed out as an array whose reference count they would all contend for. Set
+        /// `i` is `setTiles[setStart[i] ..< setStart[i + 1]]`, and a band set's strict
+        /// half the same in `bandTiles`. Read on many threads only once filled, hence the
+        /// unchecked access, here and on the table below.
+        @exclusivity(unchecked) private var setTiles: [UInt16] = []
+        @exclusivity(unchecked) private var setStart: [Int32] = [0]
+        @exclusivity(unchecked) private var bandTiles: [UInt16] = []
+        @exclusivity(unchecked) private var bandStart: [Int32] = [0]
+
+        private func noteSet(_ tiles: [UInt16]) {
+            setTiles.append(contentsOf: tiles)
+            setStart.append(Int32(setTiles.count))
+        }
+
+        private func noteBand(strict: [UInt16]) {
+            bandTiles.append(contentsOf: strict)
+            bandStart.append(Int32(bandTiles.count))
+        }
+
+        /// Appends the areas a stored value names, as `areas(of:)` gives them.
+        func appendAreas(of value: UInt16, to out: inout [UInt16]) {
+            if value == Self.outside { return }
+            if value & Self.setFlag != 0 {
+                let set = Int(value & ~Self.setFlag)
+                for at in Int(setStart[set])..<Int(setStart[set + 1]) { out.append(setTiles[at]) }
+            } else if value & Self.bandFlag != 0 {
+                let band = Int(value & ~Self.bandFlag)
+                for at in Int(bandStart[band])..<Int(bandStart[band + 1]) { out.append(bandTiles[at]) }
+            } else {
+                out.append(value)
+            }
+        }
+
         func intern(_ set: [UInt16]) -> UInt16 {
             let sorted = set.sorted()
             if let hit = setIndex[sorted] { return hit }
             guard sets.count < Self.mostSets else { overflowed = true; return Self.outside }
             let index = UInt16(sets.count) | Self.setFlag
             sets.append(sorted)
+            noteSet(sorted)
             setIndex[sorted] = index
             return index
         }
@@ -52,6 +88,7 @@ extension TileSplitter {
             guard sets.count < Self.mostSets else { overflowed = true; return Self.outside }
             let index = UInt16(sets.count) | Self.setFlag
             sets.append(hits.sorted)
+            noteSet(hits.sorted)
             hitsIndex[hits] = index
             return index
         }
@@ -64,6 +101,7 @@ extension TileSplitter {
             guard bandSets.count < Self.mostBandSets else { overflowed = true; return Self.outside }
             let index = UInt16(bandSets.count) | Self.bandFlag
             bandSets.append((strict.sorted, shape.sorted))
+            noteBand(strict: strict.sorted)
             bandHitsIndex[key] = index
             return index
         }
@@ -74,6 +112,7 @@ extension TileSplitter {
             guard bandSets.count < Self.mostBandSets else { overflowed = true; return Self.outside }
             let index = UInt16(bandSets.count) | Self.bandFlag
             bandSets.append((strict.sorted(), shape.sorted()))
+            noteBand(strict: strict.sorted())
             bandIndex[key] = index
             return index
         }
@@ -97,9 +136,9 @@ extension TileSplitter {
         // Ids arrive ascending, as a PBF stores them, so they are appended and searched.
         // The order is not promised: a descending step opens a new run, each run stays
         // sorted on its own, and a lookup walks the runs.
-        fileprivate var keys: [Int64] = []
-        fileprivate var values: [UInt16] = []
-        private var runs: [Int] = [0]
+        @exclusivity(unchecked) fileprivate var keys: [Int64] = []
+        @exclusivity(unchecked) fileprivate var values: [UInt16] = []
+        @exclusivity(unchecked) private var runs: [Int] = [0]
         private var lastKey = Int64.min
         var count: Int { keys.count }
 
@@ -186,14 +225,16 @@ extension TileSplitter {
         /// a search whenever they do not, so an unsorted file is slower and not wrong.
         final class Cursor {
             private let table: NodeAreas
-            private var at = 0
+            /// 1 cursor per worker.
+            @exclusivity(unchecked) private var at = 0
 
             init(_ table: NodeAreas) {
                 self.table = table
             }
 
             func value(for id: Int64) -> UInt16? {
-                let found: Int? = table.keys.withUnsafeBufferPointer { keys -> Int? in
+                let found: Int? = {
+                    let keys = table.keys
                     guard at < keys.count else { return nil }
                     if keys[at] == id { return at }
                     guard keys[at] < id else { return nil }
@@ -203,7 +244,7 @@ extension TileSplitter {
                     while next < limit, keys[next] < id { next += 1 }
                     if next < limit { return keys[next] == id ? next : nil }
                     return nil
-                }
+                }()
                 if let found {
                     at = found + 1
                     return table.values[found]
@@ -233,7 +274,7 @@ extension TileSplitter {
 
         /// Every `fenceStride`-th key, so a lookup starts inside a small window instead of
         /// halving its way across the whole table.
-        private var fences: [Int64] = []
+        @exclusivity(unchecked) private var fences: [Int64] = []
         private static let fenceStride = 4096
 
         /// Builds the fences. Nothing may be added afterwards.
@@ -303,10 +344,16 @@ extension TileSplitter {
         }
 
         private func sortInPlace<Index: BinaryInteger>(indexedBy: Index.Type) {
+            var order = sortedOrder(Index.self)
+            permute(by: &order)
+            closeUpRepeats()
+        }
+
+        /// Where each sorted entry comes from. By id, and for the same id by arrival, so
+        /// the last of a repeat is the latest; each run is already in order, which the sort
+        /// finds for itself.
+        private func sortedOrder<Index: BinaryInteger>(_: Index.Type) -> [Index] {
             let count = keys.count
-            // Where each sorted entry comes from. By id, and for the same id by arrival,
-            // so the last of a repeat is the latest; each run is already in order, which
-            // the sort finds for itself.
             var order = [Index](unsafeUninitializedCapacity: count) { buffer, filled in
                 for i in 0..<count { buffer[i] = Index(i) }
                 filled = count
@@ -317,8 +364,13 @@ extension TileSplitter {
                     return ka != kb ? ka < kb : a < b
                 }
             }
-            // The permutation applied cycle by cycle; a place already filled names itself.
-            for first in 0..<count where Int(order[first]) != first {
+            return order
+        }
+
+        /// Moves every entry to its place in `order`, cycle by cycle; a place already
+        /// filled names itself.
+        private func permute<Index: BinaryInteger>(by order: inout [Index]) {
+            for first in 0..<order.count where Int(order[first]) != first {
                 let key = keys[first], value = values[first]
                 var at = first
                 while true {
@@ -334,8 +386,11 @@ extension TileSplitter {
                     at = from
                 }
             }
-            order = []
-            // Repeats are neighbours now, the latest last: closed up towards the front.
+        }
+
+        /// Repeats are neighbours once sorted, the latest last: closed up towards the front.
+        private func closeUpRepeats() {
+            let count = keys.count
             var kept = 0
             for at in 0..<count {
                 if kept > 0, keys[kept - 1] == keys[at] {
@@ -355,34 +410,63 @@ extension TileSplitter {
             return values[index]
         }
 
-        /// Where an id sits in the table, or nil if it is not there.
-        func find(_ id: Int64) -> Int? {
-            // One run, fenced: the ordinary case, and the only one worth the extra table.
-            if !fences.isEmpty {
-                return keys.withUnsafeBufferPointer { k -> Int? in
-                    fences.withUnsafeBufferPointer { fence -> Int? in
-                        // The last fence not past the id names the window it can be in.
-                        var lo = 0, hi = fence.count
-                        while lo < hi {
-                            let mid = (lo + hi) / 2
-                            if fence[mid] <= id { lo = mid + 1 } else { hi = mid }
-                        }
-                        guard lo > 0 else { return nil }
-                        let start = (lo - 1) * Self.fenceStride
-                        let end = min(start + Self.fenceStride, k.count)
-                        var left = start, right = end
-                        while left < right {
-                            let mid = (left + right) / 2
-                            if k[mid] < id { left = mid + 1 } else { right = mid }
-                        }
-                        return left < end && k[left] == id ? left : nil
-                    }
+        /// The value at an index `findAll(_:into:)` answered.
+        func value(at index: Int) -> UInt16 { values[index] }
+
+        /// Finds every id of `ids` at once, `out[i]` its index or -1, the searches run
+        /// side by side so their waits on memory overlap. False, with nothing written,
+        /// where the table has no fences and `find(_:)` has to walk its runs.
+        func findAll(_ ids: UnsafeBufferPointer<Int64>, into out: UnsafeMutablePointer<Int64>) -> Bool {
+            guard !fences.isEmpty, let first = ids.baseAddress else { return false }
+            keys.withUnsafeBufferPointer { k in
+                fences.withUnsafeBufferPointer { f in
+                    kmap_find_fenced(
+                        k.baseAddress,
+                        k.count,
+                        f.baseAddress,
+                        f.count,
+                        Self.fenceStride,
+                        first,
+                        ids.count,
+                        out
+                    )
                 }
             }
+            return true
+        }
 
-            // Newest run first: an id can arrive twice, in the overlap two extracts share,
-            // and the later copy is the answer.
-            return keys.withUnsafeBufferPointer { k -> Int? in
+        /// Where an id sits in the table, or nil if it is not there.
+        func find(_ id: Int64) -> Int? {
+            // 1 run, fenced: the ordinary case, and the only one worth the extra table.
+            fences.isEmpty ? findInRuns(id) : findFenced(id)
+        }
+
+        private func findFenced(_ id: Int64) -> Int? {
+            keys.withUnsafeBufferPointer { k -> Int? in
+                fences.withUnsafeBufferPointer { fence -> Int? in
+                    // The last fence not past the id names the window it can be in.
+                    var lo = 0, hi = fence.count
+                    while lo < hi {
+                        let mid = (lo + hi) / 2
+                        if fence[mid] <= id { lo = mid + 1 } else { hi = mid }
+                    }
+                    guard lo > 0 else { return nil }
+                    let start = (lo - 1) * Self.fenceStride
+                    let end = min(start + Self.fenceStride, k.count)
+                    var left = start, right = end
+                    while left < right {
+                        let mid = (left + right) / 2
+                        if k[mid] < id { left = mid + 1 } else { right = mid }
+                    }
+                    return left < end && k[left] == id ? left : nil
+                }
+            }
+        }
+
+        /// Newest run first: an id can arrive twice, in the overlap 2 extracts share, and
+        /// the later copy is the answer.
+        private func findInRuns(_ id: Int64) -> Int? {
+            keys.withUnsafeBufferPointer { k -> Int? in
                 for index in stride(from: runs.count - 1, through: 0, by: -1) {
                     let start = runs[index]
                     let end = index + 1 < runs.count ? runs[index + 1] : k.count

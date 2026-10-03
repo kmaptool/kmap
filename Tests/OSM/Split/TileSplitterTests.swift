@@ -157,6 +157,46 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertEqual(lookup.shapeAreas(lat: deep, lon: Self.side - clear).sorted, [0])
     }
 
+    /// The shape answer, whether a cell's neighbourhood is mixed or all 1 tile, is the
+    /// strict answer plus every tile within the overlap of the point.
+    func testTheShapeAnswerIsEveryTileWithinTheOverlap() {
+        var random = SystemRandomNumberGenerator()
+        let grain = TileSplitter.grain
+        func cuts() -> [Int32] {
+            var at: [Int32] = [0]
+            while at.last! < grain * 12 { at.append(at.last! + grain * Int32.random(in: 1...4, using: &random)) }
+            return at
+        }
+        for _ in 0..<20 {
+            let lats = cuts(), lons = cuts()
+            var areas: [TileSplitter.Area] = []
+            for i in 1..<lats.count {
+                for j in 1..<lons.count where Int.random(in: 0..<5, using: &random) > 0 {
+                    areas.append(
+                        TileSplitter.Area(minLat: lats[i - 1], minLon: lons[j - 1], maxLat: lats[i], maxLon: lons[j])
+                    )
+                }
+            }
+            let lookup = TileSplitter.AreaLookup(areas: areas)
+            let margin = TileSplitter.shapeClipOverlap
+            for _ in 0..<2000 {
+                var lat = Int32.random(in: -grain * 2..<grain * 18, using: &random)
+                var lon = Int32.random(in: -grain * 2..<grain * 18, using: &random)
+                // Lines and corners as well.
+                if Bool.random(using: &random) { lat -= lat % grain }
+                if Bool.random(using: &random) { lon -= lon % grain }
+                var want = Set(lookup.areas(lat: lat, lon: lon).sorted)
+                for (index, area) in areas.enumerated()
+                where lat >= area.minLat - margin && lat < area.maxLat + margin
+                    && lon >= area.minLon - margin && lon < area.maxLon + margin
+                {
+                    want.insert(UInt16(index))
+                }
+                XCTAssertEqual(lookup.shapeAreas(lat: lat, lon: lon).sorted, want.sorted(), "\(lat) \(lon)")
+            }
+        }
+    }
+
     // MARK: The node table
 
     func testTheNodeTableGivesBackWhatWasPutIn() {
@@ -165,6 +205,39 @@ final class TileSplitterTests: XCTestCase {
         for id in Int64(1)...100 { XCTAssertEqual(table.get(id), UInt16(id % 3)) }
         XCTAssertNil(table.get(101))
         XCTAssertNil(table.get(0))
+    }
+
+    func testTheBatchedSearchFindsWhatTheSingleOneFinds() {
+        // Sparse ids over many fences and a short last window; asked for in any order,
+        // absent ones, ones below the first fence and past the last key included.
+        let table = TileSplitter.NodeAreas(expecting: 50000)
+        var generator = SystemRandomNumberGenerator()
+        var id: Int64 = 1000
+        for _ in 0..<50001 {
+            id += Int64.random(in: 1...9, using: &generator)
+            table.set(id, UInt16(id % 7))
+        }
+        table.seal()
+        let asked = (0..<20000).map { _ in Int64.random(in: -10...(id + 10), using: &generator) }
+        var found = [Int64](repeating: 0, count: asked.count)
+        let batched = asked.withUnsafeBufferPointer { ids in
+            found.withUnsafeMutableBufferPointer { table.findAll(ids, into: $0.baseAddress!) }
+        }
+        XCTAssertTrue(batched, "a sealed table of one run has fences")
+        for (at, id) in asked.enumerated() {
+            XCTAssertEqual(found[at] >= 0 ? Int(found[at]) : nil, table.find(id), "id \(id)")
+        }
+        // A table with several runs has no fences and says so.
+        let unsorted = TileSplitter.NodeAreas(expecting: 10)
+        for id in Int64(100)...110 { unsorted.set(id, 1) }
+        for id in Int64(1)...10 { unsorted.set(id, 2) }
+        unsorted.seal()
+        var none = [Int64](repeating: 0, count: 1)
+        XCTAssertFalse(
+            [Int64(5)].withUnsafeBufferPointer { ids in
+                none.withUnsafeMutableBufferPointer { unsorted.findAll(ids, into: $0.baseAddress!) }
+            }
+        )
     }
 
     func testTheNodeTableHandlesIDsThatStartOverPartWayThrough() {
@@ -343,8 +416,8 @@ final class TileSplitterTests: XCTestCase {
         extra.absorb(pool: [[3]], pairs: [(100, 0), (200, 0)], sorted: true)
         extra.settle()
         var at = 0
-        XCTAssertEqual(extra.tiles(for: 100, walking: &at), [1, 2, 3])
-        XCTAssertEqual(extra.tiles(for: 200, walking: &at), [3])
+        XCTAssertEqual(extra.tiles(for: 100, walking: &at).map { Array(extra.poolTiles[$0]) }, [1, 2, 3])
+        XCTAssertEqual(extra.tiles(for: 200, walking: &at).map { Array(extra.poolTiles[$0]) }, [3])
     }
 
     /// With an odd number of stretches one has no partner in a merge round and must be

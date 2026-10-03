@@ -46,6 +46,13 @@ extension TileSplitter {
             rawRelations.removeAll(keepingCapacity: true)
         }
 
+        /// Ways of this block not yet placed: their ids, whether each is drawn but not
+        /// routed, and their nodes end to end. `end(_:)` places them all at once.
+        private var waysHeld: [(id: Int64, drawnNotRouted: Bool, refsEnd: Int)] = []
+        private var refsHeld: [Int64] = []
+        /// Where each held node sits in the table, from 1 search for the whole block.
+        private var found: [Int64] = []
+
         mutating func way(
             id: Int64,
             refs: ArraySlice<Int64>,
@@ -55,14 +62,75 @@ extension TileSplitter {
         ) {
             // A closed way or a contour is drawn but not routed and must reach every tile
             // whose shape band it falls in; a routed way is clipped to the frame exactly.
-            let closed = refs.count > 3 && refs.first == refs.last
-            let drawnNotRouted = closed || Self.isContour(keys, values, block)
+            let closed = refs.count >= Self.leastClosedRefs && refs.first == refs.last
+            refsHeld.append(contentsOf: refs)
+            waysHeld.append((id, closed || Self.isContour(keys, values, block), refsHeld.count))
+        }
+
+        /// A closed way's fewest refs: 3 corners and the first again.
+        private static let leastClosedRefs = 4
+
+        /// Looks up every node of the block's ways in 1 batch, so that thousands of
+        /// searches wait on memory together, then places the ways in the order they came.
+        mutating func end(_ block: OSMBlock) {
+            guard !waysHeld.isEmpty else { return }
+            if found.count < refsHeld.count { found = [Int64](repeating: 0, count: refsHeld.count) }
+            let batched = refsHeld.withUnsafeBufferPointer { ids in
+                found.withUnsafeMutableBufferPointer { nodes.findAll(ids, into: $0.baseAddress!) }
+            }
+            var start = 0
+            for (id, drawnNotRouted, end) in waysHeld {
+                place(id, drawnNotRouted: drawnNotRouted, refs: start..<end, batched: batched)
+                start = end
+            }
+            waysHeld.removeAll(keepingCapacity: true)
+            refsHeld.removeAll(keepingCapacity: true)
+        }
+
+        private mutating func place(_ id: Int64, drawnNotRouted: Bool, refs held: Range<Int>, batched: Bool) {
+            var claims = TileClaims()
+            for at in held {
+                guard let value = value(at: at, batched: batched) else { continue }
+                if value == NodeAreas.outside {
+                    claims.sawOutside = true
+                } else if value & NodeAreas.flags == 0 {
+                    claims.claim(value)
+                } else {
+                    // On a shared line, or in a neighbour's band: names several tiles.
+                    let areas = drawnNotRouted ? nodes.shapeAreas(of: value) : nodes.areas(of: value)
+                    for area in areas { claims.claim(area) }
+                }
+            }
+            record(id, claims)
+        }
+
+        /// The stored value of the held node `at`, or nil when the table does not have it.
+        private func value(at held: Int, batched: Bool) -> UInt16? {
+            guard batched else { return nodes.get(refsHeld[held]) }
+            return found[held] >= 0 ? nodes.value(at: Int(found[held])) : nil
+        }
+
+        private mutating func record(_ id: Int64, _ claims: TileClaims) {
+            if let overflow = claims.overflow {
+                spans.append(overflow)
+                outWays.append((id, Self.several, Int32(spans.count - 1)))
+            } else if claims.tiles.count == 1 && !claims.sawOutside {
+                outWays.append((id, claims.tiles.first, -1))
+            } else if claims.tiles.count > 0 {
+                // Touches several tiles, or leaves the map: complete in each.
+                spans.append(Set(claims.tiles.sorted))
+                outWays.append((id, Self.several, Int32(spans.count - 1)))
+            }
+        }
+
+        /// The tiles a way's nodes claim: a fixed-size list, spilled into a set once full,
+        /// every further tile then going to the set.
+        private struct TileClaims {
             var tiles = AreaLookup.Hits()
             var overflow: Set<UInt16>?
             var sawOutside = false
-            /// Adds one tile, spilling into `overflow` once the fixed-size hit list is
-            /// full. Once spilled, every further tile goes to the set.
-            func claim(_ area: UInt16) {
+
+            mutating func claim(_ area: UInt16) {
                 if overflow != nil {
                     overflow?.insert(area)
                 } else if tiles.count == AreaLookup.Hits.capacity && !tiles.contains(area) {
@@ -72,35 +140,6 @@ extension TileSplitter {
                 } else {
                     tiles.add(area)
                 }
-            }
-            for ref in refs {
-                guard let value = nodes.get(ref) else { continue }
-                if value == NodeAreas.outside {
-                    sawOutside = true
-                } else if value & NodeAreas.flags == 0 {
-                    claim(value)
-                } else {
-                    // On a shared line, or in a neighbour's band: names several tiles.
-                    for area
-                        in (drawnNotRouted
-                        ? nodes.shapeAreas(of: value)
-                        : nodes.areas(of: value))
-                    {
-                        claim(area)
-                    }
-                }
-            }
-            if let overflow {
-                spans.append(overflow)
-                outWays.append((id, Self.several, Int32(spans.count - 1)))
-                return
-            }
-            if tiles.count == 1 && !sawOutside {
-                outWays.append((id, tiles.first, -1))
-            } else if tiles.count > 0 {
-                // Touches several tiles, or leaves the map: complete in each.
-                spans.append(Set(tiles.sorted))
-                outWays.append((id, Self.several, Int32(spans.count - 1)))
             }
         }
 

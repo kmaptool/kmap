@@ -26,67 +26,66 @@ extension TileSplitter {
     }
 
     private func write(into writers: [TileWriter], assignment: Assignment, plan: Plan) throws -> [Int] {
-        // Two sweeps, so that with several inputs every tile still comes out nodes first,
-        // then ways, then relations -- the order the format demands.
-        let overlapping = options.inputs.count > 1
-        // Decoding a block and choosing each object's tiles runs on every core; only the
-        // handing over stays in file order, where the first copy of a repeat counts.
-        // A repeated node is dropped by merging rather than hashing: ids ascend within each
-        // extract, so a cursor per earlier file walks it in step with the arriving ids.
-        // An extract whose ids are not sorted falls back to the `seenNodes` set.
-        let mergeable =
-            !assignment.nodes.filesInterleave
-            && assignment.nodes.fileEnds.count == options.inputs.count
-        var seenNodes: Set<Int64> = []
-        var seenWays: Set<Int64> = []
-        var seenRelations: Set<Int64> = []
+        // 2 sweeps, so that with several inputs every tile still comes out nodes first,
+        // then ways, then relations -- the order the format demands. Decoding a block and
+        // choosing each object's tiles runs on every core; only the handing over stays in
+        // file order, where the first copy of a repeat counts.
+        try writeNodes(into: writers, assignment: assignment, plan: plan)
+        if Measured.reported {
+            log(String(format: "  nodes written, up to %@", Fmt.bytes(Machine.memoryInUse())))
+        }
+        try writeWaysAndRelations(into: writers, assignment: assignment, plan: plan)
+        try Self.finish(writers)
+        return writers.map(\.nodeCount)
+    }
 
+    /// A write pass for every block of `phase`.
+    private func pass(_ phase: WritePass.Phase, assignment: Assignment, plan: Plan, tiles: Int) -> () -> WritePass {
+        let overlapping = options.inputs.count > 1
+        return {
+            WritePass(
+                nodes: assignment.nodes,
+                cursor: NodeAreas.Cursor(assignment.nodes),
+                plan: plan,
+                phase: phase,
+                tiles: overlapping ? 0 : tiles
+            )
+        }
+    }
+
+    private func writeNodes(into writers: [TileWriter], assignment: Assignment, plan: Plan) throws {
+        let overlapping = options.inputs.count > 1
+        var repeats = NodeRepeats(assignment.nodes, inputs: options.inputs.count)
         for (fileIndex, input) in options.inputs.enumerated() {
-            var earlier =
-                mergeable && overlapping
-                ? assignment.nodes.fileCursors(before: fileIndex) : []
-            try reader(input).readInOrder(make: {
-                WritePass(
-                    nodes: assignment.nodes,
-                    cursor: NodeAreas.Cursor(assignment.nodes),
-                    plan: plan,
-                    phase: .nodes
-                )
-            }) { pass in
+            repeats.start(file: fileIndex)
+            let make = pass(.nodes, assignment: assignment, plan: plan, tiles: writers.count)
+            try reader(input).readInOrder(make: make) { pass in
+                for i in 0..<pass.nodeBuckets.count {
+                    writers[Int(pass.nodeBuckets.tiles[i])].add(nodes: pass.nodeBuckets.items[i])
+                }
                 for (node, tile, span) in pass.outNodes {
-                    if overlapping {
-                        if mergeable {
-                            var repeated = false
-                            for i in earlier.indices {
-                                if earlier[i].contains(node.id) { repeated = true; break }
-                            }
-                            if repeated { continue }
-                        } else if !seenNodes.insert(node.id).inserted {
-                            continue
-                        }
-                    }
+                    if overlapping, repeats.repeated(node.id) { continue }
                     if tile == WritePass.several {
                         for one in pass.spans[Int(span)] { writers[Int(one)].add(node) }
                     } else {
                         writers[Int(tile)].add(node)
                     }
                 }
-                pass.clear()
                 try Self.stopIfAnyFailed(writers)
             }
         }
-        if Measured.reported {
-            log(String(format: "  nodes written, up to %@", Fmt.bytes(Machine.memoryInUse())))
-        }
+    }
+
+    private func writeWaysAndRelations(into writers: [TileWriter], assignment: Assignment, plan: Plan) throws {
+        let overlapping = options.inputs.count > 1
+        var seenWays: Set<Int64> = []
+        var seenRelations: Set<Int64> = []
         for input in options.inputs {
-            try reader(input).readInOrder(make: {
-                WritePass(
-                    nodes: assignment.nodes,
-                    cursor: NodeAreas.Cursor(assignment.nodes),
-                    plan: plan,
-                    phase: .waysAndRelations
-                )
-            }) { pass in
+            let make = pass(.waysAndRelations, assignment: assignment, plan: plan, tiles: writers.count)
+            try reader(input).readInOrder(make: make) { pass in
+                for i in 0..<pass.wayBuckets.count {
+                    writers[Int(pass.wayBuckets.tiles[i])].add(ways: pass.wayBuckets.items[i])
+                }
                 for (way, tile, span) in pass.outWays {
                     if overlapping, !seenWays.insert(way.id).inserted { continue }
                     if tile == WritePass.several {
@@ -99,14 +98,16 @@ extension TileSplitter {
                     if overlapping, !seenRelations.insert(relation.id).inserted { continue }
                     for tile in pass.spans[Int(span)] { writers[Int(tile)].add(relation) }
                 }
-                pass.clear()
                 try Self.stopIfAnyFailed(writers)
             }
         }
-        // Each writer finishes independently: the last batches compress and the file
-        // closes per tile.
-        var finishFailures = [Error?](repeating: nil, count: writers.count)
-        finishFailures.withUnsafeMutableBufferPointer { slots in
+    }
+
+    /// Each writer finishes independently: the last batches compress and the file closes
+    /// per tile.
+    private static func finish(_ writers: [TileWriter]) throws {
+        var failures = [Error?](repeating: nil, count: writers.count)
+        failures.withUnsafeMutableBufferPointer { slots in
             // Each lane finishes its own writer into its own slot: nothing is shared.
             nonisolated(unsafe) let slots = slots
             nonisolated(unsafe) let writers = writers
@@ -114,8 +115,33 @@ extension TileSplitter {
                 do { try writers[index].finish() } catch { slots[index] = error }
             }
         }
-        if let failure = finishFailures.compactMap({ $0 }).first { throw failure }
-        return writers.map(\.nodeCount)
+        if let failure = failures.compactMap({ $0 }).first { throw failure }
+    }
+
+    /// Which nodes an earlier input already wrote, where several inputs overlap. Ids ascend
+    /// within each extract, so a repeat is found by merging, a cursor per earlier file
+    /// walking it in step with the arriving ids; an extract whose ids are not sorted falls
+    /// back to a set of every id seen.
+    private struct NodeRepeats {
+        let nodes: NodeAreas
+        let mergeable: Bool
+        var earlier: [NodeAreas.FileCursor] = []
+        var seen: Set<Int64> = []
+
+        init(_ nodes: NodeAreas, inputs: Int) {
+            self.nodes = nodes
+            mergeable = !nodes.filesInterleave && nodes.fileEnds.count == inputs
+        }
+
+        mutating func start(file: Int) {
+            earlier = mergeable ? nodes.fileCursors(before: file) : []
+        }
+
+        mutating func repeated(_ id: Int64) -> Bool {
+            guard mergeable else { return !seen.insert(id).inserted }
+            for i in earlier.indices where earlier[i].contains(id) { return true }
+            return false
+        }
     }
 
     /// A disk that filled during the first tile must not cost the sweep of the others.
@@ -151,16 +177,44 @@ extension TileSplitter {
             )
         }
 
+        private static let nodesPerBatch = 16000
+        private static let waysPerBatch = 4000
+
         func add(_ node: PBFWriter.Node) {
             nodes.append(node)
             nodeCount += 1
-            if nodes.count >= 16000 { writer.nodes(nodes); nodes.removeAll(keepingCapacity: true) }
+            if nodes.count >= Self.nodesPerBatch { writer.nodes(nodes); nodes.removeAll(keepingCapacity: true) }
+        }
+
+        /// The same as adding each in turn, batches cut at the same places.
+        func add(nodes run: [PBFWriter.Node]) {
+            nodeCount += run.count
+            var at = 0
+            while at < run.count {
+                let take = min(run.count - at, Self.nodesPerBatch - nodes.count)
+                nodes.append(contentsOf: run[at..<(at + take)])
+                at += take
+                if nodes.count >= Self.nodesPerBatch { writer.nodes(nodes); nodes.removeAll(keepingCapacity: true) }
+            }
         }
 
         func add(_ way: PBFWriter.Way) {
             flushNodes()
             ways.append(way)
-            if ways.count >= 4000 { writer.ways(ways); ways.removeAll(keepingCapacity: true) }
+            if ways.count >= Self.waysPerBatch { writer.ways(ways); ways.removeAll(keepingCapacity: true) }
+        }
+
+        /// The same as adding each in turn, batches cut at the same places.
+        func add(ways run: [PBFWriter.Way]) {
+            guard !run.isEmpty else { return }
+            flushNodes()
+            var at = 0
+            while at < run.count {
+                let take = min(run.count - at, Self.waysPerBatch - ways.count)
+                ways.append(contentsOf: run[at..<(at + take)])
+                at += take
+                if ways.count >= Self.waysPerBatch { writer.ways(ways); ways.removeAll(keepingCapacity: true) }
+            }
         }
 
         func add(_ relation: PBFWriter.Relation) {
@@ -196,6 +250,12 @@ extension TileSplitter {
         let cursor: NodeAreas.Cursor
         let plan: Plan
         let phase: Phase
+        /// With 1 input, a block's nodes and ways sorted by tile here, each tile's in
+        /// the block's order, so the serial hand-over takes a run per tile. Several inputs
+        /// drop repeats 1 object at a time, in the lists below instead.
+        var nodeBuckets: TileBuckets<PBFWriter.Node>
+        var wayBuckets: TileBuckets<PBFWriter.Way>
+        var grouped: Bool { nodeBuckets.tileCount > 0 }
         /// What this block came to, in the order the block had it -- which is the order a
         /// tile must receive it in. Nearly everything goes to exactly one tile, so `tile`
         /// says which; the few that go to several point into `spans` instead.
@@ -212,8 +272,23 @@ extension TileSplitter {
         /// Where this sink's walk through `plan.extra` has reached. One per sink, like
         /// the node cursor beside it, because each sink's queries ascend on their own.
         var extraAt = 0
+        /// Scratch for a node's tiles on the general path.
+        private var union: [UInt16] = []
 
-        mutating func clear() {
+        init(nodes: NodeAreas, cursor: NodeAreas.Cursor, plan: Plan, phase: Phase, tiles: Int) {
+            self.nodes = nodes
+            self.cursor = cursor
+            self.plan = plan
+            self.phase = phase
+            nodeBuckets = TileBuckets(tiles: phase == .nodes ? tiles : 0)
+            wayBuckets = TileBuckets(tiles: phase == .nodes ? 0 : tiles)
+        }
+
+        /// Emptied by the worker before the next block rather than by the serial
+        /// hand-over, which only reads it.
+        mutating func begin(_ block: OSMBlock) {
+            nodeBuckets.clear()
+            wayBuckets.clear()
             outNodes.removeAll(keepingCapacity: true)
             outWays.removeAll(keepingCapacity: true)
             outRelations.removeAll(keepingCapacity: true)
@@ -258,41 +333,58 @@ extension TileSplitter {
         ) {
             guard phase == .nodes else { return }
             let stored = cursor.value(for: id)
-            let extra = plan.extra.isEmpty ? nil : plan.extra.tiles(for: id, walking: &extraAt)
+            // The cursor through a local: handing `extraAt` itself inout while `plan` is
+            // read would copy the plan's table out of `self`, and retain it, every node.
+            var at = extraAt
+            let extra = plan.extra.isEmpty ? nil : plan.extra.tiles(for: id, walking: &at)
+            extraAt = at
 
-            // Nearly every node is inside exactly one tile and named by no repair; the
-            // general path below builds a set and two arrays for each.
-            if extra == nil, let stored, stored != NodeAreas.outside,
-                stored & NodeAreas.flags == 0
-            {
-                outNodes.append(
-                    (
-                        PBFWriter.Node(
-                            id: id,
-                            lat: lat,
-                            lon: lon,
-                            tags: denseTags(run, block)
-                        ), stored, -1
-                    )
-                )
+            // Nearly every node is inside exactly 1 tile and named by no repair; the
+            // general path below gathers and sorts its tiles.
+            if extra == nil, let stored, stored != NodeAreas.outside, stored & NodeAreas.flags == 0 {
+                emit(PBFWriter.Node(id: id, lat: lat, lon: lon, tags: denseTags(run, block)), to: stored)
                 return
             }
-
-            var tiles = Set(extra ?? [])
-            if let stored { tiles.formUnion(nodes.areas(of: stored)) }
+            let tiles = takeTiles(stored: stored, extra: extra)
+            defer { union = tiles }
             guard !tiles.isEmpty else { return }
-            spans.append(tiles.sorted())
-            outNodes.append(
-                (
-                    PBFWriter.Node(
-                        id: id,
-                        lat: lat,
-                        lon: lon,
-                        tags: denseTags(run, block)
-                    ),
-                    Self.several, Int32(spans.count - 1)
-                )
-            )
+            emit(PBFWriter.Node(id: id, lat: lat, lon: lon, tags: denseTags(run, block)), toEach: tiles)
+        }
+
+        /// Every tile a node goes to, once each and in order: its own, and any a repair
+        /// adds. Gathered in the buffer kept between nodes, which the caller hands back.
+        private mutating func takeTiles(stored: UInt16?, extra: Range<Int>?) -> [UInt16] {
+            var tiles: [UInt16] = []
+            swap(&tiles, &union)
+            tiles.removeAll(keepingCapacity: true)
+            if let extra { for i in extra { tiles.append(plan.extra.poolTiles[i]) } }
+            if let stored { nodes.appendAreas(of: stored, to: &tiles) }
+            guard !tiles.isEmpty else { return tiles }
+            tiles.sort()
+            var kept = 1
+            for i in 1..<tiles.count where tiles[i] != tiles[kept - 1] {
+                tiles[kept] = tiles[i]
+                kept += 1
+            }
+            tiles.removeLast(tiles.count - kept)
+            return tiles
+        }
+
+        private mutating func emit(_ node: PBFWriter.Node, to tile: UInt16) {
+            if grouped {
+                nodeBuckets.add(node, to: tile)
+            } else {
+                outNodes.append((node, tile, -1))
+            }
+        }
+
+        private mutating func emit(_ node: PBFWriter.Node, toEach tiles: [UInt16]) {
+            if grouped {
+                for tile in tiles { nodeBuckets.add(node, to: tile) }
+            } else {
+                spans.append(tiles)
+                outNodes.append((node, Self.several, Int32(spans.count - 1)))
+            }
         }
 
         mutating func way(
@@ -304,20 +396,28 @@ extension TileSplitter {
         ) {
             guard phase == .waysAndRelations else { return }
             let planned = plan.wayTiles.isEmpty ? nil : plan.wayTiles[id]
-
             // The same shortcut as for nodes: a way the plan says nothing about lies in
-            // one tile, and its first node inside the map names it.
-            if planned == nil {
-                for ref in refs {
-                    guard let value = nodes.get(ref), value != NodeAreas.outside else {
-                        continue
-                    }
-                    guard value & NodeAreas.flags == 0 else { break }
-                    outWays.append((built(id, refs, keys, values, block), value, -1))
-                    return
-                }
+            // 1 tile, and its first node inside the map names it.
+            if planned == nil, let tile = singleTile(of: refs) {
+                emit(built(id, refs, keys, values, block), to: tile)
+                return
             }
+            let tiles = wayTiles(planned: planned, refs: refs)
+            guard !tiles.isEmpty else { return }
+            emit(built(id, refs, keys, values, block), toEach: tiles)
+        }
 
+        /// The tile of the way's first node inside the map, when that node is in 1 tile only.
+        private func singleTile(of refs: ArraySlice<Int64>) -> UInt16? {
+            for ref in refs {
+                guard let value = nodes.get(ref), value != NodeAreas.outside else { continue }
+                return value & NodeAreas.flags == 0 ? value : nil
+            }
+            return nil
+        }
+
+        /// Every tile a way goes to, in order: the plan's, or else its first placed node's.
+        private func wayTiles(planned: Int32?, refs: ArraySlice<Int64>) -> [UInt16] {
             var tiles = planned.map { Set(plan.sets[$0]) } ?? []
             if tiles.isEmpty {
                 for ref in refs {
@@ -325,17 +425,27 @@ extension TileSplitter {
                     let areas = nodes.areas(of: value)
                     guard !areas.isEmpty else { continue }
                     tiles.formUnion(areas)
-                    break  // a non-spanning way has only one
+                    break  // a non-spanning way has only 1
                 }
             }
-            guard !tiles.isEmpty else { return }
-            spans.append(tiles.sorted())
-            outWays.append(
-                (
-                    built(id, refs, keys, values, block),
-                    Self.several, Int32(spans.count - 1)
-                )
-            )
+            return tiles.sorted()
+        }
+
+        private mutating func emit(_ way: PBFWriter.Way, to tile: UInt16) {
+            if wayBuckets.tileCount > 0 {
+                wayBuckets.add(way, to: tile)
+            } else {
+                outWays.append((way, tile, -1))
+            }
+        }
+
+        private mutating func emit(_ way: PBFWriter.Way, toEach tiles: [UInt16]) {
+            if wayBuckets.tileCount > 0 {
+                for tile in tiles { wayBuckets.add(way, to: tile) }
+            } else {
+                spans.append(tiles)
+                outWays.append((way, Self.several, Int32(spans.count - 1)))
+            }
         }
 
         mutating func relation(
@@ -370,6 +480,47 @@ extension TileSplitter {
                     Int32(spans.count - 1)
                 )
             )
+        }
+    }
+
+    /// A block's objects by tile: 1 run per tile it touches, in the order first met,
+    /// each run in the block's order. Kept between blocks with the runs' storage.
+    struct TileBuckets<Element> {
+        /// The tiles with a run, `count` of them; slots past that are spare.
+        private(set) var tiles: [UInt16] = []
+        private(set) var items: [[Element]] = []
+        private(set) var count = 0
+        /// Per tile, its run, or -1.
+        private var runOf: [Int32]
+
+        init(tiles: Int) {
+            runOf = [Int32](repeating: -1, count: tiles)
+        }
+
+        var tileCount: Int { runOf.count }
+
+        mutating func add(_ element: Element, to tile: UInt16) {
+            var run = Int(runOf[Int(tile)])
+            if run < 0 {
+                run = count
+                runOf[Int(tile)] = Int32(run)
+                if count == tiles.count {
+                    tiles.append(tile)
+                    items.append([])
+                } else {
+                    tiles[count] = tile
+                }
+                count += 1
+            }
+            items[run].append(element)
+        }
+
+        mutating func clear() {
+            for run in 0..<count {
+                runOf[Int(tiles[run])] = -1
+                items[run].removeAll(keepingCapacity: true)
+            }
+            count = 0
         }
     }
 
