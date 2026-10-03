@@ -20,6 +20,10 @@ void kmap_varints_prepare(void);
 // Zigzag varints as signed 64-bit values.
 size_t kmap_varints_zigzag64(const uint8_t *in, size_t count, int64_t *out, size_t *used);
 
+// The same, each value added to `*sum` and the running total written in its place:
+// delta-coded ids and coordinates. Wrapping, as the Swift caller's own sums are.
+size_t kmap_varints_zigzag64_sums(const uint8_t *in, size_t count, int64_t *out, size_t *used, int64_t *sum);
+
 // Varints kept as their low 32 bits.
 size_t kmap_varints_low32(const uint8_t *in, size_t count, int32_t *out, size_t *used);
 

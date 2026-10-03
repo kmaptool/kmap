@@ -140,12 +140,8 @@ enum PackedVarints {
     /// Wrapping, so a corrupt stream gives a wrong id rather than a trap.
     static func zigzagSums(_ bytes: UnsafeRawBufferPointer, into out: UnsafeMutablePointer<Int64>) -> Int {
         var used = 0
-        var n = front(bytes, &used) { kmap_varints_zigzag64($0, $1, out, &$2) }
         var sum: Int64 = 0
-        for i in 0..<n {
-            sum &+= out[i]
-            out[i] = sum
-        }
+        var n = front(bytes, &used) { kmap_varints_zigzag64_sums($0, $1, out, &$2, &sum) }
         each(bytes, from: used) { raw in
             sum &+= unzigzag(raw)
             out[n] = sum

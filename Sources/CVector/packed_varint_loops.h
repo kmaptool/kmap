@@ -30,26 +30,22 @@ static inline bytes16 NAME(shuffled)(bytes16 bytes, const uint8_t *shuffle) {
     return vqtbl1q_u8(bytes, vld1q_u8(shuffle));
 }
 
-// 4 lanes of up to 4 bytes each, as their values.
-static inline uint32x4_t NAME(quads)(bytes16 lanes) {
-    uint32x4_t l = vreinterpretq_u32_u8(lanes);
-    uint32x4_t v = vandq_u32(l, vdupq_n_u32(0x7F));
-    v = vorrq_u32(v, vandq_u32(vshrq_n_u32(l, 1), vdupq_n_u32(0x7F << 7)));
-    v = vorrq_u32(v, vandq_u32(vshrq_n_u32(l, 2), vdupq_n_u32(0x7F << 14)));
-    return vorrq_u32(v, vandq_u32(vshrq_n_u32(l, 3), vdupq_n_u32(0x7F << 21)));
+// The 7-bit groups of each byte pair joined into 14 bits, then of each 16-bit pair into
+// 28: a shift and an insert each time, instead of a shift and a mask per byte.
+static inline uint32x4_t NAME(joined28)(bytes16 lanes) {
+    uint16x8_t a = vreinterpretq_u16_u8(vandq_u8(lanes, vdupq_n_u8(0x7F)));
+    a = vsliq_n_u16(a, vshrq_n_u16(a, 8), 7);
+    uint32x4_t b = vreinterpretq_u32_u16(a);
+    return vsliq_n_u32(b, vshrq_n_u32(b, 16), 14);
 }
+
+// 4 lanes of up to 4 bytes each, as their values.
+static inline uint32x4_t NAME(quads)(bytes16 lanes) { return NAME(joined28)(lanes); }
 
 // 2 lanes of up to 8 bytes each, as their values.
 static inline uint64x2_t NAME(pairs)(bytes16 lanes) {
-    uint64x2_t l = vreinterpretq_u64_u8(lanes);
-    uint64x2_t v = vandq_u64(l, vdupq_n_u64(0x7F));
-    v = vorrq_u64(v, vandq_u64(vshrq_n_u64(l, 1), vdupq_n_u64(0x7FULL << 7)));
-    v = vorrq_u64(v, vandq_u64(vshrq_n_u64(l, 2), vdupq_n_u64(0x7FULL << 14)));
-    v = vorrq_u64(v, vandq_u64(vshrq_n_u64(l, 3), vdupq_n_u64(0x7FULL << 21)));
-    v = vorrq_u64(v, vandq_u64(vshrq_n_u64(l, 4), vdupq_n_u64(0x7FULL << 28)));
-    v = vorrq_u64(v, vandq_u64(vshrq_n_u64(l, 5), vdupq_n_u64(0x7FULL << 35)));
-    v = vorrq_u64(v, vandq_u64(vshrq_n_u64(l, 6), vdupq_n_u64(0x7FULL << 42)));
-    return vorrq_u64(v, vandq_u64(vshrq_n_u64(l, 7), vdupq_n_u64(0x7FULL << 49)));
+    uint64x2_t c = vreinterpretq_u64_u32(NAME(joined28)(lanes));
+    return vsliq_n_u64(c, vshrq_n_u64(c, 32), 28);
 }
 
 static inline void NAME(zigzagBytes)(bytes16 bytes, int64_t *o) {
@@ -193,26 +189,26 @@ static inline bytes16 NAME(shuffled)(bytes16 bytes, const uint8_t *shuffle) {
     return _mm_shuffle_epi8(bytes, NAME(load)(shuffle));
 }
 
+// The 7-bit groups of each byte pair joined into 14 bits, then of each 16-bit pair into
+// 28, by multiply-add: 1 and 128 on the bytes, 1 and 16384 on the halves. Neither
+// product overflows: 127 + 127 * 128 and 16383 + 16383 * 16384 fit their lanes.
+TARGET
+static inline __m128i NAME(joined28)(bytes16 l) {
+    __m128i bytes = _mm_and_si128(l, _mm_set1_epi8(0x7F));
+    __m128i halves = _mm_maddubs_epi16(_mm_set1_epi16((short)0x8001), bytes);
+    return _mm_madd_epi16(halves, _mm_set1_epi32(0x40000001));
+}
+
 // 4 lanes of up to 4 bytes each, as their values.
 TARGET
-static inline __m128i NAME(quads)(bytes16 l) {
-    __m128i v = _mm_and_si128(l, _mm_set1_epi32(0x7F));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi32(l, 1), _mm_set1_epi32(0x7F << 7)));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi32(l, 2), _mm_set1_epi32(0x7F << 14)));
-    return _mm_or_si128(v, _mm_and_si128(_mm_srli_epi32(l, 3), _mm_set1_epi32(0x7F << 21)));
-}
+static inline __m128i NAME(quads)(bytes16 l) { return NAME(joined28)(l); }
 
 // 2 lanes of up to 8 bytes each, as their values.
 TARGET
 static inline __m128i NAME(pairs)(bytes16 l) {
-    __m128i v = _mm_and_si128(l, _mm_set1_epi64x(0x7F));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi64(l, 1), _mm_set1_epi64x(0x7FLL << 7)));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi64(l, 2), _mm_set1_epi64x(0x7FLL << 14)));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi64(l, 3), _mm_set1_epi64x(0x7FLL << 21)));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi64(l, 4), _mm_set1_epi64x(0x7FLL << 28)));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi64(l, 5), _mm_set1_epi64x(0x7FLL << 35)));
-    v = _mm_or_si128(v, _mm_and_si128(_mm_srli_epi64(l, 6), _mm_set1_epi64x(0x7FLL << 42)));
-    return _mm_or_si128(v, _mm_and_si128(_mm_srli_epi64(l, 7), _mm_set1_epi64x(0x7FLL << 49)));
+    __m128i v = NAME(joined28)(l);
+    __m128i low = _mm_and_si128(v, _mm_set1_epi64x(0xFFFFFFFFLL));
+    return _mm_or_si128(low, _mm_slli_epi64(_mm_srli_epi64(v, 32), 28));
 }
 
 TARGET
@@ -249,10 +245,26 @@ static inline void NAME(lowPairs)(bytes16 lanes, int32_t *o) {
 // Lanes are stored whole, 4 or 2 at a time, and only the values among them are
 // counted: the next store writes over the rest.
 
+// What `k` values just written at `o` add up to, each replaced by the running total.
+// Unsigned, so a corrupt stream wraps as the Swift sums do rather than overflowing.
+#ifndef RUN_SUMS
+#define RUN_SUMS(o, k)                                       \
+    if (sum) {                                               \
+        for (size_t j_ = 0; j_ < (size_t)(k); j_++) {        \
+            total += (uint64_t)(o)[j_];                      \
+            (o)[j_] = (int64_t)total;                        \
+        }                                                    \
+    }
+#endif
+
+// The zigzag loop, with the running sums where `sum` is given: each value is added
+// while it is still in the cache, rather than in a second pass over the whole field.
 TARGET
-static size_t NAME(zigzag64)(const uint8_t *in, size_t count, int64_t *out, size_t *used) {
+static inline __attribute__((always_inline)) size_t NAME(decode64)(
+    const uint8_t *in, size_t count, int64_t *out, size_t *used, int64_t *sum) {
     const uint8_t *p = in, *end = in + count;
     int64_t *o = out;
+    uint64_t total = sum ? (uint64_t)*sum : 0;
     while ((size_t)(end - p) >= CHUNK) {
         uint64_t bits = NAME(continuations)(p);
 #if !defined(WITH_SHUFFLE)
@@ -264,20 +276,23 @@ static size_t NAME(zigzag64)(const uint8_t *in, size_t count, int64_t *out, size
             uint32_t ahead = (uint32_t)bits & 0xFFFF;
             if (ahead == 0) {
                 NAME(zigzagBytes)(NAME(load)(q), o);
+                RUN_SUMS(o, VECTOR)
                 o += VECTOR;
                 q += VECTOR;
                 bits >>= VECTOR;
                 continue;
             }
 #if defined(WITH_SHUFFLE)
-            const Step *step = &steps[ahead & (PATTERNS - 1)];
+            unsigned pattern = ahead & (PATTERNS - 1);
+            const Step *step = &steps[pattern];
             if (step->kind != ALONE) {
-                bytes16 lanes = NAME(shuffled)(NAME(load)(q), step->shuffle);
+                bytes16 lanes = NAME(shuffled)(NAME(load)(q), shuffles[pattern]);
                 if (step->kind == QUADS) {
                     NAME(zigzagQuads)(lanes, o);
                 } else {
                     NAME(zigzagPairs)(lanes, o);
                 }
+                RUN_SUMS(o, step->values)
                 o += step->values;
                 q += step->taken;
                 bits >>= step->taken;
@@ -290,15 +305,28 @@ static size_t NAME(zigzag64)(const uint8_t *in, size_t count, int64_t *out, size
                 p = q;
                 goto done;
             }
-            *o++ = (int64_t)(raw >> 1) ^ -(int64_t)(raw & 1);
+            *o = (int64_t)(raw >> 1) ^ -(int64_t)(raw & 1);
+            RUN_SUMS(o, 1)
+            o++;
             q += length;
             bits >>= length;
         }
         p = q;
     }
 done:
+    if (sum) *sum = (int64_t)total;
     *used = (size_t)(p - in);
     return (size_t)(o - out);
+}
+
+TARGET
+static size_t NAME(zigzag64)(const uint8_t *in, size_t count, int64_t *out, size_t *used) {
+    return NAME(decode64)(in, count, out, used, 0);
+}
+
+TARGET
+static size_t NAME(sums64)(const uint8_t *in, size_t count, int64_t *out, size_t *used, int64_t *sum) {
+    return NAME(decode64)(in, count, out, used, sum);
 }
 
 TARGET
@@ -321,9 +349,10 @@ static size_t NAME(low32)(const uint8_t *in, size_t count, int32_t *out, size_t 
                 continue;
             }
 #if defined(WITH_SHUFFLE)
-            const Step *step = &steps[ahead & (PATTERNS - 1)];
+            unsigned pattern = ahead & (PATTERNS - 1);
+            const Step *step = &steps[pattern];
             if (step->kind != ALONE) {
-                bytes16 lanes = NAME(shuffled)(NAME(load)(q), step->shuffle);
+                bytes16 lanes = NAME(shuffled)(NAME(load)(q), shuffles[pattern]);
                 if (step->kind == QUADS) {
                     NAME(lowQuads)(lanes, o);
                 } else {

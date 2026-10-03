@@ -17,18 +17,19 @@
 
 #if defined(KMAP_NEON) || defined(KMAP_SSE)
 
-enum { QUADS = 0, PAIRS = 1, ALONE = 2 };
+// ALONE is 0, so a step the tables never filled goes a byte at a time.
+enum { ALONE = 0, QUADS = 1, PAIRS = 2 };
 
 enum { WINDOW = 12, PATTERNS = 1 << WINDOW, VECTOR = 16, CHUNK = 64, LONGEST = 10 };
 
-// For each pattern of 12 continuation bits: where the bytes go, which lanes they are
-// in, how many values that makes and how many bytes it takes. 32 bytes, so a step
-// is read from 1 line of the cache.
+// For each pattern of 12 continuation bits: where the bytes go, and apart from that
+// which lanes they are in, how many values that makes and how many bytes it takes.
+// Apart, because a step needs its 4 bytes of these first and its shuffle only on the
+// vector path: on NW 99% of the lookups fall on 1023 patterns, 20 KB this way.
 typedef struct {
-    uint8_t shuffle[VECTOR];
-    uint8_t kind, values, taken;
-    uint8_t unused[13];
+    uint8_t kind, values, taken, unused;
 } Step;
+static uint8_t shuffles[PATTERNS][VECTOR] __attribute__((aligned(64)));
 static Step steps[PATTERNS] __attribute__((aligned(64)));
 
 static void fill(int pattern) {
@@ -46,10 +47,10 @@ static void fill(int pattern) {
     if (found > 0 && lengths[0] <= 4) { kind = QUADS; lane = 4; most = 4; widest = 4; }
     else if (found > 0 && lengths[0] <= 8) { kind = PAIRS; lane = 8; most = 2; widest = 8; }
     // 0xFF as an index gives a zero byte on both machines.
-    memset(steps[pattern].shuffle, 0xFF, VECTOR);
+    memset(shuffles[pattern], 0xFF, VECTOR);
     int from = 0, count = 0;
     while (count < most && count < found && lengths[count] <= widest) {
-        for (int j = 0; j < lengths[count]; j++) steps[pattern].shuffle[count * lane + j] = (uint8_t)(from + j);
+        for (int j = 0; j < lengths[count]; j++) shuffles[pattern][count * lane + j] = (uint8_t)(from + j);
         from += lengths[count];
         count++;
     }
@@ -151,6 +152,22 @@ size_t kmap_varints_zigzag64(const uint8_t *in, size_t count, int64_t *out, size
     }
 }
 
+size_t kmap_varints_zigzag64_sums(const uint8_t *in, size_t count, int64_t *out, size_t *used, int64_t *sum) {
+    switch (kmap_vector_tier()) {
+#if defined(KMAP_NEON)
+    case KMAP_TIER_BASE: return sums64_neon(in, count, out, used, sum);
+#else
+    case KMAP_TIER_AVX2: return sums64_avx2(in, count, out, used, sum);
+    case KMAP_TIER_SSE41: return sums64_sse41(in, count, out, used, sum);
+    case KMAP_TIER_SSSE3: return sums64_ssse3(in, count, out, used, sum);
+    case KMAP_TIER_BASE: return sums64_sse2(in, count, out, used, sum);
+#endif
+    default:
+        *used = 0;
+        return 0;
+    }
+}
+
 size_t kmap_varints_low32(const uint8_t *in, size_t count, int32_t *out, size_t *used) {
     switch (kmap_vector_tier()) {
 #if defined(KMAP_NEON)
@@ -173,6 +190,12 @@ void kmap_varints_prepare(void) {}
 
 size_t kmap_varints_zigzag64(const uint8_t *in, size_t count, int64_t *out, size_t *used) {
     (void)in; (void)count; (void)out;
+    *used = 0;
+    return 0;
+}
+
+size_t kmap_varints_zigzag64_sums(const uint8_t *in, size_t count, int64_t *out, size_t *used, int64_t *sum) {
+    (void)in; (void)count; (void)out; (void)sum;
     *used = 0;
     return 0;
 }
