@@ -50,34 +50,14 @@ enum IDSort {
         }
         let lanes = max(2, min(Machine.fastCores, total / leastPerLane))
         var step = (total + lanes - 1) / lanes
-        let chunkSize = step
-        ids.withUnsafeMutableBufferPointer { source in
-            // Each lane sorts its own stretch, which no type can say: nothing is shared.
-            nonisolated(unsafe) let source = source
-            DispatchQueue.concurrentPerform(iterations: (total + chunkSize - 1) / chunkSize) { lane in
-                let low = lane * chunkSize, high = min(total, low + chunkSize)
-                guard low < high else { return }
-                var chunk = UnsafeMutableBufferPointer(rebasing: source[low..<high])
-                chunk.sort()
-            }
-        }
+        sortChunks(&ids, of: step)
 
         var scratch = [Int64](repeating: 0, count: total)
         var settled = true  // whether the ordered data is in `ids`
         while step < total {
-            let pairs = (total + 2 * step - 1) / (2 * step)
-            let width = step
             ids.withUnsafeMutableBufferPointer { a in
                 scratch.withUnsafeMutableBufferPointer { b in
-                    // Each pair merges its own stretch of `from` into the same of `into`.
-                    nonisolated(unsafe) let from = settled ? a : b
-                    nonisolated(unsafe) let into = settled ? b : a
-                    DispatchQueue.concurrentPerform(iterations: pairs) { pair in
-                        let low = pair * 2 * width
-                        let middle = min(total, low + width)
-                        let high = min(total, low + 2 * width)
-                        merge(from, low: low, middle: middle, high: high, into: into)
-                    }
+                    mergeRound(from: settled ? a : b, into: settled ? b : a, runs: step, lanes: lanes)
                 }
             }
             settled.toggle()
@@ -86,25 +66,96 @@ enum IDSort {
         if !settled { ids = scratch }
     }
 
-    /// Merges two neighbouring sorted runs into `into`.
-    private static func merge(
+    /// Sorts each stretch of `size` on a core of its own.
+    private static func sortChunks(_ ids: inout [Int64], of size: Int) {
+        let total = ids.count
+        ids.withUnsafeMutableBufferPointer { source in
+            // Each lane sorts its own stretch, which no type can say: nothing is shared.
+            nonisolated(unsafe) let source = source
+            DispatchQueue.concurrentPerform(iterations: (total + size - 1) / size) { lane in
+                let low = lane * size, high = min(total, low + size)
+                guard low < high else { return }
+                var chunk = UnsafeMutableBufferPointer(rebasing: source[low..<high])
+                chunk.sort()
+            }
+        }
+    }
+
+    /// Merges each neighbouring pair of sorted runs of `width` from `from` into `into`.
+    /// The last rounds have fewer pairs than cores: each pair is then cut into pieces that
+    /// merge on their own, so every round keeps every core busy.
+    private static func mergeRound(
+        from: UnsafeMutableBufferPointer<Int64>,
+        into: UnsafeMutableBufferPointer<Int64>,
+        runs width: Int,
+        lanes: Int
+    ) {
+        let total = from.count
+        let pairs = (total + 2 * width - 1) / (2 * width)
+        let pieces = max(1, (lanes + pairs - 1) / pairs)
+        // Each piece merges its own stretch of `from` into the same of `into`.
+        nonisolated(unsafe) let from = from, into = into
+        DispatchQueue.concurrentPerform(iterations: pairs * pieces) { job in
+            let pair = job / pieces, piece = job % pieces
+            let low = pair * 2 * width
+            let middle = min(total, low + width)
+            let high = min(total, low + 2 * width)
+            let length = high - low
+            let first = piece * length / pieces, last = (piece + 1) * length / pieces
+            let fromLeft = split(from, low: low, middle: middle, high: high, at: first)
+            let toLeft = split(from, low: low, middle: middle, high: high, at: last)
+            merge(
+                from,
+                left: low + fromLeft..<low + toLeft,
+                right: middle + first - fromLeft..<middle + last - toLeft,
+                into: into,
+                at: low + first
+            )
+        }
+    }
+
+    /// How many of the first `count` merged values of `low..<middle` and `middle..<high`
+    /// come from the left run, a tie going to the left as `merge` takes it.
+    static func split(
         _ from: UnsafeMutableBufferPointer<Int64>,
         low: Int,
         middle: Int,
         high: Int,
-        into: UnsafeMutableBufferPointer<Int64>
-    ) {
-        guard low < high else { return }
-        var left = low, right = middle, at = low
-        while left < middle && right < high {
-            if from[left] <= from[right] {
-                into[at] = from[left]; left += 1
+        at count: Int
+    ) -> Int {
+        let leftCount = middle - low, rightCount = high - middle
+        var least = max(0, count - rightCount), most = min(count, leftCount)
+        // The fewest from the left such that no right value taken is above a left one left.
+        while least < most {
+            let left = (least + most) / 2
+            let right = count - left
+            if right > 0 && left < leftCount && from[middle + right - 1] >= from[low + left] {
+                least = left + 1
             } else {
-                into[at] = from[right]; right += 1
+                most = left
+            }
+        }
+        return least
+    }
+
+    /// Merges 2 sorted runs of `from` into `into`, starting at `at`.
+    private static func merge(
+        _ from: UnsafeMutableBufferPointer<Int64>,
+        left: Range<Int>,
+        right: Range<Int>,
+        into: UnsafeMutableBufferPointer<Int64>,
+        at start: Int
+    ) {
+        var l = left.lowerBound, r = right.lowerBound, at = start
+        while l < left.upperBound && r < right.upperBound {
+            if from[l] <= from[r] {
+                into[at] = from[l]; l += 1
+            } else {
+                into[at] = from[r]; r += 1
             }
             at += 1
         }
-        while left < middle { into[at] = from[left]; left += 1; at += 1 }
-        while right < high { into[at] = from[right]; right += 1; at += 1 }
+        while l < left.upperBound { into[at] = from[l]; l += 1; at += 1 }
+        while r < right.upperBound { into[at] = from[r]; r += 1; at += 1 }
     }
 }

@@ -1,3 +1,4 @@
+import CVector
 import Foundation
 
 /// One block's nodes, gathered on whichever core decoded it.
@@ -114,6 +115,47 @@ struct NodePlaces {
             if wanted[mid] < id { low = mid + 1 } else { high = mid - 1 }
         }
         return nil
+    }
+
+    /// Ids searched per task when many are looked up at once.
+    private static let idsPerLane = 1 << 14
+
+    /// For each of `ids`, its slot in `lat` and `lon`, or -1 where it was not asked for or
+    /// the file does not carry it. The searches run side by side in C, so their waits on
+    /// memory overlap, and a stretch of ids goes to each core.
+    func slots(of ids: UnsafeBufferPointer<Int64>, into out: UnsafeMutablePointer<Int64>) {
+        let count = ids.count
+        guard count > 0, let first = ids.baseAddress else { return }
+        guard !fences.isEmpty else {
+            for i in 0..<count {
+                if let at = index(of: first[i]), known[at] { out[i] = Int64(at) } else { out[i] = -1 }
+            }
+            return
+        }
+        wanted.withUnsafeBufferPointer { keys in
+            fences.withUnsafeBufferPointer { fences in
+                known.withUnsafeBufferPointer { known in
+                    // Each lane writes its own stretch of `out`; the tables are only read.
+                    nonisolated(unsafe) let keys = keys, fences = fences, known = known
+                    nonisolated(unsafe) let first = first, out = out
+                    let perLane = Self.idsPerLane
+                    DispatchQueue.concurrentPerform(iterations: (count + perLane - 1) / perLane) { lane in
+                        let low = lane * perLane, high = min(count, low + perLane)
+                        kmap_find_fenced(
+                            keys.baseAddress,
+                            keys.count,
+                            fences.baseAddress,
+                            fences.count,
+                            Self.fenceStride,
+                            first + low,
+                            high - low,
+                            out + low
+                        )
+                        for i in low..<high where out[i] >= 0 && !known[Int(out[i])] { out[i] = -1 }
+                    }
+                }
+            }
+        }
     }
 
     /// Where a node is, or nil if the file does not carry it; an extract's own cut runs

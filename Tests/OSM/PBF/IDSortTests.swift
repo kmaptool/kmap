@@ -41,6 +41,43 @@ final class IDSortTests: XCTestCase {
         }
     }
 
+    /// The last merges are cut into pieces; ids repeated across a cut must not be lost
+    /// or doubled there.
+    func testMergingInPiecesKeepsEveryRepeat() {
+        for spread in [3, 50, 1_000_000] {
+            var state: UInt64 = UInt64(spread)
+            var ids = (0..<300_017).map { _ -> Int64 in
+                state ^= state << 13; state ^= state >> 7; state ^= state << 17
+                return Int64(state % UInt64(spread))
+            }
+            let expected = ids.sorted()
+            IDSort.sort(&ids)
+            XCTAssertEqual(ids, expected, "spread \(spread)")
+        }
+    }
+
+    /// Where a merge is cut: as many from the left as a 1-piece merge takes first.
+    func testTheCutTakesWhatAOnePieceMergeWould() {
+        var state: UInt64 = 7
+        for _ in 0..<200 {
+            func next(_ below: UInt64) -> Int64 {
+                state ^= state << 13; state ^= state >> 7; state ^= state << 17
+                return Int64(state % below)
+            }
+            let left = (0..<Int(next(20))).map { _ in next(10) }.sorted()
+            let right = (0..<Int(next(20))).map { _ in next(10) }.sorted()
+            var both = left + right
+            both.withUnsafeMutableBufferPointer { from in
+                var l = 0, r = 0
+                for count in 0...(left.count + right.count) {
+                    let cut = IDSort.split(from, low: 0, middle: left.count, high: left.count + right.count, at: count)
+                    XCTAssertEqual(cut, l, "\(left) \(right) at \(count)")
+                    if l < left.count && (r == right.count || left[l] <= right[r]) { l += 1 } else { r += 1 }
+                }
+            }
+        }
+    }
+
     func testAlreadySortedAndReversedRunsAreHandled() {
         var ascending = (0..<200_000).map { Int64($0) }
         IDSort.sort(&ascending)

@@ -11,10 +11,8 @@ struct RoadRepair {
     /// than any gap worth closing.
     static let cellDegrees = 0.0005
 
-    /// Two ends per way, and the 3 by 3 cells round one.
+    /// 2 ends per way.
     static let endsPerWay = 2
-
-    private static let neighbourhood = 9
 
     /// A guess at how many ways have a loose end, for the candidates' capacity.
     private static let looseShare = 4
@@ -42,20 +40,33 @@ struct RoadRepair {
     /// than gathered into a dictionary.
     static func looseEnds(of network: RoadNetwork) -> [Bool] {
         var sorted = network.refs
-        sorted.sort()
+        IDSort.sort(&sorted)
         var loose = [Bool](repeating: false, count: network.wayCount * Self.endsPerWay)
-        for way in 0..<network.wayCount {
-            let range = network.points(of: way)
-            for (slot, point) in [range.lowerBound, range.upperBound - 1].enumerated() {
-                loose[way * Self.endsPerWay + slot] = Self.appearsOnce(network.refs[point], in: sorted)
+        let ways = network.wayCount
+        loose.withUnsafeMutableBufferPointer { loose in
+            sorted.withUnsafeBufferPointer { sorted in
+                // Each lane answers for its own ways' slots.
+                nonisolated(unsafe) let loose = loose, sorted = sorted
+                let perLane = Self.waysPerLane
+                DispatchQueue.concurrentPerform(iterations: (ways + perLane - 1) / perLane) { lane in
+                    for way in lane * perLane..<min(ways, (lane + 1) * perLane) {
+                        let range = network.points(of: way)
+                        for (slot, point) in [range.lowerBound, range.upperBound - 1].enumerated() {
+                            loose[way * Self.endsPerWay + slot] = Self.appearsOnce(network.refs[point], in: sorted)
+                        }
+                    }
+                }
             }
         }
         return loose
     }
 
+    /// Ways handed to a core at a time.
+    private static let waysPerLane = 1 << 14
+
     /// Whether an id is in the list exactly once -- which is what makes an end loose.
     /// Counting the rest of a repeated id says nothing more.
-    private static func appearsOnce(_ id: Int64, in sorted: [Int64]) -> Bool {
+    private static func appearsOnce(_ id: Int64, in sorted: UnsafeBufferPointer<Int64>) -> Bool {
         var low = 0, high = sorted.count
         while low < high {  // first index not less than id
             let mid = (low + high) / 2
@@ -67,45 +78,133 @@ struct RoadRepair {
 
     /// Every loose end that stops within `limit` of another line, with that line named,
     /// and the loose-end test itself, which the planner needs again for its partners.
+    ///
+    /// Bands of latitude, an equal share of the ends each, are worked on side by side. An
+    /// end is filed only in its own band, so 1 band alone writes it; and it meets the same
+    /// segments in the same order as a single walk would, so it keeps the same nearest line.
     func candidates() -> (found: [Candidate], loose: [Bool]) {
         let loose = Self.looseEnds(of: network)
-        var ends: [Candidate] = []
-        ends.reserveCapacity(network.wayCount / Self.looseShare)
-        for way in 0..<network.wayCount {
-            if loose[way * Self.endsPerWay] { ends.append(Candidate(way: Int32(way), atEnd: false)) }
-            if loose[way * Self.endsPerWay + 1] { ends.append(Candidate(way: Int32(way), atEnd: true)) }
-        }
+        var ends = Self.looseCandidates(loose, ways: network.wayCount)
+        guard !ends.isEmpty else { return ([], loose) }
+        let homeRows = ends.map { Self.row(point(of: $0).lat, Self.cellDegrees) }
+        let cuts = Self.bandCuts(homeRows)
+        let tables = bandTables(ends, homeRows: homeRows, cuts: cuts)
+        probeBands(&ends, cuts: cuts, tables: tables)
+        return (ends.filter { $0.distance <= limit }, loose)
+    }
 
-        // Each end is filed into its own cell and the eight around it, so a segment finds
-        // every end within reach with one probe rather than nine.
-        let cell = Self.cellDegrees
-        var grid: [Int64: [Int32]] = [:]
-        grid.reserveCapacity(ends.count * Self.neighbourhood)
+    /// A candidate for every loose end, nearest line still unknown.
+    private static func looseCandidates(_ loose: [Bool], ways: Int) -> [Candidate] {
+        var ends: [Candidate] = []
+        ends.reserveCapacity(ways / looseShare)
+        for way in 0..<ways {
+            if loose[way * endsPerWay] { ends.append(Candidate(way: Int32(way), atEnd: false)) }
+            if loose[way * endsPerWay + 1] { ends.append(Candidate(way: Int32(way), atEnd: true)) }
+        }
+        return ends
+    }
+
+    /// The first row of each band, then `Int64.max`: cut where the ends' rows divide
+    /// into equal shares, a band never empty.
+    private static func bandCuts(_ homeRows: [Int64]) -> [Int64] {
+        let ordered = homeRows.sorted()
+        let bandCount = min(ordered.count, Machine.cores * bandsPerCore)
+        var cuts: [Int64] = []
+        for band in 0..<bandCount {
+            let cut = ordered[band * ordered.count / bandCount]
+            if cuts.last != cut { cuts.append(cut) }
+        }
+        cuts.append(.max)
+        return cuts
+    }
+
+    /// Each band's ends, filed into their own cell and the 8 around it, so a segment finds
+    /// every end within reach with 1 probe rather than 9.
+    private func bandTables(_ ends: [Candidate], homeRows: [Int64], cuts: [Int64]) -> [CellTable] {
+        let bands = cuts.count - 1
+        var keys = [[Int64]](repeating: [], count: bands)
+        var owners = [[Int32]](repeating: [], count: bands)
         for (i, end) in ends.enumerated() {
-            let point = self.point(of: end)
-            let home = Self.key(point.lat, point.lon, cell)
+            var band = 0
+            while homeRows[i] >= cuts[band + 1] { band += 1 }
+            let point = point(of: end)
+            let home = Self.key(point.lat, point.lon, Self.cellDegrees)
             for dy in -1...1 {
                 for dx in -1...1 {
-                    grid[Self.neighbour(of: home, dy: dy, dx: dx), default: []].append(Int32(i))
+                    keys[band].append(Self.neighbour(of: home, dy: dy, dx: dx))
+                    owners[band].append(Int32(i))
                 }
             }
         }
+        return (0..<bands).map { CellTable(keys: keys[$0], values: owners[$0]) }
+    }
 
-        for way in 0..<network.wayCount {
-            let range = network.points(of: way)
-            let level = network.level[way]
-            for i in range.lowerBound..<(range.upperBound - 1) {
-                probe(
-                    way: Int32(way),
-                    segment: i,
-                    level: level,
-                    cell: cell,
-                    grid: grid,
-                    ends: &ends
-                )
+    /// Every band offers every segment that can reach it to its own ends, side by side.
+    private func probeBands(_ ends: inout [Candidate], cuts: [Int64], tables: [CellTable]) {
+        let (lowRow, highRow) = wayRows(Self.cellDegrees)
+        ends.withUnsafeMutableBufferPointer { ends in
+            lowRow.withUnsafeBufferPointer { lowRow in
+                highRow.withUnsafeBufferPointer { highRow in
+                    // A band writes only the ends filed in it; the rest is read alone.
+                    nonisolated(unsafe) let ends = ends, lowRow = lowRow, highRow = highRow
+                    DispatchQueue.concurrentPerform(iterations: tables.count) { band in
+                        // A segment reaching an end's cells passes within 1 row of it; 1
+                        // more row allows for rounding on the way.
+                        let low = cuts[band] - Self.rowSlack
+                        let high = cuts[band + 1] == .max ? .max : cuts[band + 1] + Self.rowSlack
+                        for way in 0..<network.wayCount where highRow[way] >= low && lowRow[way] <= high {
+                            probe(way: way, grid: tables[band], ends: ends)
+                        }
+                    }
+                }
             }
         }
-        return (ends.filter { $0.distance <= limit }, loose)
+    }
+
+    /// Offers every segment of a way to the ends near it.
+    private func probe(way: Int, grid: CellTable, ends: UnsafeMutableBufferPointer<Candidate>) {
+        let range = network.points(of: way)
+        let level = network.level[way]
+        for i in range.lowerBound..<(range.upperBound - 1) {
+            probe(way: Int32(way), segment: i, level: level, cell: Self.cellDegrees, grid: grid, ends: ends)
+        }
+    }
+
+    /// Bands per core, so an uneven band does not leave the others idle.
+    private static let bandsPerCore = 4
+    /// Rows of cells a band looks past its own edges.
+    private static let rowSlack: Int64 = 2
+
+    /// The cell row a latitude falls in, as `key` counts rows.
+    private static func row(_ lat: Double, _ cell: Double) -> Int64 {
+        Int64((lat / cell).rounded(.down))
+    }
+
+    /// The lowest and highest cell row each way's points reach.
+    private func wayRows(_ cell: Double) -> ([Int64], [Int64]) {
+        let ways = network.wayCount
+        var low = [Int64](repeating: 0, count: ways)
+        var high = [Int64](repeating: 0, count: ways)
+        low.withUnsafeMutableBufferPointer { low in
+            high.withUnsafeMutableBufferPointer { high in
+                // Each lane fills its own ways' slots.
+                nonisolated(unsafe) let low = low, high = high
+                let perLane = Self.waysPerLane
+                DispatchQueue.concurrentPerform(iterations: (ways + perLane - 1) / perLane) { lane in
+                    for way in lane * perLane..<min(ways, (lane + 1) * perLane) {
+                        var least = Int64.max, most = Int64.min
+                        for point in network.points(of: way) {
+                            let row = Self.row(network.lat[point], cell)
+                            least = min(least, row)
+                            most = max(most, row)
+                        }
+                        low[way] = least
+                        high[way] = most
+                    }
+                }
+            }
+        }
+        return (low, high)
     }
 
     private func point(of end: Candidate) -> (lat: Double, lon: Double) {
@@ -120,8 +219,8 @@ struct RoadRepair {
         segment: Int,
         level: Int32,
         cell: Double,
-        grid: [Int64: [Int32]],
-        ends: inout [Candidate]
+        grid: CellTable,
+        ends: UnsafeMutableBufferPointer<Candidate>
     ) {
         let alat = network.lat[segment], alon = network.lon[segment]
         let blat = network.lat[segment + 1], blon = network.lon[segment + 1]
@@ -132,8 +231,7 @@ struct RoadRepair {
             let here = Self.key(alat + u * (blat - alat), alon + u * (blon - alon), cell)
             if here == visited { continue }
             visited = here
-            guard let bucket = grid[here] else { continue }
-            for index in bucket {
+            for index in grid.run(here) {
                 consider(
                     end: Int(index),
                     way: way,
@@ -143,7 +241,7 @@ struct RoadRepair {
                     alon: alon,
                     blat: blat,
                     blon: blon,
-                    ends: &ends
+                    ends: ends
                 )
             }
         }
@@ -158,7 +256,7 @@ struct RoadRepair {
         alon: Double,
         blat: Double,
         blon: Double,
-        ends: inout [Candidate]
+        ends: UnsafeMutableBufferPointer<Candidate>
     ) {
         var end = ends[index]
         guard end.way != way, network.level[Int(end.way)] == level else { return }
@@ -235,6 +333,24 @@ extension RoadRepair {
         let x = Int64((lon / cell).rounded(.down))
         return y << latShift | ((x &+ lonBias) & lowHalf)
     }
+
+    /// The cells of size `cell` round every candidate's end, 3 by 3 each.
+    static func cells(around candidates: [Candidate], of network: RoadNetwork, cell: Double) -> CellTable {
+        var cells: [Int64] = []
+        cells.reserveCapacity(candidates.count * neighbourhood)
+        for candidate in candidates {
+            let range = network.points(of: Int(candidate.way))
+            let at = candidate.atEnd ? range.upperBound - 1 : range.lowerBound
+            let here = key(network.lat[at], network.lon[at], cell)
+            for dy in -1...1 {
+                for dx in -1...1 { cells.append(neighbour(of: here, dy: dy, dx: dx)) }
+            }
+        }
+        return CellTable(keys: cells)
+    }
+
+    /// Cells in the 3 by 3 round one.
+    private static let neighbourhood = 9
 
     /// The key of the cell `dy` rows and `dx` columns away.
     static func neighbour(of key: Int64, dy: Int, dx: Int) -> Int64 {

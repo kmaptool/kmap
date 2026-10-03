@@ -67,6 +67,37 @@ final class NodePlacesTests: XCTestCase {
         XCTAssertEqual(places.place(of: 5)?.lat, 50)
     }
 
+    /// The batched lookup answers as `place(of:)` does, on a table large enough to be
+    /// fenced and on 1 too small for fences.
+    func testLookingUpManyAtOnceAnswersAsOneAtATime() {
+        var random = SystemRandomNumberGenerator()
+        for size in [50, 100_003] {
+            var wanted: [Int64] = []
+            var id: Int64 = -500
+            for _ in 0..<size {
+                id += Int64.random(in: 1...9, using: &random)
+                wanted.append(id)
+            }
+            var places = NodePlaces(wanted: wanted)
+            // Every third wanted node is missing from the file.
+            let carried = wanted.enumerated().filter { $0.offset % 3 != 0 }.map(\.element)
+            places.take(block(carried.map { ($0, Double($0) / 7, Double($0) / 3) }))
+            let asked = (0..<40_000).map { _ in Int64.random(in: -600...(id + 50), using: &random) }
+            var slots = [Int64](repeating: 7, count: asked.count)
+            asked.withUnsafeBufferPointer { ids in
+                slots.withUnsafeMutableBufferPointer { places.slots(of: ids, into: $0.baseAddress!) }
+            }
+            for (i, one) in asked.enumerated() {
+                let place = places.place(of: one)
+                XCTAssertEqual(slots[i] >= 0, place != nil, "\(one)")
+                if slots[i] >= 0 {
+                    XCTAssertEqual(places.lat[Int(slots[i])], place?.lat)
+                    XCTAssertEqual(places.lon[Int(slots[i])], place?.lon)
+                }
+            }
+        }
+    }
+
     func testNegativeIdsAreOrdinaryHere() {
         // Nodes the build invents for a repair carry them.
         var places = NodePlaces(wanted: [-9, -2, 4])

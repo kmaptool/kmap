@@ -22,29 +22,41 @@ struct LocalGraph {
     init() {}
 
     init(network: RoadNetwork, around candidates: [RoadRepair.Candidate]) {
-        let coarse = 0.005
-        var wanted = Set<Int64>()
-        for candidate in candidates {
-            let range = network.points(of: Int(candidate.way))
-            let at = candidate.atEnd ? range.upperBound - 1 : range.lowerBound
-            let here = RoadRepair.key(network.lat[at], network.lon[at], coarse)
-            for dy in -1...1 {
-                for dx in -1...1 { wanted.insert(here &+ (Int64(dy) << 32) &+ Int64(dx)) }
-            }
-        }
-
-        for way in 0..<network.wayCount {
-            let range = network.points(of: way)
-            for a in range.lowerBound..<(range.upperBound - 1) {
-                let key = RoadRepair.key(network.lat[a], network.lon[a], coarse)
-                guard wanted.contains(key) else { continue }
-                let b = a + 1
-                let kx = RoadRepair.metresPerDegree * cos(network.lat[a] * .pi / 180)
+        let wanted = RoadRepair.cells(around: candidates, of: network, cell: Self.coarseDegrees)
+        // Found across the cores, linked here in the order 1 walk would link them.
+        for lane in Self.segments(of: network, startingIn: wanted) {
+            for start in lane {
+                let a = Int(start), b = a + 1
+                let kx = RoadRepair.metresPerLonDegree(at: network.lat[a])
                 let dx = (network.lon[b] - network.lon[a]) * kx
                 let dy = (network.lat[b] - network.lat[a]) * RoadRepair.metresPerDegree
                 link(network.refs[a], network.refs[b], (dx * dx + dy * dy).squareRoot())
             }
         }
+    }
+
+    /// The coarse cell, about 550 m: wider than the detour cap.
+    private static let coarseDegrees = 0.005
+    /// Ways handed to a core at a time.
+    private static let waysPerLane = 1 << 14
+
+    /// The first point of every segment starting in a wanted cell, a list per lane of ways.
+    private static func segments(of network: RoadNetwork, startingIn wanted: CellTable) -> [[Int32]] {
+        let ways = network.wayCount
+        let lanes = (ways + waysPerLane - 1) / waysPerLane
+        let found = Locked([[Int32]](repeating: [], count: lanes))
+        DispatchQueue.concurrentPerform(iterations: lanes) { lane in
+            var starts: [Int32] = []
+            for way in lane * waysPerLane..<min(ways, (lane + 1) * waysPerLane) {
+                let range = network.points(of: way)
+                for a in range.lowerBound..<(range.upperBound - 1)
+                where wanted.contains(RoadRepair.key(network.lat[a], network.lon[a], coarseDegrees)) {
+                    starts.append(Int32(a))
+                }
+            }
+            found.withLock { $0[lane] = starts }
+        }
+        return found.withLock { $0 }
     }
 
     private mutating func slot(_ ref: Int64) -> Int32 {
