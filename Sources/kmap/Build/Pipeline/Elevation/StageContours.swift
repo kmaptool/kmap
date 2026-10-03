@@ -202,6 +202,16 @@ extension BuildPipeline {
         }
     }
 
+    /// Cache directories (lowercased) of sources this map may not use: those whose credit
+    /// lines it does not carry. FABDEM's include Copernicus's.
+    static func uncreditedDirectories(chosen: [String]) -> Set<String> {
+        let carried = Set(DEMSources.all.filter { chosen.contains($0.sourceID) }.flatMap(\.credits))
+        return Set(
+            DEMSources.all.filter { !Set($0.credits).isSubset(of: carried) }
+                .map { $0.directoryName.lowercased() }
+        )
+    }
+
     func hgtFileCount() -> Int {
         guard
             let walker = FileManager.default.enumerator(
@@ -247,11 +257,7 @@ extension BuildPipeline {
         // The cache is shared between builds and holds sources this one did not ask for,
         // so the chosen sources rank first or the DEM disagrees with the contours.
         let chosen = demSourceList
-        // A source that must be credited fills nothing in a map that does not name it.
-        let uncredited = Set(
-            DEMSources.all.filter { !$0.credits.isEmpty && !chosen.contains($0.sourceID) }
-                .map { $0.directoryName.lowercased() }
-        )
+        let uncredited = Self.uncreditedDirectories(chosen: chosen)
         func rank(_ url: URL) -> Int {
             let name = url.lastPathComponent.lowercased()
             // The direct sources' directory names (COP1, FAB1) differ from their ids, so the

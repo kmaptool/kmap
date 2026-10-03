@@ -113,6 +113,19 @@ final class DEMStagingTests: XCTestCase {
         XCTAssertFalse(FileTools.exists(dir.appendingPathComponent("N44E035.hgt")))
     }
 
+    /// What decides is the credit a map carries, not the names in its list.
+    func testASourceWhoseCreditTheMapCarriesMayFillIt() {
+        // FABDEM's credit includes Copernicus's, so Copernicus tiles may fill its gaps.
+        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["fabdem1"]), ["ged1"])
+        // The other way round FABDEM's own line is missing.
+        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["copernicus1"]), ["fab1", "ged1"])
+        XCTAssertEqual(
+            BuildPipeline.uncreditedDirectories(chosen: ["view1", "view3"]),
+            ["cop1", "cop3", "fab1", "ged1"]
+        )
+        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["gedtm1", "fabdem1"]), [])
+    }
+
     func testTheFetchesFollowTheRecipesOrder() {
         func steps(_ sources: String) -> [String] {
             var recipe = pipeline.recipe
