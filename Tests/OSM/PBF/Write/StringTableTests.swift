@@ -33,6 +33,39 @@ final class StringTableTests: XCTestCase {
         XCTAssertEqual(Array(table.words[1].utf8), Array(composed.utf8), "the first spelling is the one written")
     }
 
+    func testAnASCIIWordAndItsTwinSpellingAreOneWord() {
+        // Unicode maps these 3 onto ASCII characters, and the standard library holds the
+        // 2 spellings equal, as the dictionary this table replaced did.
+        var table = StringTable()
+        XCTAssertEqual(table.index("K"), 1)
+        XCTAssertEqual(table.index("\u{212A}"), 1)
+        XCTAssertEqual(table.index("\u{037E}"), 2)
+        XCTAssertEqual(table.index(";"), 2)
+        XCTAssertEqual(table.index("`"), 3)
+        XCTAssertEqual(table.index("\u{1FEF}"), 3)
+        XCTAssertEqual(table.index("Mo-Fr 08:00-16:00; Sa 09:00-13:00"), 4)
+        XCTAssertEqual(table.index("Mo-Fr 08:00-16:00\u{037E} Sa 09:00-13:00"), 4)
+        XCTAssertEqual(table.words, ["", "K", "\u{037E}", "`", "Mo-Fr 08:00-16:00; Sa 09:00-13:00"])
+        // With anything else past ASCII beside it, a twin is hashed the standard way, as
+        // its equal is.
+        XCTAssertEqual(table.index("\u{212A}\u{301}"), 5)
+        XCTAssertEqual(table.index("K\u{301}"), 5)
+    }
+
+    func testTheTwinsAreEveryScalarEqualToAnASCIICharacter() {
+        var found: [UInt32: UInt8] = [:]
+        for value in UInt32(0x80)...0x10FFFF {
+            guard let scalar = Unicode.Scalar(value) else { continue }
+            let text = String(scalar)
+            let canonical = text.precomposedStringWithCanonicalMapping
+            guard canonical.unicodeScalars.count == 1, let only = canonical.unicodeScalars.first, only.isASCII,
+                text == canonical
+            else { continue }
+            found[value] = UInt8(only.value)
+        }
+        XCTAssertEqual(found, StringTable.asciiTwins)
+    }
+
     func testCyrillicAndASCIIWordsThatLookAlikeStayApart() {
         var table = StringTable()
         XCTAssertEqual(table.index("a"), 1)
@@ -50,7 +83,7 @@ final class StringTableTests: XCTestCase {
             seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17
             return seed
         }
-        let alphabet = Array("abcdeйцукенгшщ_:0123456789 é")
+        let alphabet = Array("abcdeйцукенгшщ_:0123456789 é;K`\u{037E}\u{212A}\u{1FEF}")
         for _ in 0..<30_000 {
             let length = Int(next() % 6)
             let word = String((0..<length).map { _ in alphabet[Int(next() % UInt64(alphabet.count))] })
