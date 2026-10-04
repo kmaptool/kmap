@@ -48,6 +48,38 @@ final class CLIOptionsTests: XCTestCase {
         }
     }
 
+    // MARK: Stages in JSON
+
+    func testJSONReportsAStageOnlyForward() {
+        // A held split is running all along: the stream never sees it go back.
+        XCTAssertTrue(CLI.reportable(.pending, after: nil))
+        XCTAssertTrue(CLI.reportable(.running, after: .pending))
+        XCTAssertFalse(CLI.reportable(.running, after: .running), "said once")
+        XCTAssertTrue(CLI.reportable(.done, after: .running))
+        // A stopped build puts a held stage back to not started: not news to a reader.
+        XCTAssertFalse(CLI.reportable(.pending, after: .running))
+        XCTAssertTrue(CLI.reportable(.failed, after: .running))
+        XCTAssertTrue(CLI.reportable(.skipped, after: .pending))
+    }
+
+    // MARK: A long log
+
+    func testTheLogKeepsPrintingOnceItsRingDropsTheOldestLines() {
+        // The ring keeps the last 3 here, the last 4000 in a build: printing by place
+        // stopped for good once it was full.
+        let log = Log(limit: 3)
+        var printer = CLI.LogPrinter()
+        for n in 1...3 { log.append("line \(n)") }
+        let first = CLILog.capture { printer.drain(log) }.out
+        for n in 4...5 { log.append("line \(n)") }
+        let second = CLILog.capture { printer.drain(log) }.out
+        let third = CLILog.capture { printer.drain(log) }.out
+        XCTAssertTrue(first.contains("line 1") && first.contains("line 3"), first)
+        XCTAssertTrue(second.contains("line 4") && second.contains("line 5"), second)
+        XCTAssertFalse(second.contains("line 3"), "printed once")
+        XCTAssertEqual(third, "", "nothing new")
+    }
+
     // MARK: Stage headings among the log lines
 
     func testAHeadingStandsAboveTheLinesWrittenAfterItsStageBegan() {

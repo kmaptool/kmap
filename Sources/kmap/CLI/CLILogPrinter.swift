@@ -4,13 +4,20 @@ import Foundation
 /// event on the stream. A build and an install both follow a log this way.
 extension CLI {
     struct LogPrinter {
-        private var printed = 0
+        /// The number of the last event printed. Counted by number, not by place: the log
+        /// keeps only its last 4000 events, and once it drops the oldest a place
+        /// no longer names the same event.
+        private var printedSeq = 0
 
         /// Prints what `log` has gained since the last call. A heading, given with the
         /// time its stage set to work, goes above the first line written after that.
         mutating func drain(_ log: Log, headings: [(at: Date, text: String)] = []) {
-            let lines = log.snapshot()
-            let fresh = lines.count > printed ? Array(lines[printed...]) : []
+            drain(log.snapshot(), headings: headings)
+        }
+
+        /// The same, for a snapshot of the log taken by the caller.
+        mutating func drain(_ lines: [LogEvent], headings: [(at: Date, text: String)] = []) {
+            let fresh = lines.filter { $0.seq > printedSeq }
             for item in Self.interleaved(fresh, headings: headings) {
                 switch item {
                 case .heading(let text):
@@ -20,7 +27,7 @@ extension CLI {
                     CLIOutput.log(line)
                 }
             }
-            printed = lines.count
+            if let last = lines.last { printedSeq = max(printedSeq, last.seq) }
         }
 
         enum Item {

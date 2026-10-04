@@ -7,38 +7,56 @@ extension CLI {
     /// How often the pipeline is polled for news.
     private static let followPollNanoseconds: UInt64 = 250_000_000
 
+    /// Whether JSON reports a stage's status: the stage as it is, and only ever forward,
+    /// so a reader is never told a stage it saw at work has not started.
+    static func reportable(_ status: BuildPipeline.StageStatus, after last: BuildPipeline.StageStatus?) -> Bool {
+        guard let last else { return true }
+        return status != last && status != .pending
+    }
+
     static func follow(_ pipeline: BuildPipeline, landingIn destination: URL) async -> Int32 {
         var printer = LogPrinter()
-        var lastStatus: [String: BuildPipeline.StageStatus] = [:]
+        /// The status each stage was last shown with in the text, and last reported with
+        /// in JSON.
+        var lastShown: [String: BuildPipeline.StageStatus] = [:]
+        var lastReported: [String: BuildPipeline.StageStatus] = [:]
         var gate = ProgressGate()
         /// Stages whose heading is printed: one that began and ended between 2 polls is
         /// never seen running.
         var headed = Set<String>()
         var lastPoll = Date.distantPast
         while true {
+            // The log before the stages: a line logged in between belongs to a stage this
+            // poll already sees, and its heading is dated before it.
+            let lines = pipeline.log.snapshot()
             let snapshot = pipeline.snapshot()
-            // A held stage is reported as not started: it is announced when it sets to work.
             var changed: [(stage: BuildPipeline.Stage, status: BuildPipeline.StageStatus, detail: String)] = []
             var headings: [(at: Date, text: String)] = []
             for stage in snapshot.stages {
+                let id = stage.id.rawValue
+                // The text heads a held stage when it sets to work, as the screen shows it.
                 let shown = stage.shown(among: snapshot.stages)
-                guard lastStatus[stage.id.rawValue] != shown.status else { continue }
-                lastStatus[stage.id.rawValue] = shown.status
-                changed.append((stage, shown.status, shown.detail))
-                let worked = shown.status == .running || shown.status == .done || shown.status == .failed
-                if worked, headed.insert(stage.id.rawValue).inserted {
-                    // Where it began; a stage let go after being held begins with this poll.
-                    headings.append((max(stage.startedAt ?? lastPoll, lastPoll), "── \(stage.id.title)"))
+                if lastShown[id] != shown.status {
+                    lastShown[id] = shown.status
+                    let worked = shown.status == .running || shown.status == .done || shown.status == .failed
+                    if worked, headed.insert(id).inserted {
+                        // Where it began; a stage let go after being held begins with this poll.
+                        headings.append((max(stage.startedAt ?? lastPoll, lastPoll), "── \(stage.id.title)"))
+                    }
+                }
+                if reportable(stage.status, after: lastReported[id]) {
+                    lastReported[id] = stage.status
+                    changed.append((stage, stage.status, stage.detail))
                 }
             }
             lastPoll = Date()
-            printer.drain(pipeline.log, headings: headings)
+            printer.drain(lines, headings: headings)
             for (stage, status, detail) in changed {
                 CLIOutput.stage(stage.id.rawValue, status.rawValue, title: stage.id.title, detail: detail)
             }
 
             if CLIOutput.isJSON {
-                for stage in snapshot.stages where stage.shown(among: snapshot.stages).status == .running {
+                for stage in snapshot.stages where stage.status == .running {
                     guard
                         gate.speaks(
                             stage: stage.id.rawValue,
