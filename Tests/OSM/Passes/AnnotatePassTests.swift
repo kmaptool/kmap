@@ -162,6 +162,24 @@ final class AnnotatePassTests: XCTestCase {
         )
     }
 
+    func testElevationAlreadyAtHandHoldsNothingUp() throws {
+        // A rebuild has the tiles before the scans ask: the stage is never shown waiting.
+        let source = try makeExtract()
+        var pass = AnnotatePass(source: source, destination: path("out.osm.pbf"))
+        pass.repairRadius = 5
+        let asked = Counter()
+        pass.demReady = {
+            asked.increment()
+            return []
+        }
+        pass.demAtHand = { [] }
+        let held = Locked<[Bool]>([])
+        pass.onHeld = { value in held.withLock { $0.append(value) } }
+        _ = try pass.run { _ in }
+        XCTAssertEqual(held.withLock { $0 }, [])
+        XCTAssertEqual(asked.value, 0, "nothing to wait for")
+    }
+
     func testContourFilesAreFoldedIn() throws {
         let source = try makeExtract()
         let contours = path("contours.osm.pbf")

@@ -23,6 +23,9 @@ final class Gate<Value: Sendable>: Sendable {
     /// Whether the value has arrived, so asking for it does not wait.
     var isOpen: Bool { state.withLock { $0.value != nil } }
 
+    /// The value if it has arrived, without waiting for it.
+    var opened: Value? { state.withLock { $0.value } }
+
     var value: Value {
         get async {
             await withCheckedContinuation { waiter in

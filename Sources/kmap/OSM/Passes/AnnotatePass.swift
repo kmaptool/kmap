@@ -25,6 +25,8 @@ struct AnnotatePass {
     /// When set, the repair waits on it for `dem` before planning: the elevation stage is
     /// still fetching while the scans run.
     var demReady: (@Sendable () async throws -> [URL])?
+    /// The same `dem`, when it is there already and asking would not wait.
+    var demAtHand: (@Sendable () -> [URL]?)?
     /// Told true when the scans can only wait for `demReady`, every other one being done,
     /// and false when the wait is over.
     var onHeld: (@Sendable (Bool) -> Void)?
@@ -223,7 +225,12 @@ struct AnnotatePass {
             .candidates()
         part("found the loose ends")
         // Awaited only now, with the network loaded and the ends found.
-        let directories = try demReady.map { ready in try idleness.waiting { try Self.blocking(ready)() } } ?? dem
+        // Already there, as on a rebuild: nothing is waited for, so nothing is shown waiting.
+        let directories =
+            try demReady.map { ready in
+                if let now = demAtHand?() { return now }
+                return try idleness.waiting { try Self.blocking(ready)() }
+            } ?? dem
         let existing = directories.filter { FileManager.default.fileExists(atPath: $0.path) }
         let terrain = existing.isEmpty ? nil : Terrain(directories: existing)
         part("waited for the elevation")

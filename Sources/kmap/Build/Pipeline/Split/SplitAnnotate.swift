@@ -140,7 +140,9 @@ extension BuildPipeline {
             // The DEM tells a slope from a face. Read from the DEM layer's tiles once fetched, so
             // a first build and a rebuild repair alike.
             pass.demReady = { await terrain.value }
-            // Shown as waiting only once nothing else of this extract is being read.
+            pass.demAtHand = { terrain.opened }
+            // Shown as waiting only once nothing else of this extract is being read; the
+            // stage is 1 for every region, so 1 region waiting holds it all.
             pass.onHeld = { [board] held in
                 if held { board.beginWaiting(.split) } else { board.endWaiting(.split) }
             }
