@@ -240,6 +240,48 @@ final class TileSplitterTests: XCTestCase {
         )
     }
 
+    func testRunsOfConsecutiveIDsAreFoundAsTheSingleSearchFindsThem() {
+        // A way's nodes are often numbered in a row. The table holds some rows whole, some
+        // with a hole in the middle, and misses the first id of others.
+        let table = TileSplitter.NodeAreas(expecting: 60000)
+        var generator = SystemRandomNumberGenerator()
+        var held: [Int64] = []
+        var id: Int64 = 5000
+        for _ in 0..<6000 {
+            id += Int64.random(in: 2...40, using: &generator)
+            for step in 0..<Int64.random(in: 1...12, using: &generator)
+            where Int.random(in: 0..<9, using: &generator) != 0 {
+                held.append(id + step)
+            }
+            id += 12
+        }
+        for id in held { table.set(id, UInt16(truncatingIfNeeded: id % 5)) }
+        table.seal()
+        // Asked in rows that start before, inside and past the rows held, and a few at random.
+        var asked: [Int64] = []
+        for _ in 0..<4000 {
+            let start =
+                held[Int.random(in: 0..<held.count, using: &generator)] + Int64.random(in: -3...3, using: &generator)
+            for step in 0..<Int64.random(in: 1...20, using: &generator) { asked.append(start + step) }
+            if Int.random(in: 0..<4, using: &generator) == 0 {
+                asked.append(Int64.random(in: 0...(id + 50), using: &generator))
+            }
+        }
+        asked += [Int64.max - 1, Int64.max, Int64.min, Int64.min + 1, -1, 0, 1]
+        for count in [asked.count, 1, 15, 16, 17, 33] {
+            let part = Array(asked.prefix(count))
+            var found = [Int64](repeating: -7, count: part.count)
+            XCTAssertTrue(
+                part.withUnsafeBufferPointer { ids in
+                    found.withUnsafeMutableBufferPointer { table.findAll(ids, into: $0.baseAddress!) }
+                }
+            )
+            for (at, id) in part.enumerated() {
+                XCTAssertEqual(found[at] >= 0 ? Int(found[at]) : nil, table.find(id), "id \(id) at \(at) of \(count)")
+            }
+        }
+    }
+
     func testTheNodeTableHandlesIDsThatStartOverPartWayThrough() {
         // A second input file ascends from the bottom again.
         let table = TileSplitter.NodeAreas(expecting: 10)

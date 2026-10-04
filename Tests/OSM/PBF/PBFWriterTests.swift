@@ -365,4 +365,148 @@ final class PBFWriterTests: XCTestCase {
         XCTAssertThrowsError(try writer.finish())
     }
     #endif
+
+    // MARK: Runs
+
+    /// The same nodes as runs: tags numbered within each run, the strings held once.
+    private func chunk(of nodes: [PBFWriter.Node], doubling: Bool = false) -> PBFWriter.NodeChunk {
+        var chunk = PBFWriter.NodeChunk()
+        var place: [String: Int32] = [:]
+        func local(_ word: String) -> Int32 {
+            // Doubling files every word under 2 numbers, as a block with the same text
+            // twice in its table would.
+            if !doubling, let known = place[word] { return known }
+            chunk.strings.append(word)
+            place[word] = Int32(chunk.strings.count - 1)
+            return Int32(chunk.strings.count - 1)
+        }
+        for node in nodes {
+            chunk.ids.append(node.id)
+            chunk.lats.append(node.lat)
+            chunk.lons.append(node.lon)
+            for (key, value) in node.tags {
+                let keyPlace = local(key), valuePlace = local(value)
+                chunk.tags.append(keyPlace)
+                chunk.tags.append(valuePlace)
+            }
+            chunk.tagEnds.append(Int32(chunk.tags.count))
+        }
+        return chunk
+    }
+
+    private func chunk(of ways: [PBFWriter.Way]) -> PBFWriter.WayChunk {
+        var chunk = PBFWriter.WayChunk()
+        var place: [String: Int32] = [:]
+        func local(_ word: String) -> Int32 {
+            if let known = place[word] { return known }
+            chunk.strings.append(word)
+            place[word] = Int32(chunk.strings.count - 1)
+            return Int32(chunk.strings.count - 1)
+        }
+        for way in ways {
+            chunk.ids.append(way.id)
+            chunk.refs.append(contentsOf: way.refs)
+            chunk.refEnds.append(Int32(chunk.refs.count))
+            for (key, value) in way.tags {
+                let keyPlace = local(key), valuePlace = local(value)
+                chunk.tags.append(keyPlace)
+                chunk.tags.append(valuePlace)
+            }
+            chunk.tagEnds.append(Int32(chunk.tags.count))
+        }
+        return chunk
+    }
+
+    private func bytes(_ name: String, _ write: (PBFWriter) -> Void) throws -> Data {
+        let url = path(name)
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        write(writer)
+        try writer.finish()
+        return try Data(contentsOf: url)
+    }
+
+    private func sampleNodes(_ range: Range<Int>) -> [PBFWriter.Node] {
+        range.map { i in
+            var tags: [(String, String)] = []
+            if i % 3 == 0 { tags.append(("name", "Улица \(i % 7)")) }
+            if i % 4 == 0 { tags.append(("barrier", i % 8 == 0 ? "gate" : "")) }
+            if i % 5 == 0 { tags.append(("caf\u{e9}", "cafe\u{301}")) }
+            return PBFWriter.Node(
+                id: Int64(1000 + i * 3),
+                lat: 44 + Double(i) * 1e-4,
+                lon: 33 - Double(i) * 2e-4,
+                tags: tags
+            )
+        }
+    }
+
+    func testNodeRunsWriteTheBytesTheNodesThemselvesWrite() throws {
+        let nodes = sampleNodes(0..<500)
+        let plain = try bytes("plain.pbf") { $0.nodes(nodes) }
+        // 1 run; 3 runs, the middle one cut in 2 stretches; and a table with every word twice.
+        let whole = chunk(of: nodes)
+        XCTAssertEqual(try bytes("a.pbf") { $0.nodes(runs: [(whole, 0..<500)]) }, plain)
+        let first = chunk(of: Array(nodes[0..<120])), second = chunk(of: Array(nodes[120..<350]))
+        let third = chunk(of: Array(nodes[350...]))
+        XCTAssertEqual(
+            try bytes("b.pbf") {
+                $0.nodes(runs: [(first, 0..<120), (second, 0..<100), (second, 100..<230), (third, 0..<150)])
+            },
+            plain
+        )
+        let doubled = chunk(of: nodes, doubling: true)
+        XCTAssertEqual(try bytes("c.pbf") { $0.nodes(runs: [(doubled, 0..<500)]) }, plain)
+        // A stretch of a run is those nodes and no others.
+        XCTAssertEqual(
+            try bytes("d.pbf") { $0.nodes(runs: [(whole, 100..<200)]) },
+            try bytes("e.pbf") { $0.nodes(Array(nodes[100..<200])) }
+        )
+    }
+
+    func testNodeRunsOutOfOrderAreSortedAsTheNodesWouldBe() throws {
+        let nodes = sampleNodes(0..<300)
+        let late = chunk(of: Array(nodes[150...])), early = chunk(of: Array(nodes[..<150]))
+        XCTAssertEqual(
+            try bytes("a.pbf") { $0.nodes(runs: [(late, 0..<150), (early, 0..<150)]) },
+            try bytes("b.pbf") { $0.nodes(Array(nodes[150...]) + Array(nodes[..<150])) }
+        )
+        // The same id twice is not ascending either.
+        let twice = chunk(of: [nodes[5], nodes[5]])
+        XCTAssertEqual(
+            try bytes("c.pbf") { $0.nodes(runs: [(twice, 0..<2)]) },
+            try bytes("d.pbf") { $0.nodes([nodes[5], nodes[5]]) }
+        )
+    }
+
+    func testAnEmptyBatchOfRunsWritesNothing() throws {
+        let nothing = try bytes("a.pbf") { _ in }
+        XCTAssertEqual(try bytes("b.pbf") { $0.nodes(runs: [(PBFWriter.NodeChunk(), 0..<0)]) }, nothing)
+        XCTAssertEqual(try bytes("c.pbf") { $0.ways(runs: [(PBFWriter.WayChunk(), 0..<0)]) }, nothing)
+    }
+
+    func testWayRunsWriteTheBytesTheWaysThemselvesWrite() throws {
+        var ways: [PBFWriter.Way] = []
+        for i in 0..<400 {
+            var tags: [(String, String)] = [("highway", i % 2 == 0 ? "path" : "track")]
+            if i % 6 == 0 { tags.append(("name", "Тропа \(i % 9)")) }
+            if i % 10 == 0 { tags = [] }
+            let step: Int64 = i % 3 == 0 ? 1 : -4
+            var refs: [Int64] = []
+            for k in 0..<(2 + i % 9) { refs.append(5_000_000_000 + Int64(i) * 17 + Int64(k) * step) }
+            ways.append(PBFWriter.Way(id: Int64(90 + i), refs: refs, tags: tags))
+        }
+        let plain = try bytes("plain.pbf") { $0.ways(ways) }
+        let whole = chunk(of: ways)
+        XCTAssertEqual(try bytes("a.pbf") { $0.ways(runs: [(whole, 0..<400)]) }, plain)
+        let first = chunk(of: Array(ways[..<77])), second = chunk(of: Array(ways[77...]))
+        XCTAssertEqual(
+            try bytes("b.pbf") { $0.ways(runs: [(first, 0..<77), (second, 0..<200), (second, 200..<323)]) },
+            plain
+        )
+        XCTAssertEqual(
+            try bytes("c.pbf") { $0.ways(runs: [(whole, 30..<31)]) },
+            try bytes("d.pbf") { $0.ways([ways[30]]) }
+        )
+    }
 }

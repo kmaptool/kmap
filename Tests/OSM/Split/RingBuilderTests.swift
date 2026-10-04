@@ -78,7 +78,7 @@ final class RingBuilderTests: XCTestCase {
             let built = TileSplitter.RingBuilder.rings(
                 of: (1...pieces.count).map(Int64.init),
                 refs: refs,
-                coords: coords
+                coords: TileSplitter.RingCoords(coords)
             )
             let plain = Self.plainRings(pieces: pieces)
             let expected = plain.closed.map { ring in ring.map { coords[$0]! } }
@@ -107,9 +107,67 @@ final class RingBuilderTests: XCTestCase {
             coords[a] = (Int32(i), Int32(i))
         }
         let started = Date()
-        let built = TileSplitter.RingBuilder.rings(of: (1...count).map(Int64.init), refs: refs, coords: coords)
+        let built = TileSplitter.RingBuilder.rings(
+            of: (1...count).map(Int64.init),
+            refs: refs,
+            coords: TileSplitter.RingCoords(coords)
+        )
         XCTAssertEqual(built.closed.count, 1)
         XCTAssertEqual(built.closed.first?.count, count + 1)
         XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+    }
+
+    // MARK: The table of ring nodes
+
+    func testTheTableAnswersForEveryNodePutAndForNoOther() {
+        // Sparse ids over many fences and a short last window.
+        var ids: [Int64] = []
+        var id: Int64 = 100
+        for step in 0..<10_007 {
+            id += Int64(1 + (step * 7) % 13)
+            ids.append(id)
+        }
+        let table = TileSplitter.RingCoords(ids: ids)
+        // Every third node is in no file.
+        for (rank, id) in ids.enumerated() where rank % 3 != 0 {
+            table.put(Int32(truncatingIfNeeded: id), Int32(rank), at: rank)
+        }
+        for (rank, id) in ids.enumerated() {
+            if rank % 3 == 0 {
+                XCTAssertNil(table[id], "node \(id) was never put")
+            } else {
+                XCTAssertEqual(table[id]?.lat, Int32(truncatingIfNeeded: id))
+                XCTAssertEqual(table[id]?.lon, Int32(rank))
+            }
+            XCTAssertNil(table[id + 1].flatMap { _ in ids.contains(id + 1) ? nil : 1 }, "an id between 2 held")
+        }
+        XCTAssertNil(table[0])
+        XCTAssertNil(table[ids[0] - 1])
+        XCTAssertNil(table[id + 1])
+        XCTAssertNil(table[Int64.max])
+        XCTAssertNil(table[Int64.min])
+    }
+
+    func testTheFirstPlaceOfANodeStands() {
+        let table = TileSplitter.RingCoords(ids: [5, 9])
+        table.put(1, 2, at: 1)
+        table.put(7, 8, at: 1)
+        XCTAssertEqual(table[9]?.lat, 1)
+        XCTAssertEqual(table[9]?.lon, 2)
+        XCTAssertNil(table[5])
+        XCTAssertNil(TileSplitter.RingCoords(ids: [])[5])
+    }
+
+    func testTheWantedIDsSayWhereAnIDStands() {
+        var wanted = TileSplitter.WantedIDs(sorted: [3, 8, 20, 21])
+        XCTAssertNil(wanted.rank(of: 1))
+        XCTAssertEqual(wanted.rank(of: 3), 0)
+        XCTAssertNil(wanted.rank(of: 4))
+        XCTAssertEqual(wanted.rank(of: 20), 2)
+        XCTAssertEqual(wanted.rank(of: 21), 3)
+        XCTAssertNil(wanted.rank(of: 99))
+        // A worker starting its own run of blocks begins below where the last one stopped.
+        XCTAssertEqual(wanted.rank(of: 8), 1)
+        XCTAssertTrue(wanted.wants(21))
     }
 }

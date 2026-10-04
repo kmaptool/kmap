@@ -76,7 +76,7 @@ extension TileSplitter {
         var wantedWays = WantedIDs([])
         var refs = WayRefs(wanted: WantedIDs([]))
         var wantedNodes = WantedIDs([])
-        var coords = NodeCoords(wanted: WantedIDs([]))
+        var coords = RingCoords(ids: [])
         var carriedTiles: [Int64: Set<UInt16>] = [:]
         var incomplete: [Int64: Bool] = [:]
         var spanning: [(key: Int64, value: Int32)] = []
@@ -198,20 +198,14 @@ extension TileSplitter {
         }
         let wanted = IDSort.unique(of: runs)
         s.wantedNodes = WantedIDs(sorted: wanted)
-        s.coords = NodeCoords(wanted: s.wantedNodes)
-        s.coords.coords.reserveCapacity(wanted.count)
+        let coords = RingCoords(ids: wanted)
+        s.coords = coords
         let wantedNodes = s.wantedNodes
-        // A node repeats only between files, and then the first stands.
-        let overlapping = options.inputs.count > 1
+        // Every reader writes what it finds into the table itself. A node repeats only
+        // between files, and they are read 1 after another, so the first stands.
         if !wantedNodes.isEmpty {
             for input in options.inputs {
-                try reader(input).readInOrder(
-                    make: { NodeCoords(wanted: wantedNodes) }) { part in
-                        for found in part.found where !overlapping || s.coords.coords[found.id] == nil {
-                            s.coords.coords[found.id] = (found.lat, found.lon)
-                        }
-                        part.found.removeAll(keepingCapacity: true)
-                    }
+                _ = try reader(input).readConcurrently { NodeCoords(wanted: wantedNodes, coords: coords) }
             }
         }
     }
@@ -236,7 +230,7 @@ extension TileSplitter {
                 let rings = RingBuilder.rings(
                     of: record.memberWays,
                     refs: s.refs.refs,
-                    coords: s.coords.coords
+                    coords: s.coords
                 )
                 var claimed = s.carriedTiles[rel] ?? []
                 // Against the frame widened by the shape overlap: a multipolygon is a
@@ -258,9 +252,17 @@ extension TileSplitter {
             guard let record = s.relations[rel],
                 let touched = s.carriedTiles[rel], !touched.isEmpty
             else { continue }
+            // Nearly every member way has no tiles of its own yet and takes the
+            // relation's set as it stands: interned once, not once a way.
+            var whole: Int32?
             for way in record.memberWays {
-                let already = plan.wayTiles[way].map { Set(s.sets[$0]) } ?? []
-                plan.wayTiles[way] = s.sets.intern(already.union(touched))
+                guard let had = plan.wayTiles[way] else {
+                    if whole == nil { whole = s.sets.intern(touched) }
+                    plan.wayTiles[way] = whole
+                    continue
+                }
+                if had == whole { continue }
+                plan.wayTiles[way] = s.sets.intern(Set(s.sets[had]).union(touched))
             }
             let touchedIndex = plan.extra.intern(touched)
             for node in record.memberNodes {
@@ -359,8 +361,41 @@ extension TileSplitter {
             return answer
         }
 
+        // A relation that carries nothing follows its members to wherever they were
+        // written: a search per member, in tables nothing writes to by now, so on every
+        // core. The answers are interned afterwards, in the order 1 walk would take.
+        let all = Array(s.relations)
+        var followed = [Set<UInt16>?](repeating: nil, count: all.count)
+        let lanes = max(1, min(Machine.workers, all.count / Self.relationsPerLane))
+        let chunk = (all.count + lanes - 1) / lanes
+        followed.withUnsafeMutableBufferPointer { slots in
+            // Each lane fills its own stretch of slots, which no type can say.
+            nonisolated(unsafe) let slots = slots
+            nonisolated(unsafe) let s = s
+            let wayTiles = plan.wayTiles
+            let nodes = assignment.nodes
+            DispatchQueue.concurrentPerform(iterations: lanes) { lane in
+                for at in lane * chunk..<min(all.count, (lane + 1) * chunk) {
+                    let record = all[at].value
+                    if record.directTiles.isEmpty || record.carriesMembers { continue }
+                    var touched: Set<UInt16> = []
+                    for way in record.memberWays {
+                        if let extra = wayTiles[way] {
+                            touched.formUnion(s.sets[extra])
+                        } else if let value = s.wayArea.get(way), value != NodeAreas.outside {
+                            touched.insert(value)
+                        }
+                    }
+                    for node in record.memberNodes {
+                        if let value = nodes.get(node) { touched.formUnion(nodes.areas(of: value)) }
+                    }
+                    slots[at] = touched
+                }
+            }
+        }
+
         let everyTile = Set((0..<areas.count).map { UInt16($0) })
-        for (id, record) in s.relations {
+        for (at, (id, record)) in all.enumerated() {
             // No direct member found at all: nothing anchors it anywhere.
             if record.directTiles.isEmpty { continue }
             var touched: Set<UInt16>
@@ -373,19 +408,7 @@ extension TileSplitter {
                     touched = everyTile
                 }
             } else {
-                touched = []
-                for way in record.memberWays {
-                    if let extra = plan.wayTiles[way] {
-                        touched.formUnion(s.sets[extra])
-                    } else if let value = s.wayArea.get(way), value != NodeAreas.outside {
-                        touched.insert(value)
-                    }
-                }
-                for node in record.memberNodes {
-                    if let value = assignment.nodes.get(node) {
-                        touched.formUnion(assignment.nodes.areas(of: value))
-                    }
-                }
+                touched = followed[at] ?? []
             }
             if !touched.isEmpty { plan.relationTiles[id] = s.sets.intern(touched) }
         }
@@ -393,6 +416,9 @@ extension TileSplitter {
         plan.sets = s.sets
         plan.sets.sealed()
     }
+
+    /// Fewer relations than this to a lane are not worth a thread.
+    private static let relationsPerLane = 2048
 
     // MARK: Multipolygon rings
 }

@@ -29,7 +29,7 @@ extension TileSplitter {
         static func rings(
             of ways: [Int64],
             refs: [Int64: [Int64]],
-            coords: [Int64: (lat: Int32, lon: Int32)]
+            coords: RingCoords
         ) -> RingBuilder {
             // Chains of node ids, joined by shared endpoints, either direction. The last
             // piece seeds a chain, and the lowest-numbered piece sharing an end with it

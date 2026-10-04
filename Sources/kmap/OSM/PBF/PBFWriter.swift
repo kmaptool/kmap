@@ -32,11 +32,11 @@ final class PBFWriter {
 
     /// Upper bound on elements per block, keeping a blob inside the format's 32 MB
     /// uncompressed limit however large a batch the caller hands over.
-    private static let maxElementsPerBlock = 16_000
+    static let maxElementsPerBlock = 16_000
 
     /// Bytes reserved per element before a block is encoded. A deliberate underestimate:
     /// the buffers grow from here rather than from zero.
-    private static let idBytesPerNode = 2, coordinateBytesPerNode = 3, wayBodySlack = 32
+    static let idBytesPerNode = 2, coordinateBytesPerNode = 3, wayBodySlack = 32
 
     // Not private: the compression pipeline is a file of its own, and Swift's `private`
     // is one file.
@@ -121,15 +121,18 @@ final class PBFWriter {
     /// Writes nodes dense: ids and coordinates delta-encoded, tags in one flat run.
     func nodes(_ batch: [Node]) {
         guard !batch.isEmpty else { return }
-        submit {
-            // Ascending ids, as the delta encoding and readers require.
-            let ordered = batch.sorted { $0.id < $1.id }
-            return stride(from: 0, to: ordered.count, by: Self.maxElementsPerBlock).map { start in
-                .toCompress(
-                    kind: PBFSchema.dataBlob,
-                    payload: Self.nodeBlock(ordered[start..<min(start + Self.maxElementsPerBlock, ordered.count)])
-                )
-            }
+        submit { Self.nodePieces(batch) }
+    }
+
+    /// The blocks of a batch of nodes, in ascending ids, as the delta encoding and readers
+    /// require.
+    static func nodePieces(_ batch: [Node]) -> [Piece] {
+        let ordered = batch.sorted { $0.id < $1.id }
+        return stride(from: 0, to: ordered.count, by: Self.maxElementsPerBlock).map { start in
+            .toCompress(
+                kind: PBFSchema.dataBlob,
+                payload: Self.nodeBlock(ordered[start..<min(start + Self.maxElementsPerBlock, ordered.count)])
+            )
         }
     }
 
@@ -165,13 +168,15 @@ final class PBFWriter {
 
     func ways(_ batch: [Way]) {
         guard !batch.isEmpty else { return }
-        submit {
-            stride(from: 0, to: batch.count, by: Self.maxElementsPerBlock).map { start in
-                .toCompress(
-                    kind: PBFSchema.dataBlob,
-                    payload: Self.wayBlock(batch[start..<min(start + Self.maxElementsPerBlock, batch.count)])
-                )
-            }
+        submit { Self.wayPieces(batch) }
+    }
+
+    static func wayPieces(_ batch: [Way]) -> [Piece] {
+        stride(from: 0, to: batch.count, by: Self.maxElementsPerBlock).map { start in
+            .toCompress(
+                kind: PBFSchema.dataBlob,
+                payload: Self.wayBlock(batch[start..<min(start + Self.maxElementsPerBlock, batch.count)])
+            )
         }
     }
 
@@ -263,7 +268,7 @@ final class PBFWriter {
     }
 
     /// A whole PrimitiveBlock: its string table, then the group `body` fills.
-    private static func block(strings: StringTable, _ body: (inout ProtoWriter) -> Void) -> [UInt8] {
+    static func block(strings: StringTable, _ body: (inout ProtoWriter) -> Void) -> [UInt8] {
         var group = ProtoWriter()
         body(&group)
         var block = ProtoWriter()
@@ -275,16 +280,58 @@ final class PBFWriter {
     }
 }
 
-/// A block's strings, interned as it is built. Index 0 is reserved and always empty.
+/// A block's strings, interned as it is built. Index 0 is reserved and always empty; an
+/// empty text asked for is given an index of its own, as any other is.
+///
+/// Its own table rather than a dictionary of strings: every tag of every element is
+/// looked up here, and hashing a string the standard way first normalises it. A key or
+/// value is nearly always ASCII, which hashes by its bytes; anything else hashes as the
+/// standard library has it, so 2 spellings of the same text still meet.
 struct StringTable {
     private(set) var words: [String] = [""]
-    private var seen: [String: Int32] = [:]
+    /// Open addressing: the index into `words`, or 0 for a free slot. A power of 2 long.
+    private var slots = [Int32](repeating: 0, count: 256)
+    private var hashes: [UInt64] = [0]
 
     mutating func index(_ word: String) -> Int32 {
-        if let known = seen[word] { return known }
+        let hash = Self.hash(word)
+        var at = Int(truncatingIfNeeded: hash) & (slots.count - 1)
+        while true {
+            let held = slots[at]
+            if held == 0 { break }
+            if hashes[Int(held)] == hash, words[Int(held)] == word { return held }
+            at = (at + 1) & (slots.count - 1)
+        }
         words.append(word)
+        hashes.append(hash)
         let made = Int32(words.count - 1)
-        seen[word] = made
+        slots[at] = made
+        if words.count * 2 > slots.count { grow() }
         return made
+    }
+
+    private mutating func grow() {
+        slots = [Int32](repeating: 0, count: slots.count * 2)
+        for index in 1..<words.count {
+            var at = Int(truncatingIfNeeded: hashes[index]) & (slots.count - 1)
+            while slots[at] != 0 { at = (at + 1) & (slots.count - 1) }
+            slots[at] = Int32(index)
+        }
+    }
+
+    /// FNV-1a over the bytes of an ASCII string; the standard hash for any other, which
+    /// is equal for texts the standard library holds equal.
+    private static func hash(_ word: String) -> UInt64 {
+        var word = word
+        let quick: UInt64? = word.withUTF8 { bytes in
+            var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+            var high: UInt8 = 0
+            for byte in bytes {
+                hash = (hash ^ UInt64(byte)) &* 0x0000_0100_0000_01b3
+                high |= byte
+            }
+            return high < 0x80 ? hash : nil
+        }
+        return quick ?? UInt64(truncatingIfNeeded: word.hashValue)
     }
 }

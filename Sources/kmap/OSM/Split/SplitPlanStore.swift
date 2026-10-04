@@ -277,11 +277,14 @@ extension TileSplitter {
 
         var isEmpty: Bool { ids.isEmpty }
 
-        mutating func wants(_ id: Int64) -> Bool {
+        mutating func wants(_ id: Int64) -> Bool { rank(of: id) != nil }
+
+        /// Where `id` stands among the wanted ids, or nil if it is not one of them.
+        mutating func rank(of id: Int64) -> Int? {
             if id < lastID { at = 0 }  // a worker starting its own run of blocks
             lastID = id
             while at < ids.count, ids[at] < id { at += 1 }
-            return at < ids.count && ids[at] == id
+            return at < ids.count && ids[at] == id ? at : nil
         }
     }
 }
