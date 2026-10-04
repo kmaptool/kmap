@@ -61,6 +61,10 @@ extension BuildPipeline {
                 } else {
                     contours = nil
                 }
+                // A lane of the split while it runs: the stage reads as waiting only when
+                // every region at work waits. Ended below, once the next region has taken
+                // the lane over, so the count never dips between 2 regions.
+                board.beginLane(.split)
                 group.addTask { [weak self] in
                     guard let self else { return }
                     let files = try await self.annotateBarriersIfNeeded(
@@ -77,6 +81,8 @@ extension BuildPipeline {
             }
             while next < extracts.count && running < atOnce { launch(next) }
             var done = 0
+            // A region that throws ends the split: the lanes still begun end with it.
+            defer { for _ in 0..<running { board.endLane(.split) } }
             while running > 0 {
                 try await group.next()
                 running -= 1
@@ -87,6 +93,7 @@ extension BuildPipeline {
                         * Self.splitAnnotateShare
                 )
                 if next < extracts.count { launch(next) }
+                board.endLane(.split)
             }
         }
         return results.withLock { $0 }.flatMap { $0 }
@@ -141,8 +148,8 @@ extension BuildPipeline {
             // a first build and a rebuild repair alike.
             pass.demReady = { await terrain.value }
             pass.demAtHand = { terrain.opened }
-            // Shown as waiting only once nothing else of this extract is being read; the
-            // stage is 1 for every region, so 1 region waiting holds it all.
+            // Shown as waiting only once nothing else of this extract is being read, and
+            // the stage only once every region at work waits.
             pass.onHeld = { [board] held in
                 if held { board.beginWaiting(.split) } else { board.endWaiting(.split) }
             }
@@ -170,8 +177,10 @@ extension BuildPipeline {
             }
         } catch {
             try rethrowIfCancelled(error)
-            log.warn("annotation failed (\(error)) — building without it")
+            // Asked first: an elevation that failed fails the build, which then does not go on
+            // without the annotation.
             let fallback = try await contoursReady?() ?? contours
+            log.warn("annotation failed (\(ErrorWords.of(error))) — building without it")
             return [extract.path] + fallback.map(\.path)
         }
         guard FileTools.exists(annotated), FileTools.size(of: annotated) > 0 else {

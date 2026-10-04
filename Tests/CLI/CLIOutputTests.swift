@@ -65,25 +65,74 @@ final class CLIOptionsTests: XCTestCase {
         XCTAssertEqual(CLIOutput.said(Broken.seam), "seam")
     }
 
+    func testASystemErrorKeepsTheFileOrAddressItWasAbout() {
+        let missing = CLIOutput.said(CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: "/maps/x.osm.pbf"]))
+        XCTAssertTrue(missing.contains("/maps/x.osm.pbf"), missing)
+        XCTAssertFalse(missing.contains("UserInfo"), missing)
+        let address = URL(string: "https://download.geofabrik.de/x.osm.pbf")!
+        let offline = CLIOutput.said(
+            URLError(.notConnectedToInternet, userInfo: [NSURLErrorFailingURLErrorKey: address])
+        )
+        XCTAssertTrue(offline.contains(address.absoluteString), offline)
+        // Said once, where the words name it already.
+        let named = CLIOutput.said(
+            CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: "x", NSLocalizedDescriptionKey: "x is gone"])
+        )
+        XCTAssertEqual(named, "x is gone")
+    }
+
+    func testAFileAddressIsNamedByItsPathAndADecodingErrorKeepsItsDetail() {
+        let file = URL(fileURLWithPath: "/Users/Кирилл/maps/x.osm.pbf")
+        let gone = CLIOutput.said(CocoaError(.fileNoSuchFile, userInfo: [NSURLErrorKey: file]))
+        XCTAssertTrue(gone.contains("/Users/Кирилл/maps/x.osm.pbf"), gone)
+        XCTAssertFalse(gone.contains("%D0"), gone)
+        struct Settings: Decodable { let heap: Int }
+        do {
+            _ = try JSONDecoder().decode(Settings.self, from: Data(#"{"heap": "lots"}"#.utf8))
+            XCTFail("not a number")
+        } catch {
+            XCTAssertTrue(CLIOutput.said(error).contains("heap"), CLIOutput.said(error))
+        }
+    }
+
     // MARK: Stages in JSON
 
     func testJSONReportsAStageOnlyForward() {
         // A held split is running all along: the stream never sees it go back.
-        XCTAssertTrue(CLI.reportable(.pending, after: nil))
-        XCTAssertTrue(CLI.reportable(.running, after: .pending))
-        XCTAssertFalse(CLI.reportable(.running, after: .running), "said once")
-        XCTAssertTrue(CLI.reportable(.done, after: .running))
-        // A stopped build puts a held stage back to not started: not news to a reader.
-        XCTAssertFalse(CLI.reportable(.pending, after: .running))
-        XCTAssertTrue(CLI.reportable(.failed, after: .running))
-        XCTAssertTrue(CLI.reportable(.skipped, after: .pending))
+        XCTAssertEqual(CLI.reported(.pending, after: nil, ended: false), .pending)
+        XCTAssertEqual(CLI.reported(.running, after: .pending, ended: false), .running)
+        XCTAssertNil(CLI.reported(.running, after: .running, ended: false), "said once")
+        XCTAssertEqual(CLI.reported(.done, after: .running, ended: false), .done)
+        XCTAssertEqual(CLI.reported(.failed, after: .running, ended: true), .failed)
+        XCTAssertEqual(CLI.reported(.skipped, after: .pending, ended: false), .skipped)
+        // Put back to not started while the build goes on: not news to a reader.
+        XCTAssertNil(CLI.reported(.pending, after: .running, ended: false))
+        XCTAssertNil(CLI.reported(.pending, after: .pending, ended: true))
+    }
+
+    func testAStageHeldWhenTheBuildStoppedEndsFailedInJSON() {
+        // The screen shows it not started; a reader who saw it running is told it ended.
+        XCTAssertEqual(CLI.reported(.pending, after: .running, ended: true), .failed)
+    }
+
+    func testAStageIsHeadedWhenItStartsAndAgainWhenItRunsAnew() {
+        XCTAssertFalse(CLI.heads(.pending, seen: nil, before: false))
+        XCTAssertTrue(CLI.heads(.running, seen: .pending, before: false))
+        XCTAssertTrue(CLI.heads(.done, seen: .pending, before: false), "began and ended between 2 polls")
+        XCTAssertFalse(CLI.heads(.running, seen: .running, before: true))
+        XCTAssertFalse(CLI.heads(.done, seen: .running, before: true))
+        // A re-split: the split runs again after it was done.
+        XCTAssertTrue(CLI.heads(.running, seen: .done, before: true))
+        XCTAssertTrue(CLI.heads(.running, seen: .failed, before: true))
+        // Put back while a damaged extract downloads again, then at work again.
+        XCTAssertTrue(CLI.heads(.running, seen: .pending, before: true))
     }
 
     // MARK: A long log
 
     func testTheLogKeepsPrintingOnceItsRingDropsTheOldestLines() {
-        // The ring keeps the last 3 here, the last 4000 in a build: printing by place
-        // stopped for good once it was full.
+        // The ring keeps the last 3 here, the last 4000 in a build: printed by number, the
+        // log goes on printing once the ring is full.
         let log = Log(limit: 3)
         var printer = CLI.LogPrinter()
         for n in 1...3 { log.append("line \(n)") }
@@ -107,19 +156,14 @@ final class CLIOptionsTests: XCTestCase {
         let lines = [line("region", 0.1), line("cached", 1.2), line("elevation data", 1.5), line("compiled", 9)]
         let items = CLI.LogPrinter.interleaved(
             lines,
-            headings: [
-                (start.addingTimeInterval(8), "── Compile map"),
-                (start.addingTimeInterval(1), "── Download OSM extract"),
-                (start.addingTimeInterval(1.4), "── Download elevation"),
-                (start.addingTimeInterval(20), "── Write output")
+            marks: [
+                (start.addingTimeInterval(8), .heading("── Compile map")),
+                (start.addingTimeInterval(1), .heading("── Download OSM extract")),
+                (start.addingTimeInterval(1.4), .heading("── Download elevation")),
+                (start.addingTimeInterval(20), .heading("── Write output"))
             ]
         )
-        let said = items.map { item -> String in
-            switch item {
-            case .heading(let text): return text
-            case .line(let line): return line.text
-            }
-        }
+        let said = items.map(Self.said)
         XCTAssertEqual(
             said,
             [
@@ -130,8 +174,77 @@ final class CLIOptionsTests: XCTestCase {
     }
 
     func testHeadingsWithNoLinesStillPrint() {
-        let items = CLI.LogPrinter.interleaved([], headings: [(Date(), "── Split into tiles")])
+        let items = CLI.LogPrinter.interleaved([], marks: [(Date(), .heading("── Split into tiles"))])
         XCTAssertEqual(items.count, 1)
+    }
+
+    private static func said(_ item: CLI.LogPrinter.Item) -> String {
+        switch item {
+        case .heading(let text): return text
+        case .stage(let id, let status, _): return "\(id.rawValue) \(status.rawValue)"
+        case .line(let line): return line.text
+        }
+    }
+
+    private func stage(
+        _ id: BuildPipeline.StageID,
+        _ status: BuildPipeline.StageStatus,
+        from started: Date?,
+        for seconds: Double = 0
+    ) -> BuildPipeline.Stage {
+        var stage = BuildPipeline.Stage(id: id)
+        stage.status = status
+        stage.startedAt = started
+        stage.seconds = seconds
+        return stage
+    }
+
+    func testAStageThatEndsAndOneThatBeginsBetween2PollsAreToldInTheirOrder() {
+        // Preflight logs its closing line and ends, the data update begins and logs: the
+        // stream says so in that order, though both changes are read at once.
+        let start = Date(timeIntervalSince1970: 1000)
+        var news = CLI.StageNews()
+        _ = news.marks(
+            [stage(.preflight, .running, from: start)],
+            ended: false,
+            stopped: "failed",
+            polled: start.addingTimeInterval(0.1)
+        )
+        let polled = start.addingTimeInterval(0.35)
+        let marks = news.marks(
+            [
+                stage(.preflight, .done, from: start, for: 0.2),
+                stage(.dataUpdate, .running, from: start.addingTimeInterval(0.25))
+            ],
+            ended: false,
+            stopped: "failed",
+            polled: polled
+        )
+        let lines = [
+            LogEvent(text: "tools found", at: start.addingTimeInterval(0.15)),
+            LogEvent(text: "checking data", at: start.addingTimeInterval(0.3))
+        ]
+        let said = CLI.LogPrinter.interleaved(lines, marks: marks).map(Self.said)
+        XCTAssertEqual(
+            said,
+            [
+                "tools found", "preflight done", "── \(BuildPipeline.StageID.dataUpdate.title)", "dataUpdate running",
+                "checking data"
+            ]
+        )
+    }
+
+    func testALineWrittenAfterThePollWaitsForTheNext() {
+        // Counted by number, not by time: a clock set back holds nothing up.
+        var printer = CLI.LogPrinter()
+        let log = Log()
+        log.send(LogEvent(text: "early", at: Date()))
+        let last = log.lastSeq
+        log.send(LogEvent(text: "late", at: Date().addingTimeInterval(-3600)))
+        let first = CLILog.capture { printer.drain(log.snapshot(), through: last) }.out
+        let second = CLILog.capture { printer.drain(log.snapshot(), through: log.lastSeq) }.out
+        XCTAssertTrue(first.contains("early") && !first.contains("late"), first)
+        XCTAssertTrue(second.contains("late") && !second.contains("early"), second)
     }
 }
 

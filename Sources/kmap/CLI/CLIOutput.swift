@@ -111,23 +111,8 @@ enum CLIOutput {
         emit("log", fields)
     }
 
-    /// The domains of the errors Foundation and the system raise.
-    private static let systemDomains: Set<String> = [
-        NSCocoaErrorDomain, NSPOSIXErrorDomain, "NSURLErrorDomain", "NSOSStatusErrorDomain"
-    ]
-
-    /// An error in the words written for it. A system error interpolated as it is prints
-    /// its whole record, a memory address included, which no reader of the stream wants.
-    static func said(_ error: Error) -> String {
-        if let words = (error as? LocalizedError)?.errorDescription { return words }
-        // The system's errors are asked for their words, whatever shape they arrive in:
-        // CocoaError, URLError and POSIXError values, or NSError objects. A type of kmap's
-        // own prints as its case.
-        if type(of: error) is NSError.Type || systemDomains.contains((error as NSError).domain) {
-            return error.localizedDescription
-        }
-        return "\(error)"
-    }
+    /// An error in the words written for it, as `ErrorWords` has it.
+    static func said(_ error: Error) -> String { ErrorWords.of(error) }
 
     /// A stage changing state: pending to running, running to done.
     static func stage(_ id: String, _ status: String, title: String, detail: String) {
@@ -166,16 +151,16 @@ enum CLIOutput {
     }
 
     private static func emit(_ name: String, _ fields: [String: JSONValue]) {
-        // Numbered and stamped in one step, so the stream's order is the numbers' order.
-        let line = state.withLock { state -> String in
+        // Numbered, stamped and written in one step, so the stream's order is the numbers'
+        // order whichever thread speaks.
+        state.withLock { state in
             state.sequence += 1
             var object = fields
             object["event"] = .string(name)
             object["seq"] = .int(state.sequence)
             object["at"] = .string(Stamp.now())
-            return JSONValue.object(object).line()
+            CLILog.data(JSONValue.object(object).line())
         }
-        CLILog.data(line)
     }
 }
 

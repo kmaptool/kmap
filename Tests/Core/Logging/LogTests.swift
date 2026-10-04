@@ -31,8 +31,7 @@ final class LogTests: XCTestCase {
     }
 
     func testWhatIsDroppedAtTheDoorIsNotNumberedEither() {
-        // The sequence counts what went out, so a gap in it means a lost event and not
-        // a filtered one.
+        // The sequence counts what some sink took: an event none wants is not numbered.
         let log = Log()
         log.append("kept")
         log.debug("dropped")
@@ -163,5 +162,28 @@ final class LogTests: XCTestCase {
         }  // flushed and closed on leaving scope
         let written = try String(contentsOf: url, encoding: .utf8)
         XCTAssertEqual(written, "one\ntwo\n")
+    }
+
+    func testTheRingHoldsEventsInTheOrderOfTheirNumbers() {
+        // A reader goes by number: an event that reached the ring after a later one would
+        // be skipped, or printed twice.
+        let log = Log(limit: 100_000)
+        DispatchQueue.concurrentPerform(iterations: 8) { lane in
+            for n in 0..<2_000 { log.append("lane \(lane) line \(n)") }
+        }
+        let numbers = log.snapshot().map(\.seq)
+        XCTAssertEqual(numbers.count, 16_000)
+        XCTAssertEqual(numbers, numbers.sorted())
+        XCTAssertEqual(Set(numbers).count, numbers.count)
+    }
+
+    func testAFullRingKeepsTheLastEventsOldestFirst() {
+        let log = Log(limit: 3)
+        for n in 1...7 { log.append("line \(n)") }
+        XCTAssertEqual(log.snapshot().map(\.text), ["line 5", "line 6", "line 7"])
+        XCTAssertEqual(log.snapshot().map(\.seq), [5, 6, 7])
+        XCTAssertEqual(log.count, 3)
+        log.append("line 8")
+        XCTAssertEqual(log.snapshot().map(\.text), ["line 6", "line 7", "line 8"])
     }
 }

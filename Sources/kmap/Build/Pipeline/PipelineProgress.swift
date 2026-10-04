@@ -65,14 +65,6 @@ extension BuildPipeline {
 
     func beginPhase(_ id: StageID, _ text: String) { board.beginPhase(id, text) }
 
-    /// Runs `body` with the stage held: it only waits on another stage.
-    func waiting<T: Sendable>(
-        _ id: StageID,
-        until body: @Sendable () async throws -> T
-    ) async rethrows -> T {
-        try await board.waiting(id, until: body)
-    }
-
     func advance(_ id: StageID, fraction: Double) { board.advance(id, fraction: fraction) }
 
     func detail(_ id: StageID, _ text: String, fraction: Double? = nil) {

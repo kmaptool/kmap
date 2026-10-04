@@ -9,45 +9,52 @@ extension CLI {
         /// no longer names the same event.
         private var printedSeq = 0
 
-        /// Prints what `log` has gained since the last call. A heading, given with the
-        /// time its stage set to work, goes above the first line written after that.
-        mutating func drain(_ log: Log, headings: [(at: Date, text: String)] = []) {
-            drain(log.snapshot(), headings: headings)
+        /// Prints what `log` has gained since the last call.
+        mutating func drain(_ log: Log) {
+            drain(log.snapshot())
         }
 
-        /// The same, for a snapshot of the log taken by the caller.
-        mutating func drain(_ lines: [LogEvent], headings: [(at: Date, text: String)] = []) {
-            let fresh = lines.filter { $0.seq > printedSeq }
-            for item in Self.interleaved(fresh, headings: headings) {
+        /// The same, for a snapshot of the log taken by the caller. A mark goes above the
+        /// first line written after its time. Lines numbered past `last` wait for the next
+        /// call.
+        mutating func drain(_ lines: [LogEvent], marks: [(at: Date, mark: Item)] = [], through last: Int = .max) {
+            let fresh = lines.filter { $0.seq > printedSeq && $0.seq <= last }
+            for item in Self.interleaved(fresh, marks: marks) {
                 switch item {
                 case .heading(let text):
                     CLILog.line(text)
+                case .stage(let stage, let status, let detail):
+                    CLIOutput.stage(stage.rawValue, status.rawValue, title: stage.title, detail: detail)
                 case .line(let line):
                     CLILog.line(Self.prefix(line) + line.text)
                     CLIOutput.log(line)
                 }
             }
-            if let last = lines.last { printedSeq = max(printedSeq, last.seq) }
+            printedSeq = fresh.reduce(printedSeq) { max($0, $1.seq) }
         }
 
         enum Item {
             case heading(String)
+            /// A stage's new status, for the stream.
+            case stage(BuildPipeline.StageID, BuildPipeline.StageStatus, detail: String)
             case line(LogEvent)
         }
 
-        /// The lines in their order, each heading above the first line as late as itself;
-        /// a heading later than every line comes last.
-        static func interleaved(_ lines: [LogEvent], headings: [(at: Date, text: String)]) -> [Item] {
-            var waiting = headings.sorted { $0.at < $1.at }[...]
+        /// The lines in their order, each mark above the first line as late as itself, and
+        /// marks of the same time in the order given; a mark later than every line comes
+        /// last.
+        static func interleaved(_ lines: [LogEvent], marks: [(at: Date, mark: Item)]) -> [Item] {
+            var waiting = marks.enumerated().sorted { ($0.element.at, $0.offset) < ($1.element.at, $1.offset) }
+                .map(\.element)[...]
             var out: [Item] = []
             for line in lines {
                 while let next = waiting.first, next.at <= line.at {
-                    out.append(.heading(next.text))
+                    out.append(next.mark)
                     waiting = waiting.dropFirst()
                 }
                 out.append(.line(line))
             }
-            return out + waiting.map { .heading($0.text) }
+            return out + waiting.map(\.mark)
         }
 
         /// The mark in front of a line: what kind of thing it is first, how much it

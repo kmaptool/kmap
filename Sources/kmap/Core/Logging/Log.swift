@@ -74,7 +74,11 @@ final class Log: @unchecked Sendable {
         guard event.severity >= lowest else { lock.unlock(); return }
         sequence += 1
         event.seq = sequence
-        let targets = outlets
+        // The ring takes it under the same lock that numbers it, so the ring holds events
+        // in their numbers' order: a reader going by number would otherwise skip an event
+        // that arrived after a later one. The other sinks take their time outside it.
+        if event.severity >= outlets[0].floor { ring.receive(event) }
+        let targets = outlets.dropFirst()
         lock.unlock()
 
         for outlet in targets where event.severity >= outlet.floor {
@@ -163,6 +167,13 @@ final class Log: @unchecked Sendable {
     // MARK: What the interface reads
 
     func snapshot() -> [LogEvent] { ring.snapshot() }
+
+    /// The number the last event was given.
+    var lastSeq: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return sequence
+    }
 
     var count: Int { ring.count }
 }

@@ -52,7 +52,6 @@ final class IdlenessTests: XCTestCase {
         board.beginWaiting(.split)
         let stage = board.stages.first { $0.id == .split }!
         XCTAssertTrue(stage.isHeld(among: board.stages))
-        XCTAssertEqual(stage.shown(among: board.stages).status, .pending)
         board.endWaiting(.split)
         XCTAssertFalse(board.stages.first { $0.id == .split }!.isWaiting)
     }

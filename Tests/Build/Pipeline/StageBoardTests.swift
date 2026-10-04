@@ -48,6 +48,18 @@ final class StageBoardTests: XCTestCase {
         XCTAssertGreaterThan(stage?.peakBytes ?? 0, 0)
     }
 
+    func testAClosedBoardKeepsItsStagesAsTheBuildLeftThem() {
+        // The elevation may still wind down after a failed build ends.
+        let board = StageBoard()
+        board.set(.elevationBuild, .running)
+        board.stop("failed")
+        board.close()
+        board.set(.elevationBuild, .running, "late")
+        board.detail(.elevationBuild, "later")
+        XCTAssertEqual(board.status(of: .elevationBuild), .failed)
+        XCTAssertEqual(board.detail(of: .elevationBuild), "failed")
+    }
+
     func testTheWholeBuildsBarNeverGoesBack() {
         let board = StageBoard()
         XCTAssertEqual(board.floor(raisedTo: 0.4), 0.4)
@@ -123,7 +135,7 @@ final class StageBoardTests: XCTestCase {
         board.stages.first { $0.id == .split }!
     }
 
-    func testAStageHeldUpByAnotherSaysWhatItWaitsForUntilItArrives() async {
+    func testAStageHeldUpByAnotherReadsAsWaitingUntilWhatItWaitsForArrives() async {
         let board = StageBoard()
         board.set(.split, .running, "reading the extract")
         let tiles = Gate<Int>()
@@ -136,17 +148,15 @@ final class StageBoardTests: XCTestCase {
         }
         _ = await asked.value
         XCTAssertTrue(split(board).isWaiting)
-        let shown = split(board).shown(among: board.stages)
-        XCTAssertEqual(shown.status, .pending, "reported as not started")
-        XCTAssertEqual(shown.detail, "")
+        XCTAssertTrue(split(board).isHeld(among: board.stages), "shown as not started")
         XCTAssertEqual(board.status(of: .split), .running, "the stage's clock keeps running")
 
         tiles.open(7)
         let got = await waiter.value
         XCTAssertEqual(got, 7)
         XCTAssertFalse(split(board).isWaiting)
-        XCTAssertEqual(split(board).shown(among: board.stages).detail, "reading the extract")
-        XCTAssertEqual(split(board).shown(among: board.stages).status, .running)
+        XCTAssertFalse(split(board).isHeld(among: board.stages))
+        XCTAssertEqual(split(board).detail, "reading the extract")
     }
 
     func testAStageWaitsWhileAnyOfItsLanesDoes() async {
@@ -172,7 +182,7 @@ final class StageBoardTests: XCTestCase {
         second.open(2)
         _ = await waiters[1].value
         XCTAssertFalse(split(board).isWaiting)
-        XCTAssertEqual(split(board).shown(among: board.stages).detail, "region 2: scanned")
+        XCTAssertEqual(split(board).detail, "region 2: scanned")
     }
 
     func testAWaitThatThrowsStillEnds() async {
@@ -198,7 +208,7 @@ final class StageBoardTests: XCTestCase {
         _ = await asked.value
         XCTAssertFalse(split(board).isWaiting, "a stage that has not started is pending, not waiting")
         board.set(.split, .failed, "stopped")
-        XCTAssertEqual(split(board).shown(among: board.stages).detail, "stopped")
+        XCTAssertEqual(split(board).detail, "stopped")
         release.open(true)
         _ = await waiter.value
     }
@@ -257,5 +267,25 @@ final class StageBoardTests: XCTestCase {
         board.stop("failed")
         XCTAssertEqual(board.status(of: .split), .failed)
         XCTAssertEqual(board.detail(of: .split), "failed")
+    }
+
+    func testTheSplitWaitsOnlyWhenEveryRegionAtWorkWaits() {
+        // 2 regions annotated side by side: 1 waiting for the elevation while the other
+        // still scans is work, not a wait.
+        let board = StageBoard()
+        board.set(.elevation, .done)
+        board.set(.split, .running, "reading the extract")
+        board.beginLane(.split)
+        board.beginLane(.split)
+        board.beginWaiting(.split)
+        XCTAssertFalse(split(board).isHeld(among: board.stages), "the other region still scans")
+        board.beginWaiting(.split)
+        XCTAssertTrue(split(board).isHeld(among: board.stages), "both wait")
+        board.endWaiting(.split)
+        board.endLane(.split)
+        // The scanning region finished; the one left waits, and so the stage does.
+        XCTAssertTrue(split(board).isHeld(among: board.stages))
+        board.endWaiting(.split)
+        XCTAssertFalse(split(board).isHeld(among: board.stages))
     }
 }

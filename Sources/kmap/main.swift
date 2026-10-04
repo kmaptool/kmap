@@ -11,6 +11,12 @@ import Glibc
 if Platform.isWSL1 { signal(SIGTRAP, SIG_IGN) }
 #endif
 
+#if !os(Windows)
+// A reader that closes the pipe early, as `| head` does, fails the write and not the run:
+// a build stopped by the signal would leave its tools running.
+signal(SIGPIPE, SIG_IGN)
+#endif
+
 Paths.bootstrap()
 
 let arguments = Array(CommandLine.arguments.dropFirst())

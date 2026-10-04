@@ -14,6 +14,8 @@ final class StageBoard: Sendable {
         var stages: [StageID: Stage]
         /// The furthest the whole build's bar has reached, so it never moves backwards.
         var overallHighWater = 0.0
+        /// Set when the build ends: a task still winding down changes nothing after it.
+        var closed = false
     }
 
     private let state: Locked<State>
@@ -64,6 +66,7 @@ final class StageBoard: Sendable {
         let ending = status == .done || status == .failed
         let peak = ending ? Machine.memoryInUse() : 0
         state.withLock {
+            guard !$0.closed else { return }
             var stage = $0.stages[id] ?? Stage(id: id)
             if status == .running, stage.status != .running {
                 // Starting, or restarting after a re-split: the bar begins from here.
@@ -107,8 +110,18 @@ final class StageBoard: Sendable {
         change(id) { $0.waiters = max(0, $0.waiters - 1) }
     }
 
+    /// 1 more lane of the stage at work, as a region of the split; paired with `endLane`.
+    func beginLane(_ id: StageID) {
+        change(id) { $0.lanes += 1 }
+    }
+
+    func endLane(_ id: StageID) {
+        change(id) { $0.lanes = max(0, $0.lanes - 1) }
+    }
+
     /// Ends a build that did not finish: every stage at work is marked failed with
     /// `reason`. A held stage was never shown as started, so it goes back to pending.
+    /// Closes the board in the same step, so nothing winding down starts a stage again.
     func stop(_ reason: String) {
         let ending = Machine.memoryInUse()
         state.withLock { state in
@@ -126,8 +139,10 @@ final class StageBoard: Sendable {
                     stage.peakBytes = ending
                 }
                 stage.waiters = 0
+                stage.lanes = 0
                 state.stages[stage.id] = stage
             }
+            state.closed = true
         }
     }
 
@@ -143,8 +158,14 @@ final class StageBoard: Sendable {
         }
     }
 
+    /// The stages as they are now, for good.
+    func close() {
+        state.withLock { $0.closed = true }
+    }
+
     private func change(_ id: StageID, _ body: (inout Stage) -> Void) {
         state.withLock {
+            guard !$0.closed else { return }
             var stage = $0.stages[id] ?? Stage(id: id)
             body(&stage)
             $0.stages[id] = stage

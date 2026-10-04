@@ -89,7 +89,7 @@ extension CLI {
                 printer.withLock { $0.drain(log) }
             } catch {
                 printer.withLock { $0.drain(log) }
-                return CLIOutput.failure("failed: \(error.localizedDescription)")
+                return CLIOutput.failure("failed: \(CLIOutput.said(error))")
             }
         }
         CLILog.line("")

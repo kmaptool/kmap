@@ -144,6 +144,17 @@ final class BuildPipeline: Sendable {
         if cancelled { task.cancel() }
     }
 
+    /// Stops the elevation task and waits until it has. Stopped here, not failed, its
+    /// stages go back to not started.
+    private func settleElevation() async {
+        let task = state.withLock { $0.elevation }
+        task?.cancel()
+        _ = await task?.result
+        for id in [StageID.elevation, .elevationBuild] where board.status(of: id) == .running {
+            set(id, .pending, "")
+        }
+    }
+
     func makeRunner() -> ProcessRunner {
         let runner = ProcessRunner()
         state.withLock { $0.runners.append(runner) }
@@ -152,13 +163,12 @@ final class BuildPipeline: Sendable {
 
     func finish(error: Error?) {
         let wasCancelled = state.withLock { run -> Bool in
-            run.finished = true
             run.finishedAt = Date()
             if let error {
                 if run.wasCancelled || error is CancellationError {
                     run.wasCancelled = true
                 } else {
-                    run.failure = error.localizedDescription
+                    run.failure = ErrorWords.of(error)
                 }
             }
             return run.wasCancelled
@@ -169,13 +179,17 @@ final class BuildPipeline: Sendable {
         if error != nil { board.stop(wasCancelled ? t("cancelled") : t("failed")) }
 
         if let error, !(error is CancellationError), !wasCancelled {
-            log.error(error.localizedDescription)
+            log.error(ErrorWords.of(error))
         } else if wasCancelled {
             log.warn("build cancelled")
         } else {
             log.ok("build finished")
             if Measured.reported { reportTimings() }
         }
+        // A task still winding down, as the elevation can be, changes no stage after this.
+        board.close()
+        // Last: whoever watches for the end then finds every stage and line of it.
+        state.withLock { $0.finished = true }
     }
 
     // MARK: The run
@@ -192,7 +206,9 @@ final class BuildPipeline: Sendable {
                 try await buildMap(from: extracts)
             } catch  where Self.readsLikeADamagedExtract(error) {
                 // An extract would not decode. If one was damaged on disk it is fetched
-                // again and the build carries on; this is tried once.
+                // again and the build carries on; this is tried once. The elevation already
+                // started ends first, or it would write the same stages as the new one.
+                await settleElevation()
                 guard let fetched = try await refetchDamagedExtracts(among: extracts) else {
                     throw error
                 }
@@ -243,6 +259,8 @@ final class BuildPipeline: Sendable {
                 try await compile(tiles: tiles)
                 break
             } catch BuildError.tileTooDense(let atCap, let failed) {
+                // Not at work while the tiles are cut again: it starts anew after.
+                set(.compile, .pending, "")
                 rounds += 1
                 guard rounds <= 8 else { throw BuildError.tileTooDense(atCap, failed: failed) }
                 let indexes = Set(failed.map { $0 - recipe.mapIDBase })
@@ -286,7 +304,12 @@ final class BuildPipeline: Sendable {
         }
         if toolchain.patchIsStale {
             detail(.preflight, t("rebuilding the mkgmap patch"))
-            log.step("the mkgmap patch is from an older kmap, rebuilding it")
+            let older = Toolchain.patchState(of: Toolchain.patchedMkgmapURL).version < Toolchain.patchVersion
+            log.step(
+                older
+                    ? "the mkgmap patch is from an older kmap, rebuilding it"
+                    : "the mkgmap patch is built for a newer Java than this one, rebuilding it"
+            )
             if await toolchain.renewStalePatch(log: log, runner: makeRunner()) {
                 log.ok("the mkgmap patch is rebuilt")
             } else {
