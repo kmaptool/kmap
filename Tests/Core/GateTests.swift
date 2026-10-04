@@ -16,6 +16,13 @@ final class GateTests: XCTestCase {
         XCTAssertEqual(late, 7)
     }
 
+    func testAGateSaysWhetherAskingWouldWait() {
+        let gate = Gate<Int>()
+        XCTAssertFalse(gate.isOpen)
+        gate.open(3)
+        XCTAssertTrue(gate.isOpen)
+    }
+
     func testOnlyTheFirstOpenCounts() async {
         let gate = Gate<Int>()
         gate.open(1)

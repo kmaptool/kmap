@@ -20,6 +20,9 @@ final class Gate<Value: Sendable>: Sendable {
         for waiter in waiting { waiter.resume(returning: value) }
     }
 
+    /// Whether the value has arrived, so asking for it does not wait.
+    var isOpen: Bool { state.withLock { $0.value != nil } }
+
     var value: Value {
         get async {
             await withCheckedContinuation { waiter in

@@ -116,4 +116,143 @@ final class StageBoardTests: XCTestCase {
         XCTAssertEqual(build.snapshot().stages.first { $0.id == .download }?.detail, "from a monitor")
         XCTAssertEqual(build.status(of: .download), .running)
     }
+
+    // MARK: Waiting on another stage
+
+    private func split(_ board: StageBoard) -> BuildPipeline.Stage {
+        board.stages.first { $0.id == .split }!
+    }
+
+    func testAStageHeldUpByAnotherSaysWhatItWaitsForUntilItArrives() async {
+        let board = StageBoard()
+        board.set(.split, .running, "reading the extract")
+        let tiles = Gate<Int>()
+        let asked = Gate<Bool>()
+        let waiter = Task {
+            await board.waiting(.split, for: "waiting for the elevation tiles") {
+                asked.open(true)
+                return await tiles.value
+            }
+        }
+        _ = await asked.value
+        XCTAssertTrue(split(board).isWaiting)
+        XCTAssertEqual(split(board).said, "waiting for the elevation tiles")
+        XCTAssertEqual(board.status(of: .split), .running, "the stage's clock keeps running")
+
+        tiles.open(7)
+        let got = await waiter.value
+        XCTAssertEqual(got, 7)
+        XCTAssertFalse(split(board).isWaiting)
+        XCTAssertEqual(split(board).said, "reading the extract")
+    }
+
+    func testAStageWaitsWhileAnyOfItsLanesDoes() async {
+        let board = StageBoard()
+        board.set(.split, .running, "reading the extract")
+        let first = Gate<Int>(), second = Gate<Int>()
+        let asked = [Gate<Bool>(), Gate<Bool>()]
+        let waiters = [first, second].enumerated().map { index, gate in
+            Task {
+                await board.waiting(.split, for: "waiting") {
+                    asked[index].open(true)
+                    return await gate.value
+                }
+            }
+        }
+        for gate in asked { _ = await gate.value }
+        // Another lane reporting its work does not hide the wait.
+        board.detail(.split, "region 2: scanned")
+        XCTAssertEqual(split(board).said, "waiting")
+        first.open(1)
+        _ = await waiters[0].value
+        XCTAssertTrue(split(board).isWaiting, "the second lane still waits")
+        second.open(2)
+        _ = await waiters[1].value
+        XCTAssertFalse(split(board).isWaiting)
+        XCTAssertEqual(split(board).said, "region 2: scanned")
+    }
+
+    func testAWaitThatThrowsStillEnds() async {
+        struct Lost: Error {}
+        let board = StageBoard()
+        board.set(.split, .running, "reading the extract")
+        do {
+            try await board.waiting(.split, for: "waiting for the contours") { throw Lost() }
+            XCTFail("the error must pass through")
+        } catch {}
+        XCTAssertFalse(split(board).isWaiting)
+    }
+
+    func testOnlyARunningStageReadsAsWaiting() async {
+        let board = StageBoard()
+        let asked = Gate<Bool>(), release = Gate<Bool>()
+        let waiter = Task {
+            await board.waiting(.split, for: "waiting") {
+                asked.open(true)
+                return await release.value
+            }
+        }
+        _ = await asked.value
+        XCTAssertFalse(split(board).isWaiting, "a stage that has not started is pending, not waiting")
+        board.set(.split, .failed, "stopped")
+        XCTAssertEqual(split(board).said, "stopped")
+        release.open(true)
+        _ = await waiter.value
+    }
+
+    func testTheSplitReadsAsNotStartedWhileElevationStillDownloads() {
+        let board = StageBoard()
+        board.set(.elevation, .running, "fetching")
+        board.set(.split, .running, "reading the extract")
+        XCTAssertTrue(split(board).isHeld(among: board.stages))
+        let elevation = board.stages.first { $0.id == .elevation }!
+        XCTAssertFalse(elevation.isHeld(among: board.stages), "the download itself is at work")
+
+        board.set(.elevation, .done)
+        XCTAssertFalse(split(board).isHeld(among: board.stages))
+        board.set(.split, .done)
+        XCTAssertFalse(split(board).isHeld(among: board.stages), "a finished stage is not held")
+    }
+
+    func testAWaitingStageIsHeldWhateverElevationDoes() async {
+        let board = StageBoard()
+        board.set(.elevation, .done)
+        board.set(.split, .running, "reading the extract")
+        let asked = Gate<Bool>(), release = Gate<Bool>()
+        let waiter = Task {
+            await board.waiting(.split, for: "waiting for the contours") {
+                asked.open(true)
+                return await release.value
+            }
+        }
+        _ = await asked.value
+        XCTAssertTrue(split(board).isHeld(among: board.stages))
+        release.open(true)
+        _ = await waiter.value
+        XCTAssertFalse(split(board).isHeld(among: board.stages))
+    }
+
+    func testAStoppedBuildFailsWhatWorkedAndLeavesAHeldStageNotStarted() {
+        let board = StageBoard()
+        board.set(.download, .done)
+        board.set(.elevation, .running, "fetching")
+        board.set(.split, .running, "reading the extract")
+        board.stop("cancelled")
+
+        XCTAssertEqual(board.status(of: .elevation), .failed)
+        XCTAssertEqual(board.detail(of: .elevation), "cancelled")
+        XCTAssertEqual(board.status(of: .split), .pending, "it was never shown as started")
+        XCTAssertEqual(board.detail(of: .split), "")
+        XCTAssertEqual(board.status(of: .download), .done)
+        XCTAssertTrue(board.running.isEmpty)
+    }
+
+    func testAStoppedBuildFailsTheSplitOnceItReallyWorks() {
+        let board = StageBoard()
+        board.set(.elevation, .done)
+        board.set(.split, .running, "cutting the tiles")
+        board.stop("failed")
+        XCTAssertEqual(board.status(of: .split), .failed)
+        XCTAssertEqual(board.detail(of: .split), "failed")
+    }
 }

@@ -208,10 +208,7 @@ final class BuildPipeline: Sendable {
 
         // Both cancellation and failure mark the stage that was running, or it keeps its
         // spinner and reads as still working.
-        if error != nil {
-            let reason = wasCancelled ? t("cancelled") : t("failed")
-            for id in board.running { set(id, .failed, reason) }
-        }
+        if error != nil { board.stop(wasCancelled ? t("cancelled") : t("failed")) }
 
         if let error, !(error is CancellationError), !wasCancelled {
             log.error(error.localizedDescription)

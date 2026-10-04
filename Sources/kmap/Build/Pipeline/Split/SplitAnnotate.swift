@@ -52,7 +52,11 @@ extension BuildPipeline {
                 // them, so its scan overlaps with the tracer.
                 let contours: (@Sendable () async throws -> [URL])?
                 if index == 0 {
-                    contours = { try await contoursTask.value }
+                    contours = { [board] in
+                        try await board.waiting(.split, for: t("waiting for the contours")) {
+                            try await contoursTask.value
+                        }
+                    }
                 } else {
                     contours = nil
                 }
@@ -134,7 +138,12 @@ extension BuildPipeline {
             pass.language = recipe.codePage == 1251 ? "ru" : "en"
             // The DEM tells a slope from a face. Read from the DEM layer's tiles once fetched, so
             // a first build and a rebuild repair alike.
-            pass.demReady = { await terrain.value }
+            pass.demReady = { [board] in
+                if terrain.isOpen { return await terrain.value }
+                return await board.waiting(.split, for: t("waiting for the elevation tiles")) {
+                    await terrain.value
+                }
+            }
             // Each region's pass invents ids from its own 2^32 range, or the ids collide
             // once the annotated files are merged into one splitter stream.
             pass.inventedIDBase = (1 << 40) + Int64(regionIndex) << 32

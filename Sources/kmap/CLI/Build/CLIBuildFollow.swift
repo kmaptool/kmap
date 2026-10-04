@@ -22,7 +22,7 @@ extension CLI {
                     stage.id.rawValue,
                     stage.status.rawValue,
                     title: stage.id.title,
-                    detail: stage.detail
+                    detail: stage.said
                 )
             }
 
@@ -33,14 +33,14 @@ extension CLI {
                             stage: stage.id.rawValue,
                             fraction: stage.fraction,
                             overall: snapshot.overall,
-                            detail: stage.detail
+                            detail: stage.said
                         )
                     else { continue }
                     CLIOutput.progress(
                         stage: stage.id.rawValue,
                         fraction: stage.fraction,
                         overall: snapshot.overall,
-                        detail: stage.detail
+                        detail: stage.said
                     )
                 }
             }

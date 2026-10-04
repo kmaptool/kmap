@@ -985,6 +985,9 @@ enum Strings {
         "Polygons are painted level by level: level 1 first, every later level on top of it. Within a level the order does not matter.":
             "Полигоны рисуются по уровням: сначала уровень 1, каждый следующий — поверх. Внутри уровня порядок не важен.",
         "starting": "начинаю",
+        "reading the extract": "чтение выгрузки",
+        "waiting for the elevation tiles": "ожидание тайлов высот",
+        "waiting for the contours": "ожидание горизонталей",
         "not requested": "не просили",
         "preparing": "готовлюсь",
         "preparing style": "готовлю стиль",

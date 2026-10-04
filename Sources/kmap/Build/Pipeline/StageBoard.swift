@@ -90,6 +90,45 @@ final class StageBoard: Sendable {
         }
     }
 
+    /// Runs `body` with the stage shown as waiting for `text`, not as working. Several
+    /// lanes of a stage may wait at once; it reads as working again when none does.
+    func waiting<T: Sendable>(
+        _ id: StageID,
+        for text: String,
+        until body: @Sendable () async throws -> T
+    ) async rethrows -> T {
+        change(id) {
+            $0.waiters += 1
+            $0.waitingFor = text
+        }
+        defer { change(id) { $0.waiters = max(0, $0.waiters - 1) } }
+        return try await body()
+    }
+
+    /// Ends a build that did not finish: every stage at work is marked failed with
+    /// `reason`. A held stage was never shown as started, so it goes back to pending.
+    func stop(_ reason: String) {
+        let ending = Machine.memoryInUse()
+        state.withLock { state in
+            let all = StageID.allCases.compactMap { state.stages[$0] }
+            for var stage in all where stage.status == .running {
+                if stage.isHeld(among: all) {
+                    stage.status = .pending
+                    stage.detail = ""
+                    stage.fraction = nil
+                    stage.startedAt = nil
+                } else {
+                    stage.status = .failed
+                    stage.detail = reason
+                    if let started = stage.startedAt { stage.seconds = Date().timeIntervalSince(started) }
+                    stage.peakBytes = ending
+                }
+                stage.waiters = 0
+                state.stages[stage.id] = stage
+            }
+        }
+    }
+
     /// Moves a stage's bar forward without touching its detail line.
     func advance(_ id: StageID, fraction: Double) {
         change(id) { $0.advance(to: fraction) }

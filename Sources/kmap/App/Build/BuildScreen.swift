@@ -130,24 +130,27 @@ final class BuildScreen: Screen {
     ) {
         for stage in snapshot.stages {
             guard y < rect.maxY - 4 else { break }
-            let (marker, markerTone) = marker(for: stage.status, theme: theme, frame: ctx.frame)
+            // A held stage reads as not started, like the ones after it.
+            let held = stage.isHeld(among: snapshot.stages)
+            let active = stage.status == .running && !held
+            let (marker, markerTone) = marker(for: held ? .pending : stage.status, theme: theme, frame: ctx.frame)
             // A stage that runs beside the others: a rule down the gutter and an indent.
             let indent = stage.id.runsBeside ? 2 : 0
             if stage.id.runsBeside {
                 s.put(rect.x, y, Glyph.v, Style(fg: theme.rule, bg: theme.appBg))
             }
             s.text(rect.x + indent, y, marker, Style(fg: markerTone, bg: theme.appBg))
-            let quiet = stage.status == .pending || stage.status == .skipped
+            let quiet = stage.status == .pending || stage.status == .skipped || held
             s.text(
                 rect.x + indent + 2,
                 y,
                 stage.id.title,
-                Style(fg: quiet ? theme.faint : theme.text, bg: theme.appBg, bold: stage.status == .running),
+                Style(fg: quiet ? theme.faint : theme.text, bg: theme.appBg, bold: active),
                 limit: max(0, Self.titleColumns - indent)
             )
 
             let detailX = rect.x + Self.detailColumn
-            if stage.status == .running, let fraction = stage.fraction, rect.w > Self.leastWidthForBars {
+            if active, let fraction = stage.fraction, rect.w > Self.leastWidthForBars {
                 let barWidth = min(
                     Self.barWidth.upperBound,
                     max(Self.barWidth.lowerBound, rect.w - detailX - Self.roomAfterBar)
@@ -156,15 +159,15 @@ final class BuildScreen: Screen {
                 s.text(
                     detailX + barWidth + 2,
                     y,
-                    truncate(stage.detail, to: max(0, rect.maxX - detailX - barWidth - 2)),
+                    truncate(stage.said, to: max(0, rect.maxX - detailX - barWidth - 2)),
                     Style(fg: theme.dim, bg: theme.appBg)
                 )
-            } else if !stage.detail.isEmpty {
+            } else if !held, !stage.said.isEmpty {
                 s.text(
                     detailX,
                     y,
-                    truncate(stage.detail, to: max(0, rect.maxX - detailX)),
-                    Style(fg: stage.status == .running ? theme.dim : theme.faint, bg: theme.appBg)
+                    truncate(stage.said, to: max(0, rect.maxX - detailX)),
+                    Style(fg: active ? theme.dim : theme.faint, bg: theme.appBg)
                 )
             }
             y += 1

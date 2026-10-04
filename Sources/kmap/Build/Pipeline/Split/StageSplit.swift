@@ -30,7 +30,8 @@ extension BuildPipeline {
         areas: [TileSplitter.Area]? = nil,
         annotated: inout [String]?
     ) async throws -> TileSet {
-        set(.split, .running, t("starting"))
+        // Each extract is read first; the tiles are cut only after.
+        set(.split, .running, annotated == nil ? t("reading the extract") : t("starting"))
 
         let tileDir = workDirectory.appendingPathComponent("tiles", isDirectory: true)
         FileTools.removeIfPresent(tileDir)
