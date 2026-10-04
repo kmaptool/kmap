@@ -213,18 +213,7 @@ extension BuildPipeline {
     }
 
     func hgtFileCount() -> Int {
-        guard
-            let walker = FileManager.default.enumerator(
-                at: Paths.hgtCache,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )
-        else { return 0 }
-        var count = 0
-        for case let url as URL in walker where url.pathExtension.lowercased() == "hgt" {
-            count += 1
-        }
-        return count
+        FileTools.filesThroughLinks(under: Paths.hgtCache, extension: "hgt").count
     }
 
     /// Directories under the .hgt cache holding elevation files, finest first. mkgmap
@@ -249,17 +238,9 @@ extension BuildPipeline {
     /// The cache's elevation directories as a map naming `chosen` reads them, finest
     /// first, each of `burned` ahead of its original. The road repair reads the same.
     static func rankedDEMDirectories(chosen: [String], burned burnedDirectories: [URL] = []) -> [URL] {
-        var directories = Set<URL>()
-        guard
-            let walker = FileManager.default.enumerator(
-                at: Paths.hgtCache,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )
-        else { return [] }
-        for case let url as URL in walker where url.pathExtension.lowercased() == "hgt" {
-            directories.insert(url.deletingLastPathComponent())
-        }
+        let directories = Set(
+            FileTools.filesThroughLinks(under: Paths.hgtCache, extension: "hgt").map { $0.deletingLastPathComponent() }
+        )
         // The cache is shared between builds and holds sources this one did not ask for,
         // so the chosen sources rank first or the DEM disagrees with the contours.
         let uncredited = uncreditedDirectories(chosen: chosen)

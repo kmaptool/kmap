@@ -64,14 +64,7 @@ final class AppContext {
             static func sample(_ root: URL = Paths.hgtCache) -> Elevation {
                 var out = Elevation()
                 var sources: Set<String> = []
-                guard
-                    let walker = FileManager.default.enumerator(
-                        at: root,
-                        includingPropertiesForKeys: nil,
-                        options: [.skipsHiddenFiles]
-                    )
-                else { return out }
-                for case let url as URL in walker where url.pathExtension.lowercased() == "hgt" {
+                for url in FileTools.filesThroughLinks(under: root, extension: "hgt") {
                     out.tiles += 1
                     out.bytes += FileTools.size(of: url)
                     sources.insert(url.deletingLastPathComponent().lastPathComponent)

@@ -102,6 +102,37 @@ enum FileTools {
         return out.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
+    /// Every file with extension `ext` under `dir`, through links to folders too: a cache
+    /// moved to another disk is reached by one, at its root or as 1 of its folders. Each
+    /// path goes through the link, so a folder keeps the name it is known by here; a file
+    /// reached by 2 ways is given once, by the nearer.
+    static func filesThroughLinks(under dir: URL, extension ext: String) -> [URL] {
+        // Real path to the path it was first reached by.
+        var found: [String: String] = [:]
+        var walked = Set<String>()
+        // Folders behind links wait until the folder that holds the link is walked.
+        var waiting = [dir]
+        while !waiting.isEmpty {
+            let shown = waiting.removeFirst()
+            let real = shown.resolvingSymlinksInPath()
+            guard walked.insert(real.path).inserted, let walker = FileManager.default.enumerator(atPath: real.path)
+            else { continue }
+            for case let entry as String in walker {
+                let parts = entry.split { $0 == "/" || $0 == "\\" }.map(String.init)
+                // Hidden, as the other walks leave them.
+                if parts.contains(where: { $0.hasPrefix(".") }) { continue }
+                let reached = parts.reduce(shown) { $0.appendingPathComponent($1) }
+                if reached.pathExtension.lowercased() == ext.lowercased() {
+                    let key = reached.resolvingSymlinksInPath().path
+                    if found[key] == nil { found[key] = reached.path }
+                } else if type(of: reached) == .typeSymbolicLink, isDirectory(reached) {
+                    waiting.append(reached)
+                }
+            }
+        }
+        return found.values.sorted().map { URL(fileURLWithPath: $0) }
+    }
+
     /// Bytes free on the volume holding `url`, or zero where the system will not say.
     ///
     /// Uses important-usage capacity on Darwin, which counts purgeable space a large

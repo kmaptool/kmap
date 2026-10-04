@@ -150,6 +150,38 @@ final class FileToolsTests: XCTestCase {
         #endif
     }
 
+    func testAWalkGoesThroughLinkedFoldersAndNamesFilesThroughTheLink() throws {
+        // The cache itself a link, and 1 source's folder a link to another disk.
+        let elsewhere = directory.appendingPathComponent("elsewhere/COP1")
+        let disk = directory.appendingPathComponent("disk/fab")
+        try FileManager.default.createDirectory(at: elsewhere, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: disk, withIntermediateDirectories: true)
+        try FileTools.write(Data(), to: elsewhere.appendingPathComponent("N44E033.hgt"))
+        try FileTools.write(Data(), to: elsewhere.appendingPathComponent(".N44E034.hgt"))
+        try FileTools.write(Data(), to: disk.appendingPathComponent("N45E033.hgt"))
+        let cache = directory.appendingPathComponent("hgt")
+        do {
+            try FileManager.default.createSymbolicLink(
+                at: cache,
+                withDestinationURL: directory.appendingPathComponent("elsewhere")
+            )
+            try FileManager.default.createSymbolicLink(
+                at: cache.appendingPathComponent("FAB1"),
+                withDestinationURL: disk
+            )
+            // A link back up, which the walk must not follow round.
+            try FileManager.default.createSymbolicLink(
+                at: disk.appendingPathComponent("up"),
+                withDestinationURL: directory
+            )
+        } catch {
+            throw XCTSkip("this machine does not let a test make links: \(error)")
+        }
+        let found = FileTools.filesThroughLinks(under: cache, extension: "hgt")
+        let shown = found.map { $0.pathComponents.suffix(3).joined(separator: "/") }
+        XCTAssertEqual(shown, ["hgt/COP1/N44E033.hgt", "hgt/FAB1/N45E033.hgt"])
+    }
+
     #if os(Windows)
     /// Foundation's URL resource values trap on Windows on a file of 2 to 4 GB, which a
     /// map of a large country is. Every helper that looks at a file must answer for one.
