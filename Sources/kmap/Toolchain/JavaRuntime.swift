@@ -11,6 +11,8 @@ struct JavaRuntime: Equatable {
     /// Options this machine's JVM needs before it will start at all. Empty almost
     /// everywhere.
     let options: [String]
+    /// Eclipse OpenJ9 rather than HotSpot: it knows none of HotSpot's `-XX` options.
+    var isOpenJ9 = false
 
     /// The feature release: 21 of `openjdk version "21.0.4"`, 8 of `"1.8.0_292"`. Nil
     /// where the version line names none.

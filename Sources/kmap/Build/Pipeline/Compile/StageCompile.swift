@@ -64,7 +64,7 @@ extension BuildPipeline {
 
         // The JVM starts warm from the cache an earlier compile left, or records one.
         let warm = JavaWarmStart.plan(java: java, jar: mkgmap, heapGB: recipe.heapGB, recording: true)
-        for stale in JavaWarmStart.leftovers(beside: mkgmap, keeping: warm.cache) { FileTools.removeIfPresent(stale) }
+        for stale in JavaWarmStart.leftovers(keeping: warm.cache) { FileTools.removeIfPresent(stale) }
         if warm.recording != nil {
             log.append("recording a warm start for mkgmap: this compile is slower, the next ones faster")
         }
@@ -87,13 +87,20 @@ extension BuildPipeline {
         )
         detail(.compile, "starting", fraction: 0)
 
-        let missingElevation = try await runMkgmapCompile(
-            java: java,
-            arguments: arguments,
-            tileDir: tileDir,
-            tileIDs: tiles.tiles.map(\.mapID),
-            nodeCap: tiles.nodeCap
-        )
+        let missingElevation: Set<String>
+        do {
+            missingElevation = try await runMkgmapCompile(
+                java: java,
+                arguments: arguments,
+                tileDir: tileDir,
+                tileIDs: tiles.tiles.map(\.mapID),
+                nodeCap: tiles.nodeCap
+            )
+        } catch {
+            // A compile that failed or was stopped leaves its recording, tens of MB.
+            JavaWarmStart.discard(warm)
+            throw error
+        }
         await keepWarmStart(warm, java: java, mkgmap: mkgmap)
         if !missingElevation.isEmpty {
             log.append(
@@ -122,19 +129,17 @@ extension BuildPipeline {
     private func keepWarmStart(_ warm: JavaWarmStart.Plan, java: JavaRuntime, mkgmap: URL) async {
         guard let recording = warm.recording, let cache = warm.cache else { return }
         let pending = JavaWarmStart.pending(for: recording)
-        defer {
-            FileTools.removeIfPresent(recording)
-            FileTools.removeIfPresent(pending)
-        }
+        defer { JavaWarmStart.discard(warm) }
         guard FileTools.exists(recording),
             let options = JavaWarmStart.assembly(warm, jar: mkgmap, heapGB: recipe.heapGB)
         else { return }
         let made = try? await makeRunner().run(java.path, java.command(options), allowFailure: true) { _ in }
-        guard made != nil, FileTools.size(of: pending) > 0 else { return }
+        // A JVM that failed may have left a part of the cache: it does not take the name.
+        guard made?.exitCode == 0, FileTools.size(of: pending) > 0 else { return }
         // Another build recording at the same time may have put its cache there first.
         if !FileTools.exists(cache) { try? FileTools.move(pending, to: cache) }
         guard FileTools.exists(cache) else { return }
-        log.append("mkgmap starts warm from now on (\(Fmt.bytes(FileTools.size(of: cache))) kept beside it)")
+        log.append("mkgmap starts warm from now on (\(Fmt.bytes(FileTools.size(of: cache))) kept in the cache)")
     }
 
     /// Runs the one mkgmap invocation that compiles every tile, polling the directory

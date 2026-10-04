@@ -91,6 +91,16 @@ final class Toolchain: @unchecked Sendable {
         ["-XX:-UseCompressedClassPointers"]  // WSL1, which cannot make the reservation
     ]
 
+    /// The line of `java -version` that names the version, not the first line there is:
+    /// a JVM with _JAVA_OPTIONS set prints "Picked up _JAVA_OPTIONS: ..." first, and one
+    /// given a deprecated option says so, "version" and all, before it. The quoted number
+    /// marks the line; any line naming a version does where none has one.
+    static func versionLine(of output: String) -> String {
+        let lines = output.split(separator: "\n").map { String($0).trimmingCharacters(in: .whitespaces) }
+        return lines.first { $0.lowercased().contains("version \"") }
+            ?? lines.first { $0.lowercased().contains("version") } ?? "unknown"
+    }
+
     private func probeJava(compilerNeeded: Bool = false) -> JavaRuntime? {
         for candidate in javaCandidates() where FileTools.isExecutable(candidate) {
             if compilerNeeded,
@@ -104,14 +114,12 @@ final class Toolchain: @unchecked Sendable {
                 // A version string is the only output that means the JVM ran: both a stub
                 // launcher and a JVM that failed to initialize exit with a message instead.
                 guard output.lowercased().contains("version") else { continue }
-                // The first line that names the version, not the first line there is: a
-                // JVM with _JAVA_OPTIONS set prints "Picked up _JAVA_OPTIONS: …" first.
-                let version =
-                    output
-                    .split(separator: "\n")
-                    .first { $0.lowercased().contains("version") }
-                    .map { String($0).trimmingCharacters(in: .whitespaces) } ?? "unknown"
-                return JavaRuntime(path: candidate, version: version, options: options)
+                return JavaRuntime(
+                    path: candidate,
+                    version: Self.versionLine(of: output),
+                    options: options,
+                    isOpenJ9: output.contains("OpenJ9")
+                )
             }
         }
         return nil

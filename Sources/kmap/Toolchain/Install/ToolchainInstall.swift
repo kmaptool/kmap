@@ -31,7 +31,7 @@ extension Toolchain {
             }
             log.step(t("removing the patched mkgmap"))
             FileTools.removeIfPresent(jar)
-            JavaWarmStart.forgetAll(beside: jar)
+            JavaWarmStart.forgetAll(for: jar)
             log.ok(t("removed — builds will use the stock mkgmap"))
         default:
             throw InstallError.unsupported(t("%@ cannot be removed", id))
@@ -403,7 +403,7 @@ extension Toolchain {
             log: log,
             progress: progress
         )
-        JavaWarmStart.forgetAll(beside: Paths.tools.appendingPathComponent("mkgmap/mkgmap.jar"))
+        JavaWarmStart.forgetAll(for: Paths.tools.appendingPathComponent("mkgmap/mkgmap.jar"))
     }
 
     /// The pyhgtmap release kmap installs: a newer one is taken only by a newer kmap.
