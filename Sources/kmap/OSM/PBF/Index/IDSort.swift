@@ -51,18 +51,19 @@ enum IDSort {
             ids.sort()
             return
         }
-        var scratch = [Int64](unsafeUninitializedCapacity: total) { _, filled in filled = total }
+        var scratch = [Int64](repeating: 0, count: total)
         guard total > leastWorthSplitting else {
-            ids.withUnsafeMutableBufferPointer { ids in
-                scratch.withUnsafeMutableBufferPointer { kmap_sort_i64(ids.baseAddress, $0.baseAddress, total) }
+            let inScratch = ids.withUnsafeMutableBufferPointer { ids in
+                scratch.withUnsafeMutableBufferPointer { kmap_sort_i64_either(ids.baseAddress, $0.baseAddress, total) }
             }
+            // Where the passes left them: taken over, not copied back.
+            if inScratch != 0 { swap(&ids, &scratch) }
             return
         }
         let lanes = max(2, min(Machine.fastCores, total / leastPerLane))
         var step = (total + lanes - 1) / lanes
-        sortChunks(&ids, of: step, scratch: &scratch)
-
-        var settled = true  // whether the ordered data is in `ids`
+        // Whether the ordered data is in `ids`; the merge starts from wherever the chunks are.
+        var settled = sortChunks(&ids, of: step, scratch: &scratch)
         while step < total {
             ids.withUnsafeMutableBufferPointer { a in
                 scratch.withUnsafeMutableBufferPointer { b in
@@ -76,18 +77,32 @@ enum IDSort {
     }
 
     /// Sorts each stretch of `size` on a core of its own, by radix, in the same stretch
-    /// of `scratch`.
-    private static func sortChunks(_ ids: inout [Int64], of size: Int, scratch: inout [Int64]) {
+    /// of `scratch`. A chunk ends in either array, by how many bytes its ids differ in:
+    /// they are gathered where most of them ended, and the answer is whether that is
+    /// `ids`.
+    private static func sortChunks(_ ids: inout [Int64], of size: Int, scratch: inout [Int64]) -> Bool {
         let total = ids.count
-        ids.withUnsafeMutableBufferPointer { source in
+        let chunks = (total + size - 1) / size
+        var inScratch = [Bool](repeating: false, count: chunks)
+        return ids.withUnsafeMutableBufferPointer { source in
             scratch.withUnsafeMutableBufferPointer { room in
-                // Each lane sorts its own stretch, which no type can say: nothing is shared.
-                nonisolated(unsafe) let source = source, room = room
-                DispatchQueue.concurrentPerform(iterations: (total + size - 1) / size) { lane in
-                    let low = lane * size, high = min(total, low + size)
-                    guard low < high else { return }
-                    kmap_sort_i64(source.baseAddress! + low, room.baseAddress! + low, high - low)
+                inScratch.withUnsafeMutableBufferPointer { ended in
+                    // Each lane sorts its own stretch, which no type can say: nothing is shared.
+                    nonisolated(unsafe) let source = source, room = room, ended = ended
+                    DispatchQueue.concurrentPerform(iterations: chunks) { lane in
+                        let low = lane * size, high = min(total, low + size)
+                        guard low < high else { return }
+                        ended[lane] =
+                            kmap_sort_i64_either(source.baseAddress! + low, room.baseAddress! + low, high - low) != 0
+                    }
                 }
+                let toScratch = inScratch.filter { $0 }.count * 2 > chunks
+                for lane in 0..<chunks where inScratch[lane] != toScratch {
+                    let low = lane * size, high = min(total, low + size)
+                    let (from, into) = toScratch ? (source, room) : (room, source)
+                    into.baseAddress!.advanced(by: low).update(from: from.baseAddress! + low, count: high - low)
+                }
+                return !toScratch
             }
         }
     }

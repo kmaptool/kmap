@@ -1,3 +1,4 @@
+import CVector
 import XCTest
 
 @testable import kmap
@@ -176,5 +177,56 @@ final class NodePlacesTests: XCTestCase {
         XCTAssertEqual(NodePlaces.wantedIDs(from: [5, 2, 5, 9, 2, 2]), [2, 5, 9])
         XCTAssertEqual(NodePlaces.wantedIDs(from: [Int64]()), [])
         XCTAssertEqual(NodePlaces.wantedIDs(from: [[3, 1], [2, 3], []]), [1, 2, 3])
+    }
+
+    // MARK: The search underneath
+
+    /// `kmap_find_fenced` against a search 1 id at a time.
+    private func checkFenced(keys: [Int64], ids: [Int64], stride: Int = 8, _ note: String) {
+        let fences = Swift.stride(from: 0, to: keys.count, by: stride).map { keys[$0] }
+        var out = [Int64](repeating: 99, count: ids.count)
+        keys.withUnsafeBufferPointer { k in
+            fences.withUnsafeBufferPointer { f in
+                ids.withUnsafeBufferPointer { i in
+                    out.withUnsafeMutableBufferPointer { o in
+                        kmap_find_fenced(
+                            k.baseAddress,
+                            k.count,
+                            f.baseAddress,
+                            f.count,
+                            stride,
+                            i.baseAddress,
+                            i.count,
+                            o.baseAddress
+                        )
+                    }
+                }
+            }
+        }
+        for (at, id) in ids.enumerated() {
+            let expected = keys.firstIndex(of: id).map { Int64($0) } ?? -1
+            XCTAssertEqual(out[at], expected, "\(note): id \(id)")
+        }
+    }
+
+    func testRowsOfIDsAreFoundWhereverTheTableHasGaps() {
+        // Rows of ids in a row, against a table that holds some of each row: hits after
+        // misses, misses after hits, and rows longer than a batch of 16.
+        var keys: [Int64] = []
+        for id in 0..<2000 where id % 7 != 3 && (id / 50) % 3 != 1 { keys.append(Int64(id)) }
+        let longRow: [Int64] = (0..<2000).map { Int64($0) }
+        let noRows: [Int64] = (0..<2000).map { Int64(($0 * 37) % 2000) }
+        var shortRows: [Int64] = []
+        for start in 0..<300 { shortRows += [Int64(start * 6), Int64(start * 6 + 1), Int64(start * 6 + 2)] }
+        checkFenced(keys: keys, ids: longRow, "1 long row")
+        checkFenced(keys: keys, ids: noRows, "no rows")
+        checkFenced(keys: keys, ids: shortRows, "short rows")
+    }
+
+    func testTheTopIDIsNotFollowedByTheBottomOne() {
+        // INT64_MAX + 1 wraps round to INT64_MIN: the 2 are not a row.
+        let keys: [Int64] = [Int64.min, -1, 0, 5, Int64.max]
+        checkFenced(keys: keys, ids: [Int64.max, Int64.min], stride: 2, "the wrap")
+        checkFenced(keys: keys, ids: [Int64.max - 1, Int64.max, Int64.min, Int64.min + 1], stride: 2, "around it")
     }
 }

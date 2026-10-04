@@ -11,7 +11,8 @@ struct LocalGraph {
     /// The edges the graph was built with, a node's in a row: `edgeNode` and `edgeStep`
     /// from `firstEdge[node]` up to `firstEdge[node + 1]`. 1 array for them all: a list
     /// per node was an allocation, and then a few more, for every node of the region.
-    private var firstEdge: [Int32] = [0]
+    /// Counted in `Int`: twice the segments of a large region would overflow `Int32`.
+    private var firstEdge: [Int] = [0]
     private var edgeNode: [Int32] = []
     private var edgeStep: [Double] = []
     /// Edges added since, by the repairs themselves: few, and so a list per node.
@@ -47,8 +48,8 @@ struct LocalGraph {
         }
         // Each node's row, then every edge into both its rows, in the order a list per
         // node would have taken them.
-        firstEdge = [Int32](repeating: 0, count: degree.count + 1)
-        for node in degree.indices { firstEdge[node + 1] = firstEdge[node] + degree[node] }
+        firstEdge = [Int](repeating: 0, count: degree.count + 1)
+        for node in degree.indices { firstEdge[node + 1] = firstEdge[node] + Int(degree[node]) }
         var next = Array(firstEdge.dropLast())
         edgeNode = [Int32](repeating: 0, count: count * 2)
         edgeStep = [Double](repeating: 0, count: count * 2)
@@ -62,11 +63,11 @@ struct LocalGraph {
                 let metres = (dx * dx + dy * dy).squareRoot()
                 let (i, j) = ends[at]
                 at += 1
-                edgeNode[Int(next[Int(i)])] = j
-                edgeStep[Int(next[Int(i)])] = metres
+                edgeNode[next[Int(i)]] = j
+                edgeStep[next[Int(i)]] = metres
                 next[Int(i)] += 1
-                edgeNode[Int(next[Int(j)])] = i
-                edgeStep[Int(next[Int(j)])] = metres
+                edgeNode[next[Int(j)]] = i
+                edgeStep[next[Int(j)]] = metres
                 next[Int(j)] += 1
             }
         }
@@ -174,7 +175,7 @@ struct LocalGraph {
     private func builtEdges(of node: Int32) -> Range<Int> {
         let node = Int(node)
         guard node + 1 < firstEdge.count else { return 0..<0 }
-        return Int(firstEdge[node])..<Int(firstEdge[node + 1])
+        return firstEdge[node]..<firstEdge[node + 1]
     }
 
     @inline(__always)

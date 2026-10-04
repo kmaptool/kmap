@@ -289,7 +289,7 @@ final class PBFReaderTests: XCTestCase {
                 try PBFReader.forEachBlob(in: file) { _, kind, blob in
                     guard kind == PBFSchema.dataBlob else { return }
                     let size = try PBFReader.inflate(blob, into: &scratch)
-                    try scratch.withUnsafeBytes { payload in
+                    _ = try scratch.withUnsafeBytes { payload in
                         try PBFReader.decodeBlock(
                             UnsafeRawBufferPointer(rebasing: payload[0..<size]),
                             into: &sink,

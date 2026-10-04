@@ -7,8 +7,8 @@ static inline unsigned digit(uint64_t value, unsigned byte) {
     return (unsigned)(value >> (byte * 8)) & 0xff;
 }
 
-void kmap_sort_i64(int64_t *ids, int64_t *scratch, size_t count) {
-    if (count < 2) return;
+int kmap_sort_i64_either(int64_t *ids, int64_t *scratch, size_t count) {
+    if (count < 2) return 0;
     // Every byte's histogram in 1 pass over the data.
     static const uint64_t sign = 0x8000000000000000ull;
     size_t counts[8][256];
@@ -36,5 +36,9 @@ void kmap_sort_i64(int64_t *ids, int64_t *scratch, size_t count) {
         from = into;
         into = swap;
     }
-    if (from != (uint64_t *)ids) memcpy(ids, from, count * sizeof *ids);
+    return from != (uint64_t *)ids;
+}
+
+void kmap_sort_i64(int64_t *ids, int64_t *scratch, size_t count) {
+    if (kmap_sort_i64_either(ids, scratch, count)) memcpy(ids, scratch, count * sizeof *ids);
 }

@@ -4,9 +4,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Sorts `count` signed 64-bit ids ascending, in `ids`, with `scratch` of the same length
-// to work in. A byte at a time from the lowest, skipping every byte the ids all share:
-// OSM ids fill 5 bytes at most, so 5 passes over the data and no comparison.
+// Sorts `count` signed 64-bit ids ascending, with `scratch` of the same length to work
+// in. A byte at a time from the lowest, skipping every byte the ids all share, with no
+// comparison: an OSM id fills 5 bytes, so 5 passes; an id kmap invents fills 6, and a
+// negative id takes all 8.
+//
+// Each pass moves the ids from 1 array to the other, so the sorted ids end in either.
+// Returns 1 when they are in `scratch`, 0 when in `ids`.
+int kmap_sort_i64_either(int64_t *ids, int64_t *scratch, size_t count);
+
+// The same, with the sorted ids always in `ids`: copied back when they end in `scratch`.
 void kmap_sort_i64(int64_t *ids, int64_t *scratch, size_t count);
 
 #endif

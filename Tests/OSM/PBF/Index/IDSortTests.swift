@@ -1,3 +1,4 @@
+import CVector
 import XCTest
 
 @testable import kmap
@@ -168,5 +169,57 @@ final class IDSortTests: XCTestCase {
             IDSort.sort(&ids)
             XCTAssertEqual(ids, expected, "\(bytes) varying byte(s)")
         }
+    }
+
+    func testChunksThatEndInDifferentArraysAreGatheredBeforeTheyMerge() {
+        // Past the split threshold, each chunk sorts on its own and ends where its own
+        // number of passes leaves it: here the low chunks vary in 2 bytes and end in the
+        // ids, the high ones in 5 and end in the scratch, in both majorities.
+        for lowShare in [0.3, 0.7] {
+            let total = 400_000
+            let low = Int(Double(total) * lowShare)
+            var ids = (0..<total).map { i -> Int64 in
+                if i < low { return Int64((i &* 40_503) & 0xffff) }
+                let spread: Int = (i &* 2_654_435_761) % 4_000_000_000
+                return 5_000_000_000 + Int64(spread)
+            }
+            let expected = ids.sorted()
+            IDSort.sort(&ids)
+            XCTAssertEqual(ids, expected, "\(lowShare) of the ids in the low chunks")
+        }
+    }
+
+    func testIDsKmapInventsAndNegativeOnesSortAsTheStandardSortDoes() {
+        // Invented ids fill 6 bytes, a negative one all 8: an even number of passes ends in
+        // the ids, an odd one in the scratch, and either is the answer.
+        for count in [2_000, 70_000, 300_000] {
+            var invented = (0..<count).map { i -> Int64 in
+                let high: Int64 = (1 << 40) + (Int64(i % 7) << 32)
+                return high + Int64((i &* 977) % 100_000)
+            }
+            var negative = (0..<count).map { -Int64(($0 &* 7_919) % 1_000_000) - 1 }
+            let expectedInvented = invented.sorted(), expectedNegative = negative.sorted()
+            IDSort.sort(&invented)
+            IDSort.sort(&negative)
+            XCTAssertEqual(invented, expectedInvented, "\(count) invented")
+            XCTAssertEqual(negative, expectedNegative, "\(count) negative")
+        }
+    }
+
+    func testTheRadixSortSaysWhichArrayHoldsItsAnswer() {
+        // 1 varying byte: 1 pass, from the ids into the scratch.
+        var ids: [Int64] = [3, 1, 2], scratch: [Int64] = [0, 0, 0]
+        let inScratch = ids.withUnsafeMutableBufferPointer { a in
+            scratch.withUnsafeMutableBufferPointer { kmap_sort_i64_either(a.baseAddress, $0.baseAddress, 3) }
+        }
+        XCTAssertEqual(inScratch, 1)
+        XCTAssertEqual(scratch, [1, 2, 3])
+        // 2 varying bytes: 2 passes, back in the ids.
+        ids = [0x0201, 0x0102, 0x0101]
+        let inIDs = ids.withUnsafeMutableBufferPointer { a in
+            scratch.withUnsafeMutableBufferPointer { kmap_sort_i64_either(a.baseAddress, $0.baseAddress, 3) }
+        }
+        XCTAssertEqual(inIDs, 0)
+        XCTAssertEqual(ids, [0x0101, 0x0102, 0x0201])
     }
 }
