@@ -79,6 +79,17 @@ final class MachineLoadTests: XCTestCase {
         )
         XCTAssertEqual(Fmt.memory(used: 0, total: 17_179_869_184), "0.0/16 GB")
     }
+
+    #if os(Windows)
+    /// Windows is asked for Task Manager's own figure; a silent fall back to busy time
+    /// would pass every other test here.
+    func testWindowsAnswersWithTheFigureTaskManagerShows() async throws {
+        _ = MachineLoad.readUtility()
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        let utility = try XCTUnwrap(MachineLoad.readUtility(), "pdh.dll did not answer")
+        XCTAssertTrue((0...1).contains(utility))
+    }
+    #endif
 }
 
 /// What the header bar drops as the width it is given shrinks.
