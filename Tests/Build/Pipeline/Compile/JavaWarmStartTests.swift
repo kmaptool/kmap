@@ -20,6 +20,16 @@ final class JavaWarmStartTests: XCTestCase {
         try? FileManager.default.removeItem(at: folder)
     }
 
+    /// A link, or the test skipped where this process may not make one, as a Windows
+    /// task without the right.
+    private func makeLink(_ link: URL, to target: URL) throws {
+        do {
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
+        } catch {
+            throw XCTSkip("this machine does not let a test make links: \(error)")
+        }
+    }
+
     private func java(_ version: String) -> JavaRuntime {
         JavaRuntime(path: "/usr/bin/java", version: version, options: [])
     }
@@ -208,7 +218,7 @@ final class JavaWarmStartTests: XCTestCase {
         let binary = folder.appendingPathComponent("java-25.0.1")
         try FileTools.write(Data("jvm".utf8), to: binary)
         let link = folder.appendingPathComponent("java")
-        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: binary)
+        try makeLink(link, to: binary)
         let runtime = JavaRuntime(path: link.path, version: #"openjdk version "25.0.1""#, options: [])
         let before = JavaWarmStart.cacheFile(java: runtime, jar: jar, heapGB: 8, in: caches)
         try FileManager.default.setAttributes(
@@ -220,7 +230,7 @@ final class JavaWarmStartTests: XCTestCase {
 
     func testAJarReplacedBehindALinkGetsACacheOfItsOwn() throws {
         let linked = folder.appendingPathComponent("mkgmap-link.jar")
-        try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: jar)
+        try makeLink(linked, to: jar)
         let runtime = java(#"openjdk version "25.0.1""#)
         let before = JavaWarmStart.cacheFile(java: runtime, jar: linked, heapGB: 8, in: caches)
         try FileTools.write(Data("a newer mkgmap".utf8), to: jar)
