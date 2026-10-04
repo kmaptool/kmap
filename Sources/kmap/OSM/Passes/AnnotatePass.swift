@@ -25,6 +25,9 @@ struct AnnotatePass {
     /// When set, the repair waits on it for `dem` before planning: the elevation stage is
     /// still fetching while the scans run.
     var demReady: (@Sendable () async throws -> [URL])?
+    /// Told true when the scans can only wait for `demReady`, every other one being done,
+    /// and false when the wait is over.
+    var onHeld: (@Sendable (Bool) -> Void)?
     /// Contour files to fold into the output, so splitter is handed one input file and
     /// keeps every contour whole where it crosses a tile boundary.
     var contours: [URL] = []
@@ -150,15 +153,19 @@ struct AnnotatePass {
 
         let scans = DispatchGroup()
         let pool = DispatchQueue.global(qos: .userInitiated)
+        let count = 1 + (repairRadius > 0 ? 1 : 0) + (markDuplicateVenues ? 1 : 0)
+        let idleness = Idleness(jobs: count) { [onHeld] in onHeld?($0) }
         if repairRadius > 0 {
             pool.async(group: scans) { [self] in
+                defer { idleness.finished() }
                 timings.timed("repairing road ends") {
-                    let found = Result { try repairScan(timings: timings) }
+                    let found = Result { try repairScan(timings: timings, idleness: idleness) }
                     repair.withLock { $0 = found }
                 }
             }
         }
         pool.async(group: scans) {
+            defer { idleness.finished() }
             timings.timed("classifying barriers") {
                 let found = Result { try BarrierScan.classify(self.source) }
                 barriers.withLock { $0 = found }
@@ -166,6 +173,7 @@ struct AnnotatePass {
         }
         if markDuplicateVenues {
             pool.async(group: scans) {
+                defer { idleness.finished() }
                 timings.timed("finding repeated venues") {
                     let found = Result { try VenueScan.duplicates(in: self.source) }
                     venues.withLock { $0 = found }
@@ -201,7 +209,8 @@ struct AnnotatePass {
     ///
     /// - Returns: the loaded network, the plan, and the log lines describing it.
     private func repairScan(
-        timings: ScanTimings
+        timings: ScanTimings,
+        idleness: Idleness
     ) throws -> (RoadNetwork, RepairPlan, [String]) {
         var step = Date()
         func part(_ what: String) {
@@ -214,7 +223,7 @@ struct AnnotatePass {
             .candidates()
         part("found the loose ends")
         // Awaited only now, with the network loaded and the ends found.
-        let directories = try demReady.map { try Self.blocking($0)() } ?? dem
+        let directories = try demReady.map { ready in try idleness.waiting { try Self.blocking(ready)() } } ?? dem
         let existing = directories.filter { FileManager.default.fileExists(atPath: $0.path) }
         let terrain = existing.isEmpty ? nil : Terrain(directories: existing)
         part("waited for the elevation")

@@ -11,36 +11,47 @@ extension CLI {
         var printer = LogPrinter()
         var lastStatus: [String: BuildPipeline.StageStatus] = [:]
         var gate = ProgressGate()
+        /// Stages whose heading is printed: one that began and ended between 2 polls is
+        /// never seen running.
+        var headed = Set<String>()
+        var lastPoll = Date.distantPast
         while true {
-            printer.drain(pipeline.log)
-
             let snapshot = pipeline.snapshot()
-            for stage in snapshot.stages where lastStatus[stage.id.rawValue] != stage.status {
-                lastStatus[stage.id.rawValue] = stage.status
-                if stage.status == .running { CLILog.line("── \(stage.id.title)") }
-                CLIOutput.stage(
-                    stage.id.rawValue,
-                    stage.status.rawValue,
-                    title: stage.id.title,
-                    detail: stage.said
-                )
+            // A held stage is reported as not started: it is announced when it sets to work.
+            var changed: [(stage: BuildPipeline.Stage, status: BuildPipeline.StageStatus, detail: String)] = []
+            var headings: [(at: Date, text: String)] = []
+            for stage in snapshot.stages {
+                let shown = stage.shown(among: snapshot.stages)
+                guard lastStatus[stage.id.rawValue] != shown.status else { continue }
+                lastStatus[stage.id.rawValue] = shown.status
+                changed.append((stage, shown.status, shown.detail))
+                let worked = shown.status == .running || shown.status == .done || shown.status == .failed
+                if worked, headed.insert(stage.id.rawValue).inserted {
+                    // Where it began; a stage let go after being held begins with this poll.
+                    headings.append((max(stage.startedAt ?? lastPoll, lastPoll), "── \(stage.id.title)"))
+                }
+            }
+            lastPoll = Date()
+            printer.drain(pipeline.log, headings: headings)
+            for (stage, status, detail) in changed {
+                CLIOutput.stage(stage.id.rawValue, status.rawValue, title: stage.id.title, detail: detail)
             }
 
             if CLIOutput.isJSON {
-                for stage in snapshot.stages where stage.status == .running {
+                for stage in snapshot.stages where stage.shown(among: snapshot.stages).status == .running {
                     guard
                         gate.speaks(
                             stage: stage.id.rawValue,
                             fraction: stage.fraction,
                             overall: snapshot.overall,
-                            detail: stage.said
+                            detail: stage.detail
                         )
                     else { continue }
                     CLIOutput.progress(
                         stage: stage.id.rawValue,
                         fraction: stage.fraction,
                         overall: snapshot.overall,
-                        detail: stage.said
+                        detail: stage.detail
                     )
                 }
             }

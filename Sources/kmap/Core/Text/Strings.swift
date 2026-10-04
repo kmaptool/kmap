@@ -987,8 +987,6 @@ enum Strings {
             "Полигоны рисуются по уровням: сначала уровень 1, каждый следующий — поверх. Внутри уровня порядок не важен.",
         "starting": "запуск",
         "reading the extract": "чтение выгрузки",
-        "waiting for the elevation tiles": "ожидание тайлов высот",
-        "waiting for the contours": "ожидание горизонталей",
         "not requested": "не запрошено",
         "preparing": "подготовка",
         "preparing style": "подготовка стиля",

@@ -15,9 +15,10 @@ extension BuildPipeline {
         contoursTask: Task<[URL], Error>,
         terrain: Gate<[URL]>
     ) async throws -> [String] {
-        // Announced once for the whole group; the per-region lines carry a prefix.
-        if recipe.needsBarrierContext || recipe.descriptions != .off
-            || (recipe.healRoadEnds && recipe.routable)
+        // Announced once for the whole group; the per-region lines carry a prefix. A
+        // single region announces itself.
+        if extracts.count > 1,
+            recipe.needsBarrierContext || recipe.descriptions != .off || (recipe.healRoadEnds && recipe.routable)
         {
             log.step(
                 recipe.healRoadEnds && recipe.routable
@@ -53,7 +54,7 @@ extension BuildPipeline {
                 let contours: (@Sendable () async throws -> [URL])?
                 if index == 0 {
                     contours = { [board] in
-                        try await board.waiting(.split, for: t("waiting for the contours")) {
+                        try await board.waiting(.split) {
                             try await contoursTask.value
                         }
                     }
@@ -138,11 +139,10 @@ extension BuildPipeline {
             pass.language = recipe.codePage == 1251 ? "ru" : "en"
             // The DEM tells a slope from a face. Read from the DEM layer's tiles once fetched, so
             // a first build and a rebuild repair alike.
-            pass.demReady = { [board] in
-                if terrain.isOpen { return await terrain.value }
-                return await board.waiting(.split, for: t("waiting for the elevation tiles")) {
-                    await terrain.value
-                }
+            pass.demReady = { await terrain.value }
+            // Shown as waiting only once nothing else of this extract is being read.
+            pass.onHeld = { [board] held in
+                if held { board.beginWaiting(.split) } else { board.endWaiting(.split) }
             }
             // Each region's pass invents ids from its own 2^32 range, or the ids collide
             // once the annotated files are merged into one splitter stream.

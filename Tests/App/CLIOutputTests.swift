@@ -24,6 +24,43 @@ final class CLIOptionsTests: XCTestCase {
         XCTAssertEqual(CLIOptions().showing, .info)
         XCTAssertEqual(CLIOptions(json: false, verbose: true).showing, .debug)
     }
+
+    // MARK: Stage headings among the log lines
+
+    func testAHeadingStandsAboveTheLinesWrittenAfterItsStageBegan() {
+        let start = Date(timeIntervalSince1970: 1000)
+        func line(_ text: String, _ seconds: Double) -> LogEvent {
+            LogEvent(text: text, at: start.addingTimeInterval(seconds))
+        }
+        let lines = [line("region", 0.1), line("cached", 1.2), line("elevation data", 1.5), line("compiled", 9)]
+        let items = CLI.LogPrinter.interleaved(
+            lines,
+            headings: [
+                (start.addingTimeInterval(8), "── Compile map"),
+                (start.addingTimeInterval(1), "── Download OSM extract"),
+                (start.addingTimeInterval(1.4), "── Download elevation"),
+                (start.addingTimeInterval(20), "── Write output")
+            ]
+        )
+        let said = items.map { item -> String in
+            switch item {
+            case .heading(let text): return text
+            case .line(let line): return line.text
+            }
+        }
+        XCTAssertEqual(
+            said,
+            [
+                "region", "── Download OSM extract", "cached", "── Download elevation", "elevation data",
+                "── Compile map", "compiled", "── Write output"
+            ]
+        )
+    }
+
+    func testHeadingsWithNoLinesStillPrint() {
+        let items = CLI.LogPrinter.interleaved([], headings: [(Date(), "── Split into tiles")])
+        XCTAssertEqual(items.count, 1)
+    }
 }
 
 /// The JSON stream: one object per line, in the order things happened.

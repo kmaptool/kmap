@@ -129,21 +129,24 @@ final class StageBoardTests: XCTestCase {
         let tiles = Gate<Int>()
         let asked = Gate<Bool>()
         let waiter = Task {
-            await board.waiting(.split, for: "waiting for the elevation tiles") {
+            await board.waiting(.split) {
                 asked.open(true)
                 return await tiles.value
             }
         }
         _ = await asked.value
         XCTAssertTrue(split(board).isWaiting)
-        XCTAssertEqual(split(board).said, "waiting for the elevation tiles")
+        let shown = split(board).shown(among: board.stages)
+        XCTAssertEqual(shown.status, .pending, "reported as not started")
+        XCTAssertEqual(shown.detail, "")
         XCTAssertEqual(board.status(of: .split), .running, "the stage's clock keeps running")
 
         tiles.open(7)
         let got = await waiter.value
         XCTAssertEqual(got, 7)
         XCTAssertFalse(split(board).isWaiting)
-        XCTAssertEqual(split(board).said, "reading the extract")
+        XCTAssertEqual(split(board).shown(among: board.stages).detail, "reading the extract")
+        XCTAssertEqual(split(board).shown(among: board.stages).status, .running)
     }
 
     func testAStageWaitsWhileAnyOfItsLanesDoes() async {
@@ -153,7 +156,7 @@ final class StageBoardTests: XCTestCase {
         let asked = [Gate<Bool>(), Gate<Bool>()]
         let waiters = [first, second].enumerated().map { index, gate in
             Task {
-                await board.waiting(.split, for: "waiting") {
+                await board.waiting(.split) {
                     asked[index].open(true)
                     return await gate.value
                 }
@@ -162,14 +165,14 @@ final class StageBoardTests: XCTestCase {
         for gate in asked { _ = await gate.value }
         // Another lane reporting its work does not hide the wait.
         board.detail(.split, "region 2: scanned")
-        XCTAssertEqual(split(board).said, "waiting")
+        XCTAssertTrue(split(board).isWaiting)
         first.open(1)
         _ = await waiters[0].value
         XCTAssertTrue(split(board).isWaiting, "the second lane still waits")
         second.open(2)
         _ = await waiters[1].value
         XCTAssertFalse(split(board).isWaiting)
-        XCTAssertEqual(split(board).said, "region 2: scanned")
+        XCTAssertEqual(split(board).shown(among: board.stages).detail, "region 2: scanned")
     }
 
     func testAWaitThatThrowsStillEnds() async {
@@ -177,7 +180,7 @@ final class StageBoardTests: XCTestCase {
         let board = StageBoard()
         board.set(.split, .running, "reading the extract")
         do {
-            try await board.waiting(.split, for: "waiting for the contours") { throw Lost() }
+            try await board.waiting(.split) { throw Lost() }
             XCTFail("the error must pass through")
         } catch {}
         XCTAssertFalse(split(board).isWaiting)
@@ -187,7 +190,7 @@ final class StageBoardTests: XCTestCase {
         let board = StageBoard()
         let asked = Gate<Bool>(), release = Gate<Bool>()
         let waiter = Task {
-            await board.waiting(.split, for: "waiting") {
+            await board.waiting(.split) {
                 asked.open(true)
                 return await release.value
             }
@@ -195,7 +198,7 @@ final class StageBoardTests: XCTestCase {
         _ = await asked.value
         XCTAssertFalse(split(board).isWaiting, "a stage that has not started is pending, not waiting")
         board.set(.split, .failed, "stopped")
-        XCTAssertEqual(split(board).said, "stopped")
+        XCTAssertEqual(split(board).shown(among: board.stages).detail, "stopped")
         release.open(true)
         _ = await waiter.value
     }
@@ -220,7 +223,7 @@ final class StageBoardTests: XCTestCase {
         board.set(.split, .running, "reading the extract")
         let asked = Gate<Bool>(), release = Gate<Bool>()
         let waiter = Task {
-            await board.waiting(.split, for: "waiting for the contours") {
+            await board.waiting(.split) {
                 asked.open(true)
                 return await release.value
             }

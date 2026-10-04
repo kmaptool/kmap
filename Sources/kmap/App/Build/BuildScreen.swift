@@ -159,14 +159,14 @@ final class BuildScreen: Screen {
                 s.text(
                     detailX + barWidth + 2,
                     y,
-                    truncate(stage.said, to: max(0, rect.maxX - detailX - barWidth - 2)),
+                    truncate(stage.detail, to: max(0, rect.maxX - detailX - barWidth - 2)),
                     Style(fg: theme.dim, bg: theme.appBg)
                 )
-            } else if !held, !stage.said.isEmpty {
+            } else if !held, !stage.detail.isEmpty {
                 s.text(
                     detailX,
                     y,
-                    truncate(stage.said, to: max(0, rect.maxX - detailX)),
+                    truncate(stage.detail, to: max(0, rect.maxX - detailX)),
                     Style(fg: active ? theme.dim : theme.faint, bg: theme.appBg)
                 )
             }

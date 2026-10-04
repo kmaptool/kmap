@@ -45,20 +45,23 @@ extension BuildPipeline {
         var detail: String = ""
         /// nil means no meaningful percentage; the UI shows a spinner instead.
         var fraction: Double? = nil
-        /// How many of the stage's lanes are held up by another stage, and what for.
+        /// How many of the stage's lanes are held up by another stage.
         var waiters = 0
-        var waitingFor = ""
         /// Running, but only until another stage delivers.
         var isWaiting: Bool { status == .running && waiters > 0 }
-        /// What the stage has to say now: what it waits for, else what it is doing.
-        var said: String { isWaiting ? waitingFor : detail }
 
-        /// Whether the screen shows the stage as not started though it runs: it waits on
-        /// another stage, or it is the split reading ahead while elevation still downloads.
+        /// Whether the stage runs unseen: it waits on another stage, or it is the split
+        /// reading ahead while elevation still downloads.
         func isHeld(among stages: [Stage]) -> Bool {
             guard status == .running else { return false }
             if waiters > 0 { return true }
             return id == .split && stages.contains { $0.id == .elevation && $0.status == .running }
+        }
+
+        /// The stage as the screen and the CLI report it: a held one has not started and
+        /// has nothing to say.
+        func shown(among stages: [Stage]) -> (status: StageStatus, detail: String) {
+            isHeld(among: stages) ? (.pending, "") : (status, detail)
         }
         /// Moves the bar to a new position, never backwards. A stage runs several pieces of
         /// work, each counting from its own beginning.
@@ -171,13 +174,12 @@ extension BuildPipeline {
 
     func beginPhase(_ id: StageID, _ text: String) { board.beginPhase(id, text) }
 
-    /// Runs `body` with the stage shown as waiting for `text`, not as working.
+    /// Runs `body` with the stage held: it only waits on another stage.
     func waiting<T: Sendable>(
         _ id: StageID,
-        for text: String,
         until body: @Sendable () async throws -> T
     ) async rethrows -> T {
-        try await board.waiting(id, for: text, until: body)
+        try await board.waiting(id, until: body)
     }
 
     func advance(_ id: StageID, fraction: Double) { board.advance(id, fraction: fraction) }

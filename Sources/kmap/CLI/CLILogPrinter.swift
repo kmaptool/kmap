@@ -6,15 +6,41 @@ extension CLI {
     struct LogPrinter {
         private var printed = 0
 
-        /// Prints what `log` has gained since the last call.
-        mutating func drain(_ log: Log) {
+        /// Prints what `log` has gained since the last call. A heading, given with the
+        /// time its stage set to work, goes above the first line written after that.
+        mutating func drain(_ log: Log, headings: [(at: Date, text: String)] = []) {
             let lines = log.snapshot()
-            guard lines.count > printed else { return }
-            for line in lines[printed...] {
-                CLILog.line(Self.prefix(line) + line.text)
-                CLIOutput.log(line)
+            let fresh = lines.count > printed ? Array(lines[printed...]) : []
+            for item in Self.interleaved(fresh, headings: headings) {
+                switch item {
+                case .heading(let text):
+                    CLILog.line(text)
+                case .line(let line):
+                    CLILog.line(Self.prefix(line) + line.text)
+                    CLIOutput.log(line)
+                }
             }
             printed = lines.count
+        }
+
+        enum Item {
+            case heading(String)
+            case line(LogEvent)
+        }
+
+        /// The lines in their order, each heading above the first line as late as itself;
+        /// a heading later than every line comes last.
+        static func interleaved(_ lines: [LogEvent], headings: [(at: Date, text: String)]) -> [Item] {
+            var waiting = headings.sorted { $0.at < $1.at }[...]
+            var out: [Item] = []
+            for line in lines {
+                while let next = waiting.first, next.at <= line.at {
+                    out.append(.heading(next.text))
+                    waiting = waiting.dropFirst()
+                }
+                out.append(.line(line))
+            }
+            return out + waiting.map { .heading($0.text) }
         }
 
         /// The mark in front of a line: what kind of thing it is first, how much it

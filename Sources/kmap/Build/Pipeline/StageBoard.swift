@@ -90,19 +90,21 @@ final class StageBoard: Sendable {
         }
     }
 
-    /// Runs `body` with the stage shown as waiting for `text`, not as working. Several
-    /// lanes of a stage may wait at once; it reads as working again when none does.
-    func waiting<T: Sendable>(
-        _ id: StageID,
-        for text: String,
-        until body: @Sendable () async throws -> T
-    ) async rethrows -> T {
-        change(id) {
-            $0.waiters += 1
-            $0.waitingFor = text
-        }
-        defer { change(id) { $0.waiters = max(0, $0.waiters - 1) } }
+    /// Runs `body` with the stage held, not shown as working. Several lanes of a stage
+    /// may wait at once; it reads as working again when none does.
+    func waiting<T: Sendable>(_ id: StageID, until body: @Sendable () async throws -> T) async rethrows -> T {
+        beginWaiting(id)
+        defer { endWaiting(id) }
         return try await body()
+    }
+
+    /// 1 more lane of the stage only waits on another stage; paired with `endWaiting`.
+    func beginWaiting(_ id: StageID) {
+        change(id) { $0.waiters += 1 }
+    }
+
+    func endWaiting(_ id: StageID) {
+        change(id) { $0.waiters = max(0, $0.waiters - 1) }
     }
 
     /// Ends a build that did not finish: every stage at work is marked failed with
