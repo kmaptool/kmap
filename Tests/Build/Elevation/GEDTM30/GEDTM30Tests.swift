@@ -250,7 +250,7 @@ final class GEDTM30Tests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: file) }
         let now = Date()
         DEMTileList.postpone(file, from: now)
-        let modified = DEMTileList.modified(file)
+        let modified = FileTools.modified(of: file)
         XCTAssertFalse(DEMTileList.isStale(modified: modified, now: now.addingTimeInterval(3600)))
         XCTAssertTrue(DEMTileList.isStale(modified: modified, now: now.addingTimeInterval(86400 + 60)))
     }

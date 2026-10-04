@@ -13,7 +13,7 @@ extension BuildPipeline {
         Paths.ensure(staged)
         var linked = 0
         for cell in elevationCells() {
-            let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon) + ".hgt"
+            let name = HGTName.of(lat: cell.lat, lon: cell.lon) + ".hgt"
             guard
                 let found = ranked.first(where: {
                     FileTools.exists($0.appendingPathComponent(name))

@@ -15,7 +15,7 @@ extension CLI {
         }
         // With --sources the ground is read as a build naming them reads it; without, from
         // COP1 alone.
-        var ground = [CopernicusDEM.cacheDirectory]
+        var ground = [CopernicusDEM.glo30.cacheDirectory]
         if let sources = flags.value("sources") {
             let unknown = unknownSources(in: sources)
             let chosen = CopernicusDEM.canonicalSourceList(sources).split(separator: ",").map(String.init)

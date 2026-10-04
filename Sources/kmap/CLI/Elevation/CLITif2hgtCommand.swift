@@ -16,7 +16,7 @@ extension CLI {
         }
         let root = URL(fileURLWithPath: directory)
         let mosaic = HGTConversion.Mosaic { lat, lon in
-            let file = root.appendingPathComponent("\(CopernicusDEM.cellName(lat: lat, lon: lon)).tif")
+            let file = root.appendingPathComponent("\(HGTName.of(lat: lat, lon: lon)).tif")
             return FileTools.exists(file) ? file : nil
         }
         do {

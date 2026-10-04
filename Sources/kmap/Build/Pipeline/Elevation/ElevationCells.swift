@@ -20,7 +20,7 @@ extension BuildPipeline {
 
     /// The same cells, named `N44E034` and so on.
     func degreeCellNames(of bbox: BBox) -> [String] {
-        elevationCells().map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) }
+        elevationCells().map { HGTName.of(lat: $0.lat, lon: $0.lon) }
     }
 
     /// Every region's outline rings in one osmosis .poly, for pyhgtmap's --polygon.

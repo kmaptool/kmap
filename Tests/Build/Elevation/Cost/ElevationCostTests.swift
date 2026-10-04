@@ -117,7 +117,7 @@ final class ElevationCostChainTests: XCTestCase {
     func testALargeFetchIsSampledAsMeanTimesCount() async {
         // A hundred cells, far past the ask-them-all limit.
         let many: [(lat: Int, lon: Int)] = (0..<100).map { (-80, $0 - 170) }
-        let names = Set(many.map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) })
+        let names = Set(many.map { HGTName.of(lat: $0.lat, lon: $0.lon) })
         ElevationCost.tileCoverage = { _ in names }
         // Counted under a lock: the probes run six lanes at once.
         let probes = Counter()

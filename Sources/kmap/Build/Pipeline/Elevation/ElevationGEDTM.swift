@@ -201,16 +201,3 @@ extension BuildPipeline {
         return (converted.value, sea.value, lost)
     }
 }
-
-extension GEDTM30 {
-    /// Removes chunks untouched for a week.
-    func dropStaleChunks() {
-        let old = Date().addingTimeInterval(-7 * 86400)
-        guard let names = try? FileManager.default.contentsOfDirectory(atPath: chunkDirectory.path) else { return }
-        for name in names {
-            let file = chunkDirectory.appendingPathComponent(name)
-            let modified = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.modificationDate] as? Date
-            if let modified, modified < old { FileTools.removeIfPresent(file) }
-        }
-    }
-}

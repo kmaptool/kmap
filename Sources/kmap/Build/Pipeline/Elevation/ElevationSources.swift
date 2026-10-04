@@ -61,7 +61,7 @@ extension BuildPipeline {
 
     /// Whether a source listed before this one already holds the cell.
     func cellSettledEarlier(_ directories: [URL], lat: Int, lon: Int) -> Bool {
-        let name = "\(CopernicusDEM.cellName(lat: lat, lon: lon)).hgt"
+        let name = "\(HGTName.of(lat: lat, lon: lon)).hgt"
         return directories.contains { FileTools.exists($0.appendingPathComponent(name)) }
     }
 }

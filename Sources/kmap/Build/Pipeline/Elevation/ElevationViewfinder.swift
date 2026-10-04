@@ -34,12 +34,7 @@ extension BuildPipeline {
         let runner = makeRunner()
         var indexes: [Int: ViewfinderDEM.Index] = [:]
         for resolution in resolutions {
-            indexes[resolution] = try await ViewfinderDEM.index(
-                resolution,
-                downloader: downloader
-            ) {
-                self.log.append($0)
-            }
+            indexes[resolution] = try await ViewfinderDEM.index(resolution) { self.log.append($0) }
         }
 
         var have = 0, missing: [String] = []

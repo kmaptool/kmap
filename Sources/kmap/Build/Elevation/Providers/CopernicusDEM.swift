@@ -1,11 +1,11 @@
 import Foundation
 
 /// Copernicus DEM, fetched from its public buckets and converted to the `.hgt` files the
-/// rest of the pipeline understands: GLO-30 at one arc-second, GLO-90 at three and a ninth
-/// of the bytes. `HGTConversion` handles the two differences - a `.hgt` covers its degree
+/// rest of the pipeline understands: GLO-30 at 1 arc-second, GLO-90 at 3 and a 9th of
+/// the bytes. `HGTConversion` handles the 2 differences: a `.hgt` covers its degree
 /// inclusively, and the bucket thins longitude sampling north of 50 deg.
 enum CopernicusDEM {
-    /// One resolution of the survey: its id in settings, its cache names, its grid.
+    /// 1 resolution of the survey: its id in settings, its cache names, its grid.
     struct Flavor: DEMTileSource {
         let sourceID: String
         let directoryName: String
@@ -61,8 +61,7 @@ enum CopernicusDEM {
 
     static let flavors = [glo30, glo90]
 
-    /// The spellings that reached disk before the convention settled - "copernicus" and
-    /// "copernicus90". Both keep working, and are resolved here.
+    /// Settings on disk may still spell the ids "copernicus" and "copernicus90".
     static func canonicalSourceID(_ id: String) -> String {
         switch id {
         case "copernicus": return glo30.sourceID
@@ -79,26 +78,13 @@ enum CopernicusDEM {
             .joined(separator: ",")
     }
 
-    // The GLO-30 spellings, for the parts of the pipeline that only mean GLO-30.
-    static let sourceID = glo30.sourceID
-    static let directoryName = glo30.directoryName
-    static var cacheDirectory: URL { glo30.cacheDirectory }
-    static var tifCacheDirectory: URL { glo30.tifCacheDirectory }
-
-    /// `N44E034`, the naming every consumer in this pipeline expects.
-    static func cellName(lat: Int, lon: Int) -> String { HGTName.of(lat: lat, lon: lon) }
-
-    static func cachedTile(lat: Int, lon: Int) -> URL { glo30.cachedTile(lat: lat, lon: lon) }
-    static func downloadedTif(lat: Int, lon: Int) -> URL { glo30.downloadedTif(lat: lat, lon: lon) }
-    static func tileURL(lat: Int, lon: Int) -> URL? { glo30.tileURL(lat: lat, lon: lon) }
-
     // MARK: What the bucket holds
 
     /// Cell names (`N44E034`) out of the list's stems
     /// (`Copernicus_DSM_COG_10_N44_00_E034_00_DEM`).
     static func parseTileList(_ text: String) -> Set<String> {
         var out = Set<String>()
-        // The list comes with CRLF endings, and in a Swift string "\r\n" is one
+        // The list comes with CRLF endings, and in a Swift string "\r\n" is 1
         // character that "\n" alone does not match; isNewline splits it correctly.
         for line in text.split(whereSeparator: \.isNewline) {
             let fields = line.split(separator: "_")
@@ -106,24 +92,5 @@ enum CopernicusDEM {
             out.insert(String(fields[4] + fields[6]))
         }
         return out
-    }
-
-    /// An osmosis `.poly` rectangle. pyhgtmap discards `--area` once handed a file to
-    /// process, recomputing the area from the file, so a polygon is the only way to keep
-    /// contours inside the region rather than covering whole degrees.
-    static func writeClipPolygon(_ box: BBox, to url: URL) throws {
-        let text = """
-            kmap-clip
-            1
-               \(box.minLon)  \(box.minLat)
-               \(box.maxLon)  \(box.minLat)
-               \(box.maxLon)  \(box.maxLat)
-               \(box.minLon)  \(box.maxLat)
-               \(box.minLon)  \(box.minLat)
-            END
-            END
-
-            """
-        try FileTools.write(text, to: url)
     }
 }

@@ -23,7 +23,7 @@ extension CLI {
         let runner = ProcessRunner()
         let downloader = Downloader(log: log)
         do {
-            var index = try await ViewfinderDEM.index(resolution, downloader: downloader) { CLILog.line($0) }
+            var index = try await ViewfinderDEM.index(resolution) { CLILog.line($0) }
             CLILog.line("index: \(index.entries.count) archive(s), \(index.urls(for: area).count) claim \(area)")
             let file = try await ViewfinderDEM.fetch(
                 area,

@@ -74,7 +74,7 @@ extension DEMTileSource {
         if let text = try? String(contentsOf: file, encoding: .utf8) {
             let cells = parseTileList(text)
             if !cells.isEmpty {
-                guard DEMTileList.isStale(modified: DEMTileList.modified(file), now: Date()) else { return cells }
+                guard DEMTileList.isStale(modified: FileTools.modified(of: file), now: Date()) else { return cells }
                 kept = cells
             }
         }
@@ -108,10 +108,6 @@ enum DEMTileList {
         guard let modified else { return true }
         let age = now.timeIntervalSince(modified)
         return age < 0 || age > maxAge
-    }
-
-    static func modified(_ file: URL) -> Date? {
-        (try? FileManager.default.attributesOfItem(atPath: file.path))?[.modificationDate] as? Date
     }
 
     /// Dates the list so that it is stale again `retryAfter` from `now`.

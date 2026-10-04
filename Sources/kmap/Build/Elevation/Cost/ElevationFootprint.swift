@@ -32,7 +32,7 @@ enum ElevationFootprint {
         var out: [(lat: Int, lon: Int)] = []
         for region in regions {
             for cell in region.boxes.flatMap({ cellOrigins(of: $0) }) {
-                let key = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+                let key = HGTName.of(lat: cell.lat, lon: cell.lon)
                 if seen.insert(key).inserted { out.append(cell) }
             }
         }
@@ -41,7 +41,7 @@ enum ElevationFootprint {
     }
 
     /// Cuts the cells lying wholly outside every outline out of the list. A region whose
-    /// rings are nil keeps every cell of its own boxes, as one square ring per cell,
+    /// rings are nil keeps every cell of its own boxes, as 1 square ring per cell,
     /// erring towards fetching ground rather than clipping it away.
     static func trim(
         _ all: [(lat: Int, lon: Int)],
@@ -54,7 +54,7 @@ enum ElevationFootprint {
             } else {
                 let keep = Set(
                     region.boxes.flatMap { cellOrigins(of: $0) }
-                        .map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) }
+                        .map { HGTName.of(lat: $0.lat, lon: $0.lon) }
                 )
                 rings.append(contentsOf: squareRings(covering: keep, from: all))
             }
@@ -71,7 +71,7 @@ enum ElevationFootprint {
         }
     }
 
-    /// The trimmed footprint in one call, fetching each region's outline itself: what the
+    /// The trimmed footprint in 1 call, fetching each region's outline itself: what the
     /// cost estimate uses. The build assembles the same pieces in `trimElevationCells`,
     /// where the missing outlines are also logged.
     static func cells(of regions: [Region], fallback: BBox = .empty) async -> [(lat: Int, lon: Int)] {
@@ -83,13 +83,13 @@ enum ElevationFootprint {
         return trim(all, ringsPerRegion: perRegion)
     }
 
-    /// One square ring per named cell: how a region without an outline keeps its ground
+    /// 1 square ring per named cell: how a region without an outline keeps its ground
     /// through the trim.
     private static func squareRings(
         covering names: Set<String>,
         from all: [(lat: Int, lon: Int)]
     ) -> [RegionOutline.Ring] {
-        all.filter { names.contains(CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon)) }
+        all.filter { names.contains(HGTName.of(lat: $0.lat, lon: $0.lon)) }
             .map { cell in
                 let lon = Double(cell.lon), lat = Double(cell.lat)
                 return RegionOutline.Ring(

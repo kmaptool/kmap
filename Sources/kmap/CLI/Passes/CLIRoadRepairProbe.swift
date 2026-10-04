@@ -20,7 +20,7 @@ extension CLI {
             CLILog.line(String(format: "scanned in %.1f s", scanSeconds))
 
             let judging = Date()
-            let hgt = CopernicusDEM.cacheDirectory
+            let hgt = CopernicusDEM.glo30.cacheDirectory
             let terrain = FileManager.default.fileExists(atPath: hgt.path) ? Terrain(directory: hgt) : nil
             let plan = RepairPlanner(network: network, terrain: terrain, bridging: true, limit: radius)
                 .plan(found, loose: loose)

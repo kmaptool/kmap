@@ -29,7 +29,7 @@ extension BuildPipeline {
         let cells = out.isEmpty ? degreeCells(of: recipe.coverage) : out
         // A cell the elevation stage trimmed has no .hgt and traces nothing.
         guard let kept = outlineElevationCells else { return cells }
-        let names = Set(kept.map { CopernicusDEM.cellName(lat: $0.lat, lon: $0.lon) })
+        let names = Set(kept.map { HGTName.of(lat: $0.lat, lon: $0.lon) })
         return cells.filter {
             names.contains(HGTName.of(lat: $0.minLat, lon: $0.minLon))
         }
@@ -301,7 +301,7 @@ extension BuildPipeline {
         // The tiles the DEM stage will take, by the source it takes each from.
         var wanted: [URL: Set<String>] = [:]
         for cell in elevationCells() {
-            let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+            let name = HGTName.of(lat: cell.lat, lon: cell.lon)
             guard
                 let source = sources.first(where: {
                     FileTools.exists($0.appendingPathComponent(name + ".hgt"))

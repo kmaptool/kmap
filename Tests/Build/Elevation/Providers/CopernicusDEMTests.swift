@@ -6,19 +6,9 @@ import XCTest
 /// name is the quiet failure: the tile lands under a name nothing looks for, is fetched
 /// again on every build, and the ground it covers stays flat.
 final class CopernicusDEMTests: XCTestCase {
-    func testTheCellNameIsTheSameRuleEveryOtherSourceUses() {
-        for (lat, lon) in [(44, 33), (-34, -71), (0, 0), (50, -1), (-9, 116), (89, 179)] {
-            XCTAssertEqual(
-                CopernicusDEM.cellName(lat: lat, lon: lon),
-                HGTName.of(lat: lat, lon: lon)
-            )
-        }
-        XCTAssertEqual(CopernicusDEM.cellName(lat: 44, lon: 34), "N44E034")
-    }
-
     func testTheBucketURLCarriesTheCornerInTheBucketsOwnSpelling() {
         XCTAssertEqual(
-            CopernicusDEM.tileURL(lat: 44, lon: 34)?.absoluteString,
+            CopernicusDEM.glo30.tileURL(lat: 44, lon: 34)?.absoluteString,
             "https://copernicus-dem-30m.s3.amazonaws.com/"
                 + "Copernicus_DSM_COG_10_N44_00_E034_00_DEM/"
                 + "Copernicus_DSM_COG_10_N44_00_E034_00_DEM.tif"
@@ -26,17 +16,17 @@ final class CopernicusDEMTests: XCTestCase {
     }
 
     func testTheURLIsRightBelowTheEquatorAndWestOfGreenwich() {
-        let south = CopernicusDEM.tileURL(lat: -34, lon: -71)?.absoluteString ?? ""
+        let south = CopernicusDEM.glo30.tileURL(lat: -34, lon: -71)?.absoluteString ?? ""
         XCTAssertTrue(south.contains("Copernicus_DSM_COG_10_S34_00_W071_00_DEM"), south)
-        let meridian = CopernicusDEM.tileURL(lat: 0, lon: 0)?.absoluteString ?? ""
+        let meridian = CopernicusDEM.glo30.tileURL(lat: 0, lon: 0)?.absoluteString ?? ""
         XCTAssertTrue(meridian.contains("Copernicus_DSM_COG_10_N00_00_E000_00_DEM"), meridian)
     }
 
     func testTheCachedTileSitsUnderTheSourcesOwnDirectoryWithAnHgtExtension() {
         // The DEM layer ranks sources by the digit in the directory name, so the label
         // is not a free choice.
-        XCTAssertEqual(CopernicusDEM.directoryName, "COP1")
-        let url = CopernicusDEM.cachedTile(lat: -34, lon: -71)
+        XCTAssertEqual(CopernicusDEM.glo30.directoryName, "COP1")
+        let url = CopernicusDEM.glo30.cachedTile(lat: -34, lon: -71)
         XCTAssertEqual(url.lastPathComponent, "S34W071.hgt")
         XCTAssertEqual(url.deletingLastPathComponent().lastPathComponent, "COP1")
     }
@@ -44,7 +34,7 @@ final class CopernicusDEMTests: XCTestCase {
     func testTheDownloadedTifLivesInTheCacheNotTheWorkArea() {
         // A rerun reads the tif cache to skip finished downloads, so it must sit outside
         // the per-build work directory that cleanup removes.
-        let tif = CopernicusDEM.downloadedTif(lat: 44, lon: 34)
+        let tif = CopernicusDEM.glo30.downloadedTif(lat: 44, lon: 34)
         XCTAssertEqual(tif.lastPathComponent, "N44E034.tif")
         XCTAssertTrue(
             tif.path.hasPrefix(Paths.cache.path),
@@ -54,28 +44,7 @@ final class CopernicusDEMTests: XCTestCase {
             tif.path.contains("/work/"),
             "a work path is deleted with the build, and the resume with it"
         )
-        XCTAssertEqual(CopernicusDEM.tifCacheDirectory.lastPathComponent, "copernicus-tif")
-    }
-
-    func testTheClipPolygonIsAClosedRectangleInOsmosisOrder() throws {
-        let url = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("kmap-clip-\(UUID().uuidString).poly")
-        defer { try? FileManager.default.removeItem(at: url) }
-        try CopernicusDEM.writeClipPolygon(
-            BBox(minLon: 5.5, minLat: 49.5, maxLon: 6.5, maxLat: 50.5),
-            to: url
-        )
-        let lines = try String(contentsOf: url, encoding: .utf8)
-            .split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
-        XCTAssertEqual(lines.first, "kmap-clip")
-        XCTAssertEqual(lines.filter { $0 == "END" }.count, 2)
-        let points = lines.filter { $0.contains(" ") && $0 != "kmap-clip" }
-        // Five points: four corners and the first again, or the ring is not closed and
-        // pyhgtmap contours the whole degree.
-        XCTAssertEqual(points.count, 5)
-        XCTAssertEqual(points.first, points.last)
-        XCTAssertTrue(points[0].hasPrefix("5.5 "), points[0])
-        XCTAssertTrue(points[2].hasPrefix("6.5 "), points[2])
+        XCTAssertEqual(CopernicusDEM.glo30.tifCacheDirectory.lastPathComponent, "copernicus-tif")
     }
 
     func testTheTwoResolutionsNeverShareAShelf() {
@@ -99,7 +68,7 @@ final class CopernicusDEMTests: XCTestCase {
                 + "Copernicus_DSM_COG_30_N62_00_W007_00_DEM.tif"
         )
         // And the 30 m spelling is untouched by the flavor split.
-        let old = try XCTUnwrap(CopernicusDEM.tileURL(lat: 44, lon: 34))
+        let old = try XCTUnwrap(CopernicusDEM.glo30.tileURL(lat: 44, lon: 34))
         XCTAssertTrue(old.absoluteString.contains("copernicus-dem-30m"))
         XCTAssertTrue(old.absoluteString.contains("COG_10_N44_00_E034_00"))
     }

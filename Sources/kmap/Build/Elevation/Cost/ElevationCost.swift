@@ -2,12 +2,12 @@ import Foundation
 
 /// What the elevation for a map will cost to download, before anything is downloaded.
 ///
-/// The cells are the very ones the build fetches — the regions' own boxes, trimmed to
-/// their outlines through `ElevationFootprint` — and the sources are costed as a chain,
+/// The cells are the very ones the build fetches, the regions' own boxes trimmed to
+/// their outlines through `ElevationFootprint`, and the sources are costed as a chain,
 /// each over what the ones listed before it leave behind, which is how the build fetches
-/// them. Copernicus publishes the list of every tile it holds, so which cells are open
-/// sea is read, not guessed; Viewfinder's coverage index names the exact zone archives.
-/// A small fetch has every file asked its size, and only a large one is sampled.
+/// them. A tiled source publishes the list of every tile it holds, so which cells are
+/// open sea is read, not guessed; Viewfinder's coverage index names the exact zone
+/// archives. A small fetch has every file asked its size, and only a large one is sampled.
 enum ElevationCost {
     /// What a source will cost, as far as it can be known.
     struct Estimate: Equatable {
@@ -58,11 +58,7 @@ enum ElevationCost {
             if let index = ViewfinderDEM.Index.load(ViewfinderDEM.indexFile(resolution)) {
                 return index
             }
-            return try? await ViewfinderDEM.index(
-                resolution,
-                downloader: Downloader(log: Log()),
-                log: { _ in }
-            )
+            return try? await ViewfinderDEM.index(resolution) { _ in }
         }
     }
 
@@ -98,7 +94,7 @@ enum ElevationCost {
 
     // MARK: The estimate
 
-    /// One line per source, in the order the list names them — which is the order the
+    /// 1 line per source, in the order the list names them, which is the order the
     /// build fetches them in, each source asked only for what the ones before it leave
     /// behind. The lines therefore add up rather than each repeating the whole map.
     static func estimate(sources: String, regions: [Region]) async -> [Estimate] {
@@ -113,10 +109,8 @@ enum ElevationCost {
         var out: [Estimate] = []
         // Cells an earlier source already holds or will fetch; nothing later pays for them.
         var covered = Set<String>()
-        for id in CopernicusDEM.canonicalSourceList(sources)
-            .split(separator: ",").map({ String($0).trimmingCharacters(in: .whitespaces) })
-        where !id.isEmpty {
-            out.append(await estimate(source: id, cells: wanted, covered: &covered))
+        for id in CopernicusDEM.canonicalSourceList(sources).split(separator: ",") {
+            out.append(await estimate(source: String(id), cells: wanted, covered: &covered))
         }
         return out
     }
@@ -133,30 +127,58 @@ enum ElevationCost {
             return await gedtmCost(gedtm, cells: cells, covered: &covered)
         }
         if source.hasPrefix("view"), let resolution = Int(source.dropFirst(4)) {
-            return await viewfinder(
-                resolution,
+            return await viewfinder(resolution, source: source, cells: cells, covered: &covered)
+        }
+        return Line(source: source, cells: cells.count, cached: 0, wanted: uncovered(cells, covered).count)
+            .unknown(note: t("behind a login, so its size is only known once it starts"))
+    }
+
+    /// What every line of a source says alike; the rest is how the count came out.
+    private struct Line {
+        let source: String
+        let cells: Int
+        let cached: Int
+        let wanted: Int
+
+        /// Nothing to pay for.
+        func free(note: String? = nil) -> Estimate {
+            measured(published: 0, bytes: 0, exact: true, note: note)
+        }
+
+        /// No figure at all.
+        func unknown(published: Int = 0, note: String) -> Estimate {
+            measured(published: published, bytes: nil, exact: false, note: note)
+        }
+
+        func measured(
+            published: Int,
+            bytes: Int64?,
+            exact: Bool,
+            sampled: Int = 0,
+            archives: Int = 0,
+            note: String? = nil
+        ) -> Estimate {
+            Estimate(
                 source: source,
                 cells: cells,
-                covered: &covered
+                cached: cached,
+                wanted: wanted,
+                published: published,
+                bytes: bytes,
+                exact: exact,
+                sampled: sampled,
+                archives: archives,
+                note: note
             )
         }
-        let wanted = cells.filter { !covered.contains(name(of: $0)) }.count
-        return Estimate(
-            source: source,
-            cells: cells.count,
-            cached: 0,
-            wanted: wanted,
-            published: 0,
-            bytes: nil,
-            exact: false,
-            sampled: 0,
-            archives: 0,
-            note: t("behind a login, so its size is only known once it starts")
-        )
+    }
+
+    private static func uncovered(_ cells: [(lat: Int, lon: Int)], _ covered: Set<String>) -> [(lat: Int, lon: Int)] {
+        cells.filter { !covered.contains(name(of: $0)) }
     }
 
     private static func name(of cell: (lat: Int, lon: Int)) -> String {
-        CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+        HGTName.of(lat: cell.lat, lon: cell.lon)
     }
 
     // MARK: A GeoTIFF per degree
@@ -175,36 +197,19 @@ enum ElevationCost {
                 || FileTools.exists(flavor.downloadedTif(lat: $0.lat, lon: $0.lon))
         }
         covered.formUnion(cached.map(name(of:)))
-        let toFetch = cells.filter { !covered.contains(name(of: $0)) }
-        guard !toFetch.isEmpty else {
-            return Estimate(
-                source: flavor.sourceID,
-                cells: cells.count,
-                cached: cached.count,
-                wanted: 0,
-                published: 0,
-                bytes: 0,
-                exact: true,
-                sampled: 0,
-                archives: 0,
-                note: nil
-            )
-        }
+        let toFetch = uncovered(cells, covered)
+        let line = Line(source: flavor.sourceID, cells: cells.count, cached: cached.count, wanted: toFetch.count)
+        guard !toFetch.isEmpty else { return line.free() }
 
         guard let available = await tileCoverage(flavor) else {
-            // The list did not answer: sampled blind over every wanted cell, with the
-            // absent ones counted as the zero they cost, as the estimate always used to.
+            // The list did not answer: sampled blind over every wanted cell, an absent
+            // one counting as the 0 it costs.
             let (bytes, sampled) = await blindSample(toFetch, flavor: flavor)
-            return Estimate(
-                source: flavor.sourceID,
-                cells: cells.count,
-                cached: cached.count,
-                wanted: toFetch.count,
+            return line.measured(
                 published: toFetch.count,
                 bytes: bytes,
                 exact: false,
                 sampled: sampled,
-                archives: 0,
                 note: bytes == nil
                     ? t("the source did not answer, so this is unmeasured")
                     : t("coverage list unavailable — a sampled guess")
@@ -217,50 +222,30 @@ enum ElevationCost {
             .sorted { $0.lat < $1.lat }
         covered.formUnion(published.map(name(of:)))
         guard !published.isEmpty else {
-            return Estimate(
-                source: flavor.sourceID,
-                cells: cells.count,
-                cached: cached.count,
-                wanted: toFetch.count,
-                published: 0,
-                bytes: 0,
-                exact: true,
-                sampled: 0,
-                archives: 0,
-                note: tn(
-                    "the %d cell(s) left are open sea or unsurveyed"
-                        + " — nothing to fetch",
-                    toFetch.count
-                )
+            return line.free(
+                note: tn("the %d cell(s) left are open sea or unsurveyed — nothing to fetch", toFetch.count)
             )
         }
         let urls = published.compactMap { flavor.tileURL(lat: $0.lat, lon: $0.lon) }
         let (bytes, sampled, exact) = await size(of: urls)
-        return Estimate(
-            source: flavor.sourceID,
-            cells: cells.count,
-            cached: cached.count,
-            wanted: toFetch.count,
+        return line.measured(
             published: published.count,
             bytes: bytes,
             exact: exact,
             sampled: sampled,
-            archives: 0,
-            note: bytes == nil
-                ? t("the source did not answer, so this is unmeasured") : nil
+            note: bytes == nil ? t("the source did not answer, so this is unmeasured") : nil
         )
     }
 
-    /// The old way, kept for when the tile list cannot be had: a few probes spread
-    /// across the map, an absent object counting as the zero it costs.
+    /// For when the tile list cannot be had: a few probes spread across the map, an
+    /// absent object counting as the 0 it costs.
     private static func blindSample(
         _ cells: [(lat: Int, lon: Int)],
         flavor: any DEMTileSource
     ) async -> (Int64?, Int) {
         let step = max(1, cells.count / sampleSize)
         var sizes: [Int64] = []
-        for index in stride(from: 0, to: cells.count, by: step)
-        where sizes.count < sampleSize {
+        for index in stride(from: 0, to: cells.count, by: step) where sizes.count < sampleSize {
             let cell = cells[index]
             guard let url = flavor.tileURL(lat: cell.lat, lon: cell.lon) else { continue }
             do {
@@ -288,24 +273,9 @@ enum ElevationCost {
         let cached = cells.filter { FileTools.exists(source.cachedTile(lat: $0.lat, lon: $0.lon)) }
         covered.formUnion(cached.map(name(of:)))
         // Sea or outside the raster: free here, open to later sources.
-        let toFetch = cells.filter {
-            !covered.contains(name(of: $0)) && !source.holdsNothing(lat: $0.lat, lon: $0.lon)
-        }
-        func estimate(published: Int, bytes: Int64?, note: String?) -> Estimate {
-            Estimate(
-                source: source.sourceID,
-                cells: cells.count,
-                cached: cached.count,
-                wanted: toFetch.count,
-                published: published,
-                bytes: bytes,
-                exact: bytes != nil,
-                sampled: 0,
-                archives: 0,
-                note: note
-            )
-        }
-        guard !toFetch.isEmpty else { return estimate(published: 0, bytes: 0, note: nil) }
+        let toFetch = uncovered(cells, covered).filter { !source.holdsNothing(lat: $0.lat, lon: $0.lon) }
+        let line = Line(source: source.sourceID, cells: cells.count, cached: cached.count, wanted: toFetch.count)
+        guard !toFetch.isEmpty else { return line.free() }
         do {
             let read = gedtmRead(source)
             let layout = try await GEDTM30.parsing { try await GEDTM30.layout(read: read) }
@@ -319,9 +289,7 @@ enum ElevationCost {
             }
             covered.formUnion(published.map(name(of:)))
             guard !published.isEmpty else {
-                return estimate(
-                    published: 0,
-                    bytes: 0,
+                return line.free(
                     note: tn("the %d cell(s) left are open sea or unsurveyed — nothing to fetch", toFetch.count)
                 )
             }
@@ -329,11 +297,10 @@ enum ElevationCost {
             let spans = try await GEDTM30.parsing { try await GEDTM30.spans(of: under, in: layout, read: read) }
             let bytes = spans.filter { !FileTools.exists(source.chunk($0.value)) }
                 .reduce(Int64(0)) { $0 + Int64($1.value.count) }
-            return estimate(published: published.count, bytes: bytes, note: nil)
+            return line.measured(published: published.count, bytes: bytes, exact: true)
         } catch {
-            return estimate(
+            return line.unknown(
                 published: toFetch.count,
-                bytes: nil,
                 note: t("the source did not answer, so this is unmeasured")
             )
         }
@@ -341,7 +308,7 @@ enum ElevationCost {
 
     // MARK: Viewfinder
 
-    /// Viewfinder publishes zones, not degrees: one archive can hold sixty tiles, so the
+    /// Viewfinder publishes zones, not degrees: 1 archive can hold 60 tiles, so the
     /// cost is the sum of the zone archives touched. Which zone holds which degree is the
     /// coverage index, fetched when it is not already cached.
     private static func viewfinder(
@@ -357,33 +324,12 @@ enum ElevationCost {
             )
         }
         covered.formUnion(complete.map(name(of:)))
-        let toFetch = cells.filter { !covered.contains(name(of: $0)) }
-        guard !toFetch.isEmpty else {
-            return Estimate(
-                source: source,
-                cells: cells.count,
-                cached: complete.count,
-                wanted: 0,
-                published: 0,
-                bytes: 0,
-                exact: true,
-                sampled: 0,
-                archives: 0,
-                note: nil
-            )
-        }
+        let toFetch = uncovered(cells, covered)
+        let line = Line(source: source, cells: cells.count, cached: complete.count, wanted: toFetch.count)
+        guard !toFetch.isEmpty else { return line.free() }
 
         guard let index = await viewfinderIndex(resolution) else {
-            return Estimate(
-                source: source,
-                cells: cells.count,
-                cached: complete.count,
-                wanted: toFetch.count,
-                published: 0,
-                bytes: nil,
-                exact: false,
-                sampled: 0,
-                archives: 0,
+            return line.unknown(
                 note: t(
                     "the coverage map could not be read, so which archives"
                         + " this needs is not known"
@@ -391,8 +337,8 @@ enum ElevationCost {
             )
         }
 
-        // One archive per zone however many of its tiles are wanted; a cell no zone
-        // claims is unpublished — the far north and the open sea — and costs nothing.
+        // 1 archive per zone however many of its tiles are wanted; a cell no zone
+        // claims is unpublished, the far north and the open sea, and costs nothing.
         var zones: [String] = []
         var seen = Set<String>()
         var published: [(lat: Int, lon: Int)] = []
@@ -402,29 +348,12 @@ enum ElevationCost {
             if seen.insert(zone).inserted { zones.append(zone) }
         }
         covered.formUnion(published.map(name(of:)))
-        guard !zones.isEmpty else {
-            return Estimate(
-                source: source,
-                cells: cells.count,
-                cached: complete.count,
-                wanted: toFetch.count,
-                published: 0,
-                bytes: 0,
-                exact: true,
-                sampled: 0,
-                archives: 0,
-                note: t("no archive covers this ground")
-            )
-        }
+        guard !zones.isEmpty else { return line.free(note: t("no archive covers this ground")) }
 
         let urls = zones.compactMap { URL(string: $0) }
             .filter { $0.scheme?.hasPrefix("http") == true }
         let (bytes, sampled, exact) = await size(of: urls)
-        return Estimate(
-            source: source,
-            cells: cells.count,
-            cached: complete.count,
-            wanted: toFetch.count,
+        return line.measured(
             published: published.count,
             bytes: bytes,
             exact: exact,
@@ -444,12 +373,7 @@ enum ElevationCost {
 
     /// The size of a set of files: every one asked when the set is small enough, a
     /// spread sample otherwise, a few probes in flight at a time.
-    private static func size(
-        of urls: [URL]
-    ) async -> (
-        bytes: Int64?, sampled: Int,
-        exact: Bool
-    ) {
+    private static func size(of urls: [URL]) async -> (bytes: Int64?, sampled: Int, exact: Bool) {
         guard !urls.isEmpty else { return (0, 0, true) }
         let askAll = urls.count <= exactLimit
         var picked: [URL] = []
@@ -457,8 +381,7 @@ enum ElevationCost {
             picked = urls
         } else {
             let step = max(1, urls.count / sampleSize)
-            for index in stride(from: 0, to: urls.count, by: step)
-            where picked.count < sampleSize {
+            for index in stride(from: 0, to: urls.count, by: step) where picked.count < sampleSize {
                 picked.append(urls[index])
             }
         }

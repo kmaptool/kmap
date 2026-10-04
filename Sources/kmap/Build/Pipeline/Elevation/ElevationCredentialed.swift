@@ -16,21 +16,21 @@ extension BuildPipeline {
             guard FileTools.exists(directory) else { continue }
             let mosaic = HGTConversion.Mosaic { lat, lon in
                 let file = directory.appendingPathComponent(
-                    "\(CopernicusDEM.cellName(lat: lat, lon: lon)).tif"
+                    "\(HGTName.of(lat: lat, lon: lon)).tif"
                 )
                 return FileTools.exists(file) ? file : nil
             }
             // Cells convert independently and the shared mosaic is locked, so the
             // conversion spreads across every core.
             let wanted = elevationCells().filter { cell in
-                let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+                let name = HGTName.of(lat: cell.lat, lon: cell.lon)
                 return FileTools.exists(directory.appendingPathComponent("\(name).tif"))
                     && !FileTools.exists(directory.appendingPathComponent("\(name).hgt"))
             }
             let made = Counter()
             DispatchQueue.concurrentPerform(iterations: wanted.count) { index in
                 let cell = wanted[index]
-                let name = CopernicusDEM.cellName(lat: cell.lat, lon: cell.lon)
+                let name = HGTName.of(lat: cell.lat, lon: cell.lon)
                 let destination = directory.appendingPathComponent("\(name).hgt")
                 do {
                     try HGTConversion.write(cell: cell, from: mosaic, to: destination)
