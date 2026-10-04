@@ -97,7 +97,17 @@ final class JavaDownloadTests: XCTestCase {
 
     func testAnEmptyListingIsAnError() throws {
         XCTAssertThrowsError(try JavaDownload.release(fromAssets: try data([]))) { error in
-            XCTAssertEqual(error as? JavaDownload.Trouble, .noRelease)
+            XCTAssertEqual(error as? JavaDownload.Trouble, .noRelease(JavaDownload.features[0]))
+        }
+    }
+
+    func testATroubleIsDescribedInWordsAndNamesTheJavaAskedFor() {
+        // Asked the way the fallback log asks: not "error 1".
+        let missing = JavaDownload.Trouble.noRelease(25) as Error
+        XCTAssertTrue(missing.localizedDescription.contains("25"), missing.localizedDescription)
+        XCTAssertFalse(missing.localizedDescription.contains("error 1"), missing.localizedDescription)
+        XCTAssertThrowsError(try JavaDownload.release(fromAssets: try data([]), feature: 21)) { error in
+            XCTAssertEqual(error as? JavaDownload.Trouble, .noRelease(21))
         }
     }
 

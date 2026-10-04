@@ -156,14 +156,15 @@ extension Toolchain {
     ) async throws {
         guard JavaDownload.isAvailable() else { throw JavaDownload.Trouble.unsupportedMachine }
         // The newest release first, an older one where that cannot be had or does not run.
-        var failure: Error = JavaDownload.Trouble.noRelease
+        var failure: Error = JavaDownload.Trouble.noRelease(JavaDownload.features[0])
         for (at, feature) in JavaDownload.features.enumerated() {
             do {
                 try await installOwnJava(feature: feature, log: log, runner: runner, progress: progress)
                 return
-            } catch is CancellationError {
-                throw CancellationError()
             } catch {
+                // A stop arrives as whatever the download or the unpacking was doing: it
+                // ends the install rather than trying an older Java.
+                if error is CancellationError || Task.isCancelled { throw CancellationError() }
                 failure = error
                 if at + 1 < JavaDownload.features.count {
                     log.append(
@@ -191,7 +192,7 @@ extension Toolchain {
         var request = URLRequest(url: assets)
         request.setValue("kmap/\(Version.number)", forHTTPHeaderField: "User-Agent")
         let (listing, _) = try await URLSession.shared.data(for: request)
-        let release = try JavaDownload.release(fromAssets: listing)
+        let release = try JavaDownload.release(fromAssets: listing, feature: feature)
         log.append(t("%1$@ — %2$@", release.name, Fmt.bytes(Int64(release.bytes))))
 
         Paths.ensure(Paths.tools)

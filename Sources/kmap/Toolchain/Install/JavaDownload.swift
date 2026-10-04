@@ -81,9 +81,10 @@ enum JavaDownload {
         let bytes: Int
     }
 
-    enum Trouble: Error, Equatable, CustomStringConvertible {
+    enum Trouble: Error, Equatable, CustomStringConvertible, LocalizedError {
         case unsupportedMachine
-        case noRelease
+        /// No build of this feature release.
+        case noRelease(Int)
         case badChecksum(expected: String, got: String)
         case noJavaInside
 
@@ -91,11 +92,8 @@ enum JavaDownload {
             switch self {
             case .unsupportedMachine:
                 return t("no Java build is published for this kind of machine")
-            case .noRelease:
-                return t(
-                    "Adoptium listed no Java %d build for this machine",
-                    JavaDownload.features[JavaDownload.features.count - 1]
-                )
+            case .noRelease(let feature):
+                return t("Adoptium listed no Java %d build for this machine", feature)
             case .badChecksum(let expected, let got):
                 return t(
                     "the download does not match its published checksum"
@@ -107,6 +105,9 @@ enum JavaDownload {
                 return t("the downloaded archive holds no java")
             }
         }
+
+        /// The same words wherever an error is asked for its description.
+        var errorDescription: String? { description }
     }
 
     /// Reads the release out of what the API answered.
@@ -114,7 +115,7 @@ enum JavaDownload {
     /// The API returns a list, newest first, and kmap takes the first entry that carries a
     /// package with a checksum: a build published without one cannot be checked, so it is
     /// not used.
-    static func release(fromAssets data: Data) throws -> Release {
+    static func release(fromAssets data: Data, feature: Int = JavaDownload.features[0]) throws -> Release {
         let listed = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         for entry in listed ?? [] {
             guard let binary = entry["binary"] as? [String: Any],
@@ -134,7 +135,7 @@ enum JavaDownload {
                 bytes: bytes
             )
         }
-        throw Trouble.noRelease
+        throw Trouble.noRelease(feature)
     }
 
     // MARK: Where it lands
