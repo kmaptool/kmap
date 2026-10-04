@@ -102,6 +102,31 @@ final class DEMStagingTests: XCTestCase {
         )
     }
 
+    /// A source with nothing left to fill says so in the detailed log only, and asks the
+    /// network nothing.
+    func testASourceWithNothingLeftSpeaksOnlyInTheDetailedLog() throws {
+        try plant("COP1", ["N44E034", "N44E035", "N45E034", "N45E035"])
+        var recipe = pipeline.recipe
+        recipe.demSources = "copernicus1,fabdem1"
+        let settings = SettingsStore()
+        let toolchain = Toolchain(settings: settings)
+        // Detail kept, as the build screen keeps it for its detailed view.
+        let chained = BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain),
+            showing: .debug
+        )
+        let fabdem = try XCTUnwrap(DEMSources.tiled("fabdem1"))
+        let bbox = recipe.region.bbox
+        try blocking { try await chained.fetchDEMTiles(fabdem, covering: bbox, last: false) }
+
+        let said = chained.log.snapshot()
+        XCTAssertEqual(said.filter { $0.text.hasPrefix("nothing left") }.map(\.severity), [.debug])
+        XCTAssertEqual(said.filter { $0.severity > .debug }.map(\.text), [])
+    }
+
     func testACreditedSourceTheMapDoesNotNameFillsNothing() throws {
         // FABDEM's licence asks for credit, and only named sources are credited.
         try plant("COP1", ["N44E034"])

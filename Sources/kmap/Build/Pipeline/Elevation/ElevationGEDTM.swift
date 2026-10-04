@@ -10,19 +10,20 @@ extension BuildPipeline {
         let all = elevationCells()
         let earlier = earlierSourceDirectories(before: source.sourceID)
         let wanted = all.filter { !cellSettledEarlier(earlier, lat: $0.lat, lon: $0.lon) }
+        // A source with nothing to do says so only in the detailed log.
+        guard !wanted.isEmpty else {
+            log.debug("nothing left for \(source.sourceID) — every cell is already held")
+            return
+        }
         if wanted.count < all.count {
             log.append(
                 "\(all.count - wanted.count) cell(s) already held by an earlier"
                     + " source — this one fills the \(wanted.count) left"
             )
         }
-        guard !wanted.isEmpty else {
-            log.append("nothing left for \(source.sourceID) — every cell is already held")
-            return
-        }
         let unconverted = wanted.filter { !source.isDone(lat: $0.lat, lon: $0.lon) }
         guard !unconverted.isEmpty else {
-            log.append("all \(wanted.count) \(source.label) cell(s) already done")
+            log.debug("all \(wanted.count) \(source.label) cell(s) already done")
             return
         }
 

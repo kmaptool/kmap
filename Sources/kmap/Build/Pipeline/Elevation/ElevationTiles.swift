@@ -21,22 +21,23 @@ extension BuildPipeline {
         let all = elevationCells()
         let earlier = earlierSourceDirectories(before: flavor.sourceID)
         let wanted = all.filter { !cellSettledEarlier(earlier, lat: $0.lat, lon: $0.lon) }
+        // A source with nothing to do says so only in the detailed log.
+        guard !wanted.isEmpty else {
+            log.debug("nothing left for \(flavor.sourceID) — every cell is already held")
+            return
+        }
         if wanted.count < all.count {
             log.append(
                 "\(all.count - wanted.count) cell(s) already held by an earlier"
                     + " source — this one fills the \(wanted.count) left"
             )
         }
-        guard !wanted.isEmpty else {
-            log.append("nothing left for \(flavor.sourceID) — every cell is already held")
-            return
-        }
 
         // Three cell states: a finished .hgt needs nothing, a cached .tif skips straight
         // to conversion, and only the rest go over the network.
         let unconverted = wanted.filter { !FileTools.exists(flavor.cachedTile(lat: $0.lat, lon: $0.lon)) }
         guard !unconverted.isEmpty else {
-            log.append("all \(wanted.count) \(flavor.label) tile(s) already converted")
+            log.debug("all \(wanted.count) \(flavor.label) tile(s) already converted")
             return
         }
         let scratch = flavor.tifCacheDirectory

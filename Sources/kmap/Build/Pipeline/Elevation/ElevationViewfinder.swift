@@ -19,16 +19,17 @@ extension BuildPipeline {
         let cells = all.filter { name in
             !earlier.contains { FileTools.exists($0.appendingPathComponent("\(name).hgt")) }
         }
+        // A source with nothing to do says so only in the detailed log.
+        guard !cells.isEmpty else {
+            log.debug("nothing left for Viewfinder — every cell is already held")
+            if last { elevationDownloadsFinished() }
+            return
+        }
         if cells.count < all.count {
             log.append(
                 "\(all.count - cells.count) cell(s) already held by an earlier"
                     + " source — Viewfinder fills the \(cells.count) left"
             )
-        }
-        guard !cells.isEmpty else {
-            log.append("nothing left for Viewfinder — every cell is already held")
-            if last { elevationDownloadsFinished() }
-            return
         }
         let downloader = Downloader(log: log)
         let runner = makeRunner()
