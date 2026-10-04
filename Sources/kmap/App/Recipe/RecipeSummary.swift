@@ -185,6 +185,15 @@ struct RecipeSummaryPanel {
         {
             notes.append((t("code page 1252 cannot hold Cyrillic — set 1251 if the names here are in it"), theme.warn))
         }
+        if recipe.repairsRoadsBlind {
+            notes.append(
+                (
+                    t(
+                        "road ends are repaired without elevation data — a drop between them may go unseen. Turning the DEM layer on is recommended"
+                    ), theme.warn
+                )
+            )
+        }
         if form.isModified, form.currentProfile != nil {
             notes.append(
                 (

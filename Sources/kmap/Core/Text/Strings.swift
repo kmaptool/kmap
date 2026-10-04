@@ -731,6 +731,8 @@ enum Strings {
         "no DEM": "без DEM",
         "no TYP": "без TYP",
         "no TYP — the device picks the colours": "без TYP — цвета выбирает прибор",
+        "road ends are repaired without elevation data — a drop between them may go unseen. Turning the DEM layer on is recommended":
+            "концы дорог чинятся без данных высот — перепад между ними может остаться незамеченным. Рекомендуется включить слой DEM",
         "no bounding box known for %@, so elevation data cannot be fetched":
             "для %@ неизвестна рамка, поэтому данные высот не скачать",
         "no contour data was produced for %@ — the elevation source may not cover it":

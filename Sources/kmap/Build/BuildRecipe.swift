@@ -181,4 +181,8 @@ struct BuildRecipe {
 
     /// Needs elevation data on disk, for either purpose.
     var needsElevationData: Bool { contours || demLayer }
+
+    /// Road ends are repaired with no elevation fetched, so the ground between them goes
+    /// unchecked unless the cache happens to hold it.
+    var repairsRoadsBlind: Bool { routable && healRoadEnds && !needsElevationData }
 }

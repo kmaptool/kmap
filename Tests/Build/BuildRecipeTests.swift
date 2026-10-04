@@ -51,6 +51,20 @@ final class BuildRecipeTests: RecipeTestCase {
         XCTAssertTrue(made.needsElevationData)
     }
 
+    func testRoadsAreRepairedBlindOnlyWithNoElevationAtAll() {
+        var made = recipe([region("a", "A")])
+        made.routable = true; made.healRoadEnds = true
+        made.contours = false; made.demLayer = false
+        XCTAssertTrue(made.repairsRoadsBlind)
+        // Contours fetch the same tiles the repair reads.
+        made.contours = true
+        XCTAssertFalse(made.repairsRoadsBlind)
+        made.contours = false; made.healRoadEnds = false
+        XCTAssertFalse(made.repairsRoadsBlind)
+        made.healRoadEnds = true; made.routable = false
+        XCTAssertFalse(made.repairsRoadsBlind)
+    }
+
     // MARK: Where a description is put
 
     func testEachDescriptionCarrierNamesTheTagMkgmapWritesItTo() {
