@@ -410,6 +410,57 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertEqual(table.sets.count, 1)
     }
 
+    // MARK: Ring nodes
+
+    func testANodeTwiceInOneFileTakesItsLastPlaceEveryTime() throws {
+        // 2 blocks of 1 file, both holding node 7, which the readers may meet in either
+        // order: as before they filled the table themselves, the later copy stands.
+        let url = path("twice.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        writer.nodes([PBFWriter.Node(id: 7, lat: 1, lon: 1, tags: []), PBFWriter.Node(id: 8, lat: 1, lon: 1, tags: [])])
+        writer.nodes([PBFWriter.Node(id: 7, lat: 2, lon: 2, tags: [])])
+        try writer.finish()
+        for _ in 0..<20 {
+            let coords = try splitter(inputs: [url]).ringCoordinates([7, 8])
+            XCTAssertEqual(coords[7]?.lat, TileSplitter.mapUnits(2))
+            XCTAssertEqual(coords[7]?.lon, TileSplitter.mapUnits(2))
+            XCTAssertEqual(coords[8]?.lat, TileSplitter.mapUnits(1))
+        }
+    }
+
+    func testOverlappingFilesKeepTheEarlierFilesPlace() throws {
+        func file(_ name: String, _ blocks: [[(Int64, Double)]]) throws -> URL {
+            let url = path(name)
+            let writer = try PBFWriter(to: url)
+            writer.header()
+            for block in blocks {
+                writer.nodes(block.map { PBFWriter.Node(id: $0.0, lat: $0.1, lon: $0.1, tags: []) })
+            }
+            try writer.finish()
+            return url
+        }
+        let first = try file("first.osm.pbf", [[(7, 1)]])
+        // The second holds node 7 twice itself: read again in order, the first copy of
+        // it would stand, but the earlier file's stands over both.
+        let second = try file("second.osm.pbf", [[(7, 3), (9, 3)], [(7, 4), (9, 5)]])
+        let coords = try splitter(inputs: [first, second]).ringCoordinates([7, 9])
+        XCTAssertEqual(coords[7]?.lat, TileSplitter.mapUnits(1))
+        XCTAssertEqual(coords[9]?.lat, TileSplitter.mapUnits(3))
+    }
+
+    private func splitter(inputs: [URL]) -> TileSplitter {
+        TileSplitter(
+            options: .init(
+                inputs: inputs,
+                outputDirectory: directory,
+                mapID: 63050001,
+                maxNodes: 1_000_000,
+                description: "test"
+            )
+        ) { _ in }
+    }
+
     // MARK: Runs handed to the writers
 
     func testARunHandedOnCarriesNoRoomSizedForAnotherTile() {

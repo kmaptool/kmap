@@ -198,16 +198,34 @@ extension TileSplitter {
         }
         let wanted = IDSort.unique(of: runs)
         s.wantedNodes = WantedIDs(sorted: wanted)
+        s.coords = try ringCoordinates(wanted)
+    }
+
+    /// Where every node of `wanted`, sorted and each once, is in the inputs. Every reader
+    /// writes what it finds into the table itself. A node repeats between files, which are
+    /// read 1 after another, so the first stands.
+    func ringCoordinates(_ wanted: [Int64]) throws -> RingCoords {
         let coords = RingCoords(ids: wanted)
-        s.coords = coords
-        let wantedNodes = s.wantedNodes
-        // Every reader writes what it finds into the table itself. A node repeats only
-        // between files, and they are read 1 after another, so the first stands.
-        if !wantedNodes.isEmpty {
-            for input in options.inputs {
-                _ = try reader(input).readConcurrently { NodeCoords(wanted: wantedNodes, coords: coords) }
+        guard !wanted.isEmpty else { return coords }
+        precondition(options.inputs.count <= RingCoords.fileLimit, "too many files to split at once")
+        let wantedNodes = WantedIDs(sorted: wanted)
+        let lastStands = options.inputs.count == 1
+        for (file, input) in options.inputs.enumerated() {
+            _ = try reader(input).readConcurrently {
+                NodeCoords(wanted: wantedNodes, coords: coords, file: file)
+            }
+            // A file holding a node twice at 2 places, read again in order: then the copy
+            // that stands does not depend on which reader came first.
+            guard coords.takeConflict() else { continue }
+            coords.forget(file: file)
+            try reader(input).readInOrder(make: { NodeCoordsInOrder(wanted: wantedNodes) }) { part in
+                for node in part.found {
+                    coords.settle(node.lat, node.lon, at: node.rank, file: file, lastStands: lastStands)
+                }
+                part.found.removeAll(keepingCapacity: true)
             }
         }
+        return coords
     }
 
     /// Claims tiles for the fill relations: closed rings claim every tile they enclose,

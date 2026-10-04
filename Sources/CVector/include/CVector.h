@@ -5,6 +5,7 @@
 // misses a header added to it and the build fails until the cache is cleared; a new
 // header goes in here, and the edit makes every cache rebuild the module.
 
+#include "atomic_slot.h"
 #include "elevation_rows.h"
 #include "float_predictor.h"
 #include "packed_varint.h"

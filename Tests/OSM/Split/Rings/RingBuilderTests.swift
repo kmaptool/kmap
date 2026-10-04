@@ -158,6 +158,54 @@ final class RingBuilderTests: XCTestCase {
         XCTAssertNil(TileSplitter.RingCoords(ids: [])[5])
     }
 
+    func testAPlaceAndItsFileFitOneWordAtTheEdgesOfTheMap() {
+        let edge: Int32 = 1 << 23
+        for (lat, lon, file) in [(edge, -edge, 0), (-edge, edge, TileSplitter.RingCoords.fileLimit), (0, 0, 3)] {
+            let word = TileSplitter.RingCoords.pack(lat, lon, file: file)
+            XCTAssertNotEqual(word, 0, "0 is a free slot")
+            let back = TileSplitter.RingCoords.unpack(word)
+            XCTAssertEqual(back.lat, lat)
+            XCTAssertEqual(back.lon, lon)
+            XCTAssertEqual(back.file, file)
+        }
+    }
+
+    func testAnEarlierFileStandsAndOnlyTheSameFileConflicts() {
+        let table = TileSplitter.RingCoords(ids: [5, 9])
+        table.put(1, 2, at: 1, file: 0)
+        // Another file at another place: overlapping extracts, the earlier one stands.
+        table.put(7, 8, at: 1, file: 1)
+        XCTAssertFalse(table.takeConflict())
+        // The same file at the same place: nothing to decide.
+        table.put(1, 2, at: 1, file: 0)
+        XCTAssertFalse(table.takeConflict())
+        XCTAssertEqual(table[9]?.lat, 1)
+        // The same file at another place: which copy stands would depend on the readers.
+        table.put(3, 4, at: 1, file: 0)
+        XCTAssertTrue(table.takeConflict())
+        XCTAssertFalse(table.takeConflict(), "asked once")
+    }
+
+    func testAFileReadAgainSettlesAsOneReaderInOrderDid() {
+        let table = TileSplitter.RingCoords(ids: [5, 9])
+        table.put(1, 1, at: 0, file: 0)
+        table.put(2, 2, at: 1, file: 1)
+        table.forget(file: 1)
+        XCTAssertNil(table[9], "the file's own places are gone")
+        XCTAssertEqual(table[5]?.lat, 1, "another file's stay")
+        // 1 input: the last copy in the file stands.
+        table.settle(3, 3, at: 1, file: 1, lastStands: true)
+        table.settle(4, 4, at: 1, file: 1, lastStands: true)
+        XCTAssertEqual(table[9]?.lat, 4)
+        // Several: the first stands, and an earlier file's place is never replaced.
+        table.forget(file: 1)
+        table.settle(3, 3, at: 1, file: 1, lastStands: false)
+        table.settle(4, 4, at: 1, file: 1, lastStands: false)
+        table.settle(6, 6, at: 0, file: 1, lastStands: false)
+        XCTAssertEqual(table[9]?.lat, 3)
+        XCTAssertEqual(table[5]?.lat, 1)
+    }
+
     func testTheWantedIDsSayWhereAnIDStands() {
         var wanted = TileSplitter.WantedIDs(sorted: [3, 8, 20, 21])
         XCTAssertNil(wanted.rank(of: 1))
