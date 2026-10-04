@@ -20,6 +20,8 @@ extension Toolchain {
         let splitter = "uk/me/parabola/mkgmap/build/MapSplitter.java"
         let remover = "uk/me/parabola/mkgmap/reader/osm/UnusedElementsRemoverHook.java"
         let preparer = "uk/me/parabola/imgfmt/app/trergn/LinePreparer.java"
+        let heights = "uk/me/parabola/mkgmap/reader/hgt/HGTConverter.java"
+        let heightFile = "uk/me/parabola/mkgmap/reader/hgt/HGTReader.java"
 
         let edits: [(String, String, String)] = [
             // mkgmap tries a few bases for a line's deltas and writes the whole stream for
@@ -715,6 +717,81 @@ extension Toolchain {
                 remover,
                 "\t\t\t\tif (bbox.contains(c)) {",
                 "\t\t\t\tif (wayBox.contains(c)) {"
+            ),
+            // A DEM point is weighed from the 16 heights around it, which mkgmap reads 1
+            // call at a time into a 4 x 4 array and then walks. Nearly always all 16 are in
+            // 1 file: they are read and weighed in 1 step there, the same arithmetic in the
+            // same order, so the DEM comes out the same bytes.
+            (
+                heights,
+                "\t\t\tboolean filled = fillArray(rdr, row, col, xLeft, yBottom);\n"
+                    + "\t\t\tif (filled) {\n"
+                    + "\t\t\t\th = (short) Math.round(bicubicInterpolation(eleArray, qx, qy));\n"
+                    + "\t\t\t\tstatBicubic++;\n"
+                    + "\t\t\t}\n",
+                """
+                \t\t\tif (xLeft > 0 && xLeft < resX - 1 && yBottom > 0 && yBottom < resY - 1) {
+                \t\t\t\tdouble v = rdr.kmapBicubic(xLeft, yBottom, qx, qy);
+                \t\t\t\tif (!Double.isNaN(v)) {
+                \t\t\t\t\th = (short) Math.round(v);
+                \t\t\t\t\tstatBicubic++;
+                \t\t\t\t}
+                \t\t\t} else {
+                \t\t\t\tboolean filled = fillArray(rdr, row, col, xLeft, yBottom);
+                \t\t\t\tif (filled) {
+                \t\t\t\t\th = (short) Math.round(bicubicInterpolation(eleArray, qx, qy));
+                \t\t\t\t\tstatBicubic++;
+                \t\t\t\t}
+                \t\t\t}
+
+                """
+            ),
+            (
+                heightFile,
+                "\t/**\n\t * @return the resolution to use with this file, -1 is return if file is invalid\n\t */",
+                """
+                \t/**
+                \t * kmap: the bicubic height at (xLeft + qx, yBottom + qy) from the 16 values around
+                \t * it, all of which the caller knows to lie in this file. NaN if any is undefined.
+                \t * The arithmetic is HGTConverter.bicubicInterpolation's, term for term.
+                \t */
+                \tpublic double kmapBicubic(int xLeft, int yBottom, double qx, double qy) {
+                \t\tif (!read && path != null) {
+                \t\t\tprepRead();
+                \t\t}
+                \t\tfinal ByteBuffer b = buffer;
+                \t\tif (b == null)
+                \t\t\treturn 0.0;
+                \t\tcount += 16;
+                \t\tfinal int w = numPixelsX;
+                \t\t// the row of yBottom - 1; each row above it in y is w values earlier in the file
+                \t\tfinal int r0 = (numPixelsY - yBottom) * w + xLeft - 1;
+                \t\tfinal int r1 = r0 - w, r2 = r1 - w, r3 = r2 - w;
+                \t\tdouble a0 = kmapColumn(b, r0, r1, r2, r3, 0, qy);
+                \t\tdouble a1 = kmapColumn(b, r0, r1, r2, r3, 1, qy);
+                \t\tdouble a2 = kmapColumn(b, r0, r1, r2, r3, 2, qy);
+                \t\tdouble a3 = kmapColumn(b, r0, r1, r2, r3, 3, qy);
+                \t\tif (Double.isNaN(a0) || Double.isNaN(a1) || Double.isNaN(a2) || Double.isNaN(a3))
+                \t\t\treturn Double.NaN;
+                \t\treturn kmapCubic(a0, a1, a2, a3, qx);
+                \t}
+
+                \tprivate static double kmapColumn(ByteBuffer b, int r0, int r1, int r2, int r3, int x, double qy) {
+                \t\tshort p0 = b.getShort(2 * (r0 + x)), p1 = b.getShort(2 * (r1 + x));
+                \t\tshort p2 = b.getShort(2 * (r2 + x)), p3 = b.getShort(2 * (r3 + x));
+                \t\tif (p0 == UNDEF || p1 == UNDEF || p2 == UNDEF || p3 == UNDEF)
+                \t\t\treturn Double.NaN;
+                \t\treturn kmapCubic(p0, p1, p2, p3, qy);
+                \t}
+
+                \tprivate static double kmapCubic(double p0, double p1, double p2, double p3, double qx) {
+                \t\treturn p1 + 0.5 * qx*(p2 - p0 + qx*(2.0*p0 - 5.0*p1 + 4.0*p2 - p3 + qx*(3.0*(p1 - p2) + p3 - p0)));
+                \t}
+
+                \t/**
+                \t * @return the resolution to use with this file, -1 is return if file is invalid
+                \t */
+                """
             )
         ]
 

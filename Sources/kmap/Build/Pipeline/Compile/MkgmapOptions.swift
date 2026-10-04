@@ -35,12 +35,14 @@ extension BuildPipeline {
         inputs: [URL],
         typ: URL?
     ) -> [String] {
-        var arguments = java.command(
-            ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path, mode]
-                + identityOptions(areaName: areaName)
-                + ["--output-dir=\(outputDir.path)"]
-                + options
-        )
+        // Reads the cache a compile left; this short run is not worth recording.
+        let warm = JavaWarmStart.plan(java: java, jar: mkgmap, heapGB: recipe.heapGB, recording: false)
+        var launch: [String] = warm.options
+        launch += ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path, mode]
+        launch += identityOptions(areaName: areaName)
+        launch.append("--output-dir=\(outputDir.path)")
+        launch += options
+        var arguments = java.command(launch)
         arguments += indexOptions()
         arguments += copyrightOption()
         arguments += inputs.map(\.path)

@@ -12,6 +12,16 @@ struct JavaRuntime: Equatable {
     /// everywhere.
     let options: [String]
 
+    /// The feature release: 21 of `openjdk version "21.0.4"`, 8 of `"1.8.0_292"`. Nil
+    /// where the version line names none.
+    var major: Int? {
+        guard let open = version.firstIndex(of: "\"") else { return nil }
+        let quoted = version[version.index(after: open)...].prefix { $0 != "\"" }
+        let parts = quoted.split { !$0.isNumber }.compactMap { Int($0) }
+        guard let first = parts.first else { return nil }
+        return first == 1 ? parts.dropFirst().first : first
+    }
+
     /// `arguments`, with whatever this JVM needs in front of them. JVM options have to
     /// precede `-jar`, which is why this prepends rather than appends.
     func command(_ arguments: [String]) -> [String] { options + arguments }
