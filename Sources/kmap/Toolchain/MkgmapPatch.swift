@@ -945,6 +945,8 @@ extension Toolchain {
         }
         FileTools.removeIfPresent(Toolchain.patchedMkgmapURL)
         try FileTools.move(built, to: Toolchain.patchedMkgmapURL)
+        // The JVM's cache was recorded for the jar that was here.
+        JavaWarmStart.forgetAll(beside: Toolchain.patchedMkgmapURL)
         log.ok("patched mkgmap at \(Paths.display(Toolchain.patchedMkgmapURL))")
     }
 

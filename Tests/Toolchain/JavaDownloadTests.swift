@@ -179,6 +179,19 @@ final class JavaDownloadTests: XCTestCase {
             )
         )
     }
+
+    func testTheNewestLongTermJavaIsAskedFirstAndAnOlderOneKept() {
+        XCTAssertEqual(JavaDownload.features, [25, 21])
+        XCTAssertGreaterThanOrEqual(
+            JavaDownload.features[0],
+            JavaWarmStart.leastMajor,
+            "the first choice starts mkgmap warm"
+        )
+        let first = JavaDownload.assetsURL(on: .linux, architecture: "x64")?.absoluteString ?? ""
+        XCTAssertTrue(first.contains("/latest/25/"), first)
+        let older = JavaDownload.assetsURL(on: .linux, architecture: "x64", feature: 21)?.absoluteString ?? ""
+        XCTAssertTrue(older.contains("/latest/21/"), older)
+    }
 }
 
 /// Where the probe looks for a JVM, and in what order.

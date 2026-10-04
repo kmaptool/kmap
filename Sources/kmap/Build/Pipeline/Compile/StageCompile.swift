@@ -64,8 +64,8 @@ extension BuildPipeline {
 
         // The JVM starts warm from the cache an earlier compile left, or records one.
         let warm = JavaWarmStart.plan(java: java, jar: mkgmap, heapGB: recipe.heapGB, recording: true)
+        for stale in JavaWarmStart.leftovers(beside: mkgmap, keeping: warm.cache) { FileTools.removeIfPresent(stale) }
         if warm.recording != nil {
-            for stale in JavaWarmStart.leftovers(beside: mkgmap, keeping: nil) { FileTools.removeIfPresent(stale) }
             log.append("recording a warm start for mkgmap: this compile is slower, the next ones faster")
         }
         var arguments = java.command(warm.options + ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path])
@@ -121,16 +121,19 @@ extension BuildPipeline {
     /// name only whole; a failure here costs the warm start and not the build.
     private func keepWarmStart(_ warm: JavaWarmStart.Plan, java: JavaRuntime, mkgmap: URL) async {
         guard let recording = warm.recording, let cache = warm.cache else { return }
-        defer { FileTools.removeIfPresent(recording) }
-        let pending = cache.appendingPathExtension("new")
+        let pending = JavaWarmStart.pending(for: recording)
+        defer {
+            FileTools.removeIfPresent(recording)
+            FileTools.removeIfPresent(pending)
+        }
         guard FileTools.exists(recording),
-            let options = JavaWarmStart.assembly(warm, jar: mkgmap, pending: pending)
+            let options = JavaWarmStart.assembly(warm, jar: mkgmap, heapGB: recipe.heapGB)
         else { return }
         let made = try? await makeRunner().run(java.path, java.command(options), allowFailure: true) { _ in }
-        guard made != nil, FileTools.size(of: pending) > 0, (try? FileTools.move(pending, to: cache)) != nil else {
-            FileTools.removeIfPresent(pending)
-            return
-        }
+        guard made != nil, FileTools.size(of: pending) > 0 else { return }
+        // Another build recording at the same time may have put its cache there first.
+        if !FileTools.exists(cache) { try? FileTools.move(pending, to: cache) }
+        guard FileTools.exists(cache) else { return }
         log.append("mkgmap starts warm from now on (\(Fmt.bytes(FileTools.size(of: cache))) kept beside it)")
     }
 

@@ -31,6 +31,7 @@ extension Toolchain {
             }
             log.step(t("removing the patched mkgmap"))
             FileTools.removeIfPresent(jar)
+            JavaWarmStart.forgetAll(beside: jar)
             log.ok(t("removed — builds will use the stock mkgmap"))
         default:
             throw InstallError.unsupported(t("%@ cannot be removed", id))
@@ -154,10 +155,35 @@ extension Toolchain {
         progress: InstallProgress? = nil
     ) async throws {
         guard JavaDownload.isAvailable() else { throw JavaDownload.Trouble.unsupportedMachine }
+        // The newest release first, an older one where that cannot be had or does not run.
+        var failure: Error = JavaDownload.Trouble.noRelease
+        for (at, feature) in JavaDownload.features.enumerated() {
+            do {
+                try await installOwnJava(feature: feature, log: log, runner: runner, progress: progress)
+                return
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                failure = error
+                if at + 1 < JavaDownload.features.count {
+                    log.append(
+                        "Java \(feature): \(error.localizedDescription) — Java \(JavaDownload.features[at + 1]) instead"
+                    )
+                }
+            }
+        }
+        throw failure
+    }
 
-        progress?.step(t("looking up the current Java %d build", JavaDownload.feature))
-        log.step(t("looking up the current Java %d build", JavaDownload.feature))
-        guard let assets = JavaDownload.assetsURL() else {
+    private func installOwnJava(
+        feature: Int,
+        log: Log,
+        runner: ProcessRunner,
+        progress: InstallProgress?
+    ) async throws {
+        progress?.step(t("looking up the current Java %d build", feature))
+        log.step(t("looking up the current Java %d build", feature))
+        guard let assets = JavaDownload.assetsURL(feature: feature) else {
             throw JavaDownload.Trouble.unsupportedMachine
         }
         // Named explicitly: the API refuses a request that sends no User-Agent, and
@@ -197,7 +223,13 @@ extension Toolchain {
         let unpack = archive.unpack(archiveFile, into: staging)
         try await runner.run(unpack.executable, unpack.arguments) { line in log.output(line) }
 
-        guard JavaDownload.javaBinary(under: staging) != nil else {
+        // It has to run here, not only be there: a build for an OS newer than this one
+        // unpacks and then does not start. Asked as the probe asks, WSL1's options too.
+        guard let unpacked = JavaDownload.javaBinary(under: staging),
+            Toolchain.javaRescueOptions.contains(where: { options in
+                ProcessProbe.capture(unpacked.path, options + ["-version"])?.lowercased().contains("version") == true
+            })
+        else {
             throw JavaDownload.Trouble.noJavaInside
         }
         FileTools.removeIfPresent(JavaDownload.home)
@@ -371,6 +403,7 @@ extension Toolchain {
             log: log,
             progress: progress
         )
+        JavaWarmStart.forgetAll(beside: Paths.tools.appendingPathComponent("mkgmap/mkgmap.jar"))
     }
 
     /// The pyhgtmap release kmap installs: a newer one is taken only by a newer kmap.

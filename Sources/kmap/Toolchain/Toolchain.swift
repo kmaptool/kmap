@@ -86,7 +86,7 @@ final class Toolchain: @unchecked Sendable {
 
     /// Option sets tried in order when probing a JVM, each a workaround for a platform that
     /// otherwise refuses to start one.
-    private static let javaRescueOptions: [[String]] = [
+    static let javaRescueOptions: [[String]] = [
         [],  // the ordinary case, tried first
         ["-XX:-UseCompressedClassPointers"]  // WSL1, which cannot make the reservation
     ]

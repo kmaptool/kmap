@@ -48,22 +48,37 @@ final class JavaWarmStartTests: XCTestCase {
         XCTAssertFalse(first.options.contains { $0.hasPrefix("-XX:AOTCache=") })
 
         // A short run beside the compile reads a cache and never records one.
-        XCTAssertEqual(
-            JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: false),
-            JavaWarmStart.Plan()
-        )
+        let beside = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: false)
+        XCTAssertTrue(beside.options.isEmpty)
+        XCTAssertNil(beside.recording)
 
-        let pending = cache.appendingPathExtension("new")
-        let assembly = try XCTUnwrap(JavaWarmStart.assembly(first, jar: jar, pending: pending))
+        let pending = JavaWarmStart.pending(for: recording)
+        let assembly = try XCTUnwrap(JavaWarmStart.assembly(first, jar: jar, heapGB: 8))
         XCTAssertTrue(assembly.contains("-XX:AOTMode=create"))
         XCTAssertTrue(assembly.contains("-XX:AOTCache=\(pending.path)"))
         XCTAssertEqual(Array(assembly.suffix(2)), ["-cp", jar.path])
+        // Under the heap the compile ran with: a cache made under another is refused
+        // once the 2 lay objects out differently.
+        XCTAssertTrue(assembly.contains("-Xmx8g"))
+        XCTAssertTrue(try XCTUnwrap(JavaWarmStart.assembly(first, jar: jar, heapGB: 40)).contains("-Xmx40g"))
 
         try FileTools.write(Data("cache".utf8), to: cache)
         let next = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true)
         XCTAssertNil(next.recording)
         XCTAssertTrue(next.options.contains("-XX:AOTCache=\(cache.path)"))
         XCTAssertEqual(JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: false), next)
+    }
+
+    func testTwoBuildsRecordingAtOnceWriteFilesOfTheirOwn() throws {
+        let runtime = java(#"openjdk version "25.0.1""#)
+        let one = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true)
+        let other = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true)
+        XCTAssertEqual(one.cache, other.cache, "the same cache in the end")
+        XCTAssertNotEqual(one.recording, other.recording)
+        XCTAssertNotEqual(
+            JavaWarmStart.pending(for: try XCTUnwrap(one.recording)),
+            JavaWarmStart.pending(for: try XCTUnwrap(other.recording))
+        )
     }
 
     func testANewJarANewJavaOrAnotherHeapNamesANewCache() throws {
@@ -77,13 +92,25 @@ final class JavaWarmStartTests: XCTestCase {
         XCTAssertNotEqual(name, JavaWarmStart.cacheFile(java: runtime, jar: jar, heapGB: 8))
     }
 
-    func testLeftoversAreTheOtherCachesAndRecordingsOnly() throws {
+    func testLeftoversAreTheOtherCachesAndRecordingsGoneStale() throws {
         let keep = folder.appendingPathComponent("warm-1111.aot")
-        for name in ["warm-1111.aot", "warm-2222.aot", "warm-2222.aotconf", "warm-3333.aot.new", "mkgmap.jar"] {
+        for name in ["warm-1111.aot", "warm-2222.aot", "warm-2222-ab12.aotconf", "warm-3333-cd34.new", "mkgmap.jar"] {
             try FileTools.write(Data(), to: folder.appendingPathComponent(name))
         }
-        let found = JavaWarmStart.leftovers(beside: jar, keeping: keep).map(\.lastPathComponent).sorted()
-        XCTAssertEqual(found, ["warm-2222.aot", "warm-2222.aotconf", "warm-3333.aot.new"])
+        // Written a moment ago: they may be another build's, still in the making.
+        XCTAssertEqual(JavaWarmStart.leftovers(beside: jar, keeping: keep), [])
+        let later = Date().addingTimeInterval(JavaWarmStart.staleAfter + 60)
+        let found = JavaWarmStart.leftovers(beside: jar, keeping: keep, now: later).map(\.lastPathComponent).sorted()
+        XCTAssertEqual(found, ["warm-2222-ab12.aotconf", "warm-2222.aot", "warm-3333-cd34.new"])
+    }
+
+    func testAReplacedJarTakesEveryCacheWithItAtOnce() throws {
+        for name in ["warm-1111.aot", "warm-2222-ab12.aotconf", "warm-3333-cd34.new", "mkgmap.jar", "warm.txt"] {
+            try FileTools.write(Data(), to: folder.appendingPathComponent(name))
+        }
+        JavaWarmStart.forgetAll(beside: jar)
+        let left = FileTools.contents(of: folder).map(\.lastPathComponent).sorted()
+        XCTAssertEqual(left, ["mkgmap-patched.jar", "mkgmap.jar", "warm.txt"])
     }
 
     func testTheRecordingJVMsOwnLineIsNotMkgmaps() {

@@ -12,9 +12,10 @@ import Foundation
 /// Everything here but `install` is pure, so the address built for any platform can be
 /// tested from any other.
 enum JavaDownload {
-    /// Which Java to ask for. A long-term release rather than the newest: mkgmap is old
-    /// code, and this is the version it is tested against.
-    static let feature = 21
+    /// Which Java to ask for, the first that can be had: long-term releases, newest
+    /// first. 25 starts mkgmap warm from a cache (see `JavaWarmStart`); 21 is there for
+    /// a machine no 25 is published for, or where it does not install.
+    static let features = [25, 21]
 
     // MARK: What to ask for
 
@@ -56,7 +57,7 @@ enum JavaDownload {
     static func assetsURL(
         on platform: Platform = Platform.current,
         architecture: String = JavaDownload.architecture,
-        feature: Int = JavaDownload.feature
+        feature: Int = JavaDownload.features[0]
     ) -> URL? {
         guard let os = operatingSystem(platform) else { return nil }
         var components = URLComponents(
@@ -93,7 +94,7 @@ enum JavaDownload {
             case .noRelease:
                 return t(
                     "Adoptium listed no Java %d build for this machine",
-                    JavaDownload.feature
+                    JavaDownload.features[JavaDownload.features.count - 1]
                 )
             case .badChecksum(let expected, let got):
                 return t(

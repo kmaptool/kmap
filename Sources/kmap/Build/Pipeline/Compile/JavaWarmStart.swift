@@ -10,11 +10,16 @@ import Foundation
 enum JavaWarmStart {
     /// The first Java that keeps method profiles in the cache.
     static let leastMajor = 25
+    /// A cache or a recording untouched for this long belongs to no build still running.
+    static let staleAfter: TimeInterval = 86400
+
     struct Plan: Equatable {
         /// JVM options, to go before `-jar`.
         var options: [String] = []
-        /// Set on the run that records: what it writes, and the cache made from it.
+        /// Set on the run that records: what it writes, under a name of this run's own,
+        /// so that 2 builds recording at once do not write the same file.
         var recording: URL?
+        /// The cache this JVM, jar and heap go by; nil where the JVM takes none.
         var cache: URL?
     }
 
@@ -24,10 +29,13 @@ enum JavaWarmStart {
         guard let major = java.major, major >= leastMajor else { return Plan() }
         let cache = cacheFile(java: java, jar: jar, heapGB: heapGB)
         if FileTools.exists(cache) {
-            return Plan(options: quiet + ["-XX:AOTCache=\(cache.path)"])
+            return Plan(options: quiet + ["-XX:AOTCache=\(cache.path)"], cache: cache)
         }
-        guard recording else { return Plan() }
-        let record = cache.deletingPathExtension().appendingPathExtension("aotconf")
+        guard recording else { return Plan(cache: cache) }
+        let run = UUID().uuidString.prefix(8).lowercased()
+        let record = cache.deletingLastPathComponent().appendingPathComponent(
+            "\(cache.deletingPathExtension().lastPathComponent)-\(run).aotconf"
+        )
         return Plan(
             options: quiet + ["-XX:AOTMode=record", "-XX:AOTConfiguration=\(record.path)"],
             recording: record,
@@ -51,22 +59,42 @@ enum JavaWarmStart {
         return jar.deletingLastPathComponent().appendingPathComponent("warm-\(key).aot")
     }
 
-    /// The JVM options that turn a recording into the cache, run with the same jar.
-    static func assembly(_ plan: Plan, jar: URL, pending: URL) -> [String]? {
+    /// Where a recording run assembles its cache before it takes the cache's name.
+    static func pending(for recording: URL) -> URL {
+        recording.deletingPathExtension().appendingPathExtension("new")
+    }
+
+    /// The JVM options that turn a recording into the cache, run with the same jar and
+    /// the same heap: a cache assembled under another heap is refused where the 2 lay
+    /// objects out differently.
+    static func assembly(_ plan: Plan, jar: URL, heapGB: Int) -> [String]? {
         guard let recording = plan.recording else { return nil }
         return quiet + [
-            "-XX:AOTMode=create", "-XX:AOTConfiguration=\(recording.path)", "-XX:AOTCache=\(pending.path)",
-            "-cp", jar.path
+            "-Xmx\(heapGB)g", "-XX:AOTMode=create", "-XX:AOTConfiguration=\(recording.path)",
+            "-XX:AOTCache=\(pending(for: recording).path)", "-cp", jar.path
         ]
     }
 
-    /// Caches and recordings in the jar's folder other than `keep`: left by an earlier
-    /// jar or Java, or by a run that was stopped.
-    static func leftovers(beside jar: URL, keeping keep: URL?) -> [URL] {
+    /// Caches and recordings in the jar's folder other than `keep`, untouched for
+    /// `staleAfter`: left by an earlier jar or Java, or by a run that was stopped. A
+    /// younger one may be another build's, still being written.
+    static func leftovers(beside jar: URL, keeping keep: URL?, now: Date = Date()) -> [URL] {
         FileTools.contents(of: jar.deletingLastPathComponent()).filter {
             let name = $0.lastPathComponent
-            return name.hasPrefix("warm-") && name != keep?.lastPathComponent
-                && ["aot", "aotconf", "new"].contains($0.pathExtension)
+            guard name.hasPrefix("warm-"), name != keep?.lastPathComponent,
+                ["aot", "aotconf", "new"].contains($0.pathExtension),
+                let touched = FileTools.modified(of: $0)
+            else { return false }
+            return now.timeIntervalSince(touched) > staleAfter
+        }
+    }
+
+    /// Removes every cache and recording beside `jar`: called when a jar there is
+    /// replaced or removed, after which none of them fits anything.
+    static func forgetAll(beside jar: URL) {
+        for file in FileTools.contents(of: jar.deletingLastPathComponent())
+        where file.lastPathComponent.hasPrefix("warm-") && ["aot", "aotconf", "new"].contains(file.pathExtension) {
+            FileTools.removeIfPresent(file)
         }
     }
 
