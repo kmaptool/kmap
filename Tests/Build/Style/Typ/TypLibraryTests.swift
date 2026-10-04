@@ -40,14 +40,30 @@ final class TypLibraryTests: XCTestCase {
 
     // MARK: Looking around the machine
 
-    /// Runs the import scan against whatever this machine holds. Asserts only the shape of
-    /// each result; finding nothing is a valid answer.
-    func testTheScanSurvivesWhateverIsOnThisMachine() {
-        let found = TypLibrary.discover(excluding: nil)
-        for candidate in found {
-            XCTAssertGreaterThan(candidate.familyID, 0, candidate.url.nativePath)
-            XCTAssertFalse(candidate.name.isEmpty, candidate.url.nativePath)
+    /// A Garmin folder laid out here: the scan finds the TYPs within 3 levels, and leaves
+    /// a `.gmap` bundle and kmap's own build output alone. Windows lists a folder in
+    /// reverse, so a skipped folder comes first there, and the ones after it still count.
+    func testTheScanFindsTheTypsAndSkipsBundlesAndKmapsOwnOutput() throws {
+        let garmin = folder.appendingPathComponent("Garmin", isDirectory: true)
+        for dir in ["Garmin/maps", "Garmin/old.gmap", "Garmin/built", "Garmin/a/b/c"] {
+            Paths.ensure(folder.appendingPathComponent(dir, isDirectory: true))
         }
+        _ = try makeTyp(named: "Garmin/maps/topo.typ", family: 1535)
+        _ = try makeTyp(named: "Garmin/old.gmap/inside.typ", family: 1536)
+        _ = try makeTyp(named: "Garmin/built/ours.typ", family: 1537)
+        _ = try makeTyp(named: "Garmin/a/b/kept.typ", family: 1538)
+        _ = try makeTyp(named: "Garmin/a/b/c/deep.typ", family: 1539)
+        try FileTools.write(Data(), to: garmin.appendingPathComponent("built/build-info.txt"))
+
+        let found = TypLibrary.discover(in: [garmin], excluding: nil)
+        XCTAssertEqual(found.map(\.name), ["kept", "topo"])
+        XCTAssertEqual(found.map(\.familyID), [1538, 1535])
+    }
+
+    /// A test run has no business with the machine's drives: by default it looks nowhere.
+    func testATestRunSearchesNoDriveUnlessTold() {
+        XCTAssertTrue(TypLibrary.defaultSearchRoots.isEmpty)
+        XCTAssertTrue(TypLibrary.discover(excluding: nil).isEmpty)
     }
 
     func testTheRootsAreDirectoriesThatExistAndNothingElse() {

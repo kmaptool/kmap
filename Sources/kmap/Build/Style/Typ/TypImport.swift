@@ -46,15 +46,19 @@ extension TypLibrary {
         return roots.filter { FileTools.exists($0) }
     }
 
-    /// Walks the search roots for anything holding a TYP. Blocking and slow - it reaches
+    /// Where `discover` looks unless told: nowhere in a test run, which has no business
+    /// with the machine's drives, as `Paths.root` keeps it off the real settings.
+    static var defaultSearchRoots: [URL] { Paths.isATestRun ? [] : searchRoots() }
+
+    /// Walks `roots` for anything holding a TYP. Blocking and slow - by default it reaches
     /// into every Garmin folder on every volume - so call it off the render loop.
     /// - Parameter excluding: kmap's own output folder, which is skipped.
-    static func discover(excluding output: URL?) -> [TypCandidate] {
+    static func discover(in roots: [URL] = defaultSearchRoots, excluding output: URL?) -> [TypCandidate] {
         var found: [TypCandidate] = []
         var seenProducts = Set<String>()
         let outputPath = output.map { $0.standardizedFileURL.path + "/" }
 
-        for root in searchRoots() {
+        for root in roots {
             for url in files(under: root, excludingPrefix: outputPath) {
                 let extensionName = url.pathExtension.lowercased()
                 let folder = url.deletingLastPathComponent().lastPathComponent
@@ -101,42 +105,45 @@ extension TypLibrary {
         }
     }
 
+    /// The TYPs and maps within 3 levels of `root`. A walk of its own: on Windows the
+    /// enumerator's `skipDescendants` also stops it entering every later folder.
     private static func files(under root: URL, excludingPrefix output: String?) -> [URL] {
         var out: [URL] = []
-        let rootDepth = root.pathComponents.count
-        guard
-            let walker = FileManager.default.enumerator(
-                at: root,
-                includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsHiddenFiles, .skipsPackageDescendants]
-            )
-        else { return out }
-
-        for case let url as URL in walker {
-            if url.pathComponents.count - rootDepth > 3 {
-                walker.skipDescendants()
-                continue
+        func walk(_ dir: URL, depth: Int) {
+            let entries =
+                (try? FileManager.default.contentsOfDirectory(
+                    at: dir,
+                    includingPropertiesForKeys: [.isDirectoryKey, .isPackageKey],
+                    options: [.skipsHiddenFiles]
+                )) ?? []
+            for url in entries {
+                if out.count > 400 { return }
+                if let output, url.standardizedFileURL.path.hasPrefix(output) { continue }
+                if isDirectory(url) {
+                    // A .gmap bundle holds hundreds of per-tile files and a TYP that also
+                    // exists as a plain .typ beside it. kmap's own output, wherever it was
+                    // put, leaves a build-info.txt beside its .img, which the configured
+                    // folder alone misses.
+                    guard depth < 3, url.pathExtension.lowercased() != "gmap", !isPackage(url),
+                        !FileTools.exists(url.appendingPathComponent("build-info.txt"))
+                    else { continue }
+                    walk(url, depth: depth + 1)
+                } else if ["typ", "img"].contains(url.pathExtension.lowercased()) {
+                    out.append(url)
+                }
             }
-            // A .gmap bundle holds hundreds of per-tile files and one TYP that also
-            // exists as a plain .typ beside it.
-            if url.pathExtension.lowercased() == "gmap" {
-                walker.skipDescendants()
-                continue
-            }
-            if let output, url.standardizedFileURL.path.hasPrefix(output) {
-                walker.skipDescendants()
-                continue
-            }
-            // kmap's own output, wherever it was put: every build leaves a
-            // build-info.txt beside its .img, which the configured folder alone misses.
-            if isDirectory(url), FileTools.exists(url.appendingPathComponent("build-info.txt")) {
-                walker.skipDescendants()
-                continue
-            }
-            if ["typ", "img"].contains(url.pathExtension.lowercased()) { out.append(url) }
-            if out.count > 400 { break }
         }
+        walk(root, depth: 1)
         return out
+    }
+
+    /// An application or other bundle, which the Mac shows as a file.
+    private static func isPackage(_ url: URL) -> Bool {
+        #if canImport(Darwin)
+        (try? url.resourceValues(forKeys: [.isPackageKey]))?.isPackage == true
+        #else
+        false
+        #endif
     }
 
     // MARK: Taking a copy
