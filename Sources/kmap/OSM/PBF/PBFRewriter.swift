@@ -213,7 +213,7 @@ struct PBFRewriter {
         if block.hasNodes {
             var batch = block.nodes(movedBy: moved, filter: moveFilter)
             for i in batch.indices {
-                if let kind = barriers[batch[i].id] {
+                if nodeFilter.mayContain(batch[i].id), let kind = barriers[batch[i].id] {
                     batch[i].tags.append((Self.barrierTag, kind))
                     out.tagged += 1
                 }
@@ -222,10 +222,15 @@ struct PBFRewriter {
             out.nodes = batch
         }
         if block.hasWays {
-            var batch = block.ways(inserting: inserts, merging: plan.merges)
+            var batch = block.ways(
+                inserting: inserts,
+                merging: plan.merges,
+                wayFilter: wayFilter,
+                mergeFilter: mergeFilter
+            )
             for i in batch.indices {
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
-                if duplicateVenues.contains(batch[i].id) {
+                if wayFilter.mayContain(batch[i].id), duplicateVenues.contains(batch[i].id) {
                     batch[i].tags.append((Self.duplicateVenueTag, "yes"))
                     out.marked += 1
                 }
@@ -258,7 +263,10 @@ struct PBFRewriter {
             if block.hasNodes {
                 writer.nodes(ready?.nodes ?? block.nodes(movedBy: [:], filter: IDFilter()))
                 try addNodes(into: writer, tally: &tally, scratch: &scratch)
-                writer.ways(ready?.ways ?? block.ways(inserting: [:], merging: [:]))
+                writer.ways(
+                    ready?.ways
+                        ?? block.ways(inserting: [:], merging: [:], wayFilter: IDFilter(), mergeFilter: IDFilter())
+                )
                 tally.rebuilt += 1
                 count(ready, in: &tally)
                 return

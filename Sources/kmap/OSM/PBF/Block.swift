@@ -111,19 +111,23 @@ struct Block: OSMSink {
     }
 
     /// Returns the ways with repairs applied: references to merged nodes are replaced, and
-    /// each inserted node goes after the node starting its segment, located by id.
+    /// each inserted node goes after the node starting its segment, located by id. The
+    /// filters, of the ways with inserts and of the merged nodes, reject nearly every id
+    /// before its table is asked: every ref of every way passes here.
     func ways(
         inserting inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
-        merging merges: [Int64: Int64]
+        merging merges: [Int64: Int64],
+        wayFilter: IDFilter,
+        mergeFilter: IDFilter
     ) -> [PBFWriter.Way] {
         (0..<wayIDs.count).map { i in
             var refs = wayRefs[i]
-            if !merges.isEmpty {
-                for (at, ref) in refs.enumerated() {
-                    if let stands = merges[ref] { refs[at] = stands }
+            if !mergeFilter.isEmpty {
+                for at in refs.indices where mergeFilter.mayContain(refs[at]) {
+                    if let stands = merges[refs[at]] { refs[at] = stands }
                 }
             }
-            for insert in inserts[wayIDs[i]] ?? [] {
+            for insert in (wayFilter.mayContain(wayIDs[i]) ? inserts[wayIDs[i]] : nil) ?? [] {
                 // The anchor node may itself have been merged away above.
                 var anchor = insert.after
                 while let stands = merges[anchor] { anchor = stands }

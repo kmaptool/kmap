@@ -8,6 +8,7 @@
 #include "elevation_rows.h"
 #include "float_predictor.h"
 #include "packed_varint.h"
+#include "radix_sort.h"
 #include "sorted_search.h"
 #include "vector_tier.h"
 

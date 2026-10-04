@@ -391,13 +391,18 @@ final class BlockTests: XCTestCase {
 
     func testAnInsertedNodeThatWasMergedAwayIsInsertedUnderItsNewName() {
         let b = decode(block(ways: [RawWay(id: 1, refs: [10, 20])]))
-        let ways = b.ways(inserting: [1: [(after: 10, segment: 0, along: 0.5, node: 7)]], merging: [7: 99])
+        let ways = b.ways(
+            inserting: [1: [(after: 10, segment: 0, along: 0.5, node: 7)]],
+            merging: [7: 99],
+            wayFilter: IDFilter([1]),
+            mergeFilter: IDFilter([7])
+        )
         XCTAssertEqual(ways[0].refs, [10, 99, 20])
     }
 
     func testAMergedNodeGivesUpItsIDEverywhereInAWay() {
         let b = decode(block(ways: [RawWay(id: 1, refs: [10, 20, 10])]))
-        let ways = b.ways(inserting: [:], merging: [10: 99])
+        let ways = b.ways(inserting: [:], merging: [10: 99], wayFilter: IDFilter(), mergeFilter: IDFilter([10]))
         XCTAssertEqual(ways[0].refs, [99, 20, 99])
     }
 
@@ -461,5 +466,20 @@ final class BlockTests: XCTestCase {
             merging: [:]
         )
         XCTAssertEqual(ways[0].refs, [10, 20])
+    }
+}
+
+extension Block {
+    /// The call as the tests write it: the filters are made from the tables themselves.
+    fileprivate func ways(
+        inserting inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
+        merging merges: [Int64: Int64]
+    ) -> [PBFWriter.Way] {
+        ways(
+            inserting: inserts,
+            merging: merges,
+            wayFilter: IDFilter(Array(inserts.keys)),
+            mergeFilter: IDFilter(Array(merges.keys))
+        )
     }
 }

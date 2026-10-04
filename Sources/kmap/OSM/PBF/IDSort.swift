@@ -1,7 +1,10 @@
+import CVector
 import Foundation
 
 /// Sorts and deduplicates collected OSM ids across every core.
 enum IDSort {
+    /// Below this the standard sort is as fast as setting the radix sort up.
+    static let leastWorthRadix = 1 << 10
     /// Below this a run is sorted in place: threads cost more than the sort saves.
     static let leastWorthSplitting = 1 << 16
     /// The smallest chunk worth handing to a core of its own.
@@ -44,15 +47,21 @@ enum IDSort {
     /// halving the number of runs left.
     static func sort(_ ids: inout [Int64]) {
         let total = ids.count
-        guard total > leastWorthSplitting else {
+        guard total > leastWorthRadix else {
             ids.sort()
+            return
+        }
+        var scratch = [Int64](unsafeUninitializedCapacity: total) { _, filled in filled = total }
+        guard total > leastWorthSplitting else {
+            ids.withUnsafeMutableBufferPointer { ids in
+                scratch.withUnsafeMutableBufferPointer { kmap_sort_i64(ids.baseAddress, $0.baseAddress, total) }
+            }
             return
         }
         let lanes = max(2, min(Machine.fastCores, total / leastPerLane))
         var step = (total + lanes - 1) / lanes
-        sortChunks(&ids, of: step)
+        sortChunks(&ids, of: step, scratch: &scratch)
 
-        var scratch = [Int64](repeating: 0, count: total)
         var settled = true  // whether the ordered data is in `ids`
         while step < total {
             ids.withUnsafeMutableBufferPointer { a in
@@ -66,17 +75,19 @@ enum IDSort {
         if !settled { ids = scratch }
     }
 
-    /// Sorts each stretch of `size` on a core of its own.
-    private static func sortChunks(_ ids: inout [Int64], of size: Int) {
+    /// Sorts each stretch of `size` on a core of its own, by radix, in the same stretch
+    /// of `scratch`.
+    private static func sortChunks(_ ids: inout [Int64], of size: Int, scratch: inout [Int64]) {
         let total = ids.count
         ids.withUnsafeMutableBufferPointer { source in
-            // Each lane sorts its own stretch, which no type can say: nothing is shared.
-            nonisolated(unsafe) let source = source
-            DispatchQueue.concurrentPerform(iterations: (total + size - 1) / size) { lane in
-                let low = lane * size, high = min(total, low + size)
-                guard low < high else { return }
-                var chunk = UnsafeMutableBufferPointer(rebasing: source[low..<high])
-                chunk.sort()
+            scratch.withUnsafeMutableBufferPointer { room in
+                // Each lane sorts its own stretch, which no type can say: nothing is shared.
+                nonisolated(unsafe) let source = source, room = room
+                DispatchQueue.concurrentPerform(iterations: (total + size - 1) / size) { lane in
+                    let low = lane * size, high = min(total, low + size)
+                    guard low < high else { return }
+                    kmap_sort_i64(source.baseAddress! + low, room.baseAddress! + low, high - low)
+                }
             }
         }
     }

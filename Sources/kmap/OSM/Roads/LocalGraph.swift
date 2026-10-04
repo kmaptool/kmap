@@ -8,7 +8,14 @@ import Foundation
 /// 550 m, comfortably wider than that cap.
 struct LocalGraph {
     private var index: [Int64: Int32] = [:]
-    private var neighbours: [[(node: Int32, step: Double)]] = []
+    /// The edges the graph was built with, a node's in a row: `edgeNode` and `edgeStep`
+    /// from `firstEdge[node]` up to `firstEdge[node + 1]`. 1 array for them all: a list
+    /// per node was an allocation, and then a few more, for every node of the region.
+    private var firstEdge: [Int32] = [0]
+    private var edgeNode: [Int32] = []
+    private var edgeStep: [Double] = []
+    /// Edges added since, by the repairs themselves: few, and so a list per node.
+    private var added: [[(node: Int32, step: Double)]] = []
 
     /// Distance found so far, and which search found it. Kept between searches and
     /// stamped rather than cleared: the graph has hundreds of thousands of nodes, a search
@@ -23,16 +30,58 @@ struct LocalGraph {
 
     init(network: RoadNetwork, around candidates: [RoadRepair.Candidate]) {
         let wanted = RoadRepair.cells(around: candidates, of: network, cell: Self.coarseDegrees)
-        // Found across the cores, linked here in the order 1 walk would link them.
-        for lane in Self.segments(of: network, startingIn: wanted) {
+        // Found across the cores, numbered here in the order 1 walk would number them.
+        let lanes = Self.segments(of: network, startingIn: wanted)
+        let count = lanes.reduce(0) { $0 + $1.count }
+        var ends: [(a: Int32, b: Int32)] = []
+        ends.reserveCapacity(count)
+        var degree: [Int32] = []
+        for lane in lanes {
+            for start in lane {
+                let a = Int(start)
+                let i = slot(network.refs[a], counting: &degree), j = slot(network.refs[a + 1], counting: &degree)
+                degree[Int(i)] += 1
+                degree[Int(j)] += 1
+                ends.append((i, j))
+            }
+        }
+        // Each node's row, then every edge into both its rows, in the order a list per
+        // node would have taken them.
+        firstEdge = [Int32](repeating: 0, count: degree.count + 1)
+        for node in degree.indices { firstEdge[node + 1] = firstEdge[node] + degree[node] }
+        var next = Array(firstEdge.dropLast())
+        edgeNode = [Int32](repeating: 0, count: count * 2)
+        edgeStep = [Double](repeating: 0, count: count * 2)
+        var at = 0
+        for lane in lanes {
             for start in lane {
                 let a = Int(start), b = a + 1
                 let kx = RoadRepair.metresPerLonDegree(at: network.lat[a])
                 let dx = (network.lon[b] - network.lon[a]) * kx
                 let dy = (network.lat[b] - network.lat[a]) * RoadRepair.metresPerDegree
-                link(network.refs[a], network.refs[b], (dx * dx + dy * dy).squareRoot())
+                let metres = (dx * dx + dy * dy).squareRoot()
+                let (i, j) = ends[at]
+                at += 1
+                edgeNode[Int(next[Int(i)])] = j
+                edgeStep[Int(next[Int(i)])] = metres
+                next[Int(i)] += 1
+                edgeNode[Int(next[Int(j)])] = i
+                edgeStep[Int(next[Int(j)])] = metres
+                next[Int(j)] += 1
             }
         }
+    }
+
+    /// The node's number while the graph is being built, its degree counted beside it.
+    private mutating func slot(_ ref: Int64, counting degree: inout [Int32]) -> Int32 {
+        if let known = index[ref] { return known }
+        let made = Int32(degree.count)
+        index[ref] = made
+        degree.append(0)
+        added.append([])
+        best.append(.infinity)
+        stamp.append(0)
+        return made
     }
 
     /// The coarse cell, about 550 m: wider than the detour cap.
@@ -61,9 +110,9 @@ struct LocalGraph {
 
     private mutating func slot(_ ref: Int64) -> Int32 {
         if let known = index[ref] { return known }
-        let made = Int32(neighbours.count)
+        let made = Int32(added.count)
         index[ref] = made
-        neighbours.append([])
+        added.append([])
         best.append(.infinity)
         stamp.append(0)
         return made
@@ -73,17 +122,21 @@ struct LocalGraph {
     /// that later candidates judge the map as the earlier ones have left it.
     mutating func link(_ a: Int64, _ b: Int64, _ metres: Double) {
         let i = slot(a), j = slot(b)
-        neighbours[Int(i)].append((node: j, step: metres))
-        neighbours[Int(j)].append((node: i, step: metres))
+        added[Int(i)].append((node: j, step: metres))
+        added[Int(j)].append((node: i, step: metres))
     }
 
     /// One node stands in for another: everything the old one reached, the new one reaches.
     mutating func adopt(_ gone: Int64, into stands: Int64) {
         guard let from = index[gone] else { return }
         let to = slot(stands)
-        for edge in neighbours[Int(from)] {
-            neighbours[Int(to)].append(edge)
-            neighbours[Int(edge.node)].append((node: to, step: edge.step))
+        // The rows are read before anything is added: the node may be its own neighbour.
+        var edges: [(node: Int32, step: Double)] = []
+        for at in builtEdges(of: from) { edges.append((edgeNode[at], edgeStep[at])) }
+        edges += added[Int(from)]
+        for edge in edges {
+            added[Int(to)].append(edge)
+            added[Int(edge.node)].append((node: to, step: edge.step))
         }
     }
 
@@ -108,17 +161,30 @@ struct LocalGraph {
             if distance > cap { return nil }
             if node == first || node == second { return distance }
             if stamp[Int(node)] == mark, distance > best[Int(node)] { continue }
-            for edge in neighbours[Int(node)] {
-                let through = distance + edge.step
-                let at = Int(edge.node)
-                if stamp[at] != mark || through < best[at] {
-                    stamp[at] = mark
-                    best[at] = through
-                    queue.push(through, edge.node)
-                }
+            for edge in builtEdges(of: node) {
+                reach(edgeNode[edge], distance + edgeStep[edge], mark, &queue)
             }
+            for edge in added[Int(node)] { reach(edge.node, distance + edge.step, mark, &queue) }
         }
         return nil
+    }
+
+    /// Where the edges the graph was built with sit for a node; none for a node added since.
+    @inline(__always)
+    private func builtEdges(of node: Int32) -> Range<Int> {
+        let node = Int(node)
+        guard node + 1 < firstEdge.count else { return 0..<0 }
+        return Int(firstEdge[node])..<Int(firstEdge[node + 1])
+    }
+
+    @inline(__always)
+    private mutating func reach(_ node: Int32, _ through: Double, _ mark: Int32, _ queue: inout Heap) {
+        let at = Int(node)
+        if stamp[at] != mark || through < best[at] {
+            stamp[at] = mark
+            best[at] = through
+            queue.push(through, node)
+        }
     }
 
     /// A plain binary heap. Swift ships no priority queue, and this one is entered

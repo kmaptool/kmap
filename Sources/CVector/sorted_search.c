@@ -68,8 +68,34 @@ void kmap_find_fenced(const int64_t *keys, size_t count_keys, const int64_t *fen
         for (size_t i = 0; i < count; i++) out[i] = -1;
         return;
     }
-    for (size_t i = 0; i < count; i += LANES) {
-        size_t lanes = count - i < LANES ? count - i : LANES;
-        group(keys, count_keys, fences, count_fences, stride, ids + i, lanes, out + i);
+    // An id 1 above the id before it sits right after it in the table or nowhere: the
+    // keys are sorted and each is there once. A way's nodes are often numbered in a row,
+    // so only the first id of each such row is searched for.
+    int64_t heads[LANES], found[LANES];
+    size_t where[LANES], held = 0;
+    for (size_t i = 0; i < count; i++) {
+        if (i > 0 && (uint64_t)ids[i] == (uint64_t)ids[i - 1] + 1) continue;
+        heads[held] = ids[i];
+        where[held] = i;
+        if (++held == LANES) {
+            group(keys, count_keys, fences, count_fences, stride, heads, LANES, found);
+            for (size_t j = 0; j < LANES; j++) out[where[j]] = found[j];
+            held = 0;
+        }
+    }
+    if (held) {
+        group(keys, count_keys, fences, count_fences, stride, heads, held, found);
+        for (size_t j = 0; j < held; j++) out[where[j]] = found[j];
+    }
+    for (size_t i = 1; i < count; i++) {
+        if ((uint64_t)ids[i] != (uint64_t)ids[i - 1] + 1) continue;
+        int64_t before = out[i - 1];
+        if (before >= 0) {
+            size_t at = (size_t)before + 1;
+            out[i] = at < count_keys && keys[at] == ids[i] ? (int64_t)at : -1;
+        } else {
+            // The id before it is not in the table, which says nothing about this one.
+            group(keys, count_keys, fences, count_fences, stride, ids + i, 1, out + i);
+        }
     }
 }
