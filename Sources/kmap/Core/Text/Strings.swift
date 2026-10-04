@@ -34,7 +34,7 @@ enum Strings {
             "у %@ нет ночной формы: узору нужны краска и фон, прежде чем добавлять ночь — сначала задайте ему фон",
         "%@ already covers that": "%@ уже включает это",
         "%@ already has a section — press ⏎ to change it": "у %@ уже есть секция — ⏎, чтобы изменить",
-        "%@ could not be decoded": "%@ не поддался разбору",
+        "%@ could not be decoded": "%@ не удалось разобрать",
         "%@ could not be read": "не удалось прочитать %@",
         "%@ could not be read as a picture. PNG, JPEG, TIFF, GIF and BMP work; SVG works where the system can draw it.":
             "%@ не удалось прочитать как картинку. PNG, JPEG, TIFF, GIF и BMP годятся; SVG — там, где система умеет его нарисовать.",
@@ -54,23 +54,23 @@ enum Strings {
         "try again": "повторить",
         "kmap needs a couple of things first": "сначала kmap нужно кое-что доустановить",
         "A map is compiled by mkgmap, which is a Java program, so both have to be on this machine. kmap fetches them into %@ and changes nothing else.":
-            "Карту собирает mkgmap — программа на Java, поэтому нужны обе. kmap скачает их в %@ и больше ничего на машине не тронет.",
+            "Карту собирает mkgmap — программа на Java, поэтому нужны обе. kmap скачает их в %@ и больше ничего на машине не изменит.",
         "something is still missing": "чего-то всё ещё не хватает",
         "Everything is in place — press ⏎ to build.":
             "Всё на месте — нажмите ⏎, чтобы собрать.",
-        "creating a private Python environment": "создаю отдельное окружение Python",
-        "installing pyhgtmap": "устанавливаю pyhgtmap",
-        "building the patched mkgmap": "собираю пропатченный mkgmap",
-        "looking up the current Java %d build": "ищу текущую сборку Java %d",
+        "creating a private Python environment": "создание отдельного окружения Python",
+        "installing pyhgtmap": "установка pyhgtmap",
+        "building the patched mkgmap": "сборка mkgmap с патчем",
+        "looking up the current Java %d build": "поиск текущей сборки Java %d",
         "%1$@ — %2$@": "%1$@ — %2$@",
-        "checking the download": "проверяю загруженное",
-        "unpacking": "распаковываю",
+        "checking the download": "проверка загруженного файла",
+        "unpacking": "распаковка",
         "Java ready — %@": "Java готова — %@",
-        "removing the Java kmap installed": "удаляю Java, установленную kmap",
+        "removing the Java kmap installed": "удаление Java, установленной kmap",
         "kmap installed no Java of its own": "kmap не устанавливал свою Java",
         "removed": "удалено",
         "no Java build is published for this kind of machine":
-            "для такой машины сборок Java не публикуют",
+            "для этой платформы сборки Java не публикуются",
         "Adoptium listed no Java %d build for this machine":
             "Adoptium не предлагает сборку Java %d для этой машины",
         "the download does not match its published checksum (expected %1$@, got %2$@)":
@@ -82,11 +82,11 @@ enum Strings {
         "%@ is not a #RRGGBB colour": "%@ — не цвет вида #RRGGBB",
         "%@ is not a type code — write it as 0x2f01": "%@ — не код типа, его пишут как 0x2f01",
         "%@ is now the default": "%@ теперь по умолчанию",
-        "%@ looking for more on your drives": "%@ ищу ещё на ваших дисках",
+        "%@ looking for more on your drives": "%@ поиск на ваших дисках продолжается",
         "%@ missing": "%@ не найден",
         "%@ needs pyhgtmap — open Toolchain to install it, or pick copernicus1/copernicus3 or view1/view3":
             "для %@ нужен pyhgtmap — установите его в «Инструментах» или выберите copernicus1/copernicus3 либо view1/view3",
-        "%@ searching your drives…": "%@ ищу на ваших дисках…",
+        "%@ searching your drives…": "%@ поиск на ваших дисках…",
         "%@ will be rewritten from the binary kept when it was imported. Everything changed in it since is lost.":
             "%@ будет переписан из бинарника, сохранённого при импорте. Всё, что менялось в нём с тех пор, пропадёт.",
         "%@.gpi alongside the map": "%@.gpi рядом с картой",
@@ -117,9 +117,9 @@ enum Strings {
         "A profile is a saved set of build settings. Pick one on the New map screen and every field fills in from it. Anything changed after that applies to the current map only — the profile itself stays as it was.":
             "Профиль — сохранённый набор настроек сборки. Выберите профиль на экране «Новая карта», и все поля заполнятся из него. Дальнейшие изменения касаются только текущей карты — сам профиль остаётся прежним.",
         "A profile is edited on this page only. Changes made on the New map screen apply to one map and do not touch the profile.":
-            "Профиль редактируется только на этой странице. Изменения на экране «Новая карта» действуют на одну карту и профиль не трогают.",
+            "Профиль редактируется только на этой странице. Изменения на экране «Новая карта» действуют на одну карту и профиль не меняют.",
         "A style is two things: the rules that turn OSM tags into Garmin types, and a TYP file that says how those types are drawn. kmap ships the rules; the look comes from your library.":
-            "Стиль — это две вещи: правила, которые превращают теги OSM в типы Garmin, и файл TYP, который говорит, как эти типы рисовать. Правила kmap несёт с собой; вид приходит из вашей библиотеки.",
+            "Стиль — это две вещи: правила, которые превращают теги OSM в типы Garmin, и файл TYP, который говорит, как эти типы рисовать. Правила входят в kmap; оформление берётся из вашей библиотеки.",
         "Amenities": "Удобства",
         "Aviation": "Авиация",
         "Background": "Фон",
@@ -137,8 +137,8 @@ enum Strings {
         "It never joins through a building, a fence or a hedge: whether a plot can be crossed is OSM's to say. Where the gap crosses a kerb or a step, kmap adds a thin dotted line, and the map shows that the gap was mended for you.":
             "Никогда не соединяет сквозь здание, забор или изгородь: можно ли пройти через участок, определяет OSM. Если разрыв идёт через бордюр или ступеньку, kmap добавляет тонкий пунктир на карту, это означает, что разрыв исправлен автоматически.",
         "update": "обновить",
-        "newer one published %@ — press u": "переиздано %@ — нажмите u",
-        "%@ is already the published one": "%@: свежее не публиковали",
+        "newer one published %@ — press u": "опубликована новая версия %@ — нажмите u",
+        "%@ is already the published one": "%@: более новой версии нет",
         "%@ is not something kmap updates": "%@ kmap не обновляет",
         "still checking…": "проверка ещё идёт…",
         "how often a build asks whether the coastline and boundary packs have been republished":
@@ -174,14 +174,14 @@ enum Strings {
         "Descriptions": "Описания",
         "Download OSM extract": "Загрузка OSM данных",
         "Download elevation": "Загрузка высот",
-        "Download streams": "Потоков загрузки",
+        "Download streams": "Потоки загрузки",
         "Draw": "Рисовать",
         "Draw order — which polygon is painted over which": "Порядок отрисовки — какой полигон поверх какого",
         "Drawing": "Рисунок",
         "Elevation data": "Данные высот",
         "English": "Английские",
         "Family id": "Family id",
-        "Fetching the region index from Geofabrik %@": "Загружаю индекс регионов с Geofabrik %@",
+        "Fetching the region index from Geofabrik %@": "Загрузка индекса регионов с Geofabrik %@",
         "Fill": "Заливка",
         "Fix summits": "Правка вершин",
         "Folder": "Папка",
@@ -213,7 +213,7 @@ enum Strings {
         "Library": "Библиотека",
         "Lines — roads, paths, contours, streams": "Линии — дороги, тропы, горизонтали, ручьи",
         "Local": "Местные",
-        "MD5 mismatch — expected %1$@, got %2$@": "MD5 не сошлась — ждали %1$@, получили %2$@",
+        "MD5 mismatch — expected %1$@, got %2$@": "MD5 не сошлась — ожидалось %1$@, получено %2$@",
         "Man-made": "Постройки",
         "Moving a rule changes which Garmin type the thing gets — the map, not the drawing. It takes effect on the next build, and undoing it puts the rule back where mkgmap had it.":
             "Перенос правила меняет, какой тип Garmin получит объект — карту, а не рисунок. Он вступает в силу на следующей сборке, а отмена возвращает правило туда, где оно было у mkgmap.",
@@ -233,15 +233,15 @@ enum Strings {
         "Output folder": "Папка вывода",
         "Overwrite": "Перезапись",
         "the login works": "логин работает",
-        "refused — the source is not offered": "отклонён — источник не даётся",
+        "refused — the source is not offered": "отклонён — источник недоступен",
         "could not be checked": "проверить не удалось",
-        "%@ — checking the login…": "%@ — проверяю логин…",
+        "%@ — checking the login…": "%@ — проверка логина…",
         "%@ — the login works": "%@ — логин работает",
         "%@ refused these credentials": "%@ отклонил эти данные",
         "%@ did not answer — the login is left as it was": "%@ не ответил — логин оставлен как был",
-        "%@ working out what this costs to fetch": "%@ оцениваю объём загрузки",
+        "%@ working out what this costs to fetch": "%@ оценка объёма загрузки",
         "%d already in the cache": "%d уже в кэше",
-        "nothing to fetch": "качать нечего",
+        "nothing to fetch": "загружать нечего",
         "which feature": "какой объект",
         "identifying the rest by place": "дополнительное распознавание",
         "identifying the rest by place in %@": "дополнительное распознавание в %@",
@@ -250,27 +250,28 @@ enum Strings {
             "%@ свободен. Выберите объект, который привязать сюда — его правило переедет на этот код и вступит в силу со следующей сборки.",
         "free": "свободен",
         "(recommended)": "(рекомендуется)",
-        "nothing to fetch — cached or already covered": "качать нечего — в кэше или уже покрыто",
+        "nothing to fetch — cached or already covered": "загружать нечего — в кэше или уже покрыто",
         "written as one file when it fits a FAT32 card, several when it does not":
             "запишется одним файлом, если влезет в FAT32, иначе несколькими",
-        "every size asked": "спрошен размер каждого файла",
-        "%@ to download in all": "скачать всего %@",
+        "every size asked": "размер каждого файла запрошен",
+        "%@ to download in all": "всего к загрузке: %@",
         "coverage list unavailable — a sampled guess": "список покрытия недоступен — оценка по выборке",
-        "about %@ to download": "качать около %@",
-        "behind a login, so its size is only known once it starts": "за логином, размер известен только после старта",
+        "about %@ to download": "к загрузке около %@",
+        "behind a login, so its size is only known once it starts":
+            "требует логина, размер известен только после начала загрузки",
         "the source did not answer, so this is unmeasured": "источник не ответил, размер не измерен",
         "the coverage map could not be read, so which archives this needs is not known":
-            "карту покрытия прочитать не удалось, поэтому какие архивы нужны — неизвестно",
-        "no archive covers this ground": "эту землю не покрывает ни один архив",
+            "карту покрытия прочитать не удалось, поэтому неизвестно, какие архивы необходимы",
+        "no archive covers this ground": "эту территорию не покрывает ни один архив",
         "Theme": "Тема",
         "this installs a system package as root:  %@   —  press y to go ahead":
-            "это ставит системный пакет от root:  %@   —  нажмите y, чтобы продолжить",
+            "будет установлен системный пакет от root:  %@   —  нажмите y, чтобы продолжить",
         "Day and night": "День и ночь",
         "Day only": "Только день",
         "Night only": "Только ночь",
         "the day colours at any hour, for a receiver that draws night wrongly":
-            "дневные цвета в любое время, для прибора, который врёт ночью",
-        "the night colours at any hour": "ночные цвета в любое время",
+            "всегда дневные цвета — для прибора, который неверно рисует ночные",
+        "the night colours at any hour": "всегда ночные цвета, независимо от времени суток",
         "Tile overlap": "Перехлёст плитки",
         "Land overlap": "Перехлёст суши",
         "a tile stops on its frame": "тайл останавливается на рамке",
@@ -299,7 +300,7 @@ enum Strings {
         "Styles": "Стили",
         "TYP not readable": "TYP не читается",
         "The copy kept at import is not touched, so this can be done again.":
-            "Сохранённый при импорте оригинал не трогается, так что это можно повторить.",
+            "Сохранённый при импорте оригинал остаётся без изменений, так что это можно повторить.",
         "The copy stays on this machine. kmap does not publish it and does not send it anywhere; what is done with it afterwards is yours to answer for.":
             "Копия остаётся на этой машине: kmap её не публикует и никуда не отправляет; за то, что будет с ней дальше, отвечаете вы.",
         "The region, the family id and the output folder. The region and the family id are set per map — the device hides maps that share a family id. The folder is set once, in Settings.":
@@ -309,7 +310,7 @@ enum Strings {
         "This file is outside kmap's TYP library, which is the only place kmap writes a TYP. Press ^F for an editable copy.":
             "Этот файл лежит вне библиотеки TYP, а это единственное место, куда kmap пишет TYP. Нажмите ^F, чтобы получить редактируемую копию.",
         "This is kmap's own TYP, and its working copy is rewritten from the shipped one whenever a build finds the two differ — an edit here would be undone without a word. Press ^F for an editable copy in your TYP library.":
-            "Это собственный TYP kmap, и его рабочая копия переписывается из поставляемой всякий раз, когда сборка замечает расхождение — правка здесь пропала бы без единого слова. Нажмите ^F, чтобы получить редактируемую копию в своей библиотеке TYP.",
+            "Это собственный TYP kmap, и его рабочая копия переписывается из поставляемой всякий раз, когда сборка замечает расхождение — правка здесь была бы молча потеряна. Нажмите ^F, чтобы получить редактируемую копию в своей библиотеке TYP.",
         "This style ships no TYP. The device draws every type its own way, so there is nothing here to edit.":
             "У этого стиля нет TYP. Каждый тип прибор рисует по-своему, так что править тут нечего.",
         "Toolchain": "Инструменты",
@@ -370,9 +371,9 @@ enum Strings {
         "all files": "все файлы",
         "supported files": "подходящие файлы",
         "built here from source — install a full JDK first":
-            "собирается здесь из исходников — сначала поставьте полный JDK",
+            "собирается здесь из исходников — сначала установите полный JDK",
         "this Java is a runtime — install a full JDK, or build without the patch":
-            "эта Java — рантайм: поставьте полный JDK или собирайте без патча",
+            "эта Java — рантайм: установите полный JDK или собирайте без патча",
         "Java is needed to build the patch": "для сборки патча нужна Java",
         "already carries": "уже несёт",
         "already in the library": "уже в библиотеке",
@@ -385,12 +386,12 @@ enum Strings {
             "патч от прежней версии — kmap пересоберёт его сам при запуске или сборке",
         "rebuilding the mkgmap patch": "пересборка патча mkgmap",
         "kmap is rebuilding the patch on its own — a moment":
-            "kmap сам пересобирает патч — минуту",
+            "kmap пересобирает патч — подождите немного",
         "and %d more": "и ещё %d",
         "applied (v%d)": "применён (v%d)",
         "apply": "применить",
         "as address line": "строкой адреса",
-        "as phone line (kept out of search)": "строкой телефона (мимо поиска)",
+        "as phone line (kept out of search)": "строкой телефона (не попадает в поиск)",
         "as postcode line": "строкой почтового индекса",
         "as region line (what OpenTopoMap uses)": "строкой региона (так делает OpenTopoMap)",
         "auto (%d GB)": "авто (%d ГБ)",
@@ -412,7 +413,7 @@ enum Strings {
         "build": "сборка",
         "build %d": "собрать %d",
         "building %@": "сборка карты %@",
-        "building together": "собираем вместе",
+        "building together": "совместная сборка",
         "built maps": "собрано карт",
         "by path": "по пути",
         "by region": "по региону",
@@ -428,7 +429,7 @@ enum Strings {
         "changed on this screen — the map is built with what is on it, and the profile is left as it was":
             "изменено на этом экране — карта соберётся так, как здесь, а профиль останется прежним",
         "changing it later": "изменение профиля",
-        "checking %@": "проверяю %@",
+        "checking %@": "проверка %@",
         "choose": "выбрать",
         "choose a colour": "выбрать цвет",
         "choose a style": "выбор стиля",
@@ -467,7 +468,7 @@ enum Strings {
         "delete %@?  (y/n)": "удалить «%@»?  (y/n)",
         "delete %@? press ⏎ to confirm, any other key to cancel":
             "удалить %@? ⏎ — подтвердить, любая другая клавиша — отменить",
-        "delete %@? the file goes for good  (y/n)": "удалить %@? файл уйдёт насовсем  (y/n)",
+        "delete %@? the file goes for good  (y/n)": "удалить %@? файл будет удалён безвозвратно  (y/n)",
         "deleted": "удалено",
         "could not delete: %@": "не удалось удалить: %@",
         "could not save the settings: %@": "не удалось сохранить настройки: %@",
@@ -481,7 +482,7 @@ enum Strings {
         "%@ is not UTF-8 text, so it is left as it is": "%@ — не текст в UTF-8, файл оставлен как есть",
         "deleted %@": "удалён %@",
         "deleted %@ — it was the default, which is now %@": "удалён %@ — он был по умолчанию, теперь это %@",
-        "deleted %@ — nothing is left to be the default": "удалён %@ — быть по умолчанию больше нечему",
+        "deleted %@ — nothing is left to be the default": "удалён %@ — выбора по умолчанию больше нет",
         "deleted %@ — the build screen now opens on %@": "удалён «%@» — теперь экран сборки открывается на «%@»",
         "descriptions": "описания",
         "output folder": "путь",
@@ -626,7 +627,7 @@ enum Strings {
         "needs python3 — %@": "нужен python3 — %@",
         "unpacks everything else on this page": "распаковывает всё остальное на этой странице",
         "code page 1252 cannot hold Cyrillic — set 1251 if the names here are in it":
-            "кодовая страница 1252 не умеет кириллицу — поставьте 1251, если подписи здесь на ней",
+            "кодовая страница 1252 не поддерживает кириллицу — выберите 1251, если названия здесь на кириллице",
         "worth knowing": "что важно знать",
         "a saved set of the choices on this screen": "сохранённый набор настроек с этого экрана",
         "code page %d · family %d · product %d": "кодовая страница %d · семейство %d · продукт %d",
@@ -638,7 +639,7 @@ enum Strings {
         "%d tile(s) cover their own box, %d sample(s) checked":
             "%d тайлов покрывают свою рамку, проверено %d точек",
         "%d of %d sample(s) fall in no tile — blank ground at %@":
-            "%d из %d точек не попали ни в один тайл — пустая земля в %@",
+            "%d из %d точек не попали ни в один тайл — пустой участок в %@",
         "%d of %d sample(s) fall in no tile": "%d из %d точек не попали ни в один тайл",
         "no map tiles found": "тайлов карты не найдено",
         "  ... and %d more": "  ... и ещё %d",
@@ -653,11 +654,11 @@ enum Strings {
         "%1$@ has no name for %2$@ that kmap knows": "kmap не знает, как %2$@ называется в %1$@",
         "this needs a root password, which kmap cannot ask for from here. Run:  %@":
             "нужен пароль root, а спросить его отсюда kmap не может. Выполните:  %@",
-        "installing %1$@ with %2$@": "ставим %1$@ через %2$@",
-        "%@ is not where it said it was": "%@ не там, где только что был",
-        "kmap can install this": "kmap может поставить это сам",
-        "installing %@": "ставлю %@",
-        "installing…": "ставлю…",
+        "installing %1$@ with %2$@": "установка %1$@ через %2$@",
+        "%@ is not where it said it was": "%@ не найден там, где только что был",
+        "kmap can install this": "kmap может установить это сам",
+        "installing %@": "установка %@",
+        "installing…": "установка…",
         "joins ends within %d m that block a route": "сшивает концы ближе %d м там, где без этого нет маршрута",
         "keep": "оставить",
         "keep intermediate tiles and contours after a build": "хранить промежуточные плитки и горизонтали после сборки",
@@ -680,10 +681,10 @@ enum Strings {
         "restore": "вернуть",
         "restore the original": "вернуть оригинал",
         "take an icon from a file": "взять иконку из файла",
-        "the patched mkgmap is not there": "патченого mkgmap нет",
-        "removing the patched mkgmap": "снимаю патченый mkgmap",
+        "the patched mkgmap is not there": "mkgmap с патчем не установлен",
+        "removing the patched mkgmap": "снятие патча mkgmap",
         "removed — builds will use the stock mkgmap":
-            "снят — сборки пойдут на стоковом mkgmap",
+            "снят — сборки пойдут на обычном mkgmap",
         "library": "библиотека",
         "lifted out of %@": "извлечён из %@",
         "lightness": "светлота",
@@ -692,7 +693,7 @@ enum Strings {
         "loading": "загрузка",
         "loading %@": "загрузка %@",
         "log": "журнал",
-        "looking…": "ищу…",
+        "looking…": "поиск…",
         "make current": "сделать текущим",
         "make default": "сделать основным",
         "maps you have already built": "карты, которые вы уже собрали",
@@ -703,12 +704,12 @@ enum Strings {
         "missing tool: %@": "нет инструмента: %@",
         "mkgmap did not produce gmapsupp.img for %@": "mkgmap не создал gmapsupp.img для %@",
         "mkgmap did not produce the .gmap folder": "mkgmap не создал папку .gmap",
-        "mkgmap seam patch": "патч шва mkgmap",
+        "mkgmap seam patch": "патч швов mkgmap",
         "mkgmap's default — smaller maps, coarser zoom steps": "по умолчанию у mkgmap — карты меньше, шаги зума грубее",
         "mkgmap, the seam patch, elevation data": "mkgmap, патч швов, данные высот",
         "mkgmap.jar is needed to unpack the base style": "чтобы распаковать базовый набор правил, нужен mkgmap.jar",
         "move": "перейти",
-        "moving": "переношу",
+        "moving": "перенос",
         "name it": "название",
         "needs Java first": "сначала нужна Java",
         "never emitted": "не выдаётся",
@@ -719,7 +720,7 @@ enum Strings {
         "night colours added, the same as day to start — now change them":
             "ночные цвета добавлены, для начала как дневные — теперь поменяйте их",
         "night shares the day drawing — change its colours, not its pixels":
-            "ночь делит рисунок с днём — меняйте её цвета, а не пиксели",
+            "ночь использует дневной рисунок — меняйте её цвета, а не пиксели",
         "night started from the day drawing — change its colours, then save":
             "ночь начата с дневного рисунка — поменяйте цвета и сохраните",
         "night version added, drawn the same — now change its colours":
@@ -739,7 +740,7 @@ enum Strings {
             "для %@ горизонтали не построены — источник высот может его не покрывать",
         "no contours": "без горизонталей",
         "no drawing": "рисунка нет",
-        "nothing here answers to \"%@\"": "на «%@» здесь ничего не отзывается",
+        "nothing here answers to \"%@\"": "по запросу «%@» здесь ничего не найдено",
         "no maps built yet": "карт пока не собрано",
         "no rule in this style emits it — nothing to move":
             "ни одно правило этого стиля его не выдаёт — переносить нечего",
@@ -748,7 +749,7 @@ enum Strings {
         "no sub-regions here": "вложенных регионов нет",
         "none": "нет",
         "none yet": "пока ни одной",
-        "none — the day drawing is used after dark": "нет — после темноты берётся дневной рисунок",
+        "none — the day drawing is used after dark": "нет — ночью используется дневной рисунок",
         "not a TYP file — the GARMIN TYP signature is missing": "это не файл TYP — нет подписи GARMIN TYP",
         "not downloadable": "не скачивается",
         "not found": "не найден",
@@ -763,7 +764,7 @@ enum Strings {
         "nothing found — press ⇥ and type a path instead": "ничего не нашлось — нажмите ⇥ и введите путь",
         "nothing here — the rule set has not been unpacked yet": "здесь пусто — набор правил ещё не распакован",
         "nothing known about \"%@\"": "про «%@» ничего не известно",
-        "nothing left to install": "ставить больше нечего",
+        "nothing left to install": "устанавливать больше нечего",
         "nothing matches \"%@\"": "ничего не нашлось по «%@»",
         "nothing matches — press ⇥ to type a code instead": "ничего не нашлось — нажмите ⇥ и введите код",
         "nothing to undo": "отменять нечего",
@@ -774,7 +775,7 @@ enum Strings {
         "on": "вкл",
         "one file per country, its regions gathered together": "по файлу на страну, её регионы собраны вместе",
         "one file per region, so a region can be left off the card":
-            "по файлу на регион, чтобы регион можно было не брать на карту памяти",
+            "по файлу на регион, чтобы регион можно было не копировать на карту памяти",
         "one per country": "по одному на страну",
         "one per region": "по одному на регион",
         "only a style in your library can be deleted": "удалить можно только стиль из вашей библиотеки",
@@ -806,7 +807,7 @@ enum Strings {
         "profiles": "профили",
         "quit": "выход",
         "re-check": "проверить снова",
-        "re-checking…": "проверяю заново…",
+        "re-checking…": "повторная проверка…",
         "read at %d px": "читается в %d px",
         "read at its own size, nothing scaled and no colour lost":
             "прочитано в своём размере, ничего не масштабировано и ни один цвет не потерян",
@@ -816,7 +817,7 @@ enum Strings {
         "ready": "готов",
         "reassign": "перенести",
         "reassign a rule": "перенести правило",
-        "refreshing the region index…": "обновляю индекс регионов…",
+        "refreshing the region index…": "обновление индекса регионов…",
         "region": "регион",
         "regions": "регионы",
         "rename": "переименовать",
@@ -844,7 +845,7 @@ enum Strings {
         "no other readable style — import one to borrow from it":
             "других читаемых стилей нет — импортируйте, чтобы было откуда взять",
         "server did not report a file size": "сервер не сообщил размер файла",
-        "server ignored the range request": "сервер не понимает докачку по диапазонам",
+        "server ignored the range request": "сервер не поддерживает загрузку по диапазонам",
         "server returned HTTP %d": "сервер ответил HTTP %d",
         "settings": "настройки",
         "show all": "показать всё",
@@ -854,7 +855,7 @@ enum Strings {
         "upper limit on one map tile; the default suits most machines":
             "предел размера одной плитки; по умолчанию подходит почти всем",
         "solid colours, no pattern": "сплошные цвета, без узора",
-        "splitter did not produce what was expected: %@": "splitter выдал не то, чего ждали: %@",
+        "splitter did not produce what was expected: %@": "splitter выдал неожиданный результат: %@",
         "splitter produced no tiles": "splitter не выдал ни одной плитки",
         "start a pattern from this type's own colour": "начать узор с собственного цвета этого типа",
         "start one": "начать",
@@ -876,11 +877,11 @@ enum Strings {
         "the relief is used exactly as measured": "рельеф как измерен, без правки",
         "a summit's cell is lifted to its OSM height": "ячейка вершины поднята до высоты из OSM",
         "the last profile stays — the build screen opens on one":
-            "последний профиль остаётся — экрану сборки нужно на чём-то открываться",
+            "последний профиль удалить нельзя — он нужен экрану сборки",
         "the rule set has not been unpacked yet — run a build once":
             "набор правил ещё не распакован — соберите что-нибудь один раз",
         "the toolchain is incomplete — open Toolchain to finish setting it up":
-            "инструменты неполны — откройте «Инструменты» и доведите настройку до конца",
+            "не все инструменты установлены — откройте «Инструменты» и завершите настройку",
         "the interface, not the map — labels are a build choice":
             "язык интерфейса; подписи карты выбираются при сборке",
         "there is no drawing here to edit — borrow one first": "тут нечего рисовать — сначала одолжите рисунок",
@@ -909,14 +910,14 @@ enum Strings {
         "type a path": "ввести путь",
         "undo": "отменить",
         "unsaved": "не сохранено",
-        "unsaved changes — leave anyway? (y/n)": "есть несохранённое — всё равно выйти? (y/n)",
+        "unsaved changes — leave anyway? (y/n)": "есть несохранённые изменения — всё равно выйти? (y/n)",
         "up to %@": "до %@",
         "use this one": "взять этот",
         "western Europe": "Западная Европа",
         "what it does not include": "что в него не входит",
         "whatever the device uses": "как решит прибор",
         "whatever the local mappers wrote — Russian in Russia, German in Germany":
-            "как написали местные мапперы — по-русски в России, по-немецки в Германии",
+            "как записано в OSM — по-русски в России, по-немецки в Германии",
         "where to": "куда",
         "which rule": "какое правило",
         "width %d": "ширина %d",
@@ -925,7 +926,7 @@ enum Strings {
         "without it, coastlines are derived from the extract and can flood inland at low zoom":
             "без него береговые линии выводятся из выгрузки и на дальнем зуме могут залить сушу",
         "without it, the city and region on an address are a best guess":
-            "без них город и регион в адресе — лучшая догадка",
+            "без них город и регион в адресе определяются приблизительно",
         "would become": "станет",
         "write it as 20x20, or one number for a square": "пишется как 20x20 или одним числом для квадрата",
         "written the way the rule files write it, such as 0x2f01":
@@ -984,26 +985,26 @@ enum Strings {
         "this TYP declares no draw order": "в этом TYP порядок отрисовки не задан",
         "Polygons are painted level by level: level 1 first, every later level on top of it. Within a level the order does not matter.":
             "Полигоны рисуются по уровням: сначала уровень 1, каждый следующий — поверх. Внутри уровня порядок не важен.",
-        "starting": "начинаю",
+        "starting": "запуск",
         "reading the extract": "чтение выгрузки",
         "waiting for the elevation tiles": "ожидание тайлов высот",
         "waiting for the contours": "ожидание горизонталей",
-        "not requested": "не просили",
-        "preparing": "готовлюсь",
-        "preparing style": "готовлю стиль",
-        "copying": "копирую",
-        "checking tools": "проверяю инструменты",
-        "checking for a newer extract": "проверяю, нет ли выгрузки свежее",
-        "verifying cached copy": "проверяю копию из кэша",
-        "cached copy was damaged — downloading again": "копия в кэше повреждена — скачиваю заново",
-        "verifying checksum": "проверяю контрольную сумму",
+        "not requested": "не запрошено",
+        "preparing": "подготовка",
+        "preparing style": "подготовка стиля",
+        "copying": "копирование",
+        "checking tools": "проверка инструментов",
+        "checking for a newer extract": "проверка обновления выгрузки",
+        "verifying cached copy": "проверка копии из кэша",
+        "cached copy was damaged — downloading again": "копия в кэше повреждена — повторная загрузка",
+        "verifying checksum": "проверка контрольной суммы",
         "downloaded": "скачано",
         "all from the cache": "все из кэша",
         "all downloaded": "все скачаны",
         "%1$d downloaded, %2$d from the cache": "скачано %1$d, из кэша %2$d",
         "mkgmap's own rendering, no TYP — whatever your device defaults to":
             "отрисовка самого mkgmap, без TYP — как решит прибор",
-        "somebody's front gate — the bulk of village clutter": "чья-то калитка — главный мусор в сёлах",
+        "somebody's front gate — the bulk of village clutter": "частные калитки — основной шум на карте в сёлах",
         "the drive itself is mapped as a road": "сам подъезд отмечен как дорога",
         "a gate here may be locked — usually worth keeping":
             "такая калитка может быть заперта — обычно её стоит оставить",
@@ -1022,13 +1023,13 @@ enum Strings {
         "as it comes: %@": "в стиле: %@",
         "and stops at level %d": "и заканчивается на уровне %d",
         "a family has to be drawn somewhere — use Hide on map instead":
-            "объект должен рисоваться хоть где-то — для полного отключения есть «Скрыть на карте»",
+            "объект должен быть виден хотя бы на одном уровне — для полного отключения есть «Скрыть на карте»",
         "moved to %@ — the rows are back to what the style does":
             "переведён на %@ — строки вернулись к тому, что делает стиль",
         "Choose the zoom levels where each kind of feature is shown. Arrows move the cursor, space turns a level on or off; the range is always continuous.":
             "Выберите, на каких уровнях зума виден каждый вид объектов. Стрелки двигают курсор, пробел включает и выключает уровень; диапазон всегда сплошной.",
         "paths, tracks, footways, steps, via ferrata — what you walk":
-            "тропы, грунтовки, дорожки, лестницы, виа феррата — то, чем ходят",
+            "тропы, грунтовки, дорожки, лестницы, виа феррата — то, по чему ходят",
         "everything a vehicle drives on, link roads and slip roads too":
             "всё, по чему едут, вместе со съездами и связками",
         "rivers, lakes, wetland, the coast and the sea": "реки, озёра, болота, берег и море",
@@ -1047,8 +1048,8 @@ enum Strings {
             "пашня, промзона, застройка, магазины, туризм — всё остальное",
         "edit these on the Zoom plans screen": "меняется на экране «Планы зума»",
         "Plans marked · come with kmap and cannot be edited. Copy one, and the copy is yours to change.":
-            "Планы с точкой встроены в kmap, их нельзя изменить. Скопируйте план — копия полностью ваша.",
-        "⏎ to make another": "⏎ чтобы сделать ещё один",
+            "Планы с точкой встроены в kmap, их нельзя изменить. Скопируйте план — копию можно менять.",
+        "⏎ to make another": "⏎ — создать ещё один",
         "300 m": "300 м",
         "600 m": "600 м",
         "1.2 km": "1,2 км",
@@ -1057,7 +1058,7 @@ enum Strings {
         "Rail and cableways": "Рельсы и канатки",
         "Barriers": "Преграды",
         "fences, walls, gates and hedges — what stops you":
-            "заборы, стены, ворота и живые изгороди — то, что не пускает",
+            "заборы, стены, ворота и живые изгороди — то, что преграждает путь",
         "Power lines": "ЛЭП",
         "transmission lines and their pylons: landmarks in open country":
             "линии электропередачи и опоры: ориентир на открытой местности",
@@ -1082,9 +1083,9 @@ enum Strings {
         "building outlines, which are many and small": "контуры зданий — их много и они мелкие",
         "%@ left": "осталось %@",
         "waiting for %@": "ждёт %@",
-        "%@ is still installing": "%@ ещё ставится",
+        "%@ is still installing": "%@ ещё устанавливается",
         "still installing: ^C stops everything": "установка идёт: ^C останавливает всё",
-        "needs root, press Enter on its row: %@": "ставится от root, Enter на его строке: %@"
+        "needs root, press Enter on its row: %@": "устанавливается от root, Enter на его строке: %@"
     ]
 
     /// Russian plural forms, by CLDR category: "one", "few", "many".
@@ -1110,9 +1111,9 @@ enum Strings {
             "many": "%d цветов"
         ],
         "%d archive(s) to fetch, of a size the server did not report": [
-            "one": "качать %d архив, размер сервер не сообщил",
-            "few": "качать %d архива, размер сервер не сообщил",
-            "many": "качать %d архивов, размер сервер не сообщил"
+            "one": "%d архив к загрузке, размер сервер не сообщил",
+            "few": "%d архива к загрузке, размер сервер не сообщил",
+            "many": "%d архивов к загрузке, размер сервер не сообщил"
         ],
         "%d cell(s)": [
             "one": "%d ячейка",
@@ -1120,9 +1121,9 @@ enum Strings {
             "many": "%d ячеек"
         ],
         "the %d cell(s) left are open sea or unsurveyed — nothing to fetch": [
-            "one": "оставшаяся %d ячейка — открытое море или вне съёмки, качать нечего",
-            "few": "оставшиеся %d ячейки — открытое море или вне съёмки, качать нечего",
-            "many": "оставшиеся %d ячеек — открытое море или вне съёмки, качать нечего"
+            "one": "оставшаяся %d ячейка — открытое море или вне съёмки, загружать нечего",
+            "few": "оставшиеся %d ячейки — открытое море или вне съёмки, загружать нечего",
+            "many": "оставшиеся %d ячеек — открытое море или вне съёмки, загружать нечего"
         ],
         "elevation: %d cell(s) after the outline trim": [
             "one": "высоты: %d ячейка после обрезки по контуру",
@@ -1190,9 +1191,9 @@ enum Strings {
             "many": "%d разобрано"
         ],
         "%d code(s) left alone — no rule of ours is aimed at them, so the map goes on drawing them as it did:": [
-            "one": "%d код оставлен как есть — ни одно правило на него не наведено, карта рисует его по-прежнему:",
-            "few": "%d кода оставлены как есть — ни одно правило на них не наведено, карта рисует их по-прежнему:",
-            "many": "%d кодов оставлены как есть — ни одно правило на них не наведено, карта рисует их по-прежнему:"
+            "one": "%d код оставлен как есть — наши правила его не затрагивают, карта рисует его по-прежнему:",
+            "few": "%d кода оставлены как есть — наши правила их не затрагивают, карта рисует их по-прежнему:",
+            "many": "%d кодов оставлены как есть — наши правила их не затрагивают, карта рисует их по-прежнему:"
         ],
         "and %d more": [
             "one": "и ещё %d",
@@ -1200,9 +1201,9 @@ enum Strings {
             "many": "и ещё %d"
         ],
         "%d file(s) of equal weight, whatever that means for the card": [
-            "one": "%d файл равного веса, что бы это ни значило для карты памяти",
-            "few": "%d файла равного веса, что бы это ни значило для карты памяти",
-            "many": "%d файлов равного веса, что бы это ни значило для карты памяти"
+            "one": "%d файл равного размера, независимо от ёмкости карты памяти",
+            "few": "%d файла равного размера, независимо от ёмкости карты памяти",
+            "many": "%d файлов равного размера, независимо от ёмкости карты памяти"
         ],
         "%d hidden": [
             "one": "%d скрыт",
@@ -1247,11 +1248,11 @@ enum Strings {
         "%d elevation cell(s) beyond the region's outline have no data — the relief there reads as sea level, and so does the map":
             [
                 "one":
-                    "%d клетка рельефа за контуром региона без данных — рельеф там читается как уровень моря, и карта там пуста",
+                    "%d ячейка рельефа за контуром региона без данных — рельеф там читается как уровень моря, и карта там пуста",
                 "few":
-                    "%d клетки рельефа за контуром региона без данных — рельеф там читается как уровень моря, и карта там пуста",
+                    "%d ячейки рельефа за контуром региона без данных — рельеф там читается как уровень моря, и карта там пуста",
                 "many":
-                    "%d клеток рельефа за контуром региона без данных — рельеф там читается как уровень моря, и карта там пуста"
+                    "%d ячеек рельефа за контуром региона без данных — рельеф там читается как уровень моря, и карта там пуста"
             ],
         "%d section(s)": [
             "one": "%d секция",
