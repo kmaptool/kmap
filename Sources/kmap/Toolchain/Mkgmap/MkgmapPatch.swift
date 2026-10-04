@@ -5,9 +5,17 @@ import Foundation
 /// The patched jar sits beside the original under a name of its own and carries a marker
 /// naming the patch version; it is rebuilt whenever that version changes.
 ///
-/// The Java below is a patch to mkgmap: it quotes and adapts mkgmap's own source, so it is
-/// GPL as mkgmap is, not MIT. See NOTICE.md.
+/// The Java of the patch, which is GPL as mkgmap is, lives in `MkgmapPatchEdits.swift`; see
+/// NOTICE.md.
 extension Toolchain {
+    /// Compiles for the Java that runs mkgmap where it is older than the JDK compiling:
+    /// classes for a newer Java do not load in it. Nothing where they agree, as a JDK 8
+    /// has no `--release`.
+    static func releaseOptions(kit: Int?, runtime: Int?) -> [String] {
+        guard let kit, let runtime, runtime < kit else { return [] }
+        return ["--release", String(max(runtime, 8))]
+    }
+
     /// The patch was asked for once and an older kmap built it: its edits have changed.
     static func isStalePatch(_ jar: URL) -> Bool {
         let found = patchVersion(of: jar)
@@ -104,6 +112,7 @@ extension Toolchain {
         // options this machine's Java needs to start are passed to them as well.
         var arguments =
             java.toolOptions
+            + Toolchain.releaseOptions(kit: java.major, runtime: findJava()?.major)
             + [
                 "-nowarn", "-classpath",
                 classpath.joined(separator: ToolLocations.classpathSeparator()),

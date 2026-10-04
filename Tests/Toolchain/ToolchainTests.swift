@@ -343,4 +343,21 @@ final class ToolchainTests: XCTestCase {
         XCTAssertFalse(Toolchain.overlap("sea", "bounds"), "two packs fetch different things")
         XCTAssertFalse(Toolchain.overlap("sea", "sea"), "a tool is not its own prerequisite")
     }
+
+    // MARK: Which Java the patch is compiled for
+
+    func testThePatchIsCompiledForAnOlderJavaThatRunsIt() {
+        // A JDK 25 compiling for a Java 21 runtime: classes for 25 would not load there.
+        XCTAssertEqual(Toolchain.releaseOptions(kit: 25, runtime: 21), ["--release", "21"])
+        XCTAssertEqual(Toolchain.releaseOptions(kit: 25, runtime: 8), ["--release", "8"])
+    }
+
+    func testTheSameOrANewerRuntimeTakesTheJDKsOwnTarget() {
+        XCTAssertEqual(Toolchain.releaseOptions(kit: 25, runtime: 25), [])
+        XCTAssertEqual(Toolchain.releaseOptions(kit: 21, runtime: 25), [])
+        // A JDK 8 knows no --release, and an unread version decides nothing.
+        XCTAssertEqual(Toolchain.releaseOptions(kit: 8, runtime: 8), [])
+        XCTAssertEqual(Toolchain.releaseOptions(kit: nil, runtime: 21), [])
+        XCTAssertEqual(Toolchain.releaseOptions(kit: 25, runtime: nil), [])
+    }
 }
