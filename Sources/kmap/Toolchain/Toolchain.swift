@@ -94,11 +94,11 @@ final class Toolchain: @unchecked Sendable {
     /// The line of `java -version` that names the version, not the first line there is:
     /// a JVM with _JAVA_OPTIONS set prints "Picked up _JAVA_OPTIONS: ..." first, and one
     /// given a deprecated option says so, "version" and all, before it. The quoted number
-    /// marks the line; any line naming a version does where none has one.
+    /// marks the line.
     static func versionLine(of output: String) -> String {
-        let lines = output.split(separator: "\n").map { String($0).trimmingCharacters(in: .whitespaces) }
-        return lines.first { $0.lowercased().contains("version \"") }
-            ?? lines.first { $0.lowercased().contains("version") } ?? "unknown"
+        // Split on any line end: Windows ends its lines with CR LF, which is 1 Character.
+        let lines = output.split(whereSeparator: \.isNewline).map { String($0).trimmingCharacters(in: .whitespaces) }
+        return lines.first { $0.lowercased().contains("version \"") } ?? "unknown"
     }
 
     private func probeJava(compilerNeeded: Bool = false) -> JavaRuntime? {
@@ -113,7 +113,9 @@ final class Toolchain: @unchecked Sendable {
                 else { continue }
                 // A version string is the only output that means the JVM ran: both a stub
                 // launcher and a JVM that failed to initialize exit with a message instead.
-                guard output.lowercased().contains("version") else { continue }
+                // The quoted number, not the word alone: a JVM that cannot load prints
+                // "version 'GLIBC_2.xx' not found".
+                guard output.lowercased().contains("version \"") else { continue }
                 return JavaRuntime(
                     path: candidate,
                     version: Self.versionLine(of: output),
@@ -188,21 +190,23 @@ final class Toolchain: @unchecked Sendable {
     }
 
     /// 0 for an unpatched jar, 1 for one from before the marker carried a number.
-    static func patchVersion(of jar: URL) -> Int {
-        guard FileTools.exists(jar), let archive = Archive.current else { return 0 }
+    static func patchVersion(of jar: URL) -> Int { patchState(of: jar).version }
+
+    /// The marker's patch version, as `patchVersion(of:)` gives it, and the Java release the
+    /// patched classes were compiled for, nil where the marker does not say.
+    static func patchState(of jar: URL) -> (version: Int, release: Int?) {
+        guard FileTools.exists(jar), let archive = Archive.current else { return (0, nil) }
         let list = archive.listing(of: jar)
         guard let listing = ProcessProbe.capture(list.executable, list.arguments),
             listing.contains(patchMarker)
-        else { return 0 }
+        else { return (0, nil) }
         let read = archive.read(patchMarker, from: jar)
-        guard let body = ProcessProbe.capture(read.executable, read.arguments),
-            let line = body.split(separator: "\n").first(where: { $0.hasPrefix("patch-version:") }),
-            let version = Int(
-                line.dropFirst("patch-version:".count)
-                    .trimmingCharacters(in: .whitespaces)
-            )
-        else { return 1 }
-        return version
+        guard let body = ProcessProbe.capture(read.executable, read.arguments) else { return (1, nil) }
+        func value(_ key: String) -> Int? {
+            body.split(whereSeparator: \.isNewline).first { $0.hasPrefix(key) }
+                .flatMap { Int($0.dropFirst(key.count).trimmingCharacters(in: .whitespaces)) }
+        }
+        return (value("patch-version:") ?? 1, value("class-release:"))
     }
 
     var mkgmapIsPatched: Bool {
@@ -230,12 +234,19 @@ final class Toolchain: @unchecked Sendable {
     private func probeMkgmap() -> (url: URL, version: String)? {
         guard let java = findJava() else { return nil }
         for candidate in mkgmapCandidates() where FileTools.exists(candidate) {
+            // A patch compiled for a newer Java than this one: its version answers, as its
+            // main class is mkgmap's own, but its patched classes would not load.
+            if candidate == Toolchain.patchedMkgmapURL,
+                Toolchain.isTooNew(release: Toolchain.patchState(of: candidate).release, for: java.major)
+            {
+                continue
+            }
             let output =
                 ProcessProbe.capture(
                     java.path,
                     java.command(["-jar", candidate.path, "--version"])
                 ) ?? ""
-            let version = output.split(separator: "\n")
+            let version = output.split(whereSeparator: \.isNewline)
                 .first { $0.lowercased().contains("mkgmap") }
                 .map { String($0).trimmingCharacters(in: .whitespaces) }
             if let version { return (candidate, version) }
@@ -290,7 +301,14 @@ final class Toolchain: @unchecked Sendable {
         let mkgmap = findMkgmap()
         out.append(mkgmapStatus(mkgmap, java: java))
         if let mkgmap {
-            out.append(patchStatus(of: mkgmap.url, canCompile: findJavaKit() != nil))
+            // A patch too new for this Java is passed over for the stock jar, and is still
+            // the one to report.
+            let patched = Toolchain.patchedMkgmapURL
+            let skipped = Toolchain.patchState(of: patched)
+            let jar =
+                skipped.version > 0 && Toolchain.isTooNew(release: skipped.release, for: java?.major)
+                ? patched : mkgmap.url
+            out.append(patchStatus(of: jar, runtime: java?.major, canCompile: findJavaKit() != nil))
         }
         out.append(
             dataStatus(
@@ -354,9 +372,11 @@ final class Toolchain: @unchecked Sendable {
         )
     }
 
-    private func patchStatus(of jar: URL, canCompile: Bool) -> ToolStatus {
-        let found = Toolchain.patchVersion(of: jar)
-        let patched = found >= Toolchain.patchVersion
+    private func patchStatus(of jar: URL, runtime: Int?, canCompile: Bool) -> ToolStatus {
+        let state = Toolchain.patchState(of: jar)
+        let found = state.version
+        let tooNew = found > 0 && Toolchain.isTooNew(release: state.release, for: runtime)
+        let patched = found >= Toolchain.patchVersion && !tooNew
         return ToolStatus(
             id: "mkgmap-patch",
             name: t("mkgmap seam patch"),
@@ -368,9 +388,11 @@ final class Toolchain: @unchecked Sendable {
                 ? nil
                 : !canCompile
                     ? t("built here from source — install a full JDK first")
-                    : found > 0
-                        ? t("an older patch — kmap rebuilds it at the next start or build")
-                        : t("without it tiles meet on a line and it shows"),
+                    : tooNew
+                        ? t("built for a newer Java — kmap rebuilds it at the next start or build")
+                        : found > 0
+                            ? t("an older patch — kmap rebuilds it at the next start or build")
+                            : t("without it tiles meet on a line and it shows"),
             installable: canCompile,
             isOptional: true,
             removable: patched || found > 0

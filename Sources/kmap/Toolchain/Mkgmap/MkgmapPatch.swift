@@ -12,17 +12,37 @@ extension Toolchain {
     /// classes for a newer Java do not load in it. Nothing where they agree, as a JDK 8
     /// has no `--release`.
     static func releaseOptions(kit: Int?, runtime: Int?) -> [String] {
-        guard let kit, let runtime, runtime < kit else { return [] }
+        guard let kit, kit >= 9, let runtime, runtime < kit else { return [] }
         return ["--release", String(max(runtime, 8))]
     }
 
-    /// The patch was asked for once and an older kmap built it: its edits have changed.
-    static func isStalePatch(_ jar: URL) -> Bool {
-        let found = patchVersion(of: jar)
-        return found > 0 && found < patchVersion
+    /// The Java release the patch's classes are compiled for, as the marker records it.
+    static func classRelease(kit: Int?, runtime: Int?) -> Int? {
+        guard let kit else { return nil }
+        return releaseOptions(kit: kit, runtime: runtime).isEmpty ? kit : max(runtime ?? kit, 8)
     }
 
-    var patchIsStale: Bool { Toolchain.isStalePatch(Toolchain.patchedMkgmapURL) }
+    /// The patch an older kmap built, or one compiled for a newer Java than the one that
+    /// runs mkgmap now, which would not load its classes.
+    var patchIsStale: Bool {
+        Toolchain.isStalePatch(Toolchain.patchedMkgmapURL, runtime: findJava()?.major)
+    }
+
+    /// The same for `jar`, run by a Java of `runtime`. A jar never patched is not stale.
+    static func isStalePatch(_ jar: URL, runtime: Int?) -> Bool {
+        let state = patchState(of: jar)
+        guard state.version > 0 else { return false }
+        if state.version < patchVersion { return true }
+        return isTooNew(release: state.release, for: runtime)
+    }
+
+    /// Whether classes compiled for `release` are too new for a Java of `runtime`. Unknown
+    /// either way is not; nor is a runtime older than any the patch can be compiled for,
+    /// which no rebuild would help.
+    static func isTooNew(release: Int?, for runtime: Int?) -> Bool {
+        guard let release, let runtime, runtime >= 8 else { return false }
+        return runtime < release
+    }
 
     /// The rebuild in flight, and whether one has failed in this process.
     private static let renewal = Locked<(running: Task<Bool, Never>?, failed: Bool)>((nil, false))
@@ -145,6 +165,8 @@ extension Toolchain {
         let marker = classes.appendingPathComponent(Toolchain.patchMarker)
         let stamp =
             "built-from: r\(revision)\npatch-version: \(Toolchain.patchVersion)\n"
+            + (Toolchain.classRelease(kit: java.major, runtime: findJava()?.major).map { "class-release: \($0)\n" }
+                ?? "")
             + "option: --x-shape-clip-overlap\n"
             + "option: --x-line-draw-order\n"
             + "option: --x-shape-lift\n"

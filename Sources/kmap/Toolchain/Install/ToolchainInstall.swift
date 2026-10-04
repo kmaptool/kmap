@@ -165,6 +165,7 @@ extension Toolchain {
                 // A stop arrives as whatever the download or the unpacking was doing: it
                 // ends the install rather than trying an older Java.
                 if error is CancellationError || Task.isCancelled { throw CancellationError() }
+                guard Toolchain.stepsDown(after: error, feature: feature) else { throw error }
                 failure = error
                 if at + 1 < JavaDownload.features.count {
                     log.append(
@@ -174,6 +175,14 @@ extension Toolchain {
             }
         }
         throw failure
+    }
+
+    /// Whether a failed install of Java `feature` goes on to an older one: only where this
+    /// one cannot be had here or does not run. A network or disk that fails fails the older
+    /// one too, and a checksum that does not match is not to be stepped round.
+    static func stepsDown(after error: Error, feature: Int) -> Bool {
+        guard let trouble = error as? JavaDownload.Trouble else { return false }
+        return [.noRelease(feature), .unsupportedMachine, .noJavaInside].contains(trouble)
     }
 
     private func installOwnJava(
@@ -191,7 +200,12 @@ extension Toolchain {
         // what URLSession writes there differs between platforms.
         var request = URLRequest(url: assets)
         request.setValue("kmap/\(Version.number)", forHTTPHeaderField: "User-Agent")
-        let (listing, _) = try await URLSession.shared.data(for: request)
+        let (listing, response) = try await URLSession.shared.data(for: request)
+        // Not found is the API saying it has no such build here; any other refusal is the
+        // server's trouble, which an older Java would meet too.
+        if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
+            throw status == 404 ? JavaDownload.Trouble.noRelease(feature) : DownloadError.badStatus(status)
+        }
         let release = try JavaDownload.release(fromAssets: listing, feature: feature)
         log.append(t("%1$@ — %2$@", release.name, Fmt.bytes(Int64(release.bytes))))
 
@@ -228,7 +242,7 @@ extension Toolchain {
         // unpacks and then does not start. Asked as the probe asks, WSL1's options too.
         guard let unpacked = JavaDownload.javaBinary(under: staging),
             Toolchain.javaRescueOptions.contains(where: { options in
-                ProcessProbe.capture(unpacked.path, options + ["-version"])?.lowercased().contains("version") == true
+                ProcessProbe.capture(unpacked.path, options + ["-version"])?.lowercased().contains("version \"") == true
             })
         else {
             throw JavaDownload.Trouble.noJavaInside

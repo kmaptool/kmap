@@ -384,6 +384,10 @@ enum Strings {
             "это имя уже занято другой сборкой — файлы получают -%d",
         "an older patch — kmap rebuilds it at the next start or build":
             "патч от прежней версии — kmap пересоберёт его сам при запуске или сборке",
+        "the answer to the Java lookup is not Adoptium's list — a proxy or a network page in the way?":
+            "ответ на поиск Java — не список Adoptium: мешает прокси или страница сети?",
+        "built for a newer Java — kmap rebuilds it at the next start or build":
+            "собран под более новую Java — kmap пересоберёт его сам при запуске или сборке",
         "rebuilding the mkgmap patch": "пересборка патча mkgmap",
         "kmap is rebuilding the patch on its own — a moment":
             "kmap пересобирает патч — подождите немного",

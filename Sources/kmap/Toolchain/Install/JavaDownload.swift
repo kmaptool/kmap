@@ -85,6 +85,8 @@ enum JavaDownload {
         case unsupportedMachine
         /// No build of this feature release.
         case noRelease(Int)
+        /// An answer that is not the API's at all, as a proxy's page.
+        case unreadableListing
         case badChecksum(expected: String, got: String)
         case noJavaInside
 
@@ -94,6 +96,8 @@ enum JavaDownload {
                 return t("no Java build is published for this kind of machine")
             case .noRelease(let feature):
                 return t("Adoptium listed no Java %d build for this machine", feature)
+            case .unreadableListing:
+                return t("the answer to the Java lookup is not Adoptium's list — a proxy or a network page in the way?")
             case .badChecksum(let expected, let got):
                 return t(
                     "the download does not match its published checksum"
@@ -116,8 +120,11 @@ enum JavaDownload {
     /// package with a checksum: a build published without one cannot be checked, so it is
     /// not used.
     static func release(fromAssets data: Data, feature: Int = JavaDownload.features[0]) throws -> Release {
-        let listed = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-        for entry in listed ?? [] {
+        // Not JSON at all is a page from something in the way, which an older Java would
+        // meet too; JSON that is not the list is the API saying it has none.
+        guard let parsed = try? JSONSerialization.jsonObject(with: data) else { throw Trouble.unreadableListing }
+        guard let listed = parsed as? [[String: Any]] else { throw Trouble.noRelease(feature) }
+        for entry in listed {
             guard let binary = entry["binary"] as? [String: Any],
                 let package = binary["package"] as? [String: Any],
                 let name = package["name"] as? String,

@@ -182,6 +182,113 @@ final class JavaWarmStartTests: XCTestCase {
         )
     }
 
+    func testAJVMThatFailedToRecordIsNotAskedAgainUntilTheMarkGoesStale() throws {
+        let runtime = java(#"openjdk version "25.0.1""#)
+        let first = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true, in: caches)
+        XCTAssertNotNil(first.recording)
+        JavaWarmStart.refuse(first)
+        let next = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true, in: caches)
+        XCTAssertTrue(next.options.isEmpty, "a cold compile")
+        XCTAssertNil(next.recording)
+        let later = Date().addingTimeInterval(JavaWarmStart.staleAfter + 60)
+        let mark = JavaWarmStart.refusal(of: try XCTUnwrap(first.cache))
+        let stale = JavaWarmStart.leftovers(keeping: first.cache, in: caches, now: later).map(\.lastPathComponent)
+        XCTAssertTrue(stale.contains(mark.lastPathComponent), "\(stale)")
+        // Not yet cleared away, a stale mark no longer holds the recording back.
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date().addingTimeInterval(-JavaWarmStart.staleAfter - 60)],
+            ofItemAtPath: mark.path
+        )
+        let again = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true, in: caches)
+        XCTAssertNotNil(again.recording)
+    }
+
+    func testAJVMRebuiltUnderTheSameNameAndVersionGetsACacheOfItsOwn() throws {
+        // Named through a link, as Homebrew's is: the file it leads to is what changes.
+        let binary = folder.appendingPathComponent("java-25.0.1")
+        try FileTools.write(Data("jvm".utf8), to: binary)
+        let link = folder.appendingPathComponent("java")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: binary)
+        let runtime = JavaRuntime(path: link.path, version: #"openjdk version "25.0.1""#, options: [])
+        let before = JavaWarmStart.cacheFile(java: runtime, jar: jar, heapGB: 8, in: caches)
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date().addingTimeInterval(-3600)],
+            ofItemAtPath: binary.path
+        )
+        XCTAssertNotEqual(JavaWarmStart.cacheFile(java: runtime, jar: jar, heapGB: 8, in: caches), before)
+    }
+
+    func testAJarReplacedBehindALinkGetsACacheOfItsOwn() throws {
+        let linked = folder.appendingPathComponent("mkgmap-link.jar")
+        try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: jar)
+        let runtime = java(#"openjdk version "25.0.1""#)
+        let before = JavaWarmStart.cacheFile(java: runtime, jar: linked, heapGB: 8, in: caches)
+        try FileTools.write(Data("a newer mkgmap".utf8), to: jar)
+        XCTAssertNotEqual(JavaWarmStart.cacheFile(java: runtime, jar: linked, heapGB: 8, in: caches), before)
+    }
+
+    func testOnlyMkgmapsLastLineWithNoFailureCountsAsAFinish() {
+        XCTAssertTrue(BuildPipeline.isCleanFinish("Number of ExitExceptions: 0"))
+        XCTAssertTrue(BuildPipeline.isCleanFinish("Number of ExitExceptions: 0\r"))
+        XCTAssertFalse(BuildPipeline.isCleanFinish("Number of ExitExceptions: 1"))
+        XCTAssertFalse(BuildPipeline.isCleanFinish("Number of ExitExceptions: 10"))
+        XCTAssertFalse(BuildPipeline.isCleanFinish("Number of MapFailedExceptions: 0"))
+    }
+
+    func testAProbeRecordsAsTheCompileWouldIntoAFileOfItsOwn() throws {
+        let plan = JavaWarmStart.plan(
+            java: java(#"openjdk version "25.0.1""#),
+            jar: jar,
+            heapGB: 8,
+            recording: true,
+            in: caches
+        )
+        let recording = try XCTUnwrap(plan.recording)
+        let probe = try XCTUnwrap(JavaWarmStart.probe(plan, jar: jar, heapGB: 8))
+        XCTAssertNotEqual(probe.recording, recording)
+        XCTAssertTrue(probe.options.contains("-XX:AOTMode=record"))
+        XCTAssertTrue(probe.options.contains("-XX:AOTConfiguration=\(probe.recording.path)"))
+        XCTAssertFalse(probe.options.contains("-XX:AOTConfiguration=\(recording.path)"))
+        XCTAssertEqual(Array(probe.options.suffix(4)), ["-Xmx8g", "-jar", jar.path, "--version"])
+        XCTAssertNil(
+            JavaWarmStart.probe(JavaWarmStart.Plan(), jar: jar, heapGB: 8),
+            "nothing to probe when not recording"
+        )
+    }
+
+    func testARecordingGoesStaleSoonerThanACache() throws {
+        // A JVM writes its recording only as it exits: an hour-old one belongs to no run.
+        Paths.ensure(caches)
+        for name in ["warm-a-1111.aotconf", "warm-a-1111.new", "warm-b.aot", "warm-b.refused"] {
+            try FileTools.write(Data(), to: caches.appendingPathComponent(name))
+        }
+        let hours2 = Date().addingTimeInterval(2 * JavaWarmStart.recordingStaleAfter)
+        let found = JavaWarmStart.leftovers(keeping: nil, in: caches, now: hours2).map(\.lastPathComponent).sorted()
+        XCTAssertEqual(found, ["warm-a-1111.aotconf", "warm-a-1111.new"])
+    }
+
+    func testACacheMadeMeanwhileIsReadDespiteARefusal() throws {
+        // Another build recorded under the same key after this machine's JVM refused once.
+        let runtime = java(#"openjdk version "25.0.1""#)
+        let first = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true, in: caches)
+        JavaWarmStart.refuse(first)
+        try FileTools.write(Data("cache".utf8), to: try XCTUnwrap(first.cache))
+        let next = JavaWarmStart.plan(java: runtime, jar: jar, heapGB: 8, recording: true, in: caches)
+        XCTAssertTrue(next.options.contains("-XX:AOTCache=\(try XCTUnwrap(first.cache).path)"))
+    }
+
+    func testTheJVMsOptionsFromTheEnvironmentNameTheCacheWhateverTheirCase() {
+        let runtime = java(#"openjdk version "25.0.1""#)
+        func name(_ environment: [String: String]) -> String {
+            JavaWarmStart.cacheFile(java: runtime, jar: jar, heapGB: 8, in: caches, environment: environment)
+                .lastPathComponent
+        }
+        let plain = name([:])
+        XCTAssertNotEqual(plain, name(["JAVA_TOOL_OPTIONS": "-XX:+UseZGC"]))
+        XCTAssertEqual(name(["JAVA_TOOL_OPTIONS": "-XX:+UseZGC"]), name(["Java_Tool_Options": "-XX:+UseZGC"]))
+        XCTAssertEqual(plain, name(["PATH": "/usr/bin"]), "other variables change nothing")
+    }
+
     func testDiscardTakesTheRecordingAndWhatWasMadeFromIt() throws {
         let plan = JavaWarmStart.plan(
             java: java(#"openjdk version "25.0.1""#),
@@ -212,6 +319,21 @@ final class JavaWarmStartTests: XCTestCase {
             #"java version "21.0.4" 2024-07-16 LTS"#
         )
         XCTAssertEqual(Toolchain.versionLine(of: "nothing here"), "unknown")
+        // Windows ends its lines with CR LF.
+        XCTAssertEqual(
+            Toolchain.versionLine(
+                of: "Picked up JAVA_TOOL_OPTIONS: -Dx=\"y\"\r\nopenjdk version \"25\" 2025-09-16\r\n"
+            ),
+            #"openjdk version "25" 2025-09-16"#,
+            "a quote in an option line comes first: the version line must still be found"
+        )
+        XCTAssertEqual(
+            java(Toolchain.versionLine(of: "Picked up JAVA_TOOL_OPTIONS: -Dx=\"y\"\r\nopenjdk version \"25\"\r\n"))
+                .major,
+            25
+        )
+        // A JVM that cannot load names no version.
+        XCTAssertEqual(Toolchain.versionLine(of: "java: version 'GLIBC_2.34' not found"), "unknown")
     }
 
     func testTheRecordingJVMsOwnLineIsNotMkgmaps() {

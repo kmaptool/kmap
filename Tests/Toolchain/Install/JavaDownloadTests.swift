@@ -112,7 +112,14 @@ final class JavaDownloadTests: XCTestCase {
     }
 
     func testNonsenseFromTheApiIsAnErrorRatherThanACrash() {
-        XCTAssertThrowsError(try JavaDownload.release(fromAssets: Data("not json".utf8)))
+        // A page from a proxy says nothing of Java 25: an older Java would meet it too.
+        XCTAssertThrowsError(try JavaDownload.release(fromAssets: Data("not json".utf8), feature: 25)) { error in
+            XCTAssertEqual(error as? JavaDownload.Trouble, .unreadableListing)
+            XCTAssertFalse(Toolchain.stepsDown(after: error, feature: 25))
+        }
+        XCTAssertThrowsError(try JavaDownload.release(fromAssets: Data(#"{"error": "no"}"#.utf8), feature: 25)) {
+            XCTAssertEqual($0 as? JavaDownload.Trouble, .noRelease(25))
+        }
     }
 
     // MARK: Finding java in what was unpacked

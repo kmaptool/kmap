@@ -2,7 +2,7 @@ import Foundation
 
 /// Stage 5: mkgmap, over every tile in one run.
 extension BuildPipeline {
-    // MARK: 5 — compile
+    // MARK: 5 - compile
 
     func compile(tiles: TileSet) async throws {
         set(.compile, .running, t("preparing style"))
@@ -63,21 +63,33 @@ extension BuildPipeline {
         try FileTools.write(args, to: argsFile)
 
         // The JVM starts warm from the cache an earlier compile left, or records one.
-        let warm = JavaWarmStart.plan(java: java, jar: mkgmap, heapGB: recipe.heapGB, recording: true)
+        var warm = JavaWarmStart.plan(java: java, jar: mkgmap, heapGB: recipe.heapGB, recording: true)
         for stale in JavaWarmStart.leftovers(keeping: warm.cache) { FileTools.removeIfPresent(stale) }
         if warm.recording != nil {
-            log.append("recording a warm start for mkgmap: this compile is slower, the next ones faster")
+            // A JVM that cannot record fails the run it records in, where reading a cache never
+            // does: asked first with a run that does nothing, and not asked again for a while.
+            if try await canRecord(warm, java: java, mkgmap: mkgmap) {
+                log.append("recording a warm start for mkgmap: this compile is slower, the next ones faster")
+            } else {
+                JavaWarmStart.refuse(warm)
+                JavaWarmStart.discard(warm)
+                log.append("this Java does not record a warm start for mkgmap; compiling without one")
+                warm = JavaWarmStart.Plan(cache: warm.cache)
+            }
         }
-        var arguments = java.command(warm.options + ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path])
-        arguments += mkgmapOptions(
-            name: recipe.slug,
-            outputDir: tileDir,
-            tileCount: tiles.tiles.count,
-            gmapsupp: false,
-            typ: typ?.url,
-            shapeLift: typ?.shapeLift
-        )
-        arguments += ["-c", argsFile.path]
+        let rest =
+            mkgmapOptions(
+                name: recipe.slug,
+                outputDir: tileDir,
+                tileCount: tiles.tiles.count,
+                gmapsupp: false,
+                typ: typ?.url,
+                shapeLift: typ?.shapeLift
+            ) + ["-c", argsFile.path]
+        func command(_ warmOptions: [String]) -> [String] {
+            java.command(warmOptions + ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path]) + rest
+        }
+        let arguments = command(warm.options)
 
         log.step("compiling \(tiles.tiles.count) tile(s)")
         // The exact invocation, so a verbose log alone says what the pipeline decided.
@@ -87,19 +99,27 @@ extension BuildPipeline {
         )
         detail(.compile, "starting", fraction: 0)
 
-        let missingElevation: Set<String>
+        let compiled: (missingElevation: Set<String>, recordingFailed: Bool)
         do {
-            missingElevation = try await runMkgmapCompile(
+            compiled = try await runMkgmapCompile(
                 java: java,
                 arguments: arguments,
                 tileDir: tileDir,
                 tileIDs: tiles.tiles.map(\.mapID),
-                nodeCap: tiles.nodeCap
+                nodeCap: tiles.nodeCap,
+                recording: warm.recording != nil
             )
         } catch {
             // A compile that failed or was stopped leaves its recording, tens of MB.
             JavaWarmStart.discard(warm)
             throw error
+        }
+        let missingElevation = compiled.missingElevation
+        if compiled.recordingFailed {
+            // Every tile was written and only the JVM's exit failed: the recording, not the map.
+            JavaWarmStart.refuse(warm)
+            JavaWarmStart.discard(warm)
+            log.warn("mkgmap wrote every tile, but its JVM could not keep the warm start it recorded")
         }
         await keepWarmStart(warm, java: java, mkgmap: mkgmap)
         if !missingElevation.isEmpty {
@@ -134,8 +154,14 @@ extension BuildPipeline {
             let options = JavaWarmStart.assembly(warm, jar: mkgmap, heapGB: recipe.heapGB)
         else { return }
         let made = try? await makeRunner().run(java.path, java.command(options), allowFailure: true) { _ in }
-        // A JVM that failed may have left a part of the cache: it does not take the name.
-        guard made?.exitCode == 0, FileTools.size(of: pending) > 0 else { return }
+        // A JVM that failed may have left a part of the cache: it does not take the name, and
+        // is not asked to record again for a while.
+        guard made?.exitCode == 0, FileTools.size(of: pending) > 0 else {
+            guard !isCancelled else { return }
+            JavaWarmStart.refuse(warm)
+            log.warn("mkgmap's warm start could not be made from what was recorded; compiling without one for now")
+            return
+        }
         // Another build recording at the same time may have put its cache there first.
         if !FileTools.exists(cache) { try? FileTools.move(pending, to: cache) }
         guard FileTools.exists(cache) else { return }
@@ -154,8 +180,9 @@ extension BuildPipeline {
         arguments: [String],
         tileDir: URL,
         tileIDs: [String],
-        nodeCap: Int
-    ) async throws -> Set<String> {
+        nodeCap: Int,
+        recording: Bool
+    ) async throws -> (missingElevation: Set<String>, recordingFailed: Bool) {
         // The last tenth of the bar is the bundling that follows.
         let board = board
         let watcher = Task {
@@ -176,6 +203,7 @@ extension BuildPipeline {
         var overflowed = false
         var failedIDs: [Int] = []
         var missingElevation: Set<String> = []
+        var finishedCleanly = false
         let lock = NSLock()
         do {
             _ = try await measure(.compile, "mkgmap") {
@@ -193,6 +221,11 @@ extension BuildPipeline {
                     }
                     if JavaWarmStart.isOwnRemark(line) { return }
                     self.log.output(line, stage: StageID.compile.rawValue)
+                    if Self.isCleanFinish(line) {
+                        lock.lock()
+                        finishedCleanly = true
+                        lock.unlock()
+                    }
                     // mkgmap names the overflowing tile and exits; the run loop cuts it finer.
                     if line.contains("RGN section") && line.contains("too big") {
                         lock.lock()
@@ -211,9 +244,35 @@ extension BuildPipeline {
             }
         } catch {
             if overflowed { throw BuildError.tileTooDense(nodeCap, failed: failedIDs) }
+            // A recording JVM writes what it recorded as it exits, after mkgmap is done: a
+            // failure there fails only the exit. mkgmap said it finished without a failure,
+            // since a tile's .img is there from the moment it is begun.
+            if recording, case ProcessRunner.RunError.failed = error, lock.withLock({ finishedCleanly }),
+                tileIDs.allSatisfy({ FileTools.size(of: tileDir.appendingPathComponent("\($0).img")) > 0 })
+            {
+                return (missingElevation, true)
+            }
             throw error
         }
         if overflowed { throw BuildError.tileTooDense(nodeCap, failed: failedIDs) }
-        return missingElevation
+        return (missingElevation, false)
+    }
+
+    /// Whether this JVM records a warm start for mkgmap: the same options on a run that only
+    /// prints mkgmap's version. A JVM that refuses them, or cannot write what it recorded,
+    /// says so here and not after a whole compile.
+    /// A stop during the run is thrown, not taken for a refusal.
+    private func canRecord(_ warm: JavaWarmStart.Plan, java: JavaRuntime, mkgmap: URL) async throws -> Bool {
+        guard let probe = JavaWarmStart.probe(warm, jar: mkgmap, heapGB: recipe.heapGB) else { return false }
+        defer { FileTools.removeIfPresent(probe.recording) }
+        let ran = try? await makeRunner().run(java.path, java.command(probe.options), allowFailure: true) { _ in }
+        try stopIfCancelled()
+        return ran?.exitCode == 0 && FileTools.size(of: probe.recording) > 0
+    }
+
+    /// The line mkgmap ends a run with when no map failed: printed after the last tile is
+    /// written, and only then.
+    static func isCleanFinish(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("Number of ExitExceptions: 0")
     }
 }

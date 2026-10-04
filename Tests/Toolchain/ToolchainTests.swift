@@ -2,6 +2,10 @@ import XCTest
 
 @testable import kmap
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 /// Finding Java, mkgmap and the rest, and remembering what was found.
 ///
 /// These run against whatever is installed on the machine, so they assert that the
@@ -239,29 +243,53 @@ final class ToolchainTests: XCTestCase {
         XCTAssertTrue(Toolchain.isPatched(patched), "carries the marker under another name")
     }
 
-    /// Only a jar that carries an older patch is rebuilt on its own: one that was never
-    /// patched stays as it is, and the current one has nothing to rebuild.
-    func testOnlyAnOlderPatchIsStale() throws {
+    /// Only a jar that carries an older patch, or one built for a newer Java, is rebuilt on
+    /// its own: one that was never patched stays as it is, and the current one has nothing
+    /// to rebuild.
+    func testOnlyAnOlderPatchOrOneTooNewForTheJavaIsStale() throws {
         try XCTSkipUnless(
             Archive.isAvailable && Platform.which("zip") != nil,
             "this reads a jar with the machine's zip and unzip"
         )
         let stock = directory.appendingPathComponent("stock.jar")
         try makeZip(at: stock, holding: ["something.properties": "nothing to see"])
-        XCTAssertFalse(Toolchain.isStalePatch(stock), "never patched")
-        XCTAssertFalse(Toolchain.isStalePatch(directory.appendingPathComponent("absent.jar")))
+        XCTAssertFalse(Toolchain.isStalePatch(stock, runtime: 21), "never patched")
+        XCTAssertFalse(Toolchain.isStalePatch(directory.appendingPathComponent("absent.jar"), runtime: 21))
 
         let current = directory.appendingPathComponent("current.jar")
         try makeZip(at: current, holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion)\n"])
-        XCTAssertFalse(Toolchain.isStalePatch(current))
+        XCTAssertFalse(Toolchain.isStalePatch(current, runtime: 21))
 
         let older = directory.appendingPathComponent("older.jar")
         try makeZip(at: older, holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion - 1)\n"])
-        XCTAssertTrue(Toolchain.isStalePatch(older))
+        XCTAssertTrue(Toolchain.isStalePatch(older, runtime: 21))
 
         let unnumbered = directory.appendingPathComponent("unnumbered.jar")
         try makeZip(at: unnumbered, holding: [Toolchain.patchMarker: "option: --x-shape-clip-overlap\n"])
-        XCTAssertTrue(Toolchain.isStalePatch(unnumbered), "from before the marker carried a number")
+        XCTAssertTrue(Toolchain.isStalePatch(unnumbered, runtime: 21), "from before the marker carried a number")
+
+        let tooNew = directory.appendingPathComponent("too-new.jar")
+        try makeZip(
+            at: tooNew,
+            holding: [Toolchain.patchMarker: "patch-version: \(Toolchain.patchVersion)\nclass-release: 25\n"]
+        )
+        XCTAssertTrue(Toolchain.isStalePatch(tooNew, runtime: 21), "its classes do not load on 21")
+        XCTAssertFalse(Toolchain.isStalePatch(tooNew, runtime: 25))
+    }
+
+    func testTheMarkerSaysWhichJavaThePatchIsCompiledFor() throws {
+        try XCTSkipUnless(
+            Archive.isAvailable && Platform.which("zip") != nil,
+            "this reads a jar with the machine's zip and unzip"
+        )
+        let jar = directory.appendingPathComponent("released.jar")
+        try makeZip(at: jar, holding: [Toolchain.patchMarker: "patch-version: 22\r\nclass-release: 21\r\n"])
+        let state = Toolchain.patchState(of: jar)
+        XCTAssertEqual(state.version, 22)
+        XCTAssertEqual(state.release, 21)
+        let older = directory.appendingPathComponent("older-marker.jar")
+        try makeZip(at: older, holding: [Toolchain.patchMarker: "patch-version: 22\n"])
+        XCTAssertNil(Toolchain.patchState(of: older).release, "a marker from before it said")
     }
 
     func testAnOlderPatchReadsAsOutdatedNotAsPatched() throws {
@@ -359,5 +387,36 @@ final class ToolchainTests: XCTestCase {
         XCTAssertEqual(Toolchain.releaseOptions(kit: 8, runtime: 8), [])
         XCTAssertEqual(Toolchain.releaseOptions(kit: nil, runtime: 21), [])
         XCTAssertEqual(Toolchain.releaseOptions(kit: 25, runtime: nil), [])
+        // javac 8 has no --release at all, whatever runs the jar.
+        XCTAssertEqual(Toolchain.releaseOptions(kit: 8, runtime: 7), [])
+    }
+
+    func testTheMarkerRecordsTheReleaseTheClassesAreFor() {
+        XCTAssertEqual(Toolchain.classRelease(kit: 25, runtime: 21), 21)
+        XCTAssertEqual(Toolchain.classRelease(kit: 25, runtime: 27), 25)
+        XCTAssertEqual(Toolchain.classRelease(kit: 25, runtime: nil), 25)
+        XCTAssertEqual(Toolchain.classRelease(kit: 8, runtime: 8), 8)
+        XCTAssertNil(Toolchain.classRelease(kit: nil, runtime: 21))
+    }
+
+    func testAPatchIsTooNewOnlyForAnOlderJavaThatCouldRunAny() {
+        XCTAssertTrue(Toolchain.isTooNew(release: 25, for: 21))
+        XCTAssertFalse(Toolchain.isTooNew(release: 21, for: 25))
+        XCTAssertFalse(Toolchain.isTooNew(release: 21, for: 21))
+        XCTAssertFalse(Toolchain.isTooNew(release: nil, for: 21), "a marker from before it said")
+        XCTAssertFalse(Toolchain.isTooNew(release: 25, for: nil), "a runtime not read")
+        XCTAssertFalse(Toolchain.isTooNew(release: 8, for: 7), "no rebuild compiles below 8")
+    }
+
+    func testOnlyAJavaThatCannotBeHadOrDoesNotRunStepsDownToAnOlderOne() {
+        XCTAssertTrue(Toolchain.stepsDown(after: JavaDownload.Trouble.noRelease(25), feature: 25))
+        XCTAssertTrue(Toolchain.stepsDown(after: JavaDownload.Trouble.noJavaInside, feature: 25))
+        XCTAssertTrue(Toolchain.stepsDown(after: JavaDownload.Trouble.unsupportedMachine, feature: 25))
+        XCTAssertFalse(
+            Toolchain.stepsDown(after: JavaDownload.Trouble.badChecksum(expected: "a", got: "b"), feature: 25)
+        )
+        XCTAssertFalse(Toolchain.stepsDown(after: URLError(.timedOut), feature: 25), "the network fails 21 too")
+        XCTAssertFalse(Toolchain.stepsDown(after: DownloadError.badStatus(503), feature: 25), "a busy server")
+        XCTAssertFalse(Toolchain.stepsDown(after: CocoaError(.fileWriteOutOfSpace), feature: 25))
     }
 }
