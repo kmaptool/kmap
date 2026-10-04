@@ -2,6 +2,10 @@ import XCTest
 
 @testable import kmap
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 /// The two shapes the command line answers in, and the flags that choose between them.
 final class CLIOptionsTests: XCTestCase {
     func testTheSharedFlagsAreTakenOutOfTheArguments() {
@@ -46,6 +50,19 @@ final class CLIOptionsTests: XCTestCase {
             XCTAssertFalse(said.contains("UserInfo"), said)
             XCTAssertFalse(said.isEmpty)
         }
+    }
+
+    func testANetworkOrPOSIXErrorIsReportedInItsWords() {
+        let offline = CLIOutput.said(URLError(.notConnectedToInternet))
+        XCTAssertFalse(offline.contains("URLError(") || offline.contains("_nsError"), offline)
+        XCTAssertFalse(offline.contains("0x"), offline)
+        XCTAssertFalse(offline.isEmpty)
+        let missing = CLIOutput.said(POSIXError(.ENOENT))
+        XCTAssertFalse(missing.contains("POSIXError("), missing)
+        XCTAssertFalse(missing.isEmpty)
+        // One of kmap's own, with no words written, still says which case it is.
+        enum Broken: Error { case seam }
+        XCTAssertEqual(CLIOutput.said(Broken.seam), "seam")
     }
 
     // MARK: Stages in JSON

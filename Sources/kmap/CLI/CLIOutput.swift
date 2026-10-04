@@ -111,13 +111,21 @@ enum CLIOutput {
         emit("log", fields)
     }
 
+    /// The domains of the errors Foundation and the system raise.
+    private static let systemDomains: Set<String> = [
+        NSCocoaErrorDomain, NSPOSIXErrorDomain, "NSURLErrorDomain", "NSOSStatusErrorDomain"
+    ]
+
     /// An error in the words written for it. A system error interpolated as it is prints
     /// its whole record, a memory address included, which no reader of the stream wants.
     static func said(_ error: Error) -> String {
         if let words = (error as? LocalizedError)?.errorDescription { return words }
-        // Foundation's own errors are asked for their words: on Windows and Linux they are
-        // CocoaError values, not NSError objects. A type of kmap's own prints as its case.
-        if error is CocoaError || type(of: error) is NSError.Type { return error.localizedDescription }
+        // The system's errors are asked for their words, whatever shape they arrive in:
+        // CocoaError, URLError and POSIXError values, or NSError objects. A type of kmap's
+        // own prints as its case.
+        if type(of: error) is NSError.Type || systemDomains.contains((error as NSError).domain) {
+            return error.localizedDescription
+        }
         return "\(error)"
     }
 
