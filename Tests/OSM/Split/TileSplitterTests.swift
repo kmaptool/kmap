@@ -410,6 +410,31 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertEqual(table.sets.count, 1)
     }
 
+    // MARK: Runs handed to the writers
+
+    func testARunHandedOnCarriesNoRoomSizedForAnotherTile() {
+        // A large run on tile 0, then a block whose first run is 1 node on tile 3: that
+        // run goes to tile 3's writer and stays there, so it must not be sized for 5000.
+        var nodes = TileSplitter.NodeBuckets(tiles: 4)
+        for id in 1...5000 { nodes.add(id: Int64(id), lat: 1, lon: 1, tags: [], block: OSMBlock(), to: 0) }
+        nodes.clear()
+        nodes.add(id: 9001, lat: 1, lon: 1, tags: [], block: OSMBlock(), to: 3)
+        XCTAssertEqual(nodes.tiles.first, 3)
+        XCTAssertEqual(nodes.chunks[0].count, 1)
+        XCTAssertLessThan(nodes.chunks[0].ids.capacity, 100)
+        XCTAssertLessThan(nodes.chunks[0].lats.capacity, 100)
+
+        var ways = TileSplitter.WayBuckets(tiles: 4)
+        let refs = (1...20).map { Int64($0) }
+        for id in 1...5000 {
+            ways.add(id: Int64(id), refs: refs[...], keys: [], values: [], block: OSMBlock(), to: 0)
+        }
+        ways.clear()
+        ways.add(id: 9001, refs: refs[0..<2], keys: [], values: [], block: OSMBlock(), to: 3)
+        XCTAssertEqual(ways.chunks[0].count, 1)
+        XCTAssertLessThan(ways.chunks[0].refs.capacity, 100)
+    }
+
     // MARK: Density and where to cut
 
     private func density(_ cells: [(lat: Int32, lon: Int32, count: Int)]) -> TileSplitter.Density {

@@ -41,20 +41,11 @@ extension TileSplitter {
             chunks[run].tagEnds.append(Int32(chunks[run].tags.count))
         }
 
-        /// Empties the runs. The storage went to the tile's writer with the run, which
-        /// keeps it until the batch is written, so each run starts on storage of its own,
-        /// sized by what it held: keeping the capacity would copy the largest block's.
+        /// Empties the runs, each onto fresh storage: the storage went to its tile's writer
+        /// and stays there until the batch is written. Nothing is reserved: a run's number
+        /// names another tile in the next block, and its size would be carried there.
         mutating func clear() {
-            for run in 0..<runs.count {
-                let held = chunks[run]
-                chunks[run] = PBFWriter.NodeChunk()
-                chunks[run].ids.reserveCapacity(held.ids.count)
-                chunks[run].lats.reserveCapacity(held.ids.count)
-                chunks[run].lons.reserveCapacity(held.ids.count)
-                chunks[run].tagEnds.reserveCapacity(held.ids.count)
-                chunks[run].tags.reserveCapacity(held.tags.count)
-                chunks[run].strings.reserveCapacity(held.strings.count)
-            }
+            for run in 0..<runs.count { chunks[run] = PBFWriter.NodeChunk() }
             runs.clear()
         }
     }

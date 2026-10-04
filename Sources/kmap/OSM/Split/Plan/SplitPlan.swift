@@ -363,20 +363,66 @@ extension TileSplitter {
 
         // A relation that carries nothing follows its members to wherever they were
         // written: a search per member, in tables nothing writes to by now, so on every
-        // core. The answers are interned afterwards, in the order 1 walk would take.
-        let all = Array(s.relations)
-        var followed = [Set<UInt16>?](repeating: nil, count: all.count)
-        let lanes = max(1, min(Machine.workers, all.count / Self.relationsPerLane))
-        let chunk = (all.count + lanes - 1) / lanes
+        // core. The relations go in windows, in the order 1 walk would take them: a window
+        // is followed on every core, then interned in that order, so the sets are numbered
+        // as 1 walk numbers them and only 1 window's answers are held at a time.
+        let everyTile = Set((0..<areas.count).map { UInt16($0) })
+        let windowSize = max(1, Machine.workers) * Self.relationsPerLane
+        var window: [(id: Int64, record: RelationRecord)] = []
+        window.reserveCapacity(min(windowSize, s.relations.count))
+        func place() {
+            let followed = follow(window, s, wayTiles: plan.wayTiles, nodes: assignment.nodes)
+            for (at, (id, record)) in window.enumerated() {
+                // No direct member found at all: nothing anchors it anywhere.
+                if record.directTiles.isEmpty { continue }
+                var touched: Set<UInt16>
+                if record.carriesMembers {
+                    touched = s.carriedTiles[id] ?? record.directTiles
+                    var visited: Set<Int64> = []
+                    if record.directTiles.count > 1 || !record.memberRelations.isEmpty,
+                        isIncomplete(id, &visited)
+                    {
+                        touched = everyTile
+                    }
+                } else {
+                    touched = followed[at] ?? []
+                }
+                if !touched.isEmpty { plan.relationTiles[id] = s.sets.intern(touched) }
+            }
+            window.removeAll(keepingCapacity: true)
+        }
+        for (id, record) in s.relations {
+            window.append((id, record))
+            if window.count == windowSize { place() }
+        }
+        place()
+
+        plan.sets = s.sets
+        plan.sets.sealed()
+    }
+
+    /// Fewer relations than this to a lane are not worth a thread.
+    private static let relationsPerLane = 2048
+
+    /// Where each relation of `window` that carries nothing goes: the tiles its members
+    /// were written to. Worked out on every core, each lane its own stretch, from tables
+    /// nothing writes to meanwhile; nil for a relation placed otherwise.
+    private func follow(
+        _ window: [(id: Int64, record: RelationRecord)],
+        _ s: ProblemScaffold,
+        wayTiles: [Int64: Int32],
+        nodes: NodeAreas
+    ) -> [Set<UInt16>?] {
+        var followed = [Set<UInt16>?](repeating: nil, count: window.count)
+        let lanes = max(1, min(Machine.workers, window.count / Self.relationsPerLane))
+        let chunk = (window.count + lanes - 1) / lanes
         followed.withUnsafeMutableBufferPointer { slots in
             // Each lane fills its own stretch of slots, which no type can say.
             nonisolated(unsafe) let slots = slots
             nonisolated(unsafe) let s = s
-            let wayTiles = plan.wayTiles
-            let nodes = assignment.nodes
             DispatchQueue.concurrentPerform(iterations: lanes) { lane in
-                for at in lane * chunk..<min(all.count, (lane + 1) * chunk) {
-                    let record = all[at].value
+                for at in lane * chunk..<min(window.count, (lane + 1) * chunk) {
+                    let record = window[at].record
                     if record.directTiles.isEmpty || record.carriesMembers { continue }
                     var touched: Set<UInt16> = []
                     for way in record.memberWays {
@@ -393,30 +439,6 @@ extension TileSplitter {
                 }
             }
         }
-
-        let everyTile = Set((0..<areas.count).map { UInt16($0) })
-        for (at, (id, record)) in all.enumerated() {
-            // No direct member found at all: nothing anchors it anywhere.
-            if record.directTiles.isEmpty { continue }
-            var touched: Set<UInt16>
-            if record.carriesMembers {
-                touched = s.carriedTiles[id] ?? record.directTiles
-                var visited: Set<Int64> = []
-                if record.directTiles.count > 1 || !record.memberRelations.isEmpty,
-                    isIncomplete(id, &visited)
-                {
-                    touched = everyTile
-                }
-            } else {
-                touched = followed[at] ?? []
-            }
-            if !touched.isEmpty { plan.relationTiles[id] = s.sets.intern(touched) }
-        }
-
-        plan.sets = s.sets
-        plan.sets.sealed()
+        return followed
     }
-
-    /// Fewer relations than this to a lane are not worth a thread.
-    private static let relationsPerLane = 2048
 }
