@@ -34,7 +34,8 @@ final class AssetEmbedderTests: XCTestCase {
             XCTAssertTrue(made.contains("payload of \(asset.property)"), asset.property)
         }
         XCTAssertTrue(made.contains("static let styleInfo ="))
-        XCTAssertTrue(made.hasPrefix("import Foundation\n"))
+        // The formatter keeps out of the generated file.
+        XCTAssertTrue(made.hasPrefix("// swift-format-ignore-file\nimport Foundation\n"))
         XCTAssertTrue(made.hasSuffix("}\n"))
     }
 
