@@ -128,9 +128,9 @@ final class RingBuilderTests: XCTestCase {
             ids.append(id)
         }
         let table = TileSplitter.RingCoords(ids: ids)
-        // Every third node is in no file.
+        // Every 3rd node is in no file.
         for (rank, id) in ids.enumerated() where rank % 3 != 0 {
-            table.put(Int32(truncatingIfNeeded: id), Int32(rank), at: rank)
+            table.put(Int32(truncatingIfNeeded: id), Int32(rank), at: rank, file: 0)
         }
         for (rank, id) in ids.enumerated() {
             if rank % 3 == 0 {
@@ -150,8 +150,8 @@ final class RingBuilderTests: XCTestCase {
 
     func testTheFirstPlaceOfANodeStands() {
         let table = TileSplitter.RingCoords(ids: [5, 9])
-        table.put(1, 2, at: 1)
-        table.put(7, 8, at: 1)
+        table.put(1, 2, at: 1, file: 0)
+        table.put(7, 8, at: 1, file: 0)
         XCTAssertEqual(table[9]?.lat, 1)
         XCTAssertEqual(table[9]?.lon, 2)
         XCTAssertNil(table[5])
@@ -204,6 +204,33 @@ final class RingBuilderTests: XCTestCase {
         table.settle(6, 6, at: 0, file: 1, lastStands: false)
         XCTAssertEqual(table[9]?.lat, 3)
         XCTAssertEqual(table[5]?.lat, 1)
+    }
+
+    func testTheWantedIDsAnswerAsAStepByStepWalkDoes() {
+        // Runs of blocks a worker reads, each from its own start: close ids, jumps far
+        // ahead, and starts over below.
+        var seed: UInt64 = 0x2545_F491_4F6C_DD1D
+        func next() -> UInt64 {
+            seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17
+            return seed
+        }
+        var wantedSet = Set<Int64>()
+        while wantedSet.count < 5_000 { wantedSet.insert(Int64(next() % 200_000)) }
+        let wanted = wantedSet.sorted()
+        var fast = TileSplitter.WantedIDs(sorted: wanted)
+        var at = 0, lastID = Int64.min
+        for _ in 0..<40 {
+            var id = Int64(next() % 200_000)
+            for _ in 0..<500 {
+                // A plain walk, 1 id at a time.
+                if id < lastID { at = 0 }
+                lastID = id
+                while at < wanted.count, wanted[at] < id { at += 1 }
+                let expected = at < wanted.count && wanted[at] == id ? at : nil
+                XCTAssertEqual(fast.rank(of: id), expected, "id \(id)")
+                id += next() % 7 == 0 ? Int64(next() % 20_000) : Int64(next() % 40)
+            }
+        }
     }
 
     func testTheWantedIDsSayWhereAnIDStands() {

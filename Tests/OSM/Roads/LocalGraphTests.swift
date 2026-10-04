@@ -142,4 +142,27 @@ final class LocalGraphTests: XCTestCase {
         )
         XCTAssertEqual(g.detour(from: 1, to: (2, 2), cap: 1000) ?? 0, 100, accuracy: 0.5)
     }
+
+    func testAMergeCarriesTheEdgesTheGraphWasBuiltWith() {
+        // 2 ways built from the network, 1-2-3 and 4-5, 100 m a step. Node 4 merged into
+        // node 3 brings its built edge along; a node linked after the build has none built.
+        let step = 100 / RoadRepair.metresPerDegree
+        var network = RoadNetwork()
+        network.refs = [1, 2, 3, 4, 5]
+        network.lat = [45, 45 + step, 45 + 2 * step, 45 + 2 * step, 45 + 3 * step]
+        network.lon = [33, 33, 33, 33.0001, 33.0001]
+        network.wayID = [10, 11]
+        network.level = [0, 0]
+        network.start = [0, 3, 5]
+        var g = LocalGraph(network: network, around: [RoadRepair.Candidate(way: 0, atEnd: false)])
+        XCTAssertNil(g.detour(from: 1, to: (5, 5), cap: 10_000), "not joined yet")
+        g.adopt(4, into: 3)
+        XCTAssertEqual(g.detour(from: 1, to: (5, 5), cap: 10_000) ?? 0, 300, accuracy: 1)
+        // A node the build never saw, linked on: it has no built edges, only linked ones.
+        g.link(5, 9, 50)
+        XCTAssertEqual(g.detour(from: 1, to: (9, 9), cap: 10_000) ?? 0, 350, accuracy: 1)
+        // Merged into 1, node 9 hands over its linked edge too: 2-1-5 is 100 + 50 m.
+        g.adopt(9, into: 1)
+        XCTAssertEqual(g.detour(from: 2, to: (5, 5), cap: 10_000) ?? 0, 150, accuracy: 1)
+    }
 }

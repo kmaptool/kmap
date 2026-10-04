@@ -109,6 +109,8 @@ void kmap_find_fenced(const int64_t *keys, size_t count_keys, const int64_t *fen
         }
         // The id before it is not in the table, or not settled yet: that says nothing
         // about this one, which is searched for with the others like it, 16 at a time.
+        // An id after an unsettled one is searched for too rather than waited on: a row
+        // missing from the table would otherwise take a pass per id.
         out[i] = UNSETTLED;
         heads[held] = ids[i];
         where[held] = i;

@@ -2,7 +2,8 @@
 
 #include <string.h>
 
-// The digit of `value` at `byte`; the top byte is flipped so that negatives sort first.
+// The digit of `value` at `byte`. The callers flip the sign bit first, so negatives
+// sort first.
 static inline unsigned digit(uint64_t value, unsigned byte) {
     return (unsigned)(value >> (byte * 8)) & 0xff;
 }
@@ -37,8 +38,4 @@ int kmap_sort_i64_either(int64_t *ids, int64_t *scratch, size_t count) {
         into = swap;
     }
     return from != (uint64_t *)ids;
-}
-
-void kmap_sort_i64(int64_t *ids, int64_t *scratch, size_t count) {
-    if (kmap_sort_i64_either(ids, scratch, count)) memcpy(ids, scratch, count * sizeof *ids);
 }

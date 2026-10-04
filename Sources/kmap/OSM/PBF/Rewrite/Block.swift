@@ -120,7 +120,10 @@ struct Block: OSMSink {
         wayFilter: IDFilter,
         mergeFilter: IDFilter
     ) -> [PBFWriter.Way] {
-        (0..<wayIDs.count).map { i in
+        // A filter says no for what it was not made from: one missing would drop repairs.
+        assert(mergeFilter.isEmpty == merges.isEmpty, "the merge filter is made from the merges")
+        assert(inserts.isEmpty || !wayFilter.isEmpty, "the way filter is made from the inserts")
+        return (0..<wayIDs.count).map { i in
             var refs = wayRefs[i]
             if !mergeFilter.isEmpty {
                 for at in refs.indices where mergeFilter.mayContain(refs[at]) {

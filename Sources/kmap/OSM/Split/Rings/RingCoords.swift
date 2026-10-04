@@ -33,7 +33,7 @@ extension TileSplitter {
         convenience init(_ places: [Int64: (lat: Int32, lon: Int32)]) {
             self.init(ids: places.keys.sorted())
             for (rank, id) in ids.enumerated() {
-                if let place = places[id] { put(place.lat, place.lon, at: rank) }
+                if let place = places[id] { put(place.lat, place.lon, at: rank, file: 0) }
             }
         }
 
@@ -50,8 +50,8 @@ extension TileSplitter {
         static let fileLimit = (1 << 14) - 2
 
         static func pack(_ latitude: Int32, _ longitude: Int32, file: Int) -> UInt64 {
-            assert(abs(Int64(latitude)) <= offset && abs(Int64(longitude)) <= offset, "outside map units")
-            assert(file >= 0 && file <= fileLimit, "too many files")
+            precondition(abs(Int64(latitude)) <= offset && abs(Int64(longitude)) <= offset, "outside map units")
+            precondition(file >= 0 && file <= fileLimit, "too many files")
             let la = UInt64(Int64(latitude) + offset), lo = UInt64(Int64(longitude) + offset)
             return UInt64(file + 1) << (2 * placeBits) | la << placeBits | lo
         }
@@ -67,7 +67,7 @@ extension TileSplitter {
         /// Records the node at `rank` of `ids`, as read from `file` by any of the readers.
         /// The first to arrive stands: a node 2 overlapping files share is taken from the
         /// earlier one, which is read first.
-        func put(_ latitude: Int32, _ longitude: Int32, at rank: Int, file: Int = 0) {
+        func put(_ latitude: Int32, _ longitude: Int32, at rank: Int, file: Int) {
             let word = Self.pack(latitude, longitude, file: file)
             let held = kmap_claim_slot(slots + rank, word)
             guard held != 0, held != word else { return }
@@ -92,9 +92,8 @@ extension TileSplitter {
             }
         }
 
-        /// Records a node as 1 reader taking `file` in order does, as kmap did before the
-        /// readers filled the table themselves: with 1 input the last copy stands, with
-        /// several the first.
+        /// Records a node as 1 reader taking the files in order would: with 1 input the last
+        /// copy stands, with several the first.
         func settle(_ latitude: Int32, _ longitude: Int32, at rank: Int, file: Int, lastStands: Bool) {
             guard slots[rank] == 0 || (lastStands && Self.unpack(slots[rank]).file == file) else { return }
             slots[rank] = Self.pack(latitude, longitude, file: file)

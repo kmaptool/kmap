@@ -5,7 +5,7 @@ import Foundation
 enum IDSort {
     /// Below this the standard sort is as fast as setting the radix sort up.
     static let leastWorthRadix = 1 << 10
-    /// Below this a run is sorted in place: threads cost more than the sort saves.
+    /// Below this a run is sorted on 1 core: threads cost more than the sort saves.
     static let leastWorthSplitting = 1 << 16
     /// The smallest chunk worth handing to a core of its own.
     private static let leastPerLane = 1 << 15
@@ -80,7 +80,7 @@ enum IDSort {
     /// of `scratch`. A chunk ends in either array, by how many bytes its ids differ in:
     /// they are gathered where most of them ended, and the answer is whether that is
     /// `ids`.
-    private static func sortChunks(_ ids: inout [Int64], of size: Int, scratch: inout [Int64]) -> Bool {
+    static func sortChunks(_ ids: inout [Int64], of size: Int, scratch: inout [Int64]) -> Bool {  // internal for tests
         let total = ids.count
         let chunks = (total + size - 1) / size
         var inScratch = [Bool](repeating: false, count: chunks)
@@ -97,9 +97,11 @@ enum IDSort {
                     }
                 }
                 let toScratch = inScratch.filter { $0 }.count * 2 > chunks
-                for lane in 0..<chunks where inScratch[lane] != toScratch {
-                    let low = lane * size, high = min(total, low + size)
-                    let (from, into) = toScratch ? (source, room) : (room, source)
+                // The others are brought over, each on a core of its own as they were sorted.
+                let moving = (0..<chunks).filter { inScratch[$0] != toScratch }
+                nonisolated(unsafe) let (from, into) = toScratch ? (source, room) : (room, source)
+                DispatchQueue.concurrentPerform(iterations: moving.count) { at in
+                    let low = moving[at] * size, high = min(total, low + size)
                     into.baseAddress!.advanced(by: low).update(from: from.baseAddress! + low, count: high - low)
                 }
                 return !toScratch

@@ -24,6 +24,12 @@ final class TileSplitter {
         /// neighbouring ground it is given. Zero on a stock mkgmap, which cannot be told to
         /// draw past the frame at all. See `shapeClipOverlap`.
         var shapeOverlap: Int32 = TileSplitter.shapeClipOverlap
+        /// How many relations are placed at a time; nil for the machine's own measure.
+        /// For the tests, which hold too few relations to fill a window of their own.
+        var relationWindow: Int?
+        /// The fewest relations worth a lane of their own; nil for the measured one. For
+        /// the tests too, so a small extract is placed on several lanes.
+        var relationsPerLane: Int?
     }
 
     enum Trouble: Error, CustomStringConvertible, LocalizedError {

@@ -19,7 +19,7 @@ struct NodePlaces {
     /// `wanted` must be sorted and hold each id once -- `wantedIDs(from:)` does that.
     init(wanted: [Int64]) {
         // The search counts on it: an id 1 above another is looked for right after it.
-        assert(zip(wanted, wanted.dropFirst()).allSatisfy { $0 < $1 }, "wanted ids must ascend, each once")
+        precondition(zip(wanted, wanted.dropFirst()).allSatisfy { $0 < $1 }, "wanted ids must ascend, each once")
         self.wanted = wanted
         lat = [Double](repeating: 0, count: wanted.count)
         lon = [Double](repeating: 0, count: wanted.count)

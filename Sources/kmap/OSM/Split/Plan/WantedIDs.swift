@@ -25,7 +25,22 @@ extension TileSplitter {
         mutating func rank(of id: Int64) -> Int? {
             if id < lastID { at = 0 }  // a worker starting its own run of blocks
             lastID = id
-            while at < ids.count, ids[at] < id { at += 1 }
+            if at < ids.count, ids[at] < id {
+                // Galloping: the next wanted id is usually close, after a jump far away.
+                // `ids[low]` is below the id; `high` is past the list or not below it.
+                var low = at, step = 1, high = at + 1
+                while high < ids.count, ids[high] < id {
+                    low = high
+                    step &*= 2
+                    high = low + step
+                }
+                var first = low + 1, last = min(high, ids.count)
+                while first < last {
+                    let middle = (first + last) / 2
+                    if ids[middle] < id { first = middle + 1 } else { last = middle }
+                }
+                at = first
+            }
             return at < ids.count && ids[at] == id ? at : nil
         }
     }

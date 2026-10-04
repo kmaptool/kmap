@@ -40,10 +40,14 @@ extension TileSplitter {
     }
 
     /// A write pass for every block of `phase`.
-    private func pass(_ phase: WritePass.Phase, assignment: Assignment, plan: Plan, tiles: Int) -> () -> WritePass {
+    private func pass(
+        _ phase: WritePass.Phase,
+        assignment: Assignment,
+        plan: Plan,
+        planned: IDFilter,
+        tiles: Int
+    ) -> () -> WritePass {
         let overlapping = options.inputs.count > 1
-        // Few ways are planned for, and every way asks: the filter answers most of them.
-        let planned = IDFilter(Array(plan.wayTiles.keys))
         return {
             WritePass(
                 nodes: assignment.nodes,
@@ -61,7 +65,8 @@ extension TileSplitter {
         var repeats = NodeRepeats(assignment.nodes, inputs: options.inputs.count)
         for (fileIndex, input) in options.inputs.enumerated() {
             repeats.start(file: fileIndex)
-            let make = pass(.nodes, assignment: assignment, plan: plan, tiles: writers.count)
+            // Nodes ask nothing of the planned ways.
+            let make = pass(.nodes, assignment: assignment, plan: plan, planned: IDFilter(), tiles: writers.count)
             try reader(input).readInOrder(make: make) { pass in
                 for i in 0..<pass.nodeBuckets.count {
                     writers[Int(pass.nodeBuckets.tiles[i])].add(nodes: pass.nodeBuckets.chunks[i])
@@ -83,8 +88,17 @@ extension TileSplitter {
         let overlapping = options.inputs.count > 1
         var seenWays: Set<Int64> = []
         var seenRelations: Set<Int64> = []
+        // Few ways are planned for, and every way asks: the filter answers most of them.
+        // Made once, for every input.
+        let planned = IDFilter(Array(plan.wayTiles.keys))
         for input in options.inputs {
-            let make = pass(.waysAndRelations, assignment: assignment, plan: plan, tiles: writers.count)
+            let make = pass(
+                .waysAndRelations,
+                assignment: assignment,
+                plan: plan,
+                planned: planned,
+                tiles: writers.count
+            )
             try reader(input).readInOrder(make: make) { pass in
                 for i in 0..<pass.wayBuckets.count {
                     writers[Int(pass.wayBuckets.tiles[i])].add(ways: pass.wayBuckets.chunks[i])

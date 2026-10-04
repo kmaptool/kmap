@@ -78,7 +78,6 @@ extension TileSplitter {
         var wantedNodes = WantedIDs([])
         var coords = RingCoords(ids: [])
         var carriedTiles: [Int64: Set<UInt16>] = [:]
-        var incomplete: [Int64: Bool] = [:]
         var spanning: [(key: Int64, value: Int32)] = []
     }
 
@@ -360,24 +359,8 @@ extension TileSplitter {
         assignment: Assignment,
         areas: [Area]
     ) {
-        // Incompleteness spreads upward: a relation is incomplete when a direct member
-        // is absent from the extract, or when a member relation is itself incomplete.
-        func isIncomplete(_ id: Int64, _ visited: inout Set<Int64>) -> Bool {
-            if let done = s.incomplete[id] { return done }
-            guard let record = s.relations[id] else { return true }
-            guard !visited.contains(id) else { return false }
-            visited.insert(id)
-            var answer = record.hasMissingMember
-            if !answer {
-                for child in record.memberRelations
-                where isIncomplete(child, &visited) {
-                    answer = true
-                    break
-                }
-            }
-            s.incomplete[id] = answer
-            return answer
-        }
+        // Worked out once, when the first carried relation asks.
+        var incomplete: Set<Int64>?
 
         // A relation that carries nothing follows its members to wherever they were
         // written: a search per member, in tables nothing writes to by now, so on every
@@ -385,7 +368,7 @@ extension TileSplitter {
         // is followed on every core, then interned in that order, so the sets are numbered
         // as 1 walk numbers them and only 1 window's answers are held at a time.
         let everyTile = Set((0..<areas.count).map { UInt16($0) })
-        let windowSize = max(1, Machine.workers) * Self.relationsPerLane
+        let windowSize = max(1, options.relationWindow ?? Machine.workers * Self.relationsPerLane)
         var window: [(id: Int64, record: RelationRecord)] = []
         window.reserveCapacity(min(windowSize, s.relations.count))
         func place() {
@@ -396,11 +379,9 @@ extension TileSplitter {
                 var touched: Set<UInt16>
                 if record.carriesMembers {
                     touched = s.carriedTiles[id] ?? record.directTiles
-                    var visited: Set<Int64> = []
-                    if record.directTiles.count > 1 || !record.memberRelations.isEmpty,
-                        isIncomplete(id, &visited)
-                    {
-                        touched = everyTile
+                    if record.directTiles.count > 1 || !record.memberRelations.isEmpty {
+                        if incomplete == nil { incomplete = Self.incompleteRelations(s.relations) }
+                        if incomplete?.contains(id) == true { touched = everyTile }
                     }
                 } else {
                     touched = followed[at] ?? []
@@ -422,6 +403,32 @@ extension TileSplitter {
     /// Fewer relations than this to a lane are not worth a thread.
     private static let relationsPerLane = 2048
 
+    /// Every incomplete relation: a direct member or a member relation is absent from the
+    /// extract, or a member relation is itself incomplete. Spread from the relations that
+    /// miss something to the ones that hold them, so the answer does not depend on which
+    /// relation is asked first: a cycle of relations is incomplete if any of it is.
+    static func incompleteRelations(_ relations: [Int64: RelationRecord]) -> Set<Int64> {
+        var holders: [Int64: [Int64]] = [:]
+        var incomplete = Set<Int64>()
+        var queue: [Int64] = []
+        for (id, record) in relations {
+            var missing = record.hasMissingMember
+            for child in record.memberRelations {
+                // Asked by index: a lookup by key copies the whole record out.
+                if relations.index(forKey: child) == nil {
+                    missing = true
+                } else {
+                    holders[child, default: []].append(id)
+                }
+            }
+            if missing, incomplete.insert(id).inserted { queue.append(id) }
+        }
+        while let id = queue.popLast() {
+            for holder in holders[id] ?? [] where incomplete.insert(holder).inserted { queue.append(holder) }
+        }
+        return incomplete
+    }
+
     /// Where each relation of `window` that carries nothing goes: the tiles its members
     /// were written to. Worked out on every core, each lane its own stretch, from tables
     /// nothing writes to meanwhile; nil for a relation placed otherwise.
@@ -432,12 +439,17 @@ extension TileSplitter {
         nodes: NodeAreas
     ) -> [Set<UInt16>?] {
         var followed = [Set<UInt16>?](repeating: nil, count: window.count)
-        let lanes = max(1, min(Machine.workers, window.count / Self.relationsPerLane))
+        let lanes = max(
+            1,
+            min(Machine.workers, window.count / max(1, options.relationsPerLane ?? Self.relationsPerLane))
+        )
         let chunk = (window.count + lanes - 1) / lanes
         followed.withUnsafeMutableBufferPointer { slots in
             // Each lane fills its own stretch of slots, which no type can say.
             nonisolated(unsafe) let slots = slots
             nonisolated(unsafe) let s = s
+            // Only read here.
+            nonisolated(unsafe) let nodes = nodes
             DispatchQueue.concurrentPerform(iterations: lanes) { lane in
                 for at in lane * chunk..<min(window.count, (lane + 1) * chunk) {
                     let record = window[at].record

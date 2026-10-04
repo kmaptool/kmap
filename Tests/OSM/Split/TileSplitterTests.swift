@@ -160,7 +160,7 @@ final class TileSplitterTests: XCTestCase {
     /// The shape answer, whether a cell's neighbourhood is mixed or all 1 tile, is the
     /// strict answer plus every tile within the overlap of the point.
     func testTheShapeAnswerIsEveryTileWithinTheOverlap() {
-        var random = SystemRandomNumberGenerator()
+        var random = SplitMix64(state: 7)
         let grain = TileSplitter.grain
         func cuts() -> [Int32] {
             var at: [Int32] = [0]
@@ -211,7 +211,7 @@ final class TileSplitterTests: XCTestCase {
         // Sparse ids over many fences and a short last window; asked for in any order,
         // absent ones, ones below the first fence and past the last key included.
         let table = TileSplitter.NodeAreas(expecting: 50000)
-        var generator = SystemRandomNumberGenerator()
+        var generator = SplitMix64(state: 11)
         var id: Int64 = 1000
         for _ in 0..<50001 {
             id += Int64.random(in: 1...9, using: &generator)
@@ -244,7 +244,7 @@ final class TileSplitterTests: XCTestCase {
         // A way's nodes are often numbered in a row. The table holds some rows whole, some
         // with a hole in the middle, and misses the first id of others.
         let table = TileSplitter.NodeAreas(expecting: 60000)
-        var generator = SystemRandomNumberGenerator()
+        var generator = SplitMix64(state: 11)
         var held: [Int64] = []
         var id: Int64 = 5000
         for _ in 0..<6000 {
@@ -414,7 +414,7 @@ final class TileSplitterTests: XCTestCase {
 
     func testANodeTwiceInOneFileTakesItsLastPlaceEveryTime() throws {
         // 2 blocks of 1 file, both holding node 7, which the readers may meet in either
-        // order: as before they filled the table themselves, the later copy stands.
+        // order: the later copy stands, as with 1 reader taking the file in order.
         let url = path("twice.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
@@ -484,6 +484,90 @@ final class TileSplitterTests: XCTestCase {
         ways.add(id: 9001, refs: refs[0..<2], keys: [], values: [], block: OSMBlock(), to: 3)
         XCTAssertEqual(ways.chunks[0].count, 1)
         XCTAssertLessThan(ways.chunks[0].refs.capacity, 100)
+    }
+
+    /// A block whose string table holds `words`, kept alive by the test.
+    private func block(_ words: [String]) -> (OSMBlock, [UnsafeMutableRawBufferPointer]) {
+        let buffers = words.map { word -> UnsafeMutableRawBufferPointer in
+            let bytes = Array(word.utf8)
+            let buffer = UnsafeMutableRawBufferPointer.allocate(byteCount: max(1, bytes.count), alignment: 1)
+            buffer.copyBytes(from: bytes)
+            return UnsafeMutableRawBufferPointer(rebasing: buffer[0..<bytes.count])
+        }
+        var made = OSMBlock()
+        made.strings = StringPool(buffers.map { UnsafeRawBufferPointer($0) })
+        return (made, buffers)
+    }
+
+    func testARunNumbersItsStringsInTheOrderFirstMet() {
+        let (made, buffers) = block(["", "highway", "residential", "name"] + (0..<100).map { "w\($0)" })
+        defer { for buffer in buffers { buffer.deallocate() } }
+        var nodes = TileSplitter.NodeBuckets(tiles: 2)
+        nodes.add(id: 1, lat: 1, lon: 1, tags: [1, 2], block: made, to: 0)
+        nodes.add(id: 2, lat: 1, lon: 1, tags: [3, 1], block: made, to: 0)
+        // Numbers the block does not hold all read as the empty text, 1 entry for them all.
+        nodes.add(id: 3, lat: 1, lon: 1, tags: [99_999, -5], block: made, to: 0)
+        // Past the table's first size, so it grows with entries in it.
+        let many = (4..<104).map { Int32($0) }
+        nodes.add(id: 4, lat: 1, lon: 1, tags: many[...], block: made, to: 0)
+        nodes.add(id: 5, lat: 1, lon: 1, tags: [103, 1], block: made, to: 0)
+        let run = nodes.chunks[0]
+        XCTAssertEqual(Array(run.strings.prefix(4)), ["highway", "residential", "name", ""])
+        XCTAssertEqual(Array(run.strings.dropFirst(4)), (0..<100).map { "w\($0)" })
+        XCTAssertEqual(Array(run.tags.prefix(6)), [0, 1, 2, 0, 3, 3])
+        XCTAssertEqual(Array(run.tags.suffix(2)), [103, 0])
+        XCTAssertEqual(run.nodes(4..<5).first?.tags.first?.0, "w99")
+
+        // The next block numbers its own strings: a run opened there starts afresh.
+        nodes.clear()
+        let (next, more) = block(["", "name", "highway"])
+        defer { for buffer in more { buffer.deallocate() } }
+        nodes.add(id: 6, lat: 1, lon: 1, tags: [2, 1], block: next, to: 1)
+        XCTAssertEqual(nodes.chunks[0].strings, ["highway", "name"])
+        XCTAssertEqual(nodes.chunks[0].tags, [0, 1])
+    }
+
+    func testSmallRunsGatheredByTheWriterWriteTheSameBytesAsSingles() throws {
+        // Runs of 1 to 3 among runs of hundreds, past a batch's end: the writer copies the
+        // small ones into its own and the file comes out as the singles would write it.
+        let words = ["highway", "track", "name", "Лес", "", "barrier", "gate"]
+        var nodeRuns: [PBFWriter.NodeChunk] = []
+        var wayRuns: [PBFWriter.WayChunk] = []
+        var nextNode: Int64 = 1, nextWay: Int64 = 1
+        for size in [1, 2, 300, 1, 3, 17_000, 2, 1, 64, 63] {
+            var nodes = PBFWriter.NodeChunk()
+            nodes.strings = words
+            var ways = PBFWriter.WayChunk()
+            ways.strings = words.reversed()
+            for i in 0..<size {
+                nodes.ids.append(nextNode)
+                nodes.lats.append(Double(nextNode % 90))
+                nodes.lons.append(Double(nextNode % 180))
+                if i % 3 == 0 { nodes.tags += [Int32(i % 7), Int32((i + 2) % 7)] }
+                nodes.tagEnds.append(Int32(nodes.tags.count))
+                ways.ids.append(nextWay)
+                ways.refs += [nextNode, nextNode + 1]
+                ways.refEnds.append(Int32(ways.refs.count))
+                if i % 2 == 0 { ways.tags += [Int32((i + 1) % 7), Int32(i % 7)] }
+                ways.tagEnds.append(Int32(ways.tags.count))
+                nextNode += 1
+                nextWay += 1
+            }
+            nodeRuns.append(nodes)
+            wayRuns.append(ways)
+        }
+        let area = sideBySide[0]
+        let byRuns = directory.appendingPathComponent("runs.osm.pbf")
+        let bySingles = directory.appendingPathComponent("singles.osm.pbf")
+        let runs = try TileSplitter.TileWriter(url: byRuns, area: area)
+        for chunk in nodeRuns { runs.add(nodes: chunk) }
+        for chunk in wayRuns { runs.add(ways: chunk) }
+        try runs.finish()
+        let singles = try TileSplitter.TileWriter(url: bySingles, area: area)
+        for chunk in nodeRuns { for node in chunk.nodes(0..<chunk.count) { singles.add(node) } }
+        for chunk in wayRuns { for way in chunk.ways(0..<chunk.count) { singles.add(way) } }
+        try singles.finish()
+        XCTAssertEqual(try Data(contentsOf: byRuns), try Data(contentsOf: bySingles))
     }
 
     // MARK: Density and where to cut
@@ -920,6 +1004,98 @@ extension TileSplitterTests {
             // Member ways travel with the relation, or the tile cannot fill it.
             XCTAssertTrue(tile.ways.keys.contains(10), "tile \(index) lost a member way")
             XCTAssertTrue(tile.ways.keys.contains(11), "tile \(index) lost a member way")
+        }
+    }
+
+    func testRelationsPlacedInWindowsWriteTheSameTilesAsInOne() throws {
+        // Relations of every kind, carried and not, across a window's edge each time.
+        var relations: [PBFWriter.Relation] = []
+        for id in Int64(20)..<Int64(70) {
+            let kind = ["multipolygon", "route", "boundary", "restriction"][Int(id % 4)]
+            var members = [
+                PBFWriter.Relation.Member(kind: 1, ref: 10 + id % 2, role: "outer"),
+                PBFWriter.Relation.Member(kind: 0, ref: 1 + id % 4, role: "")
+            ]
+            if id % 5 == 0 { members.append(.init(kind: 2, ref: id + 1, role: "")) }
+            if id % 7 == 0 { members.append(.init(kind: 1, ref: 999, role: "outer")) }
+            relations.append(PBFWriter.Relation(id: id, members: members, tags: [("type", kind)]))
+        }
+        let input = try extract(
+            "windows.osm.pbf",
+            nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
+            ways: [(10, [1, 2]), (11, [3, 4])],
+            relations: relations
+        )
+        func tiles(window: Int?, perLane: Int? = nil) throws -> [Data] {
+            let out = directory.appendingPathComponent(
+                "window-\(window.map(String.init) ?? "all")-\(perLane.map(String.init) ?? "any")"
+            )
+            try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+            var options = TileSplitter.Options(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: sideBySide
+            )
+            options.relationWindow = window
+            options.relationsPerLane = perLane
+            let result = try TileSplitter(options: options) { _ in }.run()
+            return try result.tiles.map { try Data(contentsOf: out.appendingPathComponent("\($0.mapID).osm.pbf")) }
+        }
+        let whole = try tiles(window: nil)
+        XCTAssertEqual(try tiles(window: 1), whole)
+        XCTAssertEqual(try tiles(window: 7), whole)
+        // Followed on as many lanes as the machine has, 4 relations to each.
+        XCTAssertEqual(try tiles(window: nil, perLane: 4), whole)
+    }
+
+    func testARelationReachingAMissingOneThroughACycleIsIncompleteWhicheverIsAskedFirst() {
+        // A holds B and a relation the extract lacks; B holds A. Both are incomplete,
+        // whichever is asked first.
+        var a = TileSplitter.RelationRecord(), b = TileSplitter.RelationRecord()
+        a.memberRelations = [31, 99]
+        b.memberRelations = [30]
+        var c = TileSplitter.RelationRecord()
+        c.memberRelations = [31]
+        var whole = TileSplitter.RelationRecord()
+        whole.memberRelations = [33]
+        let found = TileSplitter.incompleteRelations([30: a, 31: b, 32: c, 33: TileSplitter.RelationRecord(), 34: whole]
+        )
+        XCTAssertEqual(found, [30, 31, 32])
+    }
+
+    func testRelationsInACycleWithAMissingMemberGoToEveryTile() throws {
+        // 2 multipolygons on tile 0 hold each other, and 1 of them a relation the extract
+        // lacks: both are incomplete, so both are carried to every tile. Built both ways
+        // round, so neither relation is the one with the missing member every time.
+        for (holder, other) in [(Int64(30), Int64(31)), (31, 30)] {
+            let input = try extract(
+                "cycle-\(holder).osm.pbf",
+                nodes: [(1, 100), (2, 200), (3, 3000), (4, 3100)],
+                ways: [(10, [1, 2]), (11, [3, 4])],
+                relations: [
+                    PBFWriter.Relation(
+                        id: holder,
+                        members: [
+                            .init(kind: 1, ref: 10, role: "outer"), .init(kind: 2, ref: other, role: ""),
+                            .init(kind: 2, ref: 99, role: "")
+                        ],
+                        tags: [("type", "multipolygon")]
+                    ),
+                    PBFWriter.Relation(
+                        id: other,
+                        members: [.init(kind: 1, ref: 10, role: "outer"), .init(kind: 2, ref: holder, role: "")],
+                        tags: [("type", "multipolygon")]
+                    )
+                ]
+            )
+            let tiles = try splitTiles(inputs: [input], areas: sideBySide)
+            XCTAssertEqual(tiles.count, 2)
+            for (index, tile) in tiles.enumerated() {
+                XCTAssertTrue(tile.relations.contains(30) && tile.relations.contains(31), "tile \(index)")
+            }
         }
     }
 

@@ -10,8 +10,8 @@ struct LocalGraph {
     private var index: [Int64: Int32] = [:]
     /// The edges the graph was built with, a node's in a row: `edgeNode` and `edgeStep`
     /// from `firstEdge[node]` up to `firstEdge[node + 1]`. 1 array for them all: a list
-    /// per node was an allocation, and then a few more, for every node of the region.
-    /// Counted in `Int`: twice the segments of a large region would overflow `Int32`.
+    /// per node costs an allocation or more for every node of the region.
+    /// Counted in `Int`: 2 times the segments of a large region would overflow `Int32`.
     private var firstEdge: [Int] = [0]
     private var edgeNode: [Int32] = []
     private var edgeStep: [Double] = []

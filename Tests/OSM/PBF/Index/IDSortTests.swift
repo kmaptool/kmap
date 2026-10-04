@@ -171,17 +171,47 @@ final class IDSortTests: XCTestCase {
         }
     }
 
-    func testChunksThatEndInDifferentArraysAreGatheredBeforeTheyMerge() {
-        // Past the split threshold, each chunk sorts on its own and ends where its own
-        // number of passes leaves it: here the low chunks vary in 2 bytes and end in the
-        // ids, the high ones in 5 and end in the scratch, in both majorities.
+    func testChunksThatEndInDifferentArraysAreGatheredWhereMostEnded() {
+        // 4 chunks of 1000: a chunk of ids under 2^16 varies in 2 bytes and ends in the ids,
+        // one of ids past 2^32 in 5 and ends in the scratch. Both majorities, and a tie.
+        let size = 1000
+        func chunk(low: Bool, _ n: Int) -> [Int64] {
+            (0..<size).map { i -> Int64 in
+                let spread = Int64((i &* 40_503 &+ n &* 7) & 0xffff)
+                return low ? spread : 5_000_000_000 + spread &* 61_001
+            }
+        }
+        for pattern in [[true, true, true, false], [false, false, false, true], [true, false, true, false]] {
+            var ids = pattern.enumerated().flatMap { chunk(low: $0.element, $0.offset) }
+            var scratch = [Int64](repeating: 0, count: ids.count)
+            let original = ids
+            let inIDs = IDSort.sortChunks(&ids, of: size, scratch: &scratch)
+            let lows = pattern.filter { $0 }.count
+            XCTAssertEqual(inIDs, lows * 2 >= pattern.count, "\(pattern): where most ended, a tie in the ids")
+            let gathered = inIDs ? ids : scratch
+            for (at, _) in pattern.enumerated() {
+                let stretch = Array(gathered[at * size..<(at + 1) * size])
+                XCTAssertEqual(stretch, original[at * size..<(at + 1) * size].sorted(), "\(pattern) chunk \(at)")
+            }
+        }
+    }
+
+    func testChunksInDifferentArraysStillSortWhole() {
+        // The same, through the whole sort past the split threshold.
         for lowShare in [0.3, 0.7] {
             let total = 400_000
             let low = Int(Double(total) * lowShare)
-            var ids = (0..<total).map { i -> Int64 in
-                if i < low { return Int64((i &* 40_503) & 0xffff) }
-                let spread: Int = (i &* 2_654_435_761) % 4_000_000_000
-                return 5_000_000_000 + Int64(spread)
+            var ids: [Int64] = []
+            ids.reserveCapacity(total)
+            for i in 0..<total {
+                let value: Int64
+                if i < low {
+                    value = Int64((i &* 40_503) & 0xffff)
+                } else {
+                    let spread: Int64 = Int64((i &* 2_654_435_761) % 4_000_000_000)
+                    value = 5_000_000_000 + spread
+                }
+                ids.append(value)
             }
             let expected = ids.sorted()
             IDSort.sort(&ids)
