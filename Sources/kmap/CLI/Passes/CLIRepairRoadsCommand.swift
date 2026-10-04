@@ -59,7 +59,7 @@ extension CLI {
             ])
             return 0
         } catch {
-            return CLIOutput.failure("repair failed: \(error)")
+            return CLIOutput.failure("repair failed: \(CLIOutput.said(error))")
         }
     }
 }

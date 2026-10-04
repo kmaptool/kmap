@@ -14,7 +14,7 @@ extension CLI {
             CLIOutput.result(["out": .string(out.path), "bytes": .int(text.utf8.count)])
             return 0
         } catch {
-            return CLIOutput.failure("\(error)")
+            return CLIOutput.failure("\(CLIOutput.said(error))")
         }
     }
 }

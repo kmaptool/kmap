@@ -30,7 +30,7 @@ extension CLI {
             ])
             return 0
         } catch {
-            return CLIOutput.failure("\(error)")
+            return CLIOutput.failure("\(CLIOutput.said(error))")
         }
     }
 

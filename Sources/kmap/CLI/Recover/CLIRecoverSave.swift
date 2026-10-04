@@ -21,7 +21,7 @@ extension CLI {
             do {
                 try FileTools.write(report.style, to: url)
             } catch {
-                return CLIOutput.failure("recover: \(error)")
+                return CLIOutput.failure("recover: \(CLIOutput.said(error))")
             }
             CLILog.line("style -> \(Paths.display(url))")
         }
@@ -47,7 +47,7 @@ extension CLI {
         do {
             try TypLibrary.save(report.style, to: typ)
         } catch {
-            return CLIOutput.failure("recover: \(error)")
+            return CLIOutput.failure("recover: \(CLIOutput.said(error))")
         }
         // The reassignment list went with the old file: no foreign numbers are left.
         if let stale = TypLibrary.sheet(of: typ) { FileTools.removeIfPresent(stale) }

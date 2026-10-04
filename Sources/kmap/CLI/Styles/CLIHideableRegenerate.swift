@@ -20,7 +20,7 @@ extension CLI {
                 try reportCatalogue(HideableGenerator.catalogue(fromPoints: points), out: flags.value("out"))
                 return 0
             } catch {
-                return CLIOutput.failure("\(error)")
+                return CLIOutput.failure("\(CLIOutput.said(error))")
             }
         }
         let log = Log(showing: CLIOutput.showing)
@@ -42,7 +42,7 @@ extension CLI {
             }
             return 0
         } catch {
-            return CLIOutput.failure("\(error)")
+            return CLIOutput.failure("\(CLIOutput.said(error))")
         }
     }
 

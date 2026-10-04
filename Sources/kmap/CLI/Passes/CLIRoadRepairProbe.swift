@@ -56,7 +56,7 @@ extension CLI {
             ])
             return 0
         } catch {
-            return CLIOutput.failure("cannot read \(path): \(error)")
+            return CLIOutput.failure("cannot read \(path): \(CLIOutput.said(error))")
         }
     }
 }

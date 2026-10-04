@@ -15,7 +15,7 @@ extension CLI {
         do {
             try PBFReader(url: URL(fileURLWithPath: path)).read(into: &census)
         } catch {
-            return CLIOutput.failure("cannot read \(path): \(error)")
+            return CLIOutput.failure("cannot read \(path): \(CLIOutput.said(error))")
         }
         let seconds = Date().timeIntervalSince(started)
         CLILog.line("nodes:         \(census.nodes)")

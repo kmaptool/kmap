@@ -47,7 +47,7 @@ extension CLI {
             if flags.has("per-level") { reportPerLevel(of: lines) }
             return 0
         } catch {
-            return CLIOutput.failure("contours failed: \(error)")
+            return CLIOutput.failure("contours failed: \(CLIOutput.said(error))")
         }
     }
 

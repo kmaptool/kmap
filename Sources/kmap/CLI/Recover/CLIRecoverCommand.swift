@@ -43,7 +43,7 @@ extension CLI {
         } catch StyleRecovery.Trouble.noExtracts(let frame) {
             return await suggestExtracts(for: frame, path: path)
         } catch {
-            return CLIOutput.failure("recover: \(error)")
+            return CLIOutput.failure("recover: \(CLIOutput.said(error))")
         }
     }
 

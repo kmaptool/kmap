@@ -52,7 +52,7 @@ extension CLI {
             }
             return 0
         } catch {
-            return CLIOutput.failure("burn-peaks failed: \(error)")
+            return CLIOutput.failure("burn-peaks failed: \(CLIOutput.said(error))")
         }
     }
 

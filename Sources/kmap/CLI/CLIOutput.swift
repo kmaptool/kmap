@@ -111,6 +111,16 @@ enum CLIOutput {
         emit("log", fields)
     }
 
+    /// An error in the words written for it. A system error interpolated as it is prints
+    /// its whole record, a memory address included, which no reader of the stream wants.
+    static func said(_ error: Error) -> String {
+        if let words = (error as? LocalizedError)?.errorDescription { return words }
+        // Foundation's own errors are asked for their words: on Windows and Linux they are
+        // CocoaError values, not NSError objects. A type of kmap's own prints as its case.
+        if error is CocoaError || type(of: error) is NSError.Type { return error.localizedDescription }
+        return "\(error)"
+    }
+
     /// A stage changing state: pending to running, running to done.
     static func stage(_ id: String, _ status: String, title: String, detail: String) {
         guard isJSON else { return }

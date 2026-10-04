@@ -25,6 +25,29 @@ final class CLIOptionsTests: XCTestCase {
         XCTAssertEqual(CLIOptions(json: false, verbose: true).showing, .debug)
     }
 
+    // MARK: Errors in their own words
+
+    func testAnErrorIsReportedInTheWordsWrittenForIt() {
+        XCTAssertEqual(CLIOutput.said(GeoTIFF.Trouble.notTIFF), "not a TIFF file")
+        XCTAssertEqual(
+            CLIOutput.said(ViewfinderDEM.Trouble.notCovered("N44E034")),
+            "N44E034 is outside every Viewfinder zone"
+        )
+    }
+
+    func testASystemErrorIsNotDumpedWithItsAddress() {
+        let missing = URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString).pbf")
+        do {
+            _ = try Data(contentsOf: missing)
+            XCTFail("the file does not exist")
+        } catch {
+            let said = CLIOutput.said(error)
+            XCTAssertFalse(said.contains("0x"), said)
+            XCTAssertFalse(said.contains("UserInfo"), said)
+            XCTAssertFalse(said.isEmpty)
+        }
+    }
+
     // MARK: Stage headings among the log lines
 
     func testAHeadingStandsAboveTheLinesWrittenAfterItsStageBegan() {
