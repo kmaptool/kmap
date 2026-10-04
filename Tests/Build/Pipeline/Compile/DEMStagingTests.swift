@@ -69,11 +69,9 @@ final class DEMStagingTests: XCTestCase {
         // The coverage cells only: the cell outside is not staged, whatever cache holds it.
         XCTAssertEqual(names, ["N44E034.hgt", "N44E035.hgt", "N45E034.hgt", "N45E035.hgt"])
 
+        // Read through the cell: it is a link, or a copy where links are refused.
         func source(_ name: String) throws -> String {
-            let destination = try FileManager.default.destinationOfSymbolicLink(
-                atPath: dir.appendingPathComponent(name).path
-            )
-            return URL(fileURLWithPath: destination).deletingLastPathComponent().lastPathComponent
+            try String(contentsOf: dir.appendingPathComponent(name), encoding: .utf8)
         }
         // The chosen source wins where it has the cell; the fallback fills the holes
         // inside the coverage.
@@ -98,10 +96,10 @@ final class DEMStagingTests: XCTestCase {
             styles: StyleCatalog(settings: settings, toolchain: toolchain)
         )
         let dir = try XCTUnwrap(chose3.stageDEMCells().first)
-        let destination = try FileManager.default.destinationOfSymbolicLink(
-            atPath: dir.appendingPathComponent("N44E035.hgt").path
+        XCTAssertEqual(
+            try String(contentsOf: dir.appendingPathComponent("N44E035.hgt"), encoding: .utf8),
+            "VIEW3"
         )
-        XCTAssertTrue(destination.contains("VIEW3"), destination)
     }
 
     func testACreditedSourceTheMapDoesNotNameFillsNothing() throws {
