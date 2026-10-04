@@ -21,7 +21,7 @@ let package = Package(
             cSettings: [.unsafeFlags(["-w"])]
         ),
         // The image decoder, vendored. See Sources/CStbImage/stb_image.c for why it is
-        // here rather than ImageIO, and Sources/kmap/Core/Raster.swift for what kmap
+        // here rather than ImageIO, and Sources/kmap/Core/Codec/Raster.swift for what kmap
         // asks of it.
         //
         // The formats are chosen here so the implementation and the header Swift reads
@@ -73,8 +73,8 @@ let package = Package(
                 .linkedLibrary("user32", .when(platforms: [.windows]))
             ]
         ),
-        // Mirrors the source tree: Tests/OSM/PBF/ProtoReaderTests.swift tests
-        // Sources/kmap/OSM/PBF/ProtoReader.swift.
+        // Mirrors the source tree: Tests/OSM/PBF/Wire/ProtoReaderTests.swift tests
+        // Sources/kmap/OSM/PBF/Wire/ProtoReader.swift.
         .testTarget(
             name: "kmapTests",
             dependencies: ["kmap", "CVector", "CMainQueueNudge"],

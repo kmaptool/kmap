@@ -9,10 +9,6 @@ struct VenueScan {
     /// Keys whose areas mkgmap turns into a POI, and so can put a second icon on one that
     /// is already there.
     static let keys = ["amenity", "shop", "tourism", "office", "healthcare"]
-    /// The same list as a lookup, since it is asked of every tag of every object.
-    private static let keyRank: [String: Int] = Dictionary(
-        uniqueKeysWithValues: keys.enumerated().map { ($1, $0) }
-    )
 
     struct Area {
         var id: Int64
@@ -180,102 +176,5 @@ struct VenueScan {
             j = i
         }
         return within
-    }
-
-    /// First pass: the closed ways carrying a venue tag.
-    private struct Shapes: OSMSink {
-        // Ways only: there is no relation handler here, and asking for relations unpacks
-        // every one in the extract into the default no-op sink.
-        let wantedParts: OSMParts = .ways
-
-        var ids: [Int64] = []
-        var tags: [String] = []
-        var named: [Bool] = []
-        var starts: [Int32] = [0]
-        var refs: [Int64] = []
-
-        mutating func clear() {
-            ids.removeAll(keepingCapacity: true)
-            tags.removeAll(keepingCapacity: true)
-            named.removeAll(keepingCapacity: true)
-            starts = [0]
-            refs.removeAll(keepingCapacity: true)
-        }
-
-        mutating func way(
-            id: Int64,
-            refs list: ArraySlice<Int64>,
-            keys: ArraySlice<Int32>,
-            values: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            guard list.count >= 4, list.first == list.last else { return }
-            // A place can carry more than one of these keys, so the key is chosen by the
-            // order of `VenueScan.keys`, not by the order the file stores the tags in.
-            var present: [String: String] = [:]
-            var hasName = false
-            for (i, key) in keys.enumerated() {
-                guard i < values.count else { break }
-                let word = block.text(Int(key))
-                if word == "name" { hasName = true }
-                if VenueScan.keys.contains(word) {
-                    present[word] = block.text(Int(values[values.startIndex + i]))
-                }
-            }
-            var found: String?
-            for key in VenueScan.keys {
-                if let value = present[key] {
-                    found = key + "=" + value
-                    break
-                }
-            }
-            guard let found else { return }
-            ids.append(id)
-            tags.append(found)
-            named.append(hasName)
-            refs.append(contentsOf: list)
-            starts.append(Int32(refs.count))
-        }
-    }
-
-    /// Second pass: the venue nodes in their own right, and the raw ids and places the
-    /// ways of the first pass refer to.
-    private struct VenueNodes: OSMSink {
-        let wantedParts: OSMParts = .nodes
-
-        var nodes = BlockNodes()
-        var venues: [(tag: String, x: Double, y: Double)] = []
-
-        mutating func node(
-            id: Int64,
-            lat latitude: Double,
-            lon longitude: Double,
-            tags: ArraySlice<Int32>,
-            block: OSMBlock
-        ) {
-            nodes.node(id: id, lat: latitude, lon: longitude, tags: tags, block: block)
-
-            // The key is chosen by the order of `VenueScan.keys`. Written without a
-            // dictionary: this runs on every node of the extract.
-            var bestKey = Int.max
-            var bestValue = ""
-            var at = tags.startIndex
-            while at + 1 < tags.endIndex {
-                let key = block.text(Int(tags[at]))
-                if let rank = VenueScan.keyRank[key], rank < bestKey {
-                    bestKey = rank
-                    bestValue = block.text(Int(tags[at + 1]))
-                }
-                at += 2
-            }
-            if bestKey != Int.max {
-                venues.append((VenueScan.keys[bestKey] + "=" + bestValue, longitude, latitude))
-            }
-        }
-
-        mutating func clear() {
-            nodes.clear()
-            venues.removeAll(keepingCapacity: true)
-        }
     }
 }

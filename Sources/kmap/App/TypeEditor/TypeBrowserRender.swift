@@ -217,11 +217,3 @@ extension TypeBrowserScreen {
         return ("", theme.dim)
     }
 }
-
-extension XpmBlock {
-    /// No visible pixel: a pattern of nothing, or a night block that exists but is empty.
-    var isBlank: Bool {
-        guard let grid = pixels() else { return true }
-        return !grid.contains { $0.contains { $0 != nil } }
-    }
-}
