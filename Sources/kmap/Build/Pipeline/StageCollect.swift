@@ -27,10 +27,7 @@ extension BuildPipeline {
                 names.insert(folder.lastPathComponent)
                 continue
             }
-            guard
-                (try? folder.resourceValues(forKeys: [.isDirectoryKey]))?
-                    .isDirectory == true
-            else { continue }
+            guard FileTools.isDirectoryItself(folder) else { continue }
             for file
                 in ((try? manager.contentsOfDirectory(
                     at: folder,

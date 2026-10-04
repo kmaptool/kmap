@@ -105,9 +105,7 @@ struct PartFiles {
                 FileManager.default.fileExists(atPath: files.destination.path)
                 && CacheStamp.read(besides: files.destination) != nil
             if !abandoned {
-                let modified =
-                    (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
-                    .contentModificationDate ?? now
+                let modified = FileTools.modified(of: url) ?? now
                 abandoned = now.timeIntervalSince(modified) > age
             }
             guard abandoned else { continue }

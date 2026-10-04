@@ -2,6 +2,10 @@ import XCTest
 
 @testable import kmap
 
+#if os(Windows)
+import WinSDK
+#endif
+
 /// The small file helpers: name slugs, existence and size, directory contents.
 final class FileToolsTests: XCTestCase {
     private var directory = URL(fileURLWithPath: "/tmp")
@@ -127,4 +131,55 @@ final class FileToolsTests: XCTestCase {
         // Not appending is a fresh file: nothing of "onetwo" is left behind the "x".
         XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), "x")
     }
+
+    // MARK: Types
+
+    func testTheTypeIsTheItemsOwnAndALinkIsNotFollowed() throws {
+        let file = try write("a.txt", bytes: 3)
+        XCTAssertEqual(FileTools.type(of: file), .typeRegular)
+        XCTAssertEqual(FileTools.type(of: directory), .typeDirectory)
+        XCTAssertNil(FileTools.type(of: directory.appendingPathComponent("absent")))
+        XCTAssertTrue(FileTools.isRegularFile(file))
+        XCTAssertFalse(FileTools.isRegularFile(directory))
+        XCTAssertTrue(FileTools.isDirectoryItself(directory))
+        XCTAssertFalse(FileTools.isDirectoryItself(file))
+        #if !os(Windows)
+        let link = directory.appendingPathComponent("link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: directory)
+        XCTAssertEqual(FileTools.type(of: link), .typeSymbolicLink)
+        #endif
+    }
+
+    #if os(Windows)
+    /// Foundation's URL resource values trap on Windows on a file of 2 to 4 GB, which a
+    /// map of a large country is. Every helper that looks at a file must answer for one.
+    func testAFileOfSeveralGigabytesIsAnsweredFor() throws {
+        let big = try write("big.img")
+        try Self.makeSparse(big, size: 2_500_000_000)
+        XCTAssertEqual(FileTools.size(of: big), 2_500_000_000)
+        XCTAssertEqual(FileTools.type(of: big), .typeRegular)
+        XCTAssertNotNil(FileTools.modified(of: big))
+        XCTAssertEqual(FileTools.allFiles(under: directory).map(\.lastPathComponent), ["big.img"])
+        XCTAssertTrue(FileTools.isRegularFile(big))
+        XCTAssertFalse(FileTools.isDirectoryItself(big))
+        XCTAssertFalse(TypLibrary.isDirectory(big))
+    }
+
+    /// Sized without writing, so the test costs no disk space.
+    private static func makeSparse(_ url: URL, size: Int64) throws {
+        let handle = url.nativePath.withCString(encodedAs: UTF16.self) {
+            CreateFileW($0, DWORD(GENERIC_WRITE), 0, nil, DWORD(OPEN_EXISTING), DWORD(FILE_ATTRIBUTE_NORMAL), nil)
+        }
+        guard let handle, handle != INVALID_HANDLE_VALUE else { throw CocoaError(.fileWriteUnknown) }
+        defer { CloseHandle(handle) }
+        // FSCTL_SET_SPARSE.
+        var returned: DWORD = 0
+        var end = LARGE_INTEGER()
+        end.QuadPart = size
+        guard DeviceIoControl(handle, 0x0009_00C4, nil, 0, nil, 0, &returned, nil),
+            SetFilePointerEx(handle, end, nil, DWORD(FILE_BEGIN)),
+            SetEndOfFile(handle)
+        else { throw CocoaError(.fileWriteUnknown) }
+    }
+    #endif
 }

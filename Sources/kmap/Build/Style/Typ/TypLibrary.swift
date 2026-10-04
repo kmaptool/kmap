@@ -195,7 +195,7 @@ enum TypLibrary {
     }
 
     static func isDirectory(_ url: URL) -> Bool {
-        (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        FileTools.isDirectoryItself(url)
     }
 
     /// A second copy of an entry, under a dated name, with its original copied along.

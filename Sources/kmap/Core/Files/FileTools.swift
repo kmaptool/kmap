@@ -16,6 +16,31 @@ enum FileTools {
         (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
     }
 
+    /// The item's own type, a link not followed; nil where there is nothing. Not asked of
+    /// URL resource values: on Windows those trap on a file of 2 to 4 GB.
+    static func type(of url: URL) -> FileAttributeType? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.type] as? FileAttributeType
+    }
+
+    /// Whether the item itself is a regular file or a directory, a link not followed.
+    /// Resource values are what a directory walk has fetched already, so they are asked
+    /// everywhere but Windows, where they trap on a file of 2 to 4 GB.
+    static func isRegularFile(_ url: URL) -> Bool {
+        #if os(Windows)
+        type(of: url) == .typeRegular
+        #else
+        (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
+        #endif
+    }
+
+    static func isDirectoryItself(_ url: URL) -> Bool {
+        #if os(Windows)
+        type(of: url) == .typeDirectory
+        #else
+        (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+        #endif
+    }
+
     static func exists(_ url: URL) -> Bool {
         FileManager.default.fileExists(atPath: url.path)
     }
@@ -70,8 +95,7 @@ enum FileTools {
         else { return [] }
         var out: [URL] = []
         for case let url as URL in walker {
-            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
-            else { continue }
+            guard isRegularFile(url) else { continue }
             if let ext, url.pathExtension.lowercased() != ext.lowercased() { continue }
             out.append(url)
         }
