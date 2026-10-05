@@ -23,7 +23,9 @@ final class StyleDetailScreen: Screen {
 
     /// The map this TYP was extracted from, while that path resolves.
     let recoverableMap: URL?
-    let document: StyleDocument
+    /// Read again before each screen it opens: the one opened before may have saved, and
+    /// a copy from when this screen opened would undo that at the next save.
+    private(set) var document: StyleDocument
     var list = ListState()
     var message: String?
     var isDefault = false
@@ -52,7 +54,9 @@ final class StyleDetailScreen: Screen {
         case .up: list.move(-1, count: rows.count)
         case .down: list.move(1, count: rows.count)
         case .enter:
-            switch rows[safe: list.selected] {
+            let selected = rows[safe: list.selected]
+            if selected != nil { document = StyleDocument.load(document.style) }
+            switch selected {
             case .kind(let kind): return .push(TypeBrowserScreen(document: document, kind: kind))
             case .drawOrder: return .push(DrawOrderScreen(document: document))
             case nil: return .none

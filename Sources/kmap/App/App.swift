@@ -73,6 +73,7 @@ final class App {
                 + " it from one, or use the command line — `kmap --help`"
                 + " lists what it can do without a screen."
         )
+        ChildProcess.stopAll()
         exit(1)
     }
 

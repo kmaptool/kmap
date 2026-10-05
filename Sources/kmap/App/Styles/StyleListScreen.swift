@@ -64,7 +64,11 @@ final class StyleListScreen: Screen {
     func reload(_ ctx: AppContext, select url: URL? = nil) {
         ctx.styles.rescanStyles()
         styles = ctx.styles.styles().list
-        guard let url, let index = styles.firstIndex(where: { $0.typURL?.sameFile(as: url) == true }) else { return }
+        guard let url else { return }
+        // The cursor counts the list as shown, with the search applied; a style the
+        // search hides is shown by clearing it.
+        if !filtered.contains(where: { $0.typURL?.sameFile(as: url) == true }) { search.query = "" }
+        guard let index = filtered.firstIndex(where: { $0.typURL?.sameFile(as: url) == true }) else { return }
         list.selected = index
     }
 

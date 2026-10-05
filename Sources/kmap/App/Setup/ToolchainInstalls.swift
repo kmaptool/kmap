@@ -36,8 +36,10 @@ extension ToolchainScreen {
     }
 
     func remove(_ tool: ToolStatus, _ ctx: AppContext) {
-        guard !queue.isInstalling(tool.id) else {
-            message = t("%@ is still installing", tool.name)
+        // Nor while another install works with it, as the patch compiles with kmap's Java.
+        let users = queue.blockers(of: tool.id, ahead: queue.waiting)
+        guard !queue.isInstalling(tool.id), users.isEmpty else {
+            message = t("%@ is still installing", users.first.map { $0 } ?? tool.name)
             return
         }
         guard tool.removable else {

@@ -50,7 +50,10 @@ extension SettingsScreen {
             }
         }
         switch saved {
-        case .success: message = t("saved")
+        case .success:
+            message = t("saved")
+            // The tools found before are found again, or the old ones run until a restart.
+            if field == .mkgmapJar || field == .javaBinary { ctx.refreshTools(force: true) }
         case .failure(let error): message = t("could not save the settings: %@", error.localizedDescription)
         }
     }

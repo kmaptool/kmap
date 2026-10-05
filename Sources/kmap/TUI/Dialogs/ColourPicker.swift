@@ -157,7 +157,11 @@ struct ColourPicker {
     /// The grid cell nearest the current colour; derived, so the cursor stays valid after
     /// the sliders move off a cell.
     var gridColumn: Int {
-        Int((hue / HSL.degrees * Double(hues)).rounded()) % max(1, hues)
+        // The grey row is walked by lightness, its colours having no hue.
+        if gridRow == Self.levels {
+            return max(0, min(hues - 1, Int((lightness * Double(max(1, hues - 1))).rounded())))
+        }
+        return Int((hue / HSL.degrees * Double(hues)).rounded()) % max(1, hues)
     }
 
     var gridRow: Int {

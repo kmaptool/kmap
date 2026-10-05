@@ -222,4 +222,19 @@ final class ColourPickerTests: XCTestCase {
             )
         }
     }
+
+    /// The grey row is walked step by step, and the cursor follows the grey chosen.
+    func testTheGreyRowCanBeWalkedEndToEnd() {
+        var picker = ColourPicker(start: "#000000")
+        XCTAssertEqual(picker.gridRow, ColourPicker.levels)
+        XCTAssertEqual(picker.gridColumn, 0)
+        var seen: Set<String> = [picker.current]
+        for _ in 0..<picker.hues {
+            _ = picker.handle(.right)
+            seen.insert(picker.current)
+        }
+        XCTAssertEqual(picker.gridColumn, picker.hues - 1)
+        XCTAssertEqual(picker.current, "#FFFFFF")
+        XCTAssertEqual(seen.count, picker.hues)
+    }
 }

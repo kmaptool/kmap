@@ -155,7 +155,7 @@ final class IconDonorScreen: Screen {
                 startingAt: nil,
                 prompt: t("take an icon from a file")
             ) {
-                path = chosen.path
+                path = chosen.nativePath
                 loaded = nil
                 message = nil
             }
@@ -186,6 +186,13 @@ final class IconDonorScreen: Screen {
     private func load() {
         let trimmed = path.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
+        // A picture file is read square, which only a point's icon may be: a pattern is
+        // 32 wide and a line at most 31 high, so those come from another style's drawing.
+        guard kind == .point else {
+            loaded = nil
+            message = t("a picture file gives a point its icon — lines and areas borrow another style's drawing")
+            return
+        }
         do {
             loaded = try IconImport.load(Paths.expand(trimmed), size: wantedSize)
             message = nil

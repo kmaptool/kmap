@@ -16,6 +16,8 @@ final class LibraryScreen: Screen {
     }
 
     private var files: [URL] = []
+    /// Each file's size and date, read once a scan: drawn every frame, asked of the disk once.
+    private var details: [URL: (bytes: Int64, modified: String)] = [:]
     private var list = ListState()
     private var message: String?
     private var pendingDelete: URL?
@@ -29,9 +31,14 @@ final class LibraryScreen: Screen {
 
     /// Newest first.
     private func rescan(_ ctx: AppContext) {
-        files = BuiltMaps.outputs(under: ctx.settings.settings.outputURL).sorted {
-            (FileTools.modified(of: $0) ?? .distantPast) > (FileTools.modified(of: $1) ?? .distantPast)
-        }
+        let found = BuiltMaps.outputs(under: ctx.settings.settings.outputURL)
+            .map { (url: $0, modified: FileTools.modified(of: $0)) }
+            .sorted { ($0.modified ?? .distantPast) > ($1.modified ?? .distantPast) }
+        files = found.map(\.url)
+        details = Dictionary(
+            found.map { ($0.url, (FileTools.size(of: $0.url), $0.modified.map { Fmt.timestamp($0) } ?? "")) },
+            uniquingKeysWith: { first, _ in first }
+        )
     }
 
     /// The name, under its build folder where it has one.
@@ -101,13 +108,13 @@ final class LibraryScreen: Screen {
         let listTop = y
         for index in list.window(count: files.count, visible: listHeight) {
             let file = files[index]
-            let modified = FileTools.modified(of: file).map { Fmt.timestamp($0) } ?? ""
+            let detail = details[file] ?? (0, "")
             Widgets.row(
                 s,
                 rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
                 y: y,
                 text: displayName(file, root: ctx.settings.settings.outputURL),
-                trailing: "\(Fmt.bytes(FileTools.size(of: file)))   \(modified)",
+                trailing: "\(Fmt.bytes(detail.bytes))   \(detail.modified)",
                 theme: theme,
                 selected: index == list.selected
             )

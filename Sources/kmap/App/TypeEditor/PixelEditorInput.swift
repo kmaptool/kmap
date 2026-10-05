@@ -30,7 +30,7 @@ extension PixelEditorScreen {
             if shown.palette.indices.contains(index) { selected = index }
         case .char(let typed):
             switch Keys.latin(typed) {
-            case "i": if let rows = grid() { selected = rows[cursor.y][cursor.x] }
+            case "i": if let picked = grid()?[safe: cursor.y]?[safe: cursor.x] { selected = picked }
             case "a": begin(.addColour)
             case "c": begin(.changeColour(index: selected))
             case "s" where canResize: begin(.size)
@@ -115,9 +115,14 @@ extension PixelEditorScreen {
             if let pixel = pixel(at: event) { cursor = pixel }
         case .press, .drag:
             guard event.isPrimary else { return }
+            if event.action == .press { strokeRemembered = false }
             if let pixel = pixel(at: event) {
                 cursor = pixel
-                paint(x: pixel.x, y: pixel.y, with: selected)
+                // A stroke is undone whole: remembered at the first pixel it changes,
+                // wherever the press was.
+                if paint(x: pixel.x, y: pixel.y, with: selected, remembering: !strokeRemembered) {
+                    strokeRemembered = true
+                }
             } else if event.action == .press, let entry = paletteEntry(at: event) {
                 selected = entry
             }
@@ -128,6 +133,8 @@ extension PixelEditorScreen {
     }
 
     private func pixel(at event: MouseEvent) -> (x: Int, y: Int)? {
+        // Left of the canvas first: -1 / 2 is 0 in Swift, which is a column.
+        guard event.x >= canvasOrigin.x else { return nil }
         let x = (event.x - canvasOrigin.x) / 2
         let y = event.y - canvasOrigin.y
         guard x >= 0, x < shown.width, y >= 0, y < shown.height else { return nil }

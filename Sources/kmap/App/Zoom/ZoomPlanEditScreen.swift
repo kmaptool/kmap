@@ -64,7 +64,7 @@ final class ZoomPlanEditScreen: Screen {
     func tick(_ ctx: AppContext) {
         // Once: the rule set does not change while this screen is open.
         if survey == nil {
-            survey = ZoomSurvey(styleAt: StyleCatalog.baseStyleDirectory, levels: levels)
+            survey = ZoomSurvey.beforeAnyPlan(at: StyleCatalog.baseStyleDirectory, levels: levels)
         }
     }
 

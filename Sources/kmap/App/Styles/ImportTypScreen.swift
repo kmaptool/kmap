@@ -144,7 +144,7 @@ final class ImportTypScreen: Screen {
                 startingAt: startingPoint(),
                 prompt: t("import a TYP")
             ) {
-                path = chosen.path
+                path = chosen.nativePath
                 notice.clear()
             }
         case .backspace: if !path.isEmpty { path.removeLast() }

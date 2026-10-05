@@ -28,7 +28,11 @@ extension RecoverScreen {
                 }
                 let weighed = await Self.weighed(regions)
                 guard let pick = RegionSuggestion.worthDownloading(weighed) ?? regions.first else { return }
+                // Left with Esc while the sizes were asked: no dialog after all.
+                guard !Task.isCancelled else { return }
                 await MainActor.run { self.present(pick, among: weighed) }
+            } catch is CancellationError {
+                return
             } catch {
                 await MainActor.run { self.fail(error) }
             }

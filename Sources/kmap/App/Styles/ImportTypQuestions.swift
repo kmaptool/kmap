@@ -12,6 +12,11 @@ extension ImportTypScreen {
             detail.append((t("size"), Fmt.bytes(candidate.size)))
             detail.append((t("family"), "\(candidate.familyID) · \(candidate.productID)"))
         }
+        // Asked first: a file of gigabytes that is neither is not read through to say so.
+        guard !FileTools.exists(url) || ImgContainer.isImg(url) || TypInfo.read(url) != nil else {
+            notice.say(t("%@ is neither a TYP nor a Garmin .img", url.lastPathComponent), error: true)
+            return
+        }
         if let name = held.exact[TypLibrary.fingerprint(ofTypAt: url)] {
             notice.say(t("already in the library as %@ · in styles: c copies it, o brings back the original", name))
             return

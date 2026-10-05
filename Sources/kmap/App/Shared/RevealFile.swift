@@ -7,6 +7,10 @@ enum Reveal {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: command.executable)
         process.arguments = command.arguments
+        // Not the raw-mode terminal: a file manager reading it would take kmap's keys.
+        process.standardInput = ChildProcess.emptyInput
+        process.standardOutput = ChildProcess.discardedOutput
+        process.standardError = ChildProcess.discardedOutput
         try? process.run()
     }
 }

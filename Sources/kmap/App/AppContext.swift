@@ -43,6 +43,9 @@ final class AppContext {
     private var lastElevationFrame = AppContext.never
     private var probing = false
     private var probeAgain = false
+    /// A walk of the cache and outputs under way; a later one waits for it.
+    private var countingOverview = false
+    private var countAgain = false
     private var askingPacks = false
     /// Set by the tests: the list is theirs, and no probe replaces it.
     private var toolsFrozen = false
@@ -192,6 +195,9 @@ final class AppContext {
     /// rate limits, for use after something is deleted.
     func refreshOverview(force: Bool = false) {
         guard force || frame - lastOverviewFrame > AppContext.overviewEvery else { return }
+        // One walk at a time, on a slow folder above all; a forced one runs when it lands.
+        if countingOverview { countAgain = countAgain || force; return }
+        countingOverview = true
         lastOverviewFrame = frame
         let walkElevation = force || frame - lastElevationFrame > AppContext.elevationEvery
         if walkElevation { lastElevationFrame = frame }
@@ -206,7 +212,14 @@ final class AppContext {
                 builtMaps: BuiltMaps.outputs(under: outputURL).count,
                 elevation: walkElevation ? Overview.Elevation.sample() : previousElevation
             )
-            await MainActor.run { self.overview = snapshot }
+            await MainActor.run {
+                self.overview = snapshot
+                self.countingOverview = false
+                if self.countAgain {
+                    self.countAgain = false
+                    self.refreshOverview(force: true)
+                }
+            }
         }
     }
 

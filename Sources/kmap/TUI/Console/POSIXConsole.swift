@@ -97,31 +97,57 @@ enum POSIXConsole: ConsoleBackend {
 
     static func onInterrupt(_ handler: @escaping () -> Void) {
         interrupted = handler
-        let leaving: @convention(c) (Int32) -> Void = { _ in
-            POSIXConsole.interrupted?()
-            _exit(0)
+        // Taken on a queue rather than in the handler, so the tools a build runs can be
+        // stopped first: in groups of their own, a closed terminal's hang-up misses them.
+        // The screen is kept until they are gone, so no frame lands on the shell's.
+        for number in [SIGINT, SIGTERM, SIGHUP] {
+            signal(number, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
+            source.setEventHandler {
+                ChildProcess.stopAll()
+                POSIXConsole.interrupted?()
+                _exit(128 + number)
+            }
+            source.resume()
+            leavingSources.append(source)
         }
-        signal(SIGINT, leaving)
-        signal(SIGTERM, leaving)
-        signal(SIGHUP, leaving)
         signal(SIGPIPE, SIG_IGN)
         // On a fatal signal the terminal is restored, then the signal is re-raised under
-        // its default action so the crash is still reported.
+        // the action it had before, the runtime's own crash report where there is one, so
+        // the reason is printed on the screen the user sees again.
         let crashing: @convention(c) (Int32) -> Void = { sig in
             POSIXConsole.interrupted?()
-            signal(sig, SIG_DFL)
+            if sig >= 0, sig < POSIXConsole.signalCount {
+                var previous = POSIXConsole.previousActions[Int(sig)]
+                sigaction(sig, &previous, nil)
+            } else {
+                signal(sig, SIG_DFL)
+            }
             raise(sig)
         }
         for sig in [SIGABRT, SIGILL, SIGTRAP, SIGSEGV, SIGBUS, SIGFPE] {
+            var previous = sigaction()
+            sigaction(sig, nil, &previous)
+            if Int(sig) < signalCount { previousActions[Int(sig)] = previous }
             // A signal already ignored stays ignored. SIG_IGN is 1 on every POSIX.
-            let previous = signal(sig, crashing)
-            if previous.map({ unsafeBitCast($0, to: Int.self) }) == 1 { signal(sig, SIG_IGN) }
+            let replaced = signal(sig, crashing)
+            if replaced.map({ unsafeBitCast($0, to: Int.self) }) == 1 { signal(sig, SIG_IGN) }
         }
     }
 
     /// Held here because a C function pointer cannot capture anything. Set once, before
     /// the handlers that call it are installed, and called from them: no lock, as above.
     nonisolated(unsafe) private static var interrupted: (() -> Void)?
+    /// The actions the fatal signals had before kmap's, by number: put back before the
+    /// signal is raised again.
+    private static let signalCount = 32
+    nonisolated(unsafe) private static let previousActions: UnsafeMutablePointer<sigaction> = {
+        let actions = UnsafeMutablePointer<sigaction>.allocate(capacity: signalCount)
+        actions.initialize(repeating: sigaction(), count: signalCount)
+        return actions
+    }()
+    /// Kept for the life of the process: a released source stops delivering.
+    nonisolated(unsafe) private static var leavingSources: [DispatchSourceSignal] = []
 }
 
 /// The C `read` and `write` under distinct names: unqualified calls in this file would

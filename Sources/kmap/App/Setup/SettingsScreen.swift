@@ -58,7 +58,8 @@ final class SettingsScreen: Screen {
         case .left: adjust(fields[safe: list.selected], by: -1, ctx)
         case .right: adjust(fields[safe: list.selected], by: 1, ctx)
         case .esc:
-            ctx.settings.save()
+            // Through an update, so what another kmap saved meanwhile stays.
+            ctx.settings.update { _ in }
             return .pop
         case .ctrl("c"): return .quit
         case .enter:
@@ -75,7 +76,7 @@ final class SettingsScreen: Screen {
             if let wanted = field.wants,
                 let chosen = FilePicker.choose(wanted, startingAt: Paths.expand(draft), prompt: field.label)
             {
-                draft = chosen.path
+                draft = chosen.nativePath
             }
         case .enter:
             commit(field, ctx)

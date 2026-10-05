@@ -170,7 +170,7 @@ final class RecipeForm {
                 startingAt: Paths.expand(outputDraft),
                 prompt: t("Output folder")
             ) {
-                outputDraft = chosen.path
+                outputDraft = chosen.nativePath
             }
         case .enter, .esc:
             if key == .enter, !outputDraft.trimmingCharacters(in: .whitespaces).isEmpty {

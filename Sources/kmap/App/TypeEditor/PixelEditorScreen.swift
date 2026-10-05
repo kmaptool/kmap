@@ -87,7 +87,12 @@ final class PixelEditorScreen: Screen {
     /// painting is refused while night is showing.
     private var nightBlock: XpmBlock?
     private var savedNight: XpmBlock?
+    /// A night whose pixels are not the day's, as a third-party file may hold: kept as
+    /// drawn rather than rebuilt from the day.
+    private var nightApart = false
     var showingNight = false
+    /// Whether the mouse stroke under way has its undo step yet.
+    var strokeRemembered = false
 
     /// Which half the arrow keys drive; tab moves between them.
     enum Focus { case canvas, palette }
@@ -149,8 +154,12 @@ final class PixelEditorScreen: Screen {
         self.document = document
         self.block = picture
         self.saved = section.picture ?? picture
-        self.nightBlock = section.nightXpm
-        self.savedNight = section.nightXpm
+        if let night = section.nightXpm {
+            let aligned = Self.aligned(night, to: picture)
+            self.nightBlock = aligned ?? night
+            self.savedNight = aligned ?? night
+            self.nightApart = aligned == nil
+        }
         if section.picture == nil {
             message = t("started a pattern from this type's own colour — save to keep it")
         }
@@ -190,25 +199,31 @@ final class PixelEditorScreen: Screen {
 
     // MARK: Editing
 
-    func paint(x: Int, y: Int, with index: Int) {
+    /// - Parameter remembering: false for the rest of a dragged stroke, which is undone
+    ///   as one with its first change.
+    /// - Returns: whether a pixel changed.
+    @discardableResult
+    func paint(x: Int, y: Int, with index: Int, remembering: Bool = true) -> Bool {
         guard x >= 0, x < block.width, y >= 0, y < block.height,
             shown.palette.indices.contains(index)
-        else { return }
+        else { return false }
         guard !showingNight else {
             message = t("night shares the day drawing — change its colours, not its pixels")
             messageIsError = false
-            return
+            return false
         }
-        guard var rows = grid(), rows[y][x] != index else { return }
-        remember()
+        guard var rows = grid(), rows[y][x] != index else { return false }
+        if remembering { remember() }
         rows[y][x] = index
         block = rebuild(rows: rows, palette: block.palette)
         message = nil
+        return true
     }
 
     /// The picture as palette indices.
-    func grid() -> [[Int]]? {
-        let picture = shown
+    func grid() -> [[Int]]? { Self.indices(of: shown) }
+
+    static func indices(of picture: XpmBlock) -> [[Int]] {
         var lookup: [String: Int] = [:]
         for (index, entry) in picture.palette.enumerated() { lookup[entry.key] = index }
         let width = max(1, picture.charsPerPixel)
@@ -247,7 +262,7 @@ final class PixelEditorScreen: Screen {
         )
     }
 
-    private func remember() {
+    func remember() {
         history.append((block, nightBlock, showingNight))
         if history.count > Self.historyDepth { history.removeFirst() }
     }
@@ -362,29 +377,77 @@ final class PixelEditorScreen: Screen {
     /// there is none.
     func toggleNight() {
         if showingNight { showingNight = false; message = nil; return }
-        guard nightBlock != nil else {
-            guard let source = document.source else { return }
-            do {
-                let edited = try TypEdit.addNightPicture(in: source, code: code)
-                remember()
-                nightBlock = TypSource.parse(edited).section(.point, code)?.nightXpm
-                showingNight = nightBlock != nil
-                selected = 0
-                message =
-                    showingNight
-                    ? t("night started from the day drawing — change its colours, then save")
-                    : t("could not start a night version")
-                messageIsError = !showingNight
-            } catch {
-                message = error.localizedDescription
-                messageIsError = true
-            }
+        guard let night = nightBlock else {
+            // From the day as it is on screen, edits not yet saved and size included.
+            remember()
+            nightBlock = block
+            showingNight = true
+            selected = 0
+            message = t("night started from the day drawing — change its colours, then save")
+            messageIsError = false
             return
         }
+        // The night is the day's drawing in its own colours: brought onto the day's pixels.
+        if !nightApart { nightBlock = Self.night(night, onTheDrawingOf: block) }
+        cursor = (min(cursor.x, block.width - 1), min(cursor.y, block.height - 1))
         showingNight = true
         selected = min(selected, (nightBlock?.palette.count ?? 1) - 1)
-        message = t("night: the same drawing, its own colours")
+        message =
+            nightApart
+            ? t("night: drawn apart from the day, kept as it is")
+            : t("night: the same drawing, its own colours")
         messageIsError = false
+    }
+
+    /// `night` re-keyed onto the day's palette, each day colour taking the night colour
+    /// found under its pixels; nil where the 2 are drawn apart: a size of their own,
+    /// or 1 day colour under 2 night ones.
+    static func aligned(_ night: XpmBlock, to day: XpmBlock) -> XpmBlock? {
+        guard night.width == day.width, night.height == day.height else { return nil }
+        let dayGrid = indices(of: day)
+        let nightGrid = indices(of: night)
+        var under: [Int: Int] = [:]
+        for (dayRow, nightRow) in zip(dayGrid, nightGrid) {
+            for (d, n) in zip(dayRow, nightRow) {
+                guard night.palette.indices.contains(n) else { return nil }
+                if let seen = under[d] {
+                    guard night.palette[seen].colour == night.palette[n].colour else { return nil }
+                } else {
+                    under[d] = n
+                }
+            }
+        }
+        // A day colour no pixel uses keeps the night colour in its place.
+        let palette = day.palette.enumerated().map { at, entry in
+            let n = under[at] ?? (at < night.palette.count ? at : nil)
+            return (key: entry.key, colour: n.map { night.palette[$0].colour } ?? entry.colour)
+        }
+        let keyed = XpmBlock(
+            width: day.width,
+            height: day.height,
+            declaredColours: palette.count,
+            charsPerPixel: day.charsPerPixel,
+            palette: palette,
+            rows: day.rows
+        )
+        return Self.night(keyed, onTheDrawingOf: day)
+    }
+
+    /// `night` on the pixels of `day`: the day's grid, each palette entry in the night's
+    /// colour of the same place, or the day's where the night has none, as for a colour
+    /// the day gained after the night was begun.
+    static func night(_ night: XpmBlock, onTheDrawingOf day: XpmBlock) -> XpmBlock {
+        let palette = day.palette.enumerated().map { at, entry in
+            (key: entry.key, colour: at < night.palette.count ? night.palette[at].colour : entry.colour)
+        }
+        return XpmBlock(
+            width: day.width,
+            height: day.height,
+            declaredColours: palette.count,
+            charsPerPixel: day.charsPerPixel,
+            palette: palette,
+            rows: day.rows
+        )
     }
 
     // MARK: Saving
@@ -402,9 +465,11 @@ final class PixelEditorScreen: Screen {
                 kind: kind,
                 code: code,
                 to: block,
-                tag: kind == .point ? "DayXpm" : nil
+                // The block the file has: a point may carry a plain `Xpm=`.
+                tag: kind == .point && document.source?.section(.point, code)?.dayXpm != nil ? "DayXpm" : nil
             )
-            if let nightBlock {
+            let written = nightBlock.map { nightApart ? $0 : Self.night($0, onTheDrawingOf: block) }
+            if let nightBlock = written {
                 // Added to the file first where it is not there yet; both halves land in one save.
                 var next = TypSource.parse(edited)
                 if next.section(.point, code)?.nightXpm == nil {
@@ -422,7 +487,8 @@ final class PixelEditorScreen: Screen {
             try TypLibrary.save(edited, to: url)
             document = StyleDocument.load(style)
             saved = block
-            savedNight = nightBlock
+            nightBlock = written
+            savedNight = written
             history.removeAll()
             onSaved()
             message = t("saved")

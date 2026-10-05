@@ -225,8 +225,33 @@ final class ReassignScreen: Screen {
         return value
     }
 
+    /// Whether `code` is a number mkgmap takes for `kind`, as its GType.checkType: one
+    /// a typo makes otherwise would stop every later build.
+    static func isNumber(_ code: Int, for kind: MapElementKind) -> Bool {
+        if (0x10000...0x1ffff).contains(code) { return code & 0xff <= 0x1f }
+        switch kind {
+        case .line: return (0x01...0x3f).contains(code)
+        case .polygon: return (0x01...0x7f).contains(code) && code != 0x4a
+        case .point:
+            guard (0x0100...0x7fff).contains(code) else { return false }
+            let subtype = code & 0xff
+            // A city takes no subtype; these 3 ranges may be indexed, which leaves 5 bits.
+            if code < 0x1100 { return subtype == 0 }
+            if (0x1600..<0x1e00).contains(code) || (0x2a00..<0x3100).contains(code)
+                || (0x6400..<0x6700).contains(code)
+            {
+                return subtype <= 0x1f
+            }
+            return subtype <= 0x3f
+        }
+    }
+
     private func commit(to target: Int) -> Route {
         guard let rule = chosen else { return .none }
+        guard Self.isNumber(target, for: kind) else {
+            notice.say(t("not a type this kind of element can take"), error: true)
+            return .none
+        }
         // A record on disk, so it stays English whatever the interface speaks.
         let note =
             "was \(TypeMeaning.hex(code))"

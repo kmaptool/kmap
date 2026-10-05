@@ -14,6 +14,8 @@ struct InputBuffer {
     /// reads rather than predicted with `isatty`, which can be wrong before a console is
     /// attached.
     private(set) var hasEnded = false
+    private var emptyReads = 0
+    private static let emptyReadsAtEnd = 3
 
     init(reading source: InputSource) {
         self.source = source
@@ -55,8 +57,10 @@ struct InputBuffer {
         guard isReady(within: milliseconds) else { return false }
         var chunk = [UInt8](repeating: 0, count: size)
         let n = source.read(into: &chunk)
-        // Zero is end of file, which `poll` reports as readable.
-        if n == 0 { hasEnded = true }
+        // Zero is end of file, which `poll` reports as readable; it comes again and again.
+        // A raw terminal answers 0 once too, when another reader took the byte first.
+        emptyReads = n == 0 ? emptyReads + 1 : 0
+        if emptyReads >= Self.emptyReadsAtEnd { hasEnded = true }
         guard n > 0 else { return false }
         pending.append(contentsOf: chunk[0..<n])
         return true

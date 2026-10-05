@@ -119,9 +119,15 @@ extension StyleListScreen {
             do {
                 let moved = try TypLibrary.rename(url, to: wanted)
                 reload(ctx, select: moved)
-                // The id follows the name, so the default setting follows the id.
-                if wasDefault, let now = styles.first(where: { $0.typURL?.sameFile(as: moved) == true }) {
-                    ctx.settings.update { $0.defaultStyleID = now.id }
+                // The id follows the name, so the default setting and the profiles that
+                // build with it follow the id.
+                if let now = styles.first(where: { $0.typURL?.sameFile(as: moved) == true }), now.id != style.id {
+                    ctx.settings.update { settings in
+                        if wasDefault { settings.defaultStyleID = now.id }
+                        for at in settings.profiles.indices where settings.profiles[at].choices.styleID == style.id {
+                            settings.profiles[at].choices.styleID = now.id
+                        }
+                    }
                 }
                 notice.say(t("renamed to %@", moved.deletingPathExtension().lastPathComponent))
             } catch {

@@ -20,8 +20,9 @@ extension Widgets {
         let fillColour = fill.flatMap(Color.hex)
         let casingColour = casing.flatMap(Color.hex)
         // An unspecified width is one pixel, as on the receiver.
-        let wanted = max(1, width ?? 1)
-        let borderRows = casingColour == nil ? 0 : max(1, border ?? 1)
+        // Held to a byte, as the TYP stores them: an absurd figure must not overflow.
+        let wanted = min(255, max(1, width ?? 1))
+        let borderRows = casingColour == nil ? 0 : min(255, max(1, border ?? 1))
 
         let thickness: Int
         let casingRows: Int

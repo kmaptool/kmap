@@ -1025,4 +1025,116 @@ private extension StyleListScreen {
 
 extension ScreenKeysTests {
     func settleForTests(_ screen: Screen) { settle(screen) }
+
+    /// A typo's number would stop every later build: only numbers mkgmap takes are kept.
+    func testOnlyANumberTheKindCanCarryIsTaken() async {
+        XCTAssertTrue(ReassignScreen.isNumber(0x2f03, for: .point))
+        XCTAssertTrue(ReassignScreen.isNumber(0x10f04, for: .polygon))
+        XCTAssertFalse(ReassignScreen.isNumber(0x2f03, for: .line))
+        XCTAssertFalse(ReassignScreen.isNumber(0x80, for: .polygon))
+        XCTAssertFalse(ReassignScreen.isNumber(0x2_0000, for: .point))
+        // As mkgmap's GType.checkType refuses them.
+        XCTAssertFalse(ReassignScreen.isNumber(0x2f, for: .point))
+        XCTAssertFalse(ReassignScreen.isNumber(0x0b01, for: .point))
+        XCTAssertTrue(ReassignScreen.isNumber(0x0b00, for: .point))
+        XCTAssertFalse(ReassignScreen.isNumber(0x2f20, for: .point))
+        XCTAssertTrue(ReassignScreen.isNumber(0x2f1f, for: .point))
+        XCTAssertTrue(ReassignScreen.isNumber(0x4a3f, for: .point))
+        XCTAssertFalse(ReassignScreen.isNumber(0x4a40, for: .point))
+        XCTAssertFalse(ReassignScreen.isNumber(0x4a, for: .polygon))
+        XCTAssertFalse(ReassignScreen.isNumber(0x10f2f, for: .point))
+    }
+
+    /// The night is the day's drawing in its own colours: day edits carry over, a colour
+    /// the day gained keeps its day colour, and the size is the day's.
+    func testTheNightFollowsTheDaysPixels() async {
+        let day = XpmBlock(
+            width: 2,
+            height: 1,
+            declaredColours: 3,
+            charsPerPixel: 1,
+            palette: [(key: "a", colour: "#FF0000"), (key: "b", colour: "#00FF00"), (key: "c", colour: "#0000FF")],
+            rows: ["ac"]
+        )
+        let night = XpmBlock(
+            width: 1,
+            height: 1,
+            declaredColours: 2,
+            charsPerPixel: 1,
+            palette: [(key: "a", colour: "#110000"), (key: "b", colour: "#001100")],
+            rows: ["a"]
+        )
+        let joined = PixelEditorScreen.night(night, onTheDrawingOf: day)
+        XCTAssertEqual(joined.width, 2)
+        XCTAssertEqual(joined.rows, ["ac"])
+        XCTAssertEqual(joined.palette.map(\.colour), ["#110000", "#001100", "#0000FF"])
+    }
+
+    /// A night with the day's pixels but its colours listed in another order is paired by
+    /// the pixels; one drawn apart from the day is not paired at all.
+    func testANightIsPairedWithTheDayByItsPixels() async {
+        let day = XpmBlock(
+            width: 2,
+            height: 1,
+            declaredColours: 2,
+            charsPerPixel: 1,
+            palette: [(key: "a", colour: nil), (key: "b", colour: "#FF0000")],
+            rows: ["ab"]
+        )
+        let reordered = XpmBlock(
+            width: 2,
+            height: 1,
+            declaredColours: 2,
+            charsPerPixel: 1,
+            palette: [(key: "x", colour: "#110000"), (key: "y", colour: "#222222")],
+            rows: ["yx"]
+        )
+        let paired = PixelEditorScreen.aligned(reordered, to: day)
+        XCTAssertEqual(paired?.rows, ["ab"])
+        XCTAssertEqual(paired?.palette.map(\.colour), ["#222222", "#110000"])
+
+        let apart = XpmBlock(
+            width: 2,
+            height: 1,
+            declaredColours: 2,
+            charsPerPixel: 1,
+            palette: [(key: "x", colour: "#110000"), (key: "y", colour: "#222222")],
+            rows: ["xx"]
+        )
+        XCTAssertNotNil(PixelEditorScreen.aligned(apart, to: day), "2 day colours under 1 night one pair")
+        let split = XpmBlock(
+            width: 2,
+            height: 1,
+            declaredColours: 2,
+            charsPerPixel: 1,
+            palette: [(key: "a", colour: nil), (key: "b", colour: "#FF0000")],
+            rows: ["aa"]
+        )
+        let night = XpmBlock(
+            width: 2,
+            height: 1,
+            declaredColours: 2,
+            charsPerPixel: 1,
+            palette: [(key: "x", colour: "#110000"), (key: "y", colour: "#222222")],
+            rows: ["xy"]
+        )
+        XCTAssertNil(PixelEditorScreen.aligned(night, to: split), "1 day colour under 2 night ones")
+    }
+
+    /// A stroke pressed off the canvas and dragged onto it is still undone on its own.
+    func testAStrokeStartedOffTheCanvasHasItsOwnUndo() async throws {
+        let screen = try XCTUnwrap(
+            PixelEditorScreen(style: style, kind: .point, code: 0x2a00, onSaved: {})
+        )
+        settle(screen)
+        _ = screen.handle(.char("]"), ctx: ctx)
+        _ = screen.handle(.mouse(MouseEvent(action: .press, x: 0, y: 0, isPrimary: true)), ctx: ctx)
+        _ = screen.handle(
+            .mouse(MouseEvent(action: .drag, x: 2 + 3 + 4 * 2, y: 2 + 1 + 1 + 3, isPrimary: true)),
+            ctx: ctx
+        )
+        XCTAssertTrue(screen.title.hasSuffix("·"), "the drag should paint")
+        _ = screen.handle(.char("u"), ctx: ctx)
+        XCTAssertFalse(screen.title.hasSuffix("·"), "u should take the stroke back")
+    }
 }
