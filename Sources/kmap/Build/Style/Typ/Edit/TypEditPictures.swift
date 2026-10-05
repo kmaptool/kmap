@@ -226,11 +226,13 @@ extension TypEdit {
         guard let section = source.section(.point, code) else {
             throw EditError.noSuchSection(.point, code)
         }
-        guard let day = section.dayXpm else { throw EditError.noPicture(code) }
+        // A point's plain `Xpm=` is its day picture, as mkgmap reads it.
+        let dayTag = section.dayXpm != nil ? "DayXpm" : "Xpm"
+        guard let day = section.dayXpm ?? section.xpm else { throw EditError.noPicture(code) }
         guard section.nightXpm == nil else {
             throw AddError.alreadyThere(.point, code)
         }
-        guard let extent = pictureLineRange(in: source, section: section, tag: "DayXpm") else {
+        guard let extent = pictureLineRange(in: source, section: section, tag: dayTag) else {
             throw EditError.noPicture(code)
         }
 

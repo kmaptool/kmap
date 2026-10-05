@@ -483,4 +483,18 @@ final class TypDecompilerTests: XCTestCase {
         )
         XCTAssertTrue(text.contains("STYLE.TYP"), text)
     }
+
+    /// mkgmap writes the 4 bits of a mode-0x20 colour as transparency: 0 is opaque.
+    func testAColourOfMode0x20IsOpaqueAtNoTransparency() throws {
+        // 2 colours of 28 bits, low bit first: #332211 opaque, then black wholly clear.
+        var bits: [Int] = []
+        func put(_ value: Int, _ width: Int) { for bit in 0..<width { bits.append((value >> bit) & 1) } }
+        put(0x11, 8); put(0x22, 8); put(0x33, 8); put(0, 4)
+        put(0, 8); put(0, 8); put(0, 8); put(0xF, 4)
+        var packed = [UInt8](repeating: 0, count: (bits.count + 7) / 8)
+        for (at, bit) in bits.enumerated() where bit == 1 { packed[at / 8] |= UInt8(1 << (at % 8)) }
+        var cursor = TypBinary.Cursor([2, 0x20] + packed + [0, 0, 0, 0], at: 0)
+        let image = try cursor.pointImage(width: 1, height: 1)
+        XCTAssertEqual(image.palette, ["#332211", nil])
+    }
 }

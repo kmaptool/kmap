@@ -199,6 +199,25 @@ final class DayNightTests: XCTestCase {
         XCTAssertEqual(after.englishLabel, "Something")
     }
 
+    /// mkgmap reads a point's plain `Xpm=` as its day picture: the night goes after it.
+    func testANightPictureFollowsAPlainXpm() throws {
+        let source = TypSource.parse(
+            """
+            [_point]
+            Type=0x2a00
+            Xpm="2 1 2 1"
+            "a c #FFFFFF"
+            "b c none"
+            "ab"
+            [end]
+            """
+        )
+        let edited = try TypEdit.addNightPicture(in: source, code: 0x2a00)
+        let after = try XCTUnwrap(TypSource.parse(edited).section(.point, 0x2a00))
+        XCTAssertEqual(after.nightXpm?.rows, ["ab"])
+        XCTAssertEqual(after.xpm?.rows, ["ab"])
+    }
+
     func testAPointThatAlreadyHasOneIsRefused() {
         let source = TypSource.parse(
             """

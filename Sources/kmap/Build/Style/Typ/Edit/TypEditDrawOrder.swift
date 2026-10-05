@@ -161,8 +161,9 @@ extension TypEdit {
 
     /// The lines between `[_drawOrder]` and its `[end]`, exclusive; nil without a table.
     private static func drawOrderTable(in lines: [String]) -> Range<Int>? {
+        // With newlines: a TYP from Windows keeps a CR on each line split at LF.
         func marks(_ line: String, _ marker: String) -> Bool {
-            line.trimmingCharacters(in: .whitespaces).lowercased() == marker
+            line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == marker
         }
         guard let open = lines.firstIndex(where: { marks($0, tableHeader) }),
             let close = lines[open...].firstIndex(where: { marks($0, tableEnd) })
@@ -191,7 +192,7 @@ extension TypEdit {
     private static func drawOrderEntry(
         of line: String
     ) -> (code: Int, level: Int, spelling: String)? {
-        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.lowercased().hasPrefix("type="), let eq = trimmed.firstIndex(of: "=")
         else { return nil }
         let value = trimmed[trimmed.index(after: eq)...].prefix { $0 != ";" }

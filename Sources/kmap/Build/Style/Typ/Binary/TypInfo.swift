@@ -40,8 +40,11 @@ struct TypInfo {
         return TypInfo(url: url, familyID: family, productID: max(1, product), isBinary: true)
     }
 
+    /// Past this a `.txt` is not a TYP source, and is not read whole to find that out.
+    private static let largestSource: Int64 = 64 << 20
+
     private static func readText(_ url: URL) -> TypInfo? {
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        guard FileTools.size(of: url) <= largestSource, let text = TypSource.text(of: url) else { return nil }
         var family: Int? = nil
         var product = 1
         // Lines.of, not split: a CRLF file would be one line and no TYP at all.

@@ -166,6 +166,21 @@ final class TypSourceTests: XCTestCase {
         XCTAssertEqual(grid[2], [nil, nil, nil, nil], "the new row is clear")
     }
 
+    /// A picture keyed 2 characters a pixel, with no clear colour yet, grows too.
+    func testATwoCharacterPictureWithoutAClearColourGrows() throws {
+        let picture = XpmBlock(
+            width: 1,
+            height: 1,
+            declaredColours: 1,
+            charsPerPixel: 2,
+            palette: [(key: "aa", colour: "#FF0000")],
+            rows: ["aa"]
+        )
+        let grown = picture.resized(width: 2, height: 1)
+        XCTAssertEqual(grown.width, 2)
+        XCTAssertEqual(try XCTUnwrap(grown.pixels())[0], ["#FF0000", nil])
+    }
+
     /// Cropping is anchored at the top-left.
     func testShrinkingKeepsTheTopLeft() throws {
         let source = TypSource.parse(
@@ -517,5 +532,54 @@ final class TypSourceTests: XCTestCase {
         let section = source.section(.point, 0x2a00)
         XCTAssertEqual(section?.labels.map(\.text), ["One", "Two", "Пять", "Twelve"])
         XCTAssertEqual(section?.englishLabel, "One")
+    }
+
+    /// `[end]` is optional to mkgmap: the next header closes a block, and so does the end
+    /// of the file. Read otherwise, 2 points would merge into 1.
+    func testABlockWithoutItsEndStopsAtTheNextHeader() {
+        let source = TypSource.parse(
+            """
+            [_point]
+            Type=0x2f06
+            [_point]
+            Type=0x2f07
+            [end]
+            [_line]
+            Type=0x05
+            """
+        )
+        XCTAssertEqual(source.sections.map(\.code), [0x2f06, 0x2f07, 0x05])
+        XCTAssertEqual(source.sections.map(\.lines), [0..<2, 2..<5, 5..<7])
+    }
+
+    /// A point's `Type=0x2f` is 0x2f00 to mkgmap, as `Type=0x2f` with `SubType=0x00` is.
+    func testAPointWithAShortTypeIsItsCodeWithSubtypeNothing() {
+        let source = TypSource.parse("[_point]\nType=0x2f\n[end]\n[_point]\nType=0x2a\nSubType=0x01\n[end]")
+        XCTAssertEqual(source.sections.map(\.code), [0x2f00, 0x2a01])
+    }
+
+    /// TYPViewer saves in the code page the file names: read as mkgmap reads it.
+    func testATextTYPIsReadInItsCodePageWhereItIsNotUTF8() {
+        var bytes = Array("[_id]\nCodePage=1251\n[end]\n[_point]\nType=0x2f00\nString=0x04,".utf8)
+        bytes += CodePage.encode("Родник", codePage: 1251) ?? []
+        bytes += Array("\n[end]\n".utf8)
+        let text = TypSource.decodeText(bytes)
+        XCTAssertTrue(text.contains("Родник"))
+        XCTAssertEqual(TypSource.decodeText([0xEF, 0xBB, 0xBF] + Array("Type=0x01".utf8)), "Type=0x01")
+        // A coding line naming a code page decides before any CodePage line.
+        let coded =
+            Array("; -*- coding: cp1251 -*-\nCodePage=1252\nString=0x04,".utf8)
+            + (CodePage.encode("Родник", codePage: 1251) ?? [])
+        XCTAssertTrue(TypSource.decodeText(coded).contains("Родник"))
+    }
+
+    /// Written back as UTF-8, it says so first, or mkgmap reads it by its CodePage line.
+    func testWrittenBackTheTextSaysItIsUTF8() {
+        let plain = "[_id]\nCodePage=1251\n[end]"
+        XCTAssertTrue(TypSource.declaringUTF8(plain).hasPrefix(TypSource.codingLine + "\n[_id]"))
+        let already = TypSource.codingLine + "\n" + plain
+        XCTAssertEqual(TypSource.declaringUTF8(already), already)
+        let other = "; -*- coding: cp1251 -*-\r\n" + "[_id]\r\n[end]"
+        XCTAssertEqual(TypSource.declaringUTF8(other), TypSource.codingLine + "\r\n[_id]\r\n[end]")
     }
 }

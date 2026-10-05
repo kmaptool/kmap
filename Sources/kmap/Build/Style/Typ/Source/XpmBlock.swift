@@ -75,9 +75,11 @@ struct XpmBlock: Equatable {
         var palette = self.palette
         var clearIndex = palette.firstIndex { $0.colour == nil }
         if clearIndex == nil {
+            // A key as wide as the picture's: 2 characters a pixel are keyed in pairs.
             let used = Set(palette.map(\.key))
-            let free = XpmBlock.keyAlphabet.map(String.init)
-                .first { !used.contains($0) && $0.count == max(1, charsPerPixel) }
+            let width = max(1, charsPerPixel)
+            let keys = width == 1 ? XpmBlock.keyAlphabet.count : XpmBlock.keyAlphabet.count * XpmBlock.keyAlphabet.count
+            let free = (0..<keys).lazy.map { XpmBlock.key($0, width: width) }.first { !used.contains($0) }
             guard let free else { return self }
             palette.append((key: free, colour: nil))
             clearIndex = palette.count - 1
@@ -142,7 +144,9 @@ struct XpmBlock: Equatable {
     /// Returns nil for a solid block, which has no picture to resolve.
     func pixels() -> [[String?]]? {
         // A negative or absurd size is a malformed header: nothing to draw, not a trap.
-        guard !isSolid, charsPerPixel > 0, width > 0, height > 0, width * height <= Self.mostPixels else { return nil }
+        guard !isSolid, charsPerPixel > 0, width > 0, height > 0, width <= Self.mostPixels, height <= Self.mostPixels,
+            width * height <= Self.mostPixels
+        else { return nil }
         var lookup: [String: String?] = [:]
         for entry in palette { lookup[entry.key] = entry.colour }
 

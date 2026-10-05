@@ -103,9 +103,11 @@ extension TypBinary {
                     let blue = value & 0xFF
                     let green = (value >> 8) & 0xFF
                     let red = (value >> 16) & 0xFF
-                    let alpha = (value >> 24) & 0xF
+                    // Transparency, as mkgmap writes it: 0 opaque, 15 clear. Half way or
+                    // more reads as clear, the threshold an imported icon is cut at.
+                    let transparency = (value >> 24) & 0xF
                     palette.append(
-                        alpha == 0
+                        transparency >= 8
                             ? nil
                             : String(format: "#%02X%02X%02X", red, green, blue)
                     )
@@ -128,7 +130,9 @@ extension TypBinary {
             return TypBinary.PointImage(
                 width: width,
                 height: height,
-                palette: palette,
+                // True colour with no table: kmap carries none, and an icon of its one
+                // clear slot would draw nothing; with no palette it is left out.
+                palette: mode == 0x10 && solidCount == 0 ? [] : palette,
                 pixels: pixels
             )
         }

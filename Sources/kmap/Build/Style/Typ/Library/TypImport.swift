@@ -168,6 +168,8 @@ extension TypLibrary {
     /// import has one: a style created from nothing, or arriving as source, is its own
     /// original.
     static func original(of url: URL, library: URL = TypLibrary.directory) -> URL? {
+        // A compiled entry is its own original: the one kept by its name is a text entry's.
+        guard url.pathExtension.lowercased() == "txt" else { return nil }
         let kept = originalsDirectory(in: library)
             .appendingPathComponent(url.deletingPathExtension().lastPathComponent + ".typ")
         return FileTools.exists(kept) ? kept : nil
@@ -318,7 +320,14 @@ extension TypLibrary {
         guard info.isBinary else {
             let destination = datedName(base, extension: "txt", in: directory, on: day)
             do {
-                try FileTools.copy(binary, to: destination)
+                // Byte for byte where every byte reads alike in any code page; otherwise as
+                // UTF-8 and saying so, whatever code page it came in.
+                let bytes = try Data(contentsOf: binary)
+                if bytes.allSatisfy({ $0 < 0x80 }) {
+                    try FileTools.copy(binary, to: destination)
+                } else {
+                    try FileTools.write(TypSource.declaringUTF8(TypSource.decodeText([UInt8](bytes))), to: destination)
+                }
             } catch {
                 throw ImportError.failed(error.localizedDescription)
             }
@@ -380,7 +389,7 @@ extension TypLibrary {
         on day: Date = Date()
     ) -> URL {
         let plain = directory.appendingPathComponent("\(base).\(suffix)")
-        guard FileTools.exists(plain) else { return plain }
+        guard taken(base, extension: suffix, in: directory) else { return plain }
 
         let stamp = DateFormatter()
         stamp.dateFormat = "yyyy-MM-dd"
@@ -400,12 +409,19 @@ extension TypLibrary {
         extension suffix: String,
         in directory: URL
     ) -> URL {
-        var candidate = directory.appendingPathComponent("\(base).\(suffix)")
+        var stem = base
         var counter = 2
-        while FileTools.exists(candidate) {
-            candidate = directory.appendingPathComponent("\(base)-\(counter).\(suffix)")
+        while taken(stem, extension: suffix, in: directory) {
+            stem = "\(base)-\(counter)"
             counter += 1
         }
-        return candidate
+        return directory.appendingPathComponent("\(stem).\(suffix)")
+    }
+
+    /// Whether a library name is in use. A style's id and its kept original go by the name
+    /// without its extension, so `.typ` and `.txt` of 1 name would be 1 style.
+    private static func taken(_ stem: String, extension suffix: String, in directory: URL) -> Bool {
+        let kinds = ["typ", "txt"].contains(suffix.lowercased()) ? ["typ", "txt"] : [suffix]
+        return kinds.contains { FileTools.exists(directory.appendingPathComponent("\(stem).\($0)")) }
     }
 }

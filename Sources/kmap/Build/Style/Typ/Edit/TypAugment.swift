@@ -180,7 +180,7 @@ enum TypAugment {
                     + " — import it again to decompile it, and it will work"
             )
         }
-        guard let original = try? String(contentsOf: typURL, encoding: .utf8) else {
+        guard let original = TypSource.text(of: typURL) else {
             return Result(url: typURL, added: [], refusal: nil)
         }
 
@@ -279,7 +279,11 @@ enum TypAugment {
             }
         }
 
-        guard !wanted.isEmpty || text != original else {
+        // Handed through as it is only where mkgmap reads it as kmap does: pure ASCII, or
+        // saying how it is written.
+        let readsAlike =
+            !original.unicodeScalars.contains { !$0.isASCII } || TypSource.declaringUTF8(original) == original
+        guard !wanted.isEmpty || text != original || !readsAlike else {
             return Result(
                 url: typURL,
                 added: [],
@@ -345,7 +349,9 @@ enum TypAugment {
         {
             FileTools.removeIfPresent(directory)
         }
-        guard (try? FileTools.write(text, to: written)) != nil else {
+        // Written as UTF-8, and said to be: without the line mkgmap would read it in the
+        // CodePage it names, and the marks' Cyrillic would come out garbled.
+        guard (try? FileTools.write(TypSource.declaringUTF8(text), to: written)) != nil else {
             return Result(url: typURL, added: [], theme: nil, refusal: nil)
         }
 

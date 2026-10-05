@@ -434,6 +434,12 @@ final class TypAugmentTests: XCTestCase {
         XCTAssertEqual(order[0x56], 8, "bare rock stays over the wood")
     }
 
+    /// A TYP from Windows split at LF keeps a CR on each line: the table is still found.
+    func testATableWithCarriageReturnsIsStillRead() {
+        var lines = ["[_drawOrder]", "Type=0x027,1", "Type=0x059,2", "Type=0x010,3", "[end]"].map { $0 + "\r" }
+        XCTAssertTrue(TypEdit.layWoodsOverTints(&lines, tints: [0x10], woods: [0x59], covers: [0x55]))
+    }
+
     /// With no open ground in the table the 2 go back where the lower of them was.
     func testWithoutOpenGroundTheWoodStillGoesOverTheTint() {
         var lines = ["[_drawOrder]", "Type=0x027,1", "Type=0x059,2", "Type=0x010,3", "Type=0x013,4", "[end]"]

@@ -60,7 +60,8 @@ enum TypLibrary {
             )
         }
         do {
-            try FileTools.write(text, to: url)
+            // Said to be UTF-8, or mkgmap reads it by its CodePage line.
+            try FileTools.write(TypSource.declaringUTF8IfNeeded(text), to: url)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -78,7 +79,7 @@ enum TypLibrary {
         Paths.ensure(directory)
         let destination = freeName(FileTools.slugify(name), extension: "txt", in: directory)
         do {
-            try FileTools.write(text, to: destination)
+            try FileTools.write(TypSource.declaringUTF8IfNeeded(text), to: destination)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -100,9 +101,7 @@ enum TypLibrary {
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
-        let original = originalsDirectory(in: library)
-            .appendingPathComponent(url.deletingPathExtension().lastPathComponent + ".typ")
-        FileTools.removeIfPresent(original)
+        if let original = original(of: url, library: library) { FileTools.removeIfPresent(original) }
         if let kept = sheet(of: url, library: library) { FileTools.removeIfPresent(kept) }
     }
 
@@ -129,10 +128,7 @@ enum TypLibrary {
         }
         // The kept original follows its source, so the pair stays a pair.
         let originals = originalsDirectory(in: library)
-        let was = originals.appendingPathComponent(
-            url.deletingPathExtension().lastPathComponent + ".typ"
-        )
-        if FileTools.exists(was) {
+        if let was = original(of: url, library: library) {
             let now = originals.appendingPathComponent(
                 destination.deletingPathExtension().lastPathComponent + ".typ"
             )

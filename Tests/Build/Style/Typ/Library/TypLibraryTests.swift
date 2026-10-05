@@ -108,6 +108,20 @@ final class TypLibraryTests: XCTestCase {
         )
     }
 
+    /// A source in a code page, as TYPViewer saves one, comes in as UTF-8 saying so:
+    /// mkgmap then reads the library copy as kmap does.
+    func testATypSourceInACodePageComesInAsUTF8() throws {
+        var bytes = Array("[_id]\nFID=6324\nCodePage=1251\n[end]\n[_point]\nType=0x2f00\nString=0x04,".utf8)
+        bytes += CodePage.encode("Родник", codePage: 1251) ?? []
+        bytes += Array("\n[end]\n".utf8)
+        let file = folder.appendingPathComponent("theirs.txt")
+        try FileTools.write(Data(bytes), to: file)
+        let result = try TypLibrary.take(at: file, into: library())
+        let text = try String(contentsOf: result.url, encoding: .utf8)
+        XCTAssertTrue(text.hasPrefix(TypSource.codingLine))
+        XCTAssertTrue(text.contains("Родник"))
+    }
+
     /// A TYP source is copied verbatim: nothing to decompile, no original to keep.
     func testATypSourceIsCopiedAsItIs() throws {
         let text = "; a hand-written TYP\n[_id]\nFID=6324\nProductCode=1\nCodePage=1252\n[end]\n"
@@ -712,5 +726,23 @@ final class TypLibraryTests: XCTestCase {
         TypLibrary.recordImport(from: first, to: entry, note: "rights", in: folder)
         TypLibrary.recordImport(from: second, to: entry, note: "rights", in: folder)
         XCTAssertEqual(TypLibrary.importedSource(of: entry, library: folder), second)
+    }
+
+    /// A `.typ` and a `.txt` of 1 name would be 1 style, and share 1 kept original.
+    func testANameIsTakenWhicheverTheExtension() throws {
+        let library = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
+            "kmap-lib-\(UUID().uuidString)"
+        )
+        try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: library) }
+        try FileTools.write("x", to: library.appendingPathComponent("base.typ"))
+        XCTAssertNotEqual(TypLibrary.freeName("base", extension: "txt", in: library).lastPathComponent, "base.txt")
+        XCTAssertNotEqual(TypLibrary.datedName("base", extension: "txt", in: library).lastPathComponent, "base.txt")
+        // A compiled entry is its own original.
+        let originals = TypLibrary.originalsDirectory(in: library)
+        try FileManager.default.createDirectory(at: originals, withIntermediateDirectories: true)
+        try FileTools.write("x", to: originals.appendingPathComponent("base.typ"))
+        XCTAssertNil(TypLibrary.original(of: library.appendingPathComponent("base.typ"), library: library))
+        XCTAssertNotNil(TypLibrary.original(of: library.appendingPathComponent("base.txt"), library: library))
     }
 }

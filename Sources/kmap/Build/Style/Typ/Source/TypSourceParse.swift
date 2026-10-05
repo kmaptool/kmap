@@ -4,8 +4,70 @@ import Foundation
 /// indexing its sections.
 extension TypSource {
     static func read(_ url: URL) -> TypSource? {
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        guard let text = text(of: url) else { return nil }
         return parse(text)
+    }
+
+    /// The line that tells mkgmap a text TYP is UTF-8, as kmap writes its own.
+    static let codingLine = "; -*- coding: UTF-8 -*-"
+
+    /// A text TYP's characters, read as mkgmap reads it: UTF-8 behind a byte-order mark or
+    /// a coding line saying so; otherwise UTF-8 where the bytes are, and else the code
+    /// page its CodePage line names, as TYPViewer saves.
+    static func text(of url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return decodeText([UInt8](data))
+    }
+
+    static func decodeText(_ bytes: [UInt8]) -> String {
+        if bytes.starts(with: [0xEF, 0xBB, 0xBF]) { return String(decoding: bytes.dropFirst(3), as: UTF8.self) }
+        // A coding line in the first 2 lines decides, as it does for mkgmap.
+        for line in Lines.of(CodePage.latin1(bytes.prefix(512))).prefix(2) {
+            guard let named = codingName(in: line) else { continue }
+            if named == "utf-8" || named == "utf8" { return String(decoding: bytes, as: UTF8.self) }
+            let digits = named.filter(\.isNumber)
+            if let page = Int(digits), named.hasPrefix("cp") || named.hasPrefix("windows") {
+                return CodePage.decodeLenient(bytes, codePage: page)
+            }
+        }
+        if let text = String(bytes: bytes, encoding: .utf8) { return text }
+        let page = Lines.of(CodePage.latin1(bytes)).lazy.compactMap { line -> Int? in
+            let parts = line.split(separator: "=", maxSplits: 1)
+            guard parts.count == 2, parts[0].trimmingCharacters(in: .whitespaces).lowercased() == "codepage" else {
+                return nil
+            }
+            return Int(parts[1].trimmingCharacters(in: .whitespaces))
+        }.first
+        return CodePage.decodeLenient(bytes, codePage: page ?? CodePage.westernEuropean)
+    }
+
+    /// `declaringUTF8` where the text has anything past ASCII, which alone reads alike in
+    /// every code page; ASCII text is left byte for byte.
+    static func declaringUTF8IfNeeded(_ text: String) -> String {
+        text.unicodeScalars.contains { !$0.isASCII } ? declaringUTF8(text) : text
+    }
+
+    /// The charset a `-*- coding: X -*-` line names, lower case; nil for any other line.
+    private static func codingName(in line: String) -> String? {
+        let lower = line.lowercased()
+        guard lower.contains("-*-"), let at = lower.range(of: "coding:") else { return nil }
+        let rest = lower[at.upperBound...].trimmingCharacters(in: .whitespaces)
+        let word = String(rest.prefix { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" })
+        return word.isEmpty ? nil : word
+    }
+
+    /// `text` as written back in UTF-8: with the coding line first, so mkgmap reads it as
+    /// UTF-8 and not by its CodePage line. A coding line naming another charset goes.
+    static func declaringUTF8(_ text: String) -> String {
+        func coding(_ line: String) -> Bool {
+            let lower = line.lowercased()
+            return lower.contains("-*-") && lower.contains("coding")
+        }
+        var lines = Lines.keepingTrailingBlank(text)
+        let head = lines.prefix(2)
+        if head.contains(where: { coding($0) && $0.lowercased().contains("utf-8") }) { return text }
+        if let at = head.firstIndex(where: coding) { lines.remove(at: at) }
+        return ([codingLine] + lines).joined(separator: text.contains("\r\n") ? "\r\n" : "\n")
     }
 
     static func parse(_ text: String) -> TypSource {
@@ -38,11 +100,12 @@ extension TypSource {
                 continue
             }
 
-            guard line.hasPrefix("["), let end = blockEnd(of: lines, from: index) else {
+            guard line.hasPrefix("[") else {
                 pendingComments.removeAll()
                 index += 1
                 continue
             }
+            let (end, next) = blockEnd(of: lines, from: index)
             let body = Array(lines[(index + 1)..<end])
 
             switch line.lowercased() {
@@ -66,7 +129,7 @@ extension TypSource {
                 if let section = parseSection(
                     kind: kind,
                     body: body,
-                    lines: index..<(end + 1),
+                    lines: index..<next,
                     leadingComments: pendingComments
                 ) {
                     sections.append(section)
@@ -76,7 +139,7 @@ extension TypSource {
             }
 
             pendingComments.removeAll()
-            index = end + 1
+            index = next
         }
 
         return TypSource(
@@ -118,14 +181,18 @@ extension TypSource {
         word.hasSuffix("s") ? String(word.dropLast()) : word
     }
 
-    /// Index of the `[end]` closing the block that opens at `start`.
-    private static func blockEnd(of lines: [String], from start: Int) -> Int? {
+    /// Where the block opening at `start` ends: the body runs up to `end`, and reading goes
+    /// on at `next`. `[end]` is optional to mkgmap, which starts a new block at every
+    /// header, so the next header or the end of the file closes one too.
+    private static func blockEnd(of lines: [String], from start: Int) -> (end: Int, next: Int) {
         var i = start + 1
         while i < lines.count {
-            if lines[i].trimmingCharacters(in: .whitespaces).lowercased() == "[end]" { return i }
+            let line = lines[i].trimmingCharacters(in: .whitespaces)
+            if line.lowercased() == "[end]" { return (i, i + 1) }
+            if line.hasPrefix("[") { return (i, i) }
             i += 1
         }
-        return nil
+        return (lines.count, lines.count)
     }
 
     private static func parseSection(
@@ -146,6 +213,7 @@ extension TypSource {
         var xpm: XpmBlock?
         var dayXpm: XpmBlock?
         var nightXpm: XpmBlock?
+        var sawSubtype = false
 
         var i = 0
         while i < body.count {
@@ -160,6 +228,7 @@ extension TypSource {
             case "TYPE":
                 code = parseHex(value)
             case "SUBTYPE":
+                sawSubtype = true
                 // Points fold the subtype into the code; where a file spells it out
                 // separately, the two combine as `(type << 8) | subtype`.
                 if let sub = parseHex(value), let base = code { code = (base << 8) | sub }
@@ -191,7 +260,9 @@ extension TypSource {
             i += 1
         }
 
-        guard let code else { return nil }
+        guard var code else { return nil }
+        // `Type=0x2f` names the point 0x2f00 to mkgmap, subtype 0, as everywhere in kmap.
+        if kind == .point, !sawSubtype, code <= 0xFF { code <<= 8 }
         return TypSection(
             kind: kind,
             code: code,
