@@ -20,7 +20,7 @@ extension Platform {
         case .wsl:
             // Windows Explorer needs a Windows path; the conversion can fail.
             guard let explorer = which("explorer.exe"),
-                let windows = windowsPath(for: url, on: .wsl)
+                let windows = windowsPath(for: url, on: .wsl, which: which)
             else {
                 return revealCommand(for: url, on: .linux, which: which)
             }

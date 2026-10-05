@@ -11,6 +11,7 @@ extension Platform {
     static func windowsPath(
         for url: URL,
         on platform: Platform = Platform.current,
+        which: (String) -> String? = { Platform.which($0) },
         runner: (String, [String]) -> String? = { ProcessProbe.capture($0, $1, timeout: 5) }
     ) -> String? {
         // A native build has nothing to translate, and `wslpath` would reject the path.
