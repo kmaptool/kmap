@@ -4,13 +4,6 @@ import Foundation
 import Glibc
 #endif
 
-// WSL 1 misreports the futex wake libdispatch uses under dispatch_once, and libdispatch
-// traps on the report. Ignored, the process runs on correctly; the price, on WSL 1 only,
-// is that a genuine trap no longer stops it either.
-#if os(Linux)
-if Platform.isWSL1 { signal(SIGTRAP, SIG_IGN) }
-#endif
-
 #if !os(Windows)
 // A reader that closes the pipe early, as `| head` does, fails the write and not the run:
 // a build stopped by the signal would leave its tools running.

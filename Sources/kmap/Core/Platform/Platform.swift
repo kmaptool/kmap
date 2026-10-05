@@ -40,15 +40,6 @@ enum Platform: Equatable {
 
     var isWSL: Bool { self == .wsl }
 
-    /// WSL 1 translates Linux calls rather than running a kernel, and some come back
-    /// wrong. The release string tells: `-Microsoft` for WSL 1, `microsoft-standard-WSL2` for 2.
-    static let isWSL1: Bool = current == .wsl && isFirstWSL(release: readOSRelease())
-
-    static func isFirstWSL(release: String?) -> Bool {
-        guard let release else { return false }
-        return release.contains("-Microsoft") && !release.lowercased().contains("wsl2")
-    }
-
     static func readOSRelease() -> String? {
         try? String(contentsOf: URL(fileURLWithPath: "/proc/sys/kernel/osrelease"), encoding: .utf8)
     }
