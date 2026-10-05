@@ -115,19 +115,24 @@ struct TilePacker {
     private func share(_ order: [Int], _ tiles: [Tile], into count: Int) -> [[Int]] {
         let wanted = max(1, min(count, order.count))
         guard wanted > 1 else { return [order] }
-        let total = order.reduce(Int64(0)) { $0 + max(1, tiles[$1].bytes) }
-        let target = Double(total) / Double(wanted)
+        // The weight not yet in a closed file, shared afresh after each close: a heavy file
+        // early on leaves the rest to share what is left, rather than to the last file.
+        var left = Double(order.reduce(Int64(0)) { $0 + max(1, tiles[$1].bytes) })
 
         var out: [[Int]] = []
         var current: [Int] = []
         var size: Double = 0
-        for index in order {
+        for (position, index) in order.enumerated() {
             current.append(index)
             size += Double(max(1, tiles[index].bytes))
-            let remaining = order.count - (out.reduce(0) { $0 + $1.count } + current.count)
-            // Close this file once it has its share, never leaving a later one empty.
-            if out.count < wanted - 1, size >= target, remaining >= wanted - out.count - 1 {
+            let files = wanted - out.count
+            guard files > 1 else { continue }
+            let remaining = order.count - position - 1
+            // Closed at its share, or where the tiles left are only enough for 1 a file:
+            // the count asked for is the count written.
+            if (size >= left / Double(files) && remaining >= files - 1) || remaining == files - 1 {
                 out.append(current)
+                left -= size
                 current = []
                 size = 0
             }

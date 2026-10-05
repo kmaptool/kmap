@@ -39,8 +39,12 @@ extension BuildPipeline {
         }
 
         var have = 0, missing: [String] = []
+        // Cells an archive should have held and did not come: a failure, not sea.
+        var unreached: [String] = []
+        var lastTrouble: Error?
         for (position, cell) in cells.enumerated() {
             var found = false
+            var failed = false
             for resolution in resolutions {
                 let cached = ViewfinderDEM.cachedTile(cell, resolution: resolution)
                 if ViewfinderDEM.isComplete(cached, resolution: resolution) {
@@ -64,11 +68,21 @@ extension BuildPipeline {
                     break
                 } catch is CancellationError {
                     throw CancellationError()
+                } catch ViewfinderDEM.Trouble.unreachable(let area, let why) {
+                    failed = true
+                    lastTrouble = ViewfinderDEM.Trouble.unreachable(area, why)
+                    continue
                 } catch {
                     continue
                 }
             }
-            if found { have += 1 } else { missing.append(cell) }
+            if found {
+                have += 1
+            } else if failed {
+                unreached.append(cell)
+            } else {
+                missing.append(cell)
+            }
             detail(
                 .elevation,
                 "Viewfinder \(position + 1)/\(cells.count) · \(cell)",
@@ -80,5 +94,13 @@ extension BuildPipeline {
             "Viewfinder: \(have)/\(cells.count) tile(s) in the cache"
                 + (missing.isEmpty ? "" : ", \(missing.count) not published (open sea)")
         )
+        if let lastTrouble, !unreached.isEmpty {
+            // With none at all the build would end with no relief and say it succeeded.
+            if have == 0 { throw lastTrouble }
+            log.warn(
+                "Viewfinder: \(unreached.count) tile(s) could not be had (\(unreached.joined(separator: ", ")))"
+                    + " — their ground has no relief this time"
+            )
+        }
     }
 }

@@ -77,7 +77,9 @@ extension BuildChoices {
         }
         styleID = read(.styleID, fallback.styleID)
         contours = read(.contours, fallback.contours)
-        contourInterval = read(.contourInterval, fallback.contourInterval)
+        // A hand-edited 0 or a negative would stop or never end the tracer.
+        let interval = read(.contourInterval, fallback.contourInterval)
+        contourInterval = (1...1000).contains(interval) ? interval : fallback.contourInterval
         demLayer = read(.demLayer, fallback.demLayer)
         fixSummits = read(.fixSummits, fallback.fixSummits)
         demSources = read(.demSources, fallback.demSources)

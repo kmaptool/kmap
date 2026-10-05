@@ -111,6 +111,20 @@ final class TilePackerTests: XCTestCase {
         XCTAssertEqual(groups.map(\.members.count), [3, 3, 3])
     }
 
+    /// A heavy file early on must not swallow the shares of those after it.
+    func testTheCountAskedForIsTheCountWrittenWhateverTheWeights() {
+        for (weights, wanted) in [
+            ([10, 1, 1, 1], 3), ([5, 5, 5, 5, 1], 4), ([3, 3, 3, 3, 3, 1, 1], 5), ([1, 1, 1, 1, 1, 1, 1, 9], 4)
+        ] {
+            let tiles = weights.enumerated().map {
+                tile("t\($0.offset)", Int64($0.element) * 1_000_000, lon: 33 + Double($0.offset))
+            }
+            let groups = packer(.count(wanted)).groups(tiles, upTo: 4_000_000_000)
+            XCTAssertEqual(groups.count, wanted, "\(weights)")
+            XCTAssertEqual(groups.flatMap(\.members).sorted(), Array(tiles.indices), "\(weights)")
+        }
+    }
+
     func testAskingForMoreFilesThanThereAreTilesGivesOnePerTile() {
         let tiles = (1...2).map { tile("tile\($0)", 100, lon: 33 + Double($0)) }
         XCTAssertEqual(packer(.count(8)).groups(tiles, upTo: 4_000_000_000).count, 2)

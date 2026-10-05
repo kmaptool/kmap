@@ -96,15 +96,21 @@ extension BuildPipeline {
     /// a bitmap in which any colour is `none`. Only a text TYP can be read this way; a
     /// compiled one yields nothing.
     private func hatchedPolygonTypes(in typ: URL?) -> [String] {
-        guard let typ, let text = try? String(contentsOf: typ, encoding: .utf8) else { return [] }
+        guard let typ, let text = TypSource.text(of: typ) else { return [] }
+        return Self.hatchedPolygonTypes(inSource: text)
+    }
+
+    static func hatchedPolygonTypes(inSource text: String) -> [String] {
         var out: [String] = []
         for block in text.components(separatedBy: "[_polygon]").dropFirst() {
             let body = block.components(separatedBy: "[end]").first ?? ""
             guard body.contains("Xpm=\""), !body.contains("Xpm=\"0 0"),
                 body.contains(" c none")
             else { continue }
+            // `Lines`, as a TYP from Windows ends its lines in CRLF.
             guard
-                let line = body.split(separator: "\n")
+                let line = Lines.of(body).lazy
+                    .map({ $0.trimmingCharacters(in: .whitespaces) })
                     .first(where: { $0.hasPrefix("Type=") })
             else { continue }
             let code = line.dropFirst("Type=".count).trimmingCharacters(in: .whitespaces)
@@ -151,7 +157,8 @@ extension BuildPipeline {
             // mkgmap reads the style while it runs and the materialized style is shared,
             // so each build compiles from a snapshot of its own.
             let mine = workDirectory.appendingPathComponent("style", isDirectory: true)
-            if (try? styles.snapshot(styleDir, to: mine)) != nil {
+            // Taken and checked when the style was prepared; taken here only where not.
+            if FileTools.exists(mine) || (try? styles.snapshot(styleDir, to: mine)) != nil {
                 // A repair mark that had to move off a number the borrowed style draws
                 // takes its rules with it, here in the snapshot.
                 let moved = StyleCatalog.moveRepairRules(repairMoves, in: mine)

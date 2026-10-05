@@ -129,6 +129,28 @@ extension BuildRecipe {
         return "kmap-\(regionsFileToken)-\(dateStamp)\(bump).gmap"
     }
 
+    /// Whether `name` is a card file or BaseCamp folder this recipe's naming gives on its
+    /// day, for any part count and copy number.
+    func namesAnOutput(_ name: String) -> Bool {
+        let head = "kmap-\(regionsFileToken)-"
+        var rest: Substring
+        if name.hasSuffix(".img") {
+            rest = name.dropLast(4)
+        } else if name.hasSuffix(".gmap") {
+            rest = name.dropLast(5)
+        } else {
+            return false
+        }
+        guard rest.hasPrefix(head) else { return false }
+        rest = rest.dropFirst(head.count)
+        if rest.first == "p", let dash = rest.firstIndex(of: "-"), Int(rest.dropFirst().prefix(upTo: dash)) != nil {
+            rest = rest[rest.index(after: dash)...]
+        }
+        guard rest.hasPrefix(dateStamp) else { return false }
+        rest = rest.dropFirst(dateStamp.count)
+        return rest.isEmpty || (rest.first == "-" && Int(rest.dropFirst()) != nil)
+    }
+
     /// The ids as a file name says them: "a+b", "a+b+N-more", fitted like the title.
     private var regionsFileToken: String {
         Self.fittedIDs(regions.map { FileTools.slugify($0.id) }, limit: Self.fileNamePartLimit) {

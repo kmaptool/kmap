@@ -134,6 +134,7 @@ extension BuildPipeline {
         }
 
         var pass = AnnotatePass(source: extract, destination: annotated)
+        pass.shouldStop = stopAsked
         pass.contours = contours
         pass.markDuplicateVenues = true
         pass.dropDuplicateDescriptions = dropDuplicates

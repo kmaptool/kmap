@@ -98,7 +98,7 @@ final class BuildPipeline: Sendable {
 
     /// The same, as a question for work that runs on threads of its own, where the
     /// task's cancellation is not seen: the splitter asks it between blobs.
-    var stopAsked: () -> Bool {
+    var stopAsked: @Sendable () -> Bool {
         { [weak self] in self?.isCancelled ?? true }
     }
 
@@ -196,6 +196,13 @@ final class BuildPipeline: Sendable {
 
     func run() async {
         do {
+            // 2 builds of 1 region share its work folder, and each would cut the
+            // other's tiles away.
+            Paths.ensure(Paths.locks)
+            guard let lock = HeldLock(trying: Paths.locks.appendingPathComponent("build-\(recipe.slug).lock")) else {
+                throw BuildError.alreadyBuilding(recipe.mapName)
+            }
+            defer { withExtendedLifetime(lock) {} }
             try await preflight()
             try stopIfCancelled()
             try await updateDataPacks()

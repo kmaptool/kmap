@@ -73,6 +73,24 @@ final class BuildRecipeNamesTests: RecipeTestCase {
         )
     }
 
+    func testAnEarlierBuildsFilesAreKnownByTheirNames() {
+        let made = dated(recipe([region("crimean-fed-district", "Crimea")]))
+        for name in [
+            made.fileName(), made.fileName(ordinal: 2, of: 3), made.fileName(ordinal: 1, of: 2, copy: 4),
+            made.gmapName(), made.gmapName(copy: 2)
+        ] {
+            XCTAssertTrue(made.namesAnOutput(name), name)
+        }
+        let narrower = dated(recipe([region("crimean", "Crimea")]))
+        for name in [
+            "kmap-crimean-fed-district-2026-08-22.img", "kmap-crimean-fed-district-2026-08-21.img.partial",
+            "kmap-crimean-fed-district-2026-08-21-x.img", "my-own.img", "build-info.txt"
+        ] {
+            XCTAssertFalse(made.namesAnOutput(name), name)
+        }
+        XCTAssertFalse(narrower.namesAnOutput(made.fileName()), "another region's name only starts the same")
+    }
+
     // MARK: What the map says about itself
 
     func testTheAttributionCarriesOpenStreetMapAndKmapBoth() {

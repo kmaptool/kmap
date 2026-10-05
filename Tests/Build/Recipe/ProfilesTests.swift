@@ -281,4 +281,14 @@ final class ProfilesTests: XCTestCase {
         let decoded = try JSONDecoder().decode(BuildChoices.self, from: Data(json.utf8))
         XCTAssertEqual(decoded.hiddenFeatures, ["a-first", "z-last"])
     }
+
+    /// A hand-edited 0 or a negative interval would stop or never end the tracer.
+    func testAnIntervalTheTracerCannotUseReadsAsTheDefault() throws {
+        for bad in [0, -5, 5000] {
+            let decoded = try JSONDecoder().decode(BuildChoices.self, from: Data(#"{"contourInterval": \#(bad)}"#.utf8))
+            XCTAssertEqual(decoded.contourInterval, BuildChoices().contourInterval, "\(bad)")
+        }
+        let kept = try JSONDecoder().decode(BuildChoices.self, from: Data(#"{"contourInterval": 25}"#.utf8))
+        XCTAssertEqual(kept.contourInterval, 25)
+    }
 }

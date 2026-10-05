@@ -67,8 +67,13 @@ enum ImgContainer {
             let position = Int((try? handle.offset()) ?? 0)
             if let directoryEnd, position >= directoryEnd { break }
             guard let raw = try? handle.read(upToCount: directoryEntrySize),
-                raw.count == directoryEntrySize, raw.first == 1
+                raw.count == directoryEntrySize
             else { break }
+            // A free slot, as mkgmap's reader skips it, where the directory's end is known.
+            guard raw.first == 1 else {
+                if directoryEnd != nil { continue }
+                break
+            }
 
             let entry = [UInt8](raw)
             // `CodePage.latin1` rather than Foundation's Latin-1, which is not dependable

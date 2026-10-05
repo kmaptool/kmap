@@ -67,12 +67,12 @@ extension BuildPipeline {
         // pyhgtmap the trim the other fetchers compute. With no outline, the box stands.
         var scope = ["--area=\(bbox.areaArgument)"]
         if let clip = await writeElevationClipPolygon() {
-            scope = ["--polygon=\(clip.path)"]
+            scope = ["--polygon=\(clip.nativePath)"]
         }
         try await runner.run(
             pyhgtmap.path,
             scope + [
-                "--hgtdir=\(Paths.hgtCache.path)",
+                "--hgtdir=\(Paths.hgtCache.nativePath)",
                 "--sources=\(sources.joined(separator: ","))",
                 "--download-only"
             ],

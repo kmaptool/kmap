@@ -131,4 +131,17 @@ final class MapCoverageTests: XCTestCase {
         XCTAssertTrue(report!.holes.isEmpty)
         XCTAssertEqual(report!.sampled, 16)
     }
+
+    /// Every kmap map carries an overview whose box is the whole map's: left in, it covers
+    /// every gap between the tiles.
+    func testTheOverviewIsLeftOutOfTheTiles() {
+        let west = MapCoverage.Tile(name: "63240001", minLat: 44, minLon: 33, maxLat: 45, maxLon: 34)
+        let east = MapCoverage.Tile(name: "63240002", minLat: 44, minLon: 35, maxLat: 45, maxLon: 36)
+        let overview = MapCoverage.Tile(name: "63240000", minLat: 44, minLon: 33, maxLat: 45, maxLon: 36)
+        XCTAssertEqual(MapCoverage.withoutOverview([overview, west, east]).map(\.name), ["63240001", "63240002"])
+        XCTAssertEqual(MapCoverage.withoutOverview([west]).map(\.name), ["63240001"])
+        // A 1-tile map: the tile and its overview share a box, and the tile stays.
+        let alone = MapCoverage.Tile(name: "63240000", minLat: 44, minLon: 33, maxLat: 45, maxLon: 34)
+        XCTAssertEqual(MapCoverage.withoutOverview([alone, west]).count, 2)
+    }
 }

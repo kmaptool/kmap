@@ -4,18 +4,43 @@ import Foundation
 extension BuildPipeline {
     // MARK: 5 - compile
 
-    func compile(tiles: TileSet) async throws {
-        set(.compile, .running, t("preparing style"))
-        let runner = makeRunner()
-        try await styles.prepare(
-            recipe.style,
-            log: log,
-            runner: runner,
+    /// Prepares the style and copies it for this build, checking the copy is what was
+    /// prepared: another build with other choices may swap the shared rules in between,
+    /// and this one would compile its hides and zoom plan.
+    private func prepareStyleSnapshot(runner: ProcessRunner) async throws {
+        let choices = StyleChoices(
             descriptions: recipe.descriptions,
             hidden: recipe.hidden,
             zoom: (recipe.zoomPlan, recipe.levels),
-            cyrillicLabels: recipe.codePage == CodePage.cyrillic
+            cyrillic: recipe.codePage == CodePage.cyrillic
         )
+        let mine = workDirectory.appendingPathComponent("style", isDirectory: true)
+        FileTools.removeIfPresent(mine)
+        for _ in 0..<Self.styleSnapshotTries {
+            try await styles.prepare(
+                recipe.style,
+                log: log,
+                runner: runner,
+                descriptions: choices.descriptions,
+                hidden: choices.hidden,
+                zoom: choices.zoom,
+                cyrillicLabels: choices.cyrillic
+            )
+            guard let shared = recipe.style.styleDirectory, FileTools.exists(shared) else { return }
+            let expected = styles.expectedMarker(for: recipe.style, choices: choices)
+            // A copy that fails is left to the options, which fall back to the shared rules.
+            if (try? styles.snapshot(shared, to: mine, expecting: expected)) != false { return }
+            log.append("another build changed the shared style meanwhile — preparing it again")
+        }
+        throw BuildError.styleKeptChanging
+    }
+
+    private static let styleSnapshotTries = 3
+
+    func compile(tiles: TileSet) async throws {
+        set(.compile, .running, t("preparing style"))
+        let runner = makeRunner()
+        try await prepareStyleSnapshot(runner: runner)
 
         // The repair pass emits two types no borrowed style defines, so they are added to
         // a copy of the TYP in this build's scratch. The user's own file is never written.

@@ -71,11 +71,11 @@ extension SettingsStore {
     /// Removes a profile. The last one is kept, since the build form requires one.
     @discardableResult
     func deleteProfile(_ id: String) -> Bool {
-        guard settings.profiles.count > 1,
-            let at = settings.profiles.firstIndex(where: { $0.id == id })
-        else { return false }
+        guard settings.profiles.count > 1, settings.profiles.contains(where: { $0.id == id }) else { return false }
+        // By id inside the update: it works on the file as it is now, not on this copy.
         update {
-            $0.profiles.remove(at: at)
+            guard $0.profiles.count > 1 else { return }
+            $0.profiles.removeAll { $0.id == id }
             if $0.lastProfileID == id { $0.lastProfileID = $0.profiles.first?.id ?? "" }
         }
         return true

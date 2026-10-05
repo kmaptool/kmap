@@ -86,7 +86,9 @@ struct BuildRecipe {
     /// product and only one is shown. A borrowed TYP's family id is not inherited: mkgmap
     /// rewrites the embedded TYP to whatever `--family-id` says.
     static let defaultFamilyID = 6324
-    static let familyIDRange = 1...65535
+    /// Tile ids are the family id and 4 digits, and mkgmap names a tile's files with 8
+    /// characters: a 5-digit family would give 10 tiles 1 name.
+    static let familyIDRange = 1...9999
     var familyID: Int = BuildRecipe.defaultFamilyID
 
     /// Tile ids are `familyID x 10000 + n`, the convention Garmin's own products follow.

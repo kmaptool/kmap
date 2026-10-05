@@ -81,8 +81,7 @@ extension BuildPipeline {
             if try await !reuseCachedExtract(&job) {
                 try Task.checkCancellation()
                 do {
-                    try await fetchFreshExtract(&job)
-                    fetched += 1
+                    if try await fetchFreshExtract(&job) { fetched += 1 }
                 } catch {
                     try rethrowIfCancelled(error)
                     // The older copy was kept for exactly this: a mirror that answers
@@ -253,8 +252,8 @@ extension BuildPipeline {
     // MARK: A fresh copy
 
     /// Downloads the extract and verifies the bytes just fetched against the published
-    /// checksum, stamping the cache either way.
-    private func fetchFreshExtract(_ job: inout ExtractJob) async throws {
+    /// checksum, stamping the cache either way. False when another kmap fetched it first.
+    private func fetchFreshExtract(_ job: inout ExtractJob) async throws -> Bool {
         log.step("downloading \(job.source.lastPathComponent)")
         let downloader = Downloader(log: log)
         retain(downloader)
@@ -284,17 +283,40 @@ extension BuildPipeline {
         // Beside the cached copy, not over it: the copy is replaced only by a file that
         // arrived whole and matched its checksum.
         let landing = job.destination.appendingPathExtension("new")
-        try await downloader.download(
-            url: job.source,
-            to: landing,
-            connections: recipe.downloadConnections
-        )
+        // Held from here to the move into the cache: another kmap fetching the same file
+        // would otherwise write a new landing over the one this run is checking.
+        let lock = try await downloader.holdingDownload(of: landing)
+        defer { withExtendedLifetime(lock) {} }
+        // Another run may have put a current copy in place while this one waited.
+        if cachedCopyIsCurrent(at: job.destination, remote: job.remote) {
+            log.ok("another kmap has just downloaded it")
+            settleOnCachedCopy(job)
+            return false
+        }
+        // A run stopped while it checked a whole download leaves it with no parts beside
+        // it: checked again, not fetched again.
+        var whole = false
+        if FileTools.exists(landing), !PartFiles(destination: landing).hasParts,
+            let expected = await job.expected?.value
+        {
+            whole = try checksum(of: landing, saying: job.label + t("verifying checksum")) == expected
+        }
+        if whole {
+            log.append("the file a stopped run downloaded is whole — not fetched again")
+        } else {
+            try await downloader.download(
+                url: job.source,
+                to: landing,
+                connections: recipe.downloadConnections,
+                lockHeld: true
+            )
+        }
 
         var remoteMD5 = await job.expected?.value
         // Asked once more: a mirror that hung on the checksum before the download may
         // answer after it, and the file is better verified than not.
         if remoteMD5 == nil, let url = job.checksumURL { remoteMD5 = await Downloader.fetchExpectedMD5(url) }
-        if let remoteMD5 {
+        if let remoteMD5, !whole {
             let localMD5 = try checksum(of: landing, saying: job.label + t("verifying checksum"))
             guard localMD5 == remoteMD5 else {
                 FileTools.removeIfPresent(landing)
@@ -317,6 +339,7 @@ extension BuildPipeline {
             stamp(job, md5: nil)
         }
         log.ok("downloaded \(Fmt.bytes(FileTools.size(of: job.destination)))")
+        return true
     }
 
     // MARK: Shared

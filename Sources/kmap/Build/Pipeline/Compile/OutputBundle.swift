@@ -82,7 +82,10 @@ extension BuildPipeline {
             }
             outputGroups = groups.map(\.name)
             if oversized.isEmpty { return groups.count }
-            guard headroom > 0.5 else {
+            // A count of files is cut by weight, not by the limit: more room changes nothing.
+            var fixedCount = false
+            if case .count = recipe.splitMode { fixedCount = true }
+            guard headroom > 0.5, !fixedCount else {
                 // Out of headroom: the split mode asked for groups this big.
                 log.warn(
                     "\(oversized.joined(separator: ", ")) exceed(s) FAT32's 4 GB"

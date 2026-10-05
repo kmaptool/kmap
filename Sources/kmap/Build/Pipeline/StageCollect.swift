@@ -47,17 +47,9 @@ extension BuildPipeline {
         Paths.ensure(destinationDir)
 
         let buildRoot = workDirectory.appendingPathComponent("build", isDirectory: true)
-        // In the packer's order, recorded by the compile stage. The directory listing is
-        // the fallback for a work directory this process did not compile.
-        let groups =
-            outputGroups.isEmpty
-            ? ((try? FileManager.default.contentsOfDirectory(
-                at: buildRoot,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )) ?? [])
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-            : outputGroups.map { buildRoot.appendingPathComponent($0, isDirectory: true) }
+        // In the packer's order, recorded by the compile stage. Only these: a group folder
+        // an earlier build left in the work directory is not this map.
+        let groups = outputGroups.map { buildRoot.appendingPathComponent($0, isDirectory: true) }
 
         var written: [Output] = []
         let parts =
@@ -94,6 +86,7 @@ extension BuildPipeline {
         }
 
         guard !written.isEmpty else { throw BuildError.noOutput(recipe.slug) }
+        removeEarlierOutputs(in: destinationDir, keeping: written)
 
         if recipe.customPOIs {
             await writeCustomPOIs(to: destinationDir)
@@ -118,15 +111,46 @@ extension BuildPipeline {
     /// rather than copied where work area and output share a volume: these run to
     /// gigabytes.
     private func place(_ source: URL, at destination: URL) throws -> Output {
-        FileTools.removeIfPresent(destination)
+        // Under another name until whole, so a copy that fails midway leaves the earlier
+        // file in place and no part of the new one under its name.
+        let partial = destination.deletingLastPathComponent()
+            .appendingPathComponent(destination.lastPathComponent + ".partial")
+        FileTools.removeIfPresent(partial)
+        var moved = false
         do {
-            try FileTools.move(source, to: destination)
+            do {
+                try FileTools.move(source, to: partial)
+                moved = true
+            } catch {
+                FileTools.removeIfPresent(partial)
+                try FileTools.copy(source, to: partial)
+            }
+            FileTools.removeIfPresent(destination)
+            try FileTools.move(partial, to: destination)
         } catch {
-            try FileTools.copy(source, to: destination)
+            // A moved partial is the only copy of the new map: it goes back, or stays.
+            if moved { try? FileTools.move(partial, to: source) } else { FileTools.removeIfPresent(partial) }
+            throw error
         }
         let size = FileTools.isDirectory(destination) ? directorySize(destination) : FileTools.size(of: destination)
         log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(size))")
         return Output(name: destination.lastPathComponent, url: destination, size: size)
+    }
+
+    /// Removes the card files and BaseCamp folder an earlier build of this map wrote into
+    /// the same folder and this one did not replace: another part count or format would
+    /// otherwise leave them beside the new set, and a receiver shows both.
+    private func removeEarlierOutputs(in directory: URL, keeping written: [Output]) {
+        let kept = Set(written.map(\.name))
+        let entries =
+            (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        var removed = 0
+        for entry in entries where !kept.contains(entry.lastPathComponent) {
+            guard recipe.namesAnOutput(entry.lastPathComponent) else { continue }
+            FileTools.removeIfPresent(entry)
+            removed += 1
+        }
+        if removed > 0 { log.step("removed \(removed) map file(s) left by an earlier build") }
     }
 
     /// Writes a Garmin Custom POI (`.gpi`) file beside the map, carrying every object with
@@ -141,12 +165,7 @@ extension BuildPipeline {
         log.step("writing custom POIs with descriptions")
         var gpi = MakeGPI(sources: extracts, destination: destination)
         // The same code page the map is built with, or the labels come out as `?`.
-        switch recipe.codePage {
-        case 1251: gpi.codepage = "cp1251"
-        case 1250: gpi.codepage = "cp1250"
-        case 65001: gpi.codepage = "utf8"
-        default: gpi.codepage = "cp1252"
-        }
+        gpi.codepage = recipe.codePage == CodePage.utf8 ? "utf8" : "cp\(recipe.codePage)"
         gpi.category = recipe.seriesName
         gpi.prefer = recipe.codePage == 1251 ? "ru" : "en"
         // Features hidden on the map are hidden here too.

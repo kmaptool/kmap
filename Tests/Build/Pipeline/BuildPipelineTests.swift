@@ -374,4 +374,16 @@ final class OverallProgressTests: XCTestCase {
         pipeline.detail(.compile, "13/13 tile(s)", fraction: 0.9)
         XCTAssertGreaterThan(pipeline.snapshot().overall, guessed)
     }
+
+    /// 2 regions' boxes overlap along their border: a degree they share is traced once,
+    /// over both their pieces of it.
+    func testADegreeTwoRegionsShareIsOneContourCell() {
+        let south = BBox(minLon: 30, minLat: 45.0, maxLon: 31, maxLat: 45.52)
+        let north = BBox(minLon: 30, minLat: 45.28, maxLon: 31, maxLat: 46)
+        let elsewhere = BBox(minLon: 31, minLat: 45, maxLon: 32, maxLat: 46)
+        let cells = BuildPipeline.oneCellPerDegree([south, north, elsewhere])
+        XCTAssertEqual(cells.count, 2)
+        XCTAssertEqual(cells.first?.minLat, 45.0)
+        XCTAssertEqual(cells.first?.maxLat, 46)
+    }
 }

@@ -79,7 +79,23 @@ enum MapCoverage {
                 )
             )
         }
-        return out.sorted { $0.name < $1.name }
+        return withoutOverview(out).sorted { $0.name < $1.name }
+    }
+
+    /// The tiles less an overview: one whose box holds every other's states the whole
+    /// map's box, and counted it would cover every gap between the others.
+    static func withoutOverview(_ tiles: [Tile]) -> [Tile] {
+        guard tiles.count > 1 else { return tiles }
+        func holdsAll(_ outer: Tile) -> Bool {
+            tiles.allSatisfy { other in
+                other.name == outer.name
+                    || (other.minLat >= outer.minLat && other.maxLat <= outer.maxLat
+                        && other.minLon >= outer.minLon && other.maxLon <= outer.maxLon)
+            }
+        }
+        let kept = tiles.filter { !holdsAll($0) }
+        // Every box the same, as a 1-tile map's tile and its overview: none is left out.
+        return kept.isEmpty ? tiles : kept
     }
 
     /// Samples the box around the tiles and reports every point no tile holds.

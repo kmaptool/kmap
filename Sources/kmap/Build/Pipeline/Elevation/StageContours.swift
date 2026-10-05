@@ -12,27 +12,36 @@ extension BuildPipeline {
     /// Contour cells for the whole map, each clipped to its region's bounds, so regions
     /// far apart get contours over each of them and nothing in between.
     func contourCells() -> [BBox] {
-        var seen = Set<String>()
-        var out: [BBox] = []
-        for region in recipe.regions {
-            for cell in region.boxes.flatMap({ degreeCells(of: $0) }) {
-                let key = String(
-                    format: "%.4f,%.4f,%.4f,%.4f",
-                    cell.minLat,
-                    cell.minLon,
-                    cell.maxLat,
-                    cell.maxLon
-                )
-                if seen.insert(key).inserted { out.append(cell) }
-            }
-        }
-        let cells = out.isEmpty ? degreeCells(of: recipe.coverage) : out
+        let merged = Self.oneCellPerDegree(recipe.regions.flatMap { $0.boxes.flatMap { degreeCells(of: $0) } })
+        let cells = merged.isEmpty ? degreeCells(of: recipe.coverage) : merged
         // A cell the elevation stage trimmed has no .hgt and traces nothing.
         guard let kept = outlineElevationCells else { return cells }
         let names = Set(kept.map { HGTName.of(lat: $0.lat, lon: $0.lon) })
         return cells.filter {
             names.contains(HGTName.of(lat: $0.minLat, lon: $0.minLon))
         }
+    }
+
+    /// 1 cell for each degree, spanning every clipped piece of it: 2 regions' boxes
+    /// overlap along their border, and pieces traced apart would draw that strip twice.
+    static func oneCellPerDegree(_ pieces: [BBox]) -> [BBox] {
+        var order: [String] = []
+        var merged: [String: BBox] = [:]
+        for piece in pieces {
+            let name = HGTName.of(lat: Int(piece.minLat.rounded(.down)), lon: Int(piece.minLon.rounded(.down)))
+            if let had = merged[name] {
+                merged[name] = BBox(
+                    minLon: min(had.minLon, piece.minLon),
+                    minLat: min(had.minLat, piece.minLat),
+                    maxLon: max(had.maxLon, piece.maxLon),
+                    maxLat: max(had.maxLat, piece.maxLat)
+                )
+            } else {
+                order.append(name)
+                merged[name] = piece
+            }
+        }
+        return order.compactMap { merged[$0] }
     }
 
     private func degreeCells(of bbox: BBox) -> [BBox] {
@@ -113,7 +122,9 @@ extension BuildPipeline {
         var water = WaterBodies()
         for extract in extracts {
             do {
-                water.add(contentsOf: try WaterScan.bodies(in: extract))
+                water.add(contentsOf: try WaterScan.bodies(in: extract, shouldStop: stopAsked))
+            } catch is CancellationError {
+                break
             } catch {
                 log.warn(
                     "could not read the water of \(extract.lastPathComponent)"
@@ -297,7 +308,7 @@ extension BuildPipeline {
         var burned: [URL] = []
         let peaks: [BurnPeaks.Peak]
         do {
-            peaks = try BurnPeaks.peaks(in: extracts)
+            peaks = try BurnPeaks.peaks(in: extracts, shouldStop: stopAsked)
         } catch {
             // Cancelled rather than unreadable: nothing to say about it.
             guard !isCancelled, !Task.isCancelled else { return }
@@ -312,6 +323,7 @@ extension BuildPipeline {
             do {
                 var burn = BurnPeaks(extracts: extracts, hgt: source, out: destination)
                 burn.tiles = names
+                burn.shouldStop = stopAsked
                 let report = try burn.run(peaks: peaks)
                 log.append(
                     "\(report.raised) summit height(s) written into"

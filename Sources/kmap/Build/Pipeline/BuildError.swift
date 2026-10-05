@@ -11,6 +11,8 @@ enum BuildError: Error, LocalizedError {
     case tileTooDense(Int, failed: [Int])
     case noOutput(String)
     case noGmap
+    case alreadyBuilding(String)
+    case styleKeptChanging
 
     var errorDescription: String? {
         switch self {
@@ -42,6 +44,10 @@ enum BuildError: Error, LocalizedError {
             return t("mkgmap did not produce gmapsupp.img for %@", name)
         case .noGmap:
             return t("mkgmap did not produce the .gmap folder")
+        case .styleKeptChanging:
+            return t("other builds kept changing the shared style — build again when they are done")
+        case .alreadyBuilding(let name):
+            return t("another build of %@ is running — wait for it to end, or stop it", name)
         }
     }
 }
