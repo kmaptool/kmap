@@ -244,6 +244,54 @@ struct Contours {
             : (grid.latitude(Double(row)), grid.longitude(Double(column) + along))
     }
 
+    /// The points of a walked path: repeated positions and the collinear middles of a
+    /// straight run dropped where `tidy` asks. Per crossing, so kept inline.
+    @inline(__always)
+    private func tidied(_ path: [Int32], edge: [Int32], along: [Double]) -> [(lat: Double, lon: Double)] {
+        // A crossing landing exactly on a grid node belongs to both edges meeting there,
+        // so the same position arrives twice in a row.
+        var points: [(lat: Double, lon: Double)] = []
+        points.reserveCapacity(path.count)
+        for id in path {
+            let point = place(edge[Int(id)], along[Int(id)])
+            if tidy, let last = points.last, last.lat == point.lat, last.lon == point.lon {
+                continue
+            }
+            points.append(point)
+        }
+        // A contour running along a grid line crosses every perpendicular edge, putting
+        // those crossings on one straight run; the collinear ones are dropped.
+        var kept: [(lat: Double, lon: Double)] = []
+        kept.reserveCapacity(points.count)
+        for point in points {
+            // Folds back over the whole run, since a run can be straight throughout. The
+            // test is the middle point's distance off the line against `flatness`, not
+            // an exact zero cross product, which floating-point crossings never give.
+            while tidy, kept.count >= 2 {
+                let a = kept[kept.count - 2], b = kept[kept.count - 1]
+                let cross =
+                    (b.lon - a.lon) * (point.lat - a.lat)
+                    - (b.lat - a.lat) * (point.lon - a.lon)
+                let span =
+                    ((point.lat - a.lat) * (point.lat - a.lat)
+                    + (point.lon - a.lon) * (point.lon - a.lon)).squareRoot()
+                if span == 0 || abs(cross) / span > flatness { break }
+                // Collinear is not enough: the middle point must lie between the other
+                // two, or dropping it would cut the tip off a spike that doubles back.
+                let along =
+                    (b.lat - a.lat) * (point.lat - a.lat)
+                    + (b.lon - a.lon) * (point.lon - a.lon)
+                let reach =
+                    (b.lat - a.lat) * (b.lat - a.lat)
+                    + (b.lon - a.lon) * (b.lon - a.lon)
+                if along <= 0 || reach > span * span { break }
+                kept.removeLast()
+            }
+            kept.append(point)
+        }
+        return kept
+    }
+
     /// Walks the segments into lines: open ones first from their loose ends, then whatever
     /// remains, which can only be closed rings.
     private func assemble(_ sweep: inout Level, level: Int) -> [Line] {
@@ -289,47 +337,7 @@ struct Contours {
 
         func emit(_ path: [Int32]) {
             guard path.count >= 2 else { return }
-            // A crossing landing exactly on a grid node belongs to both edges meeting there,
-            // so the same position arrives twice in a row.
-            var points: [(lat: Double, lon: Double)] = []
-            points.reserveCapacity(path.count)
-            for id in path {
-                let point = place(edge[Int(id)], along[Int(id)])
-                if tidy, let last = points.last, last.lat == point.lat, last.lon == point.lon {
-                    continue
-                }
-                points.append(point)
-            }
-            // A contour running along a grid line crosses every perpendicular edge, putting
-            // those crossings on one straight run; the collinear ones are dropped.
-            var kept: [(lat: Double, lon: Double)] = []
-            kept.reserveCapacity(points.count)
-            for point in points {
-                // Folds back over the whole run, since a run can be straight throughout. The
-                // test is the middle point's distance off the line against `flatness`, not
-                // an exact zero cross product, which floating-point crossings never give.
-                while tidy, kept.count >= 2 {
-                    let a = kept[kept.count - 2], b = kept[kept.count - 1]
-                    let cross =
-                        (b.lon - a.lon) * (point.lat - a.lat)
-                        - (b.lat - a.lat) * (point.lon - a.lon)
-                    let span =
-                        ((point.lat - a.lat) * (point.lat - a.lat)
-                        + (point.lon - a.lon) * (point.lon - a.lon)).squareRoot()
-                    if span == 0 || abs(cross) / span > flatness { break }
-                    // Collinear is not enough: the middle point must lie between the other
-                    // two, or dropping it would cut the tip off a spike that doubles back.
-                    let along =
-                        (b.lat - a.lat) * (point.lat - a.lat)
-                        + (b.lon - a.lon) * (point.lon - a.lon)
-                    let reach =
-                        (b.lat - a.lat) * (b.lat - a.lat)
-                        + (b.lon - a.lon) * (b.lon - a.lon)
-                    if along <= 0 || reach > span * span { break }
-                    kept.removeLast()
-                }
-                kept.append(point)
-            }
+            let kept = tidied(path, edge: edge, along: along)
             guard kept.count >= 2 else { return }
             lines.append(
                 Line(
