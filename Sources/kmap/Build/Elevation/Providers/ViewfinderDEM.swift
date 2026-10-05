@@ -9,6 +9,8 @@ enum ViewfinderDEM {
         case noIndex(Int)
         case notCovered(String)
         case notInAnyArchive(String)
+        /// An archive that should hold the tile could not be fetched or unpacked: not sea.
+        case unreachable(String, String)
         /// No unpacker on this machine can open a zip.
         case cannotUnpack(String)
 
@@ -20,6 +22,8 @@ enum ViewfinderDEM {
                 "\(area) is outside every Viewfinder zone"
             case .notInAnyArchive(let area):
                 "\(area) is not in any of the archives that claim to cover it"
+            case .unreachable(let area, let why):
+                "the archive holding \(area) could not be had: \(why)"
             case .cannotUnpack(let why):
                 why
             }
@@ -75,26 +79,33 @@ enum ViewfinderDEM {
         let candidates = index.urls(for: area)
         guard !candidates.isEmpty else { throw Trouble.notCovered(area) }
 
+        var trouble: Error?
         for zip in candidates {
             guard let url = URL(string: zip), url.scheme == "http" || url.scheme == "https" else { continue }
             let archive = directory.appendingPathComponent("download-\(UUID().uuidString.prefix(8)).zip")
             defer { FileTools.removeIfPresent(archive) }
             do {
                 log("fetching \(url.lastPathComponent) for \(area)")
-                _ = try await downloader.download(url: url, to: archive, connections: connections)
-                let unpacked = try await unpack(archive, into: directory, runner: runner).sorted()
+                // A name of its own for this run: no other kmap downloads to it, no lock.
+                _ = try await downloader.download(url: url, to: archive, connections: connections, lockHeld: true)
+                let (names, whole) = try await unpack(archive, into: directory, runner: runner)
+                let unpacked = names.sorted()
                 // A zone that is mostly sea holds fewer tiles than its rectangle claims, so
-                // the index is corrected to what the archive actually carried.
-                if index.entries[zip]?.sorted() != unpacked {
+                // the index is corrected to what the archive actually carried. Only from an
+                // unpack that ran to its end: one stopped by a full disk carried more.
+                if whole, !unpacked.isEmpty, index.entries[zip]?.sorted() != unpacked {
                     index.entries[zip] = unpacked
                     try? index.save(to: indexFile(resolution), resolution: resolution)
                 }
             } catch {
+                if error is CancellationError || Task.isCancelled || downloader.wasCancelled { throw error }
                 log("\(url.lastPathComponent): \(error)")
+                trouble = error
                 continue
             }
             if isComplete(destination, resolution: resolution) { return destination }
         }
+        if let trouble { throw Trouble.unreachable(area, ErrorWords.of(trouble)) }
         throw Trouble.notInAnyArchive(area)
     }
 
@@ -104,7 +115,7 @@ enum ViewfinderDEM {
         _ archive: URL,
         into directory: URL,
         runner: ProcessRunner
-    ) async throws -> [String] {
+    ) async throws -> (names: [String], whole: Bool) {
         let staging = directory.appendingPathComponent("unpack-\(UUID().uuidString.prefix(8))")
         Paths.ensure(staging)
         defer { FileTools.removeIfPresent(staging) }
@@ -114,7 +125,9 @@ enum ViewfinderDEM {
         // Everything is unpacked and then walked: not every unpacker can flatten paths on
         // the way out, and the tiles are not always exactly 1 folder deep.
         let unpack = unpacker.unpack(archive, into: staging)
-        _ = try await runner.run(unpack.executable, unpack.arguments, allowFailure: true) { _ in }
+        let ran = try await runner.run(unpack.executable, unpack.arguments, allowFailure: true) { _ in }
+        // unzip says 1 for a warning, with everything unpacked.
+        let whole = ran.exitCode == 0 || (unpacker.tool == .unzip && ran.exitCode == 1)
         var names: [String] = []
         for file in FileTools.allFiles(under: staging) where file.pathExtension.lowercased() == "hgt" {
             let name = file.deletingPathExtension().lastPathComponent.uppercased()
@@ -123,6 +136,6 @@ enum ViewfinderDEM {
             try? FileTools.move(file, to: landing)
             names.append(name)
         }
-        return names
+        return (names, whole)
     }
 }

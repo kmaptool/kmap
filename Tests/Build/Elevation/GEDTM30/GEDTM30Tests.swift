@@ -186,6 +186,11 @@ final class GEDTM30Tests: XCTestCase {
         XCTAssertTrue(RangeSession.serves("bytes 100-999/1000", asked: "bytes=100-"))
         XCTAssertFalse(RangeSession.serves("bytes 0-99/1000", asked: "bytes=100-199"))
         XCTAssertTrue(RangeSession.serves("", asked: "bytes=100-199"), "unreadable is taken on trust")
+        // Past the end asked would overfill the part; another total is another file.
+        XCTAssertFalse(RangeSession.serves("bytes 100-999/1000", asked: "bytes=100-199"))
+        XCTAssertTrue(RangeSession.serves("bytes 100-199/1000", asked: "bytes=100-199", total: 1000))
+        XCTAssertFalse(RangeSession.serves("bytes 100-199/1200", asked: "bytes=100-199", total: 1000))
+        XCTAssertTrue(RangeSession.serves("bytes 100-199/*", asked: "bytes=100-199", total: 1000))
     }
 
     // MARK: A cell with nothing in it

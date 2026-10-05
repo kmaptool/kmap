@@ -79,6 +79,26 @@ final class HGTConversionTests: XCTestCase {
         XCTAssertEqual(asked, 2)
     }
 
+    /// The cell east of 179 is W180, across the antimeridian, not an E180 that does not exist.
+    func testTheEasternColumnAt179ComesFromAcrossTheAntimeridian() throws {
+        let here = try source(cell: (44, 179), width: 4, height: 4) { _, _ in 500 }
+        let across = try source(cell: (44, -180), width: 4, height: 4) { _, _ in 700 }
+        let m = mosaic(["N44E179": here, "N44W180": across])
+        XCTAssertEqual(m.height(cellLat: 44, cellLon: 179, row: 0, column: 3600), 700)
+    }
+
+    /// A file that is there and does not read is not sea: the cell fails and keeps it.
+    func testACellWhoseOwnFileWillNotOpenFailsRatherThanComingOutFlat() throws {
+        let broken = directory.appendingPathComponent("N44E033.tif")
+        try FileTools.write("<html>not a tiff</html>", to: broken)
+        let below = try source(cell: (43, 33), width: 4, height: 4) { _, _ in 900 }
+        let m = mosaic(["N44E033": broken, "N43E033": below])
+        XCTAssertThrowsError(
+            try HGTConversion.write(cell: (44, 33), from: m, to: directory.appendingPathComponent("N44E033.hgt"))
+        )
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("N44E033.hgt").path))
+    }
+
     func testANodeSittingOnASampleIsThatSample() throws {
         let url = try source(cell: (44, 33), width: 4, height: 4) { r, c in Float(r * 100 + c) }
         let m = mosaic(["N44E033": url])

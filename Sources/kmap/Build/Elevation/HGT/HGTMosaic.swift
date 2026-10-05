@@ -7,6 +7,10 @@ extension HGTConversion {
     final class Mosaic: @unchecked Sendable {
         private var open: [Int: GeoTIFF] = [:]
         private var absent: Set<Int> = []
+        /// Files that are there and would not open, by cell.
+        private var failures: [Int: Error] = [:]
+        /// Cells written and released.
+        private var released: Set<Int> = []
         private let locate: (Int, Int) -> URL?
         private let lock = NSLock()
 
@@ -23,8 +27,13 @@ extension HGTConversion {
             (0, -1), (-1, -1), (1, 0), (1, 1), (1, -1)
         ]
 
-        /// A cell as a number: asked once per node on the slow path, where a name costs.
-        private static func key(lat: Int, lon: Int) -> Int { lat * 1000 + lon }
+        /// A cell as a number: asked once per node on the slow path, where a name costs. East
+        /// of 179 is -180: the cell across the antimeridian.
+        private static func key(lat: Int, lon: Int) -> Int { lat * 1000 + wrapped(lon) }
+
+        private static func wrapped(_ lon: Int) -> Int {
+            lon >= 180 ? lon - 360 : lon < -180 ? lon + 360 : lon
+        }
 
         /// Whether anything at all covers this cell or the neighbours it borrows from.
         /// Asked once before the grid is filled, so a cell nothing covers is refused
@@ -36,11 +45,35 @@ extension HGTConversion {
         /// Lets the cell's own file forget its decoded tiles. A neighbour still to come
         /// decodes the edge it borrows again, which is far cheaper than keeping every
         /// cell of a large region decoded until the pass ends.
+        ///
+        /// A neighbour already released has decoded its edge again for this cell; it forgets
+        /// that too once every cell that borrows from it, among those with a file, is done.
         func release(cellLat: Int, cellLon: Int) {
+            var done: [GeoTIFF] = []
             lock.lock()
-            let tiff = open[Self.key(lat: cellLat, lon: cellLon)]
+            released.insert(Self.key(lat: cellLat, lon: cellLon))
+            if let own = open[Self.key(lat: cellLat, lon: cellLon)] { done.append(own) }
+            for (dLat, dLon) in Self.neighbourhood where dLat != 0 || dLon != 0 {
+                let lat = cellLat + dLat, lon = cellLon + dLon
+                guard let tiff = open[Self.key(lat: lat, lon: lon)], released.contains(Self.key(lat: lat, lon: lon))
+                else { continue }
+                let waiting = Self.neighbourhood.contains { borrower in
+                    let (bLat, bLon) = (lat + borrower.0, lon + borrower.1)
+                    let key = Self.key(lat: bLat, lon: bLon)
+                    guard !released.contains(key), !absent.contains(key) else { return false }
+                    return open[key] != nil || locate(bLat, Self.wrapped(bLon)) != nil
+                }
+                if !waiting { done.append(tiff) }
+            }
             lock.unlock()
-            tiff?.dropDecoded()
+            for tiff in done { tiff.dropDecoded() }
+        }
+
+        /// Why the cell's file would not open, where it is there and did not.
+        func failure(lat: Int, lon: Int) -> Error? {
+            lock.lock()
+            defer { lock.unlock() }
+            return failures[Self.key(lat: lat, lon: lon)]
         }
 
         func tile(lat: Int, lon: Int) -> GeoTIFF? {
@@ -49,12 +82,19 @@ extension HGTConversion {
             defer { lock.unlock() }
             if let hit = open[key] { return hit }
             if absent.contains(key) { return nil }
-            guard let url = locate(lat, lon), let tiff = try? GeoTIFF(contentsOf: url) else {
+            guard let url = locate(lat, Self.wrapped(lon)) else {
                 absent.insert(key)
                 return nil
             }
-            open[key] = tiff
-            return tiff
+            do {
+                let tiff = try GeoTIFF(contentsOf: url)
+                open[key] = tiff
+                return tiff
+            } catch {
+                absent.insert(key)
+                failures[key] = error
+                return nil
+            }
         }
 
         // MARK: A row at a time
@@ -208,7 +248,9 @@ extension HGTConversion {
                 ((cellLat + 1) * HGTConversion.arcSecondsPerDegree - row)
                 * HGTConversion.latticePerArcSecond
 
-            let east = lon - grid.originLon
+            var east = lon - grid.originLon
+            // A tile across the antimeridian is a whole turn away.
+            if east >= 360 * HGTConversion.latticePerDegree { east -= 360 * HGTConversion.latticePerDegree }
             let south = grid.originLat - lat
             guard east >= 0, south >= 0 else { return nil }
             let x0 = Self.floorDiv(east, grid.stepLon)

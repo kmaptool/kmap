@@ -38,6 +38,10 @@ enum HGTConversion {
         precondition((arcSecondsPerDegree % (n - 1)) == 0, "a .hgt side must divide the degree")
         let step = arcSecondsPerDegree / (n - 1)
         let name = HGTName.of(lat: cell.lat, lon: cell.lon)
+        // A cell whose own file is there and does not read is not sea: written from its
+        // neighbours' edges alone it would be flat, and kept.
+        _ = mosaic.tile(lat: cell.lat, lon: cell.lon)
+        if let failure = mosaic.failure(lat: cell.lat, lon: cell.lon) { throw failure }
         guard mosaic.covers(cellLat: cell.lat, cellLon: cell.lon) else { throw Trouble.noData(name) }
         // A hole stores 0, which the fresh grid already holds.
         var out = [UInt8](repeating: 0, count: n * n * 2)
