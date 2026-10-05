@@ -11,6 +11,7 @@ extension RangeSession {
         /// One request in flight.
         struct Transfer {
             let part: Int
+            let total: Int64?
             let handle: FileHandle
             let continuation: CheckedContinuation<Void, Error>
             /// Why the task was cancelled from in here, which its own error does not say.
@@ -36,12 +37,14 @@ extension RangeSession {
         func expect(
             _ task: URLSessionTask,
             part: Int,
+            total: Int64? = nil,
             into handle: FileHandle,
             resuming continuation: CheckedContinuation<Void, Error>
         ) {
             state.withLock {
                 $0.transfers[task.taskIdentifier] = Transfer(
                     part: part,
+                    total: total,
                     handle: handle,
                     continuation: continuation
                 )
@@ -91,7 +94,11 @@ extension RangeSession {
             if http.statusCode == 206,
                 let asked = dataTask.originalRequest?.value(forHTTPHeaderField: "Range"),
                 let served = http.value(forHTTPHeaderField: "Content-Range"),
-                !RangeSession.serves(served, asked: asked)
+                !RangeSession.serves(
+                    served,
+                    asked: asked,
+                    total: state.withLock { $0.transfers[dataTask.taskIdentifier]?.total }
+                )
             {
                 fail(dataTask, with: DownloadError.rangesIgnored)
                 return completionHandler(.cancel)

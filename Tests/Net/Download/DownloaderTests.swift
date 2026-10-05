@@ -179,6 +179,38 @@ final class DownloaderTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: part.url.path), "nothing was opened")
     }
 
+    /// 2 runs fetching 1 file would write into the same parts: the second waits, and
+    /// stops waiting when cancelled.
+    func testADownloadAnotherRunHoldsIsWaitedForUntilCancelled() throws {
+        let destination = directory.appendingPathComponent("held.osm.pbf")
+        Paths.ensure(Paths.locks)
+        let held = HeldLock(
+            trying: Paths.locks.appendingPathComponent(
+                "download-\(FileTools.slugify(destination.lastPathComponent)).lock"
+            )
+        )
+        XCTAssertNotNil(held)
+        let downloader = Downloader(log: Log())
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.3) { downloader.cancel() }
+        let outcome = try blocking { () async -> String in
+            do {
+                _ = try await downloader.download(
+                    url: URL(string: "https://example.invalid/x")!,
+                    to: destination,
+                    connections: 2
+                )
+                return "downloaded"
+            } catch DownloadError.cancelled {
+                return "cancelled"
+            } catch {
+                return "\(error)"
+            }
+        }
+        XCTAssertEqual(outcome, "cancelled")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path + ".part0"), "nothing was written")
+        withExtendedLifetime(held) {}
+    }
+
     func testADownloaderIsCancelledThroughItsSession() {
         let downloader = Downloader(log: Log())
         XCTAssertFalse(downloader.wasCancelled)

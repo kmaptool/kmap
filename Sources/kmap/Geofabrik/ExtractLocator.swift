@@ -43,6 +43,15 @@ enum ExtractLocator {
 
     /// The names the last few days' files have, newest first. The mirror dates its files
     /// in UTC, year first.
+    /// Whether `url` names one of the dated files `latest` stands for, on any host.
+    static func isDated(_ url: URL, standingFor latest: URL) -> Bool {
+        guard let stem = stem(of: latest) else { return false }
+        let name = url.lastPathComponent
+        guard name.hasPrefix(stem + "-"), name.hasSuffix(datedSuffix) else { return false }
+        let date = name.dropFirst(stem.count + 1).dropLast(datedSuffix.count)
+        return date.count == 6 && date.allSatisfy(\.isNumber)
+    }
+
     static func datedFiles(for latest: URL, today: Date = Date()) -> [URL] {
         guard let stem = stem(of: latest) else { return [] }
         var calendar = Calendar(identifier: .gregorian)
@@ -83,7 +92,10 @@ enum ExtractLocator {
         while true {
             do {
                 let info = try await probe(latest, aliasTimeout)
-                return ExtractSource(url: latest, md5: checksum(of: latest), info: info, standIn: nil)
+                // The alias redirects to a dated file, and proxies keep the redirect and the
+                // alias's checksum apart: the file and its checksum are asked by that name.
+                let named = isDated(info.finalURL, standingFor: latest) ? info.finalURL : latest
+                return ExtractSource(url: named, md5: checksum(of: named), info: info, standIn: nil)
             } catch {
                 if Task.isCancelled { throw error }
                 var throttled = status(of: error) == tooManyRequests

@@ -42,6 +42,28 @@ final class ExtractLocatorTests: XCTestCase {
         XCTAssertEqual(asked.withLock { $0 }, ["crimean-fed-district-latest.osm.pbf"])
     }
 
+    /// Proxies keep the alias's redirect and its checksum apart around a publish, so the
+    /// file and its checksum are both asked by the dated name it redirects to.
+    func testTheDatedFileTheAliasLeadsToIsFetchedAndCheckedByItsName() async throws {
+        let dated = latest.deletingLastPathComponent().appendingPathComponent("crimean-fed-district-261003.osm.pbf")
+        let found = try await ExtractLocator.locate(latest, today: today) { _, _ in
+            Downloader.RemoteInfo(finalURL: dated, size: 100, acceptsRanges: true, lastModified: "then")
+        }
+        XCTAssertEqual(found.url, dated)
+        XCTAssertEqual(found.md5?.lastPathComponent, "crimean-fed-district-261003.osm.pbf.md5")
+        XCTAssertNil(found.standIn)
+
+        // A redirect to another host under the same name is the alias still.
+        let mirror = URL(string: "https://mirror.example/crimean-fed-district-latest.osm.pbf")!
+        let moved = try await ExtractLocator.locate(latest, today: today) { _, _ in
+            Downloader.RemoteInfo(finalURL: mirror, size: 100, acceptsRanges: true, lastModified: "then")
+        }
+        XCTAssertEqual(moved.url, latest)
+        XCTAssertFalse(
+            ExtractLocator.isDated(URL(string: "https://x/crimean-fed-district-2610.osm.pbf")!, standingFor: latest)
+        )
+    }
+
     func testAnAliasThatLoopsGivesWayToTheNewestDatedFileThatAnswers() async throws {
         // 1 October 2026: no file for the day yet, the one for the 30th looped as well,
         // the 29th and the 28th were there.

@@ -35,7 +35,12 @@ final class Downloader: Sendable {
     ///
     /// - Returns: The bytes fetched over the network this time.
     @discardableResult
-    func download(url: URL, to destination: URL, connections: Int) async throws -> Int64 {
+    ///
+    /// - Parameter lockHeld: the caller holds `holdingDownload(of:)` already, for longer
+    ///   than the download: a second hold in 1 process would wait on itself.
+    func download(url: URL, to destination: URL, connections: Int, lockHeld: Bool = false) async throws -> Int64 {
+        let lock = lockHeld ? nil : try await holdingDownload(of: destination)
+        defer { withExtendedLifetime(lock) {} }
         do {
             return try await download(
                 url: url,
@@ -56,6 +61,25 @@ final class Downloader: Sendable {
                 connections: 1,
                 ranged: false
             )
+        }
+    }
+
+    /// The lock on `destination`'s download, waited for while another kmap holds it: both
+    /// would write into the same part files.
+    func holdingDownload(of destination: URL) async throws -> HeldLock {
+        Paths.ensure(Paths.locks)
+        let file = Paths.locks.appendingPathComponent(
+            "download-\(FileTools.slugify(destination.lastPathComponent)).lock"
+        )
+        var told = false
+        while true {
+            if let lock = HeldLock(trying: file) { return lock }
+            if !told {
+                log.step("another kmap is downloading \(destination.lastPathComponent) — waiting for it")
+                told = true
+            }
+            if wasCancelled { throw DownloadError.cancelled }
+            try await Task.sleep(nanoseconds: 500_000_000)
         }
     }
 
@@ -86,7 +110,7 @@ final class Downloader: Sendable {
         for i in 0..<partCount {
             let start = Int64(i) * chunk
             let end = (i == partCount - 1) ? info.size - 1 : start + chunk - 1
-            plan.append(RangeSession.Part(index: i, start: start, end: end, url: files.part(i)))
+            plan.append(RangeSession.Part(index: i, start: start, end: end, url: files.part(i), total: info.size))
         }
         files.keepLayout(size: info.size, count: partCount)
 
