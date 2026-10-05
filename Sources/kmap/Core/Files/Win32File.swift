@@ -170,7 +170,9 @@ enum Win32File {
         let to = destination.nativePath
         if isDirectory(from), volume(of: from) != volume(of: destination.deletingLastPathComponent().nativePath) {
             try copyTree(from, to: to)
-            try removeTree(from)
+            // The copy is whole and is the move; a source that will not all go is left
+            // behind, rather than the move failed and the half-emptied source copied again.
+            try? removeTree(from)
             return
         }
         try FileRetry.attempt(isTransient: isTransient) {

@@ -39,6 +39,23 @@ extension Platform {
         return "\(drive.uppercased()):\\" + rest
     }
 
+    /// Returns a Windows path as WSL names it, or nil where WSL cannot reach it. `wslpath`
+    /// first: it knows the distribution's own `\\wsl.localhost\...` and a drive mounted
+    /// elsewhere; `linuxPath(for:)` covers its absence.
+    static func linuxPath(
+        fromWindows windows: String,
+        which: (String) -> String? = { Platform.which($0) },
+        runner: (String, [String]) -> String? = { ProcessProbe.capture($0, $1, timeout: 5) }
+    ) -> String? {
+        if let wslpath = which("wslpath"),
+            let out = runner(wslpath, ["-u", windows])?.trimmingCharacters(in: .whitespacesAndNewlines),
+            out.hasPrefix("/")
+        {
+            return out
+        }
+        return linuxPath(for: windows)
+    }
+
     /// Maps `<LETTER>:\…` to `/mnt/<letter>/…`, and returns nil for anything else.
     static func linuxPath(for windows: String) -> String? {
         let trimmed = windows.trimmingCharacters(in: .whitespacesAndNewlines)

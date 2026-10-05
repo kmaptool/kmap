@@ -35,6 +35,32 @@ enum Machine {
         return cores
     }()
 
+    /// Raises this process's limit on open files to at least `count` where the system
+    /// allows it. A macOS terminal starts programs at 256, and a split keeps a file open
+    /// per tile.
+    static func allowOpenFiles(_ count: Int) {
+        #if !os(Windows)
+        #if os(Linux)
+        let resource = __rlimit_resource_t(RLIMIT_NOFILE.rawValue)
+        #else
+        let resource = RLIMIT_NOFILE
+        #endif
+        var limit = rlimit()
+        guard getrlimit(resource, &limit) == 0, limit.rlim_cur < rlim_t(count) else { return }
+        var most = limit.rlim_max
+        #if canImport(Darwin)
+        // Darwin refuses a soft limit past the per-process maximum.
+        var perProcess: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        if sysctlbyname("kern.maxfilesperproc", &perProcess, &size, nil, 0) == 0, perProcess > 0 {
+            most = min(most, rlim_t(perProcess))
+        }
+        #endif
+        limit.rlim_cur = min(rlim_t(count), most)
+        _ = setrlimit(resource, &limit)
+        #endif
+    }
+
     /// Returns how many tiles to compile at once: no more than the tiles, the cores, or
     /// the gigabytes of heap to spare.
     ///

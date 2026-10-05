@@ -76,4 +76,16 @@ final class SettingsSurvivalTests: XCTestCase {
         )
         XCTAssertTrue(Paths.root.path.contains("kmap-tests"), Paths.root.path)
     }
+
+    /// A TUI and a command line each hold the settings: a change one makes is made to what
+    /// the file holds then, so neither undoes the other, and no map id is given out twice.
+    func testTwoRunsSavingKeepEachOthersChangesAndIDs() {
+        let tui = SettingsStore()
+        let command = SettingsStore()
+        let first = command.familyID(for: "two-runs-a-\(UUID().uuidString)")
+        let second = tui.familyID(for: "two-runs-b-\(UUID().uuidString)")
+        XCTAssertNotEqual(first, second)
+        tui.update { $0.javaBinary = "" }
+        XCTAssertTrue(SettingsStore().settings.familyIDs.values.contains(first), "the other run's id was lost")
+    }
 }

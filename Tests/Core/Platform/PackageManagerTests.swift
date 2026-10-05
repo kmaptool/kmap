@@ -215,8 +215,14 @@ final class PackageManagerTests: XCTestCase {
         XCTAssertEqual(privilege, .passwordlessSudo)
         let command = PackageManager.apt.command(for: .java, privilege: privilege)
         XCTAssertEqual(command?.executable, "sudo")
-        XCTAssertEqual(command?.arguments.first, "apt-get")
+        // sudo resets the environment, so apt is told not to ask through env.
+        XCTAssertEqual(command?.arguments.prefix(3), ["env", "DEBIAN_FRONTEND=noninteractive", "apt-get"])
         XCTAssertTrue(command?.runnable == true)
+        XCTAssertEqual(
+            PackageManager.apt.refreshCommand(privilege: privilege)?.arguments,
+            ["env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "update"]
+        )
+        XCTAssertNil(PackageManager.dnf.refreshCommand(privilege: privilege))
     }
 
     func testSudoThatWouldAskIsNotRunAtAll() {

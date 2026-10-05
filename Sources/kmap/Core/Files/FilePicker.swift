@@ -202,8 +202,11 @@ enum FilePicker {
                 }
             }
             if let start {
-                // AppleScript names a POSIX path, which on macOS is also the native one.
-                script += " default location POSIX file \"\(start.path)\""
+                // AppleScript names a POSIX path, which on macOS is also the native one. A
+                // quote or backslash in it would end the string literal early.
+                let quoted = start.path.replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
+                script += " default location POSIX file \"\(quoted)\""
             }
             return ["-e", "POSIX path of (\(script))"]
 
@@ -328,7 +331,7 @@ enum FilePicker {
         from output: String,
         kind: Kind = .osascript,
         translating: Bool = false,
-        toLinux: (String) -> String? = Platform.linuxPath(for:)
+        toLinux: (String) -> String? = { Platform.linuxPath(fromWindows: $0) }
     ) -> URL? {
         // Stripping follows the dialect; translating the answer follows the platform.
         let cleaned = kind == .powershell ? withoutSerialisedObjects(output) : output

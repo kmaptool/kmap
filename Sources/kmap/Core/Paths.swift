@@ -77,6 +77,8 @@ enum Paths {
 
     static var styles: URL { root.appendingPathComponent("styles", isDirectory: true) }
     static var work: URL { root.appendingPathComponent("work", isDirectory: true) }
+    /// Lock files that keep 2 runs from the same work.
+    static var locks: URL { root.appendingPathComponent("locks", isDirectory: true) }
     static var logs: URL { root.appendingPathComponent("logs", isDirectory: true) }
 
     /// Where finished maps go unless Settings says otherwise: `~/kmap` on the Unixes,
@@ -114,12 +116,20 @@ enum Paths {
     static func display(_ url: URL) -> String {
         let p = url.path
         let h = home.path
-        return p.hasPrefix(h) ? "~" + p.dropFirst(h.count) : p
+        // The whole folder: /home/al is not the start of /home/alex.
+        guard p == h || p.hasPrefix(h.hasSuffix("/") ? h : h + "/") else { return p }
+        return "~" + p.dropFirst(h.hasSuffix("/") ? h.count - 1 : h.count)
     }
 
-    /// Expands a leading `~` in a typed path.
+    /// Expands a leading `~` in a typed path, and drops the quotes a path copied from
+    /// Windows Explorer comes in.
     static func expand(_ path: String) -> URL {
-        let trimmed = path.trimmingCharacters(in: .whitespaces)
+        var trimmed = path.trimmingCharacters(in: .whitespaces)
+        if trimmed.count >= 2,
+            (trimmed.hasPrefix("\"") && trimmed.hasSuffix("\"")) || (trimmed.hasPrefix("'") && trimmed.hasSuffix("'"))
+        {
+            trimmed = String(trimmed.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+        }
         if trimmed.hasPrefix("~") {
             return URL(fileURLWithPath: NSString(string: trimmed).expandingTildeInPath)
         }

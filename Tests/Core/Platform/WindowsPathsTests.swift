@@ -48,4 +48,31 @@ final class WindowsPathsTests: XCTestCase {
         XCTAssertNil(Platform.linuxPath(for: ""))
         XCTAssertNil(Platform.linuxPath(for: "4:\\x"), "a digit is not a drive letter")
     }
+
+    /// A pick inside the distribution's own files comes back as a share only wslpath knows.
+    func testAPickInsideTheDistributionIsAskedOfWslpath() {
+        let share = #"\\wsl.localhost\Ubuntu\home\u\maps"#
+        XCTAssertEqual(
+            Platform.linuxPath(
+                fromWindows: share,
+                which: { _ in "/usr/bin/wslpath" },
+                runner: { _, arguments in
+                    arguments == ["-u", share] ? "/home/u/maps\n" : nil
+                }
+            ),
+            "/home/u/maps"
+        )
+        // Without it the drive letters still work, and a share does not.
+        XCTAssertEqual(Platform.linuxPath(fromWindows: #"E:\x"#, which: { _ in nil }), "/mnt/e/x")
+        XCTAssertNil(Platform.linuxPath(fromWindows: share, which: { _ in nil }))
+        // An error from wslpath is not a path.
+        XCTAssertEqual(
+            Platform.linuxPath(
+                fromWindows: #"E:\x"#,
+                which: { _ in "/usr/bin/wslpath" },
+                runner: { _, _ in "wslpath: E:\\x: Invalid argument" }
+            ),
+            "/mnt/e/x"
+        )
+    }
 }

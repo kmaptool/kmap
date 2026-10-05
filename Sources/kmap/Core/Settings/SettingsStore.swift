@@ -11,6 +11,8 @@ final class SettingsStore: Sendable {
         /// The stored settings with this run's overrides applied. Derived; never
         /// assigned directly.
         var settings: Settings
+        /// Why the last save failed; nil once one succeeds.
+        var saveFailure: Error?
 
         mutating func refresh() {
             var effective = persisted
@@ -25,6 +27,9 @@ final class SettingsStore: Sendable {
 
     /// The stored settings with this run's overrides applied.
     var settings: Settings { state.withLock { $0.settings } }
+
+    /// Why the last change could not be written, for a caller that did not keep the result.
+    var saveFailure: Error? { state.withLock { $0.saveFailure } }
 
     init() {
         // An unreadable file is renamed rather than overwritten, since anything below
@@ -91,13 +96,21 @@ final class SettingsStore: Sendable {
 
     /// Applies a durable change: written to the file, and visible to this run unless an
     /// override covers the same field.
+    ///
+    /// Made to what the file holds now, under a lock: a TUI and a command line each save,
+    /// and a change made to this run's older copy would undo the other's.
     @discardableResult
     func update(_ mutate: (inout Settings) -> Void) -> Result<Void, Error> {
-        state.withLock {
-            mutate(&$0.persisted)
-            $0.refresh()
+        Paths.bootstrap()
+        return FileLock.holding(Paths.settingsFile.appendingPathExtension("lock")) {
+            let fresh = SettingsStore.load()
+            state.withLock {
+                if let fresh { $0.persisted = fresh }
+                mutate(&$0.persisted)
+                $0.refresh()
+            }
+            return save()
         }
-        return save()
     }
 
     /// Applies a change for this process only, as command-line flags do.
@@ -116,12 +129,21 @@ final class SettingsStore: Sendable {
     /// - Parameter key: One region's id, or the joined ids of the regions built together.
     func familyID(for key: String) -> Int {
         if let known = settings.familyIDs[key] { return known }
-        let taken = Set(settings.familyIDs.values)
-        // 6300..<7000, a band clear of Garmin's own product ids.
-        var candidate = 6300
-        while taken.contains(candidate), candidate < 7000 { candidate += 1 }
-        update { $0.familyIDs[key] = candidate }
-        return candidate
+        // Chosen inside the update, from the ids every run has given out so far.
+        var chosen = 0
+        update { settings in
+            if let known = settings.familyIDs[key] {
+                chosen = known
+                return
+            }
+            let taken = Set(settings.familyIDs.values)
+            // 6300..<7000, a band clear of Garmin's own product ids.
+            var candidate = 6300
+            while taken.contains(candidate), candidate < 7000 { candidate += 1 }
+            settings.familyIDs[key] = candidate
+            chosen = candidate
+        }
+        return chosen
     }
 
     /// Writes the file. The failure is the caller's to show: a read-only home or a full
@@ -134,8 +156,10 @@ final class SettingsStore: Sendable {
         do {
             let data = try encoder.encode(state.withLock({ $0.persisted }))
             try FileTools.write(data, to: Paths.settingsFile)
+            state.withLock { $0.saveFailure = nil }
             return .success(())
         } catch {
+            state.withLock { $0.saveFailure = error }
             return .failure(error)
         }
     }

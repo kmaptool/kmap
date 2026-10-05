@@ -170,6 +170,22 @@ final class FilePickerTests: XCTestCase {
         XCTAssertTrue(script.hasPrefix("POSIX path of"), "the path is what is wanted back")
     }
 
+    func testAQuoteInTheStartingPathDoesNotEndTheScript() {
+        let script =
+            FilePicker.arguments(
+                for: .osascript,
+                wanted: .directory,
+                startingAt: URL(fileURLWithPath: #"/Volumes/Maps "old"\x"#),
+                prompt: "pick"
+            ).last ?? ""
+        #if os(Windows)
+        // A file URL there reads the backslash as a separator.
+        XCTAssertTrue(script.contains(#"POSIX file "/Volumes/Maps \"old\"/x""#), script)
+        #else
+        XCTAssertTrue(script.contains(#"POSIX file "/Volumes/Maps \"old\"\\x""#), script)
+        #endif
+    }
+
     func testAFolderIsADifferentQuestionEverywhere() {
         XCTAssertTrue(
             FilePicker.arguments(

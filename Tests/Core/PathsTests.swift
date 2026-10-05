@@ -109,6 +109,8 @@ final class PathsTests: XCTestCase {
         XCTAssertEqual(Paths.expand("~/Maps").path, home + "/Maps")
         XCTAssertEqual(Paths.expand("  ~/Maps  ").path, home + "/Maps")
         XCTAssertEqual(Paths.expand("~").path, home)
+        // A path copied from Windows Explorer comes in quotes.
+        XCTAssertEqual(Paths.expand(" \"~/My Maps\" ").path, home + "/My Maps")
         // An absolute path is left where it is.
         XCTAssertEqual(Paths.expand("/Volumes/Card/Garmin").path, "/Volumes/Card/Garmin")
     }
@@ -119,6 +121,10 @@ final class PathsTests: XCTestCase {
             "~/Garmin/kmap"
         )
         XCTAssertEqual(Paths.display(URL(fileURLWithPath: "/Volumes/Card")), "/Volumes/Card")
+        XCTAssertEqual(Paths.display(Paths.home), "~")
+        // A folder whose name only starts like the home folder's is not inside it.
+        let sibling = Paths.home.path + "x/maps"
+        XCTAssertEqual(Paths.display(URL(fileURLWithPath: sibling)), sibling)
     }
 
     func testExpandingAndDisplayingAreTheSameJourneyBackAndForth() {

@@ -380,6 +380,10 @@ enum Strings {
         "already in the library as %@ · in styles: c copies it, o brings back the original":
             "уже есть как %@ · в стилях: c — копия, o — вернуть оригинал",
         "already in this style": "уже есть в этом стиле",
+        "a picture file gives a point its icon — lines and areas borrow another style's drawing":
+            "файл с картинкой задаёт значок точки — для линий и площадей используется рисунок другого стиля",
+        "another build of %@ is running — wait for it to end, or stop it":
+            "сборка %@ уже выполняется — дождитесь её завершения или остановите её",
         "another build already uses this name — files carry -%d":
             "это имя уже занято другой сборкой — файлы получают -%d",
         "an older patch — kmap rebuilds it at the next start or build":
@@ -731,6 +735,7 @@ enum Strings {
             "ночная версия добавлена, нарисована так же — теперь поменяйте цвета",
         "night — same drawing, its own colours": "ночь — тот же рисунок, свои цвета",
         "night: the same drawing, its own colours": "ночь: тот же рисунок, свои цвета",
+        "night: drawn apart from the day, kept as it is": "ночь: нарисована отдельно от дня, оставлена без изменений",
         "no .hgt elevation tiles were downloaded, so the DEM layer cannot be built":
             "плитки высот .hgt не скачаны, поэтому слой DEM не построить",
         "no DEM": "без DEM",
@@ -788,6 +793,9 @@ enum Strings {
         "open the editor": "открыть редактор",
         "open · build": "открыть · собрать",
         "open · save": "открыть · сохранить",
+        "not a type this kind of element can take": "этот тип недопустим для элементов этого вида",
+        "other builds kept changing the shared style — build again when they are done":
+            "другие сборки изменили общий стиль — повторите сборку после завершения",
         "output": "вывод",
         "outside the POI range 0x2900–0x30ff — the device will draw it but show no card for it":
             "вне диапазона POI 0x2900–0x30ff — прибор нарисует объект, но карточки для него не покажет",

@@ -128,12 +128,26 @@ extension PackageManager {
         privilege: Privilege
     ) -> (executable: String, arguments: [String], runnable: Bool)? {
         guard let packages = packages(for: what) else { return nil }
-        let arguments = installArguments(packages)
+        return run(installArguments(packages), privilege: privilege)
+    }
+
+    /// The command that brings the package lists up to date before an install, where the
+    /// manager keeps them apart: a fresh Debian or Ubuntu image has none at all.
+    func refreshCommand(privilege: Privilege) -> (executable: String, arguments: [String], runnable: Bool)? {
+        self == .apt ? run(["update"], privilege: privilege) : nil
+    }
+
+    private func run(
+        _ arguments: [String],
+        privilege: Privilege
+    ) -> (executable: String, arguments: [String], runnable: Bool) {
         switch privilege {
         case .direct:
             return (binary, arguments, true)
         case .passwordlessSudo:
-            return ("sudo", [binary] + arguments, true)
+            // sudo drops the environment, and apt then stops to ask with no terminal.
+            let quiet = self == .apt ? ["env", "DEBIAN_FRONTEND=noninteractive"] : []
+            return ("sudo", quiet + [binary] + arguments, true)
         case .wouldAsk:
             // Not runnable, but the right words to show for this machine.
             return ("sudo", [binary] + arguments, false)
