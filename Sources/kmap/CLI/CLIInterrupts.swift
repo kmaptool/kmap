@@ -22,6 +22,20 @@ extension CLI {
         onInterrupt?()
     }
 
+    /// Runs `work` with Ctrl+C cancelling it rather than ending the process, so what it
+    /// clears up on the way out is cleared.
+    static func interruptible(_ work: @escaping @Sendable () async -> Int32) async -> Int32 {
+        let task = Task { await work() }
+        let stopped = Locked(false)
+        let interrupts = watchInterrupts {
+            stopped.withLock { $0 = true }
+            task.cancel()
+        }
+        defer { interrupts.stop() }
+        let code = await task.value
+        return stopped.withLock { $0 } ? CLIOutput.Exit.cancelled : code
+    }
+
     /// The watch, held for as long as the build runs.
     final class InterruptWatch {
         #if !os(Windows)

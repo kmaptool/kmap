@@ -8,7 +8,7 @@ extension CLI {
 
     /// `--dump-paths FILE`: every line as `elevation lat lon lat lon ...`, for diffing two
     /// tracers point by point.
-    static func dumpPaths(_ lines: [Contours.Line], toFile dump: String) {
+    static func dumpPaths(_ lines: [Contours.Line], toFile dump: String) throws {
         var text = ""
         for line in lines {
             text += "\(line.elevation)"
@@ -17,7 +17,7 @@ extension CLI {
             }
             text += "\n"
         }
-        try? FileTools.write(text, to: URL(fileURLWithPath: dump))
+        try FileTools.write(text, to: URL(fileURLWithPath: dump))
     }
 
     /// `--deviation`: how far off the line the tidying pass's dropped points lay. The tile

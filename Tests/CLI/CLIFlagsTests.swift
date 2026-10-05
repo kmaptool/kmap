@@ -31,11 +31,32 @@ final class CLIFlagsTests: XCTestCase {
     }
 
     func testAFlagThatShouldHoldANumberButDoesNotIsNamed() {
-        let flags = CLI.Flags(["--step=nan", "--mapid=12,000", "--limit=4.5", "--raw"], valued: [])
-        XCTAssertEqual(flags.notNumbers(["step", "mapid", "limit", "absent"]), ["mapid"])
+        // Infinity and not-a-number parse, and are not numbers a flag can hold.
+        let flags = CLI.Flags(["--step=nan", "--mapid=12,000", "--limit=4.5", "--radius=1e400", "--raw"], valued: [])
+        XCTAssertEqual(flags.notNumbers(["step", "mapid", "limit", "radius", "absent"]), ["step", "mapid", "radius"])
+        XCTAssertNil(flags.double("radius"))
+        XCTAssertEqual(flags.notWholeNumbers(["limit"]), ["limit"])
         // A valued flag with nothing after it holds no number either.
         let bare = CLI.Flags(["--step", "--raw"], valued: ["step"])
         XCTAssertEqual(bare.notNumbers(["step"]), ["step"])
+    }
+
+    /// `kmap build` reads `--key value` as `--key=value`, and a switch never takes the next word.
+    func testABuildOptionTakesItsValueAfterASpace() {
+        let flags = CLI.Flags(
+            ["--profile", "GPSMap 67", "monaco", "--dem", "--out", "/tmp/x"],
+            valued: CLI.buildValuedOptions
+        )
+        XCTAssertEqual(flags.value("profile"), "GPSMap 67")
+        XCTAssertEqual(flags.value("out"), "/tmp/x")
+        XCTAssertEqual(flags.positionals, ["monaco"])
+        XCTAssertTrue(flags.has("dem"))
+        XCTAssertFalse(CLI.buildValuedOptions.contains("descriptions"), "it stands alone as well")
+        XCTAssertTrue(
+            CLI.BuildOptions(CLI.Flags(["--style"], valued: CLI.buildValuedOptions)).refused.contains {
+                $0.contains("--style needs a value")
+            }
+        )
     }
 
     func testARepeatedFlagKeepsEveryValue() {

@@ -47,9 +47,15 @@ extension CLI {
         /// know rather than skipping a typo.
         var names: Set<String> { present }
 
-        /// The flags among `names` that are present but do not hold a number.
+        /// The flags among `names` that are present but do not hold a number. Infinity and
+        /// not-a-number parse as numbers, and are not.
         func notNumbers(_ names: [String]) -> [String] {
-            names.filter { has($0) && (value($0).flatMap { Double($0) } == nil) }
+            names.filter { has($0) && double($0) == nil }
+        }
+
+        /// The same, for flags that take a whole number.
+        func notWholeNumbers(_ names: [String]) -> [String] {
+            names.filter { has($0) && int($0) == nil }
         }
 
         /// The flag's value; the last one where it was written more than once.
@@ -59,6 +65,6 @@ extension CLI {
         func values(_ name: String) -> [String] { values[name] ?? [] }
 
         func int(_ name: String) -> Int? { value(name).flatMap { Int($0) } }
-        func double(_ name: String) -> Double? { value(name).flatMap { Double($0) } }
+        func double(_ name: String) -> Double? { value(name).flatMap { Double($0) }.flatMap { $0.isFinite ? $0 : nil } }
     }
 }

@@ -49,9 +49,10 @@ extension CLI {
             )
         }
         var choices = BuildChoices()
-        let refused = apply(Flags(Array(arguments.dropFirst())), to: &choices, store: store)
+        let refused = apply(Flags(Array(arguments.dropFirst()), valued: buildValuedOptions), to: &choices, store: store)
         guard refused.isEmpty else { return CLIOutput.refuse(refused) }
         let made = store.addProfile(named: name, choices: choices)
+        if let unsaved = unsaved(store) { return unsaved }
         CLILog.line("\(made.name): \(describe(made.choices))")
         CLIOutput.result(["profile": profileAsData(made, store: store)])
         return 0
@@ -61,7 +62,7 @@ extension CLI {
         guard var profile = named(arguments.first, in: store) else {
             return missingProfile(arguments.first)
         }
-        let flags = Flags(Array(arguments.dropFirst()))
+        let flags = Flags(Array(arguments.dropFirst()), valued: buildValuedOptions)
         guard !flags.names.isEmpty else {
             return CLIOutput.refuse(
                 "nothing to change — give `kmap profiles set` the same build options"
@@ -71,6 +72,7 @@ extension CLI {
         let refused = apply(flags, to: &profile.choices, store: store)
         guard refused.isEmpty else { return CLIOutput.refuse(refused) }
         store.saveProfile(profile)
+        if let unsaved = unsaved(store) { return unsaved }
         CLILog.line("\(profile.name): \(describe(profile.choices))")
         CLIOutput.result(["profile": profileAsData(profile, store: store)])
         return 0
@@ -87,6 +89,7 @@ extension CLI {
             return CLIOutput.refuse("a profile called \"\(arguments[1])\" already exists")
         }
         let made = store.addProfile(named: arguments[1], choices: source.choices)
+        if let unsaved = unsaved(store) { return unsaved }
         CLILog.line("\(source.name) → \(made.name)")
         CLIOutput.result(["profile": profileAsData(made, store: store)])
         return 0
@@ -103,7 +106,11 @@ extension CLI {
         if let taken = named(arguments[1], in: store), taken.id != profile.id {
             return CLIOutput.refuse("a profile called \"\(arguments[1])\" already exists")
         }
+        guard !arguments[1].trimmingCharacters(in: .whitespaces).isEmpty else {
+            return CLIOutput.refuse("a profile needs a name that is not blank")
+        }
         store.renameProfile(profile.id, to: arguments[1])
+        if let unsaved = unsaved(store) { return unsaved }
         let renamed = store.profile(profile.id) ?? profile
         CLILog.line("\(profile.name) → \(renamed.name)")
         CLIOutput.result(["profile": profileAsData(renamed, store: store)])
@@ -120,6 +127,7 @@ extension CLI {
                     + " make another before deleting it"
             )
         }
+        if let unsaved = unsaved(store) { return unsaved }
         CLILog.line("deleted \(profile.name)")
         CLIOutput.result(["deleted": .string(profile.name)])
         return 0
@@ -130,9 +138,16 @@ extension CLI {
             return missingProfile(arguments.first)
         }
         store.useProfile(profile.id)
+        if let unsaved = unsaved(store) { return unsaved }
         CLILog.line("\(profile.name) is what the interface opens on now")
         CLIOutput.result(["profile": profileAsData(profile, store: store)])
         return 0
+    }
+
+    /// A failure for a change the settings file did not take, or nil where it did.
+    private static func unsaved(_ store: SettingsStore) -> Int32? {
+        guard let error = store.saveFailure else { return nil }
+        return CLIOutput.failure("could not save the profiles: \(ErrorWords.of(error))")
     }
 
     // MARK: Naming one

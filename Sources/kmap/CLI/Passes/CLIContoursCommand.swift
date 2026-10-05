@@ -39,7 +39,13 @@ extension CLI {
             let lines = flags.has("no-split") ? traced : Contours.split(traced)
             summarize(lines, step: step, seconds: Date().timeIntervalSince(started))
 
-            if let dump = flags.value("dump-paths") { dumpPaths(lines, toFile: dump) }
+            if let dump = flags.value("dump-paths") {
+                do {
+                    try dumpPaths(lines, toFile: dump)
+                } catch {
+                    return CLIOutput.failure("cannot write \(dump): \(ErrorWords.of(error))")
+                }
+            }
             if flags.has("deviation") { reportDeviation(grid: grid, step: step) }
             if let out = flags.value("out") { try writeAsOSM(lines, to: out, step: step, flags: flags) }
             if flags.has("collinear") { reportCollinearity(of: lines) }

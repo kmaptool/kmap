@@ -14,6 +14,11 @@ extension CLI {
         // Not `flatMap(Int.init)`: a function reference drops the label and resolves to
         // the hex-parsing `Int(hex:)`, so --fid=6326 would become 25382.
         let fid = flags.int("fid") ?? defaultFamilyID
+        // An id that does not read is not quietly the default: 2 TYPs sharing 1 hide each other.
+        // A TYP's family id is 16 bits.
+        guard !flags.has("fid") || flags.int("fid").map((1...65535).contains) == true else {
+            return CLIOutput.refuse("--fid must be a whole number from 1 to 65535")
+        }
         do {
             let source = Paths.expand(path)
             let palette = try StylePalette.read(String(contentsOf: source, encoding: .utf8))

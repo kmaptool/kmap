@@ -5,12 +5,25 @@ import Foundation
 /// `--attach` puts it in the TYP library, `--sheet` writes the reassignment list.
 extension CLI {
     static func recover(_ arguments: [String]) async -> Int32 {
+        await interruptible { await recovering(arguments) }
+    }
+
+    private static func recovering(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["extract", "out", "sheet"])
         guard let path = flags.positionals.first else {
             return CLIOutput.refuse(
                 "usage: kmap recover <map.img> [--extract <file.pbf>]…"
                     + " [--out <style.typ.txt>] [--sheet <file>]"
             )
+        }
+        // Refused before minutes of work: a typo or a value left off would be found only
+        // when nothing was saved.
+        let known: Set<String> = ["extract", "out", "sheet", "attach", "json", "verbose"]
+        if let unknown = flags.names.subtracting(known).sorted().first {
+            return CLIOutput.refuse("kmap recover does not know --\(unknown)")
+        }
+        if let bare = ["extract", "out", "sheet"].first(where: { flags.has($0) && flags.value($0) == nil }) {
+            return CLIOutput.refuse("--\(bare) needs a value: --\(bare)=<path>")
         }
         let extracts = flags.values("extract").map { Paths.expand($0) }
         let log = Log(showing: CLIOutput.showing)
@@ -28,7 +41,7 @@ extension CLI {
             let ordered = report.outcomes.values.sorted {
                 ($0.kind.rawValue, $0.type) < ($1.kind.rawValue, $1.type)
             }
-            try printRecovery(report, ordered: ordered, sheet: flags.value("sheet"))
+            try printRecovery(report, ordered: ordered, sheet: nil)
             reportRecoveryJSON(report, ordered: ordered, path: path, out: flags.value("out"))
             if let refusal = saveRecoveredStyle(
                 report,
@@ -37,6 +50,15 @@ extension CLI {
                 attach: flags.has("attach")
             ) {
                 return refusal
+            }
+            // After the style is saved, so a sheet that will not write costs only itself.
+            if let sheet = flags.value("sheet") {
+                do {
+                    try FileTools.write(report.sheet + "\n", to: Paths.expand(sheet))
+                    CLILog.line("\nsheet -> \(sheet)")
+                } catch {
+                    return CLIOutput.failure("cannot write the sheet to \(sheet): \(ErrorWords.of(error))")
+                }
             }
             if !report.style.isEmpty { printLeftovers(report) }
             return 0

@@ -25,7 +25,8 @@ extension CLI {
         }
         let log = Log(showing: CLIOutput.showing)
         let catalog = StyleCatalog(settings: settings, toolchain: toolchain)
-        let staging = Paths.styles.appendingPathComponent("hideable-\(UUID().uuidString.prefix(8))")
+        // Hidden, so a run killed part-way does not leave a folder the styles list offers.
+        let staging = Paths.styles.appendingPathComponent(".hideable-\(UUID().uuidString.prefix(8))")
         defer { FileTools.removeIfPresent(staging) }
         do {
             try await catalog.materializeRules(

@@ -21,7 +21,8 @@ extension CLI {
             let name =
                 profile.name.count >= width
                 ? profile.name
-                : profile.name.padding(toLength: width, withPad: " ", startingAt: 0)
+                // Counted in characters: `padding` counts UTF-16 and cuts an emoji in half.
+                : profile.name + String(repeating: " ", count: width - profile.name.count)
             CLILog.line(profile.id == current ? "\(name)  (open in the interface)" : profile.name)
             CLILog.line("\(String(repeating: " ", count: width + 2))\(describe(profile.choices))")
         }

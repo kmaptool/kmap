@@ -19,6 +19,12 @@ extension CLI {
         "max-nodes", "family-id", "repair-radius", "json", "verbose"
     ]
 
+    /// The build options that hold a value, so `--key value` reads as `--key=value` does.
+    /// `--descriptions` stands alone as well, so it takes its value only after `=`.
+    static let buildValuedOptions: Set<String> =
+        profileOptions.union(perRunOptions)
+        .subtracting(BuildOptions.switches).subtracting(["descriptions", "json", "verbose"])
+
     /// Every flag `kmap build` reads; anything else on its line is a mistake, not a no-op.
     static func unknownBuildOptions(in flags: Flags) -> [String] {
         flags.names.subtracting(profileOptions).subtracting(perRunOptions).sorted()
@@ -38,6 +44,7 @@ extension CLI {
     /// everything wrong with it. Nothing is applied where anything was refused.
     static func apply(_ flags: Flags, to choices: inout BuildChoices, store: SettingsStore) -> [String] {
         var asked = BuildOptions(flags)
+        for extra in flags.positionals { asked.refused.append("\"\(extra)\" is not a build option") }
         for name in flags.names.subtracting(profileOptions).sorted() {
             asked.refused.append(
                 perRunOptions.contains(name)

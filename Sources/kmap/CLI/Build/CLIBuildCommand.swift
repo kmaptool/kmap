@@ -5,10 +5,16 @@ import Foundation
 /// override it, refuse everything wrong at once, then hand a recipe to the pipeline.
 extension CLI {
     static func build(_ arguments: [String]) async -> Int32 {
-        guard let regionID = arguments.first(where: { !$0.hasPrefix("--") }) else {
+        let flags = Flags(arguments, valued: buildValuedOptions)
+        guard let regionID = flags.positionals.first else {
             return CLIOutput.refuse("build needs a region id, e.g. austria")
         }
-        let flags = Flags(arguments)
+        if flags.positionals.count > 1 {
+            return CLIOutput.refuse(
+                "build takes one region id, and \"\(flags.positionals[1])\" is a second;"
+                    + " several regions are joined with +, e.g. austria+germany"
+            )
+        }
 
         // Flags apply to this run only: a one-off `--out=` must not become the stored
         // output folder.

@@ -5,13 +5,17 @@ import Foundation
 /// recovery, every tag before and after.
 extension CLI {
     static func recoverCheck(_ arguments: [String]) async -> Int32 {
+        await interruptible { await checkingRecovery(arguments) }
+    }
+
+    private static func checkingRecovery(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["extract"])
         guard flags.positionals.count == 2 else {
             return CLIOutput.refuse("usage: kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…")
         }
         let original = Paths.expand(flags.positionals[0])
         let rebuilt = Paths.expand(flags.positionals[1])
-        let extracts = flags.values("extract").map { URL(fileURLWithPath: $0) }
+        let extracts = flags.values("extract").map { Paths.expand($0) }
         let log = Log(showing: CLIOutput.showing)
         do {
             let neutral = try await neutralRules(log: log)

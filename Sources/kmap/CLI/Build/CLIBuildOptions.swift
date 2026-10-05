@@ -18,6 +18,10 @@ extension CLI {
                 let base = name.hasPrefix("no-") ? String(name.dropFirst(3)) : name
                 refused.append("--\(name) takes no value: write --\(base) or --no-\(base)")
             }
+            // A value-taking option written bare would be read as never written.
+            for name in CLI.buildValuedOptions.sorted() where flags.has(name) && flags.value(name) == nil {
+                refused.append("--\(name) needs a value: --\(name)=<value>")
+            }
         }
 
         /// The flags that are on or off by being written: each, its `no-` twin, and the

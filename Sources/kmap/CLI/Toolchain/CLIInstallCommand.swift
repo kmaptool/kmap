@@ -70,12 +70,28 @@ extension CLI {
 
         let log = Log(limit: installLogLimit, showing: CLIOutput.showing)
         let printer = Locked(LogPrinter())
+        // Ctrl+C cancels the install under way, so its tools stop and its staging is
+        // removed, and no later one starts. Watched once for them all: between 2 installs
+        // a Ctrl+C would otherwise be lost.
+        let stopped = Locked(false)
+        let current = Locked<Task<Void, Error>?>(nil)
+        let interrupts = watchInterrupts {
+            stopped.withLock { $0 = true }
+            current.withLock { $0?.cancel() }
+        }
+        defer { interrupts.stop() }
         for tool in targets {
+            if stopped.withLock({ $0 }) {
+                CLILog.line("stopped")
+                return CLIOutput.Exit.cancelled
+            }
             CLILog.line("── installing \(tool.name)")
             let runner = ProcessRunner()
             let work = Task {
                 try await toolchain.install(tool.id, log: log, runner: runner, downloading: downloading)
             }
+            current.withLock { $0 = work }
+            if stopped.withLock({ $0 }) { work.cancel() }
             // Polled, so the slower installs report progress as they go.
             let ticker = Task {
                 while !Task.isCancelled {
@@ -89,6 +105,10 @@ extension CLI {
                 printer.withLock { $0.drain(log) }
             } catch {
                 printer.withLock { $0.drain(log) }
+                if stopped.withLock({ $0 }) {
+                    CLILog.line("stopped")
+                    return CLIOutput.Exit.cancelled
+                }
                 return CLIOutput.failure("failed: \(CLIOutput.said(error))")
             }
         }
@@ -113,7 +133,21 @@ extension CLI {
         if downloading, targets.isEmpty, let java = toolchain.status().first(where: { $0.id == "java" }) {
             return [java]
         }
-        return targets
+        let order = prerequisitesFirst(targets.map(\.id))
+        return order.compactMap { id in targets.first { $0.id == id } }
+    }
+
+    /// Each tool after those of `ids` it needs, in the given order otherwise: mkgmap is
+    /// unpacked with unzip, which the status lists last.
+    static func prerequisitesFirst(_ ids: [String]) -> [String] {
+        var placed: [String] = []
+        func place(_ id: String) {
+            guard !placed.contains(id) else { return }
+            for need in Toolchain.prerequisites(of: id) where ids.contains(need) { place(need) }
+            placed.append(id)
+        }
+        ids.forEach(place)
+        return placed
     }
 
     private static func refuseInstall(_ why: String) -> Int32 {

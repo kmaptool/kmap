@@ -34,7 +34,7 @@ extension CLI {
             }
             areas = parsed
         }
-        let bad = flags.notNumbers(["mapid", "max-nodes"])
+        let bad = flags.notWholeNumbers(["mapid", "max-nodes"])
         guard bad.isEmpty else { return CLIOutput.refuse("--\(bad[0]) must be a whole number") }
         guard (flags.int("mapid") ?? defaultMapID) > 0, (flags.int("max-nodes") ?? defaultMaxNodes) >= 1000 else {
             return CLIOutput.refuse("--mapid must be positive and --max-nodes at least 1000")
@@ -95,7 +95,8 @@ extension CLI {
     /// map units; comments and lines that do not parse are skipped.
     static func parseAreas(_ text: String) -> [TileSplitter.Area] {
         var parsed: [TileSplitter.Area] = []
-        for line in text.split(separator: "\n") {
+        // `Lines`: one written on Windows ends its lines in CRLF.
+        for line in Lines.of(text) {
             let row = line.trimmingCharacters(in: .whitespaces)
             guard !row.hasPrefix("#"), let colon = row.firstIndex(of: ":") else { continue }
             let corners = row[row.index(after: colon)...].components(separatedBy: " to ")

@@ -36,7 +36,11 @@ extension CLI {
             )
             CLILog.line(String(format: "judged in %.1f s", judgeSeconds))
             if let dump {
-                try? FileTools.write(plan.trace.sorted().joined(separator: "\n"), to: URL(fileURLWithPath: dump))
+                do {
+                    try FileTools.write(plan.trace.sorted().joined(separator: "\n"), to: URL(fileURLWithPath: dump))
+                } catch {
+                    return CLIOutput.failure("cannot write \(dump): \(ErrorWords.of(error))")
+                }
             }
             CLIOutput.result([
                 "routableWays": .int(network.wayCount),

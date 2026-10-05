@@ -15,7 +15,8 @@ extension CLI {
             let id =
                 style.id.count >= width
                 ? style.id
-                : style.id.padding(toLength: width, withPad: " ", startingAt: 0)
+                // Counted in characters: `padding` counts UTF-16 and cuts an emoji in half.
+                : style.id + String(repeating: " ", count: width - style.id.count)
             CLILog.line("\(id)  \(style.name)")
             CLILog.line("\(String(repeating: " ", count: width + 2))\(style.summary)")
         }

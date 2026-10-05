@@ -24,6 +24,10 @@ extension CLI {
         guard bad.isEmpty else { return CLIOutput.refuse("--\(bad[0]) must be a number") }
         burn.threshold = flags.double("threshold") ?? burn.threshold
         burn.radius = flags.double("radius") ?? burn.radius
+        // The radius is counted in samples as a whole number.
+        guard burn.threshold >= 0, burn.radius > 0, burn.radius <= 10_000 else {
+            return CLIOutput.refuse("--threshold must be 0 or more, and --radius above 0 and at most 10000 metres")
+        }
 
         do {
             let report = try burn.run()
