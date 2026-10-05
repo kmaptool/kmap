@@ -108,7 +108,7 @@ extension PBFWriter {
             for at in range {
                 let lat = Int64((chunk.lats[at] * PBFSchema.coordinateScale).rounded())
                 let lon = Int64((chunk.lons[at] * PBFSchema.coordinateScale).rounded())
-                ids.zigzag(chunk.ids[at] - lastID); lastID = chunk.ids[at]
+                ids.zigzag(chunk.ids[at] &- lastID); lastID = chunk.ids[at]
                 lats.zigzag(lat - lastLat); lastLat = lat
                 lons.zigzag(lon - lastLon); lastLon = lon
                 for tag in (at == 0 ? 0 : Int(chunk.tagEnds[at - 1]))..<Int(chunk.tagEnds[at]) {
@@ -151,7 +151,7 @@ extension PBFWriter {
                 }
                 var last: Int64 = 0
                 for ref in (at == 0 ? 0 : Int(chunk.refEnds[at - 1]))..<Int(chunk.refEnds[at]) {
-                    refs.zigzag(chunk.refs[ref] - last)
+                    refs.zigzag(chunk.refs[ref] &- last)
                     last = chunk.refs[ref]
                 }
                 var body = ProtoWriter()

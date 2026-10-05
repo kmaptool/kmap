@@ -1449,6 +1449,31 @@ extension TileSplitterTests {
         XCTAssertEqual(after[1].maxLat, round + 100_000)
     }
 
+    func testABoundaryWithNothingAcrossPartOfItStaysPut() {
+        // The upper area reaches past the lower one's width, over ground the split
+        // dropped as empty; moving the value up would leave a row of it in no tile.
+        let round: Int32 = 1 << 21
+        let before = [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 1000),
+            TileSplitter.Area(minLat: round, minLon: 0, maxLat: round + 100_000, maxLon: 2000)
+        ]
+        let after = TileSplitter.nudgedOffPowersOfTwo(before)
+        XCTAssertEqual(after[0].maxLat, round)
+        XCTAssertEqual(after[1].minLat, round)
+    }
+
+    func testABoundaryMetByTwoAreasBelowMoves() {
+        let round: Int32 = 1 << 21
+        let before = [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 1000),
+            TileSplitter.Area(minLat: 0, minLon: 1000, maxLat: round, maxLon: 2000),
+            TileSplitter.Area(minLat: round, minLon: 0, maxLat: round + 100_000, maxLon: 2000)
+        ]
+        let after = TileSplitter.nudgedOffPowersOfTwo(before)
+        XCTAssertEqual(after.map(\.maxLat).prefix(2), [round + TileSplitter.grain, round + TileSplitter.grain])
+        XCTAssertEqual(after[2].minLat, round + TileSplitter.grain)
+    }
+
     func testAnOuterEdgeOnAPowerOfTwoStaysPut() {
         // Moving an outer edge inwards would drop the ground beyond it.
         let round: Int32 = 1 << 21

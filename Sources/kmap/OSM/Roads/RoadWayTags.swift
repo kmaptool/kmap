@@ -19,7 +19,8 @@ extension RoadNetworkLoader {
                 case "natural": natural = block.text(value)
                 case "waterway": waterway = block.text(value)
                 case "man_made": manMade = block.text(value)
-                case "building": building = true
+                // building=no says the outline is not a building.
+                case "building": building = block.text(value) != "no"
                 case "layer": layer = block.text(value)
                 case "bridge": bridge = block.text(value)
                 case "tunnel": tunnel = block.text(value)

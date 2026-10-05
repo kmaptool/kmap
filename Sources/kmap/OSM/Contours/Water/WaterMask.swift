@@ -40,8 +40,12 @@ struct WaterMask {
     }
 
     func isWater(lat: Double, lon: Double) -> Bool {
-        let row = Int(((lat - minLat) * Double(side)).rounded(.down))
-        let column = Int(((lon - minLon) * Double(side)).rounded(.down))
+        var row = Int(((lat - minLat) * Double(side)).rounded(.down))
+        var column = Int(((lon - minLon) * Double(side)).rounded(.down))
+        // The cell's own north and east edges, where the tracer puts nodes, are its last
+        // row and column rather than past them.
+        if row == side, lat - minLat == 1 { row = side - 1 }
+        if column == side, lon - minLon == 1 { column = side - 1 }
         guard row >= 0, row < side, column >= 0, column < side else { return false }
         let bit = row * side + column
         return words[bit / Self.bitsPerWord] & (1 << UInt64(bit % Self.bitsPerWord)) != 0

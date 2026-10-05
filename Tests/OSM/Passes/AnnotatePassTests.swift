@@ -106,6 +106,34 @@ final class AnnotatePassTests: XCTestCase {
         XCTAssertGreaterThan(tally.copied + tally.rebuilt, 0)
     }
 
+    /// ^C reaches every read of the pass and its rewrite: they run on threads of their own,
+    /// where a task's cancellation is not seen.
+    func testAStopAskedForEndsThePassAndEveryScan() throws {
+        let source = try makeExtract()
+        var pass = AnnotatePass(source: source, destination: path("out.osm.pbf"))
+        pass.repairRadius = 10
+        pass.markDuplicateVenues = true
+        pass.shouldStop = { true }
+        XCTAssertThrowsError(try pass.run { _ in }) { XCTAssertTrue($0 is CancellationError, "\($0)") }
+        XCTAssertThrowsError(try BarrierScan.classify(source, shouldStop: { true })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+        XCTAssertThrowsError(try VenueScan.duplicates(in: source, shouldStop: { true })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+        XCTAssertThrowsError(try RoadNetworkLoader(url: source, shouldStop: { true }).load()) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+        XCTAssertThrowsError(try WaterScan.bodies(in: source, shouldStop: { true })) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+        var rewriter = PBFRewriter(url: source, plan: RepairPlan(), network: RoadNetwork(), language: "en")
+        rewriter.shouldStop = { true }
+        XCTAssertThrowsError(try rewriter.write(to: path("rewritten.osm.pbf"))) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+    }
+
     func testTheGateIsToldWhatItStandsOn() throws {
         let source = try makeExtract()
         let out = path("out.osm.pbf")

@@ -74,8 +74,13 @@ final class MakeGPITests: XCTestCase {
         XCTAssertEqual(MakeGPI.codePage(named: "cp1254"), 1254)
         XCTAssertEqual(MakeGPI.codePage(named: "utf8"), CodePage.utf8)
         XCTAssertEqual(MakeGPI.codePage(named: "utf-8"), CodePage.utf8)
-        // An unrecognised name falls back to the default page.
-        XCTAssertEqual(MakeGPI.codePage(named: "whatever"), 1252)
+        // As the build's --code-page writes it, and in capitals.
+        XCTAssertEqual(MakeGPI.codePage(named: "1251"), 1251)
+        XCTAssertEqual(MakeGPI.codePage(named: "CP1251"), 1251)
+        XCTAssertEqual(MakeGPI.codePage(named: "cp1252"), 1252)
+        // One with no table is refused, not quietly western European with "?" for letters.
+        XCTAssertNil(MakeGPI.codePage(named: "whatever"))
+        XCTAssertNil(MakeGPI.codePage(named: "cp1255"))
     }
 
     func testACyrillicNameIsWrittenAsCyrillicBytesAndNotAsNothing() {

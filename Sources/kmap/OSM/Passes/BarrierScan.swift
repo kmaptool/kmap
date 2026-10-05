@@ -110,11 +110,11 @@ struct BarrierScan: OSMSink {
 extension BarrierScan {
     /// Reads a whole extract: barrier nodes, then which way each stands on.
     /// - Returns: every barrier node, those on no way at all included, with kind `none`.
-    static func classify(_ url: URL) throws -> [Int64: String] {
+    static func classify(_ url: URL, shouldStop: @escaping () -> Bool = { false }) throws -> [Int64: String] {
         var index = BarrierIndex()
         var on: [Int64: Kind] = [:]
 
-        try PBFReader(url: url).readInOrder(make: { BarrierScan() }) { block in
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { BarrierScan() }) { block in
             index.add(barriers: block.foundBarriers)
             for (from, to, kind) in block.wayKinds {
                 for at in Int(from)..<Int(to) {

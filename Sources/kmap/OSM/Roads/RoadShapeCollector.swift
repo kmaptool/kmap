@@ -23,7 +23,11 @@ extension RoadNetworkLoader {
         }
 
         /// Appends another block's collection after this one's, its words interned here.
-        mutating func absorb(_ part: ShapeCollector, vocabulary: inout [String: UInt8]) {
+        mutating func absorb(_ part: ShapeCollector, vocabulary: inout [String: UInt8]) throws {
+            // Points are numbered in 32 bits; a continent's buildings can pass that.
+            guard network.refs.count + part.network.refs.count <= Int(Int32.max),
+                obstacleRefs.count + part.obstacleRefs.count <= Int(Int32.max)
+            else { throw RoadNetworkLoader.Trouble.tooLarge }
             network.wayID.append(contentsOf: part.network.wayID)
             network.level.append(contentsOf: part.network.level)
             let refBase = Int32(network.refs.count)
@@ -42,7 +46,12 @@ extension RoadNetworkLoader {
 
         private mutating func intern(_ word: String, vocabulary: inout [String: UInt8]) -> UInt8 {
             if let known = vocabulary[word] { return known }
-            guard network.vocabulary.count < Self.mostWords else { return 0 }
+            guard network.vocabulary.count < Self.mostWords else {
+                // Past the last number: no word, which the label reads as an obstacle,
+                // rather than the first word met.
+                if network.vocabulary.count == Self.mostWords { network.vocabulary.append("") }
+                return UInt8(Self.mostWords)
+            }
             let made = UInt8(network.vocabulary.count)
             network.vocabulary.append(word)
             vocabulary[word] = made

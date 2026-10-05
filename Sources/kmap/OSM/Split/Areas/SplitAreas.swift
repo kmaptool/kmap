@@ -18,16 +18,28 @@ extension TileSplitter {
         func tooRound(_ v: Int32) -> Bool {
             v != 0 && v % tooRoundStride == 0
         }
-        func interior(_ pick: (Area) -> (Int32, Int32)) -> Set<Int32> {
+        // A value moves only where every area starting on it meets areas ending on it
+        // across its whole width. The split drops empty ground, so an area can start on a
+        // value others end on elsewhere with nothing below it, and would lose a row.
+        func interior(_ pick: (Area) -> (Int32, Int32), across: (Area) -> (Int32, Int32)) -> Set<Int32> {
             var lows: Set<Int32> = [], highs: Set<Int32> = []
             for area in areas {
                 let (low, high) = pick(area)
                 lows.insert(low); highs.insert(high)
             }
-            return lows.intersection(highs).filter(tooRound)
+            return lows.intersection(highs).filter(tooRound).filter { value in
+                let below = areas.filter { pick($0).1 == value }.map(across).sorted { $0.0 < $1.0 }
+                return areas.allSatisfy { area in
+                    guard pick(area).0 == value else { return true }
+                    let (from, to) = across(area)
+                    var reach = from
+                    for span in below where span.0 <= reach { reach = max(reach, span.1) }
+                    return reach >= to
+                }
+            }
         }
-        let lats = interior { ($0.minLat, $0.maxLat) }
-        let lons = interior { ($0.minLon, $0.maxLon) }
+        let lats = interior({ ($0.minLat, $0.maxLat) }, across: { ($0.minLon, $0.maxLon) })
+        let lons = interior({ ($0.minLon, $0.maxLon) }, across: { ($0.minLat, $0.maxLat) })
         guard !lats.isEmpty || !lons.isEmpty else { return areas }
 
         // One grid cell, so the boundary stays on the grid the whole split lives on.

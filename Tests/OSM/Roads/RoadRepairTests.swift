@@ -248,4 +248,19 @@ final class RoadRepairTests: XCTestCase {
         let (found, _) = RoadRepair(network: net, limit: 5).candidates()
         XCTAssertEqual(found.count, 1)
     }
+
+    /// A cell of longitude narrows towards the poles: a link or a detour reaching further
+    /// than 1 cell east or west is looked for across more of them.
+    func testTheCellsLookedThroughWidenWithReachAndLatitude() {
+        // The default 5 m stays inside the 3 by 3 everywhere it is used.
+        XCTAssertTrue(RoadRepair.span(5, cell: RoadRepair.cellDegrees, lat: 45) == (1, 1))
+        XCTAssertTrue(RoadRepair.span(0, cell: RoadRepair.cellDegrees, lat: 80) == (1, 1))
+        // 50 m at 60N is 2 cells of 28 m east and west, still 1 of 56 m north and south.
+        XCTAssertTrue(RoadRepair.span(50, cell: RoadRepair.cellDegrees, lat: 60) == (1, 2))
+        // A detour's 200 m above 69N outgrows a coarse cell east to west.
+        XCTAssertTrue(RoadRepair.span(200, cell: 0.005, lat: 50) == (1, 1))
+        XCTAssertTrue(RoadRepair.span(200, cell: 0.005, lat: 72) == (1, 2))
+        // Bounded at the pole.
+        XCTAssertEqual(RoadRepair.span(50, cell: RoadRepair.cellDegrees, lat: 89.999).dx, 64)
+    }
 }

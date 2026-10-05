@@ -5,7 +5,19 @@ import Foundation
 /// Two passes: a PBF stores its nodes before the ways that use them, so which node
 /// positions are wanted is not known until the ways have been read.
 struct RoadNetworkLoader {
+    enum Trouble: Error, CustomStringConvertible, LocalizedError {
+        case tooLarge
+
+        var description: String {
+            "the extract holds more road and obstacle points than the repair can number"
+                + " -- build it without --repair-ends, or in parts"
+        }
+        var errorDescription: String? { description }
+    }
+
     let url: URL
+    /// Asked between blocks, from threads where a task's cancellation is not seen.
+    var shouldStop: () -> Bool = { false }
 
     /// Ways on different decks do not meet, whatever the map looks like from above.
     static func level(layer: String, bridge: String, tunnel: String) -> Int32 {
@@ -49,7 +61,7 @@ struct RoadNetworkLoader {
         let shape = try collectShapes()
         // Which node positions are actually wanted, once, in order.
         let unique = NodePlaces.wantedIDs(from: [shape.network.refs, shape.obstacleRefs])
-        let places = try NodePlaces.gather(unique, from: url)
+        let places = try NodePlaces.gather(unique, from: url, shouldStop: shouldStop)
 
         // A way may name a node the extract does not contain, since the cut runs through
         // ways. Such points are dropped, and a way left too short goes with them.
@@ -64,8 +76,8 @@ struct RoadNetworkLoader {
     private func collectShapes() throws -> ShapeCollector {
         var shape = ShapeCollector()
         var vocabulary: [String: UInt8] = [:]
-        try PBFReader(url: url).readInOrder(make: { ShapeCollector() }) { part in
-            shape.absorb(part, vocabulary: &vocabulary)
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { ShapeCollector() }) { part in
+            try shape.absorb(part, vocabulary: &vocabulary)
             part.clear()
         }
         return shape

@@ -48,6 +48,7 @@ final class VenueScanTests: XCTestCase {
         _ box: (Double, Double, Double, Double),
         tag: String = "amenity=cafe",
         named: Bool = false,
+        name: String = "",
         seen: Int = 0
     ) -> VenueScan.Area {
         let ring: [(x: Double, y: Double)] = [
@@ -61,8 +62,23 @@ final class VenueScanTests: XCTestCase {
             ring: ring,
             box: (box.0, box.1, box.2, box.3),
             size: (box.2 - box.0) * (box.3 - box.1),
-            named: named
+            named: named,
+            name: name
         )
+    }
+
+    /// A school building with a name of its own inside a named campus is another place,
+    /// not the campus mapped twice; a node named otherwise inside an area likewise.
+    func testANestedPlaceNamedOtherwiseKeepsItsPoint() {
+        let campus = area(1, (0, 0, 10, 10), tag: "amenity=hospital", named: true, name: "City Hospital")
+        let wing = area(2, (2, 2, 4, 4), tag: "amenity=hospital", named: true, name: "Children's Hospital", seen: 1)
+        XCTAssertTrue(VenueScan.mark([campus, wing], nodes: []).isEmpty)
+        let same = area(3, (2, 2, 4, 4), tag: "amenity=hospital", named: true, name: "City Hospital", seen: 2)
+        XCTAssertEqual(VenueScan.mark([campus, same], nodes: []), [3])
+        XCTAssertTrue(
+            VenueScan.mark([campus], nodes: [(tag: "amenity=hospital", x: 5, y: 5, name: "Clinic")]).isEmpty
+        )
+        XCTAssertEqual(VenueScan.mark([campus], nodes: [(tag: "amenity=hospital", x: 5, y: 5, name: "")]), [1])
     }
 
     func testTheInnerOfTwoAreasSayingTheSameThingIsMarked() {
@@ -126,7 +142,7 @@ final class VenueScanTests: XCTestCase {
         // The area's own point repeats the node already inside it.
         let marked = VenueScan.mark(
             [area(1, (0, 0, 10, 10))],
-            nodes: [(tag: "amenity=cafe", x: 5, y: 5)]
+            nodes: [(tag: "amenity=cafe", x: 5, y: 5, name: "")]
         )
         XCTAssertEqual(marked, [1])
     }
@@ -135,13 +151,13 @@ final class VenueScanTests: XCTestCase {
         XCTAssertTrue(
             VenueScan.mark(
                 [area(1, (0, 0, 10, 10))],
-                nodes: [(tag: "amenity=cafe", x: 50, y: 50)]
+                nodes: [(tag: "amenity=cafe", x: 50, y: 50, name: "")]
             ).isEmpty
         )
         XCTAssertTrue(
             VenueScan.mark(
                 [area(1, (0, 0, 10, 10))],
-                nodes: [(tag: "shop=bakery", x: 5, y: 5)]
+                nodes: [(tag: "shop=bakery", x: 5, y: 5, name: "")]
             ).isEmpty
         )
     }
@@ -239,7 +255,7 @@ final class VenueScanTests: XCTestCase {
     /// compared. The indexed answer must equal this one.
     private func markBySweeping(
         _ areas: [VenueScan.Area],
-        nodes: [(tag: String, x: Double, y: Double)]
+        nodes: [(tag: String, x: Double, y: Double, name: String)]
     ) -> Set<Int64> {
         var byTag: [String: [VenueScan.Area]] = [:]
         for area in areas { byTag[area.tag, default: []].append(area) }
@@ -282,14 +298,14 @@ final class VenueScanTests: XCTestCase {
         _ count: Int,
         seed: UInt64,
         tags: [String] = ["amenity=cafe", "shop=bakery"]
-    ) -> (areas: [VenueScan.Area], nodes: [(tag: String, x: Double, y: Double)]) {
+    ) -> (areas: [VenueScan.Area], nodes: [(tag: String, x: Double, y: Double, name: String)]) {
         var state = seed
         func next() -> Double {  // xorshift, so the case is repeatable
             state ^= state << 13; state ^= state >> 7; state ^= state << 17
             return Double(state % 1_000_000) / 1_000_000
         }
         var areas: [VenueScan.Area] = []
-        var nodes: [(tag: String, x: Double, y: Double)] = []
+        var nodes: [(tag: String, x: Double, y: Double, name: String)] = []
         let towns = (0..<6).map { _ in (next() * 40, next() * 30) }
         for i in 0..<count {
             let town = towns[Int(next() * Double(towns.count)) % towns.count]
@@ -306,7 +322,7 @@ final class VenueScanTests: XCTestCase {
                     seen: i
                 )
             )
-            if next() < 0.3 { nodes.append((tag, x + size / 2, y + size / 2)) }
+            if next() < 0.3 { nodes.append((tag, x + size / 2, y + size / 2, "")) }
         }
         return (areas, nodes)
     }
@@ -364,7 +380,7 @@ final class VenueScanTests: XCTestCase {
             areas.append(area(Int64(i + 1), (x, 0, x + 0.0001, 0.0001), seen: i))
         }
         areas.append(area(500, (-10, -10, 320, 320), named: true, seen: 80))
-        let nodes = [("amenity=cafe", 4.00005, 0.00005)] as [(tag: String, x: Double, y: Double)]
+        let nodes = [("amenity=cafe", 4.00005, 0.00005, "")] as [(tag: String, x: Double, y: Double, name: String)]
         XCTAssertEqual(VenueScan.mark(areas, nodes: nodes), markBySweeping(areas, nodes: nodes))
     }
 

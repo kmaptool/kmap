@@ -269,6 +269,41 @@ final class PBFRewriterTests: XCTestCase {
         XCTAssertTrue(order.nodesPrecedeWays)
     }
 
+    /// The rewrite reads a block's nodes and ways, never its relations, so a block that
+    /// holds all 3 cannot be written again without losing them; it is refused.
+    func testAMixedBlockWithRelationsIsRefusedNotStripped() throws {
+        let source = path("mixed.osm.pbf")
+        let block = PBFBytes.mixedBlock(
+            nodes: [(1, 44.5, 33.5), (2, 44.6, 33.5)],
+            ways: [(10, [1, 2])],
+            relations: [20]
+        )
+        try FileTools.write(
+            Data(PBFBytes.rawBlob(kind: "OSMHeader", payload: []) + PBFBytes.rawBlob(kind: "OSMData", payload: block)),
+            to: source
+        )
+        var pass = rewriter(source)
+        XCTAssertThrowsError(try pass.write(to: path("out.osm.pbf"))) {
+            guard case .mixedBlock = $0 as? PBFRewriter.Trouble else { return XCTFail("\($0)") }
+        }
+    }
+
+    /// The output is emptied before the input is read, so 1 file for both, by any
+    /// spelling, is refused before anything is written.
+    func testWritingOverTheInputIsRefusedAndTheInputKept() throws {
+        let source = try makeExtract(path("in.osm.pbf"))
+        let before = try Data(contentsOf: source)
+        let spelled = directory.appendingPathComponent("sub/../in.osm.pbf")
+        try FileManager.default.createDirectory(at: path("sub"), withIntermediateDirectories: true)
+        var pass = rewriter(source)
+        XCTAssertThrowsError(try pass.write(to: spelled)) {
+            guard case .writesOverItsInput = $0 as? PBFRewriter.Trouble else { return XCTFail("\($0)") }
+        }
+        XCTAssertEqual(try Data(contentsOf: source), before)
+        XCTAssertThrowsError(try AnnotatePass(source: source, destination: source).run { _ in })
+        XCTAssertEqual(try Data(contentsOf: source), before)
+    }
+
     // MARK: Files that are wrong
 
     func testATruncatedExtractIsRefusedOrReadShortNeverCrashing() throws {

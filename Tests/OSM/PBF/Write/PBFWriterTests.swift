@@ -117,6 +117,52 @@ final class PBFWriterTests: XCTestCase {
         XCTAssertEqual(out.nodes.map(\.id), ids.sorted())
     }
 
+    /// A damaged extract can decode to ids at both ends of the range, since the reader's
+    /// sums wrap; writing them again must not trap on the difference.
+    func testIDsAtBothEndsOfTheRangeAreWrittenWithoutATrap() throws {
+        let out = try roundTrip { writer in
+            writer.nodes([Int64.min + 1, Int64.max].map { PBFWriter.Node(id: $0, lat: 0, lon: 0, tags: []) })
+            writer.ways([PBFWriter.Way(id: 1, refs: [Int64.max, Int64.min, 0], tags: [])])
+        }
+        XCTAssertEqual(out.nodes.map(\.id), [Int64.min + 1, Int64.max])
+        XCTAssertEqual(out.ways.first?.refs, [Int64.max, Int64.min, 0])
+    }
+
+    func testAMemberKindOutOfRangeIsWrittenWithoutATrap() throws {
+        let out = try roundTrip { writer in
+            writer.relations([
+                PBFWriter.Relation(id: 1, members: [.init(kind: -1, ref: 5, role: "")], tags: [])
+            ])
+        }
+        XCTAssertEqual(out.relations.first?.kinds, [-1])
+    }
+
+    #if !os(Windows)
+    /// An older, longer file at the same path leaves nothing of itself behind, even where
+    /// it cannot be replaced by a new file and is written over in place: a folder that
+    /// takes no new file, as Windows has when a scanner holds the one being made.
+    func testWritingOverALongerFileLeavesNoneOfIt() throws {
+        let folder = path("held")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("out.osm.pbf")
+        try roundTrip(
+            { writer in
+                writer.nodes((1...5000).map { PBFWriter.Node(id: Int64($0), lat: 1, lon: 1, tags: []) })
+            },
+            file: url
+        )
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path) }
+        let out = try roundTrip(
+            { writer in
+                writer.nodes([PBFWriter.Node(id: 9, lat: 0, lon: 0, tags: [])])
+            },
+            file: url
+        )
+        XCTAssertEqual(out.nodes.map(\.id), [9])
+    }
+    #endif
+
     func testAnEmptyBatchWritesNothingAtAll() throws {
         let out = try roundTrip { writer in
             writer.nodes([])

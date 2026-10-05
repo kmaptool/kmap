@@ -10,6 +10,7 @@ extension VenueScan {
         var ids: [Int64] = []
         var tags: [String] = []
         var named: [Bool] = []
+        var names: [String] = []
         var starts: [Int32] = [0]
         var refs: [Int64] = []
 
@@ -17,6 +18,7 @@ extension VenueScan {
             ids.removeAll(keepingCapacity: true)
             tags.removeAll(keepingCapacity: true)
             named.removeAll(keepingCapacity: true)
+            names.removeAll(keepingCapacity: true)
             starts = [0]
             refs.removeAll(keepingCapacity: true)
         }
@@ -33,10 +35,14 @@ extension VenueScan {
             // order of `VenueScan.keys`, not by the order the file stores the tags in.
             var present: [String: String] = [:]
             var hasName = false
+            var name = ""
             for (i, key) in keys.enumerated() {
                 guard i < values.count else { break }
                 let word = block.text(Int(key))
-                if word == "name" { hasName = true }
+                if word == "name" {
+                    hasName = true
+                    name = block.text(Int(values[values.startIndex + i]))
+                }
                 if VenueScan.keys.contains(word) {
                     present[word] = block.text(Int(values[values.startIndex + i]))
                 }
@@ -52,6 +58,7 @@ extension VenueScan {
             ids.append(id)
             tags.append(found)
             named.append(hasName)
+            names.append(name)
             refs.append(contentsOf: list)
             starts.append(Int32(refs.count))
         }

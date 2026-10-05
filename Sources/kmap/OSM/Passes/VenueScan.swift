@@ -20,24 +20,33 @@ struct VenueScan {
         var box: (x0: Double, y0: Double, x1: Double, y1: Double)
         var size: Double
         var named: Bool
+        /// Its name, to tell 2 places apart; empty where it has none.
+        var name: String = ""
+    }
+
+    /// Whether 2 names say these are different places, not 1 mapped twice: both named,
+    /// and named otherwise.
+    static func differ(_ one: String, _ other: String) -> Bool {
+        !one.isEmpty && !other.isEmpty && one != other
     }
 
     /// Which way ids repeat an enclosing venue, or one already marked by a node.
-    static func duplicates(in url: URL) throws -> Set<Int64> {
+    static func duplicates(in url: URL, shouldStop: @escaping () -> Bool = { false }) throws -> Set<Int64> {
         // Both passes decode on every core; the joining stays in file order, which is what
         // lets the second one walk the wanted ids instead of searching for each.
-        let shape = try readVenueWays(in: url)
-        let (places, venues) = try readVenueNodes(in: url, wanted: shape.refs)
+        let shape = try readVenueWays(in: url, shouldStop: shouldStop)
+        let (places, venues) = try readVenueNodes(in: url, wanted: shape.refs, shouldStop: shouldStop)
         return mark(assemble(shape, places: places), nodes: venues)
     }
 
     /// First pass over the extract: every closed way carrying a venue tag.
-    private static func readVenueWays(in url: URL) throws -> Shapes {
+    private static func readVenueWays(in url: URL, shouldStop: @escaping () -> Bool) throws -> Shapes {
         var shape = Shapes()
-        try PBFReader(url: url).readInOrder(make: { Shapes() }) { part in
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { Shapes() }) { part in
             shape.ids.append(contentsOf: part.ids)
             shape.tags.append(contentsOf: part.tags)
             shape.named.append(contentsOf: part.named)
+            shape.names.append(contentsOf: part.names)
             let base = Int32(shape.refs.count)
             shape.refs.append(contentsOf: part.refs)
             for start in part.starts.dropFirst() { shape.starts.append(base + start) }
@@ -50,11 +59,12 @@ struct VenueScan {
     /// right.
     private static func readVenueNodes(
         in url: URL,
-        wanted refs: [Int64]
-    ) throws -> (NodePlaces, [(tag: String, x: Double, y: Double)]) {
+        wanted refs: [Int64],
+        shouldStop: @escaping () -> Bool
+    ) throws -> (NodePlaces, [(tag: String, x: Double, y: Double, name: String)]) {
         var places = NodePlaces(wanted: NodePlaces.wantedIDs(from: refs))
-        var venues: [(tag: String, x: Double, y: Double)] = []
-        try PBFReader(url: url).readInOrder(make: { VenueNodes() }) { block in
+        var venues: [(tag: String, x: Double, y: Double, name: String)] = []
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { VenueNodes() }) { block in
             places.take(block.nodes)
             venues.append(contentsOf: block.venues)
             block.clear()
@@ -88,18 +98,19 @@ struct VenueScan {
                     ring: ring,
                     box: box,
                     size: (box.2 - box.0) * (box.3 - box.1),
-                    named: shape.named[i]
+                    named: shape.named[i],
+                    name: shape.names[i]
                 )
             )
         }
         return areas
     }
 
-    static func mark(_ areas: [Area], nodes: [(tag: String, x: Double, y: Double)]) -> Set<Int64> {
+    static func mark(_ areas: [Area], nodes: [(tag: String, x: Double, y: Double, name: String)]) -> Set<Int64> {
         var byTag: [String: [Area]] = [:]
         for area in areas { byTag[area.tag, default: []].append(area) }
-        var nodesByTag: [String: [(x: Double, y: Double)]] = [:]
-        for node in nodes { nodesByTag[node.tag, default: []].append((node.x, node.y)) }
+        var nodesByTag: [String: [(x: Double, y: Double, name: String)]] = [:]
+        for node in nodes { nodesByTag[node.tag, default: []].append((node.x, node.y, node.name)) }
 
         // Tags do not interact, so the groups are independent and go out to every core;
         // the sets are unioned afterwards, which does not depend on order.
@@ -120,7 +131,7 @@ struct VenueScan {
     }
 
     /// One tag's worth: the areas carrying it, and the venue nodes carrying the same tag.
-    private static func markOne(_ group: [Area], nodes: [(x: Double, y: Double)]) -> Set<Int64> {
+    private static func markOne(_ group: [Area], nodes: [(x: Double, y: Double, name: String)]) -> Set<Int64> {
         var group = group
         // Largest first, and file order between equals -- the enclosing area has to be met
         // before the one it encloses.
@@ -131,12 +142,12 @@ struct VenueScan {
         // An area drawn round a POI node carrying the same tag. Read from the node's side:
         // an area is marked if any node falls in it, so the direction does not matter.
         for point in nodes {
-            grid.candidates(at: point) { at in
+            grid.candidates(at: (point.x, point.y)) { at in
                 let area = group[at]
-                guard !marked.contains(area.id),
+                guard !marked.contains(area.id), !differ(point.name, area.name),
                     point.x >= area.box.x0, point.x <= area.box.x1,
                     point.y >= area.box.y0, point.y <= area.box.y1,
-                    inside(point, area.ring)
+                    inside((point.x, point.y), area.ring)
                 else { return }
                 marked.insert(area.id)
             }
@@ -150,7 +161,8 @@ struct VenueScan {
                 guard i < j else { return }
                 let outer = group[i]
                 // Bounding boxes settle nearly every pair.
-                guard inner.box.x0 >= outer.box.x0, inner.box.y0 >= outer.box.y0,
+                guard !differ(inner.name, outer.name),
+                    inner.box.x0 >= outer.box.x0, inner.box.y0 >= outer.box.y0,
                     inner.box.x1 <= outer.box.x1, inner.box.y1 <= outer.box.y1,
                     inside(centre, outer.ring)
                 else { return }

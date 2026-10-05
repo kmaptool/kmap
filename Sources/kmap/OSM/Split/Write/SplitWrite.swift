@@ -7,13 +7,15 @@ import Foundation
 /// file order.
 extension TileSplitter {
     func write(areas: [Area], assignment: Assignment, plan: Plan) throws -> [Int] {
+        // A file open per tile, beside the input and the console.
+        Machine.allowOpenFiles(areas.count + 64)
         var writers: [TileWriter] = []
-        for (index, area) in areas.enumerated() {
-            let url = options.outputDirectory
-                .appendingPathComponent("\(options.mapID + index).osm.pbf")
-            writers.append(try TileWriter(url: url, area: area))
-        }
         do {
+            for (index, area) in areas.enumerated() {
+                let url = options.outputDirectory
+                    .appendingPathComponent("\(options.mapID + index).osm.pbf")
+                writers.append(try TileWriter(url: url, area: area))
+            }
             return try write(into: writers, assignment: assignment, plan: plan)
         } catch {
             // A tile half written looks whole to the next stage; none stays.

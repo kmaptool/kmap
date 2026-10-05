@@ -49,7 +49,7 @@ struct RepairPlanner {
         static func tooHigh(_ what: String, _ metres: Double) -> String {
             "stopped by \(what) over \(Int(metres)) m high"
         }
-        static func bridged(_ what: String) -> String { "bridged over \(what)" }
+        static func bridged(_ what: String) -> String { "bridged over \(what.isEmpty ? "an obstacle" : what)" }
     }
 
     /// What was found between two ends, in the obstacle's own words.
@@ -405,8 +405,9 @@ struct RepairPlanner {
         cell: Double
     ) -> Blockage? {
         let here = RoadRepair.key(plat, plon, cell)
-        for dy in -1...1 {
-            for dx in -1...1 {
+        let span = RoadRepair.span(limit, cell: cell, lat: plat)
+        for dy in -span.dy...span.dy {
+            for dx in -span.dx...span.dx {
                 for entry in grid.run(RoadRepair.neighbour(of: here, dy: dy, dx: dx)) {
                     let a = Int(entry)
                     if Self.crosses(
@@ -455,7 +456,8 @@ struct RepairPlanner {
     /// Obstacles are filed only in the cells a candidate stands in: a region carries
     /// millions of fences, of which few are anywhere near a gap.
     private func obstacleGrid(near candidates: [RoadRepair.Candidate]) -> CellTable {
-        let wanted = RoadRepair.cells(around: candidates, of: network, cell: RoadRepair.cellDegrees)
+        // As far as a link may reach: past 1 cell, the line to its landing leaves the 3 by 3.
+        let wanted = RoadRepair.cells(around: candidates, of: network, cell: RoadRepair.cellDegrees, reach: limit)
         // Lanes take runs of obstacles and are joined in order, so each cell lists its
         // segments as 1 walk over the obstacles would.
         let network = network

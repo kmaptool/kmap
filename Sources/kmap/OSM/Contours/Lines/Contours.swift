@@ -64,7 +64,7 @@ struct Contours {
                 }
             }
         }
-        guard lowest <= highest else { return [] }
+        guard lowest <= highest, step > 0 else { return [] }
 
         let base = Int((Double(lowest) / Double(step)).rounded(.down)) * step
         var levels: [Int] = []

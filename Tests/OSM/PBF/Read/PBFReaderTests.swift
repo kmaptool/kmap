@@ -158,6 +158,33 @@ final class PBFReaderTests: XCTestCase {
         XCTAssertEqual(box?.maxLon ?? 0, 18.5, accuracy: 1e-9)
     }
 
+    /// A history file names a feature this reader does not know, and is refused rather than
+    /// read with every deleted object brought back.
+    func testAFileNeedingAnUnknownFeatureIsRefused() throws {
+        func file(_ features: [String]) throws -> URL {
+            var header = ProtoWriter()
+            for feature in features { header.stringField(PBFSchema.headerRequiredFeature, feature) }
+            let block = PBFBytes.mixedBlock(nodes: [(1, 44.5, 33.5)], ways: [])
+            let url = path("\(features.count).osm.pbf")
+            try FileTools.write(
+                Data(
+                    PBFBytes.rawBlob(kind: "OSMHeader", payload: header.bytes)
+                        + PBFBytes.rawBlob(kind: "OSMData", payload: block)
+                ),
+                to: url
+            )
+            return url
+        }
+        var collected = CollectedElements()
+        XCTAssertNoThrow(try PBFReader(url: file(PBFSchema.requiredFeatures)).read(into: &collected))
+        XCTAssertEqual(collected.nodes.count, 1)
+        XCTAssertThrowsError(
+            try PBFReader(url: file(PBFSchema.requiredFeatures + ["HistoricalInformation"])).read(into: &collected)
+        ) {
+            guard case .unsupportedFeature("HistoricalInformation") = $0 as? PBFError else { return XCTFail("\($0)") }
+        }
+    }
+
     func testAFileWithNoBoundingBoxSaysSoRatherThanGuessing() throws {
         let url = path("nobbox.osm.pbf")
         let writer = try PBFWriter(to: url)

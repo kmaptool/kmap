@@ -54,10 +54,16 @@ struct MakeGPI {
             }
         }
         var points = try scan.resolve(urls: sources)
-        if sources.count > 1 { points = Self.withoutRepeats(points) }
+        // The nodes come first, then the areas: counted after the repeats are gone.
+        var fromNodes = scan.points.count
+        if sources.count > 1 {
+            let kept = Self.keptOnce(points)
+            fromNodes = kept.prefix(scan.points.count).filter { $0 }.count
+            points = zip(points, kept).filter(\.1).map(\.0)
+        }
         guard !points.isEmpty else { throw Trouble.nothingToWrite }
 
-        let page = Self.codePage(named: codepage)
+        guard let page = Self.codePage(named: codepage) else { throw Trouble.unknownCodePage(codepage) }
         // Lossy on purpose: a letter the code page has no room for becomes "?" rather
         // than costing the whole point.
         func encoded(_ text: String) -> [UInt8] {
@@ -81,8 +87,8 @@ struct MakeGPI {
 
         var report = Report()
         report.written = points.count
-        report.fromNodes = scan.points.count
-        report.fromAreas = points.count - scan.points.count
+        report.fromNodes = fromNodes
+        report.fromAreas = points.count - fromNodes
         report.uninformative = scan.uninformative
         report.excluded = scan.excluded
         report.bytes = Int(FileTools.size(of: destination))
@@ -91,25 +97,25 @@ struct MakeGPI {
 
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case nothingToWrite
+        case unknownCodePage(String)
 
         var description: String {
             switch self {
             case .nothingToWrite: return "no described POIs found — nothing to write"
+            case .unknownCodePage(let name):
+                return "no code page \(name) — cp1250 to cp1254, or utf8"
             }
         }
     }
 
-    /// The code page a `--codepage` word stands for. Anything unnamed falls back to
-    /// western European, which is what a map built without a choice uses.
-    static func codePage(named name: String) -> Int {
-        switch name {
-        case "cp1250": return 1250
-        case "cp1251": return 1251
-        case "cp1253": return 1253
-        case "cp1254": return 1254
-        case "utf8", "utf-8": return CodePage.utf8
-        default: return CodePage.westernEuropean
-        }
+    /// The code page a `--codepage` word stands for: `cp1251`, `CP1251` or `1251`, or
+    /// `utf8`. Nil for one there is no table for, which would turn every letter into `?`.
+    static func codePage(named name: String) -> Int? {
+        let word = name.trimmingCharacters(in: .whitespaces).lowercased()
+        if word == "utf8" || word == "utf-8" { return CodePage.utf8 }
+        guard let number = Int(word.hasPrefix("cp") ? String(word.dropFirst(2)) : word) else { return nil }
+        let known = Set(CodePage.supported + [CodePage.westernEuropean, CodePage.utf8])
+        return known.contains(number) ? number : nil
     }
 
     static func parse(_ values: [String]) -> (exact: Set<String>, wildcard: Set<String>) {
@@ -140,13 +146,14 @@ struct MakeGPI {
 extension MakeGPI {
     /// Geofabrik extracts overlap at their borders, so a joined map reads a border point
     /// once per region; the first copy stands.
-    private static func withoutRepeats(_ points: [Point]) -> [Point] {
+    /// Whether each point is the first of its kind, place, name and description alike.
+    static func keptOnce(_ points: [Point]) -> [Bool] {
         struct Key: Hashable {
             let lat: UInt64, lon: UInt64
             let name: String, description: String
         }
         var seen = Set<Key>()
-        return points.filter {
+        return points.map {
             seen.insert(Key(lat: $0.lat.bitPattern, lon: $0.lon.bitPattern, name: $0.name, description: $0.description))
                 .inserted
         }

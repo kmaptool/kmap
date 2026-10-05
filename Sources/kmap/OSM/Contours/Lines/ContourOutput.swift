@@ -27,6 +27,47 @@ enum ContourOutput {
         major: Int,
         medium: Int
     ) throws -> (nodes: Int, ways: Int) {
+        // Past its slice a cell's ids run into the next cell's, and stop ascending.
+        let nodeCount = lines.reduce(0) { $0 + $1.points.count }
+        guard Int64(nodeCount) <= nodeIDSlice, Int64(lines.count) <= wayIDSlice else {
+            throw Trouble.tooManyNodes(nodeCount)
+        }
+        // A file cut short by a failed write would still be handed on: none is left.
+        do {
+            return try writeWhole(
+                lines,
+                to: url,
+                nodeStart: nodeStart,
+                wayStart: wayStart,
+                major: major,
+                medium: medium
+            )
+        } catch {
+            FileTools.removeIfPresent(url)
+            throw error
+        }
+    }
+
+    enum Trouble: Error, CustomStringConvertible, LocalizedError {
+        case tooManyNodes(Int)
+
+        var description: String {
+            switch self {
+            case .tooManyNodes(let count):
+                "\(count) contour points in 1 degree cell, more than its share of ids -- use a wider interval"
+            }
+        }
+        var errorDescription: String? { description }
+    }
+
+    private static func writeWhole(
+        _ lines: [Contours.Line],
+        to url: URL,
+        nodeStart: Int64,
+        wayStart: Int64,
+        major: Int,
+        medium: Int
+    ) throws -> (nodes: Int, ways: Int) {
         let writer = try PBFWriter(to: url)
         writer.header()
 

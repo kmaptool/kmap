@@ -6,12 +6,12 @@ import Foundation
 /// Relations come last in a file, so the ways a lake is built from cannot be told from
 /// any other way until the relations have been read: hence a pass for them alone first.
 enum WaterScan {
-    static func bodies(in url: URL) throws -> WaterBodies {
-        let lakes = try readMultipolygons(in: url)
-        let ways = try readWays(in: url, members: lakes.memberIDs)
+    static func bodies(in url: URL, shouldStop: @escaping () -> Bool = { false }) throws -> WaterBodies {
+        let lakes = try readMultipolygons(in: url, shouldStop: shouldStop)
+        let ways = try readWays(in: url, members: lakes.memberIDs, shouldStop: shouldStop)
         let wanted = NodePlaces.wantedIDs(from: [ways.refs])
         guard !wanted.isEmpty else { return WaterBodies() }
-        let places = try NodePlaces.gather(wanted, from: url)
+        let places = try NodePlaces.gather(wanted, from: url, shouldStop: shouldStop)
         return assemble(lakes, ways, places)
     }
 
@@ -24,9 +24,9 @@ enum WaterScan {
         var memberIDs: [Int64] = []
     }
 
-    private static func readMultipolygons(in url: URL) throws -> Multipolygons {
+    private static func readMultipolygons(in url: URL, shouldStop: @escaping () -> Bool) throws -> Multipolygons {
         var found = Multipolygons()
-        try PBFReader(url: url).readInOrder(make: { Relations() }) { part in
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { Relations() }) { part in
             found.members.append(contentsOf: part.members)
             part.members.removeAll(keepingCapacity: true)
         }
@@ -79,9 +79,9 @@ enum WaterScan {
         var refs: [Int64] = []
     }
 
-    private static func readWays(in url: URL, members: [Int64]) throws -> Ways {
+    private static func readWays(in url: URL, members: [Int64], shouldStop: @escaping () -> Bool) throws -> Ways {
         var found = Ways()
-        try PBFReader(url: url).readInOrder(make: { WaySink(members: members) }) { part in
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { WaySink(members: members) }) { part in
             found.ids.append(contentsOf: part.found.ids)
             found.standalone.append(contentsOf: part.found.standalone)
             let base = Int32(found.refs.count)

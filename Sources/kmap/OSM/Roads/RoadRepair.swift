@@ -90,7 +90,8 @@ struct RoadRepair {
         let cuts = Self.bandCuts(homeRows)
         let tables = bandTables(ends, homeRows: homeRows, cuts: cuts)
         probeBands(&ends, cuts: cuts, tables: tables)
-        return (ends.filter { $0.distance <= limit }, loose)
+        // An end that met no line keeps an infinite distance and no segment.
+        return (ends.filter { $0.segment >= 0 && $0.distance <= limit }, loose)
     }
 
     /// A candidate for every loose end, nearest line still unknown.
@@ -334,16 +335,36 @@ extension RoadRepair {
         return y << latShift | ((x &+ lonBias) & lowHalf)
     }
 
-    /// The cells of size `cell` round every candidate's end, 3 by 3 each.
-    static func cells(around candidates: [Candidate], of network: RoadNetwork, cell: Double) -> CellTable {
+    /// The cells either side of a point that `reach` metres can cross, at least 1 each way.
+    /// A cell of longitude narrows towards the poles, so more of them are wanted there.
+    static func span(_ reach: Double, cell: Double, lat: Double) -> (dy: Int, dx: Int) {
+        func count(_ size: Double) -> Int {
+            guard size > 0, reach > 0 else { return 1 }
+            return min(Self.widestSpan, max(1, Int((reach / size).rounded(.up))))
+        }
+        return (count(cell * metresPerDegree), count(cell * metresPerLonDegree(at: lat)))
+    }
+
+    /// Bounds the cells looked through near a pole, where a cell is nearly no width.
+    private static let widestSpan = 64
+
+    /// The cells of size `cell` round every candidate's end, 3 by 3 each, or as many more
+    /// as `reach` metres cross.
+    static func cells(
+        around candidates: [Candidate],
+        of network: RoadNetwork,
+        cell: Double,
+        reach: Double = 0
+    ) -> CellTable {
         var cells: [Int64] = []
         cells.reserveCapacity(candidates.count * neighbourhood)
         for candidate in candidates {
             let range = network.points(of: Int(candidate.way))
             let at = candidate.atEnd ? range.upperBound - 1 : range.lowerBound
             let here = key(network.lat[at], network.lon[at], cell)
-            for dy in -1...1 {
-                for dx in -1...1 { cells.append(neighbour(of: here, dy: dy, dx: dx)) }
+            let span = span(reach, cell: cell, lat: network.lat[at])
+            for dy in -span.dy...span.dy {
+                for dx in -span.dx...span.dx { cells.append(neighbour(of: here, dy: dy, dx: dx)) }
             }
         }
         return CellTable(keys: cells)

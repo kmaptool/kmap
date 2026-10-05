@@ -6,10 +6,24 @@ import Foundation
 struct PBFRewriter {
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case mixedBlock
+        case writesOverItsInput(String)
 
         var description: String {
-            "a block holds relations as well as the ways being repaired, which this writer"
-                + " does not rebuild -- report the extract, it is not the usual layout"
+            switch self {
+            case .mixedBlock:
+                "a block holds relations as well as nodes or ways, which this writer"
+                    + " does not rebuild -- report the extract, it is not the usual layout"
+            case .writesOverItsInput(let path):
+                "\(path) is read while it is written: name another file for the output"
+            }
+        }
+
+        /// Throws where `destination` is `source` or one of `others`, by any spelling: the
+        /// output is emptied before the input is read.
+        static func refuseOverwriting(_ source: URL, _ others: [URL] = [], with destination: URL) throws {
+            if ([source] + others).contains(where: destination.sameFile) {
+                throw Trouble.writesOverItsInput(destination.nativePath)
+            }
         }
     }
 
@@ -34,6 +48,9 @@ struct PBFRewriter {
     /// for its first input file, so contours handed to it separately are cut at every tile
     /// boundary they cross.
     var contours: [URL] = []
+    /// Asked between batches of blocks: the rewrite runs on threads of its own, where a
+    /// task's cancellation is not seen.
+    var shouldStop: @Sendable () -> Bool = { false }
 
     /// Blocks copied, blocks rebuilt, and objects added.
     struct Tally {
@@ -71,6 +88,7 @@ struct PBFRewriter {
             }
         }
 
+        try Trouble.refuseOverwriting(url, contours, with: destination)
         let writer = try PBFWriter(to: destination)
         var tally = Tally()
         var addedNodes = false
@@ -98,6 +116,7 @@ struct PBFRewriter {
         try data.withUnsafeBytes { file in
             func decodeBatch() throws {
                 guard !batch.isEmpty else { return }
+                if shouldStop() { throw CancellationError() }
                 let items = batch
                 try scratches.withUnsafeMutableBufferPointer { buffers in
                     try fieldSets.withUnsafeMutableBufferPointer { fields in
@@ -261,6 +280,8 @@ struct PBFRewriter {
             // file's own nodes stay ahead of the added ones and every node ahead of
             // the ways.
             if block.hasNodes {
+                // Written again from what was read, and relations are not read.
+                if block.hasRelations { throw Trouble.mixedBlock }
                 writer.nodes(ready?.nodes ?? block.nodes(movedBy: [:], filter: IDFilter()))
                 try addNodes(into: writer, tally: &tally, scratch: &scratch)
                 writer.ways(

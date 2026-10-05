@@ -78,8 +78,7 @@ final class PBFWriter {
 
     init(to url: URL) throws {
         self.url = url
-        _ = FileManager.default.createFile(atPath: url.path, contents: nil)
-        handle = try FileHandle(forWritingTo: url)
+        handle = try FileTools.openForWriting(url, appending: false)
         buffer.reserveCapacity(Self.flushThreshold)
         queue = DispatchQueue(label: "kmap.pbf.\(url.lastPathComponent)")
     }
@@ -148,7 +147,7 @@ final class PBFWriter {
         for node in batch {
             let lat = Int64((node.lat * PBFSchema.coordinateScale).rounded())
             let lon = Int64((node.lon * PBFSchema.coordinateScale).rounded())
-            ids.zigzag(node.id - lastID); lastID = node.id
+            ids.zigzag(node.id &- lastID); lastID = node.id
             lats.zigzag(lat - lastLat); lastLat = lat
             lons.zigzag(lon - lastLon); lastLon = lon
             for (key, value) in node.tags {
@@ -195,7 +194,7 @@ final class PBFWriter {
             }
             var last: Int64 = 0
             for ref in way.refs {
-                refs.zigzag(ref - last)
+                refs.zigzag(ref &- last)
                 last = ref
             }
             // A fresh writer, since it escapes into `bodies`; sized to allocate once.
@@ -245,9 +244,9 @@ final class PBFWriter {
             var last: Int64 = 0
             for member in relation.members {
                 roles.varint(UInt64(strings.index(member.role)))
-                ids.zigzag(member.ref - last)
+                ids.zigzag(member.ref &- last)
                 last = member.ref
-                kinds.varint(UInt64(member.kind))
+                kinds.varint(UInt64(UInt32(bitPattern: member.kind)))
             }
             var body = ProtoWriter()
             body.varintField(PBFSchema.elementID, relation.id)

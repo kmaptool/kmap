@@ -63,7 +63,7 @@ struct OSMCensus: OSMSink {
             case "natural": natural = block.text(Int(value))
             case "waterway": waterway = block.text(Int(value))
             case "man_made": manMade = block.text(Int(value))
-            case "building": building = true
+            case "building": building = block.text(Int(value)) != "no"
             case "addr:housenumber": numbered = true
             default: break
             }

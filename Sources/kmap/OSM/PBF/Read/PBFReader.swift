@@ -179,9 +179,32 @@ struct PBFReader {
     static func dataBlobs(in file: UnsafeRawBufferPointer) throws -> [UnsafeRawBufferPointer] {
         var blobs: [UnsafeRawBufferPointer] = []
         try forEachBlob(in: file) { _, kind, blob in
-            if kind == PBFSchema.dataBlob { blobs.append(blob) }
+            if kind == PBFSchema.dataBlob {
+                blobs.append(blob)
+            } else if kind == PBFSchema.headerBlob {
+                try refuseUnknownFeatures(inHeader: blob)
+            }
         }
         return blobs
+    }
+
+    /// The format's own rule: a file naming a required feature its reader does not know
+    /// is refused, not read. A history file would otherwise bring back every deleted object.
+    static func refuseUnknownFeatures(inHeader blob: UnsafeRawBufferPointer) throws {
+        // A header that does not inflate says nothing either way; the data still reads.
+        var scratch: [UInt8] = []
+        guard let size = try? inflate(blob, into: &scratch) else { return }
+        try scratch.withUnsafeBytes { payload in
+            var block = ProtoReader(UnsafeRawBufferPointer(rebasing: payload[0..<size]))
+            while let field = block.nextField() {
+                guard field.number == PBFSchema.headerRequiredFeature, field.wire == 2 else {
+                    block.skip(wire: field.wire)
+                    continue
+                }
+                let feature = String(decoding: block.lengthDelimited(), as: UTF8.self)
+                if !PBFSchema.requiredFeatures.contains(feature) { throw PBFError.unsupportedFeature(feature) }
+            }
+        }
     }
 
     /// Inflates a blob into `scratch` and decodes it into `sink`.

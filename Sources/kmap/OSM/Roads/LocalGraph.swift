@@ -30,7 +30,14 @@ struct LocalGraph {
     init() {}
 
     init(network: RoadNetwork, around candidates: [RoadRepair.Candidate]) {
-        let wanted = RoadRepair.cells(around: candidates, of: network, cell: Self.coarseDegrees)
+        // A detour goes out and comes back within the search, so half of it away; far north
+        // a coarse cell is narrower than that east to west.
+        let wanted = RoadRepair.cells(
+            around: candidates,
+            of: network,
+            cell: Self.coarseDegrees,
+            reach: RepairPlanner.search / 2
+        )
         // Found across the cores, numbered here in the order 1 walk would number them.
         let lanes = Self.segments(of: network, startingIn: wanted)
         let count = lanes.reduce(0) { $0 + $1.count }

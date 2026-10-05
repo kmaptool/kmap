@@ -110,7 +110,8 @@ enum PBFBytes {
     /// produces but other tools may. Coordinates in degrees.
     static func mixedBlock(
         nodes: [(id: Int64, lat: Double, lon: Double)],
-        ways: [(id: Int64, refs: [Int64])]
+        ways: [(id: Int64, refs: [Int64])],
+        relations: [Int64] = []
     ) -> [UInt8] {
         func deltas(_ values: [Int64]) -> [UInt8] {
             var w = ProtoWriter()
@@ -136,6 +137,9 @@ enum PBFBytes {
                     out.varintField(PBFSchema.elementID, way.id)
                     out.bytesField(PBFSchema.wayRefs, deltas(way.refs))
                 }
+            }
+            for relation in relations {
+                group.message(PBFSchema.groupRelations) { $0.varintField(PBFSchema.elementID, relation) }
             }
         }
         return block.bytes

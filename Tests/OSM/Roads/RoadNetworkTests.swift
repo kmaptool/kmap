@@ -166,6 +166,21 @@ final class RoadNetworkTests: XCTestCase {
         XCTAssertLessThan(network.lat[0], network.lat[1])
     }
 
+    /// Past the 255 obstacle words a byte can number, a word is no word, never the first.
+    func testAnObstacleWordPastTheLastNumberIsNoWordRatherThanAnother() throws {
+        let words = (0..<300).map { "kind\($0)" }
+        let url = try extract(
+            "words.osm.pbf",
+            ways: words.enumerated().map { (Int64($0.offset + 1), [10, 11], [("barrier", $0.element)]) },
+            nodes: [10, 11]
+        )
+        let network = try RoadNetworkLoader(url: url).load()
+        let named = (0..<network.obstacleCount).map { network.vocabulary[Int(network.obstacleWord[$0])] }
+        XCTAssertEqual(named.filter { $0 == "kind0" }.count, 1)
+        XCTAssertEqual(named.last, "")
+        XCTAssertEqual(RepairPlanner.Verdict.bridged(""), "bridged over an obstacle")
+    }
+
     func testAWayNamingNodesTheExtractDoesNotHoldKeepsTheRest() throws {
         // An extract is cut out of a larger one, and the cut runs through ways.
         let url = try extract(

@@ -30,6 +30,11 @@ final class ContoursTests: XCTestCase {
         return tracer.trace()
     }
 
+    func testAStepOfNothingTracesNothingRatherThanTrapping() {
+        XCTAssertTrue(trace([[0, 50], [50, 100]], step: 0).isEmpty)
+        XCTAssertTrue(trace([[0, 50], [50, 100]], step: -10).isEmpty)
+    }
+
     // MARK: The grid itself
 
     func testRowZeroIsTheNorthEdge() {

@@ -61,9 +61,13 @@ struct NodePlaces {
     }
 
     /// Reads a file and returns where every wanted node is.
-    static func gather(_ wanted: [Int64], from url: URL) throws -> NodePlaces {
+    static func gather(
+        _ wanted: [Int64],
+        from url: URL,
+        shouldStop: @escaping () -> Bool = { false }
+    ) throws -> NodePlaces {
         var places = NodePlaces(wanted: wanted)
-        try PBFReader(url: url).readInOrder(make: { BlockNodes() }) { block in
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { BlockNodes() }) { block in
             places.take(block)
             block.clear()
         }

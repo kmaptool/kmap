@@ -33,6 +33,15 @@ final class WaterMaskTests: XCTestCase {
 
     // MARK: The raster
 
+    /// The tracer puts nodes on the cell's own north and east edges: a lake across them
+    /// reads wet there, as the neighbour reads it on its south and west edges.
+    func testTheNorthAndEastEdgesOfTheCellReadAsTheirLastRowAndColumn() throws {
+        let mask = try XCTUnwrap(WaterMask(cellAt: 44, 34, water: water(square(44.9, 34.9, side: 0.2))))
+        XCTAssertTrue(mask.isWater(lat: 45, lon: 34.95))
+        XCTAssertTrue(mask.isWater(lat: 44.95, lon: 35))
+        XCTAssertFalse(mask.isWater(lat: 45.001, lon: 34.95), "past the edge is another cell's")
+    }
+
     func testACellWithoutWaterBuildsNothing() {
         XCTAssertNil(WaterMask(cellAt: 44, 34, water: WaterBodies()))
         XCTAssertNil(

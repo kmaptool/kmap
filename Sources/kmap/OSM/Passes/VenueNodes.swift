@@ -12,7 +12,7 @@ extension VenueScan {
         )
 
         var nodes = BlockNodes()
-        var venues: [(tag: String, x: Double, y: Double)] = []
+        var venues: [(tag: String, x: Double, y: Double, name: String)] = []
 
         mutating func node(
             id: Int64,
@@ -27,17 +27,20 @@ extension VenueScan {
             // dictionary: this runs on every node of the extract.
             var bestKey = Int.max
             var bestValue = ""
+            var name = ""
             var at = tags.startIndex
             while at + 1 < tags.endIndex {
                 let key = block.text(Int(tags[at]))
                 if let rank = Self.keyRank[key], rank < bestKey {
                     bestKey = rank
                     bestValue = block.text(Int(tags[at + 1]))
+                } else if key == "name" {
+                    name = block.text(Int(tags[at + 1]))
                 }
                 at += 2
             }
             if bestKey != Int.max {
-                venues.append((VenueScan.keys[bestKey] + "=" + bestValue, longitude, latitude))
+                venues.append((VenueScan.keys[bestKey] + "=" + bestValue, longitude, latitude, name))
             }
         }
 

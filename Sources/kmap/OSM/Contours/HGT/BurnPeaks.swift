@@ -19,6 +19,8 @@ struct BurnPeaks {
     /// How far `ele` may differ from the highest ground within `radius` metres.
     var threshold = 60.0
     var radius = 100.0
+    /// Asked between tiles: the burn runs on a thread of its own.
+    var shouldStop: () -> Bool = { false }
     /// Tiles to write, by name; nil for every tile holding a summit.
     var tiles: Set<String>?
 
@@ -45,10 +47,10 @@ struct BurnPeaks {
     }
 
     /// Every summit in the extracts, as one list.
-    static func peaks(in urls: [URL]) throws -> [Peak] {
+    static func peaks(in urls: [URL], shouldStop: @escaping () -> Bool = { false }) throws -> [Peak] {
         var found: [Peak] = []
         for url in urls {
-            for part in try PBFReader(url: url).readConcurrently(make: { PeakScan() }) {
+            for part in try PBFReader(url: url, shouldStop: shouldStop).readConcurrently(make: { PeakScan() }) {
                 found.append(contentsOf: part.peaks)
             }
         }
@@ -77,6 +79,7 @@ struct BurnPeaks {
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         // One tile in memory at a time.
         for (key, summits) in byTile.sorted(by: { $0.key < $1.key }) {
+            if shouldStop() { throw CancellationError() }
             guard let path = available[key], tiles?.contains(key) ?? true else {
                 report.outside += summits.count
                 continue

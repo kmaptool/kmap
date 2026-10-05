@@ -33,6 +33,9 @@ struct AnnotatePass {
     /// Contour files to fold into the output, so splitter is handed one input file and
     /// keeps every contour whole where it crosses a tile boundary.
     var contours: [URL] = []
+    /// Asked by every read and by the rewrite: the pass runs on threads of its own, where
+    /// a task's cancellation is not seen.
+    var shouldStop: @Sendable () -> Bool = { false }
 
     @discardableResult
     /// Runs the pass with the contours already at hand.
@@ -85,6 +88,8 @@ struct AnnotatePass {
         contoursReady: (() throws -> [URL])?,
         log: (String) -> Void
     ) throws -> PBFRewriter.Tally {
+        // Before the scans, which would otherwise read the whole extract for nothing.
+        try PBFRewriter.Trouble.refuseOverwriting(source, contours, with: destination)
         // Timings per phase, since the extract is read several times over.
         var mark = Date()
         func took(_ what: String) {
@@ -93,6 +98,7 @@ struct AnnotatePass {
         }
 
         let scanned = runScans()
+        if shouldStop() { throw CancellationError() }
         took("scanned the extract, three ways at once")
         if Measured.reported {
             for (what, seconds) in scanned.timings.slowestFirst {
@@ -120,6 +126,7 @@ struct AnnotatePass {
         rewriter.tidyDescriptions = dropDuplicateDescriptions
         rewriter.contours = contourFiles
         rewriter.duplicateVenues = scanned.venues
+        rewriter.shouldStop = shouldStop
         let tally = try rewriter.write(to: destination)
         took("wrote the extract")
 
@@ -169,7 +176,7 @@ struct AnnotatePass {
         pool.async(group: scans) {
             defer { idleness.finished() }
             timings.timed("classifying barriers") {
-                let found = Result { try BarrierScan.classify(self.source) }
+                let found = Result { try BarrierScan.classify(self.source, shouldStop: self.shouldStop) }
                 barriers.withLock { $0 = found }
             }
         }
@@ -177,7 +184,7 @@ struct AnnotatePass {
             pool.async(group: scans) {
                 defer { idleness.finished() }
                 timings.timed("finding repeated venues") {
-                    let found = Result { try VenueScan.duplicates(in: self.source) }
+                    let found = Result { try VenueScan.duplicates(in: self.source, shouldStop: self.shouldStop) }
                     venues.withLock { $0 = found }
                 }
             }
@@ -219,7 +226,7 @@ struct AnnotatePass {
             timings.note("  " + what, seconds: Date().timeIntervalSince(step))
             step = Date()
         }
-        let loaded = try RoadNetworkLoader(url: source).load()
+        let loaded = try RoadNetworkLoader(url: source, shouldStop: shouldStop).load()
         part("read the road network")
         let (found, loose) = RoadRepair(network: loaded, limit: repairRadius)
             .candidates()
