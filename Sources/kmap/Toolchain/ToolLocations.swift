@@ -13,7 +13,8 @@ enum ToolLocations {
     /// then the one kmap downloaded for itself, then the well-known locations.
     ///
     /// kmap's own copy comes after PATH so that a Java the user installed deliberately
-    /// wins, and before the well-known locations so that it beats a guess.
+    /// wins at the same release (`Toolchain.preferred` takes kmap's own where it is newer),
+    /// and before the well-known locations so that it beats a guess.
     static func java(
         on platform: Platform = Platform.current,
         configured: String = "",
@@ -25,13 +26,7 @@ enum ToolLocations {
         ownJava: (Platform) -> String? = { JavaDownload.installed(on: $0)?.path },
         macJavaHome: () -> String? = Self.macJavaHome
     ) -> [String] {
-        var out: [String] = []
-        if !configured.isEmpty { out.append(configured) }
-
-        // Set by JDK installers and version managers.
-        if let home = environment.variable("JAVA_HOME", on: platform), !home.isEmpty {
-            out.append(javaUnder(home, on: platform))
-        }
+        var out = namedJava(on: platform, configured: configured, environment: environment)
         if platform == .macOS, let home = macJavaHome() {
             out.append(javaUnder(home, on: platform))
         }
@@ -55,6 +50,21 @@ enum ToolLocations {
                     out.append(javaUnder(parent + #"\"# + jdk, on: platform))
                 }
             }
+        }
+        return out
+    }
+
+    /// The Java the user named: the one in the settings, and JAVA_HOME's, which JDK
+    /// installers and version managers set.
+    static func namedJava(
+        on platform: Platform = Platform.current,
+        configured: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> [String] {
+        var out: [String] = []
+        if !configured.isEmpty { out.append(configured) }
+        if let home = environment.variable("JAVA_HOME", on: platform), !home.isEmpty {
+            out.append(javaUnder(home, on: platform))
         }
         return out
     }

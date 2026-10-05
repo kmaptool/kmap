@@ -246,6 +246,33 @@ final class ToolchainTests: XCTestCase {
     /// Only a jar that carries an older patch, or one built for a newer Java, is rebuilt on
     /// its own: one that was never patched stays as it is, and the current one has nothing
     /// to rebuild.
+    func testKmapsOwnJavaIsTakenOverAFoundOneOnlyWhereItIsNewer() {
+        func java(_ path: String, _ version: String) -> JavaRuntime {
+            JavaRuntime(path: path, version: #"openjdk version "\#(version)""#, options: [])
+        }
+        let system21 = java("/usr/bin/java", "21.0.12")
+        let own25 = java("/k/tools/jdk/bin/java", "25.0.4")
+        XCTAssertEqual(Toolchain.preferred(found: system21, own: own25), own25, "25 starts mkgmap warm")
+        XCTAssertEqual(Toolchain.preferred(found: java("/usr/bin/java", "25.0.1"), own: own25).path, "/usr/bin/java")
+        XCTAssertEqual(
+            Toolchain.preferred(found: java("/opt/jdk27/bin/java", "27"), own: own25).path,
+            "/opt/jdk27/bin/java"
+        )
+        XCTAssertEqual(Toolchain.preferred(found: system21, own: nil), system21)
+    }
+
+    func testOnlyTheSettingAndJavaHomeNameAJava() {
+        XCTAssertEqual(
+            ToolLocations.namedJava(
+                on: .linux,
+                configured: "/x/java",
+                environment: ["JAVA_HOME": "/jdk", "PATH": "/usr/bin"]
+            ),
+            ["/x/java", "/jdk/bin/java"]
+        )
+        XCTAssertEqual(ToolLocations.namedJava(on: .linux, configured: "", environment: ["PATH": "/usr/bin"]), [])
+    }
+
     func testOnlyAnOlderPatchOrOneTooNewForTheJavaIsStale() throws {
         try XCTSkipUnless(
             Archive.isAvailable && Platform.which("zip") != nil,

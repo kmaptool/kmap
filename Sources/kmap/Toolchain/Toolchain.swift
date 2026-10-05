@@ -102,27 +102,44 @@ final class Toolchain: @unchecked Sendable {
     }
 
     private func probeJava(compilerNeeded: Bool = false) -> JavaRuntime? {
-        for candidate in javaCandidates() where FileTools.isExecutable(candidate) {
-            if compilerNeeded,
-                !FileTools.isExecutable(ToolLocations.companion("javac", of: candidate))
-            {
-                continue
-            }
-            for options in Toolchain.javaRescueOptions {
-                guard let output = ProcessProbe.capture(candidate, options + ["-version"])
-                else { continue }
-                // A version string is the only output that means the JVM ran: both a stub
-                // launcher and a JVM that failed to initialize exit with a message instead.
-                // The quoted number, not the word alone: a JVM that cannot load prints
-                // "version 'GLIBC_2.xx' not found".
-                guard output.lowercased().contains("version \"") else { continue }
-                return JavaRuntime(
-                    path: candidate,
-                    version: Self.versionLine(of: output),
-                    options: options,
-                    isOpenJ9: output.contains("OpenJ9")
-                )
-            }
+        let environment = ProcessInfo.processInfo.environment
+        guard
+            let found = javaCandidates(environment: environment).lazy
+                .compactMap({ Self.runtime(at: $0, compilerNeeded: compilerNeeded) }).first
+        else { return nil }
+        let named = ToolLocations.namedJava(configured: settings.settings.javaBinary, environment: environment)
+        guard !named.contains(found.path), let own = JavaDownload.installed()?.path, own != found.path else {
+            return found
+        }
+        return Self.preferred(found: found, own: Self.runtime(at: own, compilerNeeded: compilerNeeded))
+    }
+
+    /// The Java to run: the one found first, unless kmap's own is a newer release. Only for
+    /// a Java that was found, on PATH or where the system keeps one; one the user named in
+    /// the settings or in JAVA_HOME is never passed over.
+    static func preferred(found: JavaRuntime, own: JavaRuntime?) -> JavaRuntime {
+        guard let own, let ownMajor = own.major, ownMajor > (found.major ?? 0) else { return found }
+        return own
+    }
+
+    /// The JVM at `candidate`, if it runs: with no options, or with the first set of
+    /// rescue options it starts on.
+    private static func runtime(at candidate: String, compilerNeeded: Bool) -> JavaRuntime? {
+        guard FileTools.isExecutable(candidate) else { return nil }
+        if compilerNeeded, !FileTools.isExecutable(ToolLocations.companion("javac", of: candidate)) { return nil }
+        for options in javaRescueOptions {
+            guard let output = ProcessProbe.capture(candidate, options + ["-version"]) else { continue }
+            // A version string is the only output that means the JVM ran: both a stub
+            // launcher and a JVM that failed to initialize exit with a message instead.
+            // The quoted number, not the word alone: a JVM that cannot load prints
+            // "version 'GLIBC_2.xx' not found".
+            guard output.lowercased().contains("version \"") else { continue }
+            return JavaRuntime(
+                path: candidate,
+                version: versionLine(of: output),
+                options: options,
+                isOpenJ9: output.contains("OpenJ9")
+            )
         }
         return nil
     }
