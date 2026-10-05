@@ -52,8 +52,9 @@ extension SettingsStore {
     /// be reached from here.
     @discardableResult
     func deleteZoomPlan(_ id: String) -> Bool {
-        guard let at = settings.zoomPlans.firstIndex(where: { $0.id == id }) else { return false }
-        update { $0.zoomPlans.remove(at: at) }
+        guard settings.zoomPlans.contains(where: { $0.id == id }) else { return false }
+        // By id inside the update: it works on the file as it is now, not on this copy.
+        update { $0.zoomPlans.removeAll { $0.id == id } }
         return true
     }
 

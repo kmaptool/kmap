@@ -58,10 +58,46 @@ final class StyleCatalog: Sendable {
     ///
     /// mkgmap reads the style throughout its run, so a build must not read the shared
     /// directory, which a concurrent build may rewrite.
-    func snapshot(_ directory: URL, to destination: URL) throws {
+    ///
+    /// - Returns: false where `expecting` is given and the copy carries another marker:
+    ///   another build swapped the shared style since this one prepared it.
+    @discardableResult
+    func snapshot(_ directory: URL, to destination: URL, expecting: String? = nil) throws -> Bool {
         try holdingStyles {
             FileTools.removeIfPresent(destination)
-            try FileTools.copy(directory, to: destination)
+            // The folder a link leads to: copied as a link, the build's rule edits would
+            // write through it into the user's own files.
+            try FileTools.copy(directory.resolvingSymlinksInPath(), to: destination)
+            guard let expecting else { return true }
+            let marker = try? String(contentsOf: destination.appendingPathComponent("kmap-version"), encoding: .utf8)
+            return marker?.trimmingCharacters(in: .whitespacesAndNewlines) == expecting
+        }
+    }
+
+    /// The marker the rules prepared for `style` with `choices` carry, for the styles kmap
+    /// materializes into a shared folder; nil for one it does not.
+    func expectedMarker(for style: MapStyle, choices: StyleChoices) -> String? {
+        if style.styleDirectory == StyleCatalog.baseStyleDirectory { return materializedIdentity(choices) }
+        guard case .importedTYP = style.origin, let typ = style.typURL,
+            style.styleDirectory?.lastPathComponent.hasPrefix("recovered-") == true,
+            let sheetURL = TypLibrary.sheet(of: typ),
+            let sheet = try? String(contentsOf: sheetURL, encoding: .utf8)
+        else { return nil }
+        return materializedIdentity(choices) + "+sheet-\(TypLibrary.fingerprint(Data(sheet.utf8)))"
+    }
+
+    /// What a run killed part-way left: hidden build folders and unpackings a day old,
+    /// so none another kmap is filling now.
+    static func removeAbandonedStaging(in styles: URL = Paths.styles, now: Date = Date()) {
+        let entries = (try? FileManager.default.contentsOfDirectory(at: styles, includingPropertiesForKeys: nil)) ?? []
+        for entry in entries {
+            let name = entry.lastPathComponent
+            guard
+                (name.hasPrefix(".") && name.contains("-build-")) || name.hasPrefix("unpack-")
+                    || name.hasPrefix(".hideable-"),
+                let changed = FileTools.modified(of: entry), now.timeIntervalSince(changed) > 86_400
+            else { continue }
+            FileTools.removeIfPresent(entry)
         }
     }
 
@@ -97,14 +133,16 @@ final class StyleCatalog: Sendable {
     }
 
     /// Everything the materialized rules depend on, in one string: version, description
-    /// carrier, zoom plan, label language, hides and reassignments. Derived styles are
-    /// copies of the base, so their markers carry it too.
-    private func materializedIdentity(_ choices: StyleChoices) -> String {
+    /// carrier, zoom plan and the ladder it lands on, label language, hides and
+    /// reassignments. Derived styles are copies of the base, so their markers carry it too.
+    func materializedIdentity(_ choices: StyleChoices) -> String {
         let hidden = choices.hidden
         let hiddenTag = hidden.isEmpty ? "" : "+hide-" + hidden.sorted().joined(separator: "-")
         return StyleCatalog.materializedVersion
             + (choices.descriptions == .off ? "" : "+desc-\(choices.descriptions.rawValue)")
             + zoomTag(choices.zoom.plan)
+            // Windows and a recovered sheet's bands are fitted to the ladder's rungs.
+            + "+lv-\(choices.zoom.levels.id)"
             + (choices.cyrillic ? "+ru" : "")
             + hiddenTag
             + RuleReassignments.fingerprint()
@@ -118,6 +156,7 @@ final class StyleCatalog: Sendable {
         let dir = StyleCatalog.baseStyleDirectory
         let marker = dir.appendingPathComponent("kmap-version")
         let wanted = materializedIdentity(choices)
+        StyleCatalog.removeAbandonedStaging()
 
         // Read under the lock, so a swap in progress is seen whole or not at all.
         let current = holdingStyles { try? String(contentsOf: marker, encoding: .utf8) }
@@ -205,13 +244,18 @@ final class StyleCatalog: Sendable {
     /// The caller owns the returned directory.
     func neutralRulesForRecovery(log: Log, runner: ProcessRunner) async throws -> URL {
         let dir = StyleCatalog.stagingDirectory(for: "neutral")
-        try await materializeRules(
-            into: dir,
-            descriptions: .off,
-            cyrillicLabels: false,
-            log: log,
-            runner: runner
-        )
+        do {
+            try await materializeRules(
+                into: dir,
+                descriptions: .off,
+                cyrillicLabels: false,
+                log: log,
+                runner: runner
+            )
+        } catch {
+            FileTools.removeIfPresent(dir)
+            throw error
+        }
         return dir
     }
 
@@ -371,7 +415,9 @@ final class StyleCatalog: Sendable {
             zoom: zoom,
             cyrillic: cyrillicLabels
         )
-        if style.styleDirectory?.lastPathComponent.hasPrefix("recovered-") == true {
+        // Only a library style: a folder of the user's own that happens to bear the name
+        // is theirs, and is never replaced.
+        if case .importedTYP = style.origin, style.styleDirectory?.lastPathComponent.hasPrefix("recovered-") == true {
             try await materializeRecoveredStyle(
                 style,
                 choices: choices,

@@ -61,4 +61,36 @@ enum SubstitutionSheet {
         flush()
         return out
     }
+
+    /// Where each entry `parse` finds stands: its `@@` header line, and its own `-` and
+    /// `+` lines, in the same order. For taking one entry out and leaving the rest.
+    static func entryLines(_ lines: [String]) -> [(header: Int?, lines: [Int])] {
+        var out: [(header: Int?, lines: [Int])] = []
+        var header: Int?
+        var current: [Int] = []
+        var hasOld = false
+        var previousWasMinus = false
+        func flush() {
+            if hasOld { out.append((header, current)) }
+            current = []
+            hasOld = false
+        }
+        for (index, line) in lines.enumerated() {
+            if line.hasPrefix("@@ ") {
+                flush()
+                header = index
+            } else if line.hasPrefix("- ") {
+                if !previousWasMinus { flush() }
+                current.append(index)
+                hasOld = true
+                previousWasMinus = true
+                continue
+            } else if line.hasPrefix("+ ") {
+                current.append(index)
+            }
+            previousWasMinus = false
+        }
+        flush()
+        return out
+    }
 }

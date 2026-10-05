@@ -112,6 +112,31 @@ final class ZoomShiftTests: XCTestCase {
         XCTAssertTrue(out.contains("[0x4f resolution 19-22]"))
     }
 
+    /// A window 1 rung wide away from rung 0 is a range too: a bare number reaches to 24.
+    func testAWindowOfOneRungKeepsItsCeiling() throws {
+        try write("polygons", "landuse=forest [0x50 resolution 19]")
+        try apply(plan(["woodland": 1...1]))
+        XCTAssertTrue(try read("polygons").contains("[0x50 resolution 23-23]"))
+    }
+
+    /// The sea is drawn for the overview, below the tiles: a window that keeps its far end
+    /// leaves it there, with the window's ceiling.
+    func testAnOverviewRuleKeepsItsFloorWhereTheFarEndStays() throws {
+        try write("polygons", "natural=sea [0x32 resolution 10]\nnatural=water [0x3c resolution 18]")
+        try apply(plan(["water": 1...6]))
+        let out = try read("polygons")
+        XCTAssertTrue(out.contains("[0x32 resolution 10-23]"), out)
+    }
+
+    /// The plan editor reads the shared rules after a build has moved them: it is told
+    /// where they were, not where the last plan put them.
+    func testTheSpreadsBeforeThePlanAreKeptForTheEditor() throws {
+        try write("polygons", "landuse=forest [0x50 resolution 19]")
+        try apply(plan(["woodland": 1...3]))
+        let survey = ZoomSurvey.beforeAnyPlan(at: directory, levels: .smooth)
+        XCTAssertEqual(survey.spread(try XCTUnwrap(ZoomFamily.all.first { $0.id == "woodland" }))?.coarsest, 4)
+    }
+
     /// A window reaching rung 0 has no ceiling, and says so with the plain form: writing
     /// `-24` would mean the same and read as a restriction.
     func testNoCeilingKeepsThePlainForm() throws {

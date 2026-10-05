@@ -169,4 +169,114 @@ final class StyleCatalogRulesTests: XCTestCase {
         XCTAssertEqual(catalog.zoomTag(one), "+zoom-trails0-2,woodland1-3")
         XCTAssertEqual(catalog.zoomTag(one), catalog.zoomTag(other))
     }
+
+    /// Rules fitted to 1 ladder's rungs are not the rules for another's.
+    func testTheLadderIsPartOfWhatTheRulesAre() {
+        let settings = SettingsStore()
+        let catalog = StyleCatalog(settings: settings, toolchain: Toolchain(settings: settings))
+        var smooth = StyleChoices()
+        smooth.zoom = (.asMeasured, .smooth)
+        var standard = StyleChoices()
+        standard.zoom = (.asMeasured, .standard)
+        XCTAssertNotEqual(catalog.materializedIdentity(smooth), catalog.materializedIdentity(standard))
+    }
+
+    /// A style folder reached through a link is copied as a folder: the build's own rule
+    /// edits must not write through into the user's files. And a copy carrying another
+    /// build's marker is said to be one.
+    func testASnapshotIsARealCopyOfWhatWasPrepared() throws {
+        let settings = SettingsStore()
+        let catalog = StyleCatalog(settings: settings, toolchain: Toolchain(settings: settings))
+        let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("kmap-snap-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let real = root.appendingPathComponent("real")
+        try FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        try FileTools.write("highway=path [0x16 resolution 23]", to: real.appendingPathComponent("lines"))
+        try FileTools.write("mine", to: real.appendingPathComponent("kmap-version"))
+        let link = root.appendingPathComponent("linked")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+
+        let copy = root.appendingPathComponent("copy")
+        XCTAssertTrue(try catalog.snapshot(link, to: copy, expecting: "mine"))
+        XCTAssertEqual(FileTools.type(of: copy), FileAttributeType.typeDirectory)
+        try FileTools.write("changed", to: copy.appendingPathComponent("lines"))
+        XCTAssertEqual(
+            try String(contentsOf: real.appendingPathComponent("lines"), encoding: .utf8),
+            "highway=path [0x16 resolution 23]"
+        )
+
+        XCTAssertFalse(try catalog.snapshot(real, to: copy, expecting: "another build's"))
+    }
+
+    /// 2 names making 1 id would leave the second never buildable.
+    func testTwoStylesOfOneIdAreToldApart() {
+        func style(_ name: String) -> MapStyle {
+            MapStyle(
+                id: "dir:my-style",
+                name: name,
+                summary: "",
+                origin: .builtin,
+                styleDirectory: nil,
+                typURL: nil,
+                familyID: 6324,
+                productID: 1
+            )
+        }
+        XCTAssertEqual(
+            StyleCatalog.distinctIDs([style("My Style"), style("my-style")]).map(\.id),
+            ["dir:my-style", "dir:my-style-2"]
+        )
+        // A style already named the number given out is not shadowed.
+        let own = MapStyle(
+            id: "dir:my-style-2",
+            name: "my-style-2",
+            summary: "",
+            origin: .builtin,
+            styleDirectory: nil,
+            typURL: nil,
+            familyID: 6324,
+            productID: 1
+        )
+        XCTAssertEqual(
+            StyleCatalog.distinctIDs([style("My Style"), style("my-style"), own]).map(\.id),
+            ["dir:my-style", "dir:my-style-3", "dir:my-style-2"]
+        )
+    }
+
+    /// What a killed run left among the styles goes after a day; fresh ones stay.
+    func testAbandonedStyleBuildsAreSweptAfterADay() throws {
+        let styles = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
+            "kmap-styles-\(UUID().uuidString)"
+        )
+        defer { try? FileManager.default.removeItem(at: styles) }
+        for name in [".neutral-build-1A2B3C4D", ".base-build-1A2B3C4D", "unpack-1A2B3C4D", "kmap-base", "mine", ".lock"]
+        {
+            try FileManager.default.createDirectory(
+                at: styles.appendingPathComponent(name),
+                withIntermediateDirectories: true
+            )
+        }
+        StyleCatalog.removeAbandonedStaging(in: styles, now: Date())
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: styles.path).count, 6)
+        StyleCatalog.removeAbandonedStaging(in: styles, now: Date().addingTimeInterval(2 * 86_400))
+        XCTAssertEqual(
+            Set(try FileManager.default.contentsOfDirectory(atPath: styles.path)),
+            ["kmap-base", "mine", ".lock"]
+        )
+    }
+
+    /// A hidden rule is known by its own line, not by a comment quoting its condition or
+    /// a hidden rule just below.
+    func testAHiddenRuleIsKnownByItsOwnLine() {
+        let text = """
+            # place=isolated_dwelling & name=* was moved here
+            place=isolated_dwelling & name=* [0x0b00 resolution 24]
+            # office=government [0x3007 resolution 24]  # kmap: hidden
+            """
+        XCTAssertFalse(StyleCatalog.isHidden("place=isolated_dwelling & name=* [0x0b00 resolution 22]", in: text))
+        XCTAssertTrue(StyleCatalog.isHidden("office=government [0x3008 resolution 24]", in: text))
+        // A condition that only starts another's is another rule.
+        let shops = "shop=car [0x2f07 resolution 22]\n# shop=car_repair [0x2f03 resolution 24]  # kmap: hidden"
+        XCTAssertFalse(StyleCatalog.isHidden("shop=car [0x2f07 resolution 24]", in: shops))
+    }
 }

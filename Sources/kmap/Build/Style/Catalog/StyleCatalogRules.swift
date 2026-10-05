@@ -37,12 +37,7 @@ extension StyleCatalog {
                     // The hide pass rewrites a rule's type line and leaves its mark; a
                     // substitution aimed at a hidden rule has nothing to retarget - the
                     // rule draws nothing - so the miss is bookkeeping, not a warning.
-                    let condition =
-                        substitution.old
-                        .components(separatedBy: " [0x").first ?? substitution.old
-                    if let at = text.range(of: condition),
-                        text[at.upperBound...].prefix(200).contains("# kmap: hidden")
-                    {
+                    if Self.isHidden(substitution.old, in: text) {
                         hidden += 1
                         continue
                     }
@@ -222,6 +217,29 @@ extension StyleCatalog {
     /// Three shapes are honoured - a rule deleted, a rule re-aimed, and a rule kept
     /// with strokes stacked above it. Anything else is left to the exact match, and
     /// reported when that misses.
+    /// Whether the rule `old` names is one the hide pass took the type from: its own first
+    /// line, commented out or not, with the hidden mark on it or the lines of the rule after.
+    /// Not the first place the condition appears: a comment quoting it, or a hidden rule
+    /// just below, is another rule.
+    static func isHidden(_ old: String, in text: String) -> Bool {
+        let first = (old.components(separatedBy: "\n").first ?? old)
+        let condition = (first.components(separatedBy: " [0x").first ?? first).trimmingCharacters(in: .whitespaces)
+        guard !condition.isEmpty else { return false }
+        let lines = text.components(separatedBy: "\n")
+        for (at, line) in lines.enumerated() {
+            // Commented out whole, or kept with its actions and its type dropped.
+            let body = String(line.trimmingCharacters(in: .whitespaces).drop { $0 == "#" || $0 == " " })
+            // The whole condition, not its start: `shop=car` is not `shop=car_repair`.
+            let head =
+                (body.components(separatedBy: " [0x").first ?? body)
+                .components(separatedBy: "# kmap:").first?.trimmingCharacters(in: .whitespaces) ?? ""
+            guard head == condition else { continue }
+            let rule = lines[at..<min(lines.count, at + old.components(separatedBy: "\n").count)]
+            if rule.contains(where: { $0.contains("# kmap: hidden") }) { return true }
+        }
+        return false
+    }
+
     private static func retype(_ text: inout String, old: String, new: String) -> Bool {
         func token(of rule: String) -> Substring? {
             guard let open = rule.range(of: "[0x") else { return nil }

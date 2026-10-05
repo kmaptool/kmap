@@ -91,20 +91,29 @@ enum RuleReassignments {
         try write(body, to: file)
     }
 
-    /// Drops one substitution, putting that rule back where mkgmap had it. The file is
-    /// rewritten from what is left, so a block spanning several lines goes whole.
+    /// Drops one substitution, putting that rule back where mkgmap had it. Only its own
+    /// `@@`, `-` and `+` lines go: the file is the user's to annotate, and every comment
+    /// stays where it was.
     static func remove(_ entry: Entry, from file: URL = RuleReassignments.file) throws {
-        let keep = entries(in: file).filter { $0 != entry }
-        guard keep.count != entries(in: file).count else { return }
+        let all = entries(in: file)
+        let keep = all.filter { $0 != entry }
+        guard keep.count != all.count else { return }
         guard !keep.isEmpty else { return try removeAll(at: file) }
+        guard let text = try? String(contentsOf: file, encoding: .utf8) else { return }
 
-        var body = header
-        for item in keep {
-            body += "\n@@ \(item.file)\n"
-            body += item.old.map { "- " + $0 }.joined(separator: "\n") + "\n"
-            body += item.new.map { "+ " + $0 }.joined(separator: "\n") + "\n"
+        var lines = Lines.keepingTrailingBlank(text)
+        // Each entry's own lines, read as the sheet is read: a block can hold several.
+        let runs = SubstitutionSheet.entryLines(lines)
+        guard let at = SubstitutionSheet.parse(text).firstIndex(of: entry), at < runs.count else { return }
+        var going = Set(runs[at].lines)
+        // Its header too, where no other entry is left under it.
+        if let header = runs[at].header,
+            !runs.enumerated().contains(where: { $0.offset != at && $0.element.header == header })
+        {
+            going.insert(header)
         }
-        try write(body, to: file)
+        for index in going.sorted(by: >) { lines.remove(at: index) }
+        try write(lines.joined(separator: "\n"), to: file)
     }
 
     static func removeAll(at file: URL = RuleReassignments.file) throws {

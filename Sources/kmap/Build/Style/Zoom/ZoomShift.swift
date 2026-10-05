@@ -19,6 +19,8 @@ extension StyleCatalog {
 
         let asked = ZoomFamily.all.filter { plan.window($0) != nil }
         let measured = ZoomSurvey(styleAt: directory, levels: levels)
+        // Kept for the plan editor, which reads this folder after the rules have moved.
+        ZoomSurvey.record(directory)
         var counts: [String: Int] = [:]
 
         for file in Set(asked.flatMap(\.files)).sorted() {
@@ -45,11 +47,16 @@ extension StyleCatalog {
                 // window's coarse end; this rule keeps its own place within that.
                 let moved = was + (window.rungs.upperBound - spread.coarsest)
                 let start = min(max(moved, window.rungs.lowerBound), window.rungs.upperBound)
+                // A rule for the overview, below the tile ladder, keeps its own floor where
+                // the far end did not move: lifted to the coarsest tile, it would leave the
+                // overview. The window's ceiling still applies.
+                let keepsFloor = found.value < (rungs.bits.last ?? 0) && start == was
                 guard
                     let text = resolution(
                         from: start,
                         to: window.rungs.lowerBound,
-                        on: rungs
+                        on: rungs,
+                        floor: keepsFloor ? found.value : nil
                     )
                 else { continue }
                 let type = rule.type.replacingCharacters(in: found.range, with: text)
@@ -83,12 +90,11 @@ extension StyleCatalog {
     }
 
     /// What to write after `resolution`: a floor, or a floor and a ceiling. `finest == 0`
-    /// is no ceiling, which the plain one-number form already expresses.
-    private func resolution(from start: Int, to finest: Int, on rungs: ZoomRungs) -> String? {
-        guard let floor = rungs.resolution(atRung: start) else { return nil }
-        guard finest > 0, let ceiling = rungs.resolution(atRung: finest),
-            ceiling != floor
-        else { return "\(floor)" }
+    /// is no ceiling, which the plain 1-number form already expresses; any other is
+    /// written as a range, 1 rung wide too, since a bare number reaches up to 24.
+    private func resolution(from start: Int, to finest: Int, on rungs: ZoomRungs, floor kept: Int? = nil) -> String? {
+        guard let floor = kept ?? rungs.resolution(atRung: start) else { return nil }
+        guard finest > 0, let ceiling = rungs.resolution(atRung: finest) else { return "\(floor)" }
         return "\(floor)-\(ceiling)"
     }
 }

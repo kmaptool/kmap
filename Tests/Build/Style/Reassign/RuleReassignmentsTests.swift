@@ -344,4 +344,37 @@ final class RuleReassignmentsTests: XCTestCase {
         try RuleReassignments.add(move("a=1 [0x01 resolution 24]", from: 1, to: 3), to: store)
         XCTAssertNotEqual(RuleReassignments.fingerprint(in: store), toTwo)
     }
+
+    /// The file is the user's to annotate: undoing one entry leaves every comment.
+    func testUndoingOneLeavesTheCommentsWritten() throws {
+        try RuleReassignments.add(move("shop=car_wrecker [0x2f0a resolution 24]", from: 0x2f0a, to: 0x2f03), to: store)
+        try RuleReassignments.add(move("shop=bicycle [0x2f13 resolution 24]", from: 0x2f13, to: 0x2f03), to: store)
+        var text = try String(contentsOf: store, encoding: .utf8)
+        text += "# my own note, kept\n"
+        try FileTools.write(text, to: store)
+
+        let first = try XCTUnwrap(RuleReassignments.entries(in: store).first)
+        try RuleReassignments.remove(first, from: store)
+        let after = try String(contentsOf: store, encoding: .utf8)
+        XCTAssertTrue(after.contains("# my own note, kept"))
+        XCTAssertFalse(after.contains("car_wrecker"))
+        XCTAssertEqual(RuleReassignments.entries(in: store).map(\.old), [["shop=bicycle [0x2f13 resolution 24]"]])
+    }
+
+    /// A block written by hand can hold several entries: undoing one leaves the others.
+    func testUndoingOneOfABlocksEntriesLeavesTheOthers() throws {
+        let text =
+            "# my reassignments"
+            + "\n@@ points\n- shop=car [0x2f07 resolution 24]\n+ shop=car [0x2f03 resolution 24]\n"
+            + "- shop=bicycle [0x2f13 resolution 24]\n+ shop=bicycle [0x2f03 resolution 24]\n"
+        try FileTools.write(text, to: store)
+        let entries = RuleReassignments.entries(in: store)
+        XCTAssertEqual(entries.count, 2)
+
+        try RuleReassignments.remove(entries[1], from: store)
+        XCTAssertEqual(RuleReassignments.entries(in: store), [entries[0]])
+        try FileTools.write(text, to: store)
+        try RuleReassignments.remove(entries[0], from: store)
+        XCTAssertEqual(RuleReassignments.entries(in: store), [entries[1]])
+    }
 }

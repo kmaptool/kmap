@@ -63,7 +63,35 @@ extension StyleCatalog {
 
         out.append(contentsOf: imported)
         out.append(contentsOf: customDirectoryStyles())
-        return out
+        return Self.distinctIDs(out)
+    }
+
+    /// 2 names that make 1 id, `My Map.txt` and `my-map.typ`, would leave the second
+    /// never buildable: it is told apart by a number, in the order the list keeps.
+    static func distinctIDs(_ styles: [MapStyle]) -> [MapStyle] {
+        // Every id given out, the numbered ones too: `topo-2` may be a style's own name.
+        let own = Set(styles.map(\.id))
+        var taken = Set<String>()
+        return styles.map { style in
+            guard taken.contains(style.id) else {
+                taken.insert(style.id)
+                return style
+            }
+            var count = 2
+            while taken.contains("\(style.id)-\(count)") || own.contains("\(style.id)-\(count)") { count += 1 }
+            let id = "\(style.id)-\(count)"
+            taken.insert(id)
+            return MapStyle(
+                id: id,
+                name: style.name,
+                summary: style.summary,
+                origin: style.origin,
+                styleDirectory: style.styleDirectory,
+                typURL: style.typURL,
+                familyID: style.familyID,
+                productID: style.productID
+            )
+        }
     }
 
     func style(id: String) -> MapStyle? {
@@ -122,6 +150,8 @@ extension StyleCatalog {
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDir), isDir.boolValue,
                 dir.lastPathComponent != "kmap-base",
+                // kmap's own rule sets for recovered styles, and an unpacking left over.
+                !dir.lastPathComponent.hasPrefix("recovered-"), !dir.lastPathComponent.hasPrefix("unpack-"),
                 FileTools.exists(dir.appendingPathComponent("lines"))
             else { return nil }
 
