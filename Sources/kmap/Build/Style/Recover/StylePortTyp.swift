@@ -132,7 +132,10 @@ extension StylePort {
                 drawOrder.append((ours, level))
             }
         }
-        for port in ported {
+        // The ground's numbers are written above; a second section for one would leave
+        // which picture the device takes to chance.
+        let ground = Set(Self.generatedTypes.map { "\($0.0.rawValue) \($0.1)" })
+        for port in ported where !ground.contains("\(port.kind.rawValue) \(port.ours)") {
             guard let section = theirs.section(port.kind, port.theirs) else { continue }
             out.append(
                 "; \(port.meaning) — kmap 0x\(String(port.ours, radix: 16))"
@@ -201,9 +204,9 @@ extension StylePort {
                 out.append(line)
             }
         }
-        // A point whose block never said SubType still needs one when ours has a low
-        // byte.
-        if kind == .point, !wroteSubtype, subtype != 0,
+        // A point whose block never said SubType still needs one, a low byte of 0 too:
+        // without it `Type=0x2a` reads as the number 0x2a, not 0x2a00.
+        if kind == .point, !wroteSubtype,
             let at = out.firstIndex(where: { $0.hasPrefix("Type=") })
         {
             out.insert(String(format: "SubType=0x%02x", subtype), at: at + 1)

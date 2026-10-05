@@ -106,6 +106,27 @@ final class StylePortTypTests: XCTestCase {
         let lines = typ(bare, ported: [ported(.point, ours: 0x6511, theirs: 0x2f07)])
         let type = try? XCTUnwrap(lines.firstIndex(of: "Type=0x65"))
         XCTAssertEqual(type.map { lines[$0 + 1] }, "SubType=0x11", "right under the type")
+
+        // On one of our numbers with a low byte of 0 too: `Type=0x2a` alone reads as 0x2a.
+        let round = typ(bare, ported: [ported(.point, ours: 0x2a00, theirs: 0x2f07)])
+        let at = try? XCTUnwrap(round.firstIndex(of: "Type=0x2a"))
+        XCTAssertEqual(at.map { round[$0 + 1] }, "SubType=0x00")
+        let section = TypSource.parse(round.joined(separator: "\n")).sections.first { $0.kind == .point }
+        XCTAssertEqual(section?.code, 0x2a00)
+    }
+
+    /// Island land tagged natural=land would port onto the ground's own 0x27, which is
+    /// written once already: a second section leaves the device's choice to chance.
+    func testTheGroundsNumbersAreWrittenOnce() {
+        let islands = """
+            [_polygon]
+            Type=0x1d
+            Xpm="0 0 1 0"
+            "1 c #00FF00"
+            [end]
+            """
+        let lines = typ(islands, ported: [ported(.polygon, ours: 0x27, theirs: 0x1d)])
+        XCTAssertEqual(lines.filter { $0 == "Type=0x27" }.count, 1)
     }
 
     // MARK: The ground

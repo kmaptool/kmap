@@ -1071,3 +1071,50 @@ extension DeriveTests {
         )
     }
 }
+
+extension DeriveTests {
+    /// 2 tags opening on 1 shared rule are 1 meaning: its rules are its commonest tag's,
+    /// whichever witness the dictionary hands over first, and those of another tag only
+    /// where this code draws most of that tag. A stray tag adds none.
+    func testTagsSharingAFirstRuleShareTheRulesTheCodeLeads() throws {
+        try FileTools.write(
+            """
+            (waterway=stream | waterway=drain | waterway=ditch) & intermittent=yes [0x26 resolution 22]
+            waterway=stream [0x18 resolution 22]
+            waterway=drain [0x34 resolution 22]
+            waterway=ditch [0x35 resolution 22]
+            """,
+            to: folder.appendingPathComponent("lines")
+        )
+        let rules = DefaultRuleBook.load(from: folder)
+        var seed: Int64 = 0
+        let code = forCode(
+            .line,
+            0x1f,
+            seed: &seed,
+            [
+                (["waterway": "stream"], 20),
+                (["waterway": "drain"], 5),
+                (["waterway": "ditch"], 1)
+            ]
+        )
+        var report = StyleRecovery.Report()
+        let read = try XCTUnwrap(
+            StyleRecovery.readCodes(Evidence(codes: ["L1F": code]), into: &report, rules: rules).first
+        )
+        func texts(_ entry: StyleRecovery.CodeReading) -> [String] {
+            entry.buckets.values.first?.lines.map(\.text) ?? []
+        }
+        XCTAssertEqual(read.buckets.count, 1)
+        XCTAssertEqual(texts(read).count, 2, "the stream's own: \(texts(read))")
+
+        let leads = StyleRecovery.widened(read, rules: rules, tagLeader: [:])
+        XCTAssertTrue(texts(leads).contains { $0.hasPrefix("waterway=drain [0x34") }, "\(texts(leads))")
+        XCTAssertFalse(texts(leads).contains { $0.hasPrefix("waterway=ditch") }, "\(texts(leads))")
+        XCTAssertEqual(texts(leads).count, 3)
+
+        let drain = "\(ElementDumper.Kind.line.rawValue)@waterway=drain"
+        let follows = StyleRecovery.widened(read, rules: rules, tagLeader: [drain: 50])
+        XCTAssertEqual(texts(follows).count, 2, "another code draws the drains: \(texts(follows))")
+    }
+}

@@ -359,6 +359,7 @@ extension StyleRecovery {
             }
             ordered = collapsed
             for (index, addition) in ordered.enumerated() {
+                guard let tag = DefaultRuleBook.condition(addition.tag) else { continue }
                 let resolution = rules.typicalResolution(forKey: addition.key, kind: kind)
                 let layered = ordered[(index + 1)...].contains {
                     $0.tag == addition.tag && paintsTheSame($0.ids, addition.ids)
@@ -391,7 +392,7 @@ extension StyleRecovery {
                 // Buildings carrying the tag fall through to the building rule, as
                 // their map draws them.
                 let condition =
-                    addition.tag
+                    tag
                     + (addition.openOnly ? " & " + DefaultRuleBook.openGroundOnly : "")
                 sheet.append(
                     String(

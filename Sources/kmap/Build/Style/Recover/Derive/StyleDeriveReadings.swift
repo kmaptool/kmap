@@ -56,7 +56,7 @@ extension StyleRecovery {
                 let bucket =
                     lines.map { "\(code.kind.rawValue)@\($0[0].text)" }
                     ?? "\(code.kind.rawValue)=\(tag)"
-                buckets[bucket, default: MeaningBucket(lines: lines ?? [])].tags[tag, default: 0] += 1
+                buckets[bucket, default: MeaningBucket(lines: [])].tags[tag, default: 0] += 1
                 buckets[bucket]?.ids.insert(id)
                 // Areas only: a point planted for a building carries its tags too.
                 if code.kind == .area, let built = tags[DefaultRuleBook.buildingKey],
@@ -67,6 +67,11 @@ extension StyleRecovery {
                 if let zoom = code.sourceZoom[id] {
                     buckets[bucket]?.resolutions[Int(zoom), default: 0] += 1
                 }
+            }
+            // Tags sharing a first rule may differ after it: the bucket stands for the
+            // rules of its commonest tag, whichever witness came first.
+            for (bucket, meaning) in buckets {
+                buckets[bucket]?.lines = rules.lines(for: meaning.name, kind: code.kind) ?? []
             }
             read.append(
                 CodeReading(
@@ -79,6 +84,34 @@ extension StyleRecovery {
             )
         }
         return read
+    }
+
+    /// A bucket's rules widened by those of its other tags this code draws most of:
+    /// a stray few of a tag that another code draws do not take that tag's rule along.
+    static func widened(_ entry: CodeReading, rules: DefaultRuleBook, tagLeader: [String: Int]) -> CodeReading {
+        var buckets = entry.buckets
+        for (bucket, meaning) in entry.buckets {
+            let kind = entry.code.kind
+            let led = meaning.tags.filter { tag, count in
+                tag != meaning.name && count >= fewestWitnesses
+                    && count >= tagLeader["\(kind.rawValue)@\(tag)"] ?? count
+            }
+            guard !led.isEmpty else { continue }
+            var seen = Set(meaning.lines.map { $0.file + ":" + $0.text })
+            for tag in led.keys.sorted() {
+                for line in rules.lines(for: tag, kind: kind) ?? []
+                where seen.insert(line.file + ":" + line.text).inserted {
+                    buckets[bucket]?.lines.append(line)
+                }
+            }
+        }
+        return CodeReading(
+            key: entry.key,
+            code: entry.code,
+            buckets: buckets,
+            meant: entry.meant,
+            foreign: entry.foreign
+        )
     }
 
     /// Step four: one foreign code, resolved. Its chosen meanings become claims on the

@@ -71,7 +71,7 @@ extension StyleRecovery {
         typDefined: [ElementDumper.Kind: Set<Int>] = [:],
         ground: [String: Int] = [:]
     ) {
-        let read = readCodes(evidence, into: &report, rules: rules)
+        let readings = readCodes(evidence, into: &report, rules: rules)
 
         // A meaning belongs to the code that mostly draws it, so every claim on it is
         // measured against the strongest claim made on it.
@@ -86,7 +86,7 @@ extension StyleRecovery {
         // buildings standing in it.
         var classLeader: [String: Int] = [:]
         var builtMost: [String: Int] = [:], openMost: [String: Int] = [:]
-        for entry in read {
+        for entry in readings {
             for (bucket, meaning) in entry.buckets {
                 leader[bucket] = max(leader[bucket] ?? 0, meaning.count)
                 let classed = classKey(bucket, meaning)
@@ -115,6 +115,7 @@ extension StyleRecovery {
             let mine = mine ?? 0
             return mine >= fewestStroke && Double(mine) >= stray * Double(other ?? 0)
         }
+        let read = readings.map { widened($0, rules: rules, tagLeader: tagLeader) }
         let builtTags = Set(builtMost.keys.filter { real(builtMost[$0], against: openMost[$0]) })
         let openTags = Set(openMost.keys.filter { real(openMost[$0], against: builtMost[$0]) })
 

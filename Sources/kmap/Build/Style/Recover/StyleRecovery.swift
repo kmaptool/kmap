@@ -127,6 +127,7 @@ enum StyleRecovery {
                 log: log,
                 coarserLevels: true
             )) ?? ElementDumper.Dump()
+        var coarseAnswered = [Bool](repeating: false, count: coarse.count)
 
         var evidence = Evidence()
         // Extracts overlap where one lies inside another; an object is counted once.
@@ -161,7 +162,7 @@ enum StyleRecovery {
             // What geometry could not name is asked of the place. Its own stage, or
             // the bar sits on a finished 100% while this works.
             progress?.move(to: .placing(extract.lastPathComponent))
-            CoarseEvidence.match(coarse, index: index, into: &evidence)
+            CoarseEvidence.match(coarse, index: index, answered: &coarseAnswered, into: &evidence)
             await CoarseEvidence.rescuePoints(
                 dump,
                 matches: matches,
@@ -301,6 +302,9 @@ enum StyleRecovery {
                             try Task.checkCancellation()
                             progress?.advance(progressStride)
                         }
+                        // Matched against an earlier extract already: where extracts
+                        // overlap it would be counted twice, its zooms and its area too.
+                        if matches[at] == Evidence.Match.matched.rawValue { continue }
                         // The best any extract managed: a match stands whatever a
                         // later extract says, an ambiguity outranks a plain miss.
                         let outcome = mine.record(

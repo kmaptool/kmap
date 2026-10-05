@@ -97,20 +97,24 @@ enum ImgElements {
                     $0.name == tre.name && $0.ext.uppercased() == "RGN"
                 })
             else { continue }
-            guard let treData = ImgContainer.read(tre, from: img),
-                let rgnData = ImgContainer.read(rgn, from: img)
-            else { continue }
+            // Asked once a tile too: a tile far from the ground emits nothing to ask on.
+            try tick()
+            guard let treData = ImgContainer.read(tre, from: img) else { continue }
             let tree = try Tree(treData, tile: tre.name)
-            let region = try Region(rgnData, tile: tre.name)
             // Level 0 is the most detailed; it is named by that number, not by its
             // position in the list. `coarserLevels` reads everything above it instead:
             // the zoomed-out drawings, where a style may keep what it never draws up
             // close - a reserve's hatch over half a district.
-            for division in tree.subdivisions
-            where resolution.map({ 24 - division.shift == $0 })
-                ?? (coarserLevels ? division.level > 0 : division.level == 0)
-            {
-                guard grounds.contains(where: { division.near($0) }) else { continue }
+            let divisions = tree.subdivisions.filter { division in
+                (resolution.map({ 24 - division.shift == $0 })
+                    ?? (coarserLevels ? division.level > 0 : division.level == 0))
+                    && grounds.contains(where: { division.near($0) })
+            }
+            // The drawing is read only for a tile with something near the ground: a whole
+            // device map is gigabytes, often read off a card.
+            guard !divisions.isEmpty, let rgnData = ImgContainer.read(rgn, from: img) else { continue }
+            let region = try Region(rgnData, tile: tre.name)
+            for division in divisions {
                 try region.read(
                     division,
                     extendedAreasAndPoints: extendedAreasAndPoints,

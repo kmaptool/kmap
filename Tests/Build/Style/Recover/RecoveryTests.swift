@@ -206,4 +206,16 @@ final class RecoveryTests: XCTestCase {
         try FileTools.write(Data(bytes), to: file)
         XCTAssertEqual(try ElementDumper.parse(file).count, 0)
     }
+
+    /// mkgmap reads a bare value of letters, digits and `_-:.` only: anything else is quoted,
+    /// or a sheet kmap wrote would stop the build.
+    func testAnOddValueIsQuotedForMkgmap() {
+        XCTAssertEqual(DefaultRuleBook.condition("shop=convenience"), "shop=convenience")
+        XCTAssertEqual(DefaultRuleBook.condition("highway=motorway_link"), "highway=motorway_link")
+        XCTAssertEqual(DefaultRuleBook.condition("building=*"), "building=*")
+        XCTAssertEqual(DefaultRuleBook.condition("shop=convenience;alcohol"), #"shop="convenience;alcohol""#)
+        XCTAssertEqual(DefaultRuleBook.condition(#"amenity=bar "x""#), #"amenity='bar "x"'"#)
+        XCTAssertEqual(DefaultRuleBook.condition("shop=магазин"), #"shop="магазин""#)
+        XCTAssertNil(DefaultRuleBook.condition(#"amenity=a'b"c"#))
+    }
 }

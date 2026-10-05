@@ -132,10 +132,10 @@ extension DefaultRuleBook {
         /// The rule rewritten with its wildcard head narrowed to one concrete pair, and
         /// the type swapped: the dedicated rule a family claimant earns above the family.
         func replacementDedicating(pair: String, to type: Int) -> [String] {
-            guard let head = wildcardHead() else { return [] }
+            guard let head = wildcardHead(), let condition = DefaultRuleBook.condition(pair) else { return [] }
             var lines = replacement(to: type)
             guard !lines.isEmpty else { return lines }
-            lines[0] = lines[0].replacingOccurrences(of: head, with: pair)
+            lines[0] = lines[0].replacingOccurrences(of: head, with: condition)
             return lines
         }
 

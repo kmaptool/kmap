@@ -221,6 +221,13 @@ final class MatcherTests: XCTestCase {
         let code = evidence.codes["P900"]
         XCTAssertEqual(code?.sources[70]?["place"], "village")
         XCTAssertEqual(code?.resolutions[22], 1)
+
+        // A second extract holding the same village does not see it again.
+        var again = Evidence()
+        var answered = [Bool](repeating: false, count: dump.count)
+        CoarseEvidence.match(dump, index: index, answered: &answered, into: &again)
+        CoarseEvidence.match(dump, index: index, answered: &answered, into: &again)
+        XCTAssertEqual(again.codes["P900"]?.resolutions[22], 1)
     }
 
     // MARK: The ground index
@@ -272,5 +279,21 @@ final class MatcherTests: XCTestCase {
     func testANameBeatsADoubt() {
         XCTAssertGreaterThan(Evidence.Match.matched.rawValue, Evidence.Match.ambiguous.rawValue)
         XCTAssertGreaterThan(Evidence.Match.ambiguous.rawValue, Evidence.Match.unmatched.rawValue)
+    }
+
+    /// Cells either side of Greenwich and of the equator stay neighbours once quantized.
+    func testQuantizedCellsMeetAcrossTheZeroLines() {
+        func cell(_ lat: Int32, _ lon: Int32) -> UInt64 {
+            UInt64(UInt32(bitPattern: lat)) << 32 | UInt64(UInt32(bitPattern: lon))
+        }
+        func halves(_ q: UInt64) -> (Int32, Int32) {
+            (Int32(bitPattern: UInt32(truncatingIfNeeded: q >> 32)), Int32(bitPattern: UInt32(truncatingIfNeeded: q)))
+        }
+        let west = halves(CoarseEvidence.quantize(cell(5, -1), shift: 4))
+        let east = halves(CoarseEvidence.quantize(cell(5, 0), shift: 4))
+        XCTAssertEqual(east.1 - west.1, 1)
+        let south = halves(CoarseEvidence.quantize(cell(-1, 7), shift: 4))
+        let north = halves(CoarseEvidence.quantize(cell(0, 7), shift: 4))
+        XCTAssertEqual(north.0 - south.0, 1)
     }
 }

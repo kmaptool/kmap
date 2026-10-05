@@ -286,6 +286,7 @@ enum RegionSuggestion {
             guard standing.isDrawnOn else { continue }
             out.append((url, standing.drawn))
         }
-        return out.sorted { $0.1 > $1.1 }.map(\.0)
+        // Ties by name: the order decides which extract witnesses an element first.
+        return out.sorted { ($0.1, $1.0.path) > ($1.1, $0.0.path) }.map(\.0)
     }
 }

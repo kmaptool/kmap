@@ -49,6 +49,24 @@ struct DefaultRuleBook {
         return nil
     }
 
+    /// A `key=value` pair as an mkgmap rule writes it. mkgmap reads a bare word of letters,
+    /// digits and `_-:.` only, so a value such as `convenience;alcohol` is quoted. Nil for
+    /// a value holding both kinds of quote, which no rule can spell.
+    static func condition(_ pair: String) -> String? {
+        guard let equals = pair.firstIndex(of: "=") else { return nil }
+        let key = pair[..<equals], value = pair[pair.index(after: equals)...]
+        let bare =
+            !value.isEmpty
+            && value.unicodeScalars.allSatisfy {
+                ($0.isASCII && CharacterSet.alphanumerics.contains($0)) || "_-:.".unicodeScalars.contains($0)
+            }
+        // `*` is mkgmap's any value, which quotes would make a literal star.
+        if bare || value == "*" { return pair }
+        if !value.contains("\"") { return "\(key)=\"\(value)\"" }
+        if !value.contains("'") { return "\(key)='\(value)'" }
+        return nil
+    }
+
     static func load(from directory: URL = StyleCatalog.baseStyleDirectory) -> DefaultRuleBook {
         var book = DefaultRuleBook()
         for file in ["lines", "polygons", "points"] {

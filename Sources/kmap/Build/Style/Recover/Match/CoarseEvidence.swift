@@ -26,22 +26,37 @@ enum CoarseEvidence {
     static let fewestShared = 6
     static let cornerShare = 3
 
+    /// Each half shifted as the signed number it is, so the cells either side of the
+    /// equator and of Greenwich stay neighbours: -1 and 0 shift to -1 and 0.
     static func quantize(_ cell: UInt64, shift: UInt64 = latticeShift) -> UInt64 {
-        (((cell >> 32) >> shift) << 32) | ((cell & 0xFFFF_FFFF) >> shift)
+        let lat = Int32(bitPattern: UInt32(truncatingIfNeeded: cell >> 32)) >> Int32(shift)
+        let lon = Int32(bitPattern: UInt32(truncatingIfNeeded: cell)) >> Int32(shift)
+        return UInt64(UInt32(bitPattern: lat)) << 32 | UInt64(UInt32(bitPattern: lon))
     }
 
     /// Reads every coarse-level element against one extract, adding witnesses for
-    /// what qualifies. Elements the detailed pass already answers for are left alone:
-    /// the evidence dedupes witnesses by source, so a second sighting costs nothing.
+    /// what qualifies.
     static func match(
         _ dump: ElementDumper.Dump,
         index: GroundIndex,
         into evidence: inout Evidence
     ) {
+        var answered = [Bool](repeating: false, count: dump.count)
+        match(dump, index: index, answered: &answered, into: &evidence)
+    }
+
+    /// As above, over several extracts in turn: `answered` marks the elements an
+    /// earlier extract already witnessed, which an overlapping one would count again.
+    static func match(
+        _ dump: ElementDumper.Dump,
+        index: GroundIndex,
+        answered: inout [Bool],
+        into evidence: inout Evidence
+    ) {
         guard !dump.elements.isEmpty else { return }
         let lattice = Lattice(index)
         var points: [Int: PointLattice] = [:]
-        for at in 0..<dump.count {
+        for at in 0..<dump.count where !answered[at] {
             let element = dump.elements[at]
             if element.kind == .point {
                 // A point sits on its level's lattice; the nodes standing in that
@@ -68,6 +83,7 @@ enum CoarseEvidence {
                     tags: node.tags,
                     resolution: resolution
                 )
+                answered[at] = true
                 continue
             }
             var seen = Set<UInt64>()
@@ -135,6 +151,7 @@ enum CoarseEvidence {
                 tags: index.tags(ofWay: winner),
                 resolution: dump.resolution(at)
             )
+            answered[at] = true
         }
     }
 
@@ -248,14 +265,15 @@ enum CoarseEvidence {
         index: GroundIndex
     ) -> (slot: Int32, tags: [String: String])? {
         let q = quantize(cell, shift: rescueShift)
-        let lat = q >> 32, lon = q & 0xFFFF_FFFF
+        let lat = Int32(bitPattern: UInt32(truncatingIfNeeded: q >> 32))
+        let lon = Int32(bitPattern: UInt32(truncatingIfNeeded: q))
         var meaning: String?
         var winner: Int32 = -1
         for dy in -1...1 {
             for dx in -1...1 {
                 let neighbour =
-                    (UInt64(bitPattern: Int64(lat) &+ Int64(dy)) << 32)
-                    | (UInt64(bitPattern: Int64(lon) &+ Int64(dx)) & 0xFFFF_FFFF)
+                    UInt64(UInt32(bitPattern: lat &+ Int32(dy))) << 32
+                    | UInt64(UInt32(bitPattern: lon &+ Int32(dx)))
                 for slot in lattice.byCell[neighbour] ?? [] {
                     let tags = index.tags(ofWay: slot)
                     guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
