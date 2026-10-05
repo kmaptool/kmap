@@ -72,6 +72,20 @@ extension Toolchain {
         prerequisites(of: id).contains(other) || prerequisites(of: other).contains(id)
     }
 
+    /// What an install killed part-way left in the tools folder: its unpacking folders and
+    /// the JDK archive. Only those an hour old, so another kmap installing now keeps its own.
+    static func removeAbandonedStaging(in tools: URL = Paths.tools, now: Date = Date()) {
+        let stagingPrefixes = ["jdk-unpack-", "unpack-", "mkgmap-patch-", "OpenJDK"]
+        let entries = (try? FileManager.default.contentsOfDirectory(at: tools, includingPropertiesForKeys: nil)) ?? []
+        for entry in entries {
+            let name = entry.lastPathComponent
+            guard stagingPrefixes.contains(where: name.hasPrefix),
+                let changed = FileTools.modified(of: entry), now.timeIntervalSince(changed) > 3600
+            else { continue }
+            FileTools.removeIfPresent(entry)
+        }
+    }
+
     /// - Parameter downloading: fetch into kmap's own directory even where the machine's
     ///   package manager could install it. Only Java can be had both ways.
     func install(
@@ -82,6 +96,7 @@ extension Toolchain {
         progress: InstallProgress? = nil
     ) async throws {
         defer { invalidate(); progress?.finish() }
+        Self.removeAbandonedStaging()
         switch id {
         case "mkgmap":
             try await installMkgmap(log: log, runner: runner, progress: progress)
@@ -304,6 +319,20 @@ extension Toolchain {
                 )
             )
         }
+        if let refresh = manager.refreshCommand(privilege: privilege),
+            let refresher = Platform.which(refresh.executable)
+        {
+            // A list that will not refresh, say for 1 dead source, still may install.
+            do {
+                try await runner.run(refresher, refresh.arguments, environment: ["DEBIAN_FRONTEND": "noninteractive"]) {
+                    line in log.output(line)
+                }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                log.warn("could not refresh the package lists: \(ErrorWords.of(error))")
+            }
+        }
         // apt refuses to run without this when there is no terminal to ask questions on.
         try await runner.run(
             executable,
@@ -383,14 +412,24 @@ extension Toolchain {
             throw InstallError.failed("\(jarName) was not inside \(file)")
         }
 
-        FileTools.removeIfPresent(destination)
-        Paths.ensure(destination)
-        try FileTools.copy(jar, to: destination.appendingPathComponent(jarName))
-
-        // mkgmap ships a lib/ of dependencies next to the jar.
-        let lib = jar.deletingLastPathComponent().appendingPathComponent("lib")
-        if FileTools.exists(lib) {
-            try? FileTools.copy(lib, to: destination.appendingPathComponent("lib"))
+        // Put together beside the destination and swapped in whole: without its lib/ the
+        // jar still answers --version, and would pass for installed.
+        let fresh = destination.deletingLastPathComponent()
+            .appendingPathComponent(destination.lastPathComponent + ".new", isDirectory: true)
+        FileTools.removeIfPresent(fresh)
+        Paths.ensure(fresh)
+        do {
+            try FileTools.copy(jar, to: fresh.appendingPathComponent(jarName))
+            // mkgmap ships a lib/ of dependencies next to the jar.
+            let lib = jar.deletingLastPathComponent().appendingPathComponent("lib")
+            if FileTools.exists(lib) {
+                try FileTools.copy(lib, to: fresh.appendingPathComponent("lib"))
+            }
+            FileTools.removeIfPresent(destination)
+            try FileTools.move(fresh, to: destination)
+        } catch {
+            FileTools.removeIfPresent(fresh)
+            throw error
         }
         log.ok("installed \(jarName) → \(Paths.display(destination))")
     }

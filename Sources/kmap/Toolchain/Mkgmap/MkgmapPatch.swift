@@ -98,8 +98,8 @@ extension Toolchain {
                     : t("this Java is a runtime — install a full JDK, or build without the patch")
             )
         }
-        let javac = ToolLocations.companion("javac", of: java.path)
-        let jarTool = ToolLocations.companion("jar", of: java.path)
+        let javac = java.kitTool("javac")
+        let jarTool = java.kitTool("jar")
 
         // The source archive has to match the jar, or the compiled classes will not fit it.
         guard let archive = Archive.current else {

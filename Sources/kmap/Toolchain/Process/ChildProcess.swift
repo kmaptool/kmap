@@ -28,6 +28,23 @@ enum ChildProcess {
         return !process.isRunning
     }
 
+    /// The tools running now, for a kmap that is made to leave to stop first: each runs in
+    /// a process group of its own, which a closed terminal's hang-up does not reach.
+    private static let live = Locked<[ObjectIdentifier: Process]>([:])
+
+    static func track(_ process: Process) { live.withLock { $0[ObjectIdentifier(process)] = process } }
+
+    static func untrack(_ process: Process) { _ = live.withLock { $0.removeValue(forKey: ObjectIdentifier(process)) } }
+
+    /// Stops every tool still running: all asked at once, then SIGKILL after the grace.
+    static func stopAll() {
+        let running = live.withLock { Array($0.values) }.filter(\.isRunning)
+        for process in running { process.terminate() }
+        let deadline = Date().addingTimeInterval(exitGrace)
+        while running.contains(where: \.isRunning), Date() < deadline { Thread.sleep(forTimeInterval: pollInterval) }
+        for process in running { insist(on: process) }
+    }
+
     /// Terminate, `exitGrace`, then SIGKILL.
     static func stop(_ process: Process) {
         process.terminate()

@@ -105,4 +105,15 @@ final class ArchiveTests: XCTestCase {
         // Elsewhere it is an ordinary package and the line says how to install it.
         XCTAssertTrue(Archive.missingNote(on: .linux).contains("unzip"))
     }
+
+    /// kmap can install unzip while it runs, so the answer is asked again after an install.
+    func testTheAnswerIsAskedAgainAfterForgetting() {
+        defer { Archive.forget() }
+        let installed = Archive(tool: .unzip, path: "/opt/unzip")
+        Archive.forget()
+        XCTAssertNil(Archive.remembered(.zip) { nil })
+        XCTAssertNil(Archive.remembered(.zip) { installed }, "asked once until told to forget")
+        Archive.forget()
+        XCTAssertEqual(Archive.remembered(.zip) { installed }, installed)
+    }
 }

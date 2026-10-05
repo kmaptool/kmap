@@ -154,6 +154,7 @@ final class ProcessRunner: @unchecked Sendable {
 
         do {
             try process.run()
+            ChildProcess.track(process)
         } catch {
             handle.readabilityHandler = nil
             // Closing the read end here keeps a failed launch from leaking a descriptor.
@@ -169,6 +170,7 @@ final class ProcessRunner: @unchecked Sendable {
         } onCancel: {
             self.cancel()
         }
+        ChildProcess.untrack(process)
 
         // Drains what is in the pipe rather than calling `readToEnd()`, which waits for the
         // pipe to close: a forked grandchild can hold the writing end open indefinitely.

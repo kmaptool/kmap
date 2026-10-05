@@ -34,6 +34,7 @@ final class Toolchain: @unchecked Sendable {
         pyhgtmapCache = nil
         statusCache = nil
         cacheLock.unlock()
+        Archive.forget()
     }
 
     /// True once a probe has run.
@@ -70,7 +71,15 @@ final class Toolchain: @unchecked Sendable {
     private func javaCandidates(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> [String] {
-        ToolLocations.java(configured: settings.settings.javaBinary, environment: environment)
+        ToolLocations.java(configured: configuredJava, environment: environment)
+    }
+
+    /// The Java named in the settings, as typed: a `~` or a pasted path's quotes would
+    /// otherwise make it pass silently for missing.
+    private var configuredJava: String {
+        let typed = settings.settings.javaBinary
+        guard !typed.trimmingCharacters(in: .whitespaces).isEmpty else { return "" }
+        return Paths.expand(typed).nativePath
     }
 
     func findJava() -> JavaRuntime? {
@@ -107,7 +116,7 @@ final class Toolchain: @unchecked Sendable {
             let found = javaCandidates(environment: environment).lazy
                 .compactMap({ Self.runtime(at: $0, compilerNeeded: compilerNeeded) }).first
         else { return nil }
-        let named = ToolLocations.namedJava(configured: settings.settings.javaBinary, environment: environment)
+        let named = ToolLocations.namedJava(configured: configuredJava, environment: environment)
         guard !named.contains(found.path), let own = JavaDownload.installed()?.path, own != found.path else {
             return found
         }
@@ -126,7 +135,8 @@ final class Toolchain: @unchecked Sendable {
     /// rescue options it starts on.
     private static func runtime(at candidate: String, compilerNeeded: Bool) -> JavaRuntime? {
         guard FileTools.isExecutable(candidate) else { return nil }
-        if compilerNeeded, !FileTools.isExecutable(ToolLocations.companion("javac", of: candidate)) { return nil }
+        // javac and jar both: a folder of links can carry javac alone, and the patch needs both.
+        if compilerNeeded, !JavaRuntime.isKit(at: candidate) { return nil }
         for options in javaRescueOptions {
             guard let output = ProcessProbe.capture(candidate, options + ["-version"]) else { continue }
             // A version string is the only output that means the JVM ran: both a stub

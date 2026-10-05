@@ -46,11 +46,28 @@ struct Archive: Equatable {
         }
     }
 
-    /// Resolved once: nothing that answers this changes while kmap is running.
-    static let current: Archive? = found()
+    /// Resolved once, and again after `forget()`: kmap can install unzip itself.
+    static var current: Archive? { remembered(.zip) { found() } }
 
     /// The same, for a gzip tarball.
-    static let currentForTarball: Archive? = found(.tarGzip)
+    static var currentForTarball: Archive? { remembered(.tarGzip) { found(.tarGzip) } }
+
+    /// Asks again at the next use, as after an install.
+    static func forget() {
+        known.withLock { $0 = [:] }
+    }
+
+    /// The answer for `format`, found once until `forget()`.
+    static func remembered(_ format: Format, finding: () -> Archive?) -> Archive? {
+        known.withLock { known in
+            if let answer = known[format] { return answer }
+            let answer = finding()
+            known[format] = .some(answer)
+            return answer
+        }
+    }
+
+    private static let known = Locked<[Format: Archive?]>([:])
 
     /// Whether unpacking is possible at all. Several installs need it.
     static var isAvailable: Bool { current != nil }
