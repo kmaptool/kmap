@@ -45,36 +45,64 @@ struct StringTable {
     /// in canonical form, so "K" and "\u{212A}" are 1 word.
     static let asciiTwins: [UInt32: UInt8] = [0x037E: 0x3B, 0x1FEF: 0x60, 0x212A: 0x4B]
 
-    /// FNV-1a over the bytes of an ASCII string, or of the ASCII text a string equals; the
+    /// A hash of the bytes of an ASCII string, or of the ASCII text a string equals; the
     /// standard hash for any other, which is equal for texts the standard library holds
     /// equal.
     private static func hash(_ word: String) -> UInt64 {
         var word = word
         let quick: UInt64? = word.withUTF8 { bytes in
-            var hash = fnvBasis
-            var high: UInt8 = 0
-            for byte in bytes {
-                hash = (hash ^ UInt64(byte)) &* fnvPrime
-                high |= byte
-            }
-            return high < 0x80 ? hash : nil
+            let (hash, high) = mix(bytes)
+            return high & 0x8080_8080_8080_8080 == 0 ? hash : nil
         }
         if let quick { return quick }
-        var hash = fnvBasis
-        for scalar in word.unicodeScalars {
-            let byte: UInt8
-            if scalar.isASCII {
-                byte = UInt8(scalar.value)
-            } else if let twin = asciiTwins[scalar.value] {
-                byte = twin
-            } else {
-                return UInt64(truncatingIfNeeded: word.hashValue)
-            }
-            hash = (hash ^ UInt64(byte)) &* fnvPrime
+        guard word.unicodeScalars.allSatisfy({ $0.isASCII || asciiTwins[$0.value] != nil }) else {
+            return UInt64(truncatingIfNeeded: word.hashValue)
         }
-        return hash
+        let ascii = word.unicodeScalars.map { $0.isASCII ? UInt8($0.value) : asciiTwins[$0.value] ?? 0 }
+        return ascii.withUnsafeBufferPointer { mix($0).hash }
     }
 
-    private static let fnvBasis: UInt64 = 0xcbf2_9ce4_8422_2325
-    private static let fnvPrime: UInt64 = 0x0000_0100_0000_01b3
+    /// 8 bytes at a time rather than 1, so a word waits on 1 multiply instead of 8. A
+    /// length not a multiple of 8 ends on a word overlapping the one before, so the length
+    /// goes in first. Answers the hash and every byte or-ed together.
+    @inline(__always)
+    private static func mix(_ bytes: UnsafeBufferPointer<UInt8>) -> (hash: UInt64, high: UInt64) {
+        let count = bytes.count
+        var hash = seed ^ (UInt64(count) &* multiplier)
+        var high: UInt64 = 0
+        guard let base = bytes.baseAddress, count > 0 else { return (finish(hash), 0) }
+        let raw = UnsafeRawPointer(base)
+        func step(_ word: UInt64) {
+            high |= word
+            hash = (hash ^ word) &* multiplier
+            hash ^= hash >> 32
+        }
+        if count >= 8 {
+            var at = 0
+            while at + 8 < count {
+                step(raw.loadUnaligned(fromByteOffset: at, as: UInt64.self))
+                at += 8
+            }
+            step(raw.loadUnaligned(fromByteOffset: count - 8, as: UInt64.self))
+        } else if count >= 4 {
+            let low = UInt64(raw.loadUnaligned(fromByteOffset: 0, as: UInt32.self))
+            let top = UInt64(raw.loadUnaligned(fromByteOffset: count - 4, as: UInt32.self))
+            step(low | top << 32)
+        } else {
+            step(UInt64(base[0]) | UInt64(base[count / 2]) << 8 | UInt64(base[count - 1]) << 16)
+        }
+        return (finish(hash), high)
+    }
+
+    /// Spreads the high bits into the low ones, which pick the slot.
+    @inline(__always)
+    private static func finish(_ hash: UInt64) -> UInt64 {
+        var hash = hash
+        hash ^= hash >> 33
+        hash = hash &* 0xff51_afd7_ed55_8ccd
+        return hash ^ hash >> 29
+    }
+
+    private static let seed: UInt64 = 0xcbf2_9ce4_8422_2325
+    private static let multiplier: UInt64 = 0x9e37_79b9_7f4a_7c15
 }

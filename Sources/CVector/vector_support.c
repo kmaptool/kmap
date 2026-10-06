@@ -51,22 +51,22 @@ static int detect(void) { return KMAP_TIER_NONE; }
 
 #endif
 
-// Found on the first asking. Threads asking at the same moment all find the same
-// answer, so nothing guards it.
-static volatile int found = -1;
-static volatile int most = KMAP_TIER_AVX2;
+// Found on the first asking. Threads racing here find the same answer, so relaxed atomics
+// (plain loads and stores) suffice without a lock.
+static int found = -1;
+static int most = KMAP_TIER_AVX2;
 
 int kmap_vector_tier(void) {
-    int tier = found;
+    int tier = __atomic_load_n(&found, __ATOMIC_RELAXED);
     if (tier < 0) {
         tier = detect();
-        found = tier;
+        __atomic_store_n(&found, tier, __ATOMIC_RELAXED);
     }
-    int allowed = most;
+    int allowed = __atomic_load_n(&most, __ATOMIC_RELAXED);
     return tier < allowed ? tier : allowed;
 }
 
 int kmap_vector_limit(int limit) {
-    most = limit < KMAP_TIER_NONE ? KMAP_TIER_NONE : limit;
+    __atomic_store_n(&most, limit < KMAP_TIER_NONE ? KMAP_TIER_NONE : limit, __ATOMIC_RELAXED);
     return kmap_vector_tier();
 }

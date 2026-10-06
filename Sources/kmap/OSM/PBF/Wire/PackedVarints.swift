@@ -4,9 +4,9 @@ import Foundation
 /// Packed varints, decoded straight into a buffer. Every value takes a byte at least,
 /// so a buffer with room for as many values as there are bytes is always enough.
 ///
-/// While 10 bytes are still ahead a varint is read without asking after the end of
-/// the buffer at each byte; the last few, and any varint that runs past 10 bytes, go
-/// through `ProtoReader`, so a malformed stream decodes as the reader decodes it.
+/// While 10 bytes remain, or the field's last byte ends a varint, varints are read without a
+/// bounds check per byte; the rest, and any varint past 10 bytes, go through `ProtoReader`,
+/// so a malformed stream decodes as the reader decodes it.
 enum PackedVarints {
     /// The longest varint: 7 bits a byte, 64 bits.
     private static let longest = 10
@@ -83,8 +83,11 @@ enum PackedVarints {
         guard let base = bytes.baseAddress, from < bytes.count else { return }
         let start = base.assumingMemoryBound(to: UInt8.self)
         var p = start + from
-        if bytes.count - from >= longest {
-            let fastEnd = start + (bytes.count - longest + 1)
+        // A field ending on a byte without the continuation bit has no varint running past
+        // it, so its last few are read as the rest are.
+        let ends = start[bytes.count - 1] < 0x80
+        if ends || bytes.count - from >= longest {
+            let fastEnd = ends ? start + bytes.count : start + (bytes.count - longest + 1)
             var value: UInt64 = 0
             while p < fastEnd, next(&p, &value) { body(value) }
         }

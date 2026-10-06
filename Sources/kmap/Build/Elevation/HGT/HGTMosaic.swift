@@ -12,12 +12,16 @@ extension HGTConversion {
         /// Cells written and released.
         private var released: Set<Int> = []
         private let locate: (Int, Int) -> URL?
+        /// The cells this pass converts, where the caller said.
+        private let converting: Set<Int>?
         private let lock = NSLock()
 
-        /// - Parameter locate: the file holding the degree cell, if there is one. A cell
-        ///   that is entirely sea has no file, which is not an error.
-        init(locate: @escaping (Int, Int) -> URL?) {
+        /// - Parameters:
+        ///   - converting: the cells this pass converts; the rest are only lent from.
+        ///   - locate: the file of a degree cell; none for open sea.
+        init(converting cells: [(lat: Int, lon: Int)]? = nil, locate: @escaping (Int, Int) -> URL?) {
             self.locate = locate
+            converting = cells.map { Set($0.map { Self.key(lat: $0.lat, lon: $0.lon) }) }
         }
 
         /// The 9 cells a node of this one can be answered from: its own, and the
@@ -42,12 +46,9 @@ extension HGTConversion {
             Self.neighbourhood.contains { tile(lat: cellLat + $0.0, lon: cellLon + $0.1) != nil }
         }
 
-        /// Lets the cell's own file forget its decoded tiles. A neighbour still to come
-        /// decodes the edge it borrows again, which is far cheaper than keeping every
-        /// cell of a large region decoded until the pass ends.
-        ///
-        /// A neighbour already released has decoded its edge again for this cell; it forgets
-        /// that too once every cell that borrows from it, among those with a file, is done.
+        /// Lets the cell's own file forget its decoded tiles: a neighbour still to come decodes
+        /// the edge it borrows again, far cheaper than keeping a large region decoded. A released
+        /// or only-lent neighbour forgets its edge too, once every cell borrowing from it is done.
         func release(cellLat: Int, cellLon: Int) {
             var done: [GeoTIFF] = []
             lock.lock()
@@ -55,12 +56,14 @@ extension HGTConversion {
             if let own = open[Self.key(lat: cellLat, lon: cellLon)] { done.append(own) }
             for (dLat, dLon) in Self.neighbourhood where dLat != 0 || dLon != 0 {
                 let lat = cellLat + dLat, lon = cellLon + dLon
-                guard let tiff = open[Self.key(lat: lat, lon: lon)], released.contains(Self.key(lat: lat, lon: lon))
-                else { continue }
+                let neighbour = Self.key(lat: lat, lon: lon)
+                let lentOnly = converting.map { !$0.contains(neighbour) } ?? false
+                guard let tiff = open[neighbour], released.contains(neighbour) || lentOnly else { continue }
                 let waiting = Self.neighbourhood.contains { borrower in
                     let (bLat, bLon) = (lat + borrower.0, lon + borrower.1)
                     let key = Self.key(lat: bLat, lon: bLon)
                     guard !released.contains(key), !absent.contains(key) else { return false }
+                    if let converting { return converting.contains(key) }
                     return open[key] != nil || locate(bLat, Self.wrapped(bLon)) != nil
                 }
                 if !waiting { done.append(tiff) }
@@ -107,6 +110,9 @@ extension HGTConversion {
             /// -1 where the node lies west of the tile.
             fileprivate var west: [Int]
             fileprivate var past: [Double]
+            /// How many leading nodes each lie on a sample of their own, as where the source has
+            /// the output's step: those are a copy.
+            fileprivate var straight = 0
 
             fileprivate init(originLon: Int, stepLon: Int, cellLon: Int, step: Int, width n: Int) {
                 self.originLon = originLon
@@ -123,6 +129,9 @@ extension HGTConversion {
                     let x0 = Mosaic.floorDiv(east, stepLon)
                     west[column] = x0
                     past[column] = Double(east - x0 * stepLon)
+                }
+                while straight < n, west[straight] >= 0, west[straight] == west[0] + straight, past[straight] == 0 {
+                    straight += 1
                 }
             }
 
@@ -193,7 +202,12 @@ extension HGTConversion {
                                 if x < nearCount { return Double(near[x]) }
                                 return x < total ? Double(far[x - nearCount]) : .nan
                             }
-                            for column in 0..<n {
+                            let copied = plan.straight == 0 ? 0 : min(plan.straight, max(0, nearCount - west[0]))
+                            if copied > 0 {
+                                let first = west[0]
+                                for column in 0..<copied { out[column] = Double(near[first + column]) }
+                            }
+                            for column in copied..<n {
                                 let x = west[column]
                                 guard x >= 0 else {
                                     out[column] = .nan
@@ -315,6 +329,8 @@ extension HGTConversion {
             let unit = Double(HGTConversion.latticePerDegree)
             func whole(_ degrees: Double) -> Int? {
                 let units = (degrees * unit).rounded()
+                // A whole number only where it is one an Int holds.
+                guard units.isFinite, abs(units) < 1e15 else { return nil }
                 return abs(degrees * unit - units) < Self.latticeTolerance ? Int(units) : nil
             }
             guard let stepLon = whole(tiff.stepLon), stepLon >= 1,

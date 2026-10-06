@@ -1,3 +1,4 @@
+import CVector
 import Foundation
 
 /// Traces contour lines across a .hgt tile by marching squares.
@@ -101,46 +102,92 @@ struct Contours {
     ) {
         let n = grid.n
         let clipping = clip != nil
+        // `stepsUp` from `base` of every height a sample can hold, so a cell looks its
+        // levels up instead of 2 divisions.
+        let reach = Int(Int16.max) - Int(Int16.min) + 1, offset = -Int(Int16.min)
+        let up = [Int32](unsafeUninitializedCapacity: reach) { table, filled in
+            for at in 0..<reach { table[at] = Int32(Self.stepsUp(at - offset - base, step)) }
+            filled = reach
+        }
 
-        for row in bounds.rows.lowerBound..<min(bounds.rows.upperBound, n - 1) {
-            for column in bounds.columns.lowerBound..<min(bounds.columns.upperBound, n - 1) {
-                let topLeft = grid.value(row, column)
-                let topRight = grid.value(row, column + 1)
-                let bottomLeft = grid.value(row + 1, column)
-                let bottomRight = grid.value(row + 1, column + 1)
-                guard topLeft > Self.void, topRight > Self.void,
-                    bottomLeft > Self.void, bottomRight > Self.void
-                else { continue }
-
-                // A level crosses an edge only when one corner is above it and the other is
-                // not, so the levels run from the cell's lowest corner to just under its
-                // highest.
-                let low = min(min(topLeft, topRight), min(bottomLeft, bottomRight))
-                let high = max(max(topLeft, topRight), max(bottomLeft, bottomRight))
-                guard low < high else { continue }
-                let first = max(0, Self.stepsUp(low - base, step))
-                let last = min(sweep.count - 1, Self.stepsUp(high - base, step) - 1)
-                guard first <= last else { continue }
-
-                if clipping,
-                    outside(row, column) || outside(row, column + 1)
-                        || outside(row + 1, column) || outside(row + 1, column + 1)
-                {
-                    continue
-                }
-
-                for index in first...last {
-                    cell(
-                        row: row,
-                        column: column,
-                        n: n,
-                        level: base + index * step,
-                        corners: (topLeft, topRight, bottomLeft, bottomRight),
-                        into: &sweep,
-                        at: index
-                    )
+        let rows = bounds.rows.lowerBound..<min(bounds.rows.upperBound, n - 1)
+        let columns = bounds.columns.lowerBound..<min(bounds.columns.upperBound, n - 1)
+        guard !rows.isEmpty, !columns.isEmpty else { return }
+        // Each sample's band, 2 rows at a time, and the cells of the row whose corners
+        // are ground and span a level: found 8 at a time in C, so the cells no level
+        // crosses cost next to nothing. The tests below still decide.
+        var bandsTop = [Int32](repeating: 0, count: n), bandsBottom = bandsTop
+        var marks = [UInt64](repeating: 0, count: (columns.count + 63) / 64)
+        func bands(of row: Int, into out: inout [Int32]) {
+            grid.samples.withUnsafeBufferPointer { samples in
+                out.withUnsafeMutableBufferPointer { out in
+                    for column in 0..<n { out[column] = up[Int(samples[row * n + column]) + offset] }
                 }
             }
+        }
+        bands(of: rows.lowerBound, into: &bandsTop)
+
+        for row in rows {
+            bands(of: row + 1, into: &bandsBottom)
+            grid.samples.withUnsafeBufferPointer { samples in
+                bandsTop.withUnsafeBufferPointer { above in
+                    bandsBottom.withUnsafeBufferPointer { below in
+                        kmap_contour_cells(
+                            samples.baseAddress! + row * n + columns.lowerBound,
+                            samples.baseAddress! + (row + 1) * n + columns.lowerBound,
+                            above.baseAddress! + columns.lowerBound,
+                            below.baseAddress! + columns.lowerBound,
+                            columns.count,
+                            Int16(Self.void),
+                            &marks
+                        )
+                    }
+                }
+            }
+            for (at, word) in marks.enumerated() {
+                var word = word
+                while word != 0 {
+                    let column = columns.lowerBound + at * 64 + word.trailingZeroBitCount
+                    word &= word - 1
+                    let topLeft = grid.value(row, column)
+                    let topRight = grid.value(row, column + 1)
+                    let bottomLeft = grid.value(row + 1, column)
+                    let bottomRight = grid.value(row + 1, column + 1)
+                    guard topLeft > Self.void, topRight > Self.void,
+                        bottomLeft > Self.void, bottomRight > Self.void
+                    else { continue }
+
+                    // A level crosses an edge only when one corner is above it and the other is
+                    // not, so the levels run from the cell's lowest corner to just under its
+                    // highest.
+                    let low = min(min(topLeft, topRight), min(bottomLeft, bottomRight))
+                    let high = max(max(topLeft, topRight), max(bottomLeft, bottomRight))
+                    guard low < high else { continue }
+                    let first = max(0, Int(up[low + offset]))
+                    let last = min(sweep.count - 1, Int(up[high + offset]) - 1)
+                    guard first <= last else { continue }
+
+                    if clipping,
+                        outside(row, column) || outside(row, column + 1)
+                            || outside(row + 1, column) || outside(row + 1, column + 1)
+                    {
+                        continue
+                    }
+
+                    for index in first...last {
+                        cell(
+                            row: row,
+                            column: column,
+                            n: n,
+                            level: base + index * step,
+                            corners: (topLeft, topRight, bottomLeft, bottomRight),
+                            into: &sweep,
+                            at: index
+                        )
+                    }
+                }
+            }
+            swap(&bandsTop, &bandsBottom)
         }
     }
 
@@ -206,12 +253,15 @@ struct Contours {
             )
         }
 
-        // Two or four, never one or three: round the four corners, the number of edges where
-        // "above the level" changes is even.
-        let here = [top, bottom, left, right].compactMap { $0 }
-        switch here.count {
+        // 2 or 4, never 1 or 3: round the 4 corners, "above the level" changes an even number
+        // of times. Counted, not gathered: a small array per cell costs whatever the
+        // allocator's state makes it, which shifted with unrelated edits.
+        let crossings = (top == nil ? 0 : 1) + (bottom == nil ? 0 : 1) + (left == nil ? 0 : 1) + (right == nil ? 0 : 1)
+        switch crossings {
         case 2:
-            sweep[index].join(here[0], here[1])
+            if let first = top ?? bottom ?? left, let second = right ?? left ?? bottom {
+                sweep[index].join(first, second)
+            }
         case 4:
             // A saddle: the two arcs cut off one pair of opposite corners, chosen by the
             // cell's mean. Above the level the low corners are the pockets; at or below it
@@ -245,7 +295,8 @@ struct Contours {
     }
 
     /// The points of a walked path: repeated positions and the collinear middles of a
-    /// straight run dropped where `tidy` asks. Per crossing, so kept inline.
+    /// straight run dropped where `tidy` asks. Runs over every crossing of every line, so
+    /// kept inline.
     @inline(__always)
     private func tidied(_ path: [Int32], edge: [Int32], along: [Double]) -> [(lat: Double, lon: Double)] {
         // A crossing landing exactly on a grid node belongs to both edges meeting there,
@@ -277,7 +328,7 @@ struct Contours {
                     + (point.lon - a.lon) * (point.lon - a.lon)).squareRoot()
                 if span == 0 || abs(cross) / span > flatness { break }
                 // Collinear is not enough: the middle point must lie between the other
-                // two, or dropping it would cut the tip off a spike that doubles back.
+                // 2, or dropping it would cut the tip off a spike that doubles back.
                 let along =
                     (b.lat - a.lat) * (point.lat - a.lat)
                     + (b.lon - a.lon) * (point.lon - a.lon)

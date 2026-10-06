@@ -21,18 +21,29 @@ static inline void rest(uint8_t *row, size_t i, size_t count, uint8_t last) {
 
 #if defined(KMAP_NEON)
 
+static inline uint8x16_t within(uint8x16_t x) {
+    const uint8x16_t zero = vdupq_n_u8(0);
+    x = vaddq_u8(x, vextq_u8(zero, x, 15));
+    x = vaddq_u8(x, vextq_u8(zero, x, 14));
+    x = vaddq_u8(x, vextq_u8(zero, x, 12));
+    return vaddq_u8(x, vextq_u8(zero, x, 8));
+}
+
+// 32 bytes at a time, the second 16 given the first's last byte. The block's total is found
+// before the carry is added, so the carry costs 1 addition per block.
 static void sums(uint8_t *row, size_t count, int tier) {
     (void)tier;
-    const uint8x16_t zero = vdupq_n_u8(0);
-    uint8x16_t carry = zero;
+    uint8x16_t carry = vdupq_n_u8(0);
     size_t i = 0;
+    for (; i + 2 * VECTOR <= count; i += 2 * VECTOR) {
+        uint8x16_t x = within(vld1q_u8(row + i));
+        uint8x16_t y = vaddq_u8(within(vld1q_u8(row + i + VECTOR)), vdupq_laneq_u8(x, 15));
+        vst1q_u8(row + i, vaddq_u8(x, carry));
+        vst1q_u8(row + i + VECTOR, vaddq_u8(y, carry));
+        carry = vaddq_u8(carry, vdupq_laneq_u8(y, 15));
+    }
     for (; i + VECTOR <= count; i += VECTOR) {
-        uint8x16_t x = vld1q_u8(row + i);
-        x = vaddq_u8(x, vextq_u8(zero, x, 15));
-        x = vaddq_u8(x, vextq_u8(zero, x, 14));
-        x = vaddq_u8(x, vextq_u8(zero, x, 12));
-        x = vaddq_u8(x, vextq_u8(zero, x, 8));
-        x = vaddq_u8(x, carry);
+        uint8x16_t x = vaddq_u8(within(vld1q_u8(row + i)), carry);
         carry = vdupq_laneq_u8(x, 15);
         vst1q_u8(row + i, x);
     }

@@ -6,6 +6,7 @@
 // header goes in here, and the edit makes every cache rebuild the module.
 
 #include "atomic_slot.h"
+#include "contour_cells.h"
 #include "elevation_rows.h"
 #include "float_predictor.h"
 #include "packed_varint.h"

@@ -1,26 +1,5 @@
 import Foundation
 
-/// Protobuf wire types used by OSM PBF.
-enum Wire {
-    static let varint = 0
-    static let fixed64 = 1
-    static let lengthDelimited = 2
-    static let fixed32 = 5
-
-    /// Bytes on the wire for the two fixed-width types.
-    fileprivate static let fixed64Size = 8
-    fileprivate static let fixed32Size = 4
-
-    /// A varint carries seven bits per byte, the high bit saying another follows.
-    static let varintPayloadBits: UInt64 = 7
-    static let varintPayloadMask: UInt8 = 0x7F
-    static let varintContinuation: UInt8 = 0x80
-
-    /// A field key packs the number above the wire type.
-    static let typeBits: UInt64 = 3
-    static let typeMask: UInt64 = 7
-}
-
 /// Reads the protobuf subset an OSM PBF uses: varints, zigzag varints, length-delimited
 /// bytes, packed repeats and 32-bit fixed. Works on raw memory and allocates nothing per
 /// field. Input is untrusted: a declared length is clamped to the buffer, so a corrupt
@@ -47,6 +26,11 @@ struct ProtoReader {
     }
 
     mutating func varint() -> UInt64 {
+        // Field keys, lengths and small numbers: 1 byte, read without the loop.
+        if index < bytes.count, bytes[index] < Wire.varintContinuation {
+            index += 1
+            return UInt64(bytes[index - 1])
+        }
         var result: UInt64 = 0
         var shift: UInt64 = 0
         var read = 0

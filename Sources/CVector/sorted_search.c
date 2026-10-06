@@ -9,31 +9,46 @@ static void group(const int64_t *keys, size_t count_keys, const int64_t *fences,
     const int64_t *base[LANES];
     size_t length = count_fences;
     for (size_t j = 0; j < lanes; j++) base[j] = fences;
-    // How many fences are not past the id: the window it can be in is the last of those.
+    // How many fences are not past the id: its window is the last of those. The fences stay
+    // in cache, so nothing is prefetched here.
     while (length > 1) {
         size_t half = length / 2;
-        for (size_t j = 0; j < lanes; j++) {
-            __builtin_prefetch(base[j] + half / 2);
-            __builtin_prefetch(base[j] + half + half / 2);
-        }
         for (size_t j = 0; j < lanes; j++) base[j] = base[j][half] <= ids[j] ? base[j] + half : base[j];
         length -= half;
     }
     size_t left[LANES];
+    int whole = lanes == LANES;
     for (size_t j = 0; j < lanes; j++) {
         size_t below = (size_t)(base[j] - fences) + (base[j][0] <= ids[j]);
         if (below == 0) {
             left[j] = 0;
             base[j] = 0;
+            whole = 0;
             continue;
         }
         size_t start = (below - 1) * stride;
         size_t end = start + stride < count_keys ? start + stride : count_keys;
         base[j] = keys + start;
         left[j] = end - start;
+        whole &= left[j] == stride;
     }
-    // The first key not below the id, inside that window.
-    for (int open = 1; open;) {
+    // The first key not below the id within its window. With every window whole, all lanes
+    // take the same steps.
+    if (whole) {
+        for (size_t width = stride; width > 1;) {
+            size_t half = width / 2;
+            // From 8 keys down the window is 1 or 2 lines, fetched already.
+            if (half >= 8) {
+                for (size_t j = 0; j < LANES; j++) {
+                    __builtin_prefetch(base[j] + half / 2);
+                    __builtin_prefetch(base[j] + half + half / 2);
+                }
+            }
+            for (size_t j = 0; j < LANES; j++) base[j] = base[j][half] < ids[j] ? base[j] + half : base[j];
+            width -= half;
+        }
+    }
+    for (int open = !whole; open;) {
         open = 0;
         for (size_t j = 0; j < lanes; j++) {
             if (left[j] <= 1) continue;
@@ -83,7 +98,7 @@ static void flush(const int64_t *keys, size_t count_keys, const int64_t *fences,
 
 void kmap_find_fenced(const int64_t *keys, size_t count_keys, const int64_t *fences, size_t count_fences,
                       size_t stride, const int64_t *ids, size_t count, int64_t *out) {
-    if (count_fences == 0 || count_keys == 0) {
+    if (count_fences == 0 || count_keys == 0 || stride == 0) {
         for (size_t i = 0; i < count; i++) out[i] = -1;
         return;
     }
