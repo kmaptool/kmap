@@ -113,8 +113,15 @@ final class AnnotatePassTests: XCTestCase {
         var pass = AnnotatePass(source: source, destination: path("out.osm.pbf"))
         pass.repairRadius = 10
         pass.markDuplicateVenues = true
-        pass.shouldStop = { true }
+        // Counted: the pass asks once itself after the scans, which alone would end it
+        // even were the scans, on threads of their own, never told.
+        let asked = Locked(0)
+        pass.shouldStop = {
+            asked.withLock { $0 += 1 }
+            return true
+        }
         XCTAssertThrowsError(try pass.run { _ in }) { XCTAssertTrue($0 is CancellationError, "\($0)") }
+        XCTAssertGreaterThanOrEqual(asked.withLock { $0 }, 4, "each of the 3 scans asked as well")
         XCTAssertThrowsError(try BarrierScan.classify(source, shouldStop: { true })) {
             XCTAssertTrue($0 is CancellationError)
         }
@@ -188,6 +195,42 @@ final class AnnotatePassTests: XCTestCase {
             Set(track).intersection(Set(joined)).isEmpty,
             "the two ways still share nothing"
         )
+    }
+
+    /// A path starting on a kerb's vertex keeps that node where it is: the path is
+    /// lengthened at its start to a new node on the track, which the track takes in too.
+    func testAnEndOnAKerbIsLengthenedNotMoved() throws {
+        let url = path("kerb.osm.pbf")
+        let metre = 1 / RoadRepair.metresPerDegree
+        let writer = try PBFWriter(to: url)
+        writer.header(bbox: (minLat: 44.4, minLon: 33.4, maxLat: 44.6, maxLon: 33.6))
+        let end = (lat: 44.5 + 3 * metre, lon: 33.501)
+        writer.nodes([
+            PBFWriter.Node(id: 1, lat: 44.5, lon: 33.5, tags: []),
+            PBFWriter.Node(id: 2, lat: 44.5, lon: 33.502, tags: []),
+            PBFWriter.Node(id: 3, lat: end.lat, lon: end.lon, tags: []),
+            PBFWriter.Node(id: 4, lat: 44.502, lon: 33.501, tags: []),
+            PBFWriter.Node(id: 6, lat: end.lat, lon: 33.5005, tags: []),
+            PBFWriter.Node(id: 7, lat: end.lat, lon: 33.5015, tags: [])
+        ])
+        writer.ways([
+            PBFWriter.Way(id: 10, refs: [1, 2], tags: [("highway", "track")]),
+            PBFWriter.Way(id: 11, refs: [3, 4], tags: [("highway", "path")]),
+            PBFWriter.Way(id: 12, refs: [6, 3, 7], tags: [("barrier", "kerb")])
+        ])
+        try writer.finish()
+
+        let out = path("out.osm.pbf")
+        var pass = AnnotatePass(source: url, destination: out)
+        pass.repairRadius = 5
+        _ = try pass.run { _ in }
+        let after = try read(out)
+        let track = try XCTUnwrap(after.ways.first { $0.id == 10 }?.refs)
+        let footway = try XCTUnwrap(after.ways.first { $0.id == 11 }?.refs)
+        XCTAssertEqual(footway.count, 3, "\(footway)")
+        XCTAssertEqual(Array(footway.dropFirst()), [3, 4])
+        XCTAssertTrue(track.contains(footway[0]), "\(track)")
+        XCTAssertEqual(after.ways.first { $0.id == 12 }?.refs, [6, 3, 7])
     }
 
     func testElevationAlreadyAtHandHoldsNothingUp() throws {

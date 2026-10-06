@@ -6,6 +6,10 @@ final class RegionPickerScreen: Screen {
 
     private var keys: [Hint] {
         if search.open { return search.hints }
+        // With no index to browse, the keys that would move through it say nothing.
+        if indexMissing {
+            return [Hint(key: "r", label: t("try again")), Hint(key: "esc", label: t("back"))]
+        }
         if !marked.isEmpty {
             return [
                 Hint(key: "space", label: t("mark")),
@@ -25,12 +29,17 @@ final class RegionPickerScreen: Screen {
     }
 
     var currentID: String? = nil
+    /// No region to list: the index failed and nothing was kept from before.
+    private var indexMissing = false
     var list = ListState()
     /// A query stays applied once kept, so search results can be marked and opened.
     var search = SearchPrompt()
     var message: String?
-    /// The selection at each level left, so going back lands where it was.
-    private var trail: [(id: String?, selected: Int)] = []
+    /// An `r` under way: its outcome replaces the message once known.
+    private var refreshing = false
+    /// Each list left for a region inside it: its place and the search it was found by, so
+    /// going back lands where it was.
+    private var trail: [(id: String?, selected: Int, query: String)] = []
     let sizes = ExtractSizes()
     /// Regions to build as one map, in the order marked; the first names the map. An
     /// overlap is refused, since the shared ground would be built twice.
@@ -65,11 +74,16 @@ final class RegionPickerScreen: Screen {
         case .char("/"): search.open = true
         case .char("r"):
             message = t("refreshing the region index…")
+            refreshing = true
             ctx.loadIndexIfNeeded(force: true)
         case .right, .char("l"), .tab:
             guard let region = regions[safe: list.selected], region.hasChildren else { return .none }
             descend(into: region.id)
         case .left, .char("h"):
+            // As Esc: a kept search goes first. At the top it stays, the marks with it:
+            // only Esc leaves.
+            if search.drop(list: &list) { return .none }
+            guard currentID != nil || !trail.isEmpty else { return .none }
             return ascend()
         case .esc:
             if search.drop(list: &list) { return .none }
@@ -85,11 +99,11 @@ final class RegionPickerScreen: Screen {
         return .none
     }
 
-    /// Enter with marks builds the marks; they are emptied so Enter next means the row.
+    /// Enter with marks builds the marks. They stay: Esc back from the form finds them as
+    /// they were, and space unmarks.
     private func buildMarked(_ ctx: AppContext) -> Route {
         let chosen = marked.compactMap { ctx.index.region($0) }
         guard !chosen.isEmpty else { return .none }
-        marked.removeAll()
         message = nil
         return .push(recipe(for: chosen, ctx))
     }
@@ -145,8 +159,8 @@ final class RegionPickerScreen: Screen {
     }
 
     private func descend(into id: String) {
+        trail.append((currentID, list.selected, search.query))
         search.query = ""
-        trail.append((currentID, list.selected))
         currentID = id
         list = ListState()
     }
@@ -158,7 +172,9 @@ final class RegionPickerScreen: Screen {
             list = ListState()
             return .none
         }
+        // Back where it was left: on the same row of the same search.
         currentID = previous.id
+        search.query = previous.query
         list = ListState()
         list.selected = previous.selected
         return .none
@@ -166,6 +182,22 @@ final class RegionPickerScreen: Screen {
 
     func tick(_ ctx: AppContext) {
         ctx.loadIndexIfNeeded()
+        if case .failed = ctx.indexState { indexMissing = ctx.index.regions.isEmpty } else { indexMissing = false }
+        if refreshing {
+            switch ctx.indexState {
+            case .ready:
+                refreshing = false
+                let kept = FileTools.modified(of: Paths.indexCache).map(Fmt.day) ?? "?"
+                message =
+                    ctx.indexFetched
+                    ? t("the region index is up to date")
+                    : t("Geofabrik did not answer — the region index kept is from %@", kept)
+            case .failed(let error):
+                refreshing = false
+                message = t("could not refresh the region index: %@", error)
+            default: break
+            }
+        }
         if let region = visibleRegions(ctx)[safe: list.selected] { sizes.probe(region) }
     }
 }

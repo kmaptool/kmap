@@ -19,7 +19,7 @@ final class ReassignScreen: Screen {
             return [
                 Hint(key: "↑↓", label: t("move")),
                 Hint(key: Glyph.enter, label: t("choose")),
-                Hint(key: "type", label: t("filter")),
+                Hint(key: "abc", label: t("filter")),
                 Hint(key: "esc", label: t("back"))
             ]
         case .rule:
@@ -32,7 +32,7 @@ final class ReassignScreen: Screen {
             return [
                 Hint(key: "↑↓", label: t("move")),
                 Hint(key: Glyph.enter, label: t("reassign")),
-                Hint(key: "type", label: t("filter")),
+                Hint(key: "abc", label: t("filter")),
                 Hint(key: Glyph.tab, label: typing ? t("back to the list") : t("type a code")),
                 Hint(key: "esc", label: t("back"))
             ]
@@ -228,6 +228,7 @@ final class ReassignScreen: Screen {
     /// Whether `code` is a number mkgmap takes for `kind`, as its GType.checkType: one
     /// a typo makes otherwise would stop every later build.
     static func isNumber(_ code: Int, for kind: MapElementKind) -> Bool {
+        let code = spelled(code, for: kind)
         if (0x10000...0x1ffff).contains(code) { return code & 0xff <= 0x1f }
         switch kind {
         case .line: return (0x01...0x3f).contains(code)
@@ -246,10 +247,20 @@ final class ReassignScreen: Screen {
         }
     }
 
+    /// The number as mkgmap reads it: a polygon may be written `0xYY00` for `0xYY`.
+    static func spelled(_ code: Int, for kind: MapElementKind) -> Int {
+        kind == .polygon && (0x100..<0x10000).contains(code) && code & 0xff == 0 ? code >> 8 : code
+    }
+
     private func commit(to target: Int) -> Route {
+        let target = Self.spelled(target, for: kind)
         guard let rule = chosen else { return .none }
         guard Self.isNumber(target, for: kind) else {
             notice.say(t("not a type this kind of element can take"), error: true)
+            return .none
+        }
+        guard target != code else {
+            notice.say(t("that is the type it has already"), error: true)
             return .none
         }
         // A record on disk, so it stays English whatever the interface speaks.

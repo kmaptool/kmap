@@ -22,7 +22,8 @@ enum RegionOutline {
         var rings: [Ring] = []
         var current: Ring?
         var seenFileName = false
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: true) {
+        // By `TextLines`: a file saved on Windows ends its lines in CR LF, 1 Character to Swift.
+        for rawLine in TextLines.of(text) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             if line.isEmpty { continue }
             if !seenFileName { seenFileName = true; continue }

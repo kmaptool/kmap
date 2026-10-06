@@ -160,5 +160,64 @@ extension DefaultRuleBook {
             line.insert(contentsOf: " continue", at: close)
             return line
         }
+
+        /// Whether the rule's condition holds for these tags; nil where it is more than
+        /// plain terms joined by `&`, or names a tag mkgmap makes itself.
+        func holds(for tags: [String: String]) -> Bool? {
+            let condition = DefaultRuleBook.withoutActions(String(text.prefix { $0 != "[" }))
+            guard !condition.contains(where: { "|()~".contains($0) }) else { return nil }
+            for raw in condition.split(separator: "&") {
+                let term = raw.trimmingCharacters(in: .whitespaces)
+                guard let held = Self.holds(term, for: tags) else { return nil }
+                if !held { return false }
+            }
+            return true
+        }
+
+        /// One term: `k=v`, `k=*`, `k!=v`, `k!=*`, or a number compared with `<`, `<=`,
+        /// `>` or `>=` by the first number in the value; a value with none fails, as in
+        /// mkgmap.
+        private static func holds(_ term: String, for tags: [String: String]) -> Bool? {
+            for op in ["!=", ">=", "<=", "=", ">", "<"] {
+                guard let at = term.range(of: op) else { continue }
+                let key = term[..<at.lowerBound].trimmingCharacters(in: .whitespaces)
+                var value = term[at.upperBound...].trimmingCharacters(in: .whitespaces)
+                if value.count >= 2, let first = value.first, "'\"".contains(first), value.last == first {
+                    value = String(value.dropFirst().dropLast())
+                }
+                guard !key.isEmpty, !key.hasPrefix("mkgmap:") else { return nil }
+                let have = tags[key]
+                switch op {
+                case "=": return value == "*" ? have != nil : have == value
+                case "!=": return value == "*" ? have == nil : have != value
+                default:
+                    guard let limit = Double(value) else { return nil }
+                    guard let number = have.flatMap(Self.leadingNumber) else { return false }
+                    switch op {
+                    case ">": return number > limit
+                    case ">=": return number >= limit
+                    case "<": return number < limit
+                    default: return number <= limit
+                    }
+                }
+            }
+            return nil
+        }
+
+        /// The first number in a value, as mkgmap finds one: `75000 (2010)` and `~75000`
+        /// are 75000; a run of digits and dots that is no number, as in `c. 75000`, is none.
+        private static func leadingNumber(_ value: String) -> Double? {
+            let chars = Array(value)
+            func part(_ c: Character) -> Bool { c.isASCII && (c.isNumber || c == ".") }
+            guard
+                var at = chars.indices.first(where: {
+                    part(chars[$0]) || (chars[$0] == "-" && $0 + 1 < chars.count && part(chars[$0 + 1]))
+                })
+            else { return nil }
+            let from = at
+            if chars[at] == "-" { at += 1 }
+            while at < chars.count, part(chars[at]) { at += 1 }
+            return Double(String(chars[from..<at]))
+        }
     }
 }

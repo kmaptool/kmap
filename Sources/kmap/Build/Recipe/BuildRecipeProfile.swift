@@ -46,7 +46,7 @@ extension BuildRecipe {
         _ choices: BuildChoices,
         style: MapStyle?,
         regionCodePage: Int,
-        plans: [ZoomPlan] = ZoomPlan.builtins
+        plans: [ZoomPlan]
     ) {
         if let style { self.style = style }
         contours = choices.contours

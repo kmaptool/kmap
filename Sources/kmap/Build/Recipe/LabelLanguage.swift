@@ -21,10 +21,12 @@ struct LabelLanguage: Equatable {
         noteKey: "whatever the local mappers wrote — Russian in Russia, German in Germany"
     )
 
+    /// The local name before `int_name`, as a 1251 build does by default: in Russia a
+    /// place without `name:ru` is named in Cyrillic, and `int_name` is its Latin spelling.
     static let russian = LabelLanguage(
         id: "ru",
         nameKey: "Russian",
-        tagList: "name:ru,int_name,name",
+        tagList: "name:ru,name,int_name",
         noteKey: "prefer the Russian name where OSM has one"
     )
 

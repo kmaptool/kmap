@@ -15,10 +15,7 @@ extension BuildPipeline {
         mkgmap: URL,
         typ: URL?
     ) async throws -> URL {
-        let outDir =
-            workDirectory
-            .appendingPathComponent("build", isDirectory: true)
-            .appendingPathComponent("gmap", isDirectory: true)
+        let outDir = gmapDirectory
         FileTools.removeIfPresent(outDir)
         Paths.ensure(outDir)
 
@@ -26,7 +23,7 @@ extension BuildPipeline {
             java: java,
             mkgmap: mkgmap,
             mode: "--gmapi",
-            areaName: recipe.slug,
+            areaName: recipe.areaSlug,
             outputDir: outDir,
             options: gmapOptions(),
             inputs: tiles.map(\.url),
@@ -45,6 +42,14 @@ extension BuildPipeline {
         return bundle
     }
 
+    /// Where the gmapi run writes, and runs.
+    var gmapDirectory: URL {
+        workDirectory.appendingPathComponent("build", isDirectory: true).appendingPathComponent(
+            "gmap",
+            isDirectory: true
+        )
+    }
+
     /// What the gmapi run needs beyond the identity: the overview's name and number, the
     /// flag that lets BaseCamp draw an elevation profile, and relief for the overview
     /// alone, since the tiles carry theirs already.
@@ -57,7 +62,7 @@ extension BuildPipeline {
         if recipe.demLayer {
             let cells = stageDEMCells()
             if !cells.isEmpty {
-                options.append("--dem=" + cells.map(\.path).joined(separator: ","))
+                options.append(Self.demOption(cells, runIn: gmapDirectory))
                 options.append("--overview-dem-dist=\(Self.overviewDEMDistance)")
             }
         }
@@ -65,11 +70,18 @@ extension BuildPipeline {
     }
 
     /// The `.gmap` folder mkgmap wrote under `outDir`: beside the index files today, in a
-    /// `.gmapi` wrapper in other releases.
+    /// `.gmapi` wrapper in other releases, and deeper where the family name has a slash,
+    /// as `us/georgia` does: mkgmap takes it for folders. The shallowest found.
     static func gmapFolder(in outDir: URL) -> URL? {
         func folders(in dir: URL) -> [URL] { FileTools.contents(of: dir).filter(FileTools.isDirectory) }
-        func gmap(among urls: [URL]) -> URL? { urls.first { $0.pathExtension.lowercased() == "gmap" } }
-        let top = folders(in: outDir)
-        return gmap(among: top) ?? top.lazy.compactMap { gmap(among: folders(in: $0)) }.first
+        var level = folders(in: outDir)
+        for _ in 0..<Self.gmapDepth where !level.isEmpty {
+            if let found = level.first(where: { $0.pathExtension.lowercased() == "gmap" }) { return found }
+            level = level.flatMap(folders(in:))
+        }
+        return nil
     }
+
+    /// Deep enough for every slash a family name of several regions holds.
+    private static let gmapDepth = 12
 }

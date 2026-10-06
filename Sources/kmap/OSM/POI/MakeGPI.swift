@@ -26,6 +26,9 @@ struct MakeGPI {
     var showOnMap = false
     /// `key=value` or `key=*`, mirroring the app's Hide on map choice.
     var exclude: [String] = []
+    /// Asked as the extracts are read, which can take minutes: true stops with a
+    /// `CancellationError`, nothing written.
+    var shouldStop: () -> Bool = { false }
 
     struct Report {
         var written = 0
@@ -44,26 +47,33 @@ struct MakeGPI {
     }
 
     func run() throws -> Report {
+        // Before the extract is read, which can take minutes.
+        guard let page = Self.codePage(named: codepage) else { throw Trouble.unknownCodePage(codepage) }
         var scan = Scan(prefer: prefer, exclude: Self.parse(exclude))
+        // Per file, the way ids of each data blob in order: the pass reads every blob.
+        var blobWays: [[ClosedRange<Int64>?]] = []
         for source in sources {
+            var ranges: [ClosedRange<Int64>?] = []
             try PBFReader(url: source).readInOrder(make: {
                 Scan(prefer: prefer, exclude: MakeGPI.parse(exclude))
             }) { part in
+                if shouldStop() { throw CancellationError() }
+                ranges.append(part.wayIDs)
                 scan.take(part)
                 part.clear()
             }
+            blobWays.append(ranges)
         }
+        if shouldStop() { throw CancellationError() }
+        try scan.addMultipolygons(urls: sources, blobWays: blobWays)
         var points = try scan.resolve(urls: sources)
         // The nodes come first, then the areas: counted after the repeats are gone.
-        var fromNodes = scan.points.count
-        if sources.count > 1 {
-            let kept = Self.keptOnce(points)
-            fromNodes = kept.prefix(scan.points.count).filter { $0 }.count
-            points = zip(points, kept).filter(\.1).map(\.0)
-        }
+        // Overlapping extracts carry a border point twice: it is written once.
+        let kept = Self.keptOnce(points)
+        let fromNodes = kept.prefix(scan.points.count).filter { $0 }.count
+        points = zip(points, kept).filter(\.1).map(\.0)
         guard !points.isEmpty else { throw Trouble.nothingToWrite }
 
-        guard let page = Self.codePage(named: codepage) else { throw Trouble.unknownCodePage(codepage) }
         // Lossy on purpose: a letter the code page has no room for becomes "?" rather
         // than costing the whole point.
         func encoded(_ text: String) -> [UInt8] {
@@ -81,7 +91,8 @@ struct MakeGPI {
             category: encoded(category),
             codePage: page,
             fileName: destination.lastPathComponent,
-            icon: showOnMap ? GPIFile.Icon.dot : nil
+            icon: showOnMap ? GPIFile.Icon.dot : nil,
+            madeAt: Self.dataDate(of: sources)
         )
         try FileTools.write(file, to: destination)
 
@@ -108,6 +119,18 @@ struct MakeGPI {
         }
     }
 
+    /// When the file's data is from, so the same extracts give the same bytes: the
+    /// newest extract's date, or `SOURCE_DATE_EPOCH` where a reproducible build sets it.
+    static func dataDate(
+        of sources: [URL],
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Date {
+        if let epoch = environment["SOURCE_DATE_EPOCH"].flatMap(TimeInterval.init) {
+            return Date(timeIntervalSince1970: epoch)
+        }
+        return sources.compactMap { FileTools.modified(of: $0) }.max() ?? Date()
+    }
+
     /// The code page a `--codepage` word stands for: `cp1251`, `CP1251` or `1251`, or
     /// `utf8`. Nil for one there is no table for, which would turn every letter into `?`.
     static func codePage(named name: String) -> Int? {
@@ -132,10 +155,12 @@ struct MakeGPI {
         return (exact, wildcard)
     }
 
-    /// Whether a description says anything the name does not. Rejects one under 12
-    /// characters, and one that repeats the name or is contained in it within 6 characters.
+    /// Whether a description says anything the name does not. Rejects a single word under
+    /// 12 characters, a bare "spring", but not a short phrase of several words; and one
+    /// that repeats the name or is contained in it within 6 characters.
     static func worthCarrying(_ description: String, _ name: String) -> Bool {
-        if description.count < 12 { return false }
+        let words = description.split(whereSeparator: { $0.isWhitespace }).count
+        if description.count < 12 && words < 2 { return false }
         if name.isEmpty { return true }
         let a = description.lowercased(), b = name.lowercased()
         if a == b { return false }

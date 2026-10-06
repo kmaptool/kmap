@@ -158,6 +158,30 @@ enum Win32File {
         )
     }
 
+    // MARK: Where a path leads
+
+    /// The path the system reaches `path` by, past links, `subst` and mapped drives: a
+    /// network folder reads as its server and share. Nil where it will not open.
+    static func finalPath(of path: String) -> String? {
+        let handle = path.withCString(encodedAs: UTF16.self) {
+            CreateFileW(
+                $0,
+                0,
+                DWORD(FILE_SHARE_READ) | DWORD(FILE_SHARE_WRITE) | DWORD(FILE_SHARE_DELETE),
+                nil,
+                DWORD(OPEN_EXISTING),
+                DWORD(FILE_FLAG_BACKUP_SEMANTICS),
+                nil
+            )
+        }
+        guard let handle, handle != INVALID_HANDLE_VALUE else { return nil }
+        defer { CloseHandle(handle) }
+        var buffer = [WCHAR](repeating: 0, count: 32_768)
+        let length = GetFinalPathNameByHandleW(handle, &buffer, DWORD(buffer.count), DWORD(VOLUME_NAME_DOS))
+        guard length > 0, Int(length) < buffer.count else { return nil }
+        return String(decoding: buffer[0..<Int(length)], as: UTF16.self)
+    }
+
     // MARK: Moving
 
     /// Moves a file or a directory, as `FileManager.moveItem` does: it fails where the
@@ -185,13 +209,25 @@ enum Win32File {
         }
     }
 
+    /// Renames within one volume: no copy, so a directory bound elsewhere fails.
+    static func rename(_ source: URL, to destination: URL) throws {
+        let from = source.nativePath
+        let to = destination.nativePath
+        try FileRetry.attempt(isTransient: isTransient) {
+            let moved = from.withCString(encodedAs: UTF16.self) { wideFrom in
+                to.withCString(encodedAs: UTF16.self) { wideTo in MoveFileExW(wideFrom, wideTo, 0) }
+            }
+            guard moved else { throw Failure(operation: "rename", path: to, code: GetLastError()) }
+        }
+    }
+
     private static func isDirectory(_ path: String) -> Bool {
         let attributes = path.withCString(encodedAs: UTF16.self) { GetFileAttributesW($0) }
         return attributes != INVALID_FILE_ATTRIBUTES && attributes & DWORD(FILE_ATTRIBUTE_DIRECTORY) != 0
     }
 
     /// The root of the volume holding `path`, `X:\`, or nil where the system will not say.
-    private static func volume(of path: String) -> String? {
+    static func volume(of path: String) -> String? {
         var root = [WCHAR](repeating: 0, count: Int(MAX_PATH))
         let found = path.withCString(encodedAs: UTF16.self) { GetVolumePathNameW($0, &root, DWORD(root.count)) }
         guard found else { return nil }

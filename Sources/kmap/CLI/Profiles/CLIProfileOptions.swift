@@ -19,11 +19,13 @@ extension CLI {
         "max-nodes", "family-id", "repair-radius", "json", "verbose"
     ]
 
+    /// The build options that stand alone or take a value, and so take it only after `=`.
+    static let valuedOnlyAfterEquals: Set<String> = ["descriptions"]
+
     /// The build options that hold a value, so `--key value` reads as `--key=value` does.
-    /// `--descriptions` stands alone as well, so it takes its value only after `=`.
     static let buildValuedOptions: Set<String> =
         profileOptions.union(perRunOptions)
-        .subtracting(BuildOptions.switches).subtracting(["descriptions", "json", "verbose"])
+        .subtracting(BuildOptions.switches).subtracting(valuedOnlyAfterEquals).subtracting(["json", "verbose"])
 
     /// Every flag `kmap build` reads; anything else on its line is a mistake, not a no-op.
     static func unknownBuildOptions(in flags: Flags) -> [String] {
@@ -31,13 +33,16 @@ extension CLI {
     }
 
     /// The elevation source ids a list may name: the direct sources, the 2 Viewfinder
-    /// resolutions, and pyhgtmap's own (srtm and alos). Returns the rest.
+    /// resolutions, and pyhgtmap's own behind a login. Returns the rest.
     static func unknownSources(in csv: String) -> [String] {
-        let known = Set(DEMSources.all.map(\.sourceID) + ["view1", "view3"])
+        let known = Set(
+            DEMSources.all.map(\.sourceID) + ["view1", "view3"]
+                + ElevationLogins.Service.allCases.flatMap(\.sourceIDs)
+        )
         return csv.split(separator: ",").map {
             CopernicusDEM.canonicalSourceID($0.trimmingCharacters(in: .whitespaces))
         }
-        .filter { !$0.isEmpty && !known.contains($0) && !$0.hasPrefix("srtm") && !$0.hasPrefix("alos") }
+        .filter { !$0.isEmpty && !known.contains($0) }
     }
 
     /// Applies `flags` to `choices`, collecting every refusal so one run reports
@@ -70,11 +75,17 @@ extension CLI {
         if let parts = asked.number("parts", in: BuildOptions.parts) { choices.parts = parts }
         // A lower shape overlap pulls the land overlap down with it; a land overlap past
         // the shape one is refused.
-        if let overlap = asked.number("overlap", in: BuildOptions.overlap) {
+        let shapeAsked = asked.number("overlap", in: BuildOptions.overlap)
+        let landAsked = asked.number("land-overlap", in: BuildOptions.overlap)
+        // Steps of 128 only: another figure would be rounded to one, silently.
+        for (name, value) in [("overlap", shapeAsked), ("land-overlap", landAsked)] {
+            if let refusal = value.flatMap({ BuildChoices.offStep(name, $0) }) { asked.refused.append(refusal) }
+        }
+        if let overlap = shapeAsked {
             choices.shapeOverlap = BuildChoices.sane(overlap)
             choices.landOverlap = min(choices.landOverlap, choices.shapeOverlap)
         }
-        if let land = asked.number("land-overlap", in: BuildOptions.overlap) {
+        if let land = landAsked {
             let stepped = BuildChoices.sane(land)
             if stepped > choices.shapeOverlap {
                 asked.refused.append("--land-overlap=\(stepped) is past --overlap=\(choices.shapeOverlap)")

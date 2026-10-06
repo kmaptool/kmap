@@ -7,7 +7,7 @@ import Foundation
 ///
 /// The simplest PNG the format allows: 8-bit RGBA, no interlace, one IDAT, filter 0.
 enum PNG {
-    /// `width` × `height` straight RGBA, top row first.
+    /// `width` x `height` straight RGBA, top row first.
     static func encode(width: Int, height: Int, rgba: [UInt8]) -> Data {
         precondition(rgba.count == width * height * 4)
 

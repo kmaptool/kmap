@@ -81,27 +81,33 @@ enum RuleReassignments {
             throw StoreError.alreadyMoved(old.first ?? "")
         }
 
+        // A file that will not read as UTF-8 is still the user's: written over, every
+        // entry in it would go.
+        if FileTools.exists(file), (try? String(contentsOf: file, encoding: .utf8)) == nil {
+            throw StoreError.failed(t("%@ is not UTF-8 text, so it is left as it is", Paths.display(file)))
+        }
         var body = text(in: file)
         if body.isEmpty { body = header }
-        body += "\n@@ \(reassignment.file)\n"
+        // In the line ends the file already has, which a hand edit may have changed.
+        let newline = newline(of: body)
+        var block = ["", "@@ \(reassignment.file)"]
         // One marker per line, since a rule can span two of them and the applier joins the
         // replacement back together with newlines.
-        body += old.map { "- " + $0 }.joined(separator: "\n") + "\n"
-        body += reassignment.newLines.map { "+ " + $0 }.joined(separator: "\n") + "\n"
+        block += old.map { "- " + $0 }
+        block += reassignment.newLines.map { "+ " + $0 }
+        body += block.dropFirst().reduce(block[0]) { $0 + newline + $1 } + newline
         try write(body, to: file)
     }
 
-    /// Drops one substitution, putting that rule back where mkgmap had it. Only its own
+    /// Drops 1 substitution, putting that rule back where mkgmap had it. Only its own
     /// `@@`, `-` and `+` lines go: the file is the user's to annotate, and every comment
     /// stays where it was.
     static func remove(_ entry: Entry, from file: URL = RuleReassignments.file) throws {
         let all = entries(in: file)
-        let keep = all.filter { $0 != entry }
-        guard keep.count != all.count else { return }
-        guard !keep.isEmpty else { return try removeAll(at: file) }
+        guard all.contains(entry) else { return }
         guard let text = try? String(contentsOf: file, encoding: .utf8) else { return }
 
-        var lines = Lines.keepingTrailingBlank(text)
+        var lines = TextLines.keepingTrailingBlank(text)
         // Each entry's own lines, read as the sheet is read: a block can hold several.
         let runs = SubstitutionSheet.entryLines(lines)
         guard let at = SubstitutionSheet.parse(text).firstIndex(of: entry), at < runs.count else { return }
@@ -113,7 +119,12 @@ enum RuleReassignments {
             going.insert(header)
         }
         for index in going.sorted(by: >) { lines.remove(at: index) }
-        try write(lines.joined(separator: "\n"), to: file)
+        try write(lines.joined(separator: newline(of: text)), to: file)
+    }
+
+    /// The line end a text uses: Windows' where it has any, else the plain one.
+    private static func newline(of text: String) -> String {
+        text.contains("\r\n") ? "\r\n" : "\n"
     }
 
     static func removeAll(at file: URL = RuleReassignments.file) throws {

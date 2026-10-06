@@ -3,9 +3,10 @@ import Foundation
 /// Which rungs of the ladder each family is drawn on: families down the side, rungs
 /// across. Space adds or removes the rung under the cursor, keeping a continuous run.
 final class ZoomPlanEditScreen: Screen {
-    var page: Page { Page(t("zoom plan"), subject: t(plan.name), keys: keys) }
+    var page: Page { Page(t("zoom plan"), subject: plan.shownName, keys: keys) }
 
     private var keys: [Hint] {
+        if let changingLadder { return changingLadder.footerHints }
         if picking != nil {
             return [
                 Hint(key: "↑↓", label: t("move")),
@@ -15,6 +16,13 @@ final class ZoomPlanEditScreen: Screen {
         }
         if plan.isBuiltin {
             return [Hint(key: "↑↓", label: t("move")), Hint(key: "esc", label: t("back"))]
+        }
+        if case .ladder? = rows[safe: list.selected] {
+            return [
+                Hint(key: "↑↓", label: t("move")),
+                Hint(key: Glyph.enter, label: t("choose the zoom levels")),
+                Hint(key: "esc", label: t("back"))
+            ]
         }
         return [
             Hint(key: "↑↓←→", label: t("move")),
@@ -48,6 +56,10 @@ final class ZoomPlanEditScreen: Screen {
     var picking: Int?
     /// The screen row each field was drawn on, so an open list hangs under it.
     var fieldRows: [String: Int] = [:]
+    /// The first family row on screen: a short terminal shows the grid a window at a time.
+    var familyScroll = 0
+    /// The ladder asked for, waiting on whether to drop the rows set on this one.
+    var changingLadder: Question<LevelsProfile>?
 
     init(plan: ZoomPlan, settings: SettingsStore) {
         self.plan = plan
@@ -78,6 +90,10 @@ final class ZoomPlanEditScreen: Screen {
     // MARK: Input
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        if let (answer, ladder) = changingLadder.take(key) {
+            if answer == .confirmed { setLadder(ladder) }
+            return .none
+        }
         if picking != nil { return handlePicking(key) }
         let rows = self.rows
         switch key {
@@ -98,8 +114,7 @@ final class ZoomPlanEditScreen: Screen {
             guard !plan.isBuiltin else { return refuse() }
             guard case .family(let family)? = rows[safe: list.selected] else { return .none }
             plan.setWindow(nil, for: family)
-            settings.saveZoomPlan(plan)
-            message = nil
+            save()
         case .esc: return .pop
         case .ctrl("c"): return .quit
         default: break
@@ -148,8 +163,20 @@ final class ZoomPlanEditScreen: Screen {
         } else {
             plan.setWindow(next, for: family)
         }
+        save()
+    }
+
+    /// Writes the plan, and says so where the settings file refused it: this run holds it,
+    /// the next start will not.
+    @discardableResult
+    private func save() -> Bool {
         settings.saveZoomPlan(plan)
-        message = nil
+        guard let failure = settings.saveFailure else {
+            message = nil
+            return true
+        }
+        message = t("could not save the settings: %@", failure.localizedDescription)
+        return false
     }
 
     private func handlePicking(_ key: KeyEvent) -> Route {
@@ -159,7 +186,28 @@ final class ZoomPlanEditScreen: Screen {
         case .down: at = min(LevelsProfile.all.count - 1, at + 1); picking = at
         case .enter:
             picking = nil
-            setLadder(LevelsProfile.all[at])
+            let ladder = LevelsProfile.all[at]
+            guard ladder.id != plan.levelsID, !plan.windows.isEmpty else {
+                setLadder(ladder)
+                return .none
+            }
+            // Every row this plan moved goes back to the style's: asked, it cannot be undone.
+            changingLadder = Question(
+                dialog: Dialog(
+                    title: t("Another set of zoom levels"),
+                    body: [
+                        t(
+                            "%1$@ moves %2$d kind(s) of feature on these levels. On %3$@ a level means another scale, so every row goes back to what the style does.",
+                            plan.shownName,
+                            plan.windows.count,
+                            ladder.name
+                        )
+                    ],
+                    confirm: t("change"),
+                    cancel: t("cancel")
+                ),
+                subject: ladder
+            )
         case .esc: picking = nil
         case .ctrl("c"): return .quit
         default: break
@@ -167,14 +215,31 @@ final class ZoomPlanEditScreen: Screen {
         return .none
     }
 
-    /// Another ladder drops every window: an index means a different rung there.
+    /// Another ladder drops every window: an index means a different rung there. The
+    /// profiles building with the plan move with it, or they would fall back to what ships.
     private func setLadder(_ ladder: LevelsProfile) {
         guard ladder.id != plan.levelsID else { return }
+        let was = plan.levelsID
         plan.levelsID = ladder.id
         plan.windows = [:]
-        settings.saveZoomPlan(plan)
         survey = nil
         column = 0
-        message = t("moved to %@ — the rows are back to what the style does", ladder.name)
+        guard save() else { return }
+        var moved = 0
+        settings.update { settings in
+            for at in settings.profiles.indices
+            where settings.profiles[at].choices.zoomPlanID == plan.id && settings.profiles[at].choices.levelsID == was {
+                settings.profiles[at].choices.levelsID = ladder.id
+                moved += 1
+            }
+        }
+        message =
+            moved == 0
+            ? t("moved to %@ — the rows are back to what the style does", ladder.name)
+            : t(
+                "moved to %1$@, with %2$d profile(s) using it — the rows are back to what the style does",
+                ladder.name,
+                moved
+            )
     }
 }

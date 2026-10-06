@@ -43,7 +43,7 @@ extension PBFReader {
         let wanted = sink.wantedParts
         var held: OSMParts = []
         for group in groups {
-            held.formUnion(decodeGroup(group, block: block, wanted: wanted, into: &sink, fields: &fields))
+            held.formUnion(try decodeGroup(group, block: block, wanted: wanted, into: &sink, fields: &fields))
         }
         sink.end(block)
         return held
@@ -99,10 +99,13 @@ extension PBFReader {
         wanted: OSMParts,
         into sink: inout Sink,
         fields: inout Scratch
-    ) -> OSMParts {
+    ) throws -> OSMParts {
         var held: OSMParts = []
         var reader = ProtoReader(group)
         while let field = reader.nextField() {
+            // Nodes 1 message each, as some writers can be told to write: refused rather than
+            // read as none, which would lose every node of the file without a word.
+            if field.number == PBFSchema.groupNodes { throw PBFError.plainNodes }
             guard let part = part(of: field.number) else {
                 reader.skip(wire: field.wire)
                 continue

@@ -6,13 +6,6 @@ extension BuildPipeline {
     /// The largest file FAT32 can hold, which is the card format a receiver reads.
     private static let fatFileLimit: Int64 = 4_294_967_295
 
-    /// One compiled tile, with what it weighs.
-    struct Weighed {
-        let tile: Tile
-        let url: URL
-        let size: Int64
-    }
-
     /// Puts the compiled tiles into the outputs the format asks for. Nothing is compiled
     /// twice: the `.img` files go in as they are; only the index and the overview are
     /// rebuilt. Returns how many outputs were written, the BaseCamp folder counting as one.
@@ -27,6 +20,7 @@ extension BuildPipeline {
         for tile in tiles {
             let url = tileDir.appendingPathComponent("\(tile.mapID).img")
             guard FileTools.exists(url) else { throw BuildError.noOutput(tile.mapID) }
+            guard ImgContainer.isWhole(url) else { throw BuildError.cutShort(url.lastPathComponent) }
             weighed.append(Weighed(tile: tile, url: url, size: FileTools.size(of: url)))
         }
         let total = weighed.reduce(Int64(0)) { $0 + $1.size }
@@ -57,7 +51,7 @@ extension BuildPipeline {
             let packer = TilePacker(
                 mode: recipe.splitMode,
                 axis: SplitAxis.best(for: recipe.coverage),
-                slug: recipe.slug,
+                slug: recipe.areaSlug,
                 regions: recipe.regions,
                 countryOf: recipe.countryOf
             )
@@ -129,7 +123,7 @@ extension BuildPipeline {
             mode: "--gmapsupp",
             areaName: name,
             outputDir: outDir,
-            inputs: group.map(\.url) + (FileTools.exists(overview) ? [overview] : []),
+            inputs: group.map(\.url) + (try overviewIfAny(overview)),
             typ: typ
         )
 
@@ -146,9 +140,16 @@ extension BuildPipeline {
 
         let produced = outDir.appendingPathComponent("gmapsupp.img")
         guard FileTools.exists(produced) else { throw BuildError.noOutput(name) }
+        guard ImgContainer.isWhole(produced) else { throw BuildError.cutShort(name) }
         let size = FileTools.size(of: produced)
         log.ok("\(name): \(Fmt.bytes(size))")
         return size
+    }
+
+    private func overviewIfAny(_ overview: URL) throws -> [URL] {
+        guard FileTools.exists(overview) else { return [] }
+        guard ImgContainer.isWhole(overview) else { throw BuildError.cutShort(overview.lastPathComponent) }
+        return [overview]
     }
 
     private func tileDir(of group: [Weighed]) -> URL {

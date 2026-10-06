@@ -121,15 +121,37 @@ enum Paths {
         return "~" + p.dropFirst(h.hasSuffix("/") ? h.count - 1 : h.count)
     }
 
+    /// Whether a typed path names 1 folder wherever kmap is started: from the root, a drive
+    /// with its root, a share, or `~`. Windows' `D:foo` is relative to that drive's folder.
+    static func isFullPath(_ typed: String) -> Bool {
+        let path = unquoted(typed)
+        if path.hasPrefix("~") { return true }
+        #if os(Windows)
+        let scalars = Array(path.unicodeScalars)
+        if scalars.count >= 3, scalars[0].properties.isAlphabetic, scalars[1] == ":",
+            scalars[2] == "\\" || scalars[2] == "/"
+        {
+            return true
+        }
+        return path.hasPrefix("\\\\") || path.hasPrefix("//")
+        #else
+        return path.hasPrefix("/")
+        #endif
+    }
+
+    /// A typed path trimmed of edge spaces and of the quotes a copy from Windows Explorer adds.
+    private static func unquoted(_ path: String) -> String {
+        let trimmed = path.trimmingCharacters(in: .whitespaces)
+        guard trimmed.count >= 2,
+            (trimmed.hasPrefix("\"") && trimmed.hasSuffix("\"")) || (trimmed.hasPrefix("'") && trimmed.hasSuffix("'"))
+        else { return trimmed }
+        return String(trimmed.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+    }
+
     /// Expands a leading `~` in a typed path, and drops the quotes a path copied from
     /// Windows Explorer comes in.
     static func expand(_ path: String) -> URL {
-        var trimmed = path.trimmingCharacters(in: .whitespaces)
-        if trimmed.count >= 2,
-            (trimmed.hasPrefix("\"") && trimmed.hasSuffix("\"")) || (trimmed.hasPrefix("'") && trimmed.hasSuffix("'"))
-        {
-            trimmed = String(trimmed.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
-        }
+        let trimmed = unquoted(path)
         if trimmed.hasPrefix("~") {
             return URL(fileURLWithPath: NSString(string: trimmed).expandingTildeInPath)
         }

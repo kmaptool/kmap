@@ -12,6 +12,7 @@ extension RangeSession {
         struct Transfer {
             let part: Int
             let total: Int64?
+            let lastModified: String?
             let handle: FileHandle
             let continuation: CheckedContinuation<Void, Error>
             /// Why the task was cancelled from in here, which its own error does not say.
@@ -38,6 +39,7 @@ extension RangeSession {
             _ task: URLSessionTask,
             part: Int,
             total: Int64? = nil,
+            lastModified: String? = nil,
             into handle: FileHandle,
             resuming continuation: CheckedContinuation<Void, Error>
         ) {
@@ -45,6 +47,7 @@ extension RangeSession {
                 $0.transfers[task.taskIdentifier] = Transfer(
                     part: part,
                     total: total,
+                    lastModified: lastModified,
                     handle: handle,
                     continuation: continuation
                 )
@@ -78,8 +81,23 @@ extension RangeSession {
             completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
         ) {
             guard let http = response as? HTTPURLResponse else { return completionHandler(.allow) }
+            // Bytes asked that the file no longer has: it shrank, a copy replaced it.
+            if http.statusCode == 416, dataTask.originalRequest?.value(forHTTPHeaderField: "Range") != nil {
+                fail(dataTask, with: DownloadError.changedMeanwhile)
+                return completionHandler(.cancel)
+            }
             if !(200...299).contains(http.statusCode) {
                 fail(dataTask, with: DownloadError.badStatus(http.statusCode))
+                return completionHandler(.cancel)
+            }
+            // Modified since it was sized: what is on disk is of the copy before. A 200 is
+            // what `If-Range` answers then; a 206 from a server ignoring it says so too.
+            if dataTask.originalRequest?.value(forHTTPHeaderField: "Range") != nil,
+                let sized = state.withLock({ $0.transfers[dataTask.taskIdentifier]?.lastModified }),
+                let now = http.value(forHTTPHeaderField: "Last-Modified"),
+                !RangeSession.sameModification(now, sized)
+            {
+                fail(dataTask, with: DownloadError.changedMeanwhile)
                 return completionHandler(.cancel)
             }
             // A ranged request answered 200 sends the whole file; appending it would make an
@@ -88,6 +106,16 @@ extension RangeSession {
                 dataTask.originalRequest?.value(forHTTPHeaderField: "Range") != nil
             {
                 fail(dataTask, with: DownloadError.rangesIgnored)
+                return completionHandler(.cancel)
+            }
+            // A part of a file of another size: the server's copy was replaced, and what is
+            // on disk belongs to the one before. Not a server that ignores ranges.
+            if http.statusCode == 206,
+                let served = http.value(forHTTPHeaderField: "Content-Range"),
+                let total = state.withLock({ $0.transfers[dataTask.taskIdentifier]?.total }),
+                let whole = RangeSession.wholeSize(in: served), whole != total
+            {
+                fail(dataTask, with: DownloadError.changedMeanwhile)
                 return completionHandler(.cancel)
             }
             // A 206 for bytes other than those asked would be appended at the wrong place.

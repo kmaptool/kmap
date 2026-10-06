@@ -70,20 +70,27 @@ extension ReassignScreen {
             style: Style(fg: theme.faint, bg: theme.appBg)
         )
         y += 1
-        s.text(
-            rect.x,
-            y,
-            tn("%2$@ is emitted by %1$d rule(s):", rules.count, TypeMeaning.hex(code)),
-            Style(fg: theme.text, bg: theme.appBg)
-        )
-        y += 1
-
-        guard !rules.isEmpty else {
+        // Without the rule set unpacked there is no count to give.
+        if document.rules != nil {
             s.text(
                 rect.x,
                 y,
-                t("no rule in this style emits it — nothing to move"),
-                Style(fg: theme.warn, bg: theme.appBg)
+                tn("%2$@ is emitted by %1$d rule(s):", rules.count, TypeMeaning.hex(code)),
+                Style(fg: theme.text, bg: theme.appBg)
+            )
+            y += 1
+        }
+
+        guard !rules.isEmpty else {
+            s.paragraph(
+                document.rules == nil
+                    ? t("the rule set is not unpacked yet — build a map once, then come back")
+                    : t("no rule in this style emits it — nothing to move"),
+                x: rect.x,
+                y: y,
+                width: rect.w,
+                style: Style(fg: theme.warn, bg: theme.appBg),
+                maxY: rect.maxY
             )
             return
         }
@@ -176,7 +183,8 @@ extension ReassignScreen {
             theme: theme
         )
         if let target = Self.parseCode(typed) {
-            _ = warnings(about: target, into: s, rect: rect, y: y + 3, theme: theme)
+            // As it will be written: 0x1300 for a polygon is 0x13.
+            _ = warnings(about: Self.spelled(target, for: kind), into: s, rect: rect, y: y + 3, theme: theme)
         } else {
             s.text(
                 rect.x,

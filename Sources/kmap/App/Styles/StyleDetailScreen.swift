@@ -27,8 +27,11 @@ final class StyleDetailScreen: Screen {
     /// a copy from when this screen opened would undo that at the next save.
     private(set) var document: StyleDocument
     var list = ListState()
-    var message: String?
+    var message: String? { didSet { messageIsError = false } }
+    private(set) var messageIsError = false
     var isDefault = false
+    /// Set on opening another screen, which may change the file: read again on return.
+    private var openedOther = false
 
     init(style: MapStyle) {
         document = StyleDocument.load(style)
@@ -45,7 +48,11 @@ final class StyleDetailScreen: Screen {
     }
 
     func tick(_ ctx: AppContext) {
-        isDefault = ctx.settings.settings.defaultStyleID == document.style.id
+        isDefault = StyleCatalog.names(ctx.settings.settings.defaultStyleID, document.style)
+        if openedOther {
+            openedOther = false
+            document = StyleDocument.load(document.style)
+        }
     }
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
@@ -55,7 +62,10 @@ final class StyleDetailScreen: Screen {
         case .down: list.move(1, count: rows.count)
         case .enter:
             let selected = rows[safe: list.selected]
-            if selected != nil { document = StyleDocument.load(document.style) }
+            if selected != nil {
+                document = StyleDocument.load(document.style)
+                openedOther = true
+            }
             switch selected {
             case .kind(let kind): return .push(TypeBrowserScreen(document: document, kind: kind))
             case .drawOrder: return .push(DrawOrderScreen(document: document))
@@ -68,6 +78,7 @@ final class StyleDetailScreen: Screen {
             return adopt(ctx)
         case .char("r"):
             guard let img = recoverableMap, let typ = document.sourceURL else { return .none }
+            openedOther = true
             return .push(RecoverScreen(img: img, typ: typ))
         case .esc: return .pop
         case .ctrl("c"): return .quit
@@ -81,7 +92,7 @@ final class StyleDetailScreen: Screen {
     private func adopt(_ ctx: AppContext) -> Route {
         guard let text = document.source?.text, !document.isEditable else { return .none }
         do {
-            let landed = try TypLibrary.adopt(source: text, named: document.style.name)
+            let landed = try TypLibrary.adopt(source: text, named: document.style.name, from: document.style.typURL)
             ctx.styles.rescanStyles()
             guard let style = StyleCatalog.libraryStyle(at: landed) else {
                 message = t("copied to %@", Paths.display(landed))
@@ -90,6 +101,7 @@ final class StyleDetailScreen: Screen {
             return .replace(StyleDetailScreen(style: style))
         } catch {
             message = error.localizedDescription
+            messageIsError = true
             return .none
         }
     }

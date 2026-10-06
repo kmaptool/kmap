@@ -105,6 +105,61 @@ final class GmapBundleTests: XCTestCase {
         XCTAssertFalse(without.contains("--gmapi"))
     }
 
+    /// The compile alone builds no search index, which the packing run builds over every
+    /// tile anyway, and says each thing once.
+    func testTheCompileRunLeavesTheIndexToThePackingRun() throws {
+        let options = try pipeline.mkgmapOptions(name: "here", outputDir: scratch, tileCount: 2, gmapsupp: false)
+        XCTAssertFalse(options.contains("--index"))
+        XCTAssertTrue(options.contains("--poi-address"), "the tiles still carry their addresses")
+        XCTAssertEqual(options.filter { $0.hasPrefix("--code-page=") }.count, 1)
+        let packed = try pipeline.mkgmapOptions(name: "here", outputDir: scratch, tileCount: 2, gmapsupp: true)
+        XCTAssertTrue(packed.contains("--index"))
+    }
+
+    /// mkgmap refuses an option its help does not list, even one its code reads, and
+    /// fails the whole build: every option kmap passes is one it lists.
+    func testEveryOptionPassedIsOneMkgmapKnows() throws {
+        var passed: [String] = []
+        // With the relief layer and summits too: their options are the newest.
+        var relief = pipeline.recipe
+        relief.demLayer = true
+        relief.fixSummits = true
+        let settings = SettingsStore()
+        let toolchain = Toolchain(settings: settings)
+        let withRelief = BuildPipeline(
+            recipe: relief,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
+        for built in [pipeline!, withRelief] {
+            for gmapsupp in [false, true] {
+                passed += try built.mkgmapOptions(name: "here", outputDir: scratch, tileCount: 2, gmapsupp: gmapsupp)
+            }
+        }
+        passed += pipeline.gmapOptions()
+        // The relief layer's own, its clipping outline written as a build writes it.
+        Paths.ensure(withRelief.demPolygonFile.deletingLastPathComponent())
+        try FileTools.write(Data(), to: withRelief.demPolygonFile)
+        defer { FileTools.removeIfPresent(withRelief.demPolygonFile) }
+        passed += withRelief.demOptions([scratch.appendingPathComponent("N43E007.hgt")], runIn: scratch)
+        let java = JavaRuntime(path: "/usr/bin/java", version: "21", options: [])
+        for mode in ["--gmapi", "--gmapsupp"] {
+            passed += pipeline.combineArguments(
+                java: java,
+                mkgmap: URL(fileURLWithPath: "/tools/mkgmap.jar"),
+                mode: mode,
+                areaName: "here",
+                outputDir: scratch,
+                inputs: [],
+                typ: nil
+            )
+        }
+        let names = Set(passed.filter { $0.hasPrefix("--") }.map { String($0.dropFirst(2).prefix { $0 != "=" }) })
+        XCTAssertTrue(names.isSuperset(of: ["family-id", "gmapsupp", "gmapi", "dem", "dem-poly"]), "\(names.sorted())")
+        XCTAssertEqual(names.subtracting(MkgmapOptionNames.known), [])
+    }
+
     // MARK: Finding what mkgmap wrote
 
     func testTheFolderIsFoundBesideTheIndexFiles() throws {
@@ -125,10 +180,36 @@ final class GmapBundleTests: XCTestCase {
         )
     }
 
+    /// A family name naming 2 US states has 2 slashes, which mkgmap takes for folders.
+    func testTheFolderIsFoundUnderTheFoldersASlashMakes() throws {
+        _ = try folder("out/kmap 2026-10, us/georgia and us/alabama.gmap")
+        XCTAssertEqual(
+            BuildPipeline.gmapFolder(in: scratch.appendingPathComponent("out"))?.lastPathComponent,
+            "alabama.gmap"
+        )
+    }
+
     func testAFileWithTheExtensionIsNotTheFolder() throws {
         let out = try folder("out")
         try FileTools.write(Data("x".utf8), to: out.appendingPathComponent("stray.gmap"))
         XCTAssertNil(BuildPipeline.gmapFolder(in: out))
         XCTAssertNil(BuildPipeline.gmapFolder(in: scratch.appendingPathComponent("absent")))
+    }
+}
+
+extension GmapBundleTests {
+    /// mkgmap splits --dem on commas: the cells go relative to where it runs, so a comma in
+    /// the work folder's path does not cut them in 2.
+    func testTheDEMCellsGoRelativeToWhereMkgmapRuns() {
+        let work = URL(fileURLWithPath: "/Volumes/Data/Maps, scratch/monaco", isDirectory: true)
+        let cells = work.appendingPathComponent("dem-cells", isDirectory: true)
+        XCTAssertEqual(
+            BuildPipeline.demOption([cells], runIn: work.appendingPathComponent("build/gmap", isDirectory: true)),
+            "--dem=../../dem-cells"
+        )
+        XCTAssertEqual(
+            BuildPipeline.demOption([cells], runIn: work.appendingPathComponent("build", isDirectory: true)),
+            "--dem=../dem-cells"
+        )
     }
 }

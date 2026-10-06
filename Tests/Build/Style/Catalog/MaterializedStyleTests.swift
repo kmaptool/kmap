@@ -90,4 +90,46 @@ final class MaterializedStyleTests: XCTestCase {
         try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner, cyrillicLabels: true)
         XCTAssertTrue(cyrillic(try XCTUnwrap(try ruleFiles()["points"])))
     }
+
+    /// mkgmap itself reads every rule kmap writes, in each alphabet, with each way of
+    /// carrying descriptions and with everything hidden: a rule it cannot parse stops every
+    /// build, and the rules' own tests only read their text. `--check-styles` says so in
+    /// its output and still exits 0.
+    func testMkgmapReadsEveryVariantOfTheStyle() async throws {
+        let it = try prepared()
+        let java = try XCTUnwrap(Toolchain(settings: SettingsStore()).findJava(), "no Java")
+        let jar = try XCTUnwrap(Toolchain(settings: SettingsStore()).findMkgmap()?.url)
+        let style = try XCTUnwrap(it.plain.styleDirectory)
+        let everything = Set(HideableFeature.all.map(\.id))
+        for carrier in BuildRecipe.DescriptionCarrier.allCases {
+            for cyrillic in [false, true] {
+                for hidden in [Set<String>(), everything] {
+                    try await it.catalog.prepare(
+                        it.plain,
+                        log: it.log,
+                        runner: it.runner,
+                        descriptions: carrier,
+                        hidden: hidden,
+                        cyrillicLabels: cyrillic
+                    )
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: java.path)
+                    process.arguments =
+                        java.options + [
+                            "-jar", jar.path, "--style-file=\(style.path)", "--check-styles"
+                        ]
+                    let pipe = Pipe()
+                    process.standardOutput = pipe
+                    process.standardError = pipe
+                    try process.run()
+                    let said = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                    process.waitUntilExit()
+                    let variant = "\(carrier), cyrillic \(cyrillic), \(hidden.count) hidden"
+                    XCTAssertFalse(said.contains("Error in style"), "\(variant): \(said)")
+                    XCTAssertFalse(said.contains("could not open style"), "\(variant): \(said)")
+                    XCTAssertTrue(said.contains("finished check-styles"), "\(variant): \(said)")
+                }
+            }
+        }
+    }
 }

@@ -11,7 +11,7 @@ final class StylePickerScreen: Screen {
         [
             Hint(key: "↑↓", label: t("move")),
             Hint(key: Glyph.enter, label: t("choose")),
-            Hint(key: "type", label: t("filter")),
+            Hint(key: "abc", label: t("filter")),
             Hint(key: "esc", label: t("cancel"))
         ]
     }
@@ -98,7 +98,7 @@ final class StylePickerScreen: Screen {
         var y = bodyY + listHeight
         s.hline(rect.x, y, rect.w, Glyph.h, Style(fg: theme.rule, bg: theme.appBg))
         y += 1
-        for chunk in wrapText(style.summary, width: rect.w).prefix(Self.summaryLines) {
+        for chunk in wrapText(t(style.summary), width: rect.w).prefix(Self.summaryLines) {
             guard y < rect.maxY else { return }
             s.text(rect.x, y, chunk, Style(fg: theme.text, bg: theme.appBg))
             y += 1

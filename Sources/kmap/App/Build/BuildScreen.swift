@@ -13,6 +13,7 @@ final class BuildScreen: Screen {
         let detail = Hint(key: "v", label: showingDetail ? t("hide detail") : t("detail"))
         if snapshot.finished {
             var hints = [Hint(key: Glyph.enter, label: t("done"))]
+            if !Self.succeeded(snapshot) { hints.append(Hint(key: "esc", label: t("back to the map's settings"))) }
             if Platform.canReveal { hints.append(Hint(key: "o", label: Platform.revealLabel())) }
             hints += [Hint(key: "l", label: t("library")), Hint(key: "↑↓", label: t("scroll log")), detail]
             return hints
@@ -62,11 +63,16 @@ final class BuildScreen: Screen {
         case .char("l"):
             if snapshot.finished { return .replace(LibraryScreen()) }
         case .esc:
-            // Only once the work is over: a running pipeline would be unreachable.
-            if snapshot.finished { return .popToRoot }
+            // Only once the work is over: a running pipeline would be unreachable. An unfinished
+            // build goes back to its form, its changes kept.
+            if snapshot.finished { return Self.succeeded(snapshot) ? .popToRoot : .pop }
         default: break
         }
         return .none
+    }
+
+    private static func succeeded(_ snapshot: BuildPipeline.Snapshot) -> Bool {
+        snapshot.failure == nil && !snapshot.cancelled
     }
 
     func render(into s: Surface, rect: Rect, ctx: AppContext) {
@@ -203,25 +209,43 @@ final class BuildScreen: Screen {
             )
             y += 1
         } else if snapshot.finished && !snapshot.outputs.isEmpty {
+            // Where not every file has a row, the heading says how many there are.
+            let rows = rect.maxY - 2 - (y + 1)
+            let count = snapshot.outputs.count
             s.sectionRule(
                 rect,
                 y,
-                t("output"),
+                count > rows ? t("files written") + " · \(count)" : t("files written"),
                 labelStyle: Style(fg: theme.dim, bg: theme.appBg),
                 ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
             )
             y += 1
-            for output in snapshot.outputs {
+            for (at, output) in snapshot.outputs.enumerated() {
                 guard y < rect.maxY - 2 else { break }
-                s.text(rect.x, y, output.name, Style(fg: theme.ok, bg: theme.appBg, bold: true))
-                s.textRight(rect.maxX, y, Fmt.bytes(output.size), Style(fg: theme.dim, bg: theme.appBg))
+                // The last row there is room for says how many more did not fit, or how
+                // many there are where none fit.
+                let left = snapshot.outputs.count - at
+                if left > 1, y == rect.maxY - 3 {
+                    let count = at == 0 ? tn("%d file(s)", left) : tn("and %d more", left)
+                    s.text(rect.x, y, count, Style(fg: theme.dim, bg: theme.appBg))
+                    y += 1
+                    break
+                }
+                let size = Fmt.bytes(output.size)
+                s.text(
+                    rect.x,
+                    y,
+                    truncateMiddle(output.name, to: max(0, rect.w - size.count - 2)),
+                    Style(fg: theme.ok, bg: theme.appBg, bold: true)
+                )
+                s.textRight(rect.maxX, y, size, Style(fg: theme.dim, bg: theme.appBg))
                 y += 1
             }
             guard y < rect.maxY - 1 else { return }
             s.text(
                 rect.x,
                 y,
-                Paths.display(pipeline.recipe.destinationDirectory),
+                truncateMiddle(Paths.display(pipeline.recipe.destinationDirectory), to: rect.w),
                 Style(fg: theme.faint, bg: theme.appBg)
             )
             y += 2
@@ -234,7 +258,7 @@ final class BuildScreen: Screen {
         s.sectionRule(
             rect,
             y,
-            logScroll > 0 ? t("output") + " · " + t("scrolled back %d", logScroll) : t("output"),
+            logScroll > 0 ? t("log") + " · " + t("scrolled back %d", logScroll) : t("log"),
             labelStyle: Style(fg: theme.dim, bg: theme.appBg),
             ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
         )

@@ -127,6 +127,94 @@ final class DEMStagingTests: XCTestCase {
         XCTAssertEqual(said.filter { $0.severity > .debug }.map(\.text), [])
     }
 
+    /// A download that will not read is not kept: kept, it would fail every build after
+    /// this one, never fetched again.
+    func testATileThatWillNotReadIsLetGoToBeFetchedAgain() throws {
+        let copernicus = try XCTUnwrap(DEMSources.tiled("copernicus1"))
+        Paths.ensure(copernicus.tifCacheDirectory)
+        let cells = [(44, 34), (44, 35), (45, 34), (45, 35)]
+        for (lat, lon) in cells {
+            try FileTools.write(Data("not a tiff".utf8), to: copernicus.downloadedTif(lat: lat, lon: lon))
+        }
+        defer { FileTools.removeIfPresent(copernicus.tifCacheDirectory) }
+        let bbox = pipeline.recipe.region.bbox
+        try blocking { try await self.pipeline.fetchDEMTiles(copernicus, covering: bbox, last: false) }
+
+        for (lat, lon) in cells {
+            XCTAssertFalse(FileTools.exists(copernicus.downloadedTif(lat: lat, lon: lon)))
+        }
+        let said = pipeline.log.snapshot().map(\.text)
+        XCTAssertTrue(said.contains { $0.contains("fetched again on the next build") }, "\(said)")
+    }
+
+    /// Another kmap on the same cache converted the cell and let its download go while
+    /// this one was on its way: its tile stays, not swapped for nothing.
+    func testACellAnotherKmapConvertedMeanwhileIsKept() throws {
+        let copernicus = try XCTUnwrap(DEMSources.tiled("copernicus1"))
+        Paths.ensure(copernicus.tifCacheDirectory)
+        defer { FileTools.removeIfPresent(copernicus.tifCacheDirectory) }
+        let hgt = copernicus.cachedTile(lat: 44, lon: 34)
+        Paths.ensure(hgt.deletingLastPathComponent())
+        try FileTools.write(Data("theirs".utf8), to: hgt)
+        let mosaic = HGTConversion.Mosaic { lat, lon in
+            let file = copernicus.downloadedTif(lat: lat, lon: lon)
+            return FileTools.exists(file) ? file : nil
+        }
+
+        XCTAssertNoThrow(try pipeline.convertDEMTile((lat: 44, lon: 34), from: mosaic, flavor: copernicus))
+        XCTAssertEqual(try Data(contentsOf: hgt), Data("theirs".utf8))
+    }
+
+    /// mkgmap's distances follow the data the map's own cells are taken from, not the
+    /// finest folder the shared cache happens to hold.
+    func testTheArcSecondsFollowTheMapsOwnCells() throws {
+        var recipe = pipeline.recipe
+        recipe.demSources = "copernicus1,copernicus3"
+        let settings = SettingsStore()
+        let toolchain = Toolchain(settings: settings)
+        let chained = BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
+        try plant("COP1", ["N10E010"])
+        try plant("COP3", ["N44E034", "N44E035", "N45E034", "N45E035"])
+        XCTAssertFalse(chained.hasOneArcSecondData, "every cell is 3 arc-seconds")
+        try plant("COP1", ["N44E034", "N44E035", "N45E034"])
+        chained.forgetDEMSearchPaths()
+        XCTAssertTrue(chained.hasOneArcSecondData, "most cells are 1 arc-second")
+    }
+
+    /// With no working login a source is skipped, and the build goes on to what else is
+    /// listed rather than ending in pyhgtmap's refusal.
+    func testASourceWithNoLoginIsSkipped() {
+        let usable: (ElevationLogins.Service) -> Bool = { $0 == .alos }
+        XCTAssertEqual(BuildPipeline.reachable(["srtm1", "alos1", "srtm3"], usable: usable), ["alos1"])
+        XCTAssertEqual(BuildPipeline.reachable(["srtm1"], usable: { _ in true }), ["srtm1"])
+    }
+
+    /// pyhgtmap tests every tile against every section of its polygon: the open cells go
+    /// as few rectangles as cover exactly them.
+    func testTheOpenCellsBecomeFewRectanglesCoveringExactlyThem() {
+        let cells = [(44, 34), (44, 35), (44, 36), (45, 34), (45, 35), (45, 36), (46, 34), (40, 10), (40, 12)]
+        let boxes = BuildPipeline.openRectangles(cells.map { (lat: $0.0, lon: $0.1) })
+        XCTAssertEqual(boxes.count, 4, "\(boxes)")
+        var covered = Set<[Int]>()
+        for box in boxes {
+            for lat in box.south...box.north { for lon in box.west...box.east { covered.insert([lat, lon]) } }
+        }
+        XCTAssertEqual(covered, Set(cells.map { [$0.0, $0.1] }))
+    }
+
+    func testALOSFillsNothingUnlessTheMapNamesIt() throws {
+        // JAXA asks for credit, which the map gives only to a source it names.
+        try plant("COP1", ["N44E034"])
+        try plant("ALOS1", ["N44E035"])
+        let dir = try XCTUnwrap(pipeline.stageDEMCells().first)
+        XCTAssertFalse(FileTools.exists(dir.appendingPathComponent("N44E035.hgt")))
+    }
+
     func testACreditedSourceTheMapDoesNotNameFillsNothing() throws {
         // FABDEM's licence asks for credit, and only named sources are credited.
         try plant("COP1", ["N44E034"])
@@ -139,14 +227,15 @@ final class DEMStagingTests: XCTestCase {
     /// What decides is the credit a map carries, not the names in its list.
     func testASourceWhoseCreditTheMapCarriesMayFillIt() {
         // FABDEM's credit includes Copernicus's, so Copernicus tiles may fill its gaps.
-        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["fabdem1"]), ["ged1"])
+        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["fabdem1"]), ["ged1", "alos1", "alos3"])
         // The other way round FABDEM's own line is missing.
-        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["copernicus1"]), ["fab1", "ged1"])
+        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["copernicus1"]), ["fab1", "ged1", "alos1", "alos3"])
         XCTAssertEqual(
             BuildPipeline.uncreditedDirectories(chosen: ["view1", "view3"]),
-            ["cop1", "cop3", "fab1", "ged1"]
+            ["cop1", "cop3", "fab1", "ged1", "alos1", "alos3"]
         )
-        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["gedtm1", "fabdem1"]), [])
+        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["gedtm1", "fabdem1", "alos1", "alos3"]), [])
+        XCTAssertEqual(BuildPipeline.uncreditedDirectories(chosen: ["gedtm1", "fabdem1", "alos1"]), ["alos3"])
     }
 
     func testTheFetchesFollowTheRecipesOrder() {

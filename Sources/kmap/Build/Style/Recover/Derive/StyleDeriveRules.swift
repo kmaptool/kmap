@@ -166,15 +166,16 @@ extension StyleRecovery {
     /// The line that closes the chain, pinned to the zooms its own code owns.
     ///
     /// A ladder hands each zoom to one code, but the closing line keeps the rule's own
-    /// `resolution N`, which means N and every zoom finer - so where a stroke owns the
-    /// zoom, the base code draws underneath it as well. On a road that costs nothing,
-    /// since their plain numbers are blank; on water, whose plain number is a drawn
-    /// line, the two stack and the river comes out wider than the map it was learned
-    /// from. Left alone where the line carries routing: a road is routed on its number
-    /// at every zoom, whatever is drawn over it.
+    /// `resolution N`, N and every finer zoom, so the base code also draws under a stroke.
+    /// On a road that costs nothing, its plain numbers being blank; on water, whose plain
+    /// number is a drawn line, the 2 stack and the river comes out wider than the map it was
+    /// learned from. Left alone where the line carries routing: a road is routed on its
+    /// number at every zoom.
     ///
-    /// The band never reaches past where the rule already drew: a code seen at a zoom
-    /// the rule does not draw at says something about their map, not about ours.
+    /// The band never reaches past where the rule already drew: a code seen where the rule
+    /// does not draw says something about their map, not ours. A source counts at the
+    /// coarsest zoom it was seen at, so the band's top is where the code is first drawn; with
+    /// no stroke owning a finer zoom, it runs to the finest.
     static func closing(
         _ lines: [String],
         of line: DefaultRuleBook.Line,
@@ -183,8 +184,9 @@ extension StyleRecovery {
     ) -> [String] {
         guard !strokes.isEmpty, !lines.isEmpty,
             !(line.text + (line.continuation ?? "")).contains("road_class="),
-            var low = resolutions.keys.min(), let high = resolutions.keys.max()
+            var low = resolutions.keys.min(), var high = resolutions.keys.max()
         else { return lines }
+        if let tops = bandTops(strokes), tops.allSatisfy({ $0 <= high }) { high = GarminGrid.fullResolution }
         var out = lines
         let last = out.count - 1
         if let own = out[last].firstCapture("resolution ([0-9]+)").flatMap({ Int($0) }) {
@@ -203,10 +205,12 @@ extension StyleRecovery {
     /// the band of zooms that code was actually seen at. Without a band the stroke
     /// would also draw at every finer zoom, where another stroke of the same ladder
     /// belongs. A code with no recorded zooms keeps the rule's own resolution.
+    /// `toFinest` runs the band on to the finest zoom, for the ladder's finest stroke.
     static func banded(
         _ line: DefaultRuleBook.Line,
         to type: Int,
-        resolutions: [Int: Int]
+        resolutions: [Int: Int],
+        toFinest: Bool = false
     ) -> String {
         let layered = line.layered(to: type)
         guard let low = resolutions.keys.min(),
@@ -214,8 +218,19 @@ extension StyleRecovery {
         else { return layered }
         return layered.replacingOccurrences(
             of: "resolution [0-9-]+",
-            with: "resolution \(low)-\(high)",
+            with: "resolution \(low)-\(toFinest ? GarminGrid.fullResolution : high)",
             options: .regularExpression
         )
+    }
+
+    /// The top of each stroke's band, or nil when one carries a bare resolution, which
+    /// already runs to the finest zoom.
+    static func bandTops(_ strokes: [String]) -> [Int]? {
+        var tops: [Int] = []
+        for stroke in strokes {
+            guard let top = stroke.firstCapture("resolution [0-9]+-([0-9]+)").flatMap({ Int($0) }) else { return nil }
+            tops.append(top)
+        }
+        return tops
     }
 }

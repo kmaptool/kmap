@@ -107,6 +107,9 @@ final class SettingsStore: Sendable {
             state.withLock {
                 if let fresh { $0.persisted = fresh }
                 mutate(&$0.persisted)
+                // The file read again may have lost its profiles to a hand or another tool;
+                // the form needs 1.
+                if $0.persisted.profiles.isEmpty { Self.addFirstProfile(to: &$0.persisted) }
                 $0.refresh()
             }
             return save()
@@ -128,22 +131,45 @@ final class SettingsStore: Sendable {
     ///
     /// - Parameter key: One region's id, or the joined ids of the regions built together.
     func familyID(for key: String) -> Int {
-        if let known = settings.familyIDs[key] { return known }
+        if let known = settings.familyIDs[key], !BuildRecipe.reservedFamilyIDs.contains(known) { return known }
         // Chosen inside the update, from the ids every run has given out so far.
         var chosen = 0
         update { settings in
             if let known = settings.familyIDs[key] {
-                chosen = known
-                return
+                // An id handed out before it was reserved is moved, once.
+                guard BuildRecipe.reservedFamilyIDs.contains(known) else {
+                    chosen = known
+                    return
+                }
+                settings.movedFamilyIDs[key] = known
             }
-            let taken = Set(settings.familyIDs.values)
-            // 6300..<7000, a band clear of Garmin's own product ids.
-            var candidate = 6300
-            while taken.contains(candidate), candidate < 7000 { candidate += 1 }
-            settings.familyIDs[key] = candidate
-            chosen = candidate
+            chosen = Self.nextFreeFamilyID(in: settings)
+            settings.familyIDs[key] = chosen
         }
         return chosen
+    }
+
+    /// The id a map would be given, saving nothing: its own where it has one, else the
+    /// next free. What a form shows before anything is built; the build keeps it.
+    func previewFamilyID(for key: String) -> Int {
+        let settings = settings
+        if let known = settings.familyIDs[key], !BuildRecipe.reservedFamilyIDs.contains(known) { return known }
+        return Self.nextFreeFamilyID(in: settings)
+    }
+
+    /// From 6300, a band clear of Garmin's own product ids; past it, on round the range
+    /// rather than 2 maps on 1 id.
+    static func nextFreeFamilyID(in settings: Settings) -> Int {
+        let taken = Set(settings.familyIDs.values).union(BuildRecipe.reservedFamilyIDs)
+        let range = BuildRecipe.familyIDRange
+        let order = Array(6300...range.upperBound) + Array(range.lowerBound..<6300)
+        return order.first { !taken.contains($0) } ?? range.lowerBound
+    }
+
+    /// The reserved id this map had before it was given a new one, if no build has said
+    /// so yet.
+    func movedFamilyID(for key: String) -> Int? {
+        settings.movedFamilyIDs[key]
     }
 
     /// Writes the file. The failure is the caller's to show: a read-only home or a full

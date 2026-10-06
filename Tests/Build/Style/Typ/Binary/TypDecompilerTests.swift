@@ -497,4 +497,32 @@ final class TypDecompilerTests: XCTestCase {
         let image = try cursor.pointImage(width: 1, height: 1)
         XCTAssertEqual(image.palette, ["#332211", nil])
     }
+
+    /// Labels in a page kmap has no table for, Baltic here, come out in their own bytes
+    /// under the CodePage line, with no UTF-8 said: written so, mkgmap reads them as the
+    /// map did.
+    func testLabelsInAPageKmapCannotReadKeepTheirBytes() throws {
+        let baltic = CodePage.decodeLenient([0xC0, 0xE0], codePage: 1257)
+        let typ = binary([element(.polygon, type: 0x16, labels: [(language: 4, text: baltic)])], codePage: 1257)
+        let text = TypDecompiler.source(typ)
+        XCTAssertFalse(text.lowercased().contains("coding: utf-8"), text)
+        let bytes = [UInt8](TypSource.bytesOfWritten(text, codePage: 1257))
+        XCTAssertNotNil(bytes.firstRange(of: [0xC0, 0xE0]), "the label's own bytes")
+        XCTAssertTrue(TypSource.decoding(bytes).byteForByte, "and read back so")
+    }
+
+    /// Code page 0, mkgmap's default, is no page: the file says UTF-8, or mkgmap would
+    /// look for a charset `cp0` and stop.
+    func testCodePageZeroStillSaysUTF8() {
+        XCTAssertFalse(TypSource.keptByteForByte(codePage: 0))
+        let text = TypDecompiler.source(binary([element(.polygon, type: 0x16)], codePage: 0))
+        XCTAssertTrue(text.lowercased().contains("coding: utf-8"))
+    }
+
+    /// What kmap writes in a decompiled TYP is ASCII, so it fits any page.
+    func testWhatKmapWritesIsASCII() {
+        let typ = binary([element(.polygon, type: 0x16), element(.line, type: 0x01)], codePage: 1257)
+        let text = TypDecompiler.source(typ)
+        XCTAssertTrue(text.unicodeScalars.allSatisfy(\.isASCII), text)
+    }
 }

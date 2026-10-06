@@ -132,4 +132,20 @@ final class PathsTests: XCTestCase {
             XCTAssertEqual(Paths.display(Paths.expand(path)), path)
         }
     }
+
+    /// A folder typed relative to where kmap started would be another one for each kmap
+    /// started elsewhere.
+    func testOnlyAFullPathNamesOneFolderWhereverKmapStarts() {
+        XCTAssertTrue(Paths.isFullPath("~/maps"))
+        XCTAssertTrue(Paths.isFullPath(" \"~/maps\" "))
+        XCTAssertFalse(Paths.isFullPath("work"))
+        XCTAssertFalse(Paths.isFullPath("./work"))
+        #if os(Windows)
+        XCTAssertTrue(Paths.isFullPath(#"D:\maps"#))
+        XCTAssertTrue(Paths.isFullPath(#"\\server\share"#))
+        XCTAssertFalse(Paths.isFullPath("D:maps"), "relative to the drive's own folder")
+        #else
+        XCTAssertTrue(Paths.isFullPath("/mnt/maps"))
+        #endif
+    }
 }

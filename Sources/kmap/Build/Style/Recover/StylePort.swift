@@ -311,7 +311,11 @@ enum StylePort {
         theirs: TypSource,
         ported: [Ported]
     ) -> [Ported] {
-        let taken = Set(ported.map { "\($0.kind.rawValue):\($0.theirs)" })
+        // The ground's pictures are drawn too, from the sections of theirs it takes.
+        let taken = Set(
+            ported.map { "\($0.kind.rawValue):\($0.theirs)" }
+                + generatedTypes.map { "\($0.kind.rawValue):\($0.theirs)" }
+        )
         var out: [String: Ported] = [:]
         // In the meanings' own order: a picture drawn as much for two of them would
         // otherwise be reported under whichever the dictionary handed over first.
@@ -379,6 +383,15 @@ enum StylePort {
         (.polygon, backgroundCode, backgroundCode),
         (.polygon, 0x27, backgroundCode)
     ]
+
+    /// Whether a port lands on one of those numbers, which the TYP draws from the ground
+    /// sections and never from the port.
+    static func landsOnGround(_ port: Ported) -> Bool {
+        generatedTypes.contains { $0.kind == port.kind && $0.ours == port.ours }
+    }
+
+    /// The ports the TYP draws: one on a ground number takes the ground's section.
+    static func drawn(_ ported: [Ported]) -> [Ported] { ported.filter { !landsOnGround($0) } }
 
     /// The sea and the background, the two grounds with a level of their own.
     static let seaCode = 0x32

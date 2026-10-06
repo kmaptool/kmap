@@ -44,6 +44,8 @@ extension SettingsScreen {
             }
         }
 
+        var isPassword: Bool { self == .usgsPassword || self == .jaxaPassword }
+
         /// The login service behind a login or password row.
         var service: ElevationLogins.Service? {
             switch self {

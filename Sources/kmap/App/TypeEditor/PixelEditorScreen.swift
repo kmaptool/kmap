@@ -23,29 +23,33 @@ final class PixelEditorScreen: Screen {
                 Hint(key: "esc", label: t("back to typing"))
             ]
         }
+        if case .confirmDiscard? = prompt {
+            return [Hint(key: "y", label: t("leave without saving")), Hint(key: "n", label: t("stay"))]
+        }
         if prompt != nil {
             var hints = [Hint(key: Glyph.enter, label: t("apply"))]
             if wantsColour { hints.append(Hint(key: "^P", label: t("pick a colour"))) }
             hints.append(Hint(key: "esc", label: t("cancel")))
             return hints
         }
+        // A pattern's 4 colours are fixed by the format.
+        let adding = kind == .point ? [Hint(key: "a", label: t("add colour"))] : []
         if focus == .palette {
             return [
                 Hint(key: "↑↓", label: t("the colour you paint with")),
-                Hint(key: Glyph.tab, label: t("back to the picture")),
-                Hint(key: "a", label: t("add colour")),
+                Hint(key: Glyph.tab, label: t("back to the picture"))
+            ] + adding + [
                 Hint(key: "c", label: t("change colour")),
                 Hint(key: "esc", label: t("back"))
             ]
         }
-        var hints = [
-            Hint(key: "↑↓←→", label: t("move")),
-            Hint(key: "space", label: t("paint")),
-            Hint(key: Glyph.tab, label: t("choose a colour")),
-            Hint(key: "i", label: t("pick")),
-            Hint(key: "a", label: t("add colour")),
-            Hint(key: "c", label: t("change colour"))
-        ]
+        var hints =
+            [
+                Hint(key: "↑↓←→", label: t("move")),
+                Hint(key: "space", label: t("paint")),
+                Hint(key: Glyph.tab, label: t("choose a colour")),
+                Hint(key: "i", label: t("pick"))
+            ] + adding + [Hint(key: "c", label: t("change colour"))]
         if canResize { hints.append(Hint(key: "s", label: t("size"))) }
         if kind == .point {
             hints.append(Hint(key: "n", label: showingNight ? t("day") : t("night")))
@@ -62,7 +66,8 @@ final class PixelEditorScreen: Screen {
         case addColour
         case changeColour(index: Int)
         case size
-        case confirmDiscard
+        /// Leaving with unsaved strokes: back a screen, or out of kmap on ^C.
+        case confirmDiscard(quitting: Bool)
     }
 
     /// The format allows 255; this is the largest that fits a terminal at true size.
@@ -117,6 +122,15 @@ final class PixelEditorScreen: Screen {
 
     /// Where the canvas was drawn last frame, so a click can be turned into a pixel.
     var canvasOrigin = (x: 0, y: 0)
+    /// The first pixel on screen: a picture larger than the terminal shows a window that
+    /// follows the cursor.
+    var canvasScroll = (x: 0, y: 0)
+    /// How many pixels across and down the window showed last frame.
+    var canvasShown = (across: 0, down: 0)
+    /// The first palette entry on screen, and how many are: a long palette is a window
+    /// that keeps the colour painted with in sight.
+    var paletteScroll = 0
+    var paletteShown = 0
     var paletteOrigin = (x: 0, y: 0)
 
     var dirty: Bool { block != saved || nightBlock != savedNight }
@@ -168,9 +182,10 @@ final class PixelEditorScreen: Screen {
     /// A pattern for a section that has none: every pixel the colour the type is drawn
     /// in, so saving it without a stroke changes nothing.
     private static func pattern(startingFrom section: TypSection) -> XpmBlock? {
-        let colours = section.colours.compactMap { $0 }
-        guard let day = colours.first else { return nil }
-        let night = colours.count > 2 ? colours[2] : (colours.count > 1 ? colours[1] : day)
+        let slots = section.colourSlots
+        guard let day = slots.day.first?.colour ?? section.colours.compactMap({ $0 }).first else { return nil }
+        // The night fill, not a cased line's border, which shares its slot count.
+        let night = slots.night.first?.colour ?? day
 
         let width = patternWidth
         let height: Int
@@ -204,18 +219,24 @@ final class PixelEditorScreen: Screen {
     /// - Returns: whether a pixel changed.
     @discardableResult
     func paint(x: Int, y: Int, with index: Int, remembering: Bool = true) -> Bool {
-        guard x >= 0, x < block.width, y >= 0, y < block.height,
+        guard x >= 0, x < shown.width, y >= 0, y < shown.height,
             shown.palette.indices.contains(index)
         else { return false }
-        guard !showingNight else {
+        guard !showingNight || nightApart else {
             message = t("night shares the day drawing — change its colours, not its pixels")
             messageIsError = false
+            return false
+        }
+        // A line or polygon is 1 bit a pixel: the night pair colours the day's pixels.
+        guard kind == .point || index < 2 else {
+            message = t("a pattern is painted with its day ink and background — the night pair colours the same pixels")
+            messageIsError = true
             return false
         }
         guard var rows = grid(), rows[y][x] != index else { return false }
         if remembering { remember() }
         rows[y][x] = index
-        block = rebuild(rows: rows, palette: block.palette)
+        shown = rebuild(rows: rows, like: shown)
         message = nil
         return true
     }
@@ -248,15 +269,18 @@ final class PixelEditorScreen: Screen {
         return out
     }
 
-    private func rebuild(rows: [[Int]], palette: [(key: String, colour: String?)]) -> XpmBlock {
+    /// `rows` as a picture shaped as `picture`: a night drawn apart has a size and a key
+    /// width of its own.
+    private func rebuild(rows: [[Int]], like picture: XpmBlock) -> XpmBlock {
+        let palette = picture.palette
         let text = rows.map { line in
             line.map { palette[min($0, palette.count - 1)].key }.joined()
         }
         return XpmBlock(
-            width: block.width,
-            height: block.height,
+            width: picture.width,
+            height: picture.height,
             declaredColours: palette.count,
-            charsPerPixel: block.charsPerPixel,
+            charsPerPixel: picture.charsPerPixel,
             palette: palette,
             rows: text
         )
@@ -284,6 +308,17 @@ final class PixelEditorScreen: Screen {
     /// Adds a colour and selects it. Keys keep their width, so the palette stops at the
     /// key alphabet.
     func addColour(_ text: String) {
+        guard kind == .point else {
+            message = t("a pattern has an ink and a background, by day and by night — change one with c")
+            messageIsError = true
+            return
+        }
+        // A night on the day's drawing has the day's entries, no more: added by day.
+        guard !showingNight || nightApart else {
+            message = t("night shares the day drawing — add the colour by day, then change it here")
+            messageIsError = true
+            return
+        }
         guard let colour = normalise(text) else {
             message = t("%@ is not a #RRGGBB colour", text)
             messageIsError = true
@@ -322,8 +357,18 @@ final class PixelEditorScreen: Screen {
             messageIsError = true
             return
         }
+        let changed = shown.replacingColour(
+            at: index,
+            with: colour.flatMap { TypEdit.keepingAlpha($0, typed: text, of: shown.palette[index].colour) }
+        )
+        // What mkgmap would refuse at the next build, refused now.
+        if kind != .point, let refused = TypEdit.refusal(ofSimple: changed.palette.map(\.colour)) {
+            message = refused.localizedDescription
+            messageIsError = true
+            return
+        }
         remember()
-        shown = shown.replacingColour(at: index, with: colour)
+        shown = changed
         message = nil
     }
 
@@ -350,11 +395,45 @@ final class PixelEditorScreen: Screen {
         }
         guard width != block.width || height != block.height else { return }
 
-        remember()
         let shrinking = width < block.width || height < block.height
-        block = block.resized(width: width, height: height)
-        // Night follows, or the two halves of one icon would differ in shape.
-        nightBlock = nightBlock?.resized(width: width, height: height)
+        // Night follows, or the 2 halves of 1 icon would differ in shape. Sharing the
+        // day's drawing, it pads with the day's keys: with one clear at night as well, or
+        // the new ground shows in the night colour of the day's clear.
+        var source = block
+        var clearAt: Int?
+        var shared = nightBlock.map { nightApart ? $0 : Self.night($0, onTheDrawingOf: block) }
+        if !nightApart, var night = shared {
+            clearAt = source.palette.indices.first {
+                source.palette[$0].colour == nil && night.palette[$0].colour == nil
+            }
+            let used = Set(source.palette.map(\.key))
+            if clearAt == nil, source.palette.count < XpmBlock.mostColours,
+                let key = (0...source.palette.count).lazy.map({ XpmBlock.key($0, width: max(1, source.charsPerPixel)) })
+                    .first(where: { !used.contains($0) })
+            {
+                source = source.adding((key: key, colour: nil))
+                night = night.adding((key: key, colour: nil))
+                clearAt = source.palette.count - 1
+                shared = night
+            }
+        }
+        let day = source.resized(width: width, height: height, clearAt: clearAt)
+        let night = shared.map {
+            nightApart ? $0.resized(width: width, height: height) : Self.night($0, onTheDrawingOf: day)
+        }
+        // Grown, a picture needs a clear colour for the new ground, and a full palette has
+        // no key left for one.
+        guard day.width == width, day.height == height, night.map({ $0.width == width && $0.height == height }) ?? true
+        else {
+            message =
+                block.palette.isEmpty
+                ? t("a true-colour picture is not resized here") : t("this picture has no room for another colour")
+            messageIsError = true
+            return
+        }
+        remember()
+        block = day
+        nightBlock = night
         cursor = (min(cursor.x, width - 1), min(cursor.y, height - 1))
         selected = min(selected, shown.palette.count - 1)
         message =
@@ -368,7 +447,7 @@ final class PixelEditorScreen: Screen {
         let value = text.trimmingCharacters(in: .whitespaces)
         if meansNone(value) { return String?.none as String?? }
         guard Color.hex(value) != nil else { return nil }
-        return "#" + value.replacingOccurrences(of: "#", with: "").uppercased()
+        return TypSource.withAlpha(nil, on: "#" + value.replacingOccurrences(of: "#", with: "").uppercased())
     }
 
     private static let alphabet = XpmBlock.keyAlphabet
@@ -376,7 +455,12 @@ final class PixelEditorScreen: Screen {
     /// Switches between day and night, starting a night version from the day where
     /// there is none.
     func toggleNight() {
-        if showingNight { showingNight = false; message = nil; return }
+        if showingNight {
+            showingNight = false
+            selected = min(selected, block.palette.count - 1)
+            message = nil
+            return
+        }
         guard let night = nightBlock else {
             // From the day as it is on screen, edits not yet saved and size included.
             remember()
@@ -433,9 +517,8 @@ final class PixelEditorScreen: Screen {
         return Self.night(keyed, onTheDrawingOf: day)
     }
 
-    /// `night` on the pixels of `day`: the day's grid, each palette entry in the night's
-    /// colour of the same place, or the day's where the night has none, as for a colour
-    /// the day gained after the night was begun.
+    /// `night` on the pixels of `day`: each entry in its night colour, or its day colour
+    /// where the night has none.
     static func night(_ night: XpmBlock, onTheDrawingOf day: XpmBlock) -> XpmBlock {
         let palette = day.palette.enumerated().map { at, entry in
             (key: entry.key, colour: at < night.palette.count ? night.palette[at].colour : entry.colour)

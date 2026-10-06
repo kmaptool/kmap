@@ -47,7 +47,7 @@ extension BuildPipeline {
 
         guard recipe.contours else {
             // DEM only: the tiles fetched above are all it needs.
-            let count = hgtFileCount()
+            let count = mapHGTCount()
             guard count > 0 else { throw BuildError.noElevationTiles }
             log.ok("\(count) elevation tile(s) cached for the DEM layer")
             await measure(.elevationBuild, "burn the summits in") {
@@ -100,7 +100,7 @@ extension BuildPipeline {
         }
 
         if recipe.demLayer {
-            let count = hgtFileCount()
+            let count = mapHGTCount()
             guard count > 0 else {
                 throw BuildError.noElevationTiles
             }
@@ -115,7 +115,7 @@ extension BuildPipeline {
         set(
             .elevationBuild,
             .done,
-            recipe.contours ? "\(produced.count) contour file(s)" : "\(hgtFileCount()) elevation tile(s)"
+            recipe.contours ? "\(produced.count) contour file(s)" : "\(mapHGTCount()) elevation tile(s)"
         )
         return produced
     }
@@ -207,7 +207,7 @@ extension BuildPipeline {
     /// first arrival should stop that stage's clock.
     func elevationDownloadsFinished() {
         guard status(of: .elevation) == .running else { return }
-        set(.elevation, .done, "\(hgtFileCount()) elevation tile(s)")
+        set(.elevation, .done, "\(mapHGTCount()) elevation tile(s)")
     }
 
     /// Opens the processing half, whether or not anything is still downloading.

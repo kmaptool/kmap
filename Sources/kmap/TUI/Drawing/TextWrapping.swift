@@ -71,3 +71,20 @@ func truncate(_ s: String, to width: Int) -> String {
     guard width > 1 else { return String(Text.prefix(s, cells: width)) }
     return String(Text.prefix(s, cells: width - 1)) + String(Glyph.ellipsis)
 }
+
+/// The string cut to `width` cells in the middle, its start and its end kept: names that
+/// share a long start differ at the end.
+func truncateMiddle(_ s: String, to width: Int) -> String {
+    guard Text.cellWidth(s) > width else { return s }
+    guard width > 2 else { return truncate(s, to: width) }
+    let tailCells = (width - 1) / 2
+    var tail = ""
+    var used = 0
+    for character in s.reversed() {
+        let cells = Text.cellWidth(String(character))
+        if used + cells > tailCells { break }
+        tail.insert(character, at: tail.startIndex)
+        used += cells
+    }
+    return String(Text.prefix(s, cells: width - 1 - used)) + String(Glyph.ellipsis) + tail
+}

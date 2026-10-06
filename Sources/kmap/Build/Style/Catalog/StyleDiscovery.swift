@@ -63,30 +63,65 @@ extension StyleCatalog {
 
         out.append(contentsOf: imported)
         out.append(contentsOf: customDirectoryStyles())
-        return Self.distinctIDs(out)
+        let owners = StyleIDOwners.load()
+        let distinct = Self.distinctIDs(out, owners: owners)
+        StyleIDOwners.remember(distinct, was: owners)
+        return distinct
     }
 
-    /// 2 names that make 1 id, `My Map.txt` and `my-map.typ`, would leave the second
-    /// never buildable: it is told apart by a number, in the order the list keeps.
-    static func distinctIDs(_ styles: [MapStyle]) -> [MapStyle] {
-        // Every id given out, the numbered ones too: `topo-2` may be a style's own name.
+    /// Ids made unique by a number. An id `owners` records goes back to its style where
+    /// it is still there, numbered or not; a plain id left goes to the first in the list,
+    /// the one a lookup by id meets first, and the rest are numbered. A numbered recovered
+    /// style gets a numbered folder.
+    static func distinctIDs(_ styles: [MapStyle], owners: [String: String] = [:]) -> [MapStyle] {
+        // A style's own id is never given to another: `topo-2` may be a style's own name.
         let own = Set(styles.map(\.id))
+        var assigned: [String?] = Array(repeating: nil, count: styles.count)
         var taken = Set<String>()
-        return styles.map { style in
-            guard taken.contains(style.id) else {
-                taken.insert(style.id)
-                return style
-            }
+        func isNumbered(_ id: String, of base: String) -> Bool {
+            guard id.hasPrefix(base + "-") else { return false }
+            let tail = id.dropFirst(base.count + 1)
+            return !tail.isEmpty && tail.allSatisfy(\.isNumber)
+        }
+        for (index, style) in styles.enumerated() {
+            let key = StyleIDOwners.key(of: style)
+            let recorded = owners.filter { id, owner in
+                owner == key && !taken.contains(id)
+                    && (id == style.id || (isNumbered(id, of: style.id) && !own.contains(id)))
+            }.keys
+            guard let id = recorded.contains(style.id) ? style.id : recorded.sorted().first else { continue }
+            assigned[index] = id
+            taken.insert(id)
+        }
+        for (index, style) in styles.enumerated() where assigned[index] == nil && !taken.contains(style.id) {
+            assigned[index] = style.id
+            taken.insert(style.id)
+        }
+        for (index, style) in styles.enumerated() where assigned[index] == nil {
             var count = 2
             while taken.contains("\(style.id)-\(count)") || own.contains("\(style.id)-\(count)") { count += 1 }
-            let id = "\(style.id)-\(count)"
-            taken.insert(id)
+            assigned[index] = "\(style.id)-\(count)"
+            taken.insert("\(style.id)-\(count)")
+        }
+        return styles.enumerated().map { index, style in
+            let id = assigned[index] ?? style.id
+            guard id != style.id else { return style }
+            // Only kmap's own recovered rule set: a folder of the user's is where it is.
+            let recovered: Bool
+            if case .importedTYP = style.origin { recovered = true } else { recovered = false }
+            let number = id.dropFirst(style.id.count)
+            let folder = style.styleDirectory.map { folder in
+                recovered && folder.lastPathComponent.hasPrefix("recovered-")
+                    ? folder.deletingLastPathComponent()
+                        .appendingPathComponent(folder.lastPathComponent + number, isDirectory: true)
+                    : folder
+            }
             return MapStyle(
                 id: id,
                 name: style.name,
                 summary: style.summary,
                 origin: style.origin,
-                styleDirectory: style.styleDirectory,
+                styleDirectory: folder,
                 typURL: style.typURL,
                 familyID: style.familyID,
                 productID: style.productID
@@ -95,7 +130,23 @@ extension StyleCatalog {
     }
 
     func style(id: String) -> MapStyle? {
-        availableStyles().first { $0.id == id }
+        Self.find(id, in: availableStyles())
+    }
+
+    /// Whether a saved id names `style`, 1.7.3's spelling included.
+    static func names(_ id: String, _ style: MapStyle) -> Bool {
+        find(id, in: [style]) != nil
+    }
+
+    /// The style a saved id names. A recovered rule set saved as a folder's style,
+    /// `dir:recovered-x`, is the library style the folder is made for.
+    static func find(_ id: String, in styles: [MapStyle]) -> MapStyle? {
+        if let found = styles.first(where: { $0.id == id }) { return found }
+        guard id.hasPrefix("dir:recovered-") else { return nil }
+        return styles.first { style in
+            guard case .importedTYP = style.origin, let folder = style.styleDirectory else { return false }
+            return "dir:" + FileTools.slugify(folder.lastPathComponent) == id
+        }
     }
 
     /// The TYP library as buildable styles: one entry per file in `~/.kmap/typ`.
@@ -116,9 +167,10 @@ extension StyleCatalog {
         return MapStyle(
             id: "typ:" + FileTools.slugify(base),
             name: base,
-            summary: (info.isBinary ? "compiled TYP" : "editable TYP source")
-                + " · family \(info.familyID) · \(Fmt.bytes(FileTools.size(of: url)))"
-                + (sheet != nil ? " · rules recovered from its map" : ""),
+            // In the interface's language as it is read: the screens show it as it stands.
+            summary: (info.isBinary ? t("compiled TYP") : t("editable TYP source"))
+                + " · " + t("family %d", info.familyID) + " · \(Fmt.bytes(FileTools.size(of: url)))"
+                + (sheet != nil ? " · " + t("rules recovered from its map") : ""),
             origin: .importedTYP(url),
             styleDirectory: sheet != nil
                 ? StyleCatalog.recoveredStyleDirectory(for: url)
@@ -137,6 +189,29 @@ extension StyleCatalog {
         )
     }
 
+    /// kmap's own folders among the styles: the base, recovered rule sets (by their
+    /// marker), and anything hidden, which kmap's staging and swaps are. Windows hides by
+    /// an attribute, not by a dot.
+    static func isKmapsOwnFolder(_ dir: URL) -> Bool {
+        let name = dir.lastPathComponent
+        return name == "kmap-base" || name.hasPrefix(".") || isUnpacking(name)
+            || (name.hasPrefix("recovered-") && FileTools.exists(dir.appendingPathComponent("kmap-version")))
+    }
+
+    /// An unpacking of kmap's: hidden, or `unpack-` and 8 hex digits. A folder of the
+    /// user's called `unpack-maps` is not one.
+    static func isUnpacking(_ name: String) -> Bool {
+        if name.hasPrefix(".unpack-") { return true }
+        guard name.hasPrefix("unpack-") else { return false }
+        let tail = name.dropFirst("unpack-".count)
+        return tail.count == 8 && tail.allSatisfy(\.isHexDigit)
+    }
+
+    /// A rule set of kmap's set aside by a swap cut short; see `swappedOut(_:)`.
+    static func isSwappedOut(_ name: String) -> Bool {
+        name == ".kmap-base.old" || (name.hasPrefix(".recovered-") && name.hasSuffix(".old"))
+    }
+
     /// A folder under ~/.kmap/styles containing a `lines` file is a hand-made mkgmap style.
     private func customDirectoryStyles() -> [MapStyle] {
         let items =
@@ -149,9 +224,7 @@ extension StyleCatalog {
         return items.compactMap { dir -> MapStyle? in
             var isDir: ObjCBool = false
             guard FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDir), isDir.boolValue,
-                dir.lastPathComponent != "kmap-base",
-                // kmap's own rule sets for recovered styles, and an unpacking left over.
-                !dir.lastPathComponent.hasPrefix("recovered-"), !dir.lastPathComponent.hasPrefix("unpack-"),
+                !Self.isKmapsOwnFolder(dir),
                 FileTools.exists(dir.appendingPathComponent("lines"))
             else { return nil }
 

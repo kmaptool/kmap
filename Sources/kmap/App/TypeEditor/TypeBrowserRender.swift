@@ -63,13 +63,18 @@ extension TypeBrowserScreen {
             visible: listHeight,
             theme: theme
         )
-        notice.draw(into: s, rect: rect, theme: theme)
-
+        // The notice on the last row, the preview above it, so neither covers the other.
+        defer { notice.draw(into: s, rect: rect, theme: theme) }
         guard showingDetail, let row = shown[safe: list.selected] else { return }
         pane.draw(
             row,
             into: s,
-            rect: Rect(x: rect.x, y: listTop + listHeight + 1, w: rect.w, h: rect.maxY - listTop - listHeight - 1),
+            rect: Rect(
+                x: rect.x,
+                y: listTop + listHeight + 1,
+                w: rect.w,
+                h: max(0, rect.maxY - listTop - listHeight - 2)
+            ),
             theme: theme
         )
     }

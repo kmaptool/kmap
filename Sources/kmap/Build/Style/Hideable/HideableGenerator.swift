@@ -27,7 +27,15 @@ enum HideableGenerator {
         ("waterway", "Waterways"),
         ("office", "Offices"),
         ("craft", "Craft"),
-        ("landuse", "Land use")
+        ("landuse", "Land use"),
+        ("internet_access", "Internet access")
+    ]
+
+    /// Names where the value alone says little.
+    static let names: [String: String] = [
+        "internet_access-wlan": "Wi-Fi",
+        "internet_access-wifi": "Wi-Fi (tagged wifi)",
+        "internet_access-yes": "Internet access"
     ]
 
     /// Keys never offered, since hiding them would empty the map.
@@ -136,7 +144,8 @@ enum HideableGenerator {
             // By value, compared byte for byte so the order does not depend on a locale.
             for pair in group.sorted(by: { valueOf($0).utf8.lexicographicallyPrecedes(valueOf($1).utf8) }) {
                 let value = valueOf(pair)
-                lines.append("[\(identifier(key: key, value: value))] \(humanised(value))")
+                let id = identifier(key: key, value: value)
+                lines.append("[\(id)] \(names[id] ?? humanised(value))")
                 // The OSM tag this entry stands for, so the same choice can be applied to
                 // the custom-POI file as well as to the map.
                 lines.append("tag: \(key)=\(value)")

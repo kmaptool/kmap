@@ -15,6 +15,9 @@ extension TypEdit {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
+        // A point's picture is its day one unless the night is asked for by name: the
+        // first block in the section may be its `NightXpm`.
+        let wanted = wanted ?? (kind == .point ? (section.dayXpm != nil ? "DayXpm" : "Xpm") : nil)
         guard let extent = pictureLineRange(in: source, section: section, tag: wanted) else {
             throw EditError.noPicture(code)
         }
@@ -41,20 +44,6 @@ extension TypEdit {
         return out
     }
 
-    /// Which of a TYP's two drawings a build keeps.
-    ///
-    /// Night is extra colours in the same element, not a separate section: a solid pair is
-    /// day then night, four are day fill, day casing, night fill, night casing (or ink and
-    /// background for a pattern), plus a second picture on a point and `NightCustomColor`.
-    enum Theme: String, CaseIterable {
-        /// The file as its author wrote it.
-        case all
-        /// Only what the file says about day; the night slots go.
-        case day
-        /// The night drawing moved into the day slots, so it shows at any hour.
-        case night
-    }
-
     /// A TYP with one of its two drawings taken out, and the number of elements changed.
     ///
     /// `.day` drops the night slots; `.night` moves them into the day slots, keeping the
@@ -75,9 +64,10 @@ extension TypEdit {
             // night line simply goes.
             var convertedNightColour = false
             for number in section.lines {
-                let trimmed = source.lines[number].trimmingCharacters(in: .whitespaces)
-                guard trimmed.lowercased().hasPrefix("nightcustomcolor=") else { continue }
-                if wanted == .night, let value = trimmed.split(separator: "=").last {
+                guard let (key, value) = TypSource.entry(of: source.lines[number]),
+                    key.caseInsensitiveCompare("NightCustomColor") == .orderedSame
+                else { continue }
+                if wanted == .night {
                     edits.append(
                         (
                             number..<number + 1,
@@ -96,9 +86,7 @@ extension TypEdit {
                 // Two DayCustomColor lines now stand; the compiler takes the later one,
                 // so the original is dropped.
                 for number in section.lines
-                where source.lines[number].trimmingCharacters(in: .whitespaces)
-                    .lowercased().hasPrefix("daycustomcolor=")
-                {
+                where TypSource.sets("DayCustomColor", source.lines[number]) {
                     edits.append((number..<number + 1, []))
                 }
             }
@@ -106,17 +94,33 @@ extension TypEdit {
             // A point keeps night in a second block: by day it goes, by night it replaces
             // the day block, rows and palette together.
             var dayPictureReplaced = false
-            if let nightRange = pictureLineRange(in: source, section: section, tag: "NightXpm") {
+            // Every night block goes: one left would still be drawn after dark.
+            let nightRanges = pictureLineRanges(in: source, section: section, tag: "NightXpm")
+            if !nightRanges.isEmpty {
+                // The day block by its own tag: the night one may come first in the section.
                 if wanted == .night, let nightBlock = section.nightXpm,
-                    let dayRange = pictureLineRange(in: source, section: section, tag: nil)
+                    let dayRange = pictureLineRange(
+                        in: source,
+                        section: section,
+                        tag: section.dayXpm != nil ? "DayXpm" : "Xpm"
+                    )
                 {
                     let indent = indentation(of: source.lines[dayRange.lowerBound])
                     let tag = pictureTag(of: source.lines[dayRange.lowerBound]) ?? "Xpm"
-                    edits.append((nightRange, []))
+                    edits += nightRanges.map { ($0, []) }
                     edits.append((dayRange, render(nightBlock, tag: tag, indent: indent)))
                     dayPictureReplaced = true
+                } else if section.dayXpm ?? section.xpm == nil, let last = nightRanges.last,
+                    let nightBlock = section.nightXpm
+                {
+                    // A point drawn by night alone: mkgmap writes a day picture it does not
+                    // have and fails. Its night picture becomes the day's, by either theme.
+                    let indent = indentation(of: source.lines[last.lowerBound])
+                    edits += nightRanges.dropLast().map { ($0, []) }
+                    edits.append((last, render(nightBlock, tag: "Xpm", indent: indent)))
+                    dayPictureReplaced = true
                 } else {
-                    edits.append((nightRange, []))
+                    edits += nightRanges.map { ($0, []) }
                 }
             }
 
@@ -126,23 +130,59 @@ extension TypEdit {
                 if !slots.night.isEmpty, let block = section.xpm,
                     let extent = pictureLineRange(in: source, section: section, tag: nil)
                 {
-                    var palette = Array(block.palette.prefix(slots.day.count))
+                    let day = slots.day.count
+                    let dayPair = Array(block.palette.prefix(day))
+                    let nightPair = Array(block.palette.dropFirst(day))
+                    // mkgmap draws a pattern by bits, ink first, and puts a clear ink behind its
+                    // pair's other colour, by day and by night apart: a pixel's night colour is
+                    // the one with its bit, and a night key draws as the day key with its bit.
+                    let pattern = !block.isSolid && day == 2 && nightPair.count == 2
+                    func order(_ pair: [(key: String, colour: String?)]) -> [Int] {
+                        pattern && pair[0].colour == nil ? [1, 0] : Array(pair.indices)
+                    }
+                    let dayBits = order(dayPair)
+                    let nightBits = order(nightPair)
+                    var palette = dayPair
                     if wanted == .night {
-                        let night = block.colours
-                        for i in palette.indices where night.indices.contains(slots.day.count + i) {
-                            palette[i] = (
-                                key: palette[i].key,
-                                colour: night[slots.day.count + i]
-                            )
+                        for (at, entry) in dayPair.enumerated() {
+                            guard let bit = dayBits.firstIndex(of: at), bit < nightBits.count else { continue }
+                            palette[at] = (key: entry.key, colour: nightPair[nightBits[bit]].colour)
                         }
                     }
+                    // mkgmap refuses a solid all clear: it shows the colour the other half has.
+                    if block.isSolid, palette.allSatisfy({ $0.colour == nil }),
+                        let shown = block.palette.first(where: { $0.colour != nil })?.colour
+                    {
+                        palette[0].colour = shown
+                    }
+                    // A pixel drawn with a night key takes the day key of its bit, or it names
+                    // a colour the cut palette no longer has.
+                    var dayKey: [String: String] = [:]
+                    // In bit order, as mkgmap indexes: of 2 entries with one key, the later wins.
+                    for (bit, at) in nightBits.enumerated() where bit < dayBits.count {
+                        dayKey[nightPair[at].key] = dayPair[dayBits[bit]].key
+                    }
+                    let width = max(1, block.charsPerPixel)
+                    let rows =
+                        dayKey.isEmpty
+                        ? block.rows
+                        : block.rows.map { row in
+                            var out = ""
+                            var rest = Substring(row)
+                            while !rest.isEmpty {
+                                let pixel = String(rest.prefix(width))
+                                out += dayKey[pixel] ?? pixel
+                                rest = rest.dropFirst(width)
+                            }
+                            return out
+                        }
                     let kept = XpmBlock(
                         width: block.width,
                         height: block.height,
                         declaredColours: palette.count,
                         charsPerPixel: block.charsPerPixel,
                         palette: palette,
-                        rows: block.rows
+                        rows: rows
                     )
                     let indent = indentation(of: source.lines[extent.lowerBound])
                     let tag = pictureTag(of: source.lines[extent.lowerBound]) ?? "Xpm"
@@ -241,6 +281,27 @@ extension TypEdit {
         var block = [indent + "; The same drawing after dark. Only the colours differ."]
         block.append(contentsOf: render(day, tag: "NightXpm", indent: indent))
         lines.insert(contentsOf: block, at: extent.upperBound)
+        return lines.joined(separator: "\n")
+    }
+
+    /// Every point drawn by night alone also drawn so by day: mkgmap writes a day picture
+    /// for every point, and fails on one that has none.
+    static func givingNightOnlyPointsADay(_ text: String) -> String {
+        let source = TypSource.parse(text)
+        var lines = source.lines
+        let lonely = source.sections.filter {
+            $0.kind == .point && $0.dayXpm == nil && $0.xpm == nil && $0.nightXpm != nil
+        }
+        guard !lonely.isEmpty else { return text }
+        for section in lonely.sorted(by: { $0.lines.lowerBound > $1.lines.lowerBound }) {
+            guard let night = section.nightXpm,
+                let last = pictureLineRanges(in: source, section: section, tag: "NightXpm").last
+            else { continue }
+            lines.insert(
+                contentsOf: render(night, tag: "Xpm", indent: indentation(of: lines[last.lowerBound])),
+                at: last.lowerBound
+            )
+        }
         return lines.joined(separator: "\n")
     }
 }

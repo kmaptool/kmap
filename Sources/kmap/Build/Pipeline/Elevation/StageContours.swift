@@ -94,7 +94,7 @@ extension BuildPipeline {
     /// The outline of every chosen region as one mask, or nil if any outline is missing:
     /// clipping to a partial union would cut contours over real data.
     func regionMask() async -> GroundMask? {
-        var rings: [RegionOutline.Ring] = []
+        var regions: [[RegionOutline.Ring]] = []
         for region in recipe.regions {
             guard let some = await regionRings(region) else {
                 log.warn(
@@ -103,9 +103,9 @@ extension BuildPipeline {
                 )
                 return nil
             }
-            rings.append(contentsOf: some)
+            regions.append(some)
         }
-        guard let mask = GroundMask(rings: rings) else { return nil }
+        guard let mask = GroundMask(regions: regions) else { return nil }
         log.append("contours will be cut to the region outline(s)")
         return mask
     }
@@ -163,68 +163,80 @@ extension BuildPipeline {
         else { return }
 
         let cellStarted = ContourTiming.now()
+        // A tile that will not read costs its cell and nothing else; a write that fails,
+        // a full disk or a cell past its ids, fails the build as it would anywhere.
+        let grid: Contours.Grid
         do {
-            let grid = try ContourTiming.measure("load") { try Contours.Grid(contentsOf: tile) }
-            var tracer = Contours(grid: grid, step: recipe.contourInterval)
-            tracer.clip = (
-                minLat: cell.minLat, minLon: cell.minLon,
-                maxLat: cell.maxLat, maxLon: cell.maxLon
-            )
-            let raw = tracer.trace()
-            let traced = ContourTiming.measure("split") { Contours.split(raw) }
-            // Cut where they leave the region. Lines share no nodes, and the mask answers
-            // identically for a coordinate in whichever cell asks, so seams stay in step.
-            let onGround = ContourTiming.measure("mask") { mask.map { $0.clip(traced) } ?? traced }
-            // And where they meet water. Lines share no nodes, and a shore stands where it
-            // stands whichever cell asks, so the seams stay in step here too.
-            let lines = ContourTiming.measure("water") {
-                WaterMask(
-                    cellAt: Int(cell.minLat.rounded(.down)),
-                    Int(cell.minLon.rounded(.down)),
-                    water: water
-                )?.clip(onGround) ?? onGround
-            }
-            guard !lines.isEmpty else { return }
-            let output = directory.appendingPathComponent("\(prefix).osm.pbf")
-            let counts = try ContourTiming.measure("write") {
-                try ContourOutput.write(
-                    lines,
-                    to: output,
-                    nodeStart: nodeStart,
-                    wayStart: wayStart,
-                    major: major,
-                    medium: medium
-                )
-            }
-            ContourTiming.cell(
-                index: index,
-                name: tile.lastPathComponent,
-                start: cellStarted,
-                seconds: ContourTiming.now() - cellStarted,
-                points: counts.nodes
-            )
-            log.append(
-                "\(prefix): \(counts.ways) contour(s), \(counts.nodes) node(s)"
-                    + " from \(tile.lastPathComponent)"
-            )
+            grid = try ContourTiming.measure("load") { try Contours.Grid(contentsOf: tile) }
         } catch {
             try rethrowIfCancelled(error)
             log.warn("\(prefix): \(error)")
+            return
         }
-    }
-
-    /// Cache directories (lowercased) of sources this map may not use: those whose credit
-    /// lines it does not carry. FABDEM's include Copernicus's.
-    static func uncreditedDirectories(chosen: [String]) -> Set<String> {
-        let carried = Set(DEMSources.all.filter { chosen.contains($0.sourceID) }.flatMap(\.credits))
-        return Set(
-            DEMSources.all.filter { !Set($0.credits).isSubset(of: carried) }
-                .map { $0.directoryName.lowercased() }
+        var tracer = Contours(grid: grid, step: recipe.contourInterval)
+        tracer.clip = (
+            minLat: cell.minLat, minLon: cell.minLon,
+            maxLat: cell.maxLat, maxLon: cell.maxLon
+        )
+        let raw = tracer.trace()
+        let traced = ContourTiming.measure("split") { Contours.split(raw) }
+        // Cut where they leave the region. Lines share no nodes, and the mask answers
+        // identically for a coordinate in whichever cell asks, so seams stay in step.
+        let onGround = ContourTiming.measure("mask") { mask.map { $0.clip(traced) } ?? traced }
+        // And where they meet water. Lines share no nodes, and a shore stands where it
+        // stands whichever cell asks, so the seams stay in step here too.
+        let lines = ContourTiming.measure("water") {
+            WaterMask(
+                cellAt: Int(cell.minLat.rounded(.down)),
+                Int(cell.minLon.rounded(.down)),
+                water: water
+            )?.clip(onGround) ?? onGround
+        }
+        guard !lines.isEmpty else { return }
+        let output = directory.appendingPathComponent("\(prefix).osm.pbf")
+        let counts = try ContourTiming.measure("write") {
+            try ContourOutput.write(
+                lines,
+                to: output,
+                nodeStart: nodeStart,
+                wayStart: wayStart,
+                major: major,
+                medium: medium
+            )
+        }
+        ContourTiming.cell(
+            index: index,
+            name: tile.lastPathComponent,
+            start: cellStarted,
+            seconds: ContourTiming.now() - cellStarted,
+            points: counts.nodes
+        )
+        log.append(
+            "\(prefix): \(counts.ways) contour(s), \(counts.nodes) node(s)"
+                + " from \(tile.lastPathComponent)"
         )
     }
 
-    func hgtFileCount() -> Int {
-        FileTools.filesThroughLinks(under: Paths.hgtCache, extension: "hgt").count
+    /// Cache directories (lowercased) of sources this map may not use: those whose credit
+    /// lines it does not carry. FABDEM's include Copernicus's. ALOS asks for credit too,
+    /// and the map names it only when it is chosen.
+    static func uncreditedDirectories(chosen: [String]) -> Set<String> {
+        let carried = Set(DEMSources.all.filter { chosen.contains($0.sourceID) }.flatMap(\.credits))
+        let alos = ["alos1", "alos3"].filter { !chosen.contains($0) }
+        return Set(
+            DEMSources.all.filter { !Set($0.credits).isSubset(of: carried) }
+                .map { $0.directoryName.lowercased() }
+        ).union(alos)
+    }
+
+    /// The map's own cells some usable directory of the cache holds. The cache is shared,
+    /// and a tile of another map's ground does not make this one's relief.
+    func mapHGTCount() -> Int {
+        let sources = Self.rankedDEMDirectories(chosen: demSourceList, burned: burnedElevationDirectories)
+        return elevationCells().filter { cell in
+            let name = HGTName.of(lat: cell.lat, lon: cell.lon) + ".hgt"
+            return sources.contains { FileTools.exists($0.appendingPathComponent(name)) }
+        }.count
     }
 
     /// Directories under the .hgt cache holding elevation files, finest first. mkgmap
@@ -249,8 +261,10 @@ extension BuildPipeline {
     /// The cache's elevation directories as a map naming `chosen` reads them, finest
     /// first, each of `burned` ahead of its original. The road repair reads the same.
     static func rankedDEMDirectories(chosen: [String], burned burnedDirectories: [URL] = []) -> [URL] {
+        // Not inside a fetch's unpacking, whose tiles may be cut short.
         let directories = Set(
             FileTools.filesThroughLinks(under: Paths.hgtCache, extension: "hgt").map { $0.deletingLastPathComponent() }
+                .filter { !$0.pathComponents.contains(where: ViewfinderDEM.isStaging) }
         )
         // The cache is shared between builds and holds sources this one did not ask for,
         // so the chosen sources rank first or the DEM disagrees with the contours.
@@ -340,14 +354,24 @@ extension BuildPipeline {
         forgetDEMSearchPaths()
     }
 
-    /// Whether the finest cached elevation data is 1 arc-second.
+    /// Whether most of the map's cells are taken from 1-arc-second data, as mkgmap reads
+    /// them: the first ranked directory holding each cell. The finest directory in the
+    /// cache may hold none of them.
     var hasOneArcSecondData: Bool {
-        demSearchPaths().first.map {
-            let p = $0.path.lowercased()
-            return p.contains("view1") || p.contains("srtm1") || p.contains("alos1")
-                || DEMSources.all.contains {
-                    $0.nodes == 3601 && p.contains($0.directoryName.lowercased())
-                }
-        } ?? false
+        let sources = demSearchPaths()
+        var fine = 0, coarse = 0
+        for cell in elevationCells() {
+            let name = HGTName.of(lat: cell.lat, lon: cell.lon) + ".hgt"
+            guard let source = sources.first(where: { FileTools.exists($0.appendingPathComponent(name)) })
+            else { continue }
+            if Self.isOneArcSecond(source) { fine += 1 } else { coarse += 1 }
+        }
+        return fine > 0 && fine >= coarse
+    }
+
+    static func isOneArcSecond(_ directory: URL) -> Bool {
+        let name = directory.lastPathComponent.lowercased()
+        return ["view1", "srtm1", "alos1"].contains(name)
+            || DEMSources.all.contains { $0.nodes == 3601 && name == $0.directoryName.lowercased() }
     }
 }

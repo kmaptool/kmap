@@ -34,10 +34,11 @@ extension StylePort {
         return fills.filter { brightness(of: $0) < darkBelow }.count * 2 > fills.count
     }
 
-    /// Perceived brightness of `#RRGGBB`, 0 black to 1 white; 1 for anything unreadable.
+    /// Perceived brightness of `#RRGGBB`, its alpha left out; 0 black to 1 white, and 1 for
+    /// anything unreadable.
     static func brightness(of colour: String) -> Double {
         let hex = colour.hasPrefix("#") ? String(colour.dropFirst()) : colour
-        guard hex.count == 6, let value = Int(hex, radix: 16) else { return 1 }
+        guard hex.count == 6 || hex.count == 8, let value = Int(hex.prefix(6), radix: 16) else { return 1 }
         let r = Double((value >> 16) & 0xff), g = Double((value >> 8) & 0xff)
         let b = Double(value & 0xff)
         return (0.299 * r + 0.587 * g + 0.114 * b) / 255
@@ -55,8 +56,8 @@ extension StylePort {
     ) -> String {
         var out: [String] = []
         // First, or the compiler reads the file in the platform's charset and gives up
-        // on the first Cyrillic label.
-        out.append("; -*- coding: UTF-8 -*-")
+        // on the first Cyrillic label. Not for labels kept in their page's bytes.
+        if !TypSource.keptByteForByte(codePage: codePage) { out.append("; -*- coding: UTF-8 -*-") }
         out.append("; ported by kmap: the pictures of a borrowed style, on kmap's numbers")
         // Read by the build, ignored by the compiler: this file is written against our
         // numbers, so a number it leaves unpainted is meant to draw nothing.
@@ -91,7 +92,7 @@ extension StylePort {
             if let section = theirs.section(kind, theirsCode) {
                 out.append(
                     "; the build's own \(kind.rawValue) 0x\(String(ours, radix: 16))"
-                        + " — drawn as their 0x\(String(theirsCode, radix: 16))"
+                        + " - drawn as their 0x\(String(theirsCode, radix: 16))"
                 )
                 out.append(
                     contentsOf: renumbered(
@@ -134,11 +135,10 @@ extension StylePort {
         }
         // The ground's numbers are written above; a second section for one would leave
         // which picture the device takes to chance.
-        let ground = Set(Self.generatedTypes.map { "\($0.0.rawValue) \($0.1)" })
-        for port in ported where !ground.contains("\(port.kind.rawValue) \(port.ours)") {
+        for port in ported where !Self.landsOnGround(port) {
             guard let section = theirs.section(port.kind, port.theirs) else { continue }
             out.append(
-                "; \(port.meaning) — kmap 0x\(String(port.ours, radix: 16))"
+                "; \(port.meaning) - kmap 0x\(String(port.ours, radix: 16))"
                     + " drawn as their 0x\(String(port.theirs, radix: 16))"
                     + " (\(port.witnesses) seen)"
             )
@@ -174,9 +174,8 @@ extension StylePort {
     private static func narrowed(_ block: [String], to width: Int?) -> [String] {
         guard let width else { return block }
         return block.map { line in
-            let text = line.trimmingCharacters(in: .whitespaces)
-            guard text.hasPrefix("LineWidth="),
-                let had = Int(text.dropFirst("LineWidth=".count)), width < had
+            guard let (key, value) = TypSource.entry(of: line), key.caseInsensitiveCompare("LineWidth") == .orderedSame,
+                let had = TypSource.decodedInteger(value), width < had
             else { return line }
             return "LineWidth=\(width)"
         }
@@ -194,10 +193,9 @@ extension StylePort {
         var out: [String] = []
         var wroteSubtype = false
         for line in block {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("Type=") {
+            if TypSource.sets("Type", line) {
                 out.append(String(format: "Type=0x%02x", type))
-            } else if trimmed.hasPrefix("SubType=") {
+            } else if TypSource.sets("SubType", line) {
                 out.append(String(format: "SubType=0x%02x", subtype))
                 wroteSubtype = true
             } else {
@@ -207,7 +205,7 @@ extension StylePort {
         // A point whose block never said SubType still needs one, a low byte of 0 too:
         // without it `Type=0x2a` reads as the number 0x2a, not 0x2a00.
         if kind == .point, !wroteSubtype,
-            let at = out.firstIndex(where: { $0.hasPrefix("Type=") })
+            let at = out.firstIndex(where: { TypSource.sets("Type", $0) })
         {
             out.insert(String(format: "SubType=0x%02x", subtype), at: at + 1)
         }

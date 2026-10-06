@@ -133,11 +133,7 @@ extension CLI {
         if let failure = snapshot.failure {
             return CLIOutput.failure("\nfailed: \(failure)")
         }
-        if snapshot.cancelled {
-            CLILog.line("\ncancelled")
-            CLIOutput.result(["cancelled": .bool(true)])
-            return CLIOutput.Exit.cancelled
-        }
+        if snapshot.cancelled { return CLIOutput.cancelled() }
         CLILog.line("")
         for output in snapshot.outputs {
             CLILog.line("\(output.name)  \(Fmt.bytes(output.size))")

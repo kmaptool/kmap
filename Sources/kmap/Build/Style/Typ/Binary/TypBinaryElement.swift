@@ -1,5 +1,49 @@
 import Foundation
 
+extension TypBinary {
+    struct Element {
+        let kind: MapElementKind
+        /// Variable for a drawing an index names under several codes: decoded once.
+        var type: Int
+        var subtype: Int
+
+        /// The code as the rule files and the TYP source write it.
+        ///
+        /// A point always folds its subtype in: `Type=0x2a00` is type 0x2a, subtype 0. A
+        /// line or polygon folds it in only for an extended type, one above 0xFF, written
+        /// as 5 digits: `Type=0x10208` is type 0x102, subtype 0x08.
+        var code: Int {
+            kind == .point || type > 0xFF ? (type << 8) | subtype : type
+        }
+
+        /// Day ink, day background, night ink, night background - as many as the element
+        /// stores. A nil is a slot the file marks transparent and does not store at all.
+        let colours: [String?]
+
+        /// Palette indices per pixel, for an element that carries a pattern.
+        let bitmap: [[Int]]?
+        /// Rows of the pattern, which for a line is its thickness.
+        let bitmapHeight: Int
+
+        /// A point's own images, which carry their own palettes rather than the element's.
+        let dayImage: PointImage?
+        let nightImage: PointImage?
+
+        let labels: [(language: Int, text: String)]
+        let fontStyle: String?
+        let dayLabelColour: String?
+        let nightLabelColour: String?
+
+        let lineWidth: Int?
+        let borderWidth: Int?
+        let usesOrientation: Bool
+
+        /// False when the element did not end where the next one begins. Its colours and
+        /// labels may still be right; nothing downstream should assume so.
+        let exact: Bool
+    }
+}
+
 /// Decoding one element of a compiled TYP: its colours, widths and pictures.
 extension TypBinary {
     static func decodeElement(

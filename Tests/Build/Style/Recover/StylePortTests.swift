@@ -434,4 +434,41 @@ final class StylePortTests: XCTestCase {
         )
         XCTAssertEqual(ported.first(where: { $0.ours == 0x20 })?.theirs, 0x17)
     }
+
+    /// A picture ported onto a ground number is not drawn, the ground taking its own, so it
+    /// is uncovered; the picture the ground does take is not.
+    func testAPortOntoTheGroundLeavesItsPictureUncovered() throws {
+        let rules = try index(polygons: "building=yes [0x13 resolution 24]\n")
+        let theirs = TypSource.parse(
+            """
+            [_polygon]
+            Type=0x13
+            Xpm="0 0 1 0"
+            "1 c #AA5500"
+            [end]
+            [_polygon]
+            Type=0x4b
+            Xpm="0 0 1 0"
+            "1 c #FFFFEE"
+            [end]
+            """
+        )
+        let onGround = StylePort.Ported(
+            ours: StylePort.backgroundCode,
+            theirs: 0x13,
+            kind: .polygon,
+            meaning: "building=yes",
+            witnesses: 50,
+            width: nil
+        )
+        XCTAssertTrue(StylePort.landsOnGround(onGround))
+        let uncovered = StylePort.uncovered(
+            codesByTag: ["building=yes": ["A13": 50, "A4b": 40]],
+            rules: rules,
+            theirs: theirs,
+            ported: StylePort.drawn([onGround])
+        )
+        XCTAssertTrue(StylePort.drawn([onGround]).isEmpty, "counted as the TYP draws it")
+        XCTAssertEqual(uncovered.map(\.theirs), [0x13])
+    }
 }

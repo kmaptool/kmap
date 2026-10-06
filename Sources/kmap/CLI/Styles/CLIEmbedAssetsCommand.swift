@@ -5,6 +5,7 @@ import Foundation
 extension CLI {
     static func embedAssets(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["assets", "out"])
+        if let refused = flags.refusal("embed-assets", knows: ["assets", "out"], positionals: 0) { return refused }
         let root = URL(fileURLWithPath: flags.value("assets") ?? AssetEmbedder.defaultRoot)
         let out = URL(fileURLWithPath: flags.value("out") ?? AssetEmbedder.defaultOutput)
         do {

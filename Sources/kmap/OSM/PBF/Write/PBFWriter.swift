@@ -4,32 +4,6 @@ import Foundation
 /// stands; the rest are built and deflated on whichever cores are free and appended in
 /// the order they were handed over. Output is streamed to the file rather than held whole.
 final class PBFWriter {
-    /// One node. Version and timestamp are not carried; mkgmap reads neither.
-    struct Node {
-        var id: Int64
-        var lat: Double
-        var lon: Double
-        var tags: [(String, String)]
-    }
-
-    struct Way {
-        var id: Int64
-        var refs: [Int64]
-        var tags: [(String, String)]
-    }
-
-    struct Relation {
-        /// Member kinds follow the PBF enum: 0 node, 1 way, 2 relation.
-        struct Member {
-            var kind: Int32
-            var ref: Int64
-            var role: String
-        }
-        var id: Int64
-        var members: [Member]
-        var tags: [(String, String)]
-    }
-
     /// Upper bound on elements per block, keeping a blob inside the format's 32 MB
     /// uncompressed limit however large a batch the caller hands over.
     static let maxElementsPerBlock = 16_000
@@ -46,6 +20,11 @@ final class PBFWriter {
     let queue: DispatchQueue
     let handle: FileHandle
     let url: URL
+    /// Where the file is written until `finish` puts it at `url`: a file stopped midway
+    /// is never there to pass for whole, and a file at `url` being read is not cut short.
+    let partial: URL
+    /// Whether `finish` put it in place.
+    var landed = false
     /// The next ticket to hand out; a batch's ticket is its place in the file.
     let tickets = Locked(0)
     /// Batches handed over and not yet appended, for `finish` to wait on.
@@ -64,27 +43,21 @@ final class PBFWriter {
         set { failure.withLock { $0 = newValue } }
     }
 
-    enum Piece: Sendable {
-        /// A blob already compressed by its original writer, passed through unchanged.
-        case copied(header: [UInt8], blob: [UInt8])
-        case toCompress(kind: String, payload: [UInt8])
-    }
-
-    /// A batch's blocks with their deflated bodies, empty where there is none.
-    struct Packed: Sendable {
-        let pieces: [Piece]
-        let bodies: [[UInt8]]
-    }
-
     init(to url: URL) throws {
         self.url = url
-        handle = try FileTools.openForWriting(url, appending: false)
+        // A name of its own: a writer let go late takes only its own file with it.
+        partial = url.deletingLastPathComponent()
+            .appendingPathComponent("\(url.lastPathComponent).\(UUID().uuidString.prefix(8)).partial")
+        handle = try FileTools.openForWriting(partial, appending: false)
         buffer.reserveCapacity(Self.flushThreshold)
         queue = DispatchQueue(label: "kmap.pbf.\(url.lastPathComponent)")
     }
 
+    /// A writer let go without `finish` takes its partial file with it, once the batches
+    /// still being compressed have let go of it too.
     deinit {
         try? handle.close()
+        if !landed { FileTools.removeIfPresent(partial) }
     }
 
     /// Writes the header block. The bbox, when given, is read as the file's coverage;
@@ -126,13 +99,18 @@ final class PBFWriter {
     /// The blocks of a batch of nodes, in ascending ids, as the delta encoding and readers
     /// require.
     static func nodePieces(_ batch: [Node]) -> [Piece] {
-        let ordered = batch.sorted { $0.id < $1.id }
+        let ordered = ascending(batch) ? batch : batch.sorted { $0.id < $1.id }
         return stride(from: 0, to: ordered.count, by: Self.maxElementsPerBlock).map { start in
             .toCompress(
                 kind: PBFSchema.dataBlob,
                 payload: Self.nodeBlock(ordered[start..<min(start + Self.maxElementsPerBlock, ordered.count)])
             )
         }
+    }
+
+    private static func ascending(_ batch: [Node]) -> Bool {
+        for i in batch.indices.dropFirst() where batch[i - 1].id > batch[i].id { return false }
+        return true
     }
 
     private static func nodeBlock(_ batch: ArraySlice<Node>) -> [UInt8] {

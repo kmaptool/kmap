@@ -12,10 +12,11 @@ extension BuildPipeline {
             descriptions: recipe.descriptions,
             hidden: recipe.hidden,
             zoom: (recipe.zoomPlan, recipe.levels),
-            cyrillic: recipe.codePage == CodePage.cyrillic
+            cyrillic: recipe.speaksRussian
         )
         let mine = workDirectory.appendingPathComponent("style", isDirectory: true)
         FileTools.removeIfPresent(mine)
+        var missing: URL?
         for _ in 0..<Self.styleSnapshotTries {
             try await styles.prepare(
                 recipe.style,
@@ -26,12 +27,27 @@ extension BuildPipeline {
                 zoom: choices.zoom,
                 cyrillicLabels: choices.cyrillic
             )
-            guard let shared = recipe.style.styleDirectory, FileTools.exists(shared) else { return }
+            guard let shared = recipe.style.styleDirectory else { return }
+            // Rules prepared a moment ago and gone, mid-swap by another build, would compile
+            // as mkgmap's own style with nothing said.
+            guard FileTools.exists(shared) else {
+                // Only kmap's own rules come back with another prepare.
+                if case .customDirectory = recipe.style.origin {
+                    throw BuildError.styleFolderGone(Paths.display(shared))
+                }
+                missing = shared
+                continue
+            }
+            missing = nil
             let expected = styles.expectedMarker(for: recipe.style, choices: choices)
-            // A copy that fails is left to the options, which fall back to the shared rules.
-            if (try? styles.snapshot(shared, to: mine, expecting: expected)) != false { return }
+            // A copy that fails, on a full disk say, fails the build: the shared rules are
+            // not this build's to read while another may rewrite them.
+            if try styles.snapshot(shared, to: mine, expecting: expected) { return }
             log.append("another build changed the shared style meanwhile — preparing it again")
         }
+        // Rules that never came, as a recovered style's whose sheet will not read, are gone,
+        // not changed.
+        if let missing { throw BuildError.styleFolderGone(Paths.display(missing)) }
         throw BuildError.styleKeptChanging
     }
 
@@ -54,6 +70,15 @@ extension BuildPipeline {
             liftingOpenGround: toolchain.mkgmapIsPatched
         )
         if let typ {
+            // The device reads the TYP's names in the TYP's own code page: in another than
+            // the map's, the names of its kinds of thing come out garbled. mkgmap compiles a
+            // text TYP in the map's page; a compiled one keeps its own.
+            if let info = TypInfo.read(typ.url), info.isBinary, let page = info.codePage, page != recipe.codePage {
+                log.warn(
+                    "\(typ.url.lastPathComponent) is written in code page \(page), the map in"
+                        + " \(recipe.codePage) — the device may show its names garbled"
+                )
+            }
             for added in typ.added { log.append("added to the TYP for this build: \(added)") }
             if let note = typ.theme { log.append("TYP: " + note) }
             if let refusal = typ.refusal { log.warn(refusal) }
@@ -75,6 +100,7 @@ extension BuildPipeline {
         else {
             throw BuildError.missingTool("mkgmap")
         }
+        if recipe.demLayer { await writeDEMPolygon() }
 
         // Every tile in one run, each to an .img of its own. Which output file a tile goes
         // in is settled afterwards by weighing them, since size cannot be predicted.
@@ -96,15 +122,16 @@ extension BuildPipeline {
             if try await canRecord(warm, java: java, mkgmap: mkgmap) {
                 log.append("recording a warm start for mkgmap: this compile is slower, the next ones faster")
             } else {
-                JavaWarmStart.refuse(warm)
+                if refuseUnlessShortOfRoom(warm) {
+                    log.append("this Java does not record a warm start for mkgmap; compiling without one")
+                }
                 JavaWarmStart.discard(warm)
-                log.append("this Java does not record a warm start for mkgmap; compiling without one")
                 warm = JavaWarmStart.Plan(cache: warm.cache)
             }
         }
         let rest =
-            mkgmapOptions(
-                name: recipe.slug,
+            try mkgmapOptions(
+                name: recipe.areaSlug,
                 outputDir: tileDir,
                 tileCount: tiles.tiles.count,
                 gmapsupp: false,
@@ -169,6 +196,20 @@ extension BuildPipeline {
         set(.compile, .done, "\(files) file(s) built")
     }
 
+    /// Marks this Java as one that does not record, for a while. Not where the disk is
+    /// all but full: that is the likelier cause, and says nothing of the Java.
+    /// - Returns: whether it was marked.
+    private func refuseUnlessShortOfRoom(_ warm: JavaWarmStart.Plan) -> Bool {
+        guard let cache = warm.cache else { return false }
+        let free = FileTools.freeSpaceBytes(at: Self.nearestPresent(cache))
+        if free > 0, free < 2_000_000_000 {
+            log.append("only \(Fmt.bytes(free)) free for mkgmap's warm start; compiling without one this time")
+            return false
+        }
+        JavaWarmStart.refuse(warm)
+        return true
+    }
+
     /// Makes the cache out of what a recording compile wrote. The cache lands under its
     /// name only whole; a failure here costs the warm start and not the build.
     private func keepWarmStart(_ warm: JavaWarmStart.Plan, java: JavaRuntime, mkgmap: URL) async {
@@ -182,8 +223,7 @@ extension BuildPipeline {
         // A JVM that failed may have left a part of the cache: it does not take the name, and
         // is not asked to record again for a while.
         guard made?.exitCode == 0, FileTools.size(of: pending) > 0 else {
-            guard !isCancelled else { return }
-            JavaWarmStart.refuse(warm)
+            guard !isCancelled, refuseUnlessShortOfRoom(warm) else { return }
             log.warn("mkgmap's warm start could not be made from what was recorded; compiling without one for now")
             return
         }
@@ -229,6 +269,7 @@ extension BuildPipeline {
         var failedIDs: [Int] = []
         var missingElevation: Set<String> = []
         var finishedCleanly = false
+        var outOfMemory = false
         let lock = NSLock()
         do {
             _ = try await measure(.compile, "mkgmap") {
@@ -251,6 +292,10 @@ extension BuildPipeline {
                         finishedCleanly = true
                         lock.unlock()
                     }
+                    // Said only in the log otherwise, behind a stack trace.
+                    if line.contains("java.lang.OutOfMemoryError") {
+                        lock.withLock { outOfMemory = true }
+                    }
                     // mkgmap names the overflowing tile and exits; the run loop cuts it finer.
                     if line.contains("RGN section") && line.contains("too big") {
                         lock.lock()
@@ -269,11 +314,12 @@ extension BuildPipeline {
             }
         } catch {
             if overflowed { throw BuildError.tileTooDense(nodeCap, failed: failedIDs) }
+            if lock.withLock({ outOfMemory }) { throw BuildError.javaOutOfMemory(recipe.heapGB) }
             // A recording JVM writes what it recorded as it exits, after mkgmap is done: a
             // failure there fails only the exit. mkgmap said it finished without a failure,
             // since a tile's .img is there from the moment it is begun.
             if recording, case ProcessRunner.RunError.failed = error, lock.withLock({ finishedCleanly }),
-                tileIDs.allSatisfy({ FileTools.size(of: tileDir.appendingPathComponent("\($0).img")) > 0 })
+                tileIDs.allSatisfy({ ImgContainer.isWhole(tileDir.appendingPathComponent("\($0).img")) })
             {
                 return (missingElevation, true)
             }

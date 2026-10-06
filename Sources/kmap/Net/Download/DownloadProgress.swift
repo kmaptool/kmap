@@ -73,6 +73,15 @@ final class DownloadProgress: @unchecked Sendable {
         }
     }
 
+    /// A part fetched again from its first byte: what it had counted is uncounted.
+    func restartPart(_ index: Int) {
+        lock.withLock {
+            guard _perPart.indices.contains(index) else { return }
+            _received -= _perPart[index]
+            _perPart[index] = 0
+        }
+    }
+
     func advance(part index: Int, by n: Int64) {
         lock.withLock {
             guard _perPart.indices.contains(index) else { return }

@@ -5,6 +5,7 @@ import Foundation
 extension CLI {
     static func osmScan(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["dump"])
+        if let refused = flags.refusal("osm-scan", knows: ["dump", "load"], positionals: 1) { return refused }
         guard let path = flags.positionals.first else {
             return CLIOutput.refuse("usage: kmap osm-scan <file.osm.pbf>")
         }

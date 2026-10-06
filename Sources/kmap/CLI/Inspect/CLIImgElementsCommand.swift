@@ -7,6 +7,13 @@ import Foundation
 extension CLI {
     static func imgElements(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["out", "ground", "res"])
+        if let refused = flags.refusal(
+            "img-elements",
+            knows: ["out", "ground", "res", "extended", "coarse"],
+            positionals: 1
+        ) {
+            return refused
+        }
         guard let path = flags.positionals.first, let out = flags.value("out") else {
             return CLIOutput.refuse(
                 "usage: kmap img-elements <map.img> --out <dump.bin>"
@@ -22,6 +29,11 @@ extension CLI {
             grounds.append(BBox(minLon: parts[1], minLat: parts[0], maxLon: parts[3], maxLat: parts[2]))
         }
         if grounds.isEmpty { grounds = [BBox(minLon: -180, minLat: -90, maxLon: 180, maxLat: 90)] }
+        guard flags.notNumbers(["res"]).isEmpty, (flags.int("res") ?? 0) >= 0,
+            (flags.int("res") ?? 0) <= GarminGrid.fullResolution
+        else {
+            return CLIOutput.refuse("--res must be a resolution, 0 to \(GarminGrid.fullResolution)")
+        }
         do {
             var dump = ElementDumper.Dump()
             let started = Date()

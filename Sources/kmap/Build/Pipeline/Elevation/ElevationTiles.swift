@@ -52,7 +52,8 @@ extension BuildPipeline {
         }
         // Cells the source's list lacks are sea and not asked for, so a cached build works
         // offline.
-        let (asked, unpublished) = Self.published(missing, in: await ElevationCost.tileCoverage(flavor))
+        let list = await ElevationCost.tileCoverage(flavor)
+        let (asked, unpublished) = Self.published(missing, in: list)
         if unpublished > 0 {
             log.append("\(unpublished) cell(s) \(flavor.label) does not publish, sea or beyond it — not asked for")
         }
@@ -62,20 +63,21 @@ extension BuildPipeline {
         // of all the tiles. A `.hgt` grid is half a cell wider than the source square on
         // every side, so its outer nodes need the neighbour's data to sample.
         let absent =
-            unpublished + (asked.isEmpty ? 0 : try await downloadDEMTifs(asked, flavor: flavor, into: scratch))
+            unpublished
+            + (asked.isEmpty ? 0 : try await downloadDEMTifs(asked, flavor: flavor, into: scratch, listed: list != nil))
 
         let downloaded = unconverted.filter {
             FileTools.exists(flavor.downloadedTif(lat: $0.lat, lon: $0.lon))
         }
         guard !downloaded.isEmpty else {
             log.ok("no \(flavor.label) tiles here — \(absent) cell(s) are open sea")
-            if Self.endsWithNoTiles(last: last, onHand: hgtFileCount()) { throw BuildError.noElevationTiles }
+            if Self.endsWithNoTiles(last: last, onHand: mapHGTCount()) { throw BuildError.noElevationTiles }
             return
         }
 
         // One mosaic over every tile just downloaded, so a node on a tile's rim samples
         // its neighbour rather than leaving a column of zeros down the join.
-        let mosaic = HGTConversion.Mosaic { lat, lon in
+        let mosaic = HGTConversion.Mosaic(converting: downloaded) { lat, lon in
             let file = flavor.downloadedTif(lat: lat, lon: lon)
             return FileTools.exists(file) ? file : nil
         }
@@ -91,17 +93,23 @@ extension BuildPipeline {
         )
 
         // The mosaic samples across the joins, so no .tif is deleted until the whole pass
-        // is over, and a cell whose conversion failed keeps its download.
-        for cell in downloaded
-        where FileTools.exists(flavor.cachedTile(lat: cell.lat, lon: cell.lon)) {
-            FileTools.removeIfPresent(flavor.downloadedTif(lat: cell.lat, lon: cell.lon))
+        // is over, and a cell whose conversion failed keeps its download: unless its own
+        // file would not read, which kept would fail every build after this one too.
+        for cell in downloaded {
+            let tif = flavor.downloadedTif(lat: cell.lat, lon: cell.lon)
+            if FileTools.exists(flavor.cachedTile(lat: cell.lat, lon: cell.lon)) {
+                FileTools.removeIfPresent(tif)
+            } else if let failure = mosaic.failure(lat: cell.lat, lon: cell.lon), GeoTIFF.Trouble.isDamage(failure) {
+                log.warn("\(tif.lastPathComponent) would not read — it is fetched again on the next build")
+                FileTools.removeIfPresent(tif)
+            }
         }
 
         log.ok(
             "\(converted) \(flavor.label) tile(s) converted"
                 + (absent > 0 ? ", \(absent) not in the bucket (open sea)" : "")
         )
-        if converted == 0, Self.endsWithNoTiles(last: last, onHand: hgtFileCount()) {
+        if converted == 0, Self.endsWithNoTiles(last: last, onHand: mapHGTCount()) {
             throw BuildError.noElevationTiles
         }
     }
@@ -123,16 +131,19 @@ extension BuildPipeline {
     }
 
     /// Downloads the missing tiles, several at a time, with a live progress line. A tile
-    /// the source does not hold is open sea, not a failure.
+    /// the source does not hold is open sea, not a failure, unless `listed`: the cells
+    /// come from the source's own list, so a refusal is warned of and not counted as sea.
     ///
     /// - Returns: how many cells came back absent.
     private func downloadDEMTifs<Source: DEMTileSource>(
         _ missing: [(lat: Int, lon: Int)],
         flavor: Source,
-        into scratch: URL
+        into scratch: URL,
+        listed: Bool
     ) async throws -> Int {
         let lanes = max(2, min(6, Machine.workers))
         let absent = Counter()
+        let refused = Counter()
         let fetched = Counter()
         // Several tiles are in flight at once, so no single downloader knows the total
         // rate; this adds them up.
@@ -145,7 +156,7 @@ extension BuildPipeline {
         let monitor = Task {
             var pace = Pace()
             while !Task.isCancelled {
-                let done = fetched.value + absent.value
+                let done = fetched.value + absent.value + refused.value
                 pace.note(done: done)
                 let text = BuildPipeline.fetchLine(
                     source: flavor.family,
@@ -184,17 +195,31 @@ extension BuildPipeline {
                     let downloader = Downloader(log: self.log)
                     flight.joined(downloader)
                     do {
+                        // Under the shared lock, and skipped where another kmap got it first.
+                        let lock = try await downloader.holdingDownload(of: assembling)
+                        defer { withExtendedLifetime(lock) {} }
+                        if FileTools.exists(tif) || FileTools.exists(flavor.cachedTile(lat: cell.lat, lon: cell.lon)) {
+                            flight.left(downloader, carrying: 0)
+                            fetched.increment()
+                            return
+                        }
                         // Two connections per tile: with several tiles in flight the link
                         // is already busy, and the bucket favours plain GETs.
-                        try await downloader.download(url: url, to: assembling, connections: 2)
-                        FileTools.removeIfPresent(tif)
+                        try await downloader.download(url: url, to: assembling, connections: 2, lockHeld: true)
                         try FileTools.move(assembling, to: tif)
                         flight.left(downloader, carrying: FileTools.size(of: tif))
                         fetched.increment()
                     } catch let error where flavor.isAbsent(error) {
-                        // Nothing in the bucket means open sea, which is not a failure.
                         flight.left(downloader, carrying: 0)
-                        absent.increment()
+                        // Nothing in the bucket means open sea, which is not a failure. A
+                        // cell the source's own list names is there: refused, it is said
+                        // and left to the sources after this one, and asked again next time.
+                        if listed {
+                            refused.increment()
+                            self.log.warn("\(name): the source lists it but refused it (\(error)) — not open sea")
+                        } else {
+                            absent.increment()
+                        }
                         return
                     } catch {
                         flight.left(downloader, carrying: 0)
@@ -268,32 +293,74 @@ extension BuildPipeline {
     /// Resamples one degree cell of GeoTIFF onto the arc-second nodes and writes it as
     /// `.hgt`. Sampling each tile directly, rather than through an averaged VRT mosaic,
     /// avoids a second resampling where neighbouring tiles differ in sample spacing.
-    private func convertDEMTile<Source: DEMTileSource>(
+    func convertDEMTile<Source: DEMTileSource>(
         _ cell: (lat: Int, lon: Int),
         from mosaic: HGTConversion.Mosaic,
         flavor: Source
     ) throws {
+        try landHGT(cell, from: mosaic, to: flavor.cachedTile(lat: cell.lat, lon: cell.lon), nodes: flavor.nodes)
+    }
+
+    /// Writes 1 cell's `.hgt` from the mosaic beside the cache, edges and all, then moves
+    /// it in: existing means done, to a later build and to another kmap reading the cache.
+    func landHGT(
+        _ cell: (lat: Int, lon: Int),
+        from mosaic: HGTConversion.Mosaic,
+        to destination: URL,
+        nodes: Int
+    ) throws {
         let name = HGTName.of(lat: cell.lat, lon: cell.lon)
-        let destination = flavor.cachedTile(lat: cell.lat, lon: cell.lon)
-        FileTools.removeIfPresent(destination)
-        try HGTConversion.write(cell: cell, from: mosaic, to: destination, nodes: flavor.nodes)
+        let directory = destination.deletingLastPathComponent()
+        // Another kmap sharing the cache converted it since this one looked, and may have
+        // let its download go: what it wrote stays, and is not written over from nothing.
+        guard !FileTools.exists(destination) else {
+            mosaic.release(cellLat: cell.lat, cellLon: cell.lon)
+            return
+        }
+        // One a killed run left goes after an hour.
+        SweptOnce.sweep(directory) { Self.removeAbandonedParts(in: $0) }
+        let making = directory.appendingPathComponent("\(name).hgt.\(UUID().uuidString.prefix(8)).part")
+        defer { FileTools.removeIfPresent(making) }
+        try HGTConversion.write(cell: cell, from: mosaic, to: making, nodes: nodes)
         mosaic.release(cellLat: cell.lat, cellLon: cell.lon)
 
         // A cell on the rim of the region has no neighbour to sample its outermost row and
-        // column from, and they land in the file as zero; this fills them from inside.
-        if let filled = (try? FixHGTEdges.repair(destination)) ?? nil {
+        // column from, and they land in the file as zero; this fills them from the cached
+        // neighbour, or from inside.
+        if let filled = (try? FixHGTEdges.repair(making, cell: cell, in: directory)) ?? nil {
             log.append("\(name).hgt: filled \(filled) edge(s)")
         }
 
-        // nodes² samples, two bytes each. A short file means a truncated write, and mkgmap
+        // nodes * nodes samples, 2 bytes each. A short file means a truncated write, and mkgmap
         // reads it as a wall of zeroes rather than refusing it.
-        let expected = flavor.nodes * flavor.nodes * 2
-        let size = FileTools.size(of: destination)
+        let expected = nodes * nodes * 2
+        let size = FileTools.size(of: making)
         guard size == expected else {
-            FileTools.removeIfPresent(destination)
             throw BuildError.missingTool(
                 "\(name).hgt came out \(size) bytes, expected \(expected)"
             )
+        }
+        // Another kmap may have moved its own in meanwhile: the same tile, kept.
+        do {
+            try FileTools.move(making, to: destination)
+        } catch {
+            if !FileTools.exists(destination) { throw error }
+            return
+        }
+        let refreshed = FixHGTEdges.refreshNeighbours(of: destination, cell: cell, in: directory)
+        if !refreshed.isEmpty {
+            log.append("\(name).hgt: edge shared with \(refreshed.joined(separator: ", ")) made to agree")
+        }
+    }
+
+    /// Cells a killed conversion left half made, `N45E006.hgt.<hex>.part`, an hour old so
+    /// another kmap's in hand stays.
+    static func removeAbandonedParts(in directory: URL, now: Date = Date()) {
+        let entries =
+            (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for entry in entries where entry.pathExtension == "part" && entry.lastPathComponent.contains(".hgt.") {
+            guard let changed = FileTools.modified(of: entry), now.timeIntervalSince(changed) > 3600 else { continue }
+            FileTools.removeIfPresent(entry)
         }
     }
 }

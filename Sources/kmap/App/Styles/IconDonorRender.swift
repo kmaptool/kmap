@@ -36,8 +36,15 @@ extension IconDonorScreen {
         y += 2
 
         guard let loaded else {
-            if let message, y < rect.maxY {
-                s.text(rect.x, y, truncate(message, to: rect.w), Style(fg: theme.danger, bg: theme.appBg))
+            if let message {
+                s.paragraph(
+                    message,
+                    x: rect.x,
+                    y: y,
+                    width: rect.w,
+                    style: Style(fg: theme.danger, bg: theme.appBg),
+                    maxY: rect.maxY
+                )
             }
             return
         }
@@ -113,11 +120,14 @@ extension IconDonorScreen {
             )
             y += 1
         }
-        // The picture row above is always shown; the styles scroll under it.
-        let visible = max(1, rect.maxY - 1 - y)
+        // The picture row above is always shown; the styles scroll under it, above the
+        // message wrapped at the bottom.
+        let note = message.map { wrapText($0, width: rect.w) } ?? []
+        let bottom = rect.maxY - max(1, note.count)
+        let visible = max(1, bottom - y)
         let first = max(0, list.selected - visible)
         for (index, style) in styles.enumerated().dropFirst(first) {
-            guard y < rect.maxY - 1 else { break }
+            guard y < bottom else { break }
             Widgets.row(
                 s,
                 rect: Rect(x: rect.x, y: y, w: rect.w, h: 1),
@@ -129,8 +139,8 @@ extension IconDonorScreen {
             )
             y += 1
         }
-        if let message, y < rect.maxY {
-            s.text(rect.x, rect.maxY - 1, message, Style(fg: theme.warn, bg: theme.appBg))
+        for (row, line) in note.enumerated() where bottom + row >= y {
+            s.text(rect.x, bottom + row, line, Style(fg: theme.warn, bg: theme.appBg))
         }
     }
 

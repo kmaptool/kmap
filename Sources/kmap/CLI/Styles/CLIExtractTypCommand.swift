@@ -5,6 +5,7 @@ import Foundation
 extension CLI {
     static func extractTyp(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["out"])
+        if let refused = flags.refusal("extract-typ", knows: ["out", "force"]) { return refused }
         let paths = flags.positionals
         guard !paths.isEmpty else {
             return CLIOutput.refuse("extract-typ needs a .img path")
@@ -69,7 +70,7 @@ extension CLI {
 
         if failures == 0 {
             CLILog.line(
-                "\nEdit the file and build with it — kmap picks up any .typ under "
+                "\nBuild with it — kmap picks up any .typ under "
                     + "\(Paths.display(Paths.root.appendingPathComponent("typ"))) as a style,"
             )
             CLILog.line("and never overwrites one that already exists.")
@@ -79,7 +80,7 @@ extension CLI {
     }
 
     /// Asks, on the terminal, and answers whether the user typed y.
-    private static func confirmedCopyright(of paths: [String]) -> Bool {
+    static func confirmedCopyright(of paths: [String]) -> Bool {
         CLILog.line("Important")
         CLILog.line("")
         for path in paths {

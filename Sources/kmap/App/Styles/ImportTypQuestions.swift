@@ -12,8 +12,13 @@ extension ImportTypScreen {
             detail.append((t("size"), Fmt.bytes(candidate.size)))
             detail.append((t("family"), "\(candidate.familyID) · \(candidate.productID)"))
         }
+        // Checked before any question, through links. A pipe or a device is no file to read.
+        guard FileTools.isRegularFile(FileTools.resolvingLinks(url)) else {
+            notice.say(t("%@: no such file", Paths.display(url)), error: true)
+            return
+        }
         // Asked first: a file of gigabytes that is neither is not read through to say so.
-        guard !FileTools.exists(url) || ImgContainer.isImg(url) || TypInfo.read(url) != nil else {
+        guard ImgContainer.isImg(url) || TypInfo.read(url) != nil else {
             notice.say(t("%@ is neither a TYP nor a Garmin .img", url.lastPathComponent), error: true)
             return
         }
@@ -89,7 +94,6 @@ extension ImportTypScreen {
             path = ""
             refreshHeld()
             ctx.styles.rescanStyles()
-            onImported()
             // The map holds the other half of the style: which code stands for what.
             if ImgContainer.isImg(url) { offerRecovery(img: url, typ: result.url) }
         } catch {

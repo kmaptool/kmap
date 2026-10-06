@@ -31,7 +31,7 @@ final class IconDonorScreen: Screen {
             return [
                 Hint(key: "↑↓", label: t("move")),
                 Hint(key: Glyph.enter, label: t("use this one")),
-                Hint(key: "type", label: t("filter")),
+                Hint(key: "abc", label: t("filter")),
                 Hint(key: "esc", label: t("back to the list"))
             ]
         }
@@ -96,14 +96,12 @@ final class IconDonorScreen: Screen {
     private func handleStyle(_ key: KeyEvent) -> Route {
         switch key {
         case .tab, .backTab:
-            stage = .file
-            message = nil
+            toFile()
         case .up: list.move(-1, count: sourceRowCount)
         case .down: list.move(1, count: sourceRowCount)
         case .enter:
             guard list.selected > 0 else {
-                stage = .file
-                message = nil
+                toFile()
                 return .none
             }
             guard let style = styles[safe: list.selected - 1] else { return .none }
@@ -113,6 +111,16 @@ final class IconDonorScreen: Screen {
         default: break
         }
         return .none
+    }
+
+    /// A picture file gives only a point its icon: said before a path is typed, not after.
+    private func toFile() {
+        guard kind == .point else {
+            message = t("a picture file gives a point its icon — lines and areas borrow another style's drawing")
+            return
+        }
+        stage = .file
+        message = nil
     }
 
     private func open(_ style: MapStyle) {
@@ -176,7 +184,10 @@ final class IconDonorScreen: Screen {
                 return .pop
             }
             load()
-        case .esc: return .pop
+        // Back a step, as from a style's types.
+        case .esc:
+            stage = .style
+            message = nil
         case .ctrl("c"): return .quit
         default: break
         }

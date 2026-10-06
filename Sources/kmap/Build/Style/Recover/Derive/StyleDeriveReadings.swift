@@ -48,13 +48,22 @@ extension StyleRecovery {
             var buckets: [String: MeaningBucket] = [:]
             var meant = 0
             for (id, tags) in code.sources {
-                guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
+                // An area matching coastline ways witnesses nothing: a land ring is cut from
+                // them, and so are the beaches, bays and reserves along the shore. Taken for
+                // either, the land layer would be silenced or repainted as sand.
+                guard let tag = DefaultRuleBook.meaning(of: tags),
+                    code.kind != .area || tag != DefaultRuleBook.coastline
+                else { continue }
                 meant += 1
-                let lines = rules.lines(for: tag, kind: code.kind)
-                // Keyed by the rule the meaning opens, so two spellings of one rule are
-                // one meaning. Not by the code it emits: one code may draw several things.
+                // Keyed by the rule the meaning opens, so 2 spellings of one rule are one
+                // meaning, not by the code it emits: one code may draw several things. The first
+                // rule whose condition the source meets: a small town is no witness for the big
+                // towns' line.
+                let opened = rules.lines(for: tag, kind: code.kind).map { all in
+                    all.first { $0.holds(for: tags) != false } ?? all[0]
+                }
                 let bucket =
-                    lines.map { "\(code.kind.rawValue)@\($0[0].text)" }
+                    opened.map { "\(code.kind.rawValue)@\($0.text)" }
                     ?? "\(code.kind.rawValue)=\(tag)"
                 buckets[bucket, default: MeaningBucket(lines: [])].tags[tag, default: 0] += 1
                 buckets[bucket]?.ids.insert(id)
@@ -70,8 +79,11 @@ extension StyleRecovery {
             }
             // Tags sharing a first rule may differ after it: the bucket stands for the
             // rules of its commonest tag, whichever witness came first.
+            // From the line the bucket opened on: the stricter ones above it were not met.
             for (bucket, meaning) in buckets {
-                buckets[bucket]?.lines = rules.lines(for: meaning.name, kind: code.kind) ?? []
+                let all = rules.lines(for: meaning.name, kind: code.kind) ?? []
+                let from = all.firstIndex { "\(code.kind.rawValue)@\($0.text)" == bucket } ?? 0
+                buckets[bucket]?.lines = Array(all[from...])
             }
             read.append(
                 CodeReading(
@@ -148,8 +160,11 @@ extension StyleRecovery {
         let ranked = entry.buckets.sorted {
             ($0.value.count, $1.key) > ($1.value.count, $0.key)
         }
-        outcome.meaning = ranked.prefix(3)
-            .map { "\($0.value.name) ×\($0.value.count)" }.joined(separator: ", ")
+        // By tag: one tag may open several rule lines, a volcano and an active one.
+        var byTag: [String: Int] = [:]
+        for (_, bucket) in ranked { byTag[bucket.name, default: 0] += bucket.count }
+        outcome.meaning = byTag.sorted { ($0.value, $1.key) > ($1.value, $0.key) }.prefix(3)
+            .map { "\($0.key) ×\($0.value)" }.joined(separator: ", ")
 
         // Every way of giving up below is one of two: too little seen, or too much
         // disagreement, settled by how much was seen.

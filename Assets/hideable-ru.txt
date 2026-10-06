@@ -23,6 +23,7 @@ category|Waterways|Водные пути
 category|Offices|Офисы
 category|Craft|Ремёсла
 category|Land use|Землепользование
+category|Internet access|Интернет
 
 barriers-fence|Калитки в заборах участков
 barriers-minor|Ворота на подъездах
@@ -198,3 +199,6 @@ landuse-cemetery|Кладбище
 landuse-military|Военная территория
 landuse-reservoir|Водохранилище
 landuse-village_green|Сельский выгон
+internet_access-wlan|Wi-Fi
+internet_access-wifi|Wi-Fi (с тегом wifi)
+internet_access-yes|Доступ в интернет

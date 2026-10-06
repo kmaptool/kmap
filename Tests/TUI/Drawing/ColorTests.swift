@@ -74,4 +74,11 @@ final class ColorTests: XCTestCase {
             Color.hex("#A0D070")?.paletteApproximation
         )
     }
+
+    /// Hex digits only: a sign would be written into a TYP and crash mkgmap's reader.
+    func testAColourTakesHexDigitsOnlyAndShowsWithoutItsAlpha() {
+        XCTAssertNil(Color.channels(of: "+12345"))
+        XCTAssertNil(Color.channels(of: "#-1234567"))
+        XCTAssertEqual(Color.channels(of: "#FF000077").map { [$0.0, $0.1, $0.2] }, [255, 0, 0])
+    }
 }

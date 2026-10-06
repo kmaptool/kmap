@@ -10,8 +10,8 @@ enum TypDecompiler {
     /// than given an invented colour: a section with no `Xpm` is refused by the compiler,
     /// and a type with no section is left for the device to draw its own way.
     static func isUsable(_ element: TypBinary.Element) -> Bool {
-        // A true-colour icon carries no palette, and the text form has no way to write
-        // one: dropped with the note rather than written as a point with no picture.
+        // A true-colour icon of more colours than a palette holds has no palette the text
+        // form can write: dropped with the note rather than written with no picture.
         if let image = element.dayImage, !image.palette.isEmpty { return true }
         if element.bitmap != nil { return true }
         return element.colours.contains { $0 != nil }
@@ -33,7 +33,7 @@ enum TypDecompiler {
             guard !elements.isEmpty else { continue }
             out.append("")
             out.append("; " + String(repeating: "-", count: 74))
-            out.append("; \(kind.rawValue)s — \(elements.count) section(s)")
+            out.append("; \(kind.rawValue)s - \(elements.count) section(s)")
             out.append("; " + String(repeating: "-", count: 74))
             for element in elements {
                 out.append("")
@@ -47,10 +47,9 @@ enum TypDecompiler {
     // MARK: The parts that are not elements
 
     private static func preamble(_ typ: TypBinary, origin: String?) -> [String] {
-        var out = [
-            "; -*- coding: UTF-8 -*-",
-            "; " + String(repeating: "=", count: 74)
-        ]
+        // Labels in a page kmap cannot read stay in its bytes, read by the CodePage line.
+        var out = TypSource.keptByteForByte(codePage: typ.codePage) ? [] : ["; -*- coding: UTF-8 -*-"]
+        out.append("; " + String(repeating: "=", count: 74))
         if let origin {
             out.append("; Decompiled by kmap from \(origin).")
         } else {
@@ -174,7 +173,7 @@ enum TypDecompiler {
         out.append("Type=\(hex(element.code))")
         if !element.exact {
             out.append(
-                "; NOT FULLY DECODED — this element did not end where the next one "
+                "; NOT FULLY DECODED - this element did not end where the next one "
                     + "begins."
             )
             out.append(

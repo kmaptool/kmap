@@ -20,6 +20,9 @@ final class RangeSession: Sendable {
         /// The whole file's size, where known: a range of a file of another size is of
         /// another file, one replaced on the server since the download began.
         var total: Int64? = nil
+        /// The file's `Last-Modified` when it was sized: a range of a copy modified since is
+        /// of another file, though of the same size.
+        var lastModified: String? = nil
 
         var length: Int64 { end - start + 1 }
 
@@ -61,6 +64,32 @@ final class RangeSession: Sendable {
 
     var isCancelled: Bool { receiver.isCancelled }
 
+    /// Whether 2 `Last-Modified` values name one moment. HTTP allows 3 spellings of a date
+    /// and servers behind one name may use different ones; values that do not both read
+    /// as dates are compared as text.
+    static func sameModification(_ one: String, _ other: String) -> Bool {
+        if one == other { return true }
+        guard let first = httpDate(one), let second = httpDate(other) else { return false }
+        return first == second
+    }
+
+    /// A date in any of HTTP's 3 spellings: RFC 1123, RFC 850 and asctime.
+    static func httpDate(_ text: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        for format in ["EEE, dd MMM yyyy HH:mm:ss zzz", "EEEE, dd-MMM-yy HH:mm:ss zzz", "EEE MMM d HH:mm:ss yyyy"] {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: text.trimmingCharacters(in: .whitespaces)) { return date }
+        }
+        return nil
+    }
+
+    /// The whole file's size in a `Content-Range` ("bytes 100-199/1000"), where it says.
+    static func wholeSize(in contentRange: String) -> Int64? {
+        contentRange.split(separator: "/", maxSplits: 1).dropFirst().first.flatMap { Int64($0) }
+    }
+
     /// Whether a `Content-Range` ("bytes 100-199/1000") is the `Range` asked ("bytes=100-199"
     /// or "bytes=100-"): it starts there, ends no later, and is of a file of `total` bytes.
     /// An answer it cannot read is taken on trust.
@@ -87,13 +116,15 @@ final class RangeSession: Sendable {
         // A retry sleep can end after `cancel()` invalidated the session, and a task made
         // on a dead session never completes.
         if isCancelled { throw DownloadError.cancelled }
-        try Network.ensureOpen()
+        try Network.ensureOpen(url)
         var request = URLRequest(url: url)
         if ranged {
             request.setValue(
                 "bytes=\(part.start + part.written)-\(part.end)",
                 forHTTPHeaderField: "Range"
             )
+            // The range only of the copy sized: one replaced since comes whole, and is told.
+            if let lastModified = part.lastModified { request.setValue(lastModified, forHTTPHeaderField: "If-Range") }
         } else {
             FileTools.removeIfPresent(part.url)
         }
@@ -108,7 +139,14 @@ final class RangeSession: Sendable {
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 // Known to the receiver before the first byte can arrive.
-                receiver.expect(task, part: part.index, total: part.total, into: handle, resuming: continuation)
+                receiver.expect(
+                    task,
+                    part: part.index,
+                    total: part.total,
+                    lastModified: part.lastModified,
+                    into: handle,
+                    resuming: continuation
+                )
                 task.resume()
             }
         } onCancel: {

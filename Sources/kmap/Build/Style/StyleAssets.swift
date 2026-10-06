@@ -358,6 +358,10 @@ line 0x04 4 #f7fabf #707d05  Secondary
 line 0x05 4 #ffffff #8f8f8f  Tertiary
 line 0x06 3 #ffffff #bbbbbb  Minor road
 line 0x0c 4 #ffffff #bbbbbb  Roundabout
+line 0x10801 5 #f9b29c #c84e2f  Roundabout, trunk  # filled, not theirs: the road's own
+line 0x10802 5 #fcd6a4 #a06b00  Roundabout, primary  # filled, not theirs: the road's own
+line 0x10803 4 #f7fabf #707d05  Roundabout, secondary  # filled, not theirs: the road's own
+line 0x10804 4 #ffffff #8f8f8f  Roundabout, tertiary  # filled, not theirs: the road's own
 line 0x30 3 #ffffff #bbbbbb  Track loop
 line 0x16 3 #aaaaaa           Construction
 line 0x0a 2 #996600           Track
@@ -491,6 +495,10 @@ line 0x04 4 #fdfd4f #000000  Secondary
 line 0x05 4 #ffffff #000000  Tertiary
 line 0x06 3 #ffffff #000000  Minor road
 line 0x0c 4 #ffffff #000000  Roundabout
+line 0x10801 4 #fdb548 #000000  Roundabout, trunk  # filled, not theirs: the road's own
+line 0x10802 4 #fdb548 #000000  Roundabout, primary  # filled, not theirs: the road's own
+line 0x10803 4 #fdfd4f #000000  Roundabout, secondary  # filled, not theirs: the road's own
+line 0x10804 4 #ffffff #000000  Roundabout, tertiary  # filled, not theirs: the road's own
 line 0x30 3 #ffffff #000000  Track loop  # filled, not theirs
 line 0x16 2 #000000  Construction
 line 0x0a 2 #000000  Track
@@ -5456,6 +5464,10 @@ line 0x04 4 #f6f8d2 #b1bb5d    Secondary
 line 0x05 4 #f6f6f6 #777777    Tertiary
 line 0x06 3 #f6f6f6 #888888    Minor road
 line 0x0c 4 #f6f6f6 #888888    Roundabout
+line 0x10801 5 #d4d4d4 #f6f6f6  Roundabout, trunk  # filled, not theirs: the road's own
+line 0x10802 5 #f4dfc3 #d8b267  Roundabout, primary  # filled, not theirs: the road's own
+line 0x10803 4 #f6f8d2 #b1bb5d  Roundabout, secondary  # filled, not theirs: the road's own
+line 0x10804 4 #f6f6f6 #777777  Roundabout, tertiary  # filled, not theirs: the road's own
 line 0x30 3 #f6f6f6 #888888    Track loop  # filled, not theirs
 line 0x16 3 #d4d4d4            Construction  # filled, not theirs
 line 0x0a 2 #114021            Track
@@ -5668,6 +5680,10 @@ line 0x04 4 #ffeeaa #e9ac77    Secondary
 line 0x05 4 #ffeeaa #e9ac77    Tertiary
 line 0x06 3 #ffffff #cfcdca    Minor road
 line 0x0c 4 #ffffff #cfcdca    Roundabout
+line 0x10801 5 #ffeeaa #e9ac77  Roundabout, trunk  # filled, not theirs: the road's own
+line 0x10802 5 #ffeeaa #e9ac77  Roundabout, primary  # filled, not theirs: the road's own
+line 0x10803 4 #ffeeaa #e9ac77  Roundabout, secondary  # filled, not theirs: the road's own
+line 0x10804 4 #ffeeaa #e9ac77  Roundabout, tertiary  # filled, not theirs: the road's own
 line 0x30 3 #ffffff #cfcdca    Track loop
 line 0x16 3 #ffffff #cfcdca    Construction
 line 0x0a 2 #ffffff #cfcdca    Track
@@ -12911,7 +12927,7 @@ tag: leisure=park
 points: leisure=park [0x2c06 resolution 24]
 [leisure-pitch] Pitch
 tag: leisure=pitch
-points: leisure=pitch & (name=* | sport=*) {name '${name} (${sport})' | '${sport}'} [0x2c08 resolution 24]
+points: leisure=pitch & (name=* | sport=*) {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2c08 resolution 24]
 [leisure-playground] Playground
 tag: leisure=playground
 points: leisure=playground [0x2c0f resolution 24 default_name 'Playground']  # kmap: own code, own icon
@@ -12923,13 +12939,13 @@ tag: leisure=slipway
 points: leisure=slipway [0x2f09 resolution 24]
 [leisure-sports_center] Sports center
 tag: leisure=sports_center
-points: leisure=sports_center | leisure=sports_centre {name '${name} (${sport})' | '${sport}'} [0x2d0a resolution 24]
+points: leisure=sports_center | leisure=sports_centre {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2d0a resolution 24]
 [leisure-stadium] Stadium
 tag: leisure=stadium
-points: leisure=stadium {name '${name} (${sport})' | '${sport}'} [0x2c08 resolution 24]
+points: leisure=stadium {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2c08 resolution 24]
 [leisure-track] Track
 tag: leisure=track
-points: leisure=track {name '${name} (${sport})' | '${sport}'} [0x2c08 resolution 24]
+points: leisure=track {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2c08 resolution 24]
 [leisure-water_park] Water park
 tag: leisure=water_park
 points: leisure=water_park [0x2d09 resolution 24]
@@ -12994,9 +13010,13 @@ tag: natural=rock
 points: natural=rock [0x6614 resolution 24]
 [natural-spring] Spring
 tag: natural=spring
+points: natural=spring & drinking_water=no & name ~ '(?iu).*not d.*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=no { name '${name|def:Spring} (not drinkable)' } [0x6517 resolution 24]
+points: natural=spring & drinking_water=boil & name ~ '(?iu).*boil .*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=boil { name '${name|def:Spring} (boil first)' } [0x6517 resolution 24]
+points: natural=spring & intermittent=yes & name ~ '(?iu).*inter.*' { name '${name}' } [0x6516 resolution 24]
 points: natural=spring & intermittent=yes { name '${name|def:Spring} (intermittent)' } [0x6516 resolution 24]
+points: natural=spring & seasonal=yes & name ~ '(?iu).*seaso.*' { name '${name}' } [0x6515 resolution 24]
 points: natural=spring & seasonal=yes { name '${name|def:Spring} (seasonal)' } [0x6515 resolution 24]
 points: natural=spring [0x6511 resolution 24]
 [natural-stone] Stone
@@ -13044,6 +13064,7 @@ tag: man_made=water_tower
 points: man_made=water_tower [0x6411 resolution 24]
 [man_made-water_well] Water well
 tag: man_made=water_well
+points: man_made=water_well & name ~ '(?iu).*well.*' { name '${name}' } [0x6414 resolution 24]
 points: man_made=water_well & name=* { name '${name} (well)' } [0x6414 resolution 24]
 points: man_made=water_well & name!=* { name 'Well' } [0x6414 resolution 24]
 
@@ -13112,6 +13133,17 @@ points: landuse=reservoir | water=reservoir [0x650f resolution 22]
 tag: landuse=village_green
 points: landuse=village_green & name=* [0x2c06 resolution 24]
 
+@@ Internet access
+[internet_access-wifi] Wi-Fi (tagged wifi)
+tag: internet_access=wifi
+points: internet_access=wifi {name 'Wi-Fi ${name}' | 'Wi-Fi'} [0x2f12 resolution 24 continue]
+[internet_access-wlan] Wi-Fi
+tag: internet_access=wlan
+points: internet_access=wlan {name 'Wi-Fi ${name}' | 'Wi-Fi'} [0x2f12 resolution 24 continue]
+[internet_access-yes] Internet access
+tag: internet_access=yes
+points: internet_access=yes {name 'Internet ${name}' | 'Internet'} [0x2f12 resolution 24 continue]
+
 
 """#####
 
@@ -13178,6 +13210,7 @@ forest.mixed|Mixed forest|Смешанный лес
 # Water a walker drinks, or decides not to.
 water.well-suffix|well|колодец
 water.well|Well|Колодец
+water.well-stem|well|колод
 water.tap-suffix|tap|водопровод
 water.tap|Water tap|Водоразборная колонка
 water.geyser|Geyser|Гейзер
@@ -13186,6 +13219,10 @@ spring.undrinkable|not drinkable|непитьевой
 spring.boil|boil first|кипятить
 spring.intermittent|intermittent|пересыхающий
 spring.seasonal|seasonal|сезонный
+spring.undrinkable-stem|not drinkable|непитьев
+spring.boil-stem|boil|кипят
+spring.intermittent-stem|intermittent|пересыха
+spring.seasonal-stem|seasonal|сезонн
 
 # Terrain POIs the stock rules never type.
 terrain.ford|Ford|Брод
@@ -13264,6 +13301,7 @@ category|Waterways|Водные пути
 category|Offices|Офисы
 category|Craft|Ремёсла
 category|Land use|Землепользование
+category|Internet access|Интернет
 
 barriers-fence|Калитки в заборах участков
 barriers-minor|Ворота на подъездах
@@ -13439,6 +13477,9 @@ landuse-cemetery|Кладбище
 landuse-military|Военная территория
 landuse-reservoir|Водохранилище
 landuse-village_green|Сельский выгон
+internet_access-wlan|Wi-Fi
+internet_access-wifi|Wi-Fi (с тегом wifi)
+internet_access-yes|Доступ в интернет
 
 """#####
 
@@ -13793,6 +13834,83 @@ cuisine=italian|Итальянская кухня
 cuisine=donut|Пончики
 cuisine=dessert|Десерты
 cuisine=crepe|Блины
+
+"""#####
+
+    /// Russian names of OSM sport values, from the iD editor's preset schema (ISC).
+    /// See Assets/sport-ru.txt and NOTICE.md.
+    static let russianSports =
+#####"""
+# Russian names of OSM sport values, for the label of a pitch, a stadium or a sports
+# centre on a map labelled in Cyrillic. Not kmap's own: the translations of the sport
+# field of the iD editor's preset schema, made by the OpenStreetMap community.
+#
+# Source: @openstreetmap/id-tagging-schema 6.19.2, dist/translations/ru.json,
+# presets.fields.sport.options. License: ISC, Copyright (c) 2017, iD Contributors.
+# Regenerate from a newer release rather than editing by hand.
+#
+# One line per value: value|label.
+
+10pin|Боулинг с десятью кеглями
+5pin|Боулинг с пятью кеглями
+9pin|Боулинг с девятью кеглями
+american_football|Американский футбол
+athletics|Лёгкая атлетика
+badminton|Бадминтон
+baseball|Бейсбол
+basketball|Баскетбол
+beachvolleyball|Пляжный волейбол
+billiards|Бильярд
+bmx|BMX
+boules|Игра в шары (буль)
+bowls|Игра в боулз
+candlepin|Кэндлпин боулинг
+canoe|Каноэ
+chess|Шахматы
+climbing|Скалолазание
+cricket|Крикет
+curling|Кёрлинг
+cycling|Езда на велосипеде
+darts|Дартс
+disc_golf|Диск-гольф
+dog_racing|Собачьи бега
+duckpin|Дакпин боулинг
+equestrian|Конный спорт
+fitness|Фитнес
+free_flying|Парапланеризм / дельтапланеризм
+futsal|Футзал (мини-футбол)
+gaelic_games|Гэльские игры
+golf|Гольф
+gymnastics|Гимнастика
+handball|Командный гандбол
+horse_racing|Скачки
+ice_hockey|Хоккей на льду
+ice_skating|Фигурное катание
+ice_stock|Баварский кёрлинг
+karting|Картинг
+motocross|Мотокросс
+motor|Мотоспорт
+multi|Другие виды спорта
+netball|Нетбол
+orienteering|Спортивное ориентирование
+padel|Падел
+pelota|Пелота
+pickleball|Малый теннис (пиклбол)
+rugby_union|Регби
+running|Бег
+scuba_diving|Плавание с аквалангом
+shooting|Стрельба
+skateboard|Скейтборд
+ski_jumping|Прыжки на лыжах с трамплина
+skiing|Катание на лыжах
+soccer|Футбол
+softball|Софтбол
+speedway|Спидвей
+swimming|Плавание
+table_tennis|Настольный теннис
+tennis|Теннис
+volleyball|Волейбол
+yoga|Йога
 
 """#####
 

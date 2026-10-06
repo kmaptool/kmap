@@ -189,6 +189,45 @@ final class PBFRewriterTests: XCTestCase {
         XCTAssertEqual(tally.dropped, 1)
     }
 
+    /// A multipolygon is labelled as a way is: its description and its name are tidied and
+    /// cleaned too, its members kept as they were.
+    func testARelationIsTidiedAndCleanedWithItsMembersKept() throws {
+        let source = path("in.osm.pbf")
+        let writer = try PBFWriter(to: source)
+        writer.header(bbox: (minLat: 44, minLon: 33, maxLat: 45, maxLon: 34))
+        writer.nodes((1...4).map { PBFWriter.Node(id: Int64($0), lat: 44 + Double($0) * 1e-3, lon: 33, tags: []) })
+        writer.ways([PBFWriter.Way(id: 10, refs: [1, 2, 3, 4, 1], tags: [])])
+        writer.relations([
+            PBFWriter.Relation(
+                id: 100,
+                members: [.init(kind: 1, ref: 10, role: "outer")],
+                tags: [("type", "multipolygon"), ("name", "Гостиница КрАО \u{2B50}"), ("description", "Гостиница")]
+            ),
+            PBFWriter.Relation(
+                id: 101,
+                members: [.init(kind: 0, ref: 1, role: ""), .init(kind: 1, ref: 10, role: "inner")],
+                tags: [("type", "multipolygon"), ("name", "Пляж"), ("description", "платный")]
+            )
+        ])
+        try writer.finish()
+
+        let out = path("out.osm.pbf")
+        var pass = rewriter(source)
+        pass.tidyDescriptions = true
+        pass.cleanLabels = true
+        let tally = try pass.write(to: out)
+
+        let relations = try read(out).relations
+        XCTAssertEqual(relations.map(\.id), [100, 101])
+        XCTAssertEqual(relations[0].tags.map(\.1), ["multipolygon", "Гостиница КрАО"])
+        XCTAssertEqual(relations[1].tags.map(\.1), ["multipolygon", "Пляж", "платный"])
+        XCTAssertEqual(relations[0].roles, ["outer"])
+        XCTAssertEqual(relations[1].kinds, [0, 1])
+        XCTAssertEqual(relations[1].ids, [1, 10])
+        XCTAssertEqual(relations[1].roles, ["", "inner"])
+        XCTAssertEqual(tally.dropped, 1)
+    }
+
     func testWithNothingToTidyTheBlocksAreStillOnlyCopied() throws {
         let source = try makeExtract(path("in.osm.pbf"))
         let out = path("out.osm.pbf")
@@ -238,6 +277,52 @@ final class PBFRewriterTests: XCTestCase {
         XCTAssertEqual(order.seen.last?.id, 6_000_000)
     }
 
+    /// Contours start above the ids the repair invents, so the invented objects go first
+    /// or the ids step back down and the split loses its fast lookups.
+    func testIdsAscendWithBothContoursAndInventedObjects() throws {
+        let source = try makeExtract(path("in.osm.pbf"))
+        let contours = path("contours.osm.pbf")
+        let writer = try PBFWriter(to: contours)
+        writer.header()
+        let base = ContourOutput.nodeIDBase
+        writer.nodes((1...3).map { PBFWriter.Node(id: base + Int64($0), lat: 44.6, lon: 33.6, tags: []) })
+        writer.ways([
+            PBFWriter.Way(id: ContourOutput.wayIDBase, refs: [base + 1, base + 2], tags: [("contour", "elevation")])
+        ])
+        try writer.finish()
+
+        var plan = RepairPlan()
+        plan.bridges = [
+            RepairPlan.Bridge(
+                node: 1 << 40,
+                lat: 44.51,
+                lon: 33.51,
+                end: 50,
+                word: "kerb",
+                height: 0,
+                length: 3,
+                middle: (44.505, 33.505),
+                way: -1,
+                segment: 0,
+                along: 0
+            )
+        ]
+        var pass = PBFRewriter(url: source, plan: plan, network: RoadNetwork(), language: "")
+        pass.contours = [contours]
+        let out = path("out.osm.pbf")
+        let tally = try pass.write(to: out)
+        XCTAssertEqual(tally.addedWays, 1)
+
+        var order = ElementSequence()
+        try PBFReader(url: out).read(into: &order)
+        let nodes = order.seen.filter { $0.kind == "n" }.map(\.id)
+        let ways = order.seen.filter { $0.kind == "w" }.map(\.id)
+        XCTAssertEqual(nodes, nodes.sorted())
+        XCTAssertEqual(ways, ways.sorted())
+        XCTAssertEqual(ways, [1000, 1001, 1 << 40, ContourOutput.wayIDBase])
+        XCTAssertTrue(order.nodesPrecedeWays)
+    }
+
     /// A block holding nodes as well as ways, which other tools write. The added nodes
     /// go after the block's own nodes and before its ways, so ids still ascend and every
     /// node still precedes every way.
@@ -270,7 +355,8 @@ final class PBFRewriterTests: XCTestCase {
     }
 
     /// The rewrite reads a block's nodes and ways, never its relations, so a block that
-    /// holds all 3 cannot be written again without losing them; it is refused.
+    /// holds all 3 cannot be written again without losing them: with something to put in
+    /// between it is refused; with nothing, it is copied as it is.
     func testAMixedBlockWithRelationsIsRefusedNotStripped() throws {
         let source = path("mixed.osm.pbf")
         let block = PBFBytes.mixedBlock(
@@ -282,9 +368,48 @@ final class PBFRewriterTests: XCTestCase {
             Data(PBFBytes.rawBlob(kind: "OSMHeader", payload: []) + PBFBytes.rawBlob(kind: "OSMData", payload: block)),
             to: source
         )
-        var pass = rewriter(source)
-        XCTAssertThrowsError(try pass.write(to: path("out.osm.pbf"))) {
+        let untouched = path("untouched.osm.pbf")
+        var copying = rewriter(source)
+        XCTAssertNoThrow(try copying.write(to: untouched))
+        let copied = try read(untouched)
+        XCTAssertEqual(copied.nodes.count, 2)
+        XCTAssertEqual(copied.ways.count, 1)
+
+        let contours = path("contours.osm.pbf")
+        let writer = try PBFWriter(to: contours)
+        writer.header()
+        writer.nodes([PBFWriter.Node(id: 5_000_001, lat: 44.6, lon: 33.6, tags: [])])
+        try writer.finish()
+        var adding = rewriter(source)
+        adding.contours = [contours]
+        XCTAssertThrowsError(try adding.write(to: path("out.osm.pbf"))) {
             guard case .mixedBlock = $0 as? PBFRewriter.Trouble else { return XCTFail("\($0)") }
+        }
+    }
+
+    /// A relation alone in need of tidying or cleaning leaves a mixed block copied whole.
+    func testAMixedBlockIsCopiedForWhatOnlyItsRelationsNeed() throws {
+        let needs = [[("name", "Пляж \u{2B50}")], [("name", "Гостиница КрАО"), ("description", "Гостиница")]]
+        XCTAssertTrue(PBFRewriter.hasUnprintable(needs[0][0].1))
+        XCTAssertTrue(PBFRewriter.wouldTidy(needs[1]))
+        for tags in needs {
+            let source = path("mixed.osm.pbf")
+            let block = PBFBytes.mixedBlock(
+                nodes: [(1, 44.5, 33.5), (2, 44.6, 33.5)],
+                ways: [(10, [1, 2])],
+                relations: [20],
+                relationTags: tags
+            )
+            try FileTools.write(
+                Data(
+                    PBFBytes.rawBlob(kind: "OSMHeader", payload: []) + PBFBytes.rawBlob(kind: "OSMData", payload: block)
+                ),
+                to: source
+            )
+            var pass = rewriter(source)
+            pass.tidyDescriptions = true
+            pass.cleanLabels = true
+            XCTAssertNoThrow(try pass.write(to: path("out.osm.pbf")), "\(tags)")
         }
     }
 
@@ -351,8 +476,8 @@ final class PBFRewriterTests: XCTestCase {
         // One added word can be the whole point: a dry spring on a hiking map.
         XCTAssertEqual(dropped([("name", "Родник"), ("description", "Родник сух")]).count, 2)
         XCTAssertEqual(dropped([("name", "Кафе"), ("description", "Кафе 24/7")]).count, 2)
-        // Less than the name is not the name either.
-        XCTAssertEqual(dropped([("name", "Родник Святой"), ("description", "Родник")]).count, 2)
+        // A part of the name adds nothing to it: the label would read "Holy Spring (Spring)".
+        XCTAssertEqual(dropped([("name", "Родник Святой"), ("description", "Родник")]).count, 1)
         // No name, nothing to compare against.
         XCTAssertEqual(dropped([("description", "Родник")]).count, 1)
         // An empty name is no name.
@@ -360,9 +485,32 @@ final class PBFRewriterTests: XCTestCase {
         // The language-tagged pairs travel together.
         XCTAssertEqual(dropped([("name:ru", "Родник"), ("description:ru", "Родник")]).count, 1)
         XCTAssertEqual(dropped([("name", "Spring"), ("description:en", "spring")]).count, 1)
-        // `name` is measured against first, whatever order the tags come in.
-        XCTAssertEqual(dropped([("name:ru", "Родник"), ("name", "Spring"), ("description", "Родник")]).count, 3)
+        // Whole words only: a status word, a number or a fragment says something new.
+        XCTAssertEqual(dropped([("name", "Закрытый пляж"), ("description", "закрыт")]).count, 2)
+        XCTAssertEqual(dropped([("name", "Школа №15"), ("description", "1")]).count, 2)
+        XCTAssertEqual(dropped([("name", "Кафе Лето"), ("description", "фел")]).count, 2)
+        // Each name the label may be made of counts, the Russian one included.
+        XCTAssertEqual(dropped([("name:ru", "Родник"), ("name", "Spring"), ("description", "Родник")]).count, 2)
         XCTAssertEqual(dropped([("name:ru", "Родник"), ("name", "Spring"), ("description", "Spring")]).count, 2)
+        // Unnamed, the label is the Russian word for the kind: a description repeating it
+        // goes, unless an operator takes the label instead. A ref follows the word.
+        XCTAssertEqual(dropped([("man_made", "water_well"), ("description", "Колодец")]).count, 1)
+        XCTAssertEqual(
+            dropped([("man_made", "water_well"), ("operator", "Водоканал"), ("description", "Колодец")]).count,
+            3
+        )
+        XCTAssertEqual(
+            dropped([("tourism", "hotel"), ("ref", "КРАО"), ("description", "Гостиница")]).count,
+            2
+        )
+        XCTAssertEqual(dropped([("tourism", "hotel"), ("ref", "КРАО"), ("description", "КРАО")]).count, 2)
+        XCTAssertEqual(dropped([("tourism", "hotel"), ("ref", "КРАО"), ("description", "у моря")]).count, 3)
+        // An open line and a barrier keep the word beside an operator: so does the tidy.
+        var pier = [("man_made", "pier"), ("operator", "Порт"), ("description", "Пирс")]
+        XCTAssertEqual(PBFRewriter.tidy(&pier, wordStays: true), 1)
+        XCTAssertTrue(PBFRewriter.wordStays(refs: [1, 2, 3], tags: []))
+        XCTAssertFalse(PBFRewriter.wordStays(refs: [1, 2, 3, 1], tags: [("amenity", "school")]))
+        XCTAssertTrue(PBFRewriter.wordStays(refs: [1, 2, 3, 1], tags: [("barrier", "fence")]))
         // Other tags are never touched.
         XCTAssertEqual(
             dropped([
@@ -371,6 +519,41 @@ final class PBFRewriterTests: XCTestCase {
             ]).map(\.0),
             ["name", "natural"]
         )
+    }
+
+    /// What no code page draws goes from a label's text, and nothing else does.
+    func testStressMarksAndEmojiLeaveTheName() {
+        var tags = [
+            ("name", "Михаи\u{301}л Барклай"), ("description", "Балтия \u{1F6CD}\u{FE0F} молл"),
+            ("website", "http://x.ru/\u{1F600}"), ("name:ru", "Запо\u{301}лье")
+        ]
+        XCTAssertTrue(tags.contains { PBFRewriter.hasUnprintable($0.1) })
+        PBFRewriter.clean(&tags)
+        XCTAssertEqual(tags.map(\.1), ["Михаил Барклай", "Балтия молл", "http://x.ru/\u{1F600}", "Заполье"])
+        XCTAssertFalse(PBFRewriter.hasUnprintable("Родник — «Святой»"))
+        // A letter written as 2 code points is composed, not dropped.
+        var short = [("name", "Белыи\u{306}")]
+        XCTAssertTrue(PBFRewriter.hasUnprintable(short[0].1))
+        PBFRewriter.clean(&short)
+        XCTAssertEqual(short[0].1, "Белый")
+        var heart = [("name", "Я \u{2764}\u{FE0F} Керчь")]
+        PBFRewriter.clean(&heart)
+        XCTAssertEqual(heart[0].1, "Я Керчь")
+        // The joiners stay only for the page that has them.
+        let persian = "\u{0645}\u{06CC}\u{200C}\u{0631}\u{200D}\u{0648}\u{0645}"
+        var dropped = [("name", persian)]
+        PBFRewriter.clean(&dropped)
+        XCTAssertEqual(dropped[0].1, "\u{0645}\u{06CC}\u{0631}\u{0648}\u{0645}")
+        var kept = [("name", persian)]
+        PBFRewriter.clean(&kept, keepingJoiners: true)
+        XCTAssertEqual(kept[0].1, persian)
+        // Not the joiners an emoji leaves behind.
+        var family = [
+            ("name", "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} Family"),
+            ("name:fa", "Caf\u{E9} \u{2764}\u{FE0F}\u{200D}\u{1F525}")
+        ]
+        PBFRewriter.clean(&family, keepingJoiners: true)
+        XCTAssertEqual(family.map(\.1), ["Family", "Caf\u{E9}"])
     }
 
     func testWouldTidyAgreesWithTidy() {
@@ -382,10 +565,12 @@ final class PBFRewriterTests: XCTestCase {
             [("description", "A")],
             [("name", "Родник"), ("description", "Родник."), ("natural", "spring")]
         ]
-        for tags in cases {
-            var copy = tags
-            let dropped = PBFRewriter.tidy(&copy) > 0
-            XCTAssertEqual(PBFRewriter.wouldTidy(tags), dropped, "\(tags)")
+        for tags in cases + [[("man_made", "pier"), ("operator", "Порт"), ("description", "Пирс")]] {
+            for stays in [false, true] {
+                var copy = tags
+                let dropped = PBFRewriter.tidy(&copy, wordStays: stays) > 0
+                XCTAssertEqual(PBFRewriter.wouldTidy(tags, wordStays: stays), dropped, "\(tags)")
+            }
         }
     }
 }

@@ -144,7 +144,10 @@ struct VenueScan {
         for point in nodes {
             grid.candidates(at: (point.x, point.y)) { at in
                 let area = group[at]
+                // A named area is kept over an unnamed node: only areas are marked here,
+                // and marking it would leave the place without its name.
                 guard !marked.contains(area.id), !differ(point.name, area.name),
+                    !(area.named && point.name.isEmpty),
                     point.x >= area.box.x0, point.x <= area.box.x1,
                     point.y >= area.box.y0, point.y <= area.box.y1,
                     inside((point.x, point.y), area.ring)

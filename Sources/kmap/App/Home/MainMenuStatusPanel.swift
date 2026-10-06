@@ -74,7 +74,7 @@ struct MainMenuStatusPanel {
             s.text(
                 rect.x + Self.labelColumn,
                 y,
-                "\(Glyph.cross) " + t("%@ missing", tool.name),
+                truncate("\(Glyph.cross) " + t("%@ missing", tool.name), to: max(0, rect.w - Self.labelColumn)),
                 Style(fg: theme.warn, bg: theme.appBg)
             )
             y += 1

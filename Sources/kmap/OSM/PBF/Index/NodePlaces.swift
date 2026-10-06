@@ -49,7 +49,9 @@ struct NodePlaces {
     mutating func take(_ block: BlockNodes) {
         for i in 0..<block.ids.count {
             let id = block.ids[i]
-            if id < lastID { at = 0 }  // a file whose ids do not ascend: start over
+            // A file whose ids do not ascend: the walk starts again where this id would be,
+            // found by halving, or every step back would walk the list from its start.
+            if id < lastID { at = Self.lowerBound(of: id, in: wanted) }
             lastID = id
             while at < wanted.count, wanted[at] < id { at += 1 }
             guard at < wanted.count, wanted[at] == id else { continue }
@@ -58,6 +60,15 @@ struct NodePlaces {
             known[at] = true
             at += 1
         }
+    }
+
+    private static func lowerBound(of id: Int64, in sorted: [Int64]) -> Int {
+        var low = 0, high = sorted.count
+        while low < high {
+            let middle = (low + high) / 2
+            if sorted[middle] < id { low = middle + 1 } else { high = middle }
+        }
+        return low
     }
 
     /// Reads a file and returns where every wanted node is.
@@ -72,6 +83,24 @@ struct NodePlaces {
             block.clear()
         }
         return places
+    }
+
+    /// The same, and every node tagged `noexit=yes` on the way.
+    static func gatherNotingNoExit(
+        _ wanted: [Int64],
+        from url: URL,
+        shouldStop: @escaping () -> Bool = { false }
+    ) throws -> (places: NodePlaces, noExit: Set<Int64>, gates: Set<Int64>) {
+        var places = NodePlaces(wanted: wanted)
+        var noExit = Set<Int64>()
+        var gates = Set<Int64>()
+        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { NoExitNodes() }) { block in
+            places.take(block.nodes)
+            noExit.formUnion(block.noExit)
+            gates.formUnion(block.gates)
+            block.clear()
+        }
+        return (places, noExit, gates)
     }
 
     /// Where the id sits in the wanted list, or nil if it was not asked for.

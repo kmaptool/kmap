@@ -12,6 +12,14 @@ enum CodePage {
     static let westernEuropean = 1252
     static let cyrillic = 1251
     static let centralEuropean = 1250
+    static let arabic = 1256
+
+    /// The pages a build may ask mkgmap for: Java's `cp<N>` for the Windows and DOS pages
+    /// a Garmin draws, and UTF-8. Any other number stops mkgmap at the compile.
+    static let mkgmapTakes = Set(
+        [utf8, 437, 737, 775, 850, 852, 855, 857, 858, 860, 861, 862, 863, 864, 865, 866, 869, 874, 932, 936, 949, 950]
+            + Array(1250...1258)
+    )
 
     /// Longitude in degrees east of which map names are likely Cyrillic. Drives a warning
     /// only; it sets nothing.
@@ -49,9 +57,19 @@ enum CodePage {
     }
 
     /// Decodes in `codePage`, falling back to Latin-1 where the bytes do not fit it.
+    /// A byte the page leaves undefined is read as the scalar of the same value, that byte
+    /// alone: the rest of the text keeps its page.
     static func decodeLenient<Bytes: Collection>(_ bytes: Bytes, codePage: Int) -> String
     where Bytes.Element == UInt8 {
-        decode(bytes, codePage: codePage) ?? latin1(bytes)
+        if let whole = decode(bytes, codePage: codePage) { return whole }
+        guard let table = highHalves[codePage] else { return latin1(bytes) }
+        var scalars = String.UnicodeScalarView()
+        scalars.reserveCapacity(bytes.count)
+        for byte in bytes {
+            let mapped = byte < 0x80 ? UInt16(byte) : table[Int(byte) - 0x80]
+            scalars.append(UnicodeScalar(mapped == undefined ? UInt16(byte) : mapped) ?? UnicodeScalar(byte))
+        }
+        return String(scalars)
     }
 
     // MARK: Encoding

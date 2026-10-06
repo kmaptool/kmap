@@ -122,6 +122,8 @@ extension CLI {
             return missingProfile(arguments.first)
         }
         guard store.deleteProfile(profile.id) else {
+            // Another kmap deleted it first: the file now says so.
+            if store.profile(profile.id) == nil { return missingProfile(arguments.first) }
             return CLIOutput.refuse(
                 "\"\(profile.name)\" is the last profile — the build form needs one, so"
                     + " make another before deleting it"

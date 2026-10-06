@@ -60,8 +60,12 @@ enum TypLibrary {
             )
         }
         do {
-            // Said to be UTF-8, or mkgmap reads it by its CodePage line.
-            try FileTools.write(TypSource.declaringUTF8IfNeeded(text), to: url)
+            // See `bytesToWrite`; Windows line ends are kept.
+            let was = (try? Data(contentsOf: url)).map { [UInt8]($0) } ?? []
+            let byteForByte = TypSource.decoding(was).byteForByte
+            let ended = endedAs(was, text)
+            try refuseWhatThePageCannotHold(ended, in: url.lastPathComponent, byteForByte: byteForByte)
+            try FileTools.write(TypSource.bytesToWrite(ended, byteForByte: byteForByte), to: url)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
@@ -70,20 +74,42 @@ enum TypLibrary {
     /// Puts TYP source into the library under a free name, and returns where it landed.
     /// Makes editable a style that cannot be edited where it lies, such as the built-in
     /// working copy, which every build rewrites from the embedded asset.
+    ///
+    /// - Parameter original: the file the text came from, whose encoding it keeps.
     @discardableResult
     static func adopt(
         source text: String,
         named name: String,
+        from original: URL? = nil,
         into directory: URL = TypLibrary.directory
     ) throws -> URL {
         Paths.ensure(directory)
         let destination = freeName(FileTools.slugify(name), extension: "txt", in: directory)
+        let was = original.flatMap { try? Data(contentsOf: $0) }.map { [UInt8]($0) } ?? []
+        let byteForByte = TypSource.decoding(was).byteForByte
+        let ended = endedAs(was, text)
+        try refuseWhatThePageCannotHold(ended, in: name, byteForByte: byteForByte)
         do {
-            try FileTools.write(TypSource.declaringUTF8IfNeeded(text), to: destination)
+            try FileTools.write(TypSource.bytesToWrite(ended, byteForByte: byteForByte), to: destination)
         } catch {
             throw ImportError.failed(error.localizedDescription)
         }
         return destination
+    }
+
+    /// `text`, joined by edits with LF, in the line ends of the file it came from.
+    private static func endedAs(_ original: [UInt8], _ text: String) -> String {
+        guard zip(original, original.dropFirst()).contains(where: { $0 == 0x0D && $1 == 0x0A }) else { return text }
+        return text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\n", with: "\r\n")
+    }
+
+    /// A file kept byte for byte has a byte for each character: one past that, a Cyrillic
+    /// label typed into a Baltic style say, would be written `?` and lost unseen.
+    private static func refuseWhatThePageCannotHold(_ text: String, in name: String, byteForByte: Bool) throws {
+        guard byteForByte, let lost = text.unicodeScalars.first(where: { $0.value > 0xFF }) else { return }
+        throw ImportError.failed(
+            t("%@ is kept in a code page kmap cannot read, which has no room for %@", name, String(lost))
+        )
     }
 
     // MARK: Managing what is in it
@@ -103,6 +129,7 @@ enum TypLibrary {
         }
         if let original = original(of: url, library: library) { FileTools.removeIfPresent(original) }
         if let kept = sheet(of: url, library: library) { FileTools.removeIfPresent(kept) }
+        carryImport(of: url, to: nil, library: library)
     }
 
     /// Gives a style a different name, keeping its extension, and returns where it landed.
@@ -119,6 +146,8 @@ enum TypLibrary {
         }
         let base = FileTools.slugify(name)
         guard !base.isEmpty else { throw ImportError.failed("a style needs a name") }
+        // Its own name is not taken by another.
+        guard base != url.deletingPathExtension().lastPathComponent.lowercased() else { return url }
         let destination = freeName(base, extension: url.pathExtension, in: library)
         guard destination != url else { return url }
         do {
@@ -143,6 +172,7 @@ enum TypLibrary {
             FileTools.removeIfPresent(now)
             try? FileTools.move(kept, to: now)
         }
+        carryImport(of: url, to: destination, library: library)
         return destination
     }
 

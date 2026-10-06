@@ -148,7 +148,7 @@ extension RecipeForm {
     /// A plan labelled with the ladder it is built on.
     static func planLabel(_ plan: ZoomPlan) -> String {
         let ladder = LevelsProfile.all.first { $0.id == plan.levelsID }?.name ?? ""
-        return ladder.isEmpty ? t(plan.name) : t(plan.name) + "  ·  " + ladder
+        return ladder.isEmpty ? plan.shownName : plan.shownName + "  ·  " + ladder
     }
 
     static func themeLabel(_ theme: TypEdit.Theme) -> String {

@@ -47,6 +47,18 @@ extension CLI {
         /// know rather than skipping a typo.
         var names: Set<String> { present }
 
+        /// A refusal for the first flag not in `known`, or a positional past `most`; nil when
+        /// the whole line is understood. A typo stops the command rather than going unnoticed.
+        func refusal(_ command: String, knows known: Set<String>, positionals most: Int? = nil) -> Int32? {
+            if let unknown = names.subtracting(known).sorted().first {
+                return CLIOutput.refuse("kmap \(command) does not know --\(unknown)")
+            }
+            if let most, positionals.count > most {
+                return CLIOutput.refuse("kmap \(command) does not know what to do with \(positionals[most])")
+            }
+            return nil
+        }
+
         /// The flags among `names` that are present but do not hold a number. Infinity and
         /// not-a-number parse as numbers, and are not.
         func notNumbers(_ names: [String]) -> [String] {

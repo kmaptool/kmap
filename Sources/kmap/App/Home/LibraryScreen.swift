@@ -49,6 +49,11 @@ final class LibraryScreen: Screen {
     }
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        // Any key but Enter drops the delete question, and its words with it.
+        if pendingDelete != nil, key.command != .enter {
+            pendingDelete = nil
+            message = nil
+        }
         switch key.command {
         case .up, .char("k"): list.move(-1, count: files.count); pendingDelete = nil
         case .down, .char("j"): list.move(1, count: files.count); pendingDelete = nil
@@ -56,15 +61,37 @@ final class LibraryScreen: Screen {
         case .char("o"):
             pendingDelete = nil
             guard let file = files[safe: list.selected] else { return .none }
-            Reveal.show(file)
-            message = t("revealed %@", file.lastPathComponent)
+            message =
+                Reveal.show(file)
+                ? t("revealed %@", file.lastPathComponent) : t("no file manager to show %@ in", Paths.display(file))
         case .char("d"):
             guard let file = files[safe: list.selected] else { return .none }
             pendingDelete = file
-            message = t("delete %@? press ⏎ to confirm, any other key to cancel", file.lastPathComponent)
+            // The key first: a long name would push it past the edge.
+            message = t("⏎ deletes %@ — any other key keeps it", file.lastPathComponent)
         case .enter:
             if let target = pendingDelete {
                 pendingDelete = nil
+                // Not under a build writing into the same folder.
+                let folder = target.deletingLastPathComponent()
+                Paths.ensure(Paths.locks)
+                // Held, not gone ahead without it: this removes a map.
+                guard let held = HeldLock(trying: BuildPipeline.lock(BuildPipeline.outputLockPrefix, for: folder))
+                else {
+                    message = t(
+                        "another build is writing into %@ — wait for it to end, or stop it",
+                        Paths.display(folder)
+                    )
+                    return .none
+                }
+                guard held.isHeld else {
+                    message = t(
+                        "kmap cannot open its lock files in %@, so it cannot tell whether a build writes there",
+                        Paths.display(Paths.locks)
+                    )
+                    return .none
+                }
+                defer { withExtendedLifetime(held) {} }
                 do {
                     try FileTools.remove(target)
                     message = t("deleted")
@@ -109,12 +136,15 @@ final class LibraryScreen: Screen {
         for index in list.window(count: files.count, visible: listHeight) {
             let file = files[index]
             let detail = details[file] ?? (0, "")
+            let trailing = "\(Fmt.bytes(detail.bytes))   \(detail.modified)"
+            // Cut in the middle: 2 maps of 1 long folder differ in the file's name.
+            let room = rect.w - 1 - Widgets.markerWidth - trailing.count - 2
             Widgets.row(
                 s,
                 rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
                 y: y,
-                text: displayName(file, root: ctx.settings.settings.outputURL),
-                trailing: "\(Fmt.bytes(detail.bytes))   \(detail.modified)",
+                text: truncateMiddle(displayName(file, root: ctx.settings.settings.outputURL), to: room),
+                trailing: trailing,
                 theme: theme,
                 selected: index == list.selected
             )
@@ -133,7 +163,7 @@ final class LibraryScreen: Screen {
             s.text(
                 rect.x,
                 rect.maxY - 1,
-                truncate(message, to: rect.w),
+                truncateMiddle(message, to: rect.w),
                 Style(fg: pendingDelete != nil ? theme.danger : theme.dim, bg: theme.appBg)
             )
         }

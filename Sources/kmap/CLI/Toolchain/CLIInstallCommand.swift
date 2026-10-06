@@ -34,6 +34,7 @@ extension CLI {
     static func install(_ arguments: [String]) async -> Int32 {
         if arguments.contains("--help") || arguments.contains("-h") {
             CLILog.line(installHelp)
+            CLIOutput.result(["usage": .string(installHelp)])
             return 0
         }
         // An unrecognised word refuses rather than falling back to installing everything.
@@ -70,9 +71,7 @@ extension CLI {
 
         let log = Log(limit: installLogLimit, showing: CLIOutput.showing)
         let printer = Locked(LogPrinter())
-        // Ctrl+C cancels the install under way, so its tools stop and its staging is
-        // removed, and no later one starts. Watched once for them all: between 2 installs
-        // a Ctrl+C would otherwise be lost.
+        // Ctrl+C stops the install under way and every later one; watched once for all.
         let stopped = Locked(false)
         let current = Locked<Task<Void, Error>?>(nil)
         let interrupts = watchInterrupts {
@@ -81,10 +80,7 @@ extension CLI {
         }
         defer { interrupts.stop() }
         for tool in targets {
-            if stopped.withLock({ $0 }) {
-                CLILog.line("stopped")
-                return CLIOutput.Exit.cancelled
-            }
+            if stopped.withLock({ $0 }) { return CLIOutput.cancelled() }
             CLILog.line("── installing \(tool.name)")
             let runner = ProcessRunner()
             let work = Task {
@@ -105,15 +101,14 @@ extension CLI {
                 printer.withLock { $0.drain(log) }
             } catch {
                 printer.withLock { $0.drain(log) }
-                if stopped.withLock({ $0 }) {
-                    CLILog.line("stopped")
-                    return CLIOutput.Exit.cancelled
-                }
+                if stopped.withLock({ $0 }) { return CLIOutput.cancelled() }
                 return CLIOutput.failure("failed: \(CLIOutput.said(error))")
             }
         }
         CLILog.line("")
-        return doctor()
+        // A tool named and installed is a success, whatever else is still missing.
+        let ready = doctor()
+        return requested == nil ? ready : 0
     }
 
     /// What this run installs. A tool that works but cannot do everything is topped up
@@ -151,6 +146,6 @@ extension CLI {
     }
 
     private static func refuseInstall(_ why: String) -> Int32 {
-        CLIOutput.refuse(why + "\ntry: kmap install --help\n")
+        CLIOutput.refuse(why + " — try: kmap install --help")
     }
 }

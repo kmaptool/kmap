@@ -129,7 +129,8 @@ final class SetupScreen: Screen {
         let progress = self.progress
         let install =
             installer ?? { id, log, runner, progress in
-                try await toolchain.install(id, log: log, runner: runner, progress: progress)
+                // Into kmap's own folder, as the question promises: no package manager, no root.
+                try await toolchain.install(id, log: log, runner: runner, downloading: id == "java", progress: progress)
             }
         let known = wantedForTesting
         task = Task { [weak self] in
@@ -148,7 +149,7 @@ final class SetupScreen: Screen {
                     log.ok(t("%@ installed", tool.name))
                 } catch {
                     if Task.isCancelled { return }
-                    failure = (error as? LocalizedError)?.errorDescription ?? "\(error)"
+                    failure = ErrorWords.of(error)
                     log.error(failure ?? "")
                     break
                 }

@@ -15,6 +15,11 @@ extension BuildPipeline {
             log.debug("nothing left for \(source.sourceID) — every cell is already held")
             return
         }
+        // 1 kmap at a time per source, from what is left to do to the chunks removed: another's
+        // cleanup would take chunks this one still converts from.
+        Paths.ensure(source.chunkDirectory)
+        let lock = try await Downloader(log: log).holdingDownload(of: source.chunkDirectory)
+        defer { withExtendedLifetime(lock) {} }
         if wanted.count < all.count {
             log.append(
                 "\(all.count - wanted.count) cell(s) already held by an earlier"
@@ -66,7 +71,7 @@ extension BuildPipeline {
             "\(outcome.converted) \(source.label) tile(s) converted"
                 + (outcome.sea > 0 ? ", \(outcome.sea) open sea" : "")
         )
-        if outcome.converted == 0, Self.endsWithNoTiles(last: last, onHand: hgtFileCount()) {
+        if outcome.converted == 0, Self.endsWithNoTiles(last: last, onHand: mapHGTCount()) {
             throw BuildError.noElevationTiles
         }
     }
@@ -74,7 +79,7 @@ extension BuildPipeline {
     /// Downloads the chunks, several at a time, with a live progress line.
     private func downloadGEDTMChunks(_ chunks: [(tile: Int, span: GEDTM30.Span)], source: GEDTM30) async throws {
         guard !chunks.isEmpty else { return }
-        Paths.ensure(source.chunkDirectory)
+        // Under the source's lock, taken by the caller.
         let lanes = max(2, min(6, Machine.workers))
         let fetched = Counter()
         let flight = Flight()
@@ -113,7 +118,8 @@ extension BuildPipeline {
                             url: source.url,
                             from: span.offset,
                             count: Int64(span.count),
-                            to: source.chunk(span)
+                            to: source.chunk(span),
+                            locking: false
                         )
                         flight.left(downloader, carrying: Int64(span.count))
                         fetched.increment()

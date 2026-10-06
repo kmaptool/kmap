@@ -185,7 +185,11 @@ enum WindowsConsole: ConsoleBackend {
         // of them must restore the console out of raw mode and off the alternate screen.
         let trampoline: @convention(c) (DWORD) -> WindowsBool = { _ in
             WindowsConsole.interrupted?()
-            ExitProcess(0)
+            // ^Break and a closed window end kmap here: its tools go with it, as on ^C, or
+            // a mkgmap left running goes on writing into the work folder. Not 0: kmap
+            // was stopped, it did not finish.
+            ChildProcess.leave(grace: 0)
+            ExitProcess(UINT(CLIOutput.Exit.cancelled))
         }
         SetConsoleCtrlHandler(trampoline, true)
     }

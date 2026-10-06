@@ -4,17 +4,6 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// Where a region's extract is to be had right now.
-struct ExtractSource {
-    /// The file to fetch: the mirror's `-latest` name, or a dated file standing in.
-    let url: URL
-    /// Its published checksum.
-    let md5: URL?
-    let info: Downloader.RemoteInfo
-    /// The dated file's name, where `-latest` was not being served.
-    let standIn: String?
-}
-
 /// Finds a region's extract. The mirror publishes each one twice: under a dated name,
 /// and under `-latest`, an alias to the newest of those. When the server behind the
 /// mirror's proxies fails, the alias goes first: it redirects to itself, answers 502 or
@@ -41,8 +30,6 @@ enum ExtractLocator {
         return name.hasSuffix(latestSuffix) ? String(name.dropLast(latestSuffix.count)) : nil
     }
 
-    /// The names the last few days' files have, newest first. The mirror dates its files
-    /// in UTC, year first.
     /// Whether `url` names one of the dated files `latest` stands for, on any host.
     static func isDated(_ url: URL, standingFor latest: URL) -> Bool {
         guard let stem = stem(of: latest) else { return false }
@@ -52,6 +39,8 @@ enum ExtractLocator {
         return date.count == 6 && date.allSatisfy(\.isNumber)
     }
 
+    /// The names the last few days' files have, newest first. The mirror dates its files
+    /// in UTC, year first.
     static func datedFiles(for latest: URL, today: Date = Date()) -> [URL] {
         guard let stem = stem(of: latest) else { return [] }
         var calendar = Calendar(identifier: .gregorian)

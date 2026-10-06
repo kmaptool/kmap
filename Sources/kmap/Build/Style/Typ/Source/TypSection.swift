@@ -81,10 +81,11 @@ struct TypSection {
     /// Night comes back empty where the section names day colours only.
     var colourSlots: (day: [ColourSlot], night: [ColourSlot]) {
         if kind == .point {
-            let day = (dayXpm?.colours ?? []).enumerated().map {
+            // A plain `Xpm=` is the day picture, as mkgmap reads it.
+            let day = ((dayXpm ?? xpm)?.colours ?? []).enumerated().map {
                 ColourSlot(
                     role: t("Colour %d", $0.offset + 1),
-                    tag: "DayXpm",
+                    tag: dayXpm != nil ? "DayXpm" : "Xpm",
                     index: $0.offset,
                     colour: $0.element
                 )
@@ -171,10 +172,4 @@ struct TypSection {
     func label(language: Int) -> String? {
         labels.first { $0.language == language }?.text
     }
-}
-
-/// The language codes a TYP numbers its labels with.
-enum TypLanguage {
-    static let english = 0x00
-    static let russian = 0x19
 }

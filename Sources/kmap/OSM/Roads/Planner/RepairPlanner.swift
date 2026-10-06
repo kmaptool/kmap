@@ -35,23 +35,6 @@ struct RepairPlanner {
     /// Two nodes are invented per bridge: the one on the other line and its middle.
     private static let nodesPerBridge = 2
 
-    /// What the pass decided about a gap. Verdicts are counted by name, and the counts are
-    /// what the build log prints.
-    enum Verdict {
-        static let building = "building", fence = "fence"
-        static let joined = "joined"
-        static let alreadyJoined = "already joined nearby"
-        static let sameNode = "already the same node"
-        static let alongside = "running alongside"
-        static let wouldPull = "would pull another line off course"
-
-        static func stoppedBy(_ what: String) -> String { "stopped by \(what)" }
-        static func tooHigh(_ what: String, _ metres: Double) -> String {
-            "stopped by \(what) over \(Int(metres)) m high"
-        }
-        static func bridged(_ what: String) -> String { "bridged over \(what.isEmpty ? "an obstacle" : what)" }
-    }
-
     /// What was found between two ends, in the obstacle's own words.
     struct Blockage {
         var kind: ObstacleKind
@@ -164,24 +147,76 @@ struct RepairPlanner {
         if state.graph.detour(from: gap.ref, to: gap.ends, cap: Self.search) != nil, gap.distance > Self.slip {
             return Verdict.alreadyJoined
         }
+        // An end on a kerb, a wall or a pier is that line's node too: moved past what the
+        // device can show, it would drag the line along. The road is lengthened instead.
+        if blockage == nil, gap.distance > Self.slip, state.plan.moves[gap.ref] == nil,
+            let held = obstaclesThrough(
+                gap.origin.lat,
+                gap.origin.lon,
+                grid: obstacles,
+                cell: RoadRepair.cellDegrees
+            ).first
+        {
+            extend(gap, &state)
+            return Verdict.extended(held.word)
+        }
         if let hit = blockage {
             bridge(gap, over: hit, &state)
             return Verdict.bridged(hit.word)
         }
         // 2 ends reaching for each other: give them 1 node instead of 2, so the join is a
-        // plain shared node and neither line grows a vertex.
-        if let partner = loosePartner(of: gap, loose: loose, state: state) {
+        // plain shared node and neither line grows a vertex. Not where the other end is a
+        // gate in a fence or a corner of a wall: that node is the obstacle's too, and the
+        // end is put into the other line beside it instead.
+        if let partner = loosePartner(of: gap, loose: loose, state: state),
+            !isObstacleVertex(
+                network.lat[partner.point],
+                network.lon[partner.point],
+                grid: obstacles,
+                cell: RoadRepair.cellDegrees
+            )
+        {
             merge(gap, with: partner, &state)
             return Verdict.joined
         }
         return attach(gap, &state)
     }
 
+    /// The next invented node's id: from this pass's own slice, far above any OSM node id, so
+    /// 2 regions' inventions cannot share an id.
+    private func invented(_ state: Planning) -> Int64 {
+        inventedIDBase + Int64(state.plan.bridges.count + state.plan.extensions.count) * Int64(Self.nodesPerBridge)
+    }
+
+    /// A new node on the other line, and the end's own way lengthened to it: the end stays
+    /// where it is, on the obstacle it shares.
+    private func extend(_ gap: Gap, _ state: inout Planning) {
+        // Landing on 1 of the other line's own nodes: that node is taken, not a second one
+        // made in the same place.
+        let along = gap.candidate.along
+        let vertex = along <= 0 ? gap.segment : along >= 1 ? gap.segment + 1 : nil
+        let node = vertex.map { network.refs[$0] } ?? invented(state)
+        if vertex == nil { state.plan.extensions.append((node: node, lat: gap.landing.lat, lon: gap.landing.lon)) }
+        let own = network.points(of: Int(gap.candidate.way))
+        state.plan.inserts[gap.candidate.way, default: []].append(
+            (
+                after: gap.ref,
+                segment: Int32(gap.candidate.atEnd ? own.count - 1 : 0),
+                along: gap.candidate.atEnd ? 1 : RepairPlan.before,
+                node: node
+            )
+        )
+        if vertex == nil {
+            insert(node, into: gap, at: gap.landing, along: along, &state)
+        } else {
+            state.placed.insert(gap.ref)
+            link(&state.graph, gap.ref, gap.ends, gap.landing, gap.a, gap.b)
+        }
+    }
+
     /// A new node on the other line, and a link from the end over the obstacle to it.
     private func bridge(_ gap: Gap, over hit: Blockage, _ state: inout Planning) {
-        // Invented nodes are numbered from far above any OSM node id, and from this pass's
-        // own slice of that space, so 2 regions' inventions cannot share an id.
-        let node = inventedIDBase + Int64(state.plan.bridges.count) * Int64(Self.nodesPerBridge)
+        let node = invented(state)
         state.plan.bridges.append(
             RepairPlan.Bridge(
                 node: node,
@@ -259,7 +294,9 @@ struct RepairPlanner {
             let candidateRef = network.refs[point]
             let dx = (network.lon[point] - gap.here.lon) * gap.kx
             let dy = (network.lat[point] - gap.here.lat) * RoadRepair.metresPerDegree
+            // A gate or a dead end mapped as one shares its node with nothing.
             if isEnd, loose[slot], state.plan.moves[candidateRef] == nil,
+                !network.gates.contains(candidateRef), !network.noExit.contains(candidateRef),
                 state.plan.merges[candidateRef] == nil, !state.placed.contains(candidateRef),
                 (dx * dx + dy * dy).squareRoot() <= limit
             {

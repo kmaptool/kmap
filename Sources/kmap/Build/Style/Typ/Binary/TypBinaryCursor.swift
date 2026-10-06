@@ -87,6 +87,7 @@ extension TypBinary {
         mutating func pointImage(width: Int, height: Int) throws -> TypBinary.PointImage {
             let solidCount = u1()
             let mode = u1()
+            if solidCount == 0 { return try trueColourImage(width: width, height: height, mode: mode) }
             var palette: [String?] = []
             var count = solidCount
 
@@ -127,14 +128,63 @@ extension TypBinary {
             if bitsPerPixel == 1 {
                 pixels = pixels.map { $0.map { 1 - $0 } }
             }
-            return TypBinary.PointImage(
-                width: width,
-                height: height,
-                // True colour with no table: kmap carries none, and an icon of its one
-                // clear slot would draw nothing; with no palette it is left out.
-                palette: mode == 0x10 && solidCount == 0 ? [] : palette,
-                pixels: pixels
-            )
+            return TypBinary.PointImage(width: width, height: height, palette: palette, pixels: pixels)
+        }
+
+        /// The most colours a palette image holds: 8 bits a pixel. Of them 255 at most are
+        /// solid, the count of solid ones being a byte where 0 says true colour.
+        static let mostPaletteColours = 256
+        static let mostSolidColours = 255
+
+        /// An image with no palette, as mkgmap's TrueImage writes it: blue, green, red per
+        /// pixel in 1 run of bits, plus 4 bits of transparency in mode 0x20; mode 0x10 names
+        /// its clear colour first. Read as the palette of its colours, empty if too many.
+        mutating func trueColourImage(width: Int, height: Int, mode: Int) throws -> TypBinary.PointImage {
+            var clear: (Int, Int, Int)?
+            if mode == 0x10 { clear = (u1(), u1(), u1()) }
+            let bitsEach = mode == 0x20 ? 28 : 24
+            let bytes = try raw((width * height * bitsEach + 7) / 8)
+            func bits(_ start: Int, _ count: Int) -> Int {
+                var value = 0
+                for bit in 0..<count {
+                    let at = start + bit
+                    value |= ((Int(bytes[at / 8]) >> (at % 8)) & 1) << bit
+                }
+                return value
+            }
+            var palette: [String?] = []
+            var slots: [String: Int] = [:]
+            var pixels: [[Int]] = []
+            pixels.reserveCapacity(height)
+            for y in 0..<height {
+                var row: [Int] = []
+                row.reserveCapacity(width)
+                for x in 0..<width {
+                    let start = (y * width + x) * bitsEach
+                    let blue = bits(start, 8), green = bits(start + 8, 8), red = bits(start + 16, 8)
+                    // Half transparent or more reads as clear, as in a mode 0x20 palette.
+                    let isClear =
+                        mode == 0x20
+                        ? bits(start + 24, 4) >= 8
+                        : clear.map { $0 == (blue, green, red) } ?? false
+                    let colour = isClear ? nil : String(format: "#%02X%02X%02X", red, green, blue)
+                    let key = colour ?? "none"
+                    if let slot = slots[key] {
+                        row.append(slot)
+                    } else {
+                        slots[key] = palette.count
+                        row.append(palette.count)
+                        palette.append(colour)
+                    }
+                }
+                pixels.append(row)
+            }
+            guard palette.count <= Self.mostPaletteColours,
+                palette.filter({ $0 != nil }).count <= Self.mostSolidColours
+            else {
+                return TypBinary.PointImage(width: width, height: height, palette: [], pixels: pixels)
+            }
+            return TypBinary.PointImage(width: width, height: height, palette: palette, pixels: pixels)
         }
 
         mutating func labelBlock() throws -> [UInt8] {

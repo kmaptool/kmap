@@ -8,6 +8,10 @@ import Foundation
 /// never cleared between them, or the bar would start over for each; verifying is
 /// reported in the text only, since it is separate work from downloading.
 extension BuildPipeline {
+    /// Where an extract comes down before it takes its place, and whose lock every kmap
+    /// fetching it holds.
+    static func extractLanding(of destination: URL) -> URL { destination.appendingPathExtension("new") }
+
     // MARK: 2 - download
 
     /// One region's place in the stage.
@@ -37,8 +41,8 @@ extension BuildPipeline {
     /// same whether the night was spent downloading or nothing moved at all.
     func downloadExtracts() async throws -> [URL] {
         let regions = recipe.regions
-        let probes = await probeExtracts()
         let cached = regions.map { Paths.cachedExtract(forRegion: $0.id) }
+        let probes = await probeExtracts()
         // The server's size, or the cached copy's where the server did not answer.
         let sizes = regions.indices.map { probes[$0].source?.info.size ?? FileTools.size(of: cached[$0]) }
         let slices = DownloadSlices(sizes: sizes)
@@ -282,7 +286,7 @@ extension BuildPipeline {
 
         // Beside the cached copy, not over it: the copy is replaced only by a file that
         // arrived whole and matched its checksum.
-        let landing = job.destination.appendingPathExtension("new")
+        let landing = Self.extractLanding(of: job.destination)
         // Held from here to the move into the cache: another kmap fetching the same file
         // would otherwise write a new landing over the one this run is checking.
         let lock = try await downloader.holdingDownload(of: landing)
@@ -316,11 +320,19 @@ extension BuildPipeline {
         // Asked once more: a mirror that hung on the checksum before the download may
         // answer after it, and the file is better verified than not.
         if remoteMD5 == nil, let url = job.checksumURL { remoteMD5 = await Downloader.fetchExpectedMD5(url) }
-        if let remoteMD5, !whole {
+        if let expected = remoteMD5, !whole {
             let localMD5 = try checksum(of: landing, saying: job.label + t("verifying checksum"))
+            // Published while it came down, the download is the new file: its sum is asked
+            // again before the file goes, and the stamp takes the new file's date.
+            if localMD5 != expected, let url = job.checksumURL, let again = await Downloader.fetchExpectedMD5(url),
+                again == localMD5
+            {
+                remoteMD5 = again
+                if let info = try? await Downloader.probe(job.source) { job.remote = info }
+            }
             guard localMD5 == remoteMD5 else {
                 FileTools.removeIfPresent(landing)
-                throw DownloadError.checksumMismatch(expected: remoteMD5, got: localMD5)
+                throw DownloadError.checksumMismatch(expected: expected, got: localMD5)
             }
         }
         FileTools.removeIfPresent(job.destination)

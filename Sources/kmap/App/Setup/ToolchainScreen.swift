@@ -28,6 +28,10 @@ final class ToolchainScreen: Screen {
     private var refreshed = false
     /// The tool whose root install is being asked about.
     var awaitingRoot: String?
+    var awaitingRemoval: String?
+    /// The tool the cursor is on: rows come and go as installs finish, and the cursor
+    /// stays with its tool, not its row number.
+    private var selectedID: String?
 
     /// The shared snapshot: probing here would spawn a process per frame.
     func tools(_ ctx: AppContext) -> [ToolStatus] { ctx.tools }
@@ -42,13 +46,25 @@ final class ToolchainScreen: Screen {
         // The packs go out of date while installed, so the screen asks whatever the
         // build's schedule says.
         ctx.refreshPackNews()
+        let tools = tools(ctx)
+        if let selectedID, let at = tools.firstIndex(where: { $0.id == selectedID }), at != list.selected {
+            list.jump(to: at, count: tools.count)
+        }
+        selectedID = tools[safe: list.selected]?.id
     }
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
         let tools = tools(ctx)
+        defer { selectedID = tools[safe: list.selected]?.id }
+        // A question is answered by the next key: y goes ahead, any other drops it.
+        if awaitingRoot != nil || awaitingRemoval != nil, key.command != .char("y") {
+            awaitingRoot = nil
+            awaitingRemoval = nil
+            message = nil
+        }
         switch key.command {
-        case .up, .char("k"): awaitingRoot = nil; list.move(-1, count: tools.count)
-        case .down, .char("j"): awaitingRoot = nil; list.move(1, count: tools.count)
+        case .up, .char("k"): list.move(-1, count: tools.count)
+        case .down, .char("j"): list.move(1, count: tools.count)
         case .char("r"):
             ctx.refreshTools(force: true)
             ctx.refreshPackNews(force: true)
@@ -69,7 +85,12 @@ final class ToolchainScreen: Screen {
             guard let tool = tools[safe: list.selected] else { return .none }
             install(tool, ctx)
         case .char("y"):
-            // Only ever answers the root question.
+            // Only ever answers a question.
+            if let id = awaitingRemoval {
+                awaitingRemoval = nil
+                if let tool = tools.first(where: { $0.id == id }) { remove(tool, ctx, confirmed: true) }
+                return .none
+            }
             guard let id = awaitingRoot, let tool = tools.first(where: { $0.id == id }) else { return .none }
             awaitingRoot = nil
             start(tool, ctx)

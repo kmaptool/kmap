@@ -11,6 +11,14 @@ struct GeoTIFF {
         case unsupported(String)
         case truncated
 
+        /// A file damaged on the way, fetched again; not a format this reader lacks.
+        static func isDamage(_ error: Error) -> Bool {
+            switch error as? Trouble {
+            case .notTIFF, .truncated: true
+            default: false
+            }
+        }
+
         var description: String {
             switch self {
             case .notTIFF: "not a TIFF file"
@@ -24,6 +32,17 @@ struct GeoTIFF {
     /// A tile past this many samples is refused: the largest published DEM tile is
     /// 3600 x 3600, and a header can claim anything.
     private static let mostSamplesPerTile = 64 * 1024 * 1024
+    private static let mostSamplesASide = 1 << 20
+    /// The tags read, and the most numbers 1 may hold: every other tag is skipped, so a
+    /// directory of huge counts costs nothing.
+    private static let tagsRead: Set<Int> = [
+        TIFF.Tag.imageWidth, TIFF.Tag.imageLength, TIFF.Tag.samplesPerPixel, TIFF.Tag.bitsPerSample,
+        TIFF.Tag.compression, TIFF.Tag.tileWidth, TIFF.Tag.tileLength, TIFF.Tag.tileOffsets,
+        TIFF.Tag.tileByteCounts, TIFF.Tag.rowsPerStrip, TIFF.Tag.stripOffsets, TIFF.Tag.stripByteCounts,
+        TIFF.Tag.sampleFormat, TIFF.Tag.predictor, TIFF.Tag.modelPixelScale, TIFF.Tag.modelTiepoint,
+        TIFF.Tag.geoKeyDirectory
+    ]
+    private static let mostNumbersATag = 1 << 22
 
     let width: Int
     let height: Int
@@ -73,6 +92,10 @@ struct GeoTIFF {
         width = one(TIFF.Tag.imageWidth, 0)
         height = one(TIFF.Tag.imageLength, 0)
         guard width > 0, height > 0 else { throw Trouble.unsupported("no image size") }
+        // A DEM tile is thousands of samples a side; a row is allocated whole.
+        guard width <= Self.mostSamplesASide, height <= Self.mostSamplesASide else {
+            throw Trouble.unsupported("image size \(width) x \(height)")
+        }
         guard one(TIFF.Tag.samplesPerPixel, 1) == 1 else { throw Trouble.unsupported("more than one band") }
         let bitsPerSample = one(TIFF.Tag.bitsPerSample, 32)
         compression = one(TIFF.Tag.compression, TIFF.Compression.none)
@@ -83,6 +106,11 @@ struct GeoTIFF {
         guard known.contains(compression) else { throw Trouble.unsupported("compression \(compression)") }
         guard bitsPerSample == 32 || bitsPerSample == 16 else {
             throw Trouble.unsupported("\(bitsPerSample) bits per sample")
+        }
+        // Half floats would be read as whole numbers.
+        guard bitsPerSample == 32 || one(TIFF.Tag.sampleFormat, TIFF.SampleFormat.unsigned) != TIFF.SampleFormat.float
+        else {
+            throw Trouble.unsupported("16-bit floating-point samples")
         }
 
         let tileWidth: Int, tileHeight: Int
@@ -103,6 +131,10 @@ struct GeoTIFF {
         guard !offsets.isEmpty, offsets.count == counts.count else {
             throw Trouble.unsupported("no tile offsets")
         }
+        // A file cut short is known at once, not as a tile of zeros found later.
+        for (offset, count) in zip(offsets, counts) where offset < 0 || count < 0 || offset + count > data.count {
+            throw Trouble.truncated
+        }
         // A tile may be wider or taller than the image: the format pads it, and the DEM
         // tiles north of 80 deg are 720 samples wide in tiles of 1024.
         let (samples, overflow) = tileWidth.multipliedReportingOverflow(by: tileHeight)
@@ -118,6 +150,11 @@ struct GeoTIFF {
             bigEndian: bigEndian
         )
         tilesAcross = (width + tileWidth - 1) / tileWidth
+        // Every tile the image's size calls for has its place in the file: a size of its
+        // own would send a read past the offsets.
+        guard offsets.count >= tilesAcross * ((height + tileHeight - 1) / tileHeight) else {
+            throw Trouble.unsupported("\(offsets.count) tile(s) for a \(width) x \(height) image")
+        }
 
         (stepLon, stepLat, originLon, originLat) = try Self.geoPlacement(from: tags)
     }
@@ -135,7 +172,7 @@ struct GeoTIFF {
             guard at + 12 <= data.count else { throw Trouble.truncated }
             let type = order.int(data, at + 2, 2), count = order.int(data, at + 4, 4)
             let size = TIFF.size(ofType: type)
-            guard size > 0 else { continue }
+            guard size > 0, tagsRead.contains(order.int(data, at, 2)), count <= mostNumbersATag else { continue }
             // A value of up to 4 bytes sits in the entry itself.
             let value = size * count > 4 ? order.int(data, at + 8, 4) : at + 8
             guard value + size * count <= data.count else { continue }
@@ -163,6 +200,13 @@ struct GeoTIFF {
         if TIFF.rasterType(in: tags[TIFF.Tag.geoKeyDirectory] ?? []) == TIFF.RasterType.area {
             lon += scale[0] / 2
             lat -= scale[1] / 2
+        }
+        // On the globe, on a step a grid can have: far-off figures would overflow every
+        // sum made of them later.
+        guard lon.isFinite, lat.isFinite, abs(lon) <= 360, abs(lat) <= 180,
+            scale[0] > 0, scale[0] <= 10, scale[1] > 0, scale[1] <= 10
+        else {
+            throw Trouble.unsupported("geo-referencing off the globe")
         }
         return (scale[0], -scale[1], lon, lat)
     }

@@ -67,4 +67,27 @@ final class ElevationFootprintTests: XCTestCase {
         )
         XCTAssertEqual(kept.count, 2)
     }
+
+    /// A region without its outline keeps its own cells and the ones beside them, and a
+    /// country of thousands of cells is worked out at once rather than in minutes.
+    func testARegionWithoutAnOutlineKeepsItsBoxAndItsEdgeQuickly() {
+        let wide = ElevationFootprint.cellOrigins(of: BBox(minLon: 8, minLat: 8, maxLon: 15, maxLat: 15))
+        let kept = ElevationFootprint.trim(
+            wide,
+            ringsPerRegion: [(region("small", [BBox(minLon: 10, minLat: 10, maxLon: 13, maxLat: 13)]), nil)]
+        )
+        XCTAssertEqual(
+            Set(kept.map { "\($0.lat),\($0.lon)" }),
+            Set((9...13).flatMap { lat in (9...13).map { "\(lat),\($0)" } })
+        )
+
+        let country = ElevationFootprint.cellOrigins(of: BBox(minLon: 20, minLat: 41, maxLon: 180, maxLat: 82))
+        let started = Date()
+        let all = ElevationFootprint.trim(
+            country,
+            ringsPerRegion: [(region("russia", [BBox(minLon: 20, minLat: 41, maxLon: 180, maxLat: 82)]), nil)]
+        )
+        XCTAssertEqual(all.count, country.count)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
+    }
 }

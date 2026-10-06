@@ -408,7 +408,7 @@ of range, stops the build instead of silently replacing it with a default value.
 | `--custom-pois`, `--no-custom-pois` | also write a `.gpi` with everything that has a description |
 | `--hide=a,b,c` | leaves features off the map — benches, phones, power lines… ids from `kmap hideable` |
 | `--theme=<scheme>` | which of the style's two colour schemes to pack: `all`, `day` or `night` |
-| `--overlap=<units>` | let tiles paint a little past their frame — hides tile seams; needs the mkgmap patch (experimental) |
+| `--overlap=<units>` | let tiles paint a little past their frame to hide tile seams, in steps of 128; needs the mkgmap patch (experimental) |
 | `--land-overlap=<units>` | the same for the land layer alone. Never more than `--overlap` |
 | `--split=<mode>` | how the output is cut into files: `fit`, `region`, `country` or `custom` |
 | `--parts=<n>` | how many files, with `--split=custom` |
@@ -639,15 +639,15 @@ know; `schema` is raised only when a field changes meaning or goes away.
 | `event` | When | Fields |
 |---|---|---|
 | `start` | the first line | `command`, `version`, `schema` |
-| `stage` | a build stage changed state | `stage`, `status`, `title`, `detail` |
+| `stage` | a build stage changed state | `stage`, `status`, `title`; `detail` where the stage has something to say |
 | `progress` | the bar moved, or the stage said what it is doing | `overall` — fraction of the whole build, 0…1; `stage` and `fraction` — that stage's own share (absent while it has no percentage); `detail`. A successful build's last `progress` reads `overall: 1` |
 | `log` | a log line | `severity` (`debug`/`info`/`warn`/`error`), `kind` (`plain`/`step`/`ok`/`output`), `text`, `stage`, `fields` — the same facts as the text, as data |
 | `result` | the command's answer | `data` — see below |
-| `error` | the command could not do it | `message`, `code` |
+| `error` | the command could not do it | `message`, `code`; `refused`: each problem, when the arguments had several |
 | `end` | the last line | `ok`, `code` — the same as the process exit code |
 
-Build stages: `preflight`, `download`, `elevation`, `elevationBuild`, `split`, `compile`,
-`collect`; statuses: `pending`, `running`, `done`, `skipped`, `failed`. The elevation
+Build stages: `preflight`, `dataUpdate` (the coastline and boundary packs), `download`,
+`elevation`, `elevationBuild`, `split`, `compile`, `collect`; statuses: `pending`, `running`, `done`, `skipped`, `failed`. The elevation
 stages run beside the split, so two stages `running` at once is normal.
 
 **Exit codes.** `0` — done; `1` — failed while running; `2` — bad arguments: an unknown

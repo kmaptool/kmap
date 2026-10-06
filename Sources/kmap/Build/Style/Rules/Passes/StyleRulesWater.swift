@@ -32,6 +32,8 @@ extension StyleCatalog {
             # here rather than through redirects.txt because these two lines are kmap's own and
             # their text is in the map's language: a redirect keyed on one language's wording
             # matches nothing on a build in another.
+            # A name that says it already, as "Old Well" does, is not told again.
+            man_made=water_well & \(Self.saying(words("water.well-stem"))) { name '${name}' } [0x6414 resolution 24]
             man_made=water_well & name=* { name '${name} (\(well))' } [0x6414 resolution 24]
             man_made=water_well & name!=* { name '\(wellAlone)' } [0x6414 resolution 24]
             man_made=water_tap & name=* { name '${name} (\(tap))' }
@@ -64,7 +66,14 @@ extension StyleCatalog {
         }
     }
 
-    /// Splits springs by what a walker needs before relying on one. All four types draw the
+    /// A name already holding a word beginning with `stem`, any ending and the Russian plural
+    /// too, not a word merely containing it: "Maxwell" is no well. `u` and `U` make Java
+    /// read Cyrillic case and word edges.
+    static func saying(_ stem: String) -> String {
+        "name ~ '(?iuU).*\\b\(stem).*'"
+    }
+
+    /// Splits springs by what a walker needs before relying on one. All 4 types draw the
     /// same icon; the difference shows only in the object's card, through the TYP's type
     /// name. The rules must precede the stock `natural=spring` rule: first match wins.
     func addSpringVariantRules(
@@ -93,12 +102,18 @@ extension StyleCatalog {
             # water would never see it. The suffix goes on the name, which is always drawn.
             # Ordered worst-news-first: undrinkable matters more than merely seasonal.
 
+            # A name that says it already keeps the type and is not told again.
+
+            natural=spring & drinking_water=no & \(Self.saying(words("spring.undrinkable-stem"))) { name '${name}' } [0x6517 resolution 24]
             natural=spring & drinking_water=no \
             { name '${name|def:\(spring)} (\(undrinkable))' } [0x6517 resolution 24]
+            natural=spring & drinking_water=boil & \(Self.saying(words("spring.boil-stem"))) { name '${name}' } [0x6517 resolution 24]
             natural=spring & drinking_water=boil \
             { name '${name|def:\(spring)} (\(boil))' } [0x6517 resolution 24]
+            natural=spring & intermittent=yes & \(Self.saying(words("spring.intermittent-stem"))) { name '${name}' } [0x6516 resolution 24]
             natural=spring & intermittent=yes \
             { name '${name|def:\(spring)} (\(intermittent))' } [0x6516 resolution 24]
+            natural=spring & seasonal=yes & \(Self.saying(words("spring.seasonal-stem"))) { name '${name}' } [0x6515 resolution 24]
             natural=spring & seasonal=yes \
             { name '${name|def:\(spring)} (\(seasonal))' } [0x6515 resolution 24]
 

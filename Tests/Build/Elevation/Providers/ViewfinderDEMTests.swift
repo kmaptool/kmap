@@ -38,6 +38,49 @@ final class ViewfinderDEMTests: XCTestCase {
         XCTAssertFalse(ViewfinderDEM.isComplete(url, resolution: 1))
     }
 
+    func testAnUnpackThatStoppedPartWayLandsOnlyItsWholeTiles() throws {
+        let whole = 2 * 1201 * 1201
+        let staging = directory.appendingPathComponent("unpack")
+        let cache = directory.appendingPathComponent("cache")
+        try FileManager.default.createDirectory(
+            at: staging.appendingPathComponent("L37"),
+            withIntermediateDirectories: true
+        )
+        try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+        try FileTools.write(Data(count: whole), to: staging.appendingPathComponent("L37/n44e033.hgt"))
+        // Cut off where the unpacker stopped, over a whole tile already cached.
+        try FileTools.write(Data(count: 1000), to: staging.appendingPathComponent("L37/N44E034.hgt"))
+        try FileTools.write(Data(repeating: 7, count: whole), to: cache.appendingPathComponent("N44E034.hgt"))
+        // Whole in length, but perhaps the member whose check failed: the cached one stays.
+        try FileTools.write(Data(repeating: 9, count: whole), to: staging.appendingPathComponent("L37/N44E035.hgt"))
+        try FileTools.write(Data(repeating: 7, count: whole), to: cache.appendingPathComponent("N44E035.hgt"))
+
+        let landed = ViewfinderDEM.land(staging, into: cache, whole: false, resolution: 3)
+        XCTAssertEqual(landed, ["N44E033"])
+        XCTAssertEqual(try Data(contentsOf: cache.appendingPathComponent("N44E035.hgt")).first, 7)
+        XCTAssertTrue(ViewfinderDEM.isComplete(cache.appendingPathComponent("N44E033.hgt"), resolution: 3))
+        XCTAssertEqual(
+            try Data(contentsOf: cache.appendingPathComponent("N44E034.hgt")).first,
+            7,
+            "the cached tile stays"
+        )
+    }
+
+    func testAWholeUnpackLandsEveryTile() throws {
+        let staging = directory.appendingPathComponent("unpack")
+        let cache = directory.appendingPathComponent("cache")
+        try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+        try FileTools.write(Data(count: 10), to: staging.appendingPathComponent("N44E034.hgt"))
+        XCTAssertEqual(ViewfinderDEM.land(staging, into: cache, whole: true, resolution: 3), ["N44E034"])
+    }
+
+    func testAnArchiveThatWouldNotUnpackSaysSoAndIsNotSea() {
+        let trouble = ViewfinderDEM.Trouble.unpackedInPart("L37.zip", 9)
+        XCTAssertTrue(trouble.description.contains("L37.zip"))
+        XCTAssertTrue(trouble.description.contains("did not unpack whole"))
+    }
+
     func testTheSourceAndDirectoryNamesAreTheOnesTheRestOfTheBuildLooksFor() {
         XCTAssertEqual(ViewfinderDEM.sourceID(1), "view1")
         XCTAssertEqual(ViewfinderDEM.directoryName(3), "VIEW3")
@@ -164,6 +207,54 @@ final class ViewfinderDEMTests: XCTestCase {
         XCTAssertTrue(
             crossing.allSatisfy { $0.hasPrefix("S") },
             "the quirk has changed: \(crossing)"
+        )
+    }
+
+    /// What a killed fetch left goes once an hour old; tiles and a fresh unpacking stay.
+    func testAKilledFetchsLeftoversAreSwept() throws {
+        let cache = directory.appendingPathComponent("cache")
+        let old = Date().addingTimeInterval(-7200)
+        for name in [
+            "unpack-1A2B3C4D", "download-1A2B3C4D.zip", "download-1A2B3C4D.zip.part0",
+            "download-1A2B3C4D.zip.layout", "unpack-FRESH000", "N44E033.hgt"
+        ] {
+            let entry = cache.appendingPathComponent(name)
+            if name.hasPrefix("unpack-") {
+                try FileManager.default.createDirectory(at: entry, withIntermediateDirectories: true)
+            } else {
+                try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+                try Data().write(to: entry)
+            }
+            if name != "unpack-FRESH000" {
+                try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: entry.path)
+            }
+        }
+        ViewfinderDEM.removeAbandonedStaging(in: cache)
+        XCTAssertEqual(
+            Set(try FileManager.default.contentsOfDirectory(atPath: cache.path)),
+            ["unpack-FRESH000", "N44E033.hgt"]
+        )
+    }
+
+    /// An archive's parts go together, and only once none has changed for an hour.
+    func testAnArchiveStillArrivingKeepsItsFinishedParts() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("kmap-vf-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let old = Date().addingTimeInterval(-7200)
+        for name in ["download-1A2B3C4D.zip.part1", "download-1A2B3C4D.zip.part2", "download-5E6F7A8B.zip.part1"] {
+            try Data().write(to: folder.appendingPathComponent(name))
+        }
+        for name in ["download-1A2B3C4D.zip.part1", "download-5E6F7A8B.zip.part1"] {
+            try FileManager.default.setAttributes(
+                [.modificationDate: old],
+                ofItemAtPath: folder.appendingPathComponent(name).path
+            )
+        }
+        ViewfinderDEM.removeAbandonedStaging(in: folder)
+        XCTAssertEqual(
+            Set(try FileManager.default.contentsOfDirectory(atPath: folder.path)),
+            ["download-1A2B3C4D.zip.part1", "download-1A2B3C4D.zip.part2"]
         )
     }
 }

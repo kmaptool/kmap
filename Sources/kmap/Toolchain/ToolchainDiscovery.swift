@@ -19,21 +19,39 @@ extension Toolchain {
 
     /// The Java named in the settings, as typed: a `~` or a pasted path's quotes would
     /// otherwise make it pass silently for missing.
-    private var configuredJava: String {
+    var configuredJava: String {
         let typed = settings.settings.javaBinary
         guard !typed.trimmingCharacters(in: .whitespaces).isEmpty else { return "" }
         return Paths.expand(typed).nativePath
     }
 
+    /// A Java gone since it was found, as one another kmap reinstalled, is looked for again.
     func findJava() -> JavaRuntime? {
-        cached(\.javaCache) { probeJava() }
+        let probe = {
+            self.cached(\.javaCache) {
+                Self.settleInterruptedSwaps()
+                return self.probeJava()
+            }
+        }
+        guard let found = probe() else { return nil }
+        guard FileTools.isExecutable(found.path) else {
+            invalidate()
+            return probe()
+        }
+        return found
     }
 
     /// The first Java that can also compile, which is not always the first Java there is:
     /// a machine can carry a runtime on its PATH and a whole JDK beside it, kmap's own
     /// among them. Nil where every Java on the machine is a runtime.
     func findJavaKit() -> JavaRuntime? {
-        cached(\.kitCache) { probeJava(compilerNeeded: true) }
+        let probe = { self.cached(\.kitCache) { self.probeJava(compilerNeeded: true) } }
+        guard let found = probe() else { return nil }
+        guard FileTools.isExecutable(found.path) else {
+            invalidate()
+            return probe()
+        }
+        return found
     }
 
     /// Option sets tried in order when probing a JVM, each a workaround for a platform that
@@ -76,7 +94,7 @@ extension Toolchain {
 
     /// The JVM at `candidate`, if it runs: with no options, or with the first set of
     /// rescue options it starts on.
-    private static func runtime(at candidate: String, compilerNeeded: Bool) -> JavaRuntime? {
+    static func runtime(at candidate: String, compilerNeeded: Bool) -> JavaRuntime? {
         guard FileTools.isExecutable(candidate) else { return nil }
         // javac and jar both: a folder of links can carry javac alone, and the patch needs both.
         if compilerNeeded, !JavaRuntime.isKit(at: candidate) { return nil }
@@ -108,7 +126,7 @@ extension Toolchain {
         var out: [URL] = []
         let configured = settings.settings.mkgmapJar
         if !configured.isEmpty { out.append(Paths.expand(configured)) }
-        // The patched jar first: it is the stock release plus four classes, and the extra
+        // The patched jar first: it is the stock release plus 4 classes, and the extra
         // option is simply not passed when the patch is not wanted.
         out.append(Toolchain.patchedMkgmapURL)
         out.append(Paths.tools.appendingPathComponent("mkgmap/mkgmap.jar"))
@@ -116,7 +134,10 @@ extension Toolchain {
     }
 
     func findMkgmap() -> (url: URL, version: String)? {
-        cached(\.mkgmapCache) { probeMkgmap() }
+        cached(\.mkgmapCache) {
+            Self.settleInterruptedSwaps()
+            return probeMkgmap()
+        }
     }
 
     private func probeMkgmap() -> (url: URL, version: String)? {

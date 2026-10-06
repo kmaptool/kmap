@@ -19,6 +19,12 @@ extension Toolchain {
         progress: InstallProgress? = nil
     ) async throws {
         guard JavaDownload.isAvailable() else { throw JavaDownload.Trouble.unsupportedMachine }
+        // 2 installs would share 1 archive and 1 home.
+        Paths.ensure(Paths.locks)
+        guard let held = HeldLock(trying: Paths.locks.appendingPathComponent("java-install.lock")) else {
+            throw InstallError.failed(t("another kmap is installing Java — wait for it to end"))
+        }
+        defer { withExtendedLifetime(held) {} }
         // The newest release first, an older one where that cannot be had or does not run.
         var failure: Error = JavaDownload.Trouble.noRelease(JavaDownload.features[0])
         for (at, feature) in JavaDownload.features.enumerated() {
@@ -49,7 +55,7 @@ extension Toolchain {
         return [.noRelease(feature), .unsupportedMachine, .noJavaInside].contains(trouble)
     }
 
-    func installOwnJava(
+    private func installOwnJava(
         feature: Int,
         log: Log,
         runner: ProcessRunner,
@@ -111,12 +117,24 @@ extension Toolchain {
         else {
             throw JavaDownload.Trouble.noJavaInside
         }
-        FileTools.removeIfPresent(JavaDownload.home)
         Paths.ensure(JavaDownload.home.deletingLastPathComponent())
-        try FileTools.move(staging, to: JavaDownload.home)
+        try Toolchain.replaceUnused(JavaDownload.home, with: staging)
 
         invalidate()
-        guard let java = findJava() else { throw JavaDownload.Trouble.noJavaInside }
+        guard let own = JavaDownload.installed(), let java = Self.runtime(at: own.path, compilerNeeded: false) else {
+            throw JavaDownload.Trouble.noJavaInside
+        }
         log.ok(t("Java ready — %@", java.version))
+        // kmap's own runs only where it is newer than the one found, and never in place
+        // of one named in the settings or JAVA_HOME.
+        if let used = findJava(), used.path != java.path {
+            let named = ToolLocations.namedJava(configured: configuredJava).contains(used.path)
+            log.append(
+                t(
+                    named ? "builds go on with %1$@, which you named" : "builds go on with %1$@, which is as new",
+                    "\(used.path) (\(used.version))"
+                )
+            )
+        }
     }
 }

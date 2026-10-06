@@ -32,7 +32,7 @@ extension CLI {
             }
             CLILog.line(
                 "  moves \(plan.moves.count), merges \(plan.merges.count), "
-                    + "inserts \(inserts), bridges \(plan.bridges.count)"
+                    + "inserts \(inserts), bridges \(plan.bridges.count), extensions \(plan.extensions.count)"
             )
             CLILog.line(String(format: "judged in %.1f s", judgeSeconds))
             if let dump {

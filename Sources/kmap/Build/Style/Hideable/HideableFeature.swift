@@ -2,9 +2,9 @@ import Foundation
 
 /// Something that can be left off the map.
 ///
-/// Hiding works on the rule set, not the data: the rule that draws the feature is
-/// commented out, and a rebuild without the id brings it back. Where a rule also carries
-/// routing effects, its actions are kept and only the Garmin type is dropped.
+/// Hiding works on the rule set, not the data: the rule that draws the feature loses its
+/// type, and a rebuild without the id brings it back. Its actions are kept, and its keys
+/// are deleted, so the object stops there rather than being drawn by a catch-all below.
 struct HideableFeature: Equatable {
     let id: String
     let name: String
@@ -119,6 +119,76 @@ struct HideableFeature: Equatable {
         return seen
     }
 
+    /// Keys that say what a place has rather than what it is.
+    static let featureKeys: Set<String> = ["internet_access"]
+
+    /// A generated entry's rule with its type dropped and the entry's key deleted, so
+    /// `shop=* & name=*` below does not draw a hidden shop as a generic one, nor a `cuisine`
+    /// rule a hidden cafe as a restaurant. Only that key and `cuisine`: a node that is also
+    /// something else keeps the tags that draw it. Label actions go too, or a hidden peak's
+    /// name would label the viewpoint on the same node. A rule it cannot read is commented out.
+    static func hidden(_ rule: String, tag: String? = nil) -> String {
+        guard let open = rule.range(of: "[0x") else { return "# " + rule + "  # kmap: hidden" }
+        var head = String(rule[rule.startIndex..<open.lowerBound])
+        while head.last == " " { head.removeLast() }
+        var condition = head
+        var actions: [String] = []
+        if let brace = head.firstIndex(of: "{"), let close = head.lastIndex(of: "}"), brace < close {
+            condition = String(head[head.startIndex..<brace])
+            actions = Self.actions(in: String(head[head.index(after: brace)..<close]))
+                .filter { !Self.setsLabel($0) }
+        }
+        while condition.last == " " { condition.removeLast() }
+        // The entry's key, and any other key the condition tests for the same value, as
+        // `amenity=border_control | barrier=border_control`.
+        let pairs = condition.allMatches("[A-Za-z_:]+=[A-Za-z0-9_:.-]+").map { $0.components(separatedBy: "=") }
+        let wanted = tag?.components(separatedBy: "=") ?? pairs.first ?? []
+        var keys = wanted.first.map { [$0] } ?? []
+        if wanted.count == 2 {
+            keys += pairs.filter { $0.count == 2 && $0[1] == wanted[1] }.map { $0[0] }
+        }
+        // Not for a hidden feature of a place, as its Wi-Fi: the place itself is drawn by
+        // its own rules, a pizzeria still a pizzeria.
+        if let key = wanted.first, !Self.featureKeys.contains(key) { keys.append("cuisine") }
+        for removal in keys.map({ "delete \($0)" }) where !actions.contains(removal) {
+            actions.append(removal)
+        }
+        return condition + " {" + actions.joined(separator: "; ") + "}  # kmap: hidden"
+    }
+
+    /// The statements of an action block, split on `;` outside quotes and `${tag}`.
+    private static func actions(in block: String) -> [String] {
+        var out: [String] = []
+        var current = ""
+        var quote: Character?
+        var depth = 0
+        for c in block {
+            if let open = quote {
+                if c == open { quote = nil }
+            } else if c == "'" || c == "\"" {
+                quote = c
+            } else if c == "{" {
+                depth += 1
+            } else if c == "}" {
+                depth -= 1
+            } else if c == ";", depth == 0 {
+                out.append(current)
+                current = ""
+                continue
+            }
+            current.append(c)
+        }
+        out.append(current)
+        return out.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    /// Whether a statement writes the label rather than a tag a later rule reads.
+    private static func setsLabel(_ statement: String) -> Bool {
+        statement.hasPrefix("name ") || statement.hasPrefix("name'")
+            || statement.hasPrefix("add name=") || statement.hasPrefix("set name=")
+            || statement.hasPrefix("add mkgmap:label") || statement.hasPrefix("set mkgmap:label")
+    }
+
     // MARK: Parsing
 
     private static func parseCatalogue(_ text: String) -> [HideableFeature] {
@@ -144,7 +214,7 @@ struct HideableFeature: Equatable {
             pendingID = nil; pendingName = nil; pendingTag = nil; pendingRules = []
         }
 
-        for line in Lines.of(text) {
+        for line in TextLines.of(text) {
             if line.hasPrefix("@@ ") {
                 flush()
                 category = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
@@ -157,7 +227,7 @@ struct HideableFeature: Equatable {
                 pendingTag = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
             } else if line.hasPrefix("points: ") {
                 let rule = String(line.dropFirst("points: ".count))
-                pendingRules.append(("points", rule, "# " + rule + "  # kmap: hidden"))
+                pendingRules.append(("points", rule, hidden(rule, tag: pendingTag)))
             }
         }
         flush()

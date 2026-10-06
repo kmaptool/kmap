@@ -19,6 +19,11 @@ struct AnnotatePass {
     /// a multi-region build, or the merged splitter stream collides them.
     var inventedIDBase: Int64 = 1 << 40
     var dropDuplicateDescriptions = false
+    /// Strips stress marks, zero-width marks and emoji from names, which a device would
+    /// draw as "?".
+    var cleanLabels = false
+    /// Keeps the zero-width joiners there, for the Arabic code page.
+    var keepsJoiners = false
     var markDuplicateVenues = false
     /// Where the .hgt tiles are, asked in order.
     var dem: [URL] = []
@@ -124,6 +129,8 @@ struct AnnotatePass {
         )
         rewriter.barriers = scanned.barriers
         rewriter.tidyDescriptions = dropDuplicateDescriptions
+        rewriter.cleanLabels = cleanLabels
+        rewriter.keepsJoiners = keepsJoiners
         rewriter.contours = contourFiles
         rewriter.duplicateVenues = scanned.venues
         rewriter.shouldStop = shouldStop
@@ -253,7 +260,7 @@ struct AnnotatePass {
 
         let joined =
             (made.counts[RepairPlanner.Verdict.joined] ?? 0)
-            + made.counts.filter { $0.key.hasPrefix("bridged") }.values
+            + made.counts.filter { $0.key.hasPrefix("bridged") || $0.key.hasPrefix("extended") }.values
             .reduce(0, +)
         var lines = [
             "joined \(joined) road end(s) no route could get through,"
@@ -265,7 +272,7 @@ struct AnnotatePass {
             ($0.value, $1.key) > ($1.value, $0.key)
         }) where reason != RepairPlanner.Verdict.joined {
             let label =
-                reason.hasPrefix("bridged")
+                reason.hasPrefix("bridged") || reason.hasPrefix("extended")
                 ? reason : "left as mapped, " + reason
             lines.append("  \(label): \(count)")
         }

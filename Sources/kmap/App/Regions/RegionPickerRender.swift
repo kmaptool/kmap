@@ -39,7 +39,8 @@ extension RegionPickerScreen {
 
         let regions = visibleRegions(ctx)
         let bodyY = rect.y + 2
-        let bodyHeight = rect.h - 2
+        // A message takes the last row from the list and panel, not the row on it.
+        let bodyHeight = rect.h - 2 - (message == nil ? 0 : 1)
         guard bodyHeight > 0 else { return }
 
         let detailWidth = rect.w >= Self.leastWidthForDetail ? Self.detailWidth : 0
@@ -135,8 +136,9 @@ extension RegionPickerScreen {
         s.text(rect.x, y, t("building together"), Style(fg: theme.strong, bg: theme.appBg, bold: true))
         y += 2
 
-        var total: Int64 = 0
-        var complete = true
+        // Every marked region, drawn or not.
+        let total = marked.reduce(Int64(0)) { $0 + (sizes[$1] ?? 0) }
+        let complete = marked.allSatisfy { sizes[$0] != nil }
         for id in marked {
             guard y < rect.maxY - Self.basketFooterRows else {
                 s.text(
@@ -149,7 +151,6 @@ extension RegionPickerScreen {
                 break
             }
             let size = sizes[id]
-            if let size { total += size } else { complete = false }
             s.text(
                 rect.x,
                 y,

@@ -6,47 +6,6 @@ import Foundation
 /// element must end exactly where the next one in its index begins; one that does not is
 /// kept with `exact` false rather than dropped.
 struct TypBinary {
-    struct Element {
-        let kind: MapElementKind
-        let type: Int
-        let subtype: Int
-
-        /// The code as the rule files and the TYP source write it.
-        ///
-        /// A point always folds its subtype in: `Type=0x2a00` is type 0x2a, subtype 0. A
-        /// line or polygon folds it in only for an extended type, one above 0xFF, written
-        /// as five digits: `Type=0x10208` is type 0x102, subtype 0x08.
-        var code: Int {
-            kind == .point || type > 0xFF ? (type << 8) | subtype : type
-        }
-
-        /// Day ink, day background, night ink, night background - as many as the element
-        /// stores. A nil is a slot the file marks transparent and does not store at all.
-        let colours: [String?]
-
-        /// Palette indices per pixel, for an element that carries a pattern.
-        let bitmap: [[Int]]?
-        /// Rows of the pattern, which for a line is its thickness.
-        let bitmapHeight: Int
-
-        /// A point's own images, which carry their own palettes rather than the element's.
-        let dayImage: PointImage?
-        let nightImage: PointImage?
-
-        let labels: [(language: Int, text: String)]
-        let fontStyle: String?
-        let dayLabelColour: String?
-        let nightLabelColour: String?
-
-        let lineWidth: Int?
-        let borderWidth: Int?
-        let usesOrientation: Bool
-
-        /// False when the element did not end where the next one begins. Its colours and
-        /// labels may still be right; nothing downstream should assume so.
-        let exact: Bool
-    }
-
     /// One image of a point, palette and pixels together.
     struct PointImage {
         let width: Int
@@ -79,6 +38,8 @@ struct TypBinary {
 
     // MARK: Reading
 
+    private static let largestTyp: Int64 = 64 << 20
+
     enum ReadError: LocalizedError {
         case notATyp
         case truncated
@@ -92,7 +53,11 @@ struct TypBinary {
     }
 
     static func read(_ url: URL) throws -> TypBinary {
-        guard let data = try? Data(contentsOf: url) else { throw ReadError.truncated }
+        // A TYP is kilobytes to a few megabytes: a file of gigabytes is not read to say so.
+        // Through a link, and only a plain file: a pipe would be read forever.
+        let file = FileTools.resolvingLinks(url)
+        guard FileTools.isRegularFile(file), FileTools.size(of: file) <= largestTyp else { throw ReadError.notATyp }
+        guard let data = try? Data(contentsOf: file) else { throw ReadError.truncated }
         return try decode([UInt8](data))
     }
 
@@ -117,16 +82,29 @@ struct TypBinary {
             _ index: (Int, Int, Int),
             _ section: (Int, Int)
         ) -> [Element] {
-            entries(in: data, index: index, section: section).compactMap { entry in
-                decodeElement(
-                    kind,
-                    data,
-                    at: entry.offset,
-                    length: entry.length,
-                    type: entry.type,
-                    subtype: entry.subtype,
-                    codePage: codePage
-                )
+            // 1 drawing an index names many times is decoded once: a damaged index could
+            // otherwise cost a full decode an entry.
+            var decoded: [Int: Element?] = [:]
+            return entries(in: data, index: index, section: section).compactMap { entry in
+                let element: Element?
+                if let known = decoded[entry.offset] {
+                    element = known
+                } else {
+                    element = decodeElement(
+                        kind,
+                        data,
+                        at: entry.offset,
+                        length: entry.length,
+                        type: entry.type,
+                        subtype: entry.subtype,
+                        codePage: codePage
+                    )
+                    decoded[entry.offset] = element
+                }
+                guard var named = element else { return nil }
+                named.type = entry.type
+                named.subtype = entry.subtype
+                return named
             }
         }
 
@@ -166,9 +144,15 @@ struct TypBinary {
         raw.sort { $0.offset < $1.offset }
 
         let (start, sectionLength) = section
+        // To the next drawing, not the next entry: entries naming 1 drawing share its length.
+        var ends = [Int](repeating: sectionLength, count: raw.count)
+        var next = sectionLength
+        for i in stride(from: raw.count - 1, through: 0, by: -1) {
+            ends[i] = next
+            if i > 0, raw[i - 1].offset != raw[i].offset { next = raw[i].offset }
+        }
         return raw.enumerated().map { i, entry in
-            let end = i + 1 < raw.count ? raw[i + 1].offset : sectionLength
-            return (entry.type, entry.subtype, start + entry.offset, end - entry.offset)
+            (entry.type, entry.subtype, start + entry.offset, ends[i] - entry.offset)
         }
     }
 

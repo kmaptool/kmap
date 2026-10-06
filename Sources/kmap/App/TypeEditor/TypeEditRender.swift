@@ -2,15 +2,29 @@ import Foundation
 
 /// Drawing the type editor: the pictures, the field rows, the pickers.
 extension TypeEditScreen {
-    private static let dayColumn = 20
-    private static let nightColumn = 38
-    private static let labelWidth = 18
+    /// The longest Russian field name, 21 letters, and a space.
+    private static let labelWidth = 23
     private static let halfWidth = 18
+    /// A colour slot at its narrowest: the pointer, the swatch, a space, 7 hex digits, a space.
+    private static let leastHalf = 13
+
+    /// Label and colour slot widths for rows `width` wide: the slots narrow first, then the
+    /// label, so the colour this screen edits stays whole.
+    static func columns(_ width: Int) -> (label: Int, half: Int) {
+        // The pointer, and the column between the 2 slots.
+        let room = width - 2 - 1
+        let half = min(halfWidth, max(leastHalf, (room - labelWidth) / 2))
+        return (min(labelWidth, max(8, room - 2 * half)), half)
+    }
     /// Rows kept for the scrolling list below the pictures.
     private static let leastListRows = 8
     private static let mostColourRows = 6
     private static let sampleWidth = 12...40
     private static let swatchWidth = 16
+
+    func renderOverlay(into s: Surface, rect: Rect, ctx: AppContext) {
+        replacing?.render(into: s, rect: rect, theme: ctx.theme)
+    }
 
     func render(into s: Surface, rect: Rect, ctx: AppContext) {
         let theme = ctx.theme
@@ -49,21 +63,31 @@ extension TypeEditScreen {
             if case .colourPair = $0 { return true } else { return false }
         }
         if hasPairs, y < rect.maxY {
-            s.text(rect.x + Self.dayColumn, y, t("day"), Style(fg: theme.faint, bg: theme.appBg))
-            s.text(rect.x + Self.nightColumn, y, t("night"), Style(fg: theme.faint, bg: theme.appBg))
+            // Over the slots: past the pointer and the label, then 1 apart.
+            let columns = Self.columns(rect.w - 1)
+            s.text(rect.x + 2 + columns.label, y, t("day"), Style(fg: theme.faint, bg: theme.appBg))
+            s.text(
+                rect.x + 2 + columns.label + columns.half + 1,
+                y,
+                t("night"),
+                Style(fg: theme.faint, bg: theme.appBg)
+            )
             y += 1
         }
 
         let listHeight = max(1, rect.maxY - y - 1)
         list.clamp(count: fields.count, visible: listHeight)
         let listTop = y
+        // The last column is the scroll hint's only where the list scrolls.
+        let rowWidth = fields.count > listHeight ? rect.w - 1 : rect.w
         for offset in 0..<min(listHeight, fields.count - list.offset) {
             let index = list.offset + offset
             guard let field = fields[safe: index] else { break }
             draw(
                 field,
                 into: s,
-                rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
+                rect: Rect(x: rect.x, y: y, w: rowWidth, h: 1),
+                columns: Self.columns(rect.w - 1),
                 y: y,
                 theme: theme,
                 selected: index == list.selected,
@@ -80,9 +104,8 @@ extension TypeEditScreen {
             theme: theme
         )
 
-        if rect.maxY - 1 > y {
-            s.statusLine(message, isError: messageIsError, rect: rect, theme: theme)
-        }
+        // On the last row, which the list leaves free.
+        s.statusLine(message, isError: messageIsError, rect: rect, theme: theme)
         picker?.render(into: s, rect: rect, theme: theme)
     }
 
@@ -231,6 +254,7 @@ extension TypeEditScreen {
         _ field: Field,
         into s: Surface,
         rect: Rect,
+        columns: (label: Int, half: Int),
         y: Int,
         theme: Theme,
         selected: Bool,
@@ -249,9 +273,18 @@ extension TypeEditScreen {
             x = s.text(
                 x,
                 y,
-                text.padding(toLength: Self.labelWidth, withPad: " ", startingAt: 0),
+                truncate(text, to: columns.label - 1).padding(toLength: columns.label, withPad: " ", startingAt: 0),
                 Style(fg: theme.dim, bg: bg)
             )
+        }
+
+        /// The row's value, cut short of the key hint at the right edge, which goes where
+        /// there is no room for both.
+        func value(_ text: String, _ style: Style, hint: String) {
+            let hint = "⏎ " + hint
+            let room = rect.maxX - x - hint.count - 2
+            s.text(x, y, truncate(text, to: max(0, room > 8 ? room : rect.maxX - x)), style)
+            if room > 8 { s.textRight(rect.maxX, y, hint, Style(fg: theme.faint, bg: bg)) }
         }
 
         switch field {
@@ -261,35 +294,21 @@ extension TypeEditScreen {
                 section.picture.map {
                     "\($0.width)×\($0.height), " + tn("%d colour(s)", $0.declaredColours)
                 } ?? t("solid colours, no pattern")
-            s.text(x, y, description, Style(fg: theme.text, bg: bg))
-            s.textRight(rect.maxX, y, "⏎ " + t("borrow one"), Style(fg: theme.faint, bg: bg))
+            value(description, Style(fg: theme.text, bg: bg), hint: t("borrow one"))
 
         case .drawPicture:
             label(t("Draw"))
-            s.text(
-                x,
-                y,
+            value(
                 section.picture == nil
                     ? t("start a pattern from this type's own colour")
                     : t("pixel by pixel, with the pointer"),
-                Style(fg: theme.text, bg: bg)
-            )
-            s.textRight(
-                rect.maxX,
-                y,
-                "⏎ " + t("open the editor"),
-                Style(fg: theme.faint, bg: bg)
+                Style(fg: theme.text, bg: bg),
+                hint: t("open the editor")
             )
 
         case .addNight:
             label(t("Night version"))
-            s.text(
-                x,
-                y,
-                t("none — the day drawing is used after dark"),
-                Style(fg: theme.warn, bg: bg)
-            )
-            s.textRight(rect.maxX, y, "⏎ " + t("start one"), Style(fg: theme.faint, bg: bg))
+            value(t("none — the day drawing is used after dark"), Style(fg: theme.warn, bg: bg), hint: t("start one"))
 
         case .colourPair(let role, let day, let night):
             label(role)
@@ -298,6 +317,8 @@ extension TypeEditScreen {
                 s,
                 x: x,
                 y: y,
+                maxX: rect.maxX,
+                width: columns.half,
                 slot: day,
                 focused: selected && !onNight,
                 draft: editingThis && !onNight ? draft : nil,
@@ -309,6 +330,8 @@ extension TypeEditScreen {
                 s,
                 x: x,
                 y: y,
+                maxX: rect.maxX,
+                width: columns.half,
                 slot: night,
                 focused: selected && onNight,
                 draft: editingThis && onNight ? draft : nil,
@@ -319,13 +342,11 @@ extension TypeEditScreen {
         case .fontStyle:
             label(t("Label size"))
             let current = section.fontStyle ?? ""
-            s.text(
-                x,
-                y,
+            value(
                 current.isEmpty ? t("whatever the device uses") : current,
-                Style(fg: current.isEmpty ? theme.faint : theme.text, bg: bg)
+                Style(fg: current.isEmpty ? theme.faint : theme.text, bg: bg),
+                hint: t("next")
             )
-            s.textRight(rect.maxX, y, "⏎ " + t("next"), Style(fg: theme.faint, bg: bg))
 
         case .labelColour:
             label(t("Label colour"))
@@ -345,6 +366,8 @@ extension TypeEditScreen {
                 s,
                 x: x,
                 y: y,
+                maxX: rect.maxX,
+                width: columns.half,
                 slot: day
                     ?? TypSection.ColourSlot(
                         role: "day",
@@ -362,6 +385,8 @@ extension TypeEditScreen {
                 s,
                 x: x,
                 y: y,
+                maxX: rect.maxX,
+                width: columns.half,
                 slot: night
                     ?? TypSection.ColourSlot(
                         role: "night",
@@ -382,32 +407,33 @@ extension TypeEditScreen {
             let end = s.text(
                 x,
                 y,
-                editingThis ? draft : (current ?? "—"),
+                truncate(editingThis ? draft : (current ?? "—"), to: max(0, rect.maxX - x - 1)),
                 Style(fg: theme.strong, bg: bg, bold: editingThis)
             )
             if editingThis { s.put(end, y, "▏", Style(fg: theme.accent, bg: bg)) }
         }
     }
 
-    /// One half of a colour pair: a swatch, then the value beside it. A slot the file
-    /// says nothing about is a dash.
+    /// One half of a colour pair: a swatch, then the value beside it, cut at `maxX`. A slot
+    /// the file says nothing about is a dash.
     @discardableResult
     private func half(
         _ s: Surface,
         x: Int,
         y: Int,
+        maxX: Int,
+        width: Int,
         slot: TypSection.ColourSlot?,
         focused: Bool,
         draft: String?,
         theme: Theme,
         bg: Color
     ) -> Int {
-        let width = Self.halfWidth
         guard let slot else {
             s.text(
                 x + 1,
                 y,
-                focused ? "— ⏎ " + t("add one") : "—",
+                truncate(focused ? "— ⏎ " + t("add one") : "—", to: max(0, maxX - x - 1)),
                 Style(fg: focused ? theme.accent : theme.faint, bg: bg)
             )
             return x + width
@@ -424,7 +450,7 @@ extension TypeEditScreen {
         let end = s.text(
             cursor,
             y,
-            shown ?? t("none"),
+            truncate(shown ?? t("none"), to: max(0, maxX - cursor - (draft == nil ? 0 : 1))),
             Style(
                 fg: shown == nil ? theme.faint : theme.strong,
                 bg: bg,

@@ -123,15 +123,65 @@ final class StyleRulesLabelsPassesTests: XCTestCase {
     }
 
     func testEveryNamingRuleIsActionOnlyAndSparesWhatHasAName() throws {
-        // A type here would claim the object before the rule meant to draw it.
+        // A type here would claim the object before the rule meant to draw it. A brand or
+        // an operator is a name the stock rules give; a ref is said after the word, or alone
+        // where it starts with it. A barrier's word stays off the point of a fenced area.
         try write("", to: "points")
         try catalog.addRussianLabels(in: directory, cyrillic: true, log: Log(showing: .error))
         let rules = try read("points").split(separator: "\n").filter { !$0.hasPrefix("#") }
         XCTAssertGreaterThan(rules.count, 10)
         for rule in rules {
-            XCTAssertTrue(rule.contains("& name!=*"), String(rule))
+            let plain = rule.contains("& name!=* & brand!=* & operator!=* { name '${ref}' | '")
+            let numbered =
+                rule.contains("& name!=* & brand!=* & operator!=* & ref=* & !(ref ~ '(?iuU)")
+                && rule.contains(" ${ref}'")
+            XCTAssertEqual(rule.hasPrefix("barrier="), rule.contains("mkgmap:area2poi!=true"), String(rule))
+            XCTAssertTrue(plain || numbered, String(rule))
             XCTAssertFalse(rule.contains("[0x"), String(rule))
         }
+    }
+
+    /// mkgmap runs a closed way through the lines rules ahead of the areas' naming: there
+    /// the word yields to a brand or an operator. An open line has no such naming and takes
+    /// the word whatever else it carries, a ref after it.
+    func testALineIsNamedWhateverItsOperatorUnlessItIsAnArea() throws {
+        try write("", to: "lines")
+        try catalog.addRussianLabels(in: directory, cyrillic: true, log: Log(showing: .error))
+        let rules = try read("lines").split(separator: "\n").filter { !$0.hasPrefix("#") && !$0.isEmpty }
+        XCTAssertGreaterThan(rules.count, 10)
+        for rule in rules {
+            XCTAssertTrue(
+                rule.contains("brand!=* & operator!=*") || rule.contains("is_closed()=false")
+                    || rule.hasPrefix("barrier="),
+                String(rule)
+            )
+            // mkgmap r4924 has no `!~`: it reads `!` and `~` and refuses the style.
+            XCTAssertFalse(rule.contains("!~"), String(rule))
+        }
+        XCTAssertTrue(
+            rules.contains {
+                $0.hasPrefix("man_made=pier & name!=* & is_closed()=false & ref=* & !(ref ~ '(?iuU)Пирс\\b.*')")
+                    && $0.contains(" ${ref}'")
+            }
+        )
+    }
+
+    /// A sport is said in Russian on a Cyrillic map, from the iD editor's translation, and
+    /// spelled as words otherwise; the labels read the value set first.
+    func testASportIsSaidInWords() throws {
+        let stock = "leisure=pitch {name '${name} (${sport})' | '${sport}'} [0x2c08 resolution 24]\n"
+        try write(stock, to: "points")
+        try catalog.labelSportValues(in: directory, cyrillic: true, log: Log(showing: .error))
+        let russian = try read("points")
+        XCTAssertTrue(russian.contains("sport=tennis { set kmap:sport='Теннис' }"), russian)
+        XCTAssertTrue(russian.contains("{name '${name} (${kmap:sport})' | '${kmap:sport}'}"))
+        XCTAssertFalse(russian.contains("${sport}'"))
+
+        try write(stock, to: "points")
+        try catalog.labelSportValues(in: directory, cyrillic: false, log: Log(showing: .error))
+        let latin = try read("points")
+        XCTAssertFalse(latin.contains("Теннис"))
+        XCTAssertTrue(latin.contains("sport=* & kmap:sport!=* { set kmap:sport='${sport|subst:"))
     }
 
     func testAValueWithASemicolonIsQuoted() throws {

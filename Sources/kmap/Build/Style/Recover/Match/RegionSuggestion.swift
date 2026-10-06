@@ -253,6 +253,22 @@ enum RegionSuggestion {
         return out
     }
 
+    /// The share of the map's drawn data lying inside any of `boxes`, sampled as
+    /// `stance` samples a region.
+    static func share(of drawn: DrawnGround, within boxes: [BBox]) -> Double {
+        let total = drawn.spots.reduce(0.0) { $0 + $1.weight }
+        guard total > 0 else { return 0 }
+        var held = 0.0
+        for spot in drawn.spots where boxes.contains(where: { $0.intersects(spot.box) }) {
+            let cells = sampleCells(of: spot.box, steps: 12)
+            let inside = cells.lazy.filter { cell in
+                boxes.contains { $0.contains(lat: cell.lat, lon: cell.lon) }
+            }.count
+            held += spot.weight * Double(inside) / Double(cells.count)
+        }
+        return held / total
+    }
+
     /// Where a region's extract lands, in the build pipeline's own naming, so a
     /// download made here is the one a build finds.
     static func cacheDestination(for region: Region) -> URL {

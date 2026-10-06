@@ -32,6 +32,9 @@ struct ZoomPlan: Codable, Equatable, Identifiable {
 
     var isBuiltin: Bool { ZoomPlan.builtins.contains { $0.id == id } }
 
+    /// The name on screen: a built-in's in the interface's language, a user's as typed.
+    var shownName: String { isBuiltin ? t(name) : name }
+
     /// Written out because the lenient decoder below takes the memberwise one away.
     init(id: String, name: String, levelsID: String, windows: [String: Window] = [:]) {
         self.id = id

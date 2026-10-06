@@ -1,9 +1,7 @@
 import Foundation
 
-/// A path in the platform's own file-system spelling.
-///
-/// `URL.path` is POSIX-shaped, so on Windows it yields `/E:/dir/file` rather than a path
-/// any program there can open. On the Unixes it equals `.path` byte for byte.
+/// A path in the platform's own spelling: on Windows `URL.path` gives `E:/dir/file` with
+/// forward slashes; on the Unixes this equals `.path`.
 extension URL {
     /// This file's path in the platform's file-system spelling.
     ///

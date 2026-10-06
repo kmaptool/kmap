@@ -182,4 +182,16 @@ final class ElevationCostChainTests: XCTestCase {
         XCTAssertNil(out[1].bytes)
         XCTAssertNotNil(out[1].note)
     }
+
+    func testACredentialedSourcesConvertedCellsAreCachedAndSettleLaterSources() async throws {
+        let directory = Paths.hgtCache.appendingPathComponent("SRTM1", isDirectory: true)
+        Paths.ensure(directory)
+        let tile = directory.appendingPathComponent("S10W140.hgt")
+        try FileTools.write(Data([0, 1]), to: tile)
+        defer { FileTools.removeIfPresent(tile) }
+        let out = await ElevationCost.estimate(sources: "srtm1,alos1", cells: cells)
+        XCTAssertEqual(out[0].cached, 1)
+        XCTAssertEqual(out[0].wanted, 3)
+        XCTAssertEqual(out[1].wanted, 3, "the converted cell is not asked of ALOS")
+    }
 }

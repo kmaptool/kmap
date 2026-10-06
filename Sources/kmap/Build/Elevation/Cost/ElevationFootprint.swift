@@ -40,35 +40,51 @@ enum ElevationFootprint {
         return out
     }
 
-    /// Cuts the cells lying wholly outside every outline out of the list. A region whose
-    /// rings are nil keeps every cell of its own boxes, as 1 square ring per cell,
-    /// erring towards fetching ground rather than clipping it away.
+    /// Cuts the cells lying wholly outside every outline. A region without rings keeps the
+    /// cells of its boxes and, as the margin reaches them, their neighbours: better fetched
+    /// than clipped. Kept by lookup, not 1 square ring per cell: rings tested against every
+    /// cell took minutes for a country without its outline.
     static func trim(
         _ all: [(lat: Int, lon: Int)],
-        ringsPerRegion: [(region: Region, rings: [RegionOutline.Ring]?)]
+        ringsPerRegion: [(region: Region, rings: [RegionOutline.Ring]?)],
+        shouldStop: () -> Bool = { false }
     ) -> [(lat: Int, lon: Int)] {
         var rings: [RegionOutline.Ring] = []
+        var boxed = Set<String>()
         for (region, some) in ringsPerRegion {
             if let some {
                 rings.append(contentsOf: some.filter { !$0.subtract })
             } else {
-                let keep = Set(
-                    region.boxes.flatMap { cellOrigins(of: $0) }
-                        .map { HGTName.of(lat: $0.lat, lon: $0.lon) }
+                boxed.formUnion(
+                    region.boxes.flatMap { cellOrigins(of: $0) }.map { HGTName.of(lat: $0.lat, lon: $0.lon) }
                 )
-                rings.append(contentsOf: squareRings(covering: keep, from: all))
             }
         }
-        guard !rings.isEmpty else { return all }
-        return all.filter { cell in
-            RegionOutline.rectTouches(
-                rings,
-                minLon: Double(cell.lon) - margin,
-                minLat: Double(cell.lat) - margin,
-                maxLon: Double(cell.lon) + 1 + margin,
-                maxLat: Double(cell.lat) + 1 + margin
-            )
+        guard !rings.isEmpty || !boxed.isEmpty else { return all }
+        // The boxes' own cells among those listed, by position.
+        let kept = Set(
+            all.filter { boxed.contains(HGTName.of(lat: $0.lat, lon: $0.lon)) }.map { $0.lat * 1000 + $0.lon }
+        )
+        var out: [(lat: Int, lon: Int)] = []
+        for (at, cell) in all.enumerated() {
+            if at % 256 == 0, shouldStop() { return out }
+            let near = (-1...1).contains { dy in
+                (-1...1).contains { dx in kept.contains((cell.lat + dy) * 1000 + cell.lon + dx) }
+            }
+            if near
+                || (!rings.isEmpty
+                    && RegionOutline.rectTouches(
+                        rings,
+                        minLon: Double(cell.lon) - margin,
+                        minLat: Double(cell.lat) - margin,
+                        maxLon: Double(cell.lon) + 1 + margin,
+                        maxLat: Double(cell.lat) + 1 + margin
+                    ))
+            {
+                out.append(cell)
+            }
         }
+        return out
     }
 
     /// The trimmed footprint in 1 call, fetching each region's outline itself: what the
@@ -80,24 +96,6 @@ enum ElevationFootprint {
         for region in regions {
             perRegion.append((region, await RegionOutline.rings(for: region)))
         }
-        return trim(all, ringsPerRegion: perRegion)
-    }
-
-    /// 1 square ring per named cell: how a region without an outline keeps its ground
-    /// through the trim.
-    private static func squareRings(
-        covering names: Set<String>,
-        from all: [(lat: Int, lon: Int)]
-    ) -> [RegionOutline.Ring] {
-        all.filter { names.contains(HGTName.of(lat: $0.lat, lon: $0.lon)) }
-            .map { cell in
-                let lon = Double(cell.lon), lat = Double(cell.lat)
-                return RegionOutline.Ring(
-                    subtract: false,
-                    points: [
-                        (lon, lat), (lon + 1, lat), (lon + 1, lat + 1), (lon, lat + 1), (lon, lat)
-                    ]
-                )
-            }
+        return trim(all, ringsPerRegion: perRegion, shouldStop: { Task.isCancelled })
     }
 }

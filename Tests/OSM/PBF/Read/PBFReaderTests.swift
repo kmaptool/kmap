@@ -158,6 +158,31 @@ final class PBFReaderTests: XCTestCase {
         XCTAssertEqual(box?.maxLon ?? 0, 18.5, accuracy: 1e-9)
     }
 
+    /// Nodes written 1 message each, not dense, are refused rather than read as none.
+    func testPlainNodesAreRefusedNotLost() throws {
+        var header = ProtoWriter()
+        for feature in PBFSchema.requiredFeatures { header.stringField(PBFSchema.headerRequiredFeature, feature) }
+        var block = ProtoWriter()
+        block.message(PBFSchema.stringTable) { $0.stringField(PBFSchema.stringEntry, "") }
+        block.message(PBFSchema.primitiveGroup) { group in
+            group.message(PBFSchema.groupNodes) { node in
+                node.varintField(PBFSchema.elementID, 1)
+            }
+        }
+        let url = path("plain.osm.pbf")
+        try FileTools.write(
+            Data(
+                PBFBytes.rawBlob(kind: "OSMHeader", payload: header.bytes)
+                    + PBFBytes.rawBlob(kind: "OSMData", payload: block.bytes)
+            ),
+            to: url
+        )
+        var collected = CollectedElements()
+        XCTAssertThrowsError(try PBFReader(url: url).read(into: &collected)) {
+            guard case .plainNodes = $0 as? PBFError else { return XCTFail("\($0)") }
+        }
+    }
+
     /// A history file names a feature this reader does not know, and is refused rather than
     /// read with every deleted object brought back.
     func testAFileNeedingAnUnknownFeatureIsRefused() throws {
@@ -225,11 +250,19 @@ final class PBFReaderTests: XCTestCase {
 
     // MARK: Files that are wrong
 
-    func testAnEmptyFileReadsAsEmpty() throws {
+    /// 0 bytes is a download cut short, never an empty map: every PBF opens with a header
+    /// blob. Refused, so a build fetches it again rather than building nothing.
+    func testAnEmptyFileIsRefused() throws {
         let url = path("empty.osm.pbf")
         try write([], to: url)
-        let out = try read(url)
-        XCTAssertTrue(out.nodes.isEmpty)
+        XCTAssertThrowsError(try read(url))
+    }
+
+    /// Bytes past the last blob are the start of another one cut short.
+    func testTrailingBytesAreRefused() throws {
+        let url = path("trail.osm.pbf")
+        try write(rawBlob(kind: "OSMHeader", payload: []) + [0, 0, 1], to: url)
+        XCTAssertThrowsError(try read(url))
     }
 
     func testAFileCutOffMidBlobIsRefusedNotGuessedAt() throws {

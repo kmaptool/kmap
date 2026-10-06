@@ -9,6 +9,8 @@ import XCTest
 @MainActor
 final class ImportConsentTests: XCTestCase {
     private var ctx: AppContext!
+    /// Real files: a missing one is refused before any question.
+    private var lone = "", other = "", small = ""
 
     override func setUp() {
         // On Linux `setUp` is nonisolated, so the isolation has to be stated to reach
@@ -16,6 +18,17 @@ final class ImportConsentTests: XCTestCase {
         MainActor.assumeIsolated {
             super.setUp()
             ctx = AppContext()
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent(
+                "consent-\(UUID().uuidString.prefix(8))"
+            )
+            Paths.ensure(folder)
+            addTeardownBlock { try? FileManager.default.removeItem(at: folder) }
+            for name in ["lone.txt", "another.txt", "a.txt"] {
+                try? FileTools.write(TypFixture.source, to: folder.appendingPathComponent(name))
+            }
+            lone = folder.appendingPathComponent("lone.txt").path
+            other = folder.appendingPathComponent("another.txt").path
+            small = folder.appendingPathComponent("a.txt").path
         }
     }
 
@@ -35,7 +48,7 @@ final class ImportConsentTests: XCTestCase {
         _ path: String,
         pastTheFirstQuestion: Bool = true
     ) -> ImportTypScreen {
-        let screen = ImportTypScreen(onImported: {})
+        let screen = ImportTypScreen()
         _ = frame(screen)
         _ = screen.handle(.tab, ctx: ctx)
         for c in path { _ = screen.handle(.char(c), ctx: ctx) }
@@ -50,7 +63,7 @@ final class ImportConsentTests: XCTestCase {
     // MARK: The question a lone TYP gets first
 
     func testALoneTypIsToldWhatTakingItAloneCosts() async {
-        let screen = screenAsking("/tmp/does-not-exist.typ", pastTheFirstQuestion: false)
+        let screen = screenAsking(lone, pastTheFirstQuestion: false)
         let drawn = frame(screen)
         XCTAssertTrue(
             drawn.contains(t("Only the drawing").uppercased()),
@@ -60,7 +73,7 @@ final class ImportConsentTests: XCTestCase {
     }
 
     func testDecliningThatQuestionImportsNothing() async {
-        let screen = screenAsking("/tmp/does-not-exist.typ", pastTheFirstQuestion: false)
+        let screen = screenAsking(lone, pastTheFirstQuestion: false)
         _ = screen.handle(.esc, ctx: ctx)
         let drawn = frame(screen)
         XCTAssertTrue(drawn.contains(t("nothing was imported")))
@@ -68,16 +81,16 @@ final class ImportConsentTests: XCTestCase {
     }
 
     func testAgreeingToItLeadsToTheRightsQuestion() async {
-        let screen = screenAsking("/tmp/does-not-exist.typ")
+        let screen = screenAsking(lone)
         XCTAssertTrue(frame(screen).contains("IMPORTANT"))
     }
 
     func testEnterAsksBeforeItTakesAnything() async {
-        let screen = screenAsking("/tmp/does-not-exist.typ")
+        let screen = screenAsking(lone)
         let drawn = frame(screen)
         XCTAssertTrue(drawn.contains("IMPORTANT"), "⏎ has to put the question up")
         XCTAssertTrue(
-            drawn.contains("does-not-exist.typ"),
+            drawn.contains("lone.txt"),
             "and name the file it is about"
         )
         // Not the import's own error, which is what would be on screen had it gone ahead.
@@ -85,13 +98,13 @@ final class ImportConsentTests: XCTestCase {
     }
 
     func testTheFooterBelongsToTheDialogWhileItIsUp() async {
-        let screen = screenAsking("/tmp/does-not-exist.typ")
+        let screen = screenAsking(lone)
         XCTAssertTrue(screen.footerHints.contains { $0.key == "←→" })
         XCTAssertFalse(screen.footerHints.contains { $0.label == t("type a path") })
     }
 
     func testCancellingImportsNothing() async {
-        let screen = screenAsking("/tmp/does-not-exist.typ")
+        let screen = screenAsking(lone)
         _ = screen.handle(.esc, ctx: ctx)
         let drawn = frame(screen)
         XCTAssertFalse(drawn.contains("IMPORTANT"), "the question is gone")
@@ -101,23 +114,42 @@ final class ImportConsentTests: XCTestCase {
 
     func testEnterOnItsOwnCancelsRatherThanImporting() async {
         // The cursor starts on the cancelling answer.
-        let screen = screenAsking("/tmp/does-not-exist.typ")
+        let screen = screenAsking(lone)
         _ = screen.handle(.enter, ctx: ctx)
         XCTAssertTrue(frame(screen).contains(t("nothing was imported")))
     }
 
     func testConfirmingRunsTheImport() async {
-        // The path cannot be imported, on purpose: the error is the proof that the import
-        // ran, and the real library is left untouched.
-        let screen = screenAsking("/tmp/does-not-exist.typ")
+        // Into the test run's own library, emptied of it after.
+        let before = Set(TypLibrary.contents())
+        defer { for url in Set(TypLibrary.contents()).subtracting(before) { try? TypLibrary.delete(url) } }
+        let screen = screenAsking(lone)
         _ = screen.handle(.right, ctx: ctx)
         _ = screen.handle(.enter, ctx: ctx)
         let drawn = frame(screen)
         XCTAssertFalse(drawn.contains("IMPORTANT"))
-        XCTAssertTrue(
-            drawn.contains("does-not-exist.typ"),
-            "the import ran and said what it could not find"
-        )
+        XCTAssertFalse(drawn.contains(t("nothing was imported")))
+        XCTAssertFalse(Set(TypLibrary.contents()).subtracting(before).isEmpty, "the import ran")
+    }
+
+    /// A path that is not there is said so at once, before any question about it.
+    func testAMissingFileIsSaidBeforeAnyQuestion() async {
+        let screen = screenAsking("/tmp/does-not-exist-\(UUID().uuidString).typ", pastTheFirstQuestion: false)
+        let drawn = frame(screen)
+        XCTAssertFalse(drawn.contains(t("Only the drawing").uppercased()))
+        XCTAssertFalse(drawn.contains("IMPORTANT"))
+        XCTAssertTrue(drawn.contains("no such file"))
+    }
+
+    /// A file reached through a link is there.
+    func testAFileBehindALinkIsAskedAbout() async throws {
+        let link = URL(fileURLWithPath: lone).deletingLastPathComponent().appendingPathComponent("linked.txt")
+        // Windows makes links only with a privilege a test run may not have.
+        guard (try? FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: lone)) != nil else {
+            throw XCTSkip("no symbolic links here")
+        }
+        let screen = screenAsking(link.path, pastTheFirstQuestion: false)
+        XCTAssertTrue(frame(screen).contains(t("Only the drawing").uppercased()))
     }
 
     func testTheQuestionIsAskedInTheLanguageOnScreen() async {
@@ -125,7 +157,7 @@ final class ImportConsentTests: XCTestCase {
         defer { L10n.use(was) }
 
         L10n.use(.ru)
-        let russian = screenAsking("/tmp/a.typ")
+        let russian = screenAsking(small)
         XCTAssertTrue(frame(russian).contains("ВАЖНО"))
         _ = russian.handle(.right, ctx: ctx)
         XCTAssertTrue(
@@ -134,7 +166,7 @@ final class ImportConsentTests: XCTestCase {
         )
 
         L10n.use(.en)
-        let english = screenAsking("/tmp/a.typ")
+        let english = screenAsking(small)
         XCTAssertTrue(frame(english).contains("IMPORTANT"))
         _ = english.handle(.right, ctx: ctx)
         XCTAssertTrue(english.footerHints.contains { $0.label == "I confirm" })
@@ -142,10 +174,10 @@ final class ImportConsentTests: XCTestCase {
 
     func testItIsAskedAgainForTheNextFile() async {
         // One answer covers one file.
-        let screen = screenAsking("/tmp/does-not-exist.typ")
+        let screen = screenAsking(lone)
         _ = screen.handle(.esc, ctx: ctx)
-        for _ in 0..<20 { _ = screen.handle(.backspace, ctx: ctx) }
-        for c in "/tmp/another.typ" { _ = screen.handle(.char(c), ctx: ctx) }
+        for _ in 0..<300 { _ = screen.handle(.backspace, ctx: ctx) }
+        for c in other { _ = screen.handle(.char(c), ctx: ctx) }
         _ = screen.handle(.enter, ctx: ctx)
         // Both questions again, in order.
         XCTAssertTrue(frame(screen).contains(t("Only the drawing").uppercased()))

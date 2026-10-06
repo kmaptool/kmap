@@ -45,7 +45,7 @@ extension StyleListScreen {
         let listTop = y
         for index in list.window(count: shown.count, visible: listHeight) {
             let style = shown[index]
-            let isDefault = style.id == defaultID
+            let isDefault = StyleCatalog.names(defaultID, style)
             let inLibrary = libraryFile(of: style) != nil
             Widgets.row(
                 s,

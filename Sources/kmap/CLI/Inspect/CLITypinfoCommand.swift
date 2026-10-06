@@ -7,7 +7,9 @@ extension CLI {
     private static let listedSubFiles: Set<String> = ["TYP", "MDR", "MPS"]
 
     static func typinfo(_ arguments: [String]) -> Int32 {
-        let paths = Flags(arguments).positionals
+        let flags = Flags(arguments)
+        if let refused = flags.refusal("typinfo", knows: []) { return refused }
+        let paths = flags.positionals
         guard !paths.isEmpty else {
             return CLIOutput.refuse("typinfo needs one or more .img paths")
         }

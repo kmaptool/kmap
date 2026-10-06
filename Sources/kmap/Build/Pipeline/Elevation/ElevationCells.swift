@@ -23,24 +23,24 @@ extension BuildPipeline {
         elevationCells().map { HGTName.of(lat: $0.lat, lon: $0.lon) }
     }
 
-    /// Every region's outline rings in one osmosis .poly, for pyhgtmap's --polygon.
-    /// Holes are dropped, erring towards keeping ground. Nil when any region has no
-    /// outline, so the caller falls back to the rectangle rather than clip it away.
-    func writeElevationClipPolygon() async -> URL? {
+    /// Where the DEM layer ends: every region's outline, holes left in, as an osmosis
+    /// .poly for mkgmap's `--dem-poly`. Past it the map carries no relief rather than 0 m,
+    /// which over a neighbour's map would cover its own. No file where any region has no
+    /// outline: the layer then covers the whole tile.
+    var demPolygonFile: URL { workDirectory.appendingPathComponent("dem-clip.poly") }
+
+    func writeDEMPolygon() async {
+        FileTools.removeIfPresent(demPolygonFile)
         var sections: [[(lon: Double, lat: Double)]] = []
         for region in recipe.regions {
-            guard let rings = await regionRings(region) else { return nil }
+            guard let rings = await regionRings(region) else { return }
             sections.append(contentsOf: rings.filter { !$0.subtract }.map(\.points))
         }
-        guard !sections.isEmpty else { return nil }
-        let text = RegionOutline.polyText(name: "kmap-elevation", sections: sections)
-        let url = workDirectory.appendingPathComponent("elevation-clip.poly")
+        guard !sections.isEmpty else { return }
         do {
-            try FileTools.write(text, to: url)
-            return url
+            try FileTools.write(RegionOutline.polyText(name: "kmap-dem", sections: sections), to: demPolygonFile)
         } catch {
-            log.warn("could not write the elevation clip polygon — using the box: \(error)")
-            return nil
+            log.warn("could not write the DEM outline — the relief covers each tile whole: \(error)")
         }
     }
 
@@ -60,7 +60,9 @@ extension BuildPipeline {
             perRegion.append((region, rings))
         }
         guard !perRegion.isEmpty else { return }
-        let kept = ElevationFootprint.trim(all, ringsPerRegion: perRegion)
+        let kept = ElevationFootprint.trim(all, ringsPerRegion: perRegion, shouldStop: { self.isCancelled })
+        // A stopped trim is part of the list: kept and said, it would be wrong.
+        guard !isCancelled else { return }
         if kept.count < all.count {
             log.ok(
                 "outline trim: \(all.count) cell(s) → \(kept.count), "

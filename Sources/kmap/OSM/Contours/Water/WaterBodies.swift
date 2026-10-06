@@ -16,6 +16,9 @@ struct WaterBodies: Sendable {
         /// A closed way in its own right rather than part of a multipolygon: a pond on an
         /// island is one, and is filled after the island has been cut out.
         var standalone: Bool
+        /// Which multipolygon it belongs to, so an island is cut out of its own water only:
+        /// a lake mapped on another lake's island stays. -1 for a closed way of its own.
+        var group: Int32 = -1
 
         var count: Int { points.count / 2 }
         func lat(_ i: Int) -> Double { Double(points[2 * i]) }

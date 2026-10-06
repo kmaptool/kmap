@@ -111,7 +111,8 @@ enum PBFBytes {
     static func mixedBlock(
         nodes: [(id: Int64, lat: Double, lon: Double)],
         ways: [(id: Int64, refs: [Int64])],
-        relations: [Int64] = []
+        relations: [Int64] = [],
+        relationTags: [(String, String)] = []
     ) -> [UInt8] {
         func deltas(_ values: [Int64]) -> [UInt8] {
             var w = ProtoWriter()
@@ -123,7 +124,13 @@ enum PBFBytes {
             return w.bytes
         }
         var block = ProtoWriter()
-        block.message(PBFSchema.stringTable) { $0.stringField(PBFSchema.stringEntry, "") }
+        block.message(PBFSchema.stringTable) { table in
+            table.stringField(PBFSchema.stringEntry, "")
+            for (key, value) in relationTags {
+                table.stringField(PBFSchema.stringEntry, key)
+                table.stringField(PBFSchema.stringEntry, value)
+            }
+        }
         block.message(PBFSchema.primitiveGroup) { group in
             if !nodes.isEmpty {
                 group.message(PBFSchema.groupDense) { dense in
@@ -139,7 +146,14 @@ enum PBFBytes {
                 }
             }
             for relation in relations {
-                group.message(PBFSchema.groupRelations) { $0.varintField(PBFSchema.elementID, relation) }
+                group.message(PBFSchema.groupRelations) { out in
+                    out.varintField(PBFSchema.elementID, relation)
+                    // String indices below 128 are 1 varint byte each.
+                    if !relationTags.isEmpty {
+                        out.bytesField(PBFSchema.elementKeys, relationTags.indices.map { UInt8(1 + 2 * $0) })
+                        out.bytesField(PBFSchema.elementVals, relationTags.indices.map { UInt8(2 + 2 * $0) })
+                    }
+                }
             }
         }
         return block.bytes

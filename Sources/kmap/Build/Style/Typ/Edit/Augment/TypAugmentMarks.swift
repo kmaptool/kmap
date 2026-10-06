@@ -25,10 +25,10 @@ extension TypAugment {
         var mended = false
         var out: [String] = []
         for line in text.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            if trimmed == "[_draworder]" { inside = true } else if trimmed == "[end]" { inside = false }
+            // Any header ends the table, `[end]` or the next block's.
+            if let header = TypSource.header(of: line) { inside = header == "[_draworder]" }
             guard inside, line.contains(";"),
-                trimmed.hasPrefix("type="), let cut = line.firstIndex(of: ";")
+                TypSource.sets("Type", line), let cut = line.firstIndex(of: ";")
             else {
                 out.append(line)
                 continue
@@ -70,7 +70,7 @@ extension TypAugment {
     /// from the numbers a style usually fills. A line that has to stay routable is looked
     /// for among the numbers that route first, and settles for one that does not route
     /// only when every routing number is spoken for.
-    static func freeCode(
+    private static func freeCode(
         _ kind: MapElementKind,
         in source: TypSource,
         avoiding taken: Set<Int>,
@@ -120,14 +120,9 @@ extension TypAugment {
     }
 
     static func typeCode(of line: String) -> Int? {
-        let trimmed = line.trimmingCharacters(in: .whitespaces)
-        guard trimmed.lowercased().hasPrefix("type=") else { return nil }
-        var value =
-            trimmed.dropFirst("type=".count)
-            .split(separator: ";").first.map(String.init) ?? ""
-        value = value.trimmingCharacters(in: .whitespaces).lowercased()
-        if value.hasPrefix("0x") { value.removeFirst(2) }
-        return Int(value, radix: 16)
+        guard let (key, value) = TypSource.entry(of: line), key.caseInsensitiveCompare("Type") == .orderedSame
+        else { return nil }
+        return TypSource.decodedInteger(value.split(separator: ";").first.map(String.init) ?? "")
     }
 
     /// The marks this TYP needs added, and those moved off a number the style already

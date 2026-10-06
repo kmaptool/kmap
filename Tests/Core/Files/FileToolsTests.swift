@@ -214,4 +214,18 @@ final class FileToolsTests: XCTestCase {
         else { throw CocoaError(.fileWriteUnknown) }
     }
     #endif
+
+    /// A full disk is told apart however it comes: plain, from Foundation, or wrapped.
+    func testAFullDiskIsKnownHoweverItIsWrapped() {
+        XCTAssertTrue(FileTools.isOutOfSpace(POSIXError(.ENOSPC)))
+        XCTAssertTrue(FileTools.isOutOfSpace(CocoaError(.fileWriteOutOfSpace)))
+        let wrapped = NSError(
+            domain: NSCocoaErrorDomain,
+            code: CocoaError.fileWriteUnknown.rawValue,
+            userInfo: [NSUnderlyingErrorKey: POSIXError(.ENOSPC)]
+        )
+        XCTAssertTrue(FileTools.isOutOfSpace(wrapped))
+        XCTAssertFalse(FileTools.isOutOfSpace(POSIXError(.EACCES)))
+        XCTAssertFalse(FileTools.isOutOfSpace(CocoaError(.fileWriteNoPermission)))
+    }
 }

@@ -16,6 +16,12 @@ extension RoadNetworkLoader {
         /// Obstacle words fit a byte; past this many, the rest are filed under the first.
         private static let mostWords = 255
 
+        private var keyKinds: [UInt8] = []
+
+        mutating func begin(_ block: OSMBlock) {
+            keyKinds = WayTags.keyKinds(of: block.strings)
+        }
+
         mutating func clear() {
             network = RoadNetwork()
             obstacleRefs.removeAll(keepingCapacity: true)
@@ -39,6 +45,7 @@ extension RoadNetworkLoader {
             for start in part.network.obstacleStart.dropFirst() {
                 network.obstacleStart.append(obstacleBase + start)
             }
+            network.passages.formUnion(part.network.passages)
             network.obstacleKind.append(contentsOf: part.network.obstacleKind)
             network.obstacleHeight.append(contentsOf: part.network.obstacleHeight)
             for word in part.words { network.obstacleWord.append(intern(word, vocabulary: &vocabulary)) }
@@ -66,7 +73,7 @@ extension RoadNetworkLoader {
             block: OSMBlock
         ) {
             guard refs.count >= RoadNetwork.leastPoints else { return }
-            let tags = WayTags(keys: keys, values: values, block: block)
+            let tags = WayTags(keys: keys, values: values, block: block, kinds: keyKinds)
             if let highway = tags.highway, OSMCensus.roadKinds.contains(highway) {
                 network.wayID.append(id)
                 network.level.append(
@@ -74,6 +81,7 @@ extension RoadNetworkLoader {
                 )
                 network.refs.append(contentsOf: refs)
                 network.start.append(Int32(network.refs.count))
+                if tags.tunnel == "building_passage" { network.passages.insert(id) }
                 return
             }
             guard let kind = tags.obstacleKind else { return }

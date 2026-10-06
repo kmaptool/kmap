@@ -6,10 +6,9 @@ extension TypEdit {
     /// What kmap writes above an entry it added, on a line of its own.
     static let addedNote = "; added by kmap"
     private static let tableHeader = "[_draworder]"
-    private static let tableEnd = "[end]"
 
     private static func isAddedNote(_ line: String) -> Bool {
-        line.trimmingCharacters(in: .whitespaces).lowercased() == addedNote
+        line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == addedNote
     }
 
     /// Puts a polygon into the draw order, at the level asked for or on top of everything.
@@ -159,16 +158,11 @@ extension TypEdit {
         lines.insert(contentsOf: written, at: at)
     }
 
-    /// The lines between `[_drawOrder]` and its `[end]`, exclusive; nil without a table.
+    /// The lines of the `[_drawOrder]` table, read as the parser reads a block; nil
+    /// without one.
     private static func drawOrderTable(in lines: [String]) -> Range<Int>? {
-        // With newlines: a TYP from Windows keeps a CR on each line split at LF.
-        func marks(_ line: String, _ marker: String) -> Bool {
-            line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == marker
-        }
-        guard let open = lines.firstIndex(where: { marks($0, tableHeader) }),
-            let close = lines[open...].firstIndex(where: { marks($0, tableEnd) })
-        else { return nil }
-        return open + 1..<close
+        guard let open = lines.firstIndex(where: { TypSource.header(of: $0) == tableHeader }) else { return nil }
+        return open + 1..<TypSource.blockEnd(of: lines, from: open).end
     }
 
     /// Removes every draw-order entry for a polygon, with kmap's own note above it.
@@ -192,15 +186,14 @@ extension TypEdit {
     private static func drawOrderEntry(
         of line: String
     ) -> (code: Int, level: Int, spelling: String)? {
-        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.lowercased().hasPrefix("type="), let eq = trimmed.firstIndex(of: "=")
+        guard let (key, raw) = TypSource.entry(of: line.trimmingCharacters(in: .whitespacesAndNewlines)),
+            key.caseInsensitiveCompare("Type") == .orderedSame
         else { return nil }
-        let value = trimmed[trimmed.index(after: eq)...].prefix { $0 != ";" }
+        let value = raw.prefix { $0 != ";" }
         let parts = value.split(separator: ",", maxSplits: 1)
             .map { $0.trimmingCharacters(in: .whitespaces) }
         guard let first = parts.first else { return nil }
-        let digits = first.lowercased().hasPrefix("0x") ? String(first.dropFirst(2)) : first
-        guard let code = Int(digits, radix: 16) else { return nil }
+        guard let code = TypSource.decodedInteger(first) else { return nil }
         let level = parts.count > 1 ? (Int(parts[1]) ?? 0) : 0
         return (code, level, "Type=\(first)")
     }

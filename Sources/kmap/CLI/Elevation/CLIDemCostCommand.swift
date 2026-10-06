@@ -7,10 +7,19 @@ import Foundation
 extension CLI {
     static func demCost(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["sources"])
+        if let refused = flags.refusal("dem-cost", knows: ["sources"], positionals: 1) { return refused }
         guard let regionID = flags.positionals.first else {
             return CLIOutput.refuse("usage: kmap dem-cost <region>[+<region>…] [--sources=<list>]")
         }
         let sources = flags.value("sources") ?? BuildRecipe.recommendedDEMSources
+        // As a build refuses them: an estimate for a list it would not build is no answer.
+        let unknown = unknownSources(in: sources)
+        guard unknown.isEmpty, !CopernicusDEM.canonicalSourceList(sources).isEmpty else {
+            return CLIOutput.refuse(
+                "--sources: "
+                    + (unknown.isEmpty ? "the list is empty" : "no source called \(unknown.joined(separator: ", "))")
+            )
+        }
 
         let index = RegionIndex()
         do {

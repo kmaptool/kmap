@@ -102,8 +102,22 @@ enum ElevationCost {
         if source.hasPrefix("view"), let resolution = Int(source.dropFirst(4)) {
             return await viewfinder(resolution, source: source, cells: cells, covered: &covered)
         }
-        return Line(source: source, cells: cells.count, cached: 0, wanted: uncovered(cells, covered).count)
-            .unknown(note: t("behind a login, so its size is only known once it starts"))
+        return behindLogin(source, cells: cells, covered: &covered)
+    }
+
+    /// SRTM and ALOS: what pyhgtmap converted already counts, the rest has no figure.
+    private static func behindLogin(
+        _ source: String,
+        cells: [(lat: Int, lon: Int)],
+        covered: inout Set<String>
+    ) -> Estimate {
+        let directory = Paths.hgtCache.appendingPathComponent(source.uppercased(), isDirectory: true)
+        let cached = cells.filter { FileTools.exists(directory.appendingPathComponent(name(of: $0) + ".hgt")) }
+        covered.formUnion(cached.map(name(of:)))
+        let toFetch = uncovered(cells, covered)
+        let line = Line(source: source, cells: cells.count, cached: cached.count, wanted: toFetch.count)
+        guard !toFetch.isEmpty else { return line.free() }
+        return line.unknown(note: t("behind a login, so its size is only known once it starts"))
     }
 
     /// What every line of a source says alike; the rest is how the count came out.

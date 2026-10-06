@@ -102,4 +102,53 @@ final class FileWriteTests: XCTestCase {
         XCTAssertTrue(FileTools.exists(dir))
         XCTAssertEqual(FileTools.contents(of: dir), [])
     }
+
+    func testAReplacedFolderIsTheNewOneWholeAndNothingStaysBeside() throws {
+        let tool = dir.appendingPathComponent("tool", isDirectory: true)
+        try FileManager.default.createDirectory(at: tool, withIntermediateDirectories: true)
+        try FileTools.write("old", to: tool.appendingPathComponent("only-in-old"))
+        let fresh = dir.appendingPathComponent("tool.new", isDirectory: true)
+        try FileManager.default.createDirectory(at: fresh, withIntermediateDirectories: true)
+        try FileTools.write("new", to: fresh.appendingPathComponent("only-in-new"))
+
+        try FileTools.replace(tool, with: fresh)
+
+        XCTAssertEqual(FileTools.contents(of: tool).map(\.lastPathComponent), ["only-in-new"])
+        XCTAssertEqual(FileTools.contents(of: dir).map(\.lastPathComponent), ["tool"])
+    }
+
+    func testANewOneThatDoesNotArriveLeavesTheEarlierInItsPlace() throws {
+        let file = dir.appendingPathComponent("pack.zip")
+        try FileTools.write("old", to: file)
+
+        XCTAssertThrowsError(try FileTools.replace(file, with: dir.appendingPathComponent("missing")))
+
+        XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "old")
+        XCTAssertEqual(FileTools.contents(of: dir).map(\.lastPathComponent), ["pack.zip"])
+    }
+
+    func testASetWhoseLastOneDoesNotArriveLeavesEveryEarlierOneInItsPlace() throws {
+        let first = dir.appendingPathComponent("a")
+        let second = dir.appendingPathComponent("b")
+        try FileTools.write("old a", to: first)
+        try FileTools.write("old b", to: second)
+        let fresh = dir.appendingPathComponent("a.new")
+        try FileTools.write("new a", to: fresh)
+
+        XCTAssertThrowsError(
+            try FileTools.replace([(first, fresh), (second, dir.appendingPathComponent("missing"))])
+        )
+
+        XCTAssertEqual(try String(contentsOf: first, encoding: .utf8), "old a")
+        XCTAssertEqual(try String(contentsOf: second, encoding: .utf8), "old b")
+        XCTAssertEqual(try String(contentsOf: fresh, encoding: .utf8), "new a")
+        XCTAssertEqual(Set(FileTools.contents(of: dir).map(\.lastPathComponent)), ["a", "b", "a.new"])
+    }
+
+    func testReplacingWhereNothingWasJustPutsTheNewOneIn() throws {
+        let fresh = dir.appendingPathComponent("fresh")
+        try FileTools.write("new", to: fresh)
+        try FileTools.replace(dir.appendingPathComponent("first"), with: fresh)
+        XCTAssertEqual(FileTools.contents(of: dir).map(\.lastPathComponent), ["first"])
+    }
 }

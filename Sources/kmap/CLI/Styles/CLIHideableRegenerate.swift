@@ -42,6 +42,8 @@ extension CLI {
                 for line in log.snapshot().suffix(3) { CLILog.line("  \(line.text)") }
             }
             return 0
+        } catch  where Task.isCancelled {
+            return CLIOutput.cancelled()
         } catch {
             return CLIOutput.failure("\(CLIOutput.said(error))")
         }

@@ -137,6 +137,20 @@ final class RegionIndexTests: XCTestCase {
         XCTAssertGreaterThan(region.demTileCount, 0)
     }
 
+    /// A page answering 200 in the index's place, a captive portal's: the copy kept from
+    /// before serves, and the page is not taken for an index.
+    func testAPageInTheIndexsPlaceFallsBackOnTheKeptCopy() throws {
+        let kept = try JSONSerialization.data(withJSONObject: ["features": [feature(id: "andorra", name: "Andorra")]])
+        let page = Data("<html>Sign in to the Wi-Fi</html>".utf8)
+        let read = try RegionIndex.tables(from: page, fetched: true) { kept }
+        XCTAssertTrue(read.stale)
+        XCTAssertNotNil(read.tables.regions["andorra"])
+        // Nothing kept: the failure says the index was the trouble.
+        XCTAssertThrowsError(try RegionIndex.tables(from: page, fetched: true) { nil }) {
+            guard case RegionIndex.LoadError.malformed = $0 else { return XCTFail("\($0)") }
+        }
+    }
+
     func testARegionWithNoGeometryIsKeptWithNoCoverage() throws {
         // A grouping row carries no outline of its own; dropping it loses its children.
         let region = try XCTUnwrap(

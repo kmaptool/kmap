@@ -193,6 +193,13 @@ final class GEDTM30Tests: XCTestCase {
         XCTAssertTrue(RangeSession.serves("bytes 100-199/*", asked: "bytes=100-199", total: 1000))
     }
 
+    /// Another whole size is told from an ignored range: the file was replaced.
+    func testTheWholeSizeARangeSpeaksOfIsRead() {
+        XCTAssertEqual(RangeSession.wholeSize(in: "bytes 100-199/1200"), 1200)
+        XCTAssertNil(RangeSession.wholeSize(in: "bytes 100-199/*"))
+        XCTAssertNil(RangeSession.wholeSize(in: ""))
+    }
+
     // MARK: A cell with nothing in it
 
     /// An outside mark is distinct from a sea mark.

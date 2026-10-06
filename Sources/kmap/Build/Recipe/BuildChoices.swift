@@ -55,6 +55,11 @@ struct BuildChoices: Codable, Equatable {
     static let overlapStep = 128
     static let overlapCeiling = 2048
 
+    /// The refusal for an overlap given off the step, which `sane` would round silently.
+    static func offStep(_ flag: String, _ units: Int) -> String? {
+        units % overlapStep == 0 ? nil : "--\(flag)=\(units) is not a multiple of \(overlapStep)"
+    }
+
     static func sane(_ units: Int) -> Int {
         let stepped = (units + overlapStep / 2) / overlapStep * overlapStep
         return max(0, min(overlapCeiling, stepped))

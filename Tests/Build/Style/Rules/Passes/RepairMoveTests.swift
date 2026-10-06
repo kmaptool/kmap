@@ -23,7 +23,7 @@ final class RepairMoveTests: XCTestCase {
 
     private func moved(to code: Int) throws -> [String] {
         let dir = try directory(Self.rule + "\n")
-        XCTAssertEqual(StyleCatalog.moveRepairRules([.line: [0x0d: code]], in: dir), 1)
+        XCTAssertEqual(try StyleCatalog.moveRepairRules([.line: [0x0d: code]], in: dir), 1)
         return try String(contentsOf: dir.appendingPathComponent("lines"), encoding: .utf8)
             .components(separatedBy: "\n").filter { !$0.isEmpty }
     }

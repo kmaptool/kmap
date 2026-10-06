@@ -19,9 +19,9 @@ enum ZoomRealStyle {
 /// A rule no family claims cannot be moved, and no row on screen says so. Reads the style
 /// on disk; skipped where no build has run.
 final class ZoomCoverageTests: XCTestCase {
-    /// Rules deliberately left out, by the condition that identifies them: kmap's repair
-    /// marker is a diagnostic rather than scenery.
-    private static let notOffered = ["kmap:repair="]
+    /// Rules left out, by their condition: kmap's repair marker is a diagnostic, not
+    /// scenery, and the land and the sea lie under every zoom.
+    private static let notOffered = ["kmap:repair="] + ZoomFamily.groundLayers
 
     func testEveryRuleInTheStyleBelongsToAFamily() throws {
         let directory = ZoomRealStyle.directory

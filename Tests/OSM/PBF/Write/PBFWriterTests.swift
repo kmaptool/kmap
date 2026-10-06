@@ -40,6 +40,22 @@ final class PBFWriterTests: XCTestCase {
 
     // MARK: Nodes
 
+    /// A file written over leaves a `.old` beside it alone: it may be the user's backup.
+    func testWritingOverAFileKeepsAnOldBesideIt() throws {
+        let out = directory.appendingPathComponent("out.osm.pbf")
+        let backup = directory.appendingPathComponent("out.osm.pbf.old")
+        try Data("earlier".utf8).write(to: out)
+        try Data("backup".utf8).write(to: backup)
+        let writer = try PBFWriter(to: out)
+        writer.nodes([PBFWriter.Node(id: 1, lat: 1, lon: 1, tags: [])])
+        try writer.finish()
+        XCTAssertEqual(try Data(contentsOf: backup), Data("backup".utf8))
+        XCTAssertEqual(
+            Set(try FileManager.default.contentsOfDirectory(atPath: directory.path)),
+            ["out.osm.pbf", "out.osm.pbf.old"]
+        )
+    }
+
     func testANodeComesBackWhereItWasPut() throws {
         let out = try roundTrip {
             $0.nodes([PBFWriter.Node(id: 1, lat: 44.6166, lon: 33.5254, tags: [])])
@@ -137,12 +153,10 @@ final class PBFWriterTests: XCTestCase {
         XCTAssertEqual(out.relations.first?.kinds, [-1])
     }
 
-    #if !os(Windows)
-    /// An older, longer file at the same path leaves nothing of itself behind, even where
-    /// it cannot be replaced by a new file and is written over in place: a folder that
-    /// takes no new file, as Windows has when a scanner holds the one being made.
+    /// An older, longer file at the same path leaves nothing of itself behind, and the new
+    /// one is written beside it until whole.
     func testWritingOverALongerFileLeavesNoneOfIt() throws {
-        let folder = path("held")
+        let folder = path("over")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let url = folder.appendingPathComponent("out.osm.pbf")
         try roundTrip(
@@ -151,8 +165,6 @@ final class PBFWriterTests: XCTestCase {
             },
             file: url
         )
-        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path)
-        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path) }
         let out = try roundTrip(
             { writer in
                 writer.nodes([PBFWriter.Node(id: 9, lat: 0, lon: 0, tags: [])])
@@ -160,8 +172,30 @@ final class PBFWriterTests: XCTestCase {
             file: url
         )
         XCTAssertEqual(out.nodes.map(\.id), [9])
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), ["out.osm.pbf"])
     }
-    #endif
+
+    /// A writer stopped before `finish` leaves the earlier file and nothing of its own.
+    func testAWriterStoppedMidwayLeavesTheEarlierFileAndNothingElse() throws {
+        let folder = path("stopped")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("out.osm.pbf")
+        try roundTrip({ writer in writer.nodes([PBFWriter.Node(id: 1, lat: 1, lon: 1, tags: [])]) }, file: url)
+        let earlier = try Data(contentsOf: url)
+
+        do {
+            let writer = try PBFWriter(to: url)
+            writer.header()
+            writer.nodes((1...5000).map { PBFWriter.Node(id: Int64($0), lat: 2, lon: 2, tags: []) })
+        }
+
+        XCTAssertEqual(try Data(contentsOf: url), earlier)
+        // Gone once the batches in flight are.
+        for _ in 0..<500 where (try? FileManager.default.contentsOfDirectory(atPath: folder.path))?.count != 1 {
+            Thread.sleep(forTimeInterval: 0.01)
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), ["out.osm.pbf"])
+    }
 
     func testAnEmptyBatchWritesNothingAtAll() throws {
         let out = try roundTrip { writer in
@@ -396,21 +430,22 @@ final class PBFWriterTests: XCTestCase {
     func testAWriteThatFailsIsReportedByFinishRatherThanCrashing() throws {
         // The handle is closed underneath the writer, which is what a full disk looks
         // like from here: the write throws, and the error comes out of finish.
-        let writer = try PBFWriter(to: path("closed.osm.pbf"))
-        writer.header()
-        try writer.handle.close()
-        writer.nodes((1...50_000).map { PBFWriter.Node(id: Int64($0), lat: 45, lon: 33, tags: [("name", "n\($0)")]) })
-        XCTAssertThrowsError(try writer.finish())
+        let url = path("closed.osm.pbf")
+        do {
+            let writer = try PBFWriter(to: url)
+            writer.header()
+            try writer.handle.close()
+            writer.nodes(
+                (1...50_000).map { PBFWriter.Node(id: Int64($0), lat: 45, lon: 33, tags: [("name", "n\($0)")]) }
+            )
+            XCTAssertThrowsError(try writer.finish())
+        }
+        XCTAssertFalse(FileTools.exists(url), "nothing that failed passes for written")
+        XCTAssertFalse(
+            try FileManager.default.contentsOfDirectory(atPath: url.deletingLastPathComponent().path)
+                .contains { $0.hasPrefix("closed.osm.pbf.") }
+        )
     }
-
-    #if os(Linux)
-    func testAFullDiskIsReportedNotFatal() throws {
-        let writer = try PBFWriter(to: URL(fileURLWithPath: "/dev/full"))
-        writer.header()
-        writer.nodes((1...50_000).map { PBFWriter.Node(id: Int64($0), lat: 45, lon: 33, tags: [("name", "n\($0)")]) })
-        XCTAssertThrowsError(try writer.finish())
-    }
-    #endif
 
     // MARK: Runs
 

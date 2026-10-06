@@ -62,6 +62,18 @@ final class NodePlacesTests: XCTestCase {
         XCTAssertEqual(places.place(of: 9)?.lat, 90)
     }
 
+    /// Ids running backwards, as negative ones written -1, -2, -3 do, are found by halving,
+    /// not by walking the list again from its start each time.
+    func testDescendingIdsAreFoundWithoutAWalkPerNode() {
+        let count = 200_000
+        var places = NodePlaces(wanted: (1...Int64(count)).map { $0 })
+        let started = Date()
+        places.take(block((1...Int64(count)).reversed().map { ($0, Double($0), 0) }))
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2, "a walk per node is quadratic")
+        XCTAssertEqual(places.place(of: 1)?.lat, 1)
+        XCTAssertEqual(places.place(of: Int64(count))?.lat, Double(count))
+    }
+
     func testANodeRepeatedInTheFileKeepsTheFirstPlaceItWasGiven() {
         var places = NodePlaces(wanted: [5])
         places.take(block([(5, 50, 60), (5, 11, 12)]))

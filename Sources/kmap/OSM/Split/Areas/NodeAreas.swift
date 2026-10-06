@@ -290,9 +290,10 @@ extension TileSplitter {
             }
         }
 
-        /// Gives every copy of an id that arrived in more than one run the latest run's
-        /// value, so `find` and the walking cursor cannot disagree. One merge pass over
-        /// each later run against each earlier one.
+        /// Gives every copy of an id that arrived in more than one run 1 value, so `find` and
+        /// the walking cursor cannot disagree: as `RingCoords` and the writer take a node,
+        /// the first file's copy where several files are split together, else the latest.
+        /// One merge pass over each later run against each earlier one.
         private func reconcileRuns() {
             guard runs.count > 1 else { return }
             // An unsorted file has a run at every backward step, and merging each against
@@ -302,6 +303,7 @@ extension TileSplitter {
                 sortIntoOneRun()
                 return
             }
+            let firstStands = firstCopyStands
             keys.withUnsafeBufferPointer { k in
                 for later in 1..<runs.count {
                     let laterStart = runs[later]
@@ -316,7 +318,8 @@ extension TileSplitter {
                             } else if k[e] > k[l] {
                                 l += 1
                             } else {
-                                values[e] = values[l]
+                                // The earlier runs already hold the value that stands.
+                                if firstStands { values[l] = values[e] } else { values[e] = values[l] }
                                 e += 1
                                 l += 1
                             }
@@ -326,10 +329,14 @@ extension TileSplitter {
             }
         }
 
+        /// Several files split together keep a repeated node's first copy, as they are read 1
+        /// after another; 1 file keeps its last, as 1 reader taking it in order would.
+        private var firstCopyStands: Bool { fileEnds.count > 1 }
+
         /// Past this many runs they are sorted into 1 run rather than merged pairwise.
         private static let mostRunsMerged = 64
 
-        /// The whole table in id order, 1 entry an id, the latest value standing. Done
+        /// The whole table in id order, 1 entry an id, the value that stands kept. Done
         /// in place: the only thing beside the table is 1 index an entry, 4 bytes wide
         /// while the table has fewer than 2^32 of them.
         private func sortIntoOneRun() {
@@ -349,9 +356,9 @@ extension TileSplitter {
             closeUpRepeats()
         }
 
-        /// Where each sorted entry comes from. By id, and for the same id by arrival, so
-        /// the last of a repeat is the latest; each run is already in order, which the sort
-        /// finds for itself.
+        /// Where each sorted entry comes from. By id, and for the same id by arrival, so a
+        /// repeat runs from its earliest to its latest; each run is already in order, which
+        /// the sort finds for itself.
         private func sortedOrder<Index: BinaryInteger>(_: Index.Type) -> [Index] {
             let count = keys.count
             var order = [Index](unsafeUninitializedCapacity: count) { buffer, filled in
@@ -388,13 +395,15 @@ extension TileSplitter {
             }
         }
 
-        /// Repeats are neighbours once sorted, the latest last: closed up towards the front.
+        /// Repeats are neighbours once sorted, the earliest first: closed up towards the
+        /// front, the copy that stands kept.
         private func closeUpRepeats() {
             let count = keys.count
+            let firstStands = firstCopyStands
             var kept = 0
             for at in 0..<count {
                 if kept > 0, keys[kept - 1] == keys[at] {
-                    values[kept - 1] = values[at]
+                    if !firstStands { values[kept - 1] = values[at] }
                 } else {
                     keys[kept] = keys[at]
                     values[kept] = values[at]
@@ -463,8 +472,8 @@ extension TileSplitter {
             }
         }
 
-        /// Newest run first: an id can arrive twice, in the overlap 2 extracts share, and
-        /// the later copy is the answer.
+        /// Newest run first: an id can arrive twice, in the overlap 2 extracts share; its
+        /// copies hold the value that stands by now, so any is the answer.
         private func findInRuns(_ id: Int64) -> Int? {
             keys.withUnsafeBufferPointer { k -> Int? in
                 for index in stride(from: runs.count - 1, through: 0, by: -1) {

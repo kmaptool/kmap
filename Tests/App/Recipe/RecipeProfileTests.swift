@@ -161,4 +161,31 @@ final class RecipeProfileTests: XCTestCase {
         let frame = drawn(screen)
         XCTAssertTrue(frame.contains("Coarse") && frame.contains("Fine"))
     }
+
+    /// One arrow on the profile row does not drop the map's own changes; the list does.
+    func testAnArrowOnTheProfileRowKeepsTheMapsChanges() async {
+        let screen = self.screen()
+        drawn(screen)
+        for _ in 0..<3 { _ = screen.handle(.down, ctx: ctx) }
+        _ = screen.handle(.right, ctx: ctx)
+        for _ in 0..<3 { _ = screen.handle(.up, ctx: ctx) }
+        _ = screen.handle(.right, ctx: ctx)
+        let frame = drawn(screen)
+        XCTAssertFalse(frame.contains("50 m"), "the interval stays as changed")
+        XCTAssertTrue(frame.contains("changed for this map only"))
+    }
+
+    /// The profile picked again from its list puts the form back on it.
+    func testPickingTheProfileAgainDropsTheMapsChanges() async {
+        let screen = self.screen()
+        drawn(screen)
+        for _ in 0..<3 { _ = screen.handle(.down, ctx: ctx) }
+        _ = screen.handle(.right, ctx: ctx)
+        for _ in 0..<3 { _ = screen.handle(.up, ctx: ctx) }
+        _ = screen.handle(.enter, ctx: ctx)
+        _ = screen.handle(.enter, ctx: ctx)
+        let frame = drawn(screen)
+        XCTAssertTrue(frame.contains("50 m"))
+        XCTAssertFalse(frame.contains("changed for this map only"))
+    }
 }

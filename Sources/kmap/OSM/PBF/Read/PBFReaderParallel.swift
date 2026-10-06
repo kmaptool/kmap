@@ -31,6 +31,29 @@ extension PBFReader {
         }
     }
 
+    /// As `readInOrder`, over only the data blobs at `chosen`, numbered as a full pass numbers
+    /// them: a second look at the few blobs a first pass found.
+    func readInOrder<Sink: OSMSink>(
+        blobs chosen: Set<Int>,
+        make: () -> Sink,
+        apply: (inout Sink) throws -> Void
+    ) throws {
+        guard !chosen.isEmpty else { return }
+        let data = try Data(contentsOf: url, options: .alwaysMapped)
+        let width = Machine.readers
+        try data.withUnsafeBytes { file in
+            let all = try Self.dataBlobs(in: file)
+            let blobs = all.indices.filter(chosen.contains).map { all[$0] }
+            guard !blobs.isEmpty else { return }
+            let ring = Ring(slots: Self.slotsPerReader * width, make: make)
+            if stopped() { throw CancellationError() }
+            try ring.decode(blobs, workers: min(width, blobs.count), log: nil) { slot in
+                if stopped() { throw CancellationError() }
+                try apply(&ring.sinks[slot])
+            }
+        }
+    }
+
     /// Reads the file with one sink per worker and returns them for the caller to combine.
     /// Only for order-independent work: a worker takes the next block whenever it is free,
     /// so no worker is left finishing a long share alone, and which blocks a sink holds

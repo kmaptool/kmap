@@ -7,24 +7,41 @@ extension RoadNetworkLoader {
         var waterway: String?, manMade: String?, building = false
         var layer = "0", bridge = "no", tunnel = "no", height: Float = .nan
 
+        /// The keys read, numbered from 1 in this order; 0 is any other.
+        private static let keyNames = [
+            "highway", "barrier", "natural", "waterway", "man_made", "building",
+            "layer", "bridge", "tunnel", "height", "est_height"
+        ].map { Array($0.utf8) }
+
+        /// What each entry of a block's string table is as a key, found once per block.
+        static func keyKinds(of strings: StringPool) -> [UInt8] {
+            (0..<strings.count).map { at in
+                guard let bytes = strings.bytes(at), bytes.count >= 5, bytes.count <= 10 else { return 0 }
+                for (i, name) in keyNames.enumerated() where name.count == bytes.count && bytes.elementsEqual(name) {
+                    return UInt8(i + 1)
+                }
+                return 0
+            }
+        }
+
         @inline(__always)
-        init(keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock) {
+        init(keys: ArraySlice<Int32>, values: ArraySlice<Int32>, block: OSMBlock, kinds: [UInt8]) {
             for (i, key) in keys.enumerated() {
                 guard i < values.count else { break }
                 // The value's text only for a key that is kept: most are not.
                 let value = Int(values[values.startIndex + i])
-                switch block.text(Int(key)) {
-                case "highway": highway = block.text(value)
-                case "barrier": barrier = block.text(value)
-                case "natural": natural = block.text(value)
-                case "waterway": waterway = block.text(value)
-                case "man_made": manMade = block.text(value)
+                switch key >= 0 && Int(key) < kinds.count ? kinds[Int(key)] : 0 {
+                case 1: highway = block.text(value)
+                case 2: barrier = block.text(value)
+                case 3: natural = block.text(value)
+                case 4: waterway = block.text(value)
+                case 5: manMade = block.text(value)
                 // building=no says the outline is not a building.
-                case "building": building = block.text(value) != "no"
-                case "layer": layer = block.text(value)
-                case "bridge": bridge = block.text(value)
-                case "tunnel": tunnel = block.text(value)
-                case "height", "est_height": height = Self.metres(block.text(value))
+                case 6: building = block.text(value) != "no"
+                case 7: layer = block.text(value)
+                case 8: bridge = block.text(value)
+                case 9: tunnel = block.text(value)
+                case 10, 11: height = Self.metres(block.text(value))
                 default: break
                 }
             }

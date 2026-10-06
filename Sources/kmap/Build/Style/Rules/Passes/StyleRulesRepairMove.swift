@@ -11,7 +11,7 @@ extension StyleCatalog {
     static func moveRepairRules(
         _ moved: [MapElementKind: [Int: Int]],
         in directory: URL
-    ) -> Int {
+    ) throws -> Int {
         var rewritten = 0
         for (kind, mapping) in moved {
             let url = directory.appendingPathComponent(kind.ruleFile)
@@ -64,7 +64,7 @@ extension StyleCatalog {
             }
             guard rewritten > 0 else { continue }
             text = lines.joined(separator: "\n")
-            try? FileTools.write(text, to: url)
+            try FileTools.write(text, to: url)
         }
         return rewritten
     }

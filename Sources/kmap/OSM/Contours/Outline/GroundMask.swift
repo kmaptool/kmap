@@ -22,7 +22,13 @@ struct GroundMask {
     private var cell = GroundMask.preferredCell
 
     init?(rings: [RegionOutline.Ring]) {
-        let adds = rings.filter { !$0.subtract }
+        self.init(regions: [rings])
+    }
+
+    /// Several regions, each with its own holes: a hole in one region does not clear
+    /// another region's ground, as Lesotho inside South Africa's outline.
+    init?(regions: [[RegionOutline.Ring]]) {
+        let adds = regions.joined().filter { !$0.subtract }
         guard !adds.isEmpty else { return nil }
         var loLon = Double.infinity, loLat = Double.infinity
         var hiLon = -Double.infinity, hiLat = -Double.infinity
@@ -47,10 +53,25 @@ struct GroundMask {
 
         // Scanline fill, even-odd, one ring at a time: additive rings set, holes clear.
         // Holes go last so a hole is a hole whatever order the file listed them in.
-        for pass in [false, true] {
-            for ring in rings where ring.subtract == pass {
-                fill(ring, value: !ring.subtract)
+        // A region without holes can only set, so it goes straight in; one with holes is
+        // filled on a layer of its own, over its own rows, and joined.
+        var layer: [Bool] = []
+        for rings in regions {
+            guard regions.count > 1, rings.contains(where: \.subtract) else {
+                fillRegion(rings, into: &bits)
+                continue
             }
+            if layer.isEmpty { layer = [Bool](repeating: false, count: bits.count) }
+            let own = rings.filter { !$0.subtract }.map(rowRange).reduce(nil as ClosedRange<Int>?) { held, next in
+                guard let next else { return held }
+                guard let held else { return next }
+                return min(held.lowerBound, next.lowerBound)...max(held.upperBound, next.upperBound)
+            }
+            guard let own else { continue }
+            let span = (own.lowerBound * columns)..<((own.upperBound + 1) * columns)
+            for i in span { layer[i] = false }
+            fillRegion(rings, into: &layer)
+            for i in span where layer[i] { bits[i] = true }
         }
 
         // Grown outward by the margin, separably: a run along each row, then each column.
@@ -58,10 +79,29 @@ struct GroundMask {
         dilate(by: reach)
     }
 
-    private mutating func fill(_ ring: RegionOutline.Ring, value: Bool) {
+    private func fillRegion(_ rings: [RegionOutline.Ring], into target: inout [Bool]) {
+        for pass in [false, true] {
+            for ring in rings where ring.subtract == pass {
+                fill(ring, value: !ring.subtract, into: &target)
+            }
+        }
+    }
+
+    /// The rows a ring can cross, with 1 to spare either side; nil for one too short.
+    private func rowRange(_ ring: RegionOutline.Ring) -> ClosedRange<Int>? {
+        guard ring.points.count >= RegionOutline.fewestRingPoints,
+            let low = ring.points.map(\.lat).min(), let high = ring.points.map(\.lat).max()
+        else { return nil }
+        let first = max(0, Int(((low - minLat) / cell).rounded(.down)) - 1)
+        let last = min(rows - 1, Int(((high - minLat) / cell).rounded(.up)) + 1)
+        return first <= last ? first...last : nil
+    }
+
+    private func fill(_ ring: RegionOutline.Ring, value: Bool, into target: inout [Bool]) {
         let pts = ring.points
-        guard pts.count >= RegionOutline.fewestRingPoints else { return }
-        for row in 0..<rows {
+        // Rows the ring does not reach have no crossings.
+        guard let reached = rowRange(ring) else { return }
+        for row in reached {
             // Sampled at the centre of the row.
             let lat = minLat + (Double(row) + 0.5) * cell
             var crossings: [Double] = []
@@ -78,7 +118,7 @@ struct GroundMask {
                 let from = max(0, Int(((crossings[k] - minLon) / cell).rounded(.down)))
                 let to = min(columns - 1, Int(((crossings[k + 1] - minLon) / cell).rounded(.up)))
                 if from <= to {
-                    for column in from...to { bits[row * columns + column] = value }
+                    for column in from...to { target[row * columns + column] = value }
                 }
                 k += 2
             }

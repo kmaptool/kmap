@@ -44,51 +44,93 @@ extension Toolchain {
         return runtime < release
     }
 
+    /// Held while mkgmap or its patch is installed or rebuilt, by every kmap: they share
+    /// the download and the folder.
+    static var mkgmapLock: URL { Paths.locks.appendingPathComponent("mkgmap-install.lock") }
+
     /// The rebuild in flight, and whether one has failed in this process.
-    private static let renewal = Locked<(running: Task<Bool, Never>?, failed: Bool)>((nil, false))
+    private static let renewal = Locked<(current: MkgmapPatchRenewal?, failed: Bool)>((nil, false))
 
     /// Rebuilds the patch an older kmap left, so asking for the patch once is enough.
     /// Nothing is installed where no patched jar is. One rebuild runs at a time and every
     /// caller waits for it; a failed one leaves the old jar, which builds as the stock
-    /// mkgmap does, and is not tried again by this process.
+    /// mkgmap does, and is not tried again by this process. A caller stopped stops waiting
+    /// at once; the rebuild stops only with the last.
     /// - Returns: whether the patch is the current one now.
     @discardableResult
-    func renewStalePatch(log: Log, runner: ProcessRunner = ProcessRunner()) async -> Bool {
-        let task: Task<Bool, Never>? = Toolchain.renewal.withLock { state in
-            if let running = state.running { return running }
-            guard !state.failed else { return nil }
-            let made = Task.detached { [self] in
-                defer { Toolchain.renewal.withLock { $0.running = nil } }
-                guard patchIsStale else { return mkgmapIsPatched }
-                do {
-                    try await install("mkgmap-patch", log: log, runner: runner)
-                    return true
-                } catch {
-                    if !Task.isCancelled { Toolchain.renewal.withLock { $0.failed = true } }
-                    log.warn(
-                        "the mkgmap patch was not rebuilt: "
-                            + ((error as? LocalizedError)?.errorDescription ?? "\(error)")
-                    )
-                    return false
-                }
+    func renewStalePatch(log: Log) async -> Bool {
+        let renewal: MkgmapPatchRenewal? = Toolchain.renewal.withLock { state in
+            if let current = state.current, !current.task.isCancelled, current.join() {
+                return current
             }
-            state.running = made
+            guard !state.failed else { return nil }
+            // A rebuild stopped is let end first: they share the folder.
+            let stopped = state.current?.task
+            let made = MkgmapPatchRenewal()
+            made.task = Task.detached { [self] in
+                defer { Toolchain.renewal.withLock { if $0.current === made { $0.current = nil } } }
+                _ = await stopped?.value
+                return await rebuildStalePatch(log: log)
+            }
+            state.current = made
             return made
         }
-        guard let task else { return false }
+        guard let renewal else { return false }
+        let answer = MkgmapPatchRenewalAnswer()
         return await withTaskCancellationHandler {
-            await task.value
+            await withCheckedContinuation { continuation in
+                answer.wait(continuation)
+                Task.detached {
+                    let (renewed, failure) = await renewal.task.value
+                    guard answer.give(renewed) else { return }
+                    if let failure { log.warn("the mkgmap patch was not rebuilt: " + failure) }
+                    _ = renewal.leave()
+                }
+            }
         } onCancel: {
-            task.cancel()
+            if answer.give(false), renewal.leave() { renewal.task.cancel() }
+        }
+    }
+
+    /// The rebuild itself, with a runner of its own: a caller's runner stopped would stop
+    /// it for every caller.
+    /// - Returns: whether the patch is current, and why not where it failed.
+    private func rebuildStalePatch(log: Log) async -> (renewed: Bool, failure: String?) {
+        guard patchIsStale else { return (mkgmapIsPatched, nil) }
+        Paths.ensure(Paths.locks)
+        // Another kmap's rebuild or install of mkgmap first, for a Java of its own: asked
+        // again once it is done, so the last rebuild is for the oldest Java that asked. Then
+        // shared as a build holds it, so no install of Java swaps it meanwhile. Waited for in
+        // that order, or the wait keeps an install it waits on from swapping its tool in.
+        guard let held = await HeldLock.waiting(for: Toolchain.mkgmapLock),
+            let tools = await HeldLock.waiting(for: Toolchain.inUseLock, shared: true)
+        else { return (false, nil) }
+        defer { withExtendedLifetime((tools, held)) {} }
+        guard patchIsStale else {
+            invalidate()
+            return (mkgmapIsPatched, nil)
+        }
+        do {
+            Self.removeAbandonedStaging()
+            defer { invalidate() }
+            try await patchMkgmap(log: log, runner: ProcessRunner(), checkingUse: false)
+            return (true, nil)
+        } catch {
+            var stopped = Task.isCancelled || error is CancellationError
+            if case ProcessRunner.RunError.cancelled = error { stopped = true }
+            guard !stopped else { return (false, nil) }
+            Toolchain.renewal.withLock { $0.failed = true }
+            return (false, (error as? LocalizedError)?.errorDescription ?? "\(error)")
         }
     }
 
     func patchMkgmap(
         log: Log,
         runner: ProcessRunner,
-        progress: InstallProgress? = nil
+        progress: InstallProgress? = nil,
+        checkingUse: Bool = true
     ) async throws {
-        let stock = try await stockMkgmap(log: log, runner: runner, progress: progress)
+        let stock = try await stockMkgmap(log: log, runner: runner, progress: progress, checkingUse: checkingUse)
         progress?.step(t("building the patched mkgmap"))
         // The patch is compiled here, so it takes a JDK — not whichever Java runs mkgmap.
         guard let java = findJavaKit(), java.isKit else {
@@ -156,10 +198,14 @@ extension Toolchain {
         // runs only with lib/ beside it, and the patched copy lands in another directory.
         let stockLibs = stock.deletingLastPathComponent().appendingPathComponent("lib")
         let ourLibs = home.appendingPathComponent("lib")
+        // Copied beside, and swapped in with the jar as 1 set: a mkgmap another kmap runs
+        // reads from this lib/.
+        var swaps: [(destination: URL, fresh: URL)] = []
         if FileTools.exists(stockLibs), stockLibs != ourLibs {
-            FileTools.removeIfPresent(ourLibs)
-            try FileTools.copy(stockLibs, to: ourLibs)
-            log.append("copied lib/ beside the patched jar")
+            let fresh = staging.appendingPathComponent("lib", isDirectory: true)
+            FileTools.removeIfPresent(fresh)
+            try FileTools.copy(stockLibs, to: fresh)
+            swaps.append((ourLibs, fresh))
         }
 
         let marker = classes.appendingPathComponent(Toolchain.patchMarker)
@@ -184,8 +230,15 @@ extension Toolchain {
         guard Toolchain.isPatched(built) else {
             throw InstallError.failed("the patched jar came out without its marker")
         }
-        FileTools.removeIfPresent(Toolchain.patchedMkgmapURL)
-        try FileTools.move(built, to: Toolchain.patchedMkgmapURL)
+        swaps.append((Toolchain.patchedMkgmapURL, built))
+        // Asked for by hand, it waits for no build; renewed by one, it goes in before mkgmap
+        // first runs.
+        if checkingUse, FileTools.exists(Toolchain.patchedMkgmapURL) {
+            try Toolchain.whileUnused { try Toolchain.swapping { try FileTools.replace(swaps) } }
+        } else {
+            try Toolchain.swapping { try FileTools.replace(swaps) }
+        }
+        if swaps.count > 1 { log.append("copied lib/ beside the patched jar") }
         // The JVM's cache was recorded for the jar that was here.
         JavaWarmStart.forgetAll(for: Toolchain.patchedMkgmapURL)
         log.ok("patched mkgmap at \(Paths.display(Toolchain.patchedMkgmapURL))")
@@ -195,11 +248,12 @@ extension Toolchain {
     private func stockMkgmap(
         log: Log,
         runner: ProcessRunner,
-        progress: InstallProgress?
+        progress: InstallProgress?,
+        checkingUse: Bool
     ) async throws -> URL {
         if mkgmapCandidates().first(where: { FileTools.exists($0) && Toolchain.patchVersion(of: $0) == 0 }) == nil {
             log.step("fetching a stock mkgmap to patch")
-            try await installMkgmap(log: log, runner: runner, progress: progress)
+            try await installMkgmap(log: log, runner: runner, progress: progress, checkingUse: checkingUse)
             invalidate()
         }
         guard

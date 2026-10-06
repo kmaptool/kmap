@@ -55,10 +55,16 @@ final class StyleListScreen: Screen {
         return url
     }
 
+    /// Read again on coming back from any screen it opened, which may have copied,
+    /// imported or saved a style; the cursor stays on the style it was on.
     func tick(_ ctx: AppContext) {
         guard !scanned else { return }
+        let was = filtered[safe: list.selected]?.typURL
         styles = ctx.styles.styles().list
         scanned = true
+        if let was, let at = filtered.firstIndex(where: { $0.typURL?.sameFile(as: was) == true }) {
+            list.selected = at
+        }
     }
 
     func reload(_ ctx: AppContext, select url: URL? = nil) {
@@ -93,6 +99,7 @@ final class StyleListScreen: Screen {
         case .end: list.jump(to: visible.count - 1, count: visible.count)
         case .enter:
             guard let style = visible[safe: list.selected] else { return .none }
+            scanned = false
             return .push(StyleDetailScreen(style: style))
         case .char(let typed):
             return command(Keys.latin(typed), visible: visible, ctx: ctx)

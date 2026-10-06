@@ -56,6 +56,7 @@ forest.mixed|Mixed forest|Смешанный лес
 # Water a walker drinks, or decides not to.
 water.well-suffix|well|колодец
 water.well|Well|Колодец
+water.well-stem|well|колод
 water.tap-suffix|tap|водопровод
 water.tap|Water tap|Водоразборная колонка
 water.geyser|Geyser|Гейзер
@@ -64,6 +65,10 @@ spring.undrinkable|not drinkable|непитьевой
 spring.boil|boil first|кипятить
 spring.intermittent|intermittent|пересыхающий
 spring.seasonal|seasonal|сезонный
+spring.undrinkable-stem|not drinkable|непитьев
+spring.boil-stem|boil|кипят
+spring.intermittent-stem|intermittent|пересыха
+spring.seasonal-stem|seasonal|сезонн
 
 # Terrain POIs the stock rules never type.
 terrain.ford|Ford|Брод

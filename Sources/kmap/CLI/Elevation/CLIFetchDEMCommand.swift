@@ -9,6 +9,7 @@ extension CLI {
 
     static func fetchDEM(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["source"])
+        if let refused = flags.refusal("fetch-dem", knows: ["source"], positionals: 1) { return refused }
         guard let area = flags.positionals.first else {
             return CLIOutput.refuse("usage: kmap fetch-dem <area> [--source view1|view3]")
         }
@@ -40,6 +41,8 @@ extension CLI {
                 "archives": .int(index.entries.count)
             ])
             return 0
+        } catch  where Task.isCancelled {
+            return CLIOutput.cancelled()
         } catch {
             return CLIOutput.failure("\(CLIOutput.said(error))")
         }

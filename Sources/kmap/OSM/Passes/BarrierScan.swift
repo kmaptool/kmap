@@ -12,7 +12,7 @@ struct BarrierScan: OSMSink {
     private static let pathLike: Set<String> = ["path", "footway", "track", "bridleway", "cycleway", "steps"]
     private static let minorLike: Set<String> = [
         "service", "residential", "living_street",
-        "unclassified", "driveway"
+        "unclassified", "pedestrian"
     ]
     /// Ways that enclose a plot rather than lead anywhere; a gate set into one of these is
     /// a private entrance, and most gates on no road at all stand on one.
@@ -46,6 +46,25 @@ struct BarrierScan: OSMSink {
     private(set) var wayRefs: [Int64] = []
     private(set) var wayKinds: [(from: Int32, to: Int32, kind: Kind)] = []
 
+    /// What each entry of this block's string table is as a key: 1 highway, 2 barrier, 0
+    /// any other. Found once per block.
+    private var keyKinds: [UInt8] = []
+    private static let highwayBytes = Array("highway".utf8), barrierBytes = Array("barrier".utf8)
+
+    mutating func begin(_ block: OSMBlock) {
+        let strings = block.strings
+        keyKinds = (0..<strings.count).map { at in
+            guard let bytes = strings.bytes(at), bytes.count == 7 else { return 0 }
+            if bytes.elementsEqual(Self.highwayBytes) { return 1 }
+            if bytes.elementsEqual(Self.barrierBytes) { return 2 }
+            return 0
+        }
+    }
+
+    private func kind(_ key: Int32) -> UInt8 {
+        key >= 0 && Int(key) < keyKinds.count ? keyKinds[Int(key)] : 0
+    }
+
     mutating func clear() {
         foundBarriers.removeAll(keepingCapacity: true)
         wayRefs.removeAll(keepingCapacity: true)
@@ -61,7 +80,7 @@ struct BarrierScan: OSMSink {
     ) {
         var at = tags.startIndex
         while at + 1 < tags.endIndex {
-            if block.text(Int(tags[at])) == "barrier",
+            if kind(tags[at]) == 2,
                 Self.kinds.contains(block.text(Int(tags[at + 1])))
             {
                 foundBarriers.append(id)
@@ -82,9 +101,9 @@ struct BarrierScan: OSMSink {
         var barrier: String?
         for (i, key) in keys.enumerated() {
             guard i < values.count else { break }
-            switch block.text(Int(key)) {
-            case "highway": highway = block.text(Int(values[values.startIndex + i]))
-            case "barrier": barrier = block.text(Int(values[values.startIndex + i]))
+            switch kind(key) {
+            case 1: highway = block.text(Int(values[values.startIndex + i]))
+            case 2: barrier = block.text(Int(values[values.startIndex + i]))
             default: break
             }
         }

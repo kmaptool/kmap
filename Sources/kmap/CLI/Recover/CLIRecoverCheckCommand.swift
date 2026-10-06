@@ -10,6 +10,7 @@ extension CLI {
 
     private static func checkingRecovery(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["extract"])
+        if let refused = flags.refusal("recover-check", knows: ["extract"]) { return refused }
         guard flags.positionals.count == 2 else {
             return CLIOutput.refuse("usage: kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…")
         }
@@ -35,6 +36,8 @@ extension CLI {
             )
             printComparison(compared)
             return compared.different.isEmpty && compared.missing.isEmpty ? 0 : 1
+        } catch  where Task.isCancelled {
+            return CLIOutput.cancelled()
         } catch {
             return CLIOutput.failure("recover-check: \(error.localizedDescription)")
         }

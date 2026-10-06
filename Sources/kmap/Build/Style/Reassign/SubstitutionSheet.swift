@@ -44,7 +44,7 @@ enum SubstitutionSheet {
         }
 
         // Hand-edited, so possibly saved with CRLF: every ending counts.
-        for line in Lines.of(text) {
+        for line in TextLines.of(text) {
             if line.hasPrefix("@@ ") {
                 flush()
                 file = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
@@ -63,7 +63,7 @@ enum SubstitutionSheet {
     }
 
     /// Where each entry `parse` finds stands: its `@@` header line, and its own `-` and
-    /// `+` lines, in the same order. For taking one entry out and leaving the rest.
+    /// `+` lines, in the same order. For taking 1 entry out and leaving the rest.
     static func entryLines(_ lines: [String]) -> [(header: Int?, lines: [Int])] {
         var out: [(header: Int?, lines: [Int])] = []
         var header: Int?

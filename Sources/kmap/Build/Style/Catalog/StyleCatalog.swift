@@ -17,8 +17,9 @@ final class StyleCatalog: Sendable {
     /// The same, as the numbers they are.
     static let contourLineCodes = Set(contourLineTypes.compactMap { Int($0.dropFirst(2), radix: 16) })
 
-    /// Bump when the materialized style layout changes, to force a refresh.
-    private static let materializedVersion = "92"
+    /// Bump when the materialized style layout changes, to force a refresh. kmap's own
+    /// version is in the identity too, so a release that forgot to bump still refreshes.
+    private static let materializedVersion = "94"
 
     private let settings: SettingsStore
 
@@ -37,11 +38,17 @@ final class StyleCatalog: Sendable {
     enum StyleError: Error, LocalizedError {
         case noMkgmap
         case extractionFailed(String)
+        case usersOwnFolder(String)
+        case sheetUnreadable(String)
 
         var errorDescription: String? {
             switch self {
             case .noMkgmap: return t("mkgmap.jar is needed to unpack the base style")
             case .extractionFailed(let m): return t("could not unpack the base style: %@", m)
+            case .usersOwnFolder(let path):
+                return t("%@ is a folder of your own, which kmap does not replace: rename it", path)
+            case .sheetUnreadable(let path):
+                return t("the reassignment sheet %@ cannot be read", path)
             }
         }
     }
@@ -67,7 +74,13 @@ final class StyleCatalog: Sendable {
             FileTools.removeIfPresent(destination)
             // The folder a link leads to: copied as a link, the build's rule edits would
             // write through it into the user's own files.
-            try FileTools.copy(directory.resolvingSymlinksInPath(), to: destination)
+            do {
+                try FileTools.copy(FileTools.resolvingLinks(directory), to: destination)
+            } catch {
+                // A copy cut short would be compiled as if it were the style.
+                FileTools.removeIfPresent(destination)
+                throw error
+            }
             guard let expecting else { return true }
             let marker = try? String(contentsOf: destination.appendingPathComponent("kmap-version"), encoding: .utf8)
             return marker?.trimmingCharacters(in: .whitespacesAndNewlines) == expecting
@@ -83,17 +96,29 @@ final class StyleCatalog: Sendable {
             let sheetURL = TypLibrary.sheet(of: typ),
             let sheet = try? String(contentsOf: sheetURL, encoding: .utf8)
         else { return nil }
-        return materializedIdentity(choices) + "+sheet-\(TypLibrary.fingerprint(Data(sheet.utf8)))"
+        return materializedIdentity(choices, fittedToLadder: true)
+            + "+sheet-\(TypLibrary.fingerprint(Data(sheet.utf8)))"
     }
 
-    /// What a run killed part-way left: hidden build folders and unpackings a day old,
-    /// so none another kmap is filling now.
+    /// What a killed run left: hidden build folders and unpackings a day old, so none another
+    /// kmap is filling now, and rule sets a swap set aside, settled under the styles lock.
     static func removeAbandonedStaging(in styles: URL = Paths.styles, now: Date = Date()) {
         let entries = (try? FileManager.default.contentsOfDirectory(at: styles, includingPropertiesForKeys: nil)) ?? []
+        FileLock.holding(styles.appendingPathComponent(".lock")) {
+            for entry in entries where isSwappedOut(entry.lastPathComponent) {
+                let original = entry.deletingLastPathComponent()
+                    .appendingPathComponent(String(entry.lastPathComponent.dropFirst().dropLast(".old".count)))
+                if FileTools.exists(original) {
+                    FileTools.removeIfPresent(entry)
+                } else {
+                    try? FileTools.move(entry, to: original)
+                }
+            }
+        }
         for entry in entries {
             let name = entry.lastPathComponent
             guard
-                (name.hasPrefix(".") && name.contains("-build-")) || name.hasPrefix("unpack-")
+                (name.hasPrefix(".") && name.contains("-build-")) || isUnpacking(name)
                     || name.hasPrefix(".hideable-"),
                 let changed = FileTools.modified(of: entry), now.timeIntervalSince(changed) > 86_400
             else { continue }
@@ -118,9 +143,20 @@ final class StyleCatalog: Sendable {
     private func install(_ build: URL, as dir: URL, marker wanted: String) throws {
         try FileTools.write(wanted, to: build.appendingPathComponent("kmap-version"))
         try holdingStyles {
-            FileTools.removeIfPresent(dir)
-            try FileTools.move(build, to: dir)
+            // A folder without kmap's marker is the user's, named like a recovered style.
+            if dir.lastPathComponent.hasPrefix("recovered-"), FileTools.exists(dir),
+                !FileTools.exists(dir.appendingPathComponent("kmap-version"))
+            {
+                throw StyleError.usersOwnFolder(Paths.display(dir))
+            }
+            try FileTools.replace(dir, with: build, aside: Self.swappedOut)
         }
+    }
+
+    /// Where a swap keeps the rule set it replaces: hidden, so it is never listed, and
+    /// never a name a user's own folder has.
+    static func swappedOut(_ dir: URL) -> URL {
+        dir.deletingLastPathComponent().appendingPathComponent(".\(dir.lastPathComponent).old", isDirectory: true)
     }
 
     /// Whether `dir` already holds a style stamped `wanted`, read under the lock so a
@@ -132,17 +168,15 @@ final class StyleCatalog: Sendable {
             && FileTools.exists(dir.appendingPathComponent("lines"))
     }
 
-    /// Everything the materialized rules depend on, in one string: version, description
-    /// carrier, zoom plan and the ladder it lands on, label language, hides and
-    /// reassignments. Derived styles are copies of the base, so their markers carry it too.
-    func materializedIdentity(_ choices: StyleChoices) -> String {
+    /// Everything the materialized rules depend on, as 1 string. The ladder counts only
+    /// where something is fitted to it: a plan that moves a rule, or a recovered sheet.
+    func materializedIdentity(_ choices: StyleChoices, fittedToLadder: Bool = false) -> String {
         let hidden = choices.hidden
         let hiddenTag = hidden.isEmpty ? "" : "+hide-" + hidden.sorted().joined(separator: "-")
-        return StyleCatalog.materializedVersion
+        return StyleCatalog.materializedVersion + "+kmap-\(Version.number)"
             + (choices.descriptions == .off ? "" : "+desc-\(choices.descriptions.rawValue)")
             + zoomTag(choices.zoom.plan)
-            // Windows and a recovered sheet's bands are fitted to the ladder's rungs.
-            + "+lv-\(choices.zoom.levels.id)"
+            + (fittedToLadder || choices.zoom.plan.movesAnything ? "+lv-\(choices.zoom.levels.id)" : "")
             + (choices.cyrillic ? "+ru" : "")
             + hiddenTag
             + RuleReassignments.fingerprint()
@@ -192,6 +226,7 @@ final class StyleCatalog: Sendable {
         try dropOperatorFromNamedLabels(in: build, log: log)
         try translateDefaultNames(in: build, cyrillic: choices.cyrillic, log: log)
         try addRussianLabels(in: build, cyrillic: choices.cyrillic, log: log)
+        try applyUserReassignments(in: build, log: log)
 
         try install(build, as: dir, marker: wanted)
         log.ok("base rule set ready at \(Paths.display(dir))")
@@ -202,7 +237,7 @@ final class StyleCatalog: Sendable {
         guard let mkgmap = toolchain.findMkgmap()?.url else { throw StyleError.noMkgmap }
         log.step("unpacking the base rule set from mkgmap")
 
-        let staging = Paths.styles.appendingPathComponent("unpack-\(UUID().uuidString.prefix(8))")
+        let staging = Paths.styles.appendingPathComponent(".unpack-\(UUID().uuidString.prefix(8))")
         Paths.ensure(staging)
         defer { FileTools.removeIfPresent(staging) }
 
@@ -229,19 +264,10 @@ final class StyleCatalog: Sendable {
         try FileTools.write(StyleAssets.contourLinesMetric, to: incDir.appendingPathComponent("contour_lines"))
     }
 
-    /// The rule set before any build choice: the unpack from mkgmap, kmap's own rules, the
-    /// icon redirects, the reassignments and the description rules. Hiding, the POI zoom
-    /// shift and the label translation come after, in `materializeChoices`.
-    ///
-    /// The additions run in a fixed order. Three constraints hold it together, each noted
-    /// where it binds: the barrier-access rules anchor on the block the barrier split
-    /// writes, the found rules are fallbacks and go last, and the redirects and
-    /// reassignments match the text every earlier call has finished shaping.
-    /// The rules as they stand before any build choice touches them - descriptions
-    /// off, labels untranslated, nothing hidden. Recovery derives its sheet against
-    /// this stage, and the recovered style applies the sheet at this same stage, so a
-    /// sheet never inherits one build's personal preferences and survives them all.
-    /// The caller owns the returned directory.
+    /// The rules before any build choice touches them: descriptions off, labels untranslated,
+    /// nothing hidden. Recovery derives its sheet against this stage and the recovered style
+    /// applies it here too, so a sheet never inherits one build's preferences. The caller owns
+    /// the returned directory.
     func neutralRulesForRecovery(log: Log, runner: ProcessRunner) async throws -> URL {
         let dir = StyleCatalog.stagingDirectory(for: "neutral")
         do {
@@ -259,6 +285,13 @@ final class StyleCatalog: Sendable {
         return dir
     }
 
+    /// The rule set before any build choice: the unpack from mkgmap, kmap's own rules, the
+    /// icon redirects and the description rules. Hiding, the zoom plan and the label
+    /// translation come after, and the user's own reassignments last.
+    ///
+    /// The additions run in a fixed order, each constraint noted where it binds: the
+    /// barrier-access rules anchor on the block the barrier split writes, the found rules are
+    /// fallbacks and go last, and the redirects match the text every earlier call has shaped.
     func materializeRules(
         into dir: URL,
         descriptions: BuildRecipe.DescriptionCarrier,
@@ -280,18 +313,21 @@ final class StyleCatalog: Sendable {
             log.warn("icon redirect did not match this mkgmap's style — \(miss)")
         }
 
-        // Locally configured reassignments, after kmap's; same exact-line mechanism.
-        if !RuleReassignments.isEmpty() {
-            let mine = try StyleCatalog.applySubstitutions(RuleReassignments.text(), in: dir)
-            if mine.applied > 0 {
-                log.ok("\(mine.applied) of your type reassignment(s) applied")
-            }
-            for miss in mine.missed {
-                log.warn("your reassignment did not match this mkgmap's style — \(miss)")
-            }
-        }
+        try addDescriptionRules(in: dir, carrier: descriptions, cyrillic: cyrillicLabels, log: log)
+    }
 
-        try addDescriptionRules(in: dir, carrier: descriptions, log: log)
+    /// The user's own reassignments, last of all: taken from the finished rules the editor
+    /// shows, so they match the same text. A rule another build's choices moved is found by
+    /// its condition and type.
+    private func applyUserReassignments(in dir: URL, log: Log) throws {
+        guard !RuleReassignments.isEmpty() else { return }
+        let mine = try StyleCatalog.applySubstitutions(RuleReassignments.text(), in: dir)
+        if mine.applied > 0 {
+            log.ok("\(mine.applied) of your type reassignment(s) applied")
+        }
+        for miss in mine.missed {
+            log.warn("your reassignment did not match this mkgmap's style — \(miss)")
+        }
     }
 
     /// Every kmap rule pass over an unpacked stock style, in the order that matters: a
@@ -301,6 +337,8 @@ final class StyleCatalog: Sendable {
         try addRepairLinkRule(in: dir, log: log)
         try busStopsBeforePlatforms(in: dir, log: log)
         try patchPeakLabel(in: dir, cyrillic: cyrillicLabels, log: log)
+        try splitInternetAccess(in: dir, log: log)
+        try labelSportValues(in: dir, cyrillic: cyrillicLabels, log: log)
         try addAreaPOIFilter(in: dir, log: log)
         try addProtectedAreaRules(in: dir, log: log)
         try addCliffRules(in: dir, log: log)
@@ -332,13 +370,14 @@ final class StyleCatalog: Sendable {
 
     /// Applies the build's own choices to a finished rule set: what to leave off, and how
     /// far to pull the POIs in.
-    private func materializeChoices(in dir: URL, choices: StyleChoices, log: Log) throws {
-        // Hiding must come before the zoom plan: a hide is an exact-line substitution, and
-        // the plan rewrites `resolution 24` in the very lines the hides match.
+    func materializeChoices(in dir: URL, choices: StyleChoices, log: Log) throws {
+        // Hiding, then the trail and overview passes, all exact-line matches, before the zoom
+        // plan, which rewrites `resolution 24` in those very lines; the plan then measures the
+        // rules where a build without a plan draws them.
         try hideFeatures(choices.hidden, in: dir, log: log)
-        try applyZoomPlan(choices.zoom.plan, levels: choices.zoom.levels, in: dir, log: log)
         try showTrailsEarlier(in: dir, log: log)
         try thinTheOverview(in: dir, cyrillic: choices.cyrillic, log: log)
+        try applyZoomPlan(choices.zoom.plan, levels: choices.zoom.levels, in: dir, log: log)
     }
 
     /// Builds the rule set for a style whose codes were recovered from its map: the base
@@ -351,13 +390,15 @@ final class StyleCatalog: Sendable {
         runner: ProcessRunner
     ) async throws {
         try await materializeBaseStyle(choices, log: log, runner: runner)
-        guard let typ = style.typURL, let dir = style.styleDirectory,
-            let sheetURL = TypLibrary.sheet(of: typ),
-            let sheet = try? String(contentsOf: sheetURL, encoding: .utf8)
-        else { return }
+        guard let typ = style.typURL, let dir = style.styleDirectory, let sheetURL = TypLibrary.sheet(of: typ) else {
+            return
+        }
+        guard let sheet = try? String(contentsOf: sheetURL, encoding: .utf8) else {
+            throw StyleError.sheetUnreadable(Paths.display(sheetURL))
+        }
 
         let wanted =
-            materializedIdentity(choices)
+            materializedIdentity(choices, fittedToLadder: true)
             + "+sheet-\(TypLibrary.fingerprint(Data(sheet.utf8)))"
         if isMaterialized(dir, as: wanted) { return }
 
@@ -386,6 +427,7 @@ final class StyleCatalog: Sendable {
         try dropOperatorFromNamedLabels(in: build, log: log)
         try translateDefaultNames(in: build, cyrillic: choices.cyrillic, log: log)
         try addRussianLabels(in: build, cyrillic: choices.cyrillic, log: log)
+        try applyUserReassignments(in: build, log: log)
         try install(build, as: dir, marker: wanted)
         log.ok("recovered rule set ready — \(result.applied) reassignment(s) applied")
         if result.hidden > 0 {
@@ -437,6 +479,25 @@ final class StyleCatalog: Sendable {
         }
         if style.styleDirectory == StyleCatalog.baseStyleDirectory {
             try await materializeBaseStyle(choices, log: log, runner: runner)
+        } else if case .customDirectory = style.origin {
+            // A folder of the user's own is compiled as it is: said, so a hidden feature
+            // that is still drawn does not look like a fault.
+            let ignored = Self.choicesNotApplied(choices)
+            if !ignored.isEmpty {
+                log.warn(
+                    "\(style.name) is your own rule folder, compiled as it is — not applied: \(ignored.joined(separator: ", "))"
+                )
+            }
         }
+    }
+
+    /// The build choices that only kmap's own rule set takes.
+    static func choicesNotApplied(_ choices: StyleChoices) -> [String] {
+        var out: [String] = []
+        if !choices.hidden.isEmpty { out.append("hidden features") }
+        if choices.zoom.plan.movesAnything { out.append("the zoom plan") }
+        if choices.descriptions != .off { out.append("descriptions") }
+        if choices.cyrillic { out.append("Russian labels") }
+        return out
     }
 }

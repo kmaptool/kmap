@@ -163,15 +163,22 @@ final class MainMenuScreen: Screen {
     }
 
     private func renderMenu(_ items: [Item], into s: Surface, rect: Rect, theme: Theme) {
-        for (i, item) in items.enumerated() {
-            let y = rect.y + i * Self.rowHeight
-            guard y + 1 < rect.maxY else { break }
+        // Too short for a note under every item: 1 row each, and past that a window that
+        // keeps the selected item in view.
+        let tall = items.count * Self.rowHeight <= rect.h
+        let rowHeight = tall ? Self.rowHeight : 1
+        let fits = max(1, rect.h / rowHeight)
+        let first = min(max(0, list.selected - fits + 1), max(0, items.count - fits))
+        let room = max(0, rect.w - 6)
+        for (i, item) in items.enumerated().dropFirst(first) {
+            let y = rect.y + (i - first) * rowHeight
+            guard y + rowHeight - 1 < rect.maxY else { break }
             let selected = i == list.selected
             let bg = selected ? theme.selectionBg : theme.appBg
 
             if selected {
-                s.fill(Rect(x: rect.x, y: y, w: rect.w, h: Self.rowHeight), Style(fg: theme.text, bg: bg))
-                s.vline(rect.x, y, Self.rowHeight, Glyph.bar, Style(fg: theme.accent, bg: bg))
+                s.fill(Rect(x: rect.x, y: y, w: rect.w, h: rowHeight), Style(fg: theme.text, bg: bg))
+                s.vline(rect.x, y, rowHeight, Glyph.bar, Style(fg: theme.accent, bg: bg))
             }
             s.text(
                 rect.x + 2,
@@ -182,10 +189,10 @@ final class MainMenuScreen: Screen {
             s.text(
                 rect.x + 5,
                 y,
-                item.label,
+                truncate(item.label, to: room),
                 Style(fg: selected ? theme.selectionFg : theme.text, bg: bg, bold: selected)
             )
-            s.text(rect.x + 5, y + 1, item.note, Style(fg: theme.faint, bg: bg))
+            if tall { s.text(rect.x + 5, y + 1, truncate(item.note, to: room), Style(fg: theme.faint, bg: bg)) }
         }
     }
 }

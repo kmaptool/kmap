@@ -154,10 +154,19 @@ extension CLIProfileTests {
         for bad in [
             "--heap=0", "--heap=99999", "--connections=0", "--connections=17",
             "--repair-radius=-1", "--repair-radius=500", "--memory=0",
-            "--heap=lots", "--connections=some"
+            "--heap=lots", "--connections=some",
+            // mkgmap would stop on these only at the compile, after the download.
+            "--code-page=125", "--code-page=12345", "--code-page=-1"
         ] {
             let code = await CLI.run(["build", "region-a", bad])
             XCTAssertEqual(code, 2, "\(bad) should be refused")
+        }
+    }
+
+    func testThePagesMkgmapTakesAreTaken() {
+        for page in ["1253", "866", "65001", "auto", "0"] {
+            var choices = BuildChoices()
+            XCTAssertEqual(CLI.apply(CLI.Flags(["--code-page=\(page)"]), to: &choices, store: store), [], page)
         }
     }
 
@@ -169,6 +178,22 @@ extension CLIProfileTests {
         }
         XCTAssertEqual(CLI.unknownSources(in: "copernicus1, view3,srtm1,alos1,copernicus90"), [])
         XCTAssertEqual(CLI.unknownSources(in: "copernicus1,mars"), ["mars"])
+        // pyhgtmap's own by their exact names: a word that only starts like one is not one.
+        // alos3 too: pyhgtmap refuses it, and with it the whole fetch of the login sources.
+        XCTAssertEqual(CLI.unknownSources(in: "srtm3,srtm7,alos3,alos99"), ["srtm7", "alos3", "alos99"])
+    }
+
+    /// An overlap off the 128 step would be rounded silently: it is refused instead.
+    func testAnOverlapOffItsStepIsRefused() {
+        var choices = BuildChoices()
+        let refused = CLI.apply(CLI.Flags(["--overlap=200", "--land-overlap=60"]), to: &choices, store: store)
+        XCTAssertEqual(
+            refused,
+            ["--overlap=200 is not a multiple of 128", "--land-overlap=60 is not a multiple of 128"]
+        )
+        XCTAssertTrue(CLI.apply(CLI.Flags(["--overlap=256", "--land-overlap=128"]), to: &choices, store: store).isEmpty)
+        XCTAssertEqual(choices.shapeOverlap, 256)
+        XCTAssertEqual(choices.landOverlap, 128)
     }
 
     /// A switch is on by being written, so `--dem=no` used to turn the layer on. A value

@@ -196,17 +196,20 @@ extension TileSplitter {
 
         /// Every tile a way goes to, in order: the plan's, or else its first placed node's.
         private func wayTiles(planned: Int32?, refs: ArraySlice<Int64>) -> [UInt16] {
-            var tiles = planned.map { Set(plan.sets[$0]) } ?? []
-            if tiles.isEmpty {
-                for ref in refs {
-                    guard let value = nodes.get(ref) else { continue }
-                    let areas = nodes.areas(of: value)
-                    guard !areas.isEmpty else { continue }
-                    tiles.formUnion(areas)
-                    break  // a non-spanning way has only 1
-                }
+            if let planned, case let tiles = plan.sets[planned], !tiles.isEmpty { return Self.distinct(tiles) }
+            for ref in refs {
+                guard let value = nodes.get(ref) else { continue }
+                let areas = nodes.areas(of: value)
+                guard !areas.isEmpty else { continue }
+                return Self.distinct(areas)  // a non-spanning way has only 1
             }
-            return tiles.sorted()
+            return []
+        }
+
+        /// Ascending and once each: interned sets already are, so no set is built for them.
+        private static func distinct(_ tiles: [UInt16]) -> [UInt16] {
+            for i in tiles.indices.dropFirst() where tiles[i - 1] >= tiles[i] { return Set(tiles).sorted() }
+            return tiles
         }
 
         mutating func relation(

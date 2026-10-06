@@ -225,4 +225,18 @@ final class SuggestedRegionsTests: XCTestCase {
             Paths.pbfCache
         )
     }
+
+    /// The recover offer and a build land the same file beside the same cache copy, so they
+    /// wait on 1 lock rather than writing it at once.
+    func testTheOfferFetchesIntoTheSameCacheFileABuildDoes() {
+        let region = Region(
+            id: "europe/monaco",
+            name: "Monaco",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: .empty,
+            boxes: []
+        )
+        XCTAssertEqual(RegionSuggestion.cacheDestination(for: region), Paths.cachedExtract(forRegion: region.id))
+    }
 }

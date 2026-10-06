@@ -34,6 +34,8 @@ extension Toolchain {
         _ pinned: Toolchain.PinnedDownload,
         jarName: String,
         destination: URL,
+        keeping: [String] = [],
+        checkingUse: Bool = true,
         log: Log,
         progress: InstallProgress? = nil
     ) async throws {
@@ -87,8 +89,16 @@ extension Toolchain {
             if FileTools.exists(lib) {
                 try FileTools.copy(lib, to: fresh.appendingPathComponent("lib"))
             }
-            FileTools.removeIfPresent(destination)
-            try FileTools.move(fresh, to: destination)
+            // The patched jar built beside the stock one goes on with it: a jar no longer
+            // there is not built again unasked, and one out of date renews itself.
+            for kept in keeping where FileTools.exists(destination.appendingPathComponent(kept)) {
+                try FileTools.copy(destination.appendingPathComponent(kept), to: fresh.appendingPathComponent(kept))
+            }
+            if checkingUse {
+                try Toolchain.replaceUnused(destination, with: fresh)
+            } else {
+                try Toolchain.swapping { try FileTools.replace(destination, with: fresh) }
+            }
         } catch {
             FileTools.removeIfPresent(fresh)
             throw error
@@ -107,15 +117,20 @@ extension Toolchain {
     }
 
     /// Installs the mkgmap release kmap knows, `Toolchain.mkgmapRelease`.
+    /// - Parameter checkingUse: off for the patch a build renews before its first mkgmap
+    ///   run: the build's own hold on the tools would refuse it.
     func installMkgmap(
         log: Log,
         runner: ProcessRunner,
-        progress: InstallProgress? = nil
+        progress: InstallProgress? = nil,
+        checkingUse: Bool = true
     ) async throws {
         try await installJarBundle(
             Toolchain.mkgmapRelease,
             jarName: "mkgmap.jar",
             destination: Paths.tools.appendingPathComponent("mkgmap", isDirectory: true),
+            keeping: [Toolchain.patchedMkgmapName],
+            checkingUse: checkingUse,
             log: log,
             progress: progress
         )

@@ -104,7 +104,7 @@ enum POSIXConsole: ConsoleBackend {
             signal(number, SIG_IGN)
             let source = DispatchSource.makeSignalSource(signal: number, queue: .global())
             source.setEventHandler {
-                ChildProcess.stopAll()
+                ChildProcess.leave()
                 POSIXConsole.interrupted?()
                 _exit(128 + number)
             }

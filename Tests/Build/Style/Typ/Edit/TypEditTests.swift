@@ -59,6 +59,18 @@ final class TypEditTests: XCTestCase {
         XCTAssertEqual(edited.components(separatedBy: "\n")[7], "\"a c #68B0F8\"")
     }
 
+    /// What mkgmap's compiler refuses is refused at the edit, not at the next build.
+    func testAClearMkgmapRefusesIsRefusedAtTheEdit() throws {
+        let solid = TypSource.parse("[_polygon]\nType=0x16\nXpm=\"0 0 1 0\"\n\"a c #00AA00\"\n[end]")
+        XCTAssertThrowsError(try TypEdit.setColour(in: solid, kind: .polygon, code: 0x16, colourIndex: 0, to: nil))
+        let pair = TypSource.parse("[_line]\nType=0x02\nXpm=\"0 0 2 0\"\n\"a c #000000\"\n\"b c none\"\n[end]")
+        XCTAssertThrowsError(try TypEdit.setColour(in: pair, kind: .line, code: 0x02, colourIndex: 0, to: "none"))
+        XCTAssertNoThrow(try TypEdit.setColour(in: pair, kind: .line, code: 0x02, colourIndex: 1, to: "#FFFFFF"))
+        XCTAssertNil(TypEdit.refusal(ofSimple: [nil, "#1", nil, "#2"]), "each pair's clear goes behind")
+        XCTAssertNotNil(TypEdit.refusal(ofSimple: ["#1", "#2", nil]))
+        XCTAssertNotNil(TypEdit.refusal(ofSimple: ["#1", "#2", "#3", "#4", "#5"]))
+    }
+
     /// Every pixel row addresses colours by key, so the key is kept: rewriting it would
     /// leave the rows pointing at a missing palette entry.
     func testThePaletteKeyIsKeptSoThePixelsStillFindTheirColour() throws {
@@ -709,5 +721,436 @@ final class TypEditTests: XCTestCase {
         for kind in MapElementKind.allCases {
             XCTAssertEqual(after.codes(kind), source.codes(kind))
         }
+    }
+
+    // MARK: A section the next header closes
+
+    private let unclosed = """
+        [_polygon]
+        Type=0x01
+        Xpm="4 1 1 1"
+        "a c #FF0000"
+        "aaaa"
+
+        ; --- water ---
+        [_polygon]
+        Type=0x02
+        Xpm="0 0 1 0"
+        "a c #0000FF"
+        [end]
+        """
+
+    func testATagAddedToASectionWithNoEndGoesAfterItsLastPictureRow() throws {
+        let after = try TypEdit.setFontStyle(in: TypSource.parse(unclosed), kind: .polygon, code: 0x01, to: "SmallFont")
+        let lines = after.components(separatedBy: "\n")
+        XCTAssertEqual(
+            Array(lines[0...5]),
+            ["[_polygon]", "Type=0x01", "Xpm=\"4 1 1 1\"", "\"a c #FF0000\"", "\"aaaa\"", "FontStyle=SmallFont"]
+        )
+        XCTAssertEqual(TypSource.parse(after).section(.polygon, 0x01)?.picture?.rows, ["aaaa"])
+    }
+
+    func testALabelAddedToASectionWithNoEndGoesAfterItsLastLine() throws {
+        let after = try TypEdit.setLabel(
+            in: TypSource.parse(unclosed),
+            kind: .polygon,
+            code: 0x01,
+            language: 4,
+            to: "Lake"
+        )
+        XCTAssertEqual(after.components(separatedBy: "\n")[5], "String=0x04,Lake")
+        XCTAssertEqual(TypSource.parse(after).section(.polygon, 0x01)?.picture?.rows, ["aaaa"])
+    }
+
+    func testTheCommentAboveTheNextHeaderIsThatSectionsAndOutlivesTheOneBefore() throws {
+        let source = TypSource.parse(unclosed)
+        XCTAssertEqual(source.section(.polygon, 0x02)?.comments, ["; --- water ---"])
+        let after = try TypEdit.removeSection(in: source, kind: .polygon, code: 0x01)
+        XCTAssertTrue(after.contains("; --- water ---"), after)
+        XCTAssertNotNil(TypSource.parse(after).section(.polygon, 0x02))
+    }
+
+    func testACommentsBlockRunsToItsEndWhateverItQuotes() {
+        let text = """
+            [_comments]
+            an old note quoting
+            [_polygon]
+            Type=0x05
+            [end]
+            [_polygon]
+            Type=0x06
+            [end]
+            """
+        let source = TypSource.parse(text)
+        XCTAssertNil(source.section(.polygon, 0x05), "quoted inside the comments, as mkgmap skips it")
+        XCTAssertNotNil(source.section(.polygon, 0x06))
+    }
+
+    func testAPointsDayEditLandsOnItsDayWhereTheNightComesFirst() throws {
+        let text = """
+            [_point]
+            Type=0x2f
+            NightXpm="1 1 1 1"
+            "n c #000000"
+            "n"
+            Xpm="1 1 1 1"
+            "d c #FFFFFF"
+            "d"
+            [end]
+            """
+        let source = TypSource.parse(text)
+        let day = try XCTUnwrap(source.section(.point, 0x2f00)?.picture)
+        let red = XpmBlock(
+            width: day.width,
+            height: day.height,
+            declaredColours: 1,
+            charsPerPixel: day.charsPerPixel,
+            palette: [(key: "d", colour: "#FF0000")],
+            rows: day.rows
+        )
+        let after = try TypEdit.setPicture(in: source, kind: .point, code: 0x2f00, to: red)
+        let lines = after.components(separatedBy: "\n")
+        XCTAssertEqual(Array(lines[2...4]), ["NightXpm=\"1 1 1 1\"", "\"n c #000000\"", "\"n\""], "the night stays")
+        XCTAssertTrue(lines[6].contains("#FF0000"), after)
+    }
+
+    /// A point whose night block comes first: by night its day block takes the night
+    /// picture whole, and nothing of the day rows is left behind.
+    func testKeepingTheNightOfAPointWhoseNightComesFirst() throws {
+        let text = """
+            [_point]
+            Type=0x2f00
+            NightXpm="2 1 1 1"
+            "a c #000000"
+            "aa"
+            DayXpm="2 1 1 1"
+            "b c #FFFFFF"
+            "bb"
+            [end]
+            """
+        let kept = TypEdit.keeping(.night, in: text).text
+        XCTAssertFalse(kept.contains("NightXpm"), kept)
+        XCTAssertFalse(kept.contains("#FFFFFF"), kept)
+        XCTAssertFalse(kept.contains("\"bb\""), kept)
+        let section = try XCTUnwrap(TypSource.parse(kept).section(.point, 0x2f00))
+        XCTAssertEqual(section.dayXpm?.colours, ["#000000"])
+    }
+
+    /// mkgmap reads a header with a comment after it, and a draw order closed by the next
+    /// header rather than `[end]`: an entry goes into the table, not into that section.
+    func testADrawOrderClosedByTheNextHeaderTakesItsEntryInside() throws {
+        let text = """
+            [_drawOrder]
+            Type=0x01,1
+            [_polygon] ; the city
+            Type=0x01
+            Xpm="0 0 1 0"
+            "1 c #FF0000"
+            [end]
+            """
+        let source = TypSource.parse(text)
+        XCTAssertNotNil(source.section(.polygon, 0x01), "the header with its comment is read")
+        var lines = source.lines
+        TypEdit.insertIntoDrawOrder(&lines, code: 0x02, level: 2)
+        let after = TypSource.parse(lines.joined(separator: "\n"))
+        XCTAssertEqual(after.drawOrder.map(\.code), [0x01, 0x02])
+        XCTAssertNotNil(after.section(.polygon, 0x01))
+        XCTAssertEqual(after.section(.polygon, 0x01)?.lines.count, source.section(.polygon, 0x01)?.lines.count)
+    }
+
+    /// A label whose language is written in decimal is the one edited, not doubled.
+    func testALabelInADecimalLanguageIsEditedInPlace() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\"\nString=4,Foo\n[end]"
+        let edited = try TypEdit.setLabel(in: TypSource.parse(text), kind: .polygon, code: 0x01, language: 4, to: "Bar")
+        XCTAssertTrue(edited.contains("Bar"))
+        XCTAssertFalse(edited.contains("Foo"), edited)
+    }
+
+    /// A label with no language number is mkgmap's language 0, and is the one replaced.
+    func testALabelWithNoLanguageIsLanguageZeroAndIsEditedInPlace() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\"\nString=Car park, paid\n[end]"
+        let source = TypSource.parse(text)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.labels.first?.language, 0)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.labels.first?.text, "Car park, paid")
+        let edited = try TypEdit.setLabel(in: source, kind: .polygon, code: 0x01, language: 0, to: "Parking")
+        XCTAssertEqual(TypSource.parse(edited).section(.polygon, 0x01)?.labels.map(\.text), ["Parking"])
+    }
+
+    /// mkgmap reads a label to the end of its line: a `;` in it is text, not a comment.
+    func testASemicolonInALabelIsPartOfIt() {
+        let source = TypSource.parse("[_point]\nType=0x2f\nString=0x00,Camp ; site\n[end]")
+        XCTAssertEqual(source.section(.point, 0x2f00)?.labels.first?.text, "Camp ; site")
+    }
+
+    /// A tag written with spaces around its `=` is the one replaced, not doubled.
+    func testATagWithSpacesAroundItsEqualsIsReplaced() throws {
+        let text =
+            "[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\"\nFontStyle = SmallFont\nString = 0x04,Foo\n[end]"
+        var edited = try TypEdit.setFontStyle(in: TypSource.parse(text), kind: .polygon, code: 0x01, to: "LargeFont")
+        edited = try TypEdit.setLabel(in: TypSource.parse(edited), kind: .polygon, code: 0x01, language: 4, to: "Bar")
+        XCTAssertEqual(edited.components(separatedBy: "FontStyle").count, 2, edited)
+        XCTAssertTrue(edited.contains("FontStyle=LargeFont"), edited)
+        XCTAssertFalse(edited.contains("Foo"), edited)
+    }
+
+    /// `alpha=` after a palette line is read as mkgmap reads it, and outlives an edit.
+    func testAlphaAfterAPaletteLineIsKeptThroughAnEdit() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\" canalalpha=8\n[end]"
+        let source = TypSource.parse(text)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.colours, ["#FF000077"])
+        let edited = try TypEdit.setColour(in: source, kind: .polygon, code: 0x01, colourIndex: 0, to: "#00FF00")
+        XCTAssertEqual(TypSource.parse(edited).section(.polygon, 0x01)?.colours, ["#00FF0077"])
+        let drawn = try XCTUnwrap(source.section(.polygon, 0x01)?.xpm)
+        XCTAssertEqual(TypEdit.render(drawn, tag: "Xpm")[1], "\"1 c #FF000077\"")
+    }
+
+    /// A point drawn with a plain `Xpm=` is drawn by day, and its colours are offered.
+    func testAPointWithAPlainXpmHasItsDayColours() {
+        let source = TypSource.parse("[_point]\nType=0x2f\nXpm=\"1 1 1 1\"\n\"a c #123456\"\n\"a\"\n[end]")
+        let slots = source.section(.point, 0x2f00)?.colourSlots
+        XCTAssertEqual(slots?.day.map(\.tag), ["Xpm"])
+        XCTAssertEqual(slots?.day.map(\.colour), ["#123456"])
+    }
+
+    /// TYPViewer writes `Key:Value`, which mkgmap reads as `Key=Value`.
+    func testAColonSeparatedTagIsReadAndReplaced() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\"\nDaycustomColor:#4D80B3\n[end]"
+        let source = TypSource.parse(text)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.dayLabelColour, "#4D80B3")
+        let edited = try TypEdit.setLabelColour(in: source, kind: .polygon, code: 0x01, night: false, to: "#112233")
+        XCTAssertEqual(edited.lowercased().components(separatedBy: "daycustomcolor").count, 2, edited)
+        XCTAssertEqual(TypSource.parse(edited).section(.polygon, 0x01)?.dayLabelColour, "#112233")
+    }
+
+    /// A note after a picture's header, a palette line or a row may hold quotes: mkgmap
+    /// reads each by its quotes and its width, and so does kmap.
+    func testNotesWithQuotesAfterAPictureChangeNothingInIt() throws {
+        let text = """
+            [_point]
+            Type=0x2f
+            DayXpm="2 1 2 1" ; from "OSM"
+            "a c #FF0000" ; "red"
+            "b c none"
+            "ab" ; "row"
+            [end]
+            """
+        let picture = try XCTUnwrap(TypSource.parse(text).section(.point, 0x2f00)?.dayXpm)
+        XCTAssertEqual(picture.charsPerPixel, 1)
+        XCTAssertEqual(picture.colours, ["#FF0000", nil])
+        XCTAssertEqual(picture.rows, ["ab"])
+    }
+
+    /// `alpha=` as mkgmap reads it: a word ending in `alpha`, case and all; the last one
+    /// wins; a number ends at its last digit; on `none` it colours black; clear is none.
+    func testAlphaIsReadAsMkgmapReadsIt() {
+        func colour(_ line: String) -> String?? {
+            TypSource.parse("[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\(line)\n[end]").section(.polygon, 0x01)?.colours
+                .first
+        }
+        XCTAssertEqual(colour("\"1 c #FF0000\" alpha=2 alpha=8"), "#FF000077")
+        XCTAssertEqual(colour("\"1 c #FF0000\" Alpha=8"), "#FF0000")
+        XCTAssertEqual(colour("\"1 c #FF0000\" alpha=8;"), "#FF000077")
+        XCTAssertEqual(colour("\"1 c #FF0000\" alpha=15"), .some(nil))
+        XCTAssertEqual(colour("\"1 c none\" alpha=0"), "#000000")
+        XCTAssertEqual(colour("\"1 c #FF0000FF\""), "#FF0000")
+    }
+
+    /// A new colour keeps the old one's alpha, in the pixel editor as on the type screen.
+    func testANewColourKeepsTheOldAlpha() {
+        XCTAssertEqual(TypEdit.keepingAlpha("#00FF00", typed: "00ff00", of: "#FF000077"), "#00FF0077")
+        XCTAssertEqual(TypEdit.keepingAlpha("#00FF00", typed: "#00FF00", of: "#FF0000"), "#00FF00")
+        XCTAssertEqual(TypEdit.keepingAlpha("#00FF0011", typed: "#00FF0011", of: "#FF000077"), "#00FF0011")
+        XCTAssertEqual(
+            TypEdit.keepingAlpha("#00FF00", typed: "#00FF00FF", of: "#FF000077"),
+            "#00FF00",
+            "an alpha typed whole makes it whole"
+        )
+        XCTAssertNil(TypEdit.keepingAlpha("none", typed: "none", of: "#FF000077"))
+    }
+
+    /// mkgmap takes a point's `Xpm=` and `DayXpm=` alike, the later winning.
+    func testTheLaterOfAPointsTwoDayPicturesIsTheOne() {
+        let text = """
+            [_point]
+            Type=0x2f
+            DayXpm="1 1 1 1"
+            "a c #111111"
+            "a"
+            Xpm="1 1 1 1"
+            "a c #222222"
+            "a"
+            [end]
+            """
+        let slots = TypSource.parse(text).section(.point, 0x2f00)?.colourSlots
+        XCTAssertEqual(slots?.day.map(\.tag), ["Xpm"])
+        XCTAssertEqual(slots?.day.map(\.colour), ["#222222"])
+    }
+
+    /// Widths are numbers as mkgmap reads them, and only `String` keys take a number.
+    func testWidthsAndKeysAreReadAsMkgmapReadsThem() {
+        let source = TypSource.parse(
+            "[_line]\nType=0x01\nLineWidth=0x3\nBorderWidth=0x1\nType2=0x05\nXpm=\"0 0 2 0\"\n\"1 c #FF0000\"\n\"2 c #00FF00\"\n[end]"
+        )
+        XCTAssertEqual(source.section(.line, 0x01)?.lineWidth, 3)
+        XCTAssertEqual(source.section(.line, 0x01)?.borderWidth, 1)
+        XCTAssertNil(source.section(.line, 0x05), "Type2 is no type to mkgmap")
+    }
+
+    /// A true-colour picture names a colour per pixel: its rows are read whole.
+    func testATrueColourRowIsReadWhole() {
+        let text = "[_point]\nType=0x2f\nXpm=\"2 1 0 0\"\n\"#FF0000 #00FF00\"\n[end]"
+        XCTAssertEqual(TypSource.parse(text).section(.point, 0x2f00)?.xpm?.rows, ["#FF0000 #00FF00"])
+    }
+
+    /// mkgmap passes over a symbol before a key: `#LineWidth=4` sets the width.
+    func testASymbolBeforeAKeyIsPassedOverAsMkgmapDoes() {
+        let source = TypSource.parse("[_line]\nType=0x01\n#LineWidth=4\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\"\n[end]")
+        XCTAssertEqual(source.section(.line, 0x01)?.lineWidth, 4)
+        XCTAssertNil(TypSource.entry(of: "; LineWidth=4"))
+    }
+
+    /// Palette lines as mkgmap's scanner takes them: `c#RRGGBB`, `# RRGGBB`, tabs, and a
+    /// blank line before the palette.
+    func testPaletteLinesAreReadAsMkgmapScansThem() {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0\t0\t2\t1\"\n\n\"a c#FF0000\"\n\"b c # 00FF00\"\n[end]"
+        XCTAssertEqual(TypSource.parse(text).section(.polygon, 0x01)?.colours, ["#FF0000", "#00FF00"])
+    }
+
+    /// A line or polygon has 1 picture to mkgmap: a `DayXpm=` there is passed over.
+    func testALineTakesItsPlainPictureOnly() {
+        let text = "[_line]\nType=0x01\nDayXpm=\"0 0 1 0\"\n\"1 c #111111\"\nXpm=\"0 0 1 0\"\n\"1 c #222222\"\n[end]"
+        XCTAssertEqual(TypSource.parse(text).section(.line, 0x01)?.colours, ["#222222"])
+    }
+
+    /// A blank line before the palette is the picture's own: an edit finds the colour, and
+    /// a new picture replaces it all.
+    func testABlankLineInsideAPictureStaysInsideIt() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\n\"1 c #FF0000\"\nString=0x00,Red\n[end]"
+        let source = TypSource.parse(text)
+        let recoloured = try TypEdit.setColour(in: source, kind: .polygon, code: 0x01, colourIndex: 0, to: "#00FF00")
+        XCTAssertEqual(TypSource.parse(recoloured).section(.polygon, 0x01)?.colours, ["#00FF00"])
+        let drawn = try XCTUnwrap(source.section(.polygon, 0x01)?.xpm)
+        let redrawn = try TypEdit.setPicture(in: source, kind: .polygon, code: 0x01, to: drawn)
+        XCTAssertFalse(redrawn.contains("\n\n\"1 c"), redrawn)
+        XCTAssertEqual(redrawn.components(separatedBy: "#FF0000").count, 2, redrawn)
+        XCTAssertTrue(redrawn.contains("String=0x00,Red"))
+    }
+
+    /// A blank line between rows is the picture's: mkgmap reads across it, so the parse
+    /// and an edit keep every row, true colour too.
+    func testRowsAfterABlankLineStayInThePicture() throws {
+        let bitmap = "[_polygon]\nType=0x01\nXpm=\"2 2 1 1\"\n\"a c #FF0000\"\n\"aa\"\n\n\"aa\"\nString=x\n[end]"
+        let source = TypSource.parse(bitmap)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.xpm?.rows, ["aa", "aa"])
+        let drawn = try XCTUnwrap(source.section(.polygon, 0x01)?.xpm)
+        let redrawn = try TypEdit.setPicture(in: source, kind: .polygon, code: 0x01, to: drawn)
+        XCTAssertEqual(TypSource.parse(redrawn).section(.polygon, 0x01)?.xpm?.rows, ["aa", "aa"])
+
+        let night = """
+            [_point]
+            Type=0x2f
+            DayXpm="2 2 0 0"
+            "#FF0000 #00FF00"
+
+            "#0000FF #FFFFFF"
+            NightXpm="2 2 0 0"
+            "#110000 #001100"
+
+            "#000011 #111111"
+            String=x
+            [end]
+            """
+        let kept = TypEdit.keeping(.night, in: night).text
+        XCTAssertEqual(
+            TypSource.parse(kept).section(.point, 0x2f00)?.dayXpm?.rows,
+            ["#110000 #001100", "#000011 #111111"]
+        )
+    }
+
+    /// A palette line the parse cannot read is a row to it: an edit's index counts the
+    /// lines it took, as the screen shows them.
+    func testAnUnreadablePaletteLineDoesNotShiftTheColours() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0 0 2 0\"\n\"1 C #FF0000\"\n\"2 c #00FF00\"\n[end]"
+        let source = TypSource.parse(text)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.colours, ["#00FF00"])
+        let edited = try TypEdit.setColour(in: source, kind: .polygon, code: 0x01, colourIndex: 0, to: "#0000FF")
+        XCTAssertTrue(edited.contains("\"1 C #FF0000\""), edited)
+        XCTAssertTrue(edited.contains("\"2 c #0000FF\""), edited)
+    }
+
+    /// By day every night picture goes: one left would still be drawn after dark.
+    func testTheDayThemeTakesEveryNightPicture() {
+        let text = """
+            [_point]
+            Type=0x2f
+            DayXpm="1 1 1 1"
+            "a c #FF0000"
+            "a"
+            NightXpm="1 1 1 1"
+            "a c #00FF00"
+            "a"
+            NightXpm="1 1 1 1"
+            "a c #0000FF"
+            "a"
+            [end]
+            """
+        XCTAssertNil(TypSource.parse(TypEdit.keeping(.day, in: text).text).section(.point, 0x2f00)?.nightXpm)
+    }
+
+    /// A colour that will not read stays a palette entry as written: a re-render keeps it,
+    /// and the rows stay rows.
+    func testAColourThatWillNotReadStaysInThePalette() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"2 1 2 1\"\n\"a c #FF00000\"\n\"b c #00FF00\"\n\"ab\"\n[end]"
+        let source = TypSource.parse(text)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.colours, ["#FF00000", "#00FF00"])
+        XCTAssertEqual(source.section(.polygon, 0x01)?.xpm?.rows, ["ab"])
+        let drawn = try XCTUnwrap(source.section(.polygon, 0x01)?.xpm)
+        XCTAssertTrue(try TypEdit.setPicture(in: source, kind: .polygon, code: 0x01, to: drawn).contains("#FF00000"))
+    }
+
+    /// `[_comments]` ends at `[end]` itself, as mkgmap reads it: `-[end]` is comment text.
+    func testCommentsEndOnlyAtTheirOwnEnd() {
+        let source = TypSource.parse("[_comments]\ntext\n-[end]\n[_point]\nType=0x01\n[end]\n[end]")
+        XCTAssertNil(source.section(.point, 0x100))
+    }
+
+    /// A point drawn by night alone gets its night picture by day too, which mkgmap writes
+    /// for every point: under either theme, and without one.
+    func testAPointDrawnByNightAloneIsDrawnByDayToo() {
+        let text = "[_point]\nType=0x04\nNightXpm=\"1 1 1 1\"\n\"a c #00FF00\"\n\"a\"\n[end]"
+        for theme in [TypEdit.Theme.day, .night] {
+            let kept = TypSource.parse(TypEdit.keeping(theme, in: text).text).section(.point, 0x400)
+            XCTAssertEqual(kept?.xpm?.colours, ["#00FF00"], "\(theme)")
+        }
+        let both = TypSource.parse(TypEdit.givingNightOnlyPointsADay(text)).section(.point, 0x400)
+        XCTAssertEqual(both?.xpm?.colours, ["#00FF00"])
+        XCTAssertEqual(both?.nightXpm?.colours, ["#00FF00"])
+    }
+
+    /// A symbol before a header is passed over, as mkgmap passes it: `#[_line]` opens one.
+    func testASymbolBeforeAHeaderOpensTheSection() {
+        let source = TypSource.parse("#[_line]\nType=0x02\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\"\n[end]")
+        XCTAssertNotNil(source.section(.line, 0x02))
+    }
+
+    /// A colour that will not read is kept as written, alpha and all, and a new one typed
+    /// over it takes no alpha from it.
+    func testABrokenColourIsKeptAndLendsNoAlpha() throws {
+        let text = "[_polygon]\nType=0x01\nXpm=\"0 0 2 0\"\n\"a c #FF00000\" alpha=8\n\"b c #00FF00OO\"\n[end]"
+        let source = TypSource.parse(text)
+        XCTAssertEqual(source.section(.polygon, 0x01)?.colours, ["#FF00000", "#00FF00OO"])
+        let edited = try TypEdit.setColour(in: source, kind: .polygon, code: 0x01, colourIndex: 1, to: "#112233")
+        XCTAssertTrue(edited.contains("\"b c #112233\""), edited)
+    }
+
+    /// A tag set twice is read by its last line, as mkgmap reads it: that is the one an edit
+    /// changes, and a removal takes them all.
+    func testATagSetTwiceIsEditedByItsLastLine() throws {
+        let text =
+            "[_polygon]\nType=0x01\nXpm=\"0 0 1 0\"\n\"1 c #FF0000\"\nFontStyle=SmallFont\nFontStyle=NoLabel\n[end]"
+        let set = try TypEdit.setFontStyle(in: TypSource.parse(text), kind: .polygon, code: 0x01, to: "LargeFont")
+        XCTAssertEqual(TypSource.parse(set).section(.polygon, 0x01)?.fontStyle, "LargeFont")
+        let cleared = try TypEdit.setFontStyle(in: TypSource.parse(text), kind: .polygon, code: 0x01, to: nil)
+        XCTAssertFalse(cleared.contains("FontStyle"), cleared)
     }
 }

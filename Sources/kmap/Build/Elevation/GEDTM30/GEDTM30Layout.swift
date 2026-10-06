@@ -64,6 +64,11 @@ extension GEDTM30 {
 
     /// A tile side past this means a damaged header.
     private static let largestTileSide = 4096
+    /// The whole globe at 1 arc-second is 1,296,000 samples round; past this a size is
+    /// a damaged header.
+    private static let largestSide = 1 << 22
+    /// Past any real file; offsets beyond it would overflow their sums.
+    static let mostFileBytes: Int64 = 1 << 42
 
     /// Reads the header and the first image's tags, BigTIFF or classic.
     static func layout(read: @escaping Read) async throws -> Layout {
@@ -99,9 +104,16 @@ extension GEDTM30 {
         let tileWidth = try await tags.one(TIFF.Tag.tileWidth)
         let tileHeight = try await tags.one(TIFF.Tag.tileLength)
         let sides = 1...largestTileSide
-        guard width > 0, height > 0, sides.contains(tileWidth), sides.contains(tileHeight),
-            offsets.count == ((width + tileWidth - 1) / tileWidth) * ((height + tileHeight - 1) / tileHeight)
+        guard (1...largestSide).contains(width), (1...largestSide).contains(height),
+            sides.contains(tileWidth), sides.contains(tileHeight),
+            offsets.count == ((width + tileWidth - 1) / tileWidth) * ((height + tileHeight - 1) / tileHeight),
+            (0...mostFileBytes).contains(offsets.at), (0...mostFileBytes).contains(counts.at)
         else { throw Trouble.unsupported("tile grid") }
+        let firstLon = tie[3] + (half - tie[0]) * scale[0], firstLat = tie[4] - (half - tie[1]) * scale[1]
+        // On the globe, or every pixel figure made of it overflows.
+        guard firstLon.isFinite, firstLat.isFinite, abs(firstLon) <= 360, abs(firstLat) <= 180 else {
+            throw Trouble.unsupported("tiepoint off the globe")
+        }
         return Layout(
             width: width,
             height: height,
@@ -114,8 +126,8 @@ extension GEDTM30 {
             countsAt: counts.at,
             countSize: counts.size,
             tileCount: offsets.count,
-            firstLon: tie[3] + (half - tie[0]) * scale[0],
-            firstLat: tie[4] - (half - tie[1]) * scale[1],
+            firstLon: firstLon,
+            firstLat: firstLat,
             step: scale[0],
             nodata: try await tags.text(TIFF.Tag.gdalNodata).flatMap { Float($0) }
         )

@@ -88,7 +88,8 @@ extension CLI {
           --theme=<scheme>              which of the style's two colour schemes to pack: all,
                                         day or night
           --overlap=<units>             let tiles paint a little past their frame — hides tile
-                                        seams; needs the mkgmap patch (experimental)
+                                        seams; in steps of 128; needs the mkgmap patch
+                                        (experimental)
           --land-overlap=<units>        the same for the land layer alone. Never more than
                                         --overlap
           --split=<mode>                how the output is cut into files: fit, region, country

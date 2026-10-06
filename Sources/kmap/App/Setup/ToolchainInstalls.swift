@@ -25,7 +25,7 @@ extension ToolchainScreen {
 
     func update(_ tool: ToolStatus, _ ctx: AppContext) {
         guard !queue.isInstalling(tool.id) else {
-            message = t("%@ is still installing", tool.name)
+            message = busyNote(for: tool.id, ctx)
             return
         }
         switch updateAction(for: tool, ctx) {
@@ -35,11 +35,18 @@ extension ToolchainScreen {
         }
     }
 
-    func remove(_ tool: ToolStatus, _ ctx: AppContext) {
+    /// Asked first, as an install as root is: only `y` removes, any other key keeps it.
+    func remove(_ tool: ToolStatus, _ ctx: AppContext, confirmed: Bool = false) {
         // Nor while another install works with it, as the patch compiles with kmap's Java.
         let users = queue.blockers(of: tool.id, ahead: queue.waiting)
-        guard !queue.isInstalling(tool.id), users.isEmpty else {
-            message = t("%@ is still installing", users.first.map { $0 } ?? tool.name)
+        if queue.isInstalling(tool.id) {
+            message = busyNote(for: tool.id, ctx)
+            return
+        }
+        if let user = users.first {
+            message =
+                queue.isWaiting(user)
+                ? t("%@ is waiting to install", name(of: user, ctx)) : t("%@ is still installing", name(of: user, ctx))
             return
         }
         guard tool.removable else {
@@ -47,21 +54,24 @@ extension ToolchainScreen {
             return
         }
         guard !isBeingRenewed(tool, ctx) else { return }
+        guard confirmed else {
+            awaitingRemoval = tool.id
+            message = t("remove %@? press y to go ahead", tool.name)
+            return
+        }
         do {
             try ctx.toolchain.remove(tool.id, log: log)
             message = t("%@ removed", tool.name)
             ctx.refreshTools(force: true)
         } catch {
-            message = (error as? LocalizedError)?.errorDescription ?? "\(error)"
+            message = ErrorWords.of(error)
         }
     }
 
     /// A root install is asked about first, every time; only `y` starts it.
     func install(_ tool: ToolStatus, _ ctx: AppContext) {
         guard !queue.isInstalling(tool.id) else {
-            message =
-                queue.isWaiting(tool.id)
-                ? waitingNote(for: tool.id, ctx) : t("%@ is still installing", tool.name)
+            message = busyNote(for: tool.id, ctx)
             return
         }
         if let command = ctx.toolchain.rootInstallCommand(for: tool.id) {
@@ -99,8 +109,12 @@ extension ToolchainScreen {
     /// patch, or of what the patch is built from, would run into. Says so.
     private func isBeingRenewed(_ tool: ToolStatus, _ ctx: AppContext) -> Bool {
         let patch = "mkgmap-patch"
-        guard ctx.renewingPatch, tool.id == patch || Toolchain.overlap(tool.id, patch) else { return false }
-        message = t("kmap is rebuilding the patch on its own — a moment")
+        guard ctx.renewingPatch || ctx.checkingPatch, tool.id == patch || Toolchain.overlap(tool.id, patch) else {
+            return false
+        }
+        message =
+            ctx.renewingPatch
+            ? t("kmap is rebuilding the patch on its own — a moment") : t("kmap is checking the patch — a moment")
         return true
     }
 
@@ -162,9 +176,17 @@ extension ToolchainScreen {
     }
 
     func waitingNote(for id: String, _ ctx: AppContext) -> String {
-        let names = queue.blockerNames(of: id) { blocker in
-            ctx.tools.first { $0.id == blocker }?.name ?? blocker
-        }
+        let names = queue.blockerNames(of: id) { name(of: $0, ctx) }
         return t("waiting for %@", names.joined(separator: ", "))
+    }
+
+    /// What an install busy with `id` is doing: waiting its turn, or running.
+    func busyNote(for id: String, _ ctx: AppContext) -> String {
+        queue.isWaiting(id) ? waitingNote(for: id, ctx) : t("%@ is still installing", name(of: id, ctx))
+    }
+
+    /// A tool's name as its row shows it.
+    func name(of id: String, _ ctx: AppContext) -> String {
+        ctx.tools.first { $0.id == id }?.name ?? id
     }
 }

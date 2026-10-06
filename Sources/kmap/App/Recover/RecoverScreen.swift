@@ -9,6 +9,7 @@ final class RecoverScreen: Screen {
 
     private var keys: [Hint] {
         if let offering { return offering.footerHints }
+        if let asking { return asking.footerHints }
         switch phase {
         case .intro:
             return [Hint(key: Glyph.enter, label: t("start")), Hint(key: "esc", label: t("back"))]
@@ -36,9 +37,13 @@ final class RecoverScreen: Screen {
     var report: StyleRecovery.Report?
     var failure: String?
     var saved = false
-    var message: String?
+    var message: String? { didSet { messageIsError = false } }
+    private(set) var messageIsError = false
     /// The download offer, about the regions it would fetch.
     var offering: Question<[Region]>?
+    /// Saving over the style, or leaving the recovery unsaved: the route a yes takes, nil
+    /// for the save.
+    var asking: Question<Route?>?
     var downloader: Downloader?
     private var runner: ProcessRunner?
     var fetching = ""
@@ -63,21 +68,67 @@ final class RecoverScreen: Screen {
             }
             return .none
         }
+        if let (answer, leaving) = asking.take(key) {
+            guard answer == .confirmed else { return .none }
+            guard let leaving else {
+                save(ctx)
+                return .none
+            }
+            return leaving
+        }
+        // Minutes of reading, not saved anywhere else: leaving them is asked about.
+        let unsaved = phase == .done && recovered && !saved
         switch (phase, key) {
         case (.intro, .enter):
             start(ctx)
+        case (.done, .esc) where unsaved:
+            askToLeave(.pop)
         case (.intro, .esc), (.failed, .esc), (.cancelled, .esc), (.done, .esc):
             return .pop
         case (.running, .esc), (.downloading, .esc):
             cancel()
-        case (.done, .enter) where recovered && !saved:
-            save(ctx)
+        case (.done, .enter) where unsaved:
+            askToSave()
         case (_, .ctrl("c")):
             if phase == .running || phase == .downloading { cancel(); return .none }
+            if unsaved { askToLeave(.quit); return .none }
             return .quit
         default: break
         }
         return .none
+    }
+
+    private func askToLeave(_ route: Route) {
+        asking = Question(
+            dialog: Dialog(
+                title: t("Leave the recovery"),
+                body: [
+                    t("The look read from this map is not saved: leaving drops it, and reading it again takes as long.")
+                ],
+                confirm: t("leave"),
+                cancel: t("stay")
+            ),
+            subject: route
+        )
+    }
+
+    /// As restoring a style asks: what was changed in it since is gone after.
+    private func askToSave() {
+        asking = Question(
+            dialog: Dialog(
+                title: t("Overwrite"),
+                body: [
+                    t(
+                        "%@ will be rewritten with this map's look. Everything changed in it since, and its reassignment list, is lost.",
+                        typ.deletingPathExtension().lastPathComponent
+                    )
+                ],
+                confirm: t("save"),
+                cancel: t("cancel"),
+                tone: .plain
+            ),
+            subject: nil
+        )
     }
 
     /// The style this was opened from becomes the recovered one; the untouched original
@@ -91,6 +142,7 @@ final class RecoverScreen: Screen {
             message = t("%@ now draws this map's look", typ.deletingPathExtension().lastPathComponent)
         } catch {
             message = error.localizedDescription
+            messageIsError = true
         }
     }
 
@@ -126,6 +178,14 @@ final class RecoverScreen: Screen {
                 await MainActor.run { self.phase = .cancelled }
             } catch StyleRecovery.Trouble.noExtracts(let frame) {
                 await MainActor.run { self.offer(ctx, frame: frame) }
+            } catch let trouble as StyleRecovery.Trouble where trouble.isTooLittleGround {
+                // The cached extracts graze the map: the right one is offered for download.
+                log.warn("\(trouble)")
+                let frame = RegionSuggestion.drawnGround(of: img).frame
+                await MainActor.run { self.offer(ctx, frame: frame) }
+            } catch  where Task.isCancelled {
+                // A killed reader or unpacker fails in words of its own.
+                await MainActor.run { self.phase = .cancelled }
             } catch {
                 await MainActor.run { self.fail(error) }
             }
@@ -156,7 +216,19 @@ final class RecoverScreen: Screen {
         case .some:
             return t("the download did not go through: %@", error.localizedDescription)
         case nil:
-            return "\(error)"
+            return Self.explain(trouble: error) ?? ErrorWords.of(error)
+        }
+    }
+
+    /// A recovery's refusal in the screen's words: the CLI's name a flag to pass.
+    private static func explain(trouble error: Error) -> String? {
+        guard let trouble = error as? StyleRecovery.Trouble else { return nil }
+        switch trouble {
+        case .noTiles: return t("the file holds no map tiles — is it a Garmin .img?")
+        case .noSuchMap(let url): return t("no such map: %@", Paths.display(url))
+        case .noSuchExtract(let url): return t("no such extract: %@", Paths.display(url))
+        case .unreadableExtract(let url, let why): return t("%@ cannot be read: %@", url.lastPathComponent, "\(why)")
+        case .noExtracts, .extractMissesMap, .tooLittleGround: return nil
         }
     }
 }

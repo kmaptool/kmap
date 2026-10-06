@@ -5,6 +5,13 @@ import Foundation
 extension CLI {
     static func repairRoads(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["labels", "limit", "sources"])
+        if let refused = flags.refusal(
+            "repair-roads",
+            knows: ["labels", "limit", "sources", "no-bridges", "drop-duplicate-descriptions", "mark-duplicate-venues"],
+            positionals: 2
+        ) {
+            return refused
+        }
         let files = flags.positionals
         guard files.count >= 2 else {
             return CLIOutput.refuse(
@@ -12,6 +19,9 @@ extension CLI {
                     + " [--limit M] [--drop-duplicate-descriptions] [--mark-duplicate-venues]"
                     + " [--no-bridges] [--sources=<list>]"
             )
+        }
+        guard !URL(fileURLWithPath: files[1]).sameFile(as: URL(fileURLWithPath: files[0])) else {
+            return CLIOutput.refuse("repair-roads: the output is the input — name another file")
         }
         // With --sources the ground is read as a build naming them reads it; without, from
         // COP1 alone.
@@ -32,8 +42,15 @@ extension CLI {
             source: URL(fileURLWithPath: files[0]),
             destination: URL(fileURLWithPath: files[1])
         )
-        guard flags.notNumbers(["limit"]).isEmpty else { return CLIOutput.refuse("--limit must be a number of metres") }
-        pass.repairRadius = flags.double("limit") ?? BuildRecipe.defaultHealRadius
+        // The build's range: past it nothing more joins, and the search grid grows as its square.
+        let radii = BuildOptions.repairRadiusMetres
+        let limit = flags.double("limit") ?? BuildRecipe.defaultHealRadius
+        guard flags.notNumbers(["limit"]).isEmpty, radii.contains(limit) else {
+            return CLIOutput.refuse(
+                "--limit must be metres, \(Int(radii.lowerBound)) to \(Int(radii.upperBound))"
+            )
+        }
+        pass.repairRadius = limit
         pass.bridgeObstacles = !flags.has("no-bridges")
         pass.language = flags.value("labels") ?? pass.language
         pass.dropDuplicateDescriptions = flags.has("drop-duplicate-descriptions")

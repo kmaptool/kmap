@@ -100,24 +100,15 @@ extension BuildPipeline {
         return Self.hatchedPolygonTypes(inSource: text)
     }
 
+    /// Read by the parser that reads every TYP, so a header spelled `[_Polygon]`, or a block
+    /// the next header closes rather than `[end]`, counts as mkgmap counts it.
     static func hatchedPolygonTypes(inSource text: String) -> [String] {
-        var out: [String] = []
-        for block in text.components(separatedBy: "[_polygon]").dropFirst() {
-            let body = block.components(separatedBy: "[end]").first ?? ""
-            guard body.contains("Xpm=\""), !body.contains("Xpm=\"0 0"),
-                body.contains(" c none")
-            else { continue }
-            // `Lines`, as a TYP from Windows ends its lines in CRLF.
-            guard
-                let line = Lines.of(body).lazy
-                    .map({ $0.trimmingCharacters(in: .whitespaces) })
-                    .first(where: { $0.hasPrefix("Type=") })
-            else { continue }
-            let code = line.dropFirst("Type=".count).trimmingCharacters(in: .whitespaces)
-            if !code.isEmpty { out.append(code) }
-        }
-        return out
+        TypSource.parse(text).sections
+            .filter { $0.kind == .polygon && ($0.picture?.colours.contains(nil) ?? false) }
+            .map { TypeMeaning.hex($0.code) }
     }
+
+    static let packOnlyIndexOptions: Set<String> = ["--index", "--split-name-index"]
 
     /// The search-index options. Separate because the run that bundles finished tiles
     /// rebuilds the index and needs exactly these options and none of the others.
@@ -147,7 +138,7 @@ extension BuildPipeline {
         gmapsupp: Bool = true,
         typ: URL? = nil,
         shapeLift: String? = nil
-    ) -> [String] {
+    ) throws -> [String] {
         var options: [String] = []
         /// The rule files this build compiles from, once the snapshot is decided: the
         /// drawing order is read from the same rules mkgmap is given.
@@ -161,12 +152,12 @@ extension BuildPipeline {
             if FileTools.exists(mine) || (try? styles.snapshot(styleDir, to: mine)) != nil {
                 // A repair mark that had to move off a number the borrowed style draws
                 // takes its rules with it, here in the snapshot.
-                let moved = StyleCatalog.moveRepairRules(repairMoves, in: mine)
+                let moved = try StyleCatalog.moveRepairRules(repairMoves, in: mine)
                 if moved > 0 { log.append("\(moved) repair rule(s) moved with their mark") }
                 if let source = paletteSource() {
                     // The fallback first, then the silencing: what neither the new
                     // number nor the old one can paint goes quiet.
-                    _ = try? StyleCatalog.keepTheOldNumberWherePaletteIsSilent(
+                    _ = try StyleCatalog.keepTheOldNumberWherePaletteIsSilent(
                         in: mine,
                         palette: source,
                         log: log
@@ -177,7 +168,7 @@ extension BuildPipeline {
                         $0.trimmingCharacters(in: .whitespaces)
                             .hasSuffix(StylePort.forOurNumbers)
                     }) {
-                        _ = try? StyleCatalog.keepOnlyWhatThePaletteDraws(
+                        _ = try StyleCatalog.keepOnlyWhatThePaletteDraws(
                             in: mine,
                             palette: source,
                             chosen: BuildPipeline.handPicked(),
@@ -203,9 +194,6 @@ extension BuildPipeline {
             // Lets mkgmap join line fragments cut at subdivision borders even when it must
             // reverse one, where oneway and type allow. Fewer headers, faster paint.
             "--allow-reverse-merge",
-            // Without this the TYP is written with code page 0 and every non-ASCII label
-            // inside it is dropped silently.
-            "--code-page=\(recipe.codePage)",
             "--levels=\(recipe.levels.levels)",
             "--overview-levels=\(recipe.levels.overviewLevels)",
             "--output-dir=\(outputDir.path)",
@@ -220,7 +208,10 @@ extension BuildPipeline {
             options.append("--name-tag-list=\(recipe.effectiveNameTagList)")
         }
         if recipe.routable { options.append("--route") }
-        options += indexOptions()
+        // The search index itself is built where the tiles are packed, over them all: a
+        // compile alone would build one only to throw it away. The address options stay,
+        // as the tiles carry what they find.
+        options += indexOptions().filter { gmapsupp || !Self.packOnlyIndexOptions.contains($0) }
         // Address search only: mkgmap indexes house numbers off the building outlines, and
         // receivers show no address lines on the map-cursor card.
         if recipe.houseNumbers { options.append("--housenumbers") }
@@ -289,14 +280,22 @@ extension BuildPipeline {
             if paths.isEmpty {
                 log.warn("DEM layer requested but no .hgt files were found — skipping it")
             } else {
-                options.append("--dem=" + paths.map(\.path).joined(separator: ","))
-                // One distance per zoom level, from the source's own spacing upward.
-                options.append("--dem-dists=" + recipe.levels.demDists(oneArcSecond: hasOneArcSecondData))
-                // mkgmap's own default interpolation.
-                options.append("--dem-interpolation=auto")
+                options += demOptions(paths, runIn: outputDir)
             }
         }
 
+        return options
+    }
+
+    func demOptions(_ cells: [URL], runIn outputDir: URL) -> [String] {
+        var options = [
+            Self.demOption(cells, runIn: outputDir),
+            // One distance per zoom level, from the source's own spacing upward.
+            "--dem-dists=" + recipe.levels.demDists(oneArcSecond: hasOneArcSecondData),
+            // mkgmap's own default interpolation.
+            "--dem-interpolation=auto"
+        ]
+        if FileTools.exists(demPolygonFile) { options.append("--dem-poly=\(demPolygonFile.nativePath)") }
         return options
     }
 }

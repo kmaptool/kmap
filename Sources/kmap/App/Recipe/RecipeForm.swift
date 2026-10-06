@@ -44,7 +44,7 @@ final class RecipeForm {
     /// The style asked for, kept while the disk scan is still finding it.
     private(set) var wantedStyleID: String?
     /// Refreshed as the form draws; `value(for:)` has no context to ask with.
-    var zoomPlanCount = 1
+    var madePlanCount = 0
     var message: String?
     var editingOutput = false
     var outputDraft = ""
@@ -119,6 +119,18 @@ final class RecipeForm {
         profiles.first { $0.id == currentProfileID } ?? profiles.first
     }
 
+    /// The style asked for where the finished scan found none of that id.
+    var missingStyleID: String? {
+        guard !scanningStyles, !styleChoices.isEmpty, let wantedStyleID,
+            StyleCatalog.find(wantedStyleID, in: styleChoices) == nil
+        else { return nil }
+        return wantedStyleID
+    }
+
+    /// The style to save: the one asked for, kept while it is still being looked for or
+    /// not found, rather than the stand-in shown.
+    var savedStyleID: String { wantedStyleID ?? recipe.style.id }
+
     /// Whether the form has moved away from the profile it was filled in from.
     var isModified: Bool {
         guard let profile = currentProfile else { return false }
@@ -136,8 +148,9 @@ final class RecipeForm {
         refreshStyles(ctx)
         recipe.apply(
             profile.choices,
-            style: styleChoices.first { $0.id == profile.choices.styleID },
-            regionCodePage: regionCodePage
+            style: StyleCatalog.find(profile.choices.styleID, in: styleChoices),
+            regionCodePage: regionCodePage,
+            plans: ctx.settings.zoomPlans
         )
         message = nil
     }
@@ -186,7 +199,10 @@ final class RecipeForm {
     }
 
     private func handlePicking(_ key: KeyEvent, _ ctx: AppContext) -> Outcome {
-        guard var open = picking else { return .none }
+        guard var open = picking, !open.options.isEmpty else {
+            picking = nil
+            return .none
+        }
         switch key {
         case .up, .char("k"):
             open.at = (open.at - 1 + open.options.count) % open.options.count
@@ -196,7 +212,11 @@ final class RecipeForm {
             picking = open
         case .enter, .char(" "):
             picking = nil
-            if let choice = choice(for: open.field, ctx), open.at != choice.current, open.at < choice.options.count {
+            // Picking the current profile again over this map's changes goes back to it.
+            let reapplies = open.field == .profile && isModified
+            if let choice = choice(for: open.field, ctx), open.at != choice.current || reapplies,
+                open.at < choice.options.count
+            {
                 return choice.choose(open.at)
             }
         case .esc, .left, .char("h"), .ctrl("c"):
@@ -234,11 +254,15 @@ final class RecipeForm {
                     }
                 )
             )
-        case .zoomPlan where ctx.settings.zoomPlans.count < 2:
-            // Only the plan that ships: Enter opens where a second is made.
+        case .zoomPlan where ctx.settings.settings.zoomPlans.isEmpty:
+            // Only the plans that ship: Enter opens where one of the user's is made.
             return .route(.push(ZoomPlansScreen()))
         default:
-            if let choice = choice(for: field, ctx), choice.listable, choice.options.count > 1 {
+            // The profile list opens for 1 profile too: picking it is how the map's own
+            // changes are dropped.
+            if let choice = choice(for: field, ctx), choice.listable, !choice.options.isEmpty,
+                choice.options.count > 1 || field == .profile
+            {
                 picking = (field, choice.options, choice.current)
                 return .none
             }
@@ -250,6 +274,11 @@ final class RecipeForm {
         guard let field else { return .none }
         message = nil
         switch field {
+        case .profile where isModified:
+            // An arrow would drop this map's own changes unasked: the list, on Enter, is
+            // the deliberate way.
+            message = t("this map has changes of its own — ⏎ picks a profile and drops them")
+            return .none
         case .style:
             // Not a `Choice`: styles arrive as the scan finds them.
             refreshStyles(ctx)
@@ -261,7 +290,10 @@ final class RecipeForm {
             return .none
         case .familyID:
             let range = BuildRecipe.familyIDRange
-            recipe.familyID = max(range.lowerBound, min(range.upperBound, recipe.familyID + delta))
+            var next = recipe.familyID + delta
+            // Stepped over, not onto: a reserved id is mkgmap's own default.
+            if BuildRecipe.reservedFamilyIDs.contains(next) { next += delta > 0 ? 1 : -1 }
+            recipe.familyID = max(range.lowerBound, min(range.upperBound, next))
             return .none
         case .hide, .output, .build, .save:
             return .none
@@ -295,15 +327,17 @@ final class RecipeForm {
     static func codePageLabel(_ page: Int) -> String {
         page == 0
             ? t("by region") + "  ·  " + t("1251 for Cyrillic names, 1252 for the rest")
-            : "\(page)  ·  " + alphabet(page)
+            : alphabet(page).map { "\(page)  ·  " + $0 } ?? "\(page)"
     }
 
-    static func alphabet(_ page: Int) -> String {
+    /// Nil for a page the form does not offer, set from the command line.
+    static func alphabet(_ page: Int) -> String? {
         switch page {
+        case CodePage.westernEuropean: return t("western Europe")
         case CodePage.cyrillic: return t("Cyrillic")
         case CodePage.centralEuropean: return t("central Europe")
         case CodePage.utf8: return t("Unicode")
-        default: return t("western Europe")
+        default: return nil
         }
     }
 
@@ -318,7 +352,7 @@ final class RecipeForm {
         guard !list.isEmpty else { return }
         styleChoices = list
 
-        if let preferred = list.first(where: { $0.id == wantedStyleID }) {
+        if let wantedStyleID, let preferred = StyleCatalog.find(wantedStyleID, in: list) {
             recipe.style = preferred
         } else if !list.contains(where: { $0.id == recipe.style.id }) {
             recipe.style = list[0]

@@ -40,16 +40,45 @@ extension BuildPipeline {
             set(.download, .done, closingLine)
             return nil
         }
+        // Put aside rather than deleted: with no checksum on record a copy counts as
+        // damaged without proof, and if the mirror cannot be reached it is all there is.
+        var aside: [(kept: URL, extract: URL)] = []
         for extract in damaged {
             log.warn(
                 "the downloaded map data in \(extract.lastPathComponent) was damaged on"
                     + " disk — downloading it again"
             )
-            FileTools.removeIfPresent(extract)
+            let kept = extract.appendingPathExtension("suspect")
+            FileTools.removeIfPresent(kept)
+            if (try? FileTools.move(extract, to: kept)) != nil {
+                aside.append((kept, extract))
+            } else {
+                FileTools.removeIfPresent(extract)
+            }
             CacheStamp.remove(besides: extract)
         }
         for id in board.running where id != .download { set(id, .pending, "") }
         set(.download, .running, t("cached copy was damaged — downloading again"))
-        return try await downloadExtracts()
+        do {
+            let fetched = try await downloadExtracts()
+            for held in aside { FileTools.removeIfPresent(held.kept) }
+            return fetched
+        } catch {
+            // Back where it was fetched anew in vain; gone where a fresh copy took its place.
+            for held in aside { Self.settleSuspect(besides: held.extract) }
+            throw error
+        }
+    }
+
+    /// A copy put aside as damaged, settled: dropped where a fresh extract stands, put
+    /// back where none came, as after a run killed in between.
+    static func settleSuspect(besides extract: URL) {
+        let kept = extract.appendingPathExtension("suspect")
+        guard FileTools.exists(kept) else { return }
+        if FileTools.exists(extract) {
+            FileTools.removeIfPresent(kept)
+        } else {
+            try? FileTools.move(kept, to: extract)
+        }
     }
 }

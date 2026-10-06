@@ -3,23 +3,20 @@ import Foundation
 /// Steps five and six: the sheets, from what was claimed, silenced, never reached or
 /// missing altogether.
 extension StyleRecovery {
-    /// Rules the foreign style would repaint into a lie are silenced - barracks over
+    /// Rules the foreign style would repaint into a lie are silenced: barracks over
     /// every field. A rule is deleted only when every one of these holds:
     ///
-    /// - their TYP defines the code, so their paint would actually land on it; an
-    ///   undefined code draws the receiver's own plain default, which harms nothing;
-    /// - their map was seen using the code for other meanings - the number is theirs
-    ///   and means something else;
-    /// - no claim re-aimed the rule, so nothing in their map was found to draw what it
-    ///   means. A number carries no meaning of its own: that ours for a ford and theirs
-    ///   for an information board are both 0x6514 says nothing about fords, and leaving
-    ///   the rule to be painted by that coincidence puts an `i` on every ford. Their
-    ///   style has no picture for a ford, so a ford is not drawn - the map ports what
-    ///   its author drew, and nothing else;
-    /// - the rule carries no routing. A routable rule is function, not look: deleting
-    ///   it breaks every route through what it drew, and it cannot be re-aimed either,
-    ///   because receivers route only on the plain road types. It keeps its code and
-    ///   wears their colours for it, which is the least of the harms on offer.
+    /// - their TYP does not paint the code, which leaves the receiver's own look, one
+    ///   neither map has; or it does, and their map was seen using the code for other
+    ///   meanings: the number is theirs and means something else;
+    /// - their map was not seen drawing the rule itself, under whatever code;
+    /// - no claim re-aimed the rule. A number carries no meaning of its own: ours for a ford
+    ///   and theirs for an information board both being 0x6514 says nothing about fords, and
+    ///   leaving the rule to that coincidence puts an `i` on every ford. Their style has no
+    ///   picture for a ford, so none is drawn: the map ports what its author drew;
+    /// - the rule carries no routing. Deleting a routable rule breaks every route through what
+    ///   it drew, and it cannot be re-aimed, as receivers route only on the plain road types.
+    ///   It keeps its code and wears their colours, the least of the harms on offer.
     static func silencedRuleSheet(
         verdicts: [String: CodeVerdict],
         witnessedSlots: Set<String>,
@@ -35,6 +32,7 @@ extension StyleRecovery {
             let file = DefaultRuleBook.file(for: kind)
             for line in rules.allLines(forKind: file) {
                 guard claimed[line.file + ":" + line.text] == nil,
+                    !witnessedSlots.contains("\(kind.rawValue):\(line.file):\(line.text)"),
                     let type = Int(line.code, radix: 16)
                 else { continue }
                 guard !line.text.contains("road_class=") else { continue }
@@ -215,9 +213,11 @@ extension StyleRecovery {
             // goes over it.
             if !line.isSplit, base.type >= 0x10000, line.text.contains("road_class=") {
                 ladder.append((base.type, ladderKnown ? base.resolutions : [:]))
+                // The base is first seen finest of the ladder: from there it draws on.
+                let finest = (bandTops(strokes) ?? [Int.max]).allSatisfy { $0 <= base.resolutions.keys.max() ?? 0 }
                 strokes.append(
                     ladderKnown
-                        ? banded(line, to: base.type, resolutions: base.resolutions)
+                        ? banded(line, to: base.type, resolutions: base.resolutions, toFinest: finest)
                         : line.layered(to: base.type)
                 )
                 remember(&ladders, line.file, line.code, ladder)
@@ -358,6 +358,13 @@ extension StyleRecovery {
                 }
             }
             ordered = collapsed
+            // A source counts at the coarsest zoom it was seen at: the addition first seen
+            // finest of its tag draws on to the finest zoom.
+            var topOfTag: [String: Int] = [:]
+            for addition in ordered {
+                guard let top = steadyZooms(addition.resolutions).keys.max() else { continue }
+                topOfTag[addition.tag] = max(topOfTag[addition.tag] ?? top, top)
+            }
             for (index, addition) in ordered.enumerated() {
                 guard let tag = DefaultRuleBook.condition(addition.tag) else { continue }
                 let resolution = rules.typicalResolution(forKey: addition.key, kind: kind)
@@ -385,7 +392,7 @@ extension StyleRecovery {
                 let band: String
                 let zooms = steadyZooms(addition.resolutions)
                 if let low = zooms.keys.min(), let high = zooms.keys.max() {
-                    band = "\(low)-\(high)"
+                    band = "\(low)-\(high == topOfTag[addition.tag] ? GarminGrid.fullResolution : high)"
                 } else {
                     band = "\(resolution)"
                 }

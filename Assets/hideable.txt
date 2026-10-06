@@ -381,7 +381,7 @@ tag: leisure=park
 points: leisure=park [0x2c06 resolution 24]
 [leisure-pitch] Pitch
 tag: leisure=pitch
-points: leisure=pitch & (name=* | sport=*) {name '${name} (${sport})' | '${sport}'} [0x2c08 resolution 24]
+points: leisure=pitch & (name=* | sport=*) {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2c08 resolution 24]
 [leisure-playground] Playground
 tag: leisure=playground
 points: leisure=playground [0x2c0f resolution 24 default_name 'Playground']  # kmap: own code, own icon
@@ -393,13 +393,13 @@ tag: leisure=slipway
 points: leisure=slipway [0x2f09 resolution 24]
 [leisure-sports_center] Sports center
 tag: leisure=sports_center
-points: leisure=sports_center | leisure=sports_centre {name '${name} (${sport})' | '${sport}'} [0x2d0a resolution 24]
+points: leisure=sports_center | leisure=sports_centre {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2d0a resolution 24]
 [leisure-stadium] Stadium
 tag: leisure=stadium
-points: leisure=stadium {name '${name} (${sport})' | '${sport}'} [0x2c08 resolution 24]
+points: leisure=stadium {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2c08 resolution 24]
 [leisure-track] Track
 tag: leisure=track
-points: leisure=track {name '${name} (${sport})' | '${sport}'} [0x2c08 resolution 24]
+points: leisure=track {name '${name} (${kmap:sport})' | '${kmap:sport}'} [0x2c08 resolution 24]
 [leisure-water_park] Water park
 tag: leisure=water_park
 points: leisure=water_park [0x2d09 resolution 24]
@@ -464,9 +464,13 @@ tag: natural=rock
 points: natural=rock [0x6614 resolution 24]
 [natural-spring] Spring
 tag: natural=spring
+points: natural=spring & drinking_water=no & name ~ '(?iu).*not d.*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=no { name '${name|def:Spring} (not drinkable)' } [0x6517 resolution 24]
+points: natural=spring & drinking_water=boil & name ~ '(?iu).*boil .*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=boil { name '${name|def:Spring} (boil first)' } [0x6517 resolution 24]
+points: natural=spring & intermittent=yes & name ~ '(?iu).*inter.*' { name '${name}' } [0x6516 resolution 24]
 points: natural=spring & intermittent=yes { name '${name|def:Spring} (intermittent)' } [0x6516 resolution 24]
+points: natural=spring & seasonal=yes & name ~ '(?iu).*seaso.*' { name '${name}' } [0x6515 resolution 24]
 points: natural=spring & seasonal=yes { name '${name|def:Spring} (seasonal)' } [0x6515 resolution 24]
 points: natural=spring [0x6511 resolution 24]
 [natural-stone] Stone
@@ -514,6 +518,7 @@ tag: man_made=water_tower
 points: man_made=water_tower [0x6411 resolution 24]
 [man_made-water_well] Water well
 tag: man_made=water_well
+points: man_made=water_well & name ~ '(?iu).*well.*' { name '${name}' } [0x6414 resolution 24]
 points: man_made=water_well & name=* { name '${name} (well)' } [0x6414 resolution 24]
 points: man_made=water_well & name!=* { name 'Well' } [0x6414 resolution 24]
 
@@ -581,4 +586,15 @@ points: landuse=reservoir | water=reservoir [0x650f resolution 22]
 [landuse-village_green] Village green
 tag: landuse=village_green
 points: landuse=village_green & name=* [0x2c06 resolution 24]
+
+@@ Internet access
+[internet_access-wifi] Wi-Fi (tagged wifi)
+tag: internet_access=wifi
+points: internet_access=wifi {name 'Wi-Fi ${name}' | 'Wi-Fi'} [0x2f12 resolution 24 continue]
+[internet_access-wlan] Wi-Fi
+tag: internet_access=wlan
+points: internet_access=wlan {name 'Wi-Fi ${name}' | 'Wi-Fi'} [0x2f12 resolution 24 continue]
+[internet_access-yes] Internet access
+tag: internet_access=yes
+points: internet_access=yes {name 'Internet ${name}' | 'Internet'} [0x2f12 resolution 24 continue]
 

@@ -10,7 +10,9 @@ extension StyleListScreen {
         case "n":
             return newStyle(ctx)
         case "i":
-            return .push(ImportTypScreen(onImported: { [weak self] in self?.scanned = false }))
+            // Read again on return, a failed import included: its copy is in the library.
+            scanned = false
+            return .push(ImportTypScreen())
         case "r":
             guard let style = visible[safe: list.selected] else { return .none }
             beginRename(style)
@@ -115,7 +117,7 @@ extension StyleListScreen {
         case .accepted(let wanted):
             renaming = false
             guard let style = filtered[safe: list.selected], let url = libraryFile(of: style) else { return .none }
-            let wasDefault = ctx.settings.settings.defaultStyleID == style.id
+            let wasDefault = StyleCatalog.names(ctx.settings.settings.defaultStyleID, style)
             do {
                 let moved = try TypLibrary.rename(url, to: wanted)
                 reload(ctx, select: moved)
@@ -124,7 +126,8 @@ extension StyleListScreen {
                 if let now = styles.first(where: { $0.typURL?.sameFile(as: moved) == true }), now.id != style.id {
                     ctx.settings.update { settings in
                         if wasDefault { settings.defaultStyleID = now.id }
-                        for at in settings.profiles.indices where settings.profiles[at].choices.styleID == style.id {
+                        for at in settings.profiles.indices
+                        where StyleCatalog.names(settings.profiles[at].choices.styleID, style) {
                             settings.profiles[at].choices.styleID = now.id
                         }
                     }
@@ -149,14 +152,17 @@ extension StyleListScreen {
         return .none
     }
 
-    /// Deleting the default moves the setting to another style and says which.
+    /// Deleting the default moves the setting to another style and says which; the
+    /// profiles that build with it move with it, so none names a style that is gone.
     private func delete(_ style: MapStyle, _ ctx: AppContext) {
         guard let url = libraryFile(of: style) else { return }
-        let wasDefault = ctx.settings.settings.defaultStyleID == style.id
+        let settings = ctx.settings.settings
+        let wasDefault = StyleCatalog.names(settings.defaultStyleID, style)
+        let users = settings.profiles.filter { StyleCatalog.names($0.choices.styleID, style) }.count
         do {
             try TypLibrary.delete(url)
             reload(ctx)
-            guard wasDefault else {
+            guard wasDefault || users > 0 else {
                 notice.say(t("deleted %@", style.name))
                 return
             }
@@ -164,11 +170,23 @@ extension StyleListScreen {
                 styles.first { libraryFile(of: $0) != nil }
                 ?? styles.first { $0.id == "plain" }
                 ?? styles.first
-            if let replacement {
-                ctx.settings.update { $0.defaultStyleID = replacement.id }
+            guard let replacement else {
+                notice.say(t("deleted %@ — nothing is left to be the default", style.name))
+                return
+            }
+            ctx.settings.update { settings in
+                if wasDefault { settings.defaultStyleID = replacement.id }
+                for at in settings.profiles.indices
+                where StyleCatalog.names(settings.profiles[at].choices.styleID, style) {
+                    settings.profiles[at].choices.styleID = replacement.id
+                }
+            }
+            if wasDefault {
                 notice.say(t("deleted %@ — it was the default, which is now %@", style.name, replacement.name))
             } else {
-                notice.say(t("deleted %@ — nothing is left to be the default", style.name))
+                notice.say(
+                    tn("deleted %2$@ — %1$d profile(s) now build with %3$@", users, style.name, replacement.name)
+                )
             }
         } catch {
             notice.say(error.localizedDescription, error: true)
@@ -182,6 +200,7 @@ extension StyleListScreen {
             reload(ctx, select: url)
             // By resolved path: a library behind a symlink yields two spellings.
             guard let style = styles.first(where: { $0.typURL?.sameFile(as: url) == true }) else { return .none }
+            scanned = false
             return .push(StyleDetailScreen(style: style))
         } catch {
             notice.say(error.localizedDescription, error: true)

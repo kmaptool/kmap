@@ -25,15 +25,19 @@ struct PartFiles {
         for index in 0..<Self.maxParts { FileTools.removeIfPresent(part(index)) }
     }
 
-    /// Parts are resumable only by a run with the same layout: under another part count
-    /// the same `.partN` begins at a different byte, which a size check cannot tell. Parts
-    /// of another layout are removed and this one is recorded.
-    func keepLayout(size: Int64, count: Int) {
-        let record = "\(size)/\(count)\n"
-        if (try? String(contentsOf: layout, encoding: .utf8)) != record {
-            removeParts()
-            try? FileTools.write(record, to: layout)
+    /// Parts resume only under the same layout: with another part count the same `.partN`
+    /// starts at another byte, and another copy of the same size differs only by date. Parts
+    /// of another layout are removed and this one recorded.
+    func keepLayout(size: Int64, count: Int, lastModified: String? = nil) {
+        let record = "\(size)/\(count)/\(lastModified ?? "")\n"
+        let kept = try? String(contentsOf: layout, encoding: .utf8)
+        // A record without the date, as earlier kmaps wrote, holds for the same layout.
+        if kept == record || kept == "\(size)/\(count)\n" {
+            if kept != record { try? FileTools.write(record, to: layout) }
+            return
         }
+        removeParts()
+        try? FileTools.write(record, to: layout)
     }
 
     /// Joins `parts`, in order, into the destination, checks the size and removes them.

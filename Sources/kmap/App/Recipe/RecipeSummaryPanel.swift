@@ -225,7 +225,8 @@ struct RecipeSummaryPanel {
             guard let profile = form.currentProfile else { return [] }
             return [(profile.name, theme.text), (t("a saved set of the choices on this screen"), theme.faint)]
         case .style:
-            return [(t(recipe.style.summary), theme.faint), (t("family id %d", recipe.style.familyID), theme.dim)]
+            // The style's own TYP number, not the map's: the map's is the Family id row.
+            return [(t(recipe.style.summary), theme.faint), (t("TYP family %d", recipe.style.familyID), theme.dim)]
         case .zoomPlan:
             var out: [(String, Color)] = [(recipe.levels.note, theme.faint), (recipe.levels.levels, theme.dim)]
             if recipe.zoomPlan.movesAnything {

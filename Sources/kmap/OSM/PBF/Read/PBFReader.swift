@@ -230,6 +230,8 @@ struct PBFReader {
             _ blob: UnsafeRawBufferPointer
         ) throws -> Void
     ) throws {
+        // Every PBF opens with its header blob: 0 bytes is a file cut short, not an empty map.
+        guard !file.isEmpty else { throw PBFError.truncated("the file, which has no bytes at all") }
         var at = 0
         while at + PBFSchema.lengthPrefix <= file.count {
             let headerLength = Int(
@@ -252,6 +254,8 @@ struct PBFReader {
             at += parsed.size
             try body(header, parsed.kind, blob)
         }
+        // Up to 3 bytes past the last blob are the start of one cut short.
+        guard at == file.count else { throw PBFError.truncated("a blob's length") }
     }
 
     /// Runs `body` for every index across the cores and rethrows the first failure in

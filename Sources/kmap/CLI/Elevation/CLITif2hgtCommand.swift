@@ -7,6 +7,7 @@ import Foundation
 extension CLI {
     static func tif2hgt(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["dir", "out"])
+        if let refused = flags.refusal("tif2hgt", knows: ["dir", "out"], positionals: 1) { return refused }
         guard let cell = flags.positionals.first, let directory = flags.value("dir"), let out = flags.value("out")
         else {
             return CLIOutput.refuse("usage: kmap tif2hgt <cell> --dir <tiles> --out <file.hgt>")
@@ -36,10 +37,12 @@ extension CLI {
 
     /// `N44E034` as degrees, south and west negative.
     private static func parseCell(_ cell: String) -> (lat: Int, lon: Int)? {
+        guard cell.hasPrefix("N") || cell.hasPrefix("S") else { return nil }
         let body = cell.dropFirst()
-        guard let east = body.firstIndex(where: { $0 == "E" || $0 == "W" }) else { return nil }
-        let lat = (cell.hasPrefix("S") ? -1 : 1) * (Int(body[..<east]) ?? 0)
-        let lon = (cell[east] == "W" ? -1 : 1) * (Int(cell[cell.index(after: east)...]) ?? 0)
-        return (lat, lon)
+        guard let east = body.firstIndex(where: { $0 == "E" || $0 == "W" }),
+            let latDegrees = Int(body[..<east]), let lonDegrees = Int(cell[cell.index(after: east)...]),
+            (0...90).contains(latDegrees), (0...180).contains(lonDegrees)
+        else { return nil }
+        return ((cell.hasPrefix("S") ? -1 : 1) * latDegrees, (cell[east] == "W" ? -1 : 1) * lonDegrees)
     }
 }

@@ -78,7 +78,8 @@ final class VenueScanTests: XCTestCase {
         XCTAssertTrue(
             VenueScan.mark([campus], nodes: [(tag: "amenity=hospital", x: 5, y: 5, name: "Clinic")]).isEmpty
         )
-        XCTAssertEqual(VenueScan.mark([campus], nodes: [(tag: "amenity=hospital", x: 5, y: 5, name: "")]), [1])
+        // An unnamed node of the same kind does not take the campus's name away.
+        XCTAssertTrue(VenueScan.mark([campus], nodes: [(tag: "amenity=hospital", x: 5, y: 5, name: "")]).isEmpty)
     }
 
     func testTheInnerOfTwoAreasSayingTheSameThingIsMarked() {
@@ -145,6 +146,25 @@ final class VenueScanTests: XCTestCase {
             nodes: [(tag: "amenity=cafe", x: 5, y: 5, name: "")]
         )
         XCTAssertEqual(marked, [1])
+    }
+
+    /// A named post office around an unnamed node of its own: the area carries the name,
+    /// and marking it would lose it.
+    func testANamedAreaIsKeptOverAnUnnamedNodeInsideIt() {
+        XCTAssertTrue(
+            VenueScan.mark(
+                [area(1, (0, 0, 10, 10), tag: "amenity=post_office", named: true, name: "Почта")],
+                nodes: [(tag: "amenity=post_office", x: 5, y: 5, name: "")]
+            ).isEmpty
+        )
+        XCTAssertEqual(
+            VenueScan.mark(
+                [area(1, (0, 0, 10, 10), tag: "amenity=post_office", named: true, name: "Почта")],
+                nodes: [(tag: "amenity=post_office", x: 5, y: 5, name: "Почта")]
+            ),
+            [1],
+            "the node says the same, name and all"
+        )
     }
 
     func testANodeOutsideTheAreaOrSayingSomethingElseChangesNothing() {
@@ -260,16 +280,17 @@ final class VenueScanTests: XCTestCase {
         var byTag: [String: [VenueScan.Area]] = [:]
         for area in areas { byTag[area.tag, default: []].append(area) }
         var marked = Set<Int64>()
-        var nodesByTag: [String: [(x: Double, y: Double)]] = [:]
-        for node in nodes { nodesByTag[node.tag, default: []].append((node.x, node.y)) }
+        var nodesByTag: [String: [(x: Double, y: Double, name: String)]] = [:]
+        for node in nodes { nodesByTag[node.tag, default: []].append((node.x, node.y, node.name)) }
         for (tag, group) in byTag {
             guard let here = nodesByTag[tag] else { continue }
             for area in group {
                 for point in here
                 where point.x >= area.box.x0 && point.x <= area.box.x1
                     && point.y >= area.box.y0 && point.y <= area.box.y1
+                    && !(area.named && point.name.isEmpty)
                 {
-                    if VenueScan.inside(point, area.ring) { marked.insert(area.id); break }
+                    if VenueScan.inside((point.x, point.y), area.ring) { marked.insert(area.id); break }
                 }
             }
         }

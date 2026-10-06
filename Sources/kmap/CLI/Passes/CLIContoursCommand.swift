@@ -11,13 +11,13 @@ extension CLI {
     private static let mediumEverySteps = 5
 
     static func contours(_ arguments: [String]) -> Int32 {
-        let flags = Flags(
-            arguments,
-            valued: [
-                "step", "clip", "flatness", "dump-paths", "out",
-                "major", "medium", "start-node-id", "start-way-id"
-            ]
-        )
+        let valued: Set<String> = [
+            "step", "clip", "flatness", "dump-paths", "out",
+            "major", "medium", "start-node-id", "start-way-id"
+        ]
+        let switches: Set<String> = ["raw", "no-split", "deviation", "collinear", "lengths", "per-level"]
+        let flags = Flags(arguments, valued: valued)
+        if let refused = flags.refusal("contours", knows: switches.union(valued), positionals: 1) { return refused }
         guard let path = flags.positionals.first else {
             return CLIOutput.refuse("usage: kmap contours <tile.hgt> [--step \(defaultStepMetres)]")
         }
@@ -26,6 +26,9 @@ extension CLI {
             return CLIOutput.refuse("--step must be a whole number of metres from 1 to 10000")
         }
         guard flags.notNumbers(["flatness"]).isEmpty else { return CLIOutput.refuse("--flatness must be a number") }
+        if let clip = flags.value("clip"), parseClip(clip) == nil {
+            return CLIOutput.refuse("--clip must be 4 numbers: S,W,N,E")
+        }
         do {
             let started = Date()
             let grid = try Contours.Grid(contentsOf: URL(fileURLWithPath: path))

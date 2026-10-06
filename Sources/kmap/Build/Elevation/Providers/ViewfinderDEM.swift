@@ -13,6 +13,8 @@ enum ViewfinderDEM {
         case unreachable(String, String)
         /// No unpacker on this machine can open a zip.
         case cannotUnpack(String)
+        /// The archive came down but would not unpack to its end: damaged, or not a zip.
+        case unpackedInPart(String, Int32)
 
         var description: String {
             switch self {
@@ -26,6 +28,8 @@ enum ViewfinderDEM {
                 "the archive holding \(area) could not be had: \(why)"
             case .cannotUnpack(let why):
                 why
+            case .unpackedInPart(let archive, let code):
+                "\(archive) did not unpack whole (the unpacker said \(code))"
             }
         }
     }
@@ -76,6 +80,7 @@ enum ViewfinderDEM {
 
         let directory = cacheDirectory(resolution)
         Paths.ensure(directory)
+        SweptOnce.sweep(directory) { removeAbandonedStaging(in: $0) }
         let candidates = index.urls(for: area)
         guard !candidates.isEmpty else { throw Trouble.notCovered(area) }
 
@@ -83,12 +88,24 @@ enum ViewfinderDEM {
         for zip in candidates {
             guard let url = URL(string: zip), url.scheme == "http" || url.scheme == "https" else { continue }
             let archive = directory.appendingPathComponent("download-\(UUID().uuidString.prefix(8)).zip")
-            defer { FileTools.removeIfPresent(archive) }
+            // A name no later run asks for again, so its parts are not kept to resume.
+            defer {
+                FileTools.removeIfPresent(archive)
+                PartFiles(destination: archive).removeParts()
+                FileTools.removeIfPresent(PartFiles(destination: archive).layout)
+            }
             do {
                 log("fetching \(url.lastPathComponent) for \(area)")
                 // A name of its own for this run: no other kmap downloads to it, no lock.
                 _ = try await downloader.download(url: url, to: archive, connections: connections, lockHeld: true)
-                let (names, whole) = try await unpack(archive, into: directory, runner: runner)
+                let (names, whole, code) = try await unpack(
+                    archive,
+                    into: directory,
+                    resolution: resolution,
+                    runner: runner
+                )
+                // Not sea: the archive that should hold the tile could not be read whole.
+                if !whole { trouble = Trouble.unpackedInPart(url.lastPathComponent, code) }
                 let unpacked = names.sorted()
                 // A zone that is mostly sea holds fewer tiles than its rectangle claims, so
                 // the index is corrected to what the archive actually carried. Only from an
@@ -109,13 +126,49 @@ enum ViewfinderDEM {
         throw Trouble.notInAnyArchive(area)
     }
 
+    /// Archives, their parts and unpackings a killed fetch left, an hour old, so none
+    /// another kmap is filling now goes.
+    static func removeAbandonedStaging(in directory: URL, now: Date = Date()) {
+        let entries =
+            (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        // An archive with its parts and layout goes together, and only once none of them
+        // has changed for an hour: a long download finishes some parts long before others.
+        func archive(_ name: String) -> String {
+            guard name.hasPrefix("download-"), let zip = name.range(of: ".zip") else { return name }
+            return String(name[..<zip.upperBound])
+        }
+        var newest: [String: Date] = [:]
+        for entry in entries where isStaging(entry.lastPathComponent) {
+            let key = archive(entry.lastPathComponent)
+            let changed = FileTools.modified(of: entry) ?? now
+            newest[key] = max(newest[key] ?? .distantPast, changed)
+        }
+        for entry in entries where isStaging(entry.lastPathComponent) {
+            guard let changed = newest[archive(entry.lastPathComponent)], now.timeIntervalSince(changed) > 3600 else {
+                continue
+            }
+            FileTools.removeIfPresent(entry)
+        }
+    }
+
+    /// A fetch's own archive, its parts or unpacking: never a source of tiles.
+    static func isStaging(_ name: String) -> Bool {
+        // As kmap names them, 8 hex digits and all: a folder of the user's on the way to the
+        // cache, `unpack-2026` say, is not one.
+        func mark(_ text: Substring) -> Bool { text.count == 8 && text.allSatisfy { $0.isASCII && $0.isHexDigit } }
+        if name.hasPrefix("unpack-") { return mark(name.dropFirst("unpack-".count)) }
+        guard name.hasPrefix("download-"), let zip = name.range(of: ".zip") else { return false }
+        return mark(name[name.index(name.startIndex, offsetBy: "download-".count)..<zip.lowerBound])
+    }
+
     /// Unpacks every `.hgt` in the archive flat: they sit in per-zone folders inside, and
     /// the rest of the pipeline expects them 1 directory deep.
     private static func unpack(
         _ archive: URL,
         into directory: URL,
+        resolution: Int,
         runner: ProcessRunner
-    ) async throws -> (names: [String], whole: Bool) {
+    ) async throws -> (names: [String], whole: Bool, code: Int32) {
         let staging = directory.appendingPathComponent("unpack-\(UUID().uuidString.prefix(8))")
         Paths.ensure(staging)
         defer { FileTools.removeIfPresent(staging) }
@@ -128,14 +181,23 @@ enum ViewfinderDEM {
         let ran = try await runner.run(unpack.executable, unpack.arguments, allowFailure: true) { _ in }
         // unzip says 1 for a warning, with everything unpacked.
         let whole = ran.exitCode == 0 || (unpacker.tool == .unzip && ran.exitCode == 1)
+        return (land(staging, into: directory, whole: whole, resolution: resolution), whole, ran.exitCode)
+    }
+
+    /// Moves the unpacked tiles into the cache and names them. From an unpack that stopped,
+    /// only full-size tiles, and none over one already cached.
+    static func land(_ staging: URL, into directory: URL, whole: Bool, resolution: Int) -> [String] {
         var names: [String] = []
         for file in FileTools.allFiles(under: staging) where file.pathExtension.lowercased() == "hgt" {
+            if !whole && !isComplete(file, resolution: resolution) { continue }
             let name = file.deletingPathExtension().lastPathComponent.uppercased()
             let landing = directory.appendingPathComponent("\(name).hgt")
+            // Full length, yet maybe the member whose check failed.
+            if !whole, FileTools.exists(landing) { continue }
             FileTools.removeIfPresent(landing)
             try? FileTools.move(file, to: landing)
             names.append(name)
         }
-        return (names, whole)
+        return names
     }
 }

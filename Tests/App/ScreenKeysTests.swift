@@ -422,6 +422,16 @@ final class ScreenKeysTests: XCTestCase {
         XCTAssertEqual(order.first { $0.code == 0x4b }?.level, 1, "and nothing under 1")
     }
 
+    /// A page up from the first polygon stays at the top: the caption above it is not a
+    /// way round to the bottom.
+    func testAPageUpAtTheTopStaysThere() async throws {
+        let screen = DrawOrderScreen(document: StyleDocument.load(style))
+        settle(screen)
+        XCTAssertEqual(screen.rows[safe: screen.list.selected], .polygon(code: 0x4b, level: 1))
+        _ = screen.handle(.pageUp, ctx: ctx)
+        XCTAssertEqual(screen.rows[safe: screen.list.selected], .polygon(code: 0x4b, level: 1))
+    }
+
     /// Enter takes a level by number; one outside the table is refused.
     func testATypedLevelMovesThePolygonStraightThere() async throws {
         let screen = DrawOrderScreen(document: StyleDocument.load(style))
@@ -475,7 +485,7 @@ final class ScreenKeysTests: XCTestCase {
     /// Every field that holds a path offers the browse key, and only where a file dialog
     /// is available.
     func testThePathFieldsOfferBrowsingWhereThereIsSomethingToBrowseWith() async {
-        let importer = ImportTypScreen(onImported: {})
+        let importer = ImportTypScreen()
         settle(importer)
         _ = importer.handle(.tab, ctx: ctx)  // into path mode
         XCTAssertEqual(
@@ -1043,6 +1053,11 @@ extension ScreenKeysTests {
         XCTAssertFalse(ReassignScreen.isNumber(0x4a40, for: .point))
         XCTAssertFalse(ReassignScreen.isNumber(0x4a, for: .polygon))
         XCTAssertFalse(ReassignScreen.isNumber(0x10f2f, for: .point))
+        // mkgmap reads a polygon's 0xYY00 as 0xYY.
+        XCTAssertTrue(ReassignScreen.isNumber(0x0300, for: .polygon))
+        XCTAssertEqual(ReassignScreen.spelled(0x0300, for: .polygon), 0x03)
+        XCTAssertFalse(ReassignScreen.isNumber(0x4a00, for: .polygon))
+        XCTAssertFalse(ReassignScreen.isNumber(0x0301, for: .polygon))
     }
 
     /// The night is the day's drawing in its own colours: day edits carry over, a colour
@@ -1128,13 +1143,18 @@ extension ScreenKeysTests {
         )
         settle(screen)
         _ = screen.handle(.char("]"), ctx: ctx)
+        let before = try XCTUnwrap(screen.grid())
         _ = screen.handle(.mouse(MouseEvent(action: .press, x: 0, y: 0, isPrimary: true)), ctx: ctx)
-        _ = screen.handle(
-            .mouse(MouseEvent(action: .drag, x: 2 + 3 + 4 * 2, y: 2 + 1 + 1 + 3, isPrimary: true)),
-            ctx: ctx
-        )
+        // 2 pixels: 1 would be undone even pixel by pixel.
+        for column in [4, 5] {
+            _ = screen.handle(
+                .mouse(MouseEvent(action: .drag, x: 2 + 3 + column * 2, y: 2 + 1 + 1 + 3, isPrimary: true)),
+                ctx: ctx
+            )
+        }
         XCTAssertTrue(screen.title.hasSuffix("·"), "the drag should paint")
         _ = screen.handle(.char("u"), ctx: ctx)
-        XCTAssertFalse(screen.title.hasSuffix("·"), "u should take the stroke back")
+        XCTAssertFalse(screen.title.hasSuffix("·"), "u should take the whole stroke back")
+        XCTAssertEqual(try XCTUnwrap(screen.grid()), before)
     }
 }

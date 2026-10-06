@@ -41,6 +41,7 @@ extension RecoverScreen {
         case .done: renderDone(into: s, rect: rect, theme: theme, y: &y)
         }
         offering?.render(into: s, rect: rect, theme: theme)
+        asking?.render(into: s, rect: rect, theme: theme)
     }
 
     private func renderIntro(into s: Surface, rect: Rect, theme: Theme, y: inout Int) {
@@ -209,8 +210,8 @@ extension RecoverScreen {
                 ),
                 tone: theme.text
             )
-            // Only as many rows as fit, with a count of the rest.
-            let shown = rest.prefix(max(0, rect.maxY - y - 2))
+            // Only as many rows as fit with a count of the rest, a gap and the message.
+            let shown = rest.prefix(max(0, rect.maxY - y - 3))
             for o in shown {
                 drawLeftAlone(o, into: s, rect: rect, y: y, theme: theme)
                 y += 1
@@ -226,8 +227,13 @@ extension RecoverScreen {
             }
             y += 1
         }
-        if let message, y < rect.maxY {
-            s.text(rect.x, y, truncate(message, to: rect.w), Style(fg: theme.ok, bg: theme.appBg))
+        if let message, rect.h > 0 {
+            s.text(
+                rect.x,
+                min(y, rect.maxY - 1),
+                truncate(message, to: rect.w),
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg)
+            )
         }
     }
 

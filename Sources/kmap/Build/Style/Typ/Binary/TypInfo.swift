@@ -10,8 +10,11 @@ struct TypInfo {
     let familyID: Int
     let productID: Int
     let isBinary: Bool
+    /// The code page its labels are written in, where the file says; nil where it does not.
+    var codePage: Int?
 
     static let signature = Array("GARMIN TYP".utf8)
+    private static let codePageOffset = 0x15
     private static let familyIDOffset = 0x2F
     private static let productIDOffset = 0x31
 
@@ -37,7 +40,14 @@ struct TypInfo {
         let family = Int(bytes[familyIDOffset]) | (Int(bytes[familyIDOffset + 1]) << 8)
         let product = Int(bytes[productIDOffset]) | (Int(bytes[productIDOffset + 1]) << 8)
         guard family > 0 else { return nil }
-        return TypInfo(url: url, familyID: family, productID: max(1, product), isBinary: true)
+        let page = Int(bytes[codePageOffset]) | (Int(bytes[codePageOffset + 1]) << 8)
+        return TypInfo(
+            url: url,
+            familyID: family,
+            productID: max(1, product),
+            isBinary: true,
+            codePage: page > 0 ? page : nil
+        )
     }
 
     /// Past this a `.txt` is not a TYP source, and is not read whole to find that out.
@@ -47,22 +57,20 @@ struct TypInfo {
         guard FileTools.size(of: url) <= largestSource, let text = TypSource.text(of: url) else { return nil }
         var family: Int? = nil
         var product = 1
-        // Lines.of, not split: a CRLF file would be one line and no TYP at all.
-        for rawLine in Lines.of(text).prefix(200) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            guard let eq = line.firstIndex(of: "=") else { continue }
-            let key = line[line.startIndex..<eq].trimmingCharacters(in: .whitespaces).uppercased()
-            let value =
-                line[line.index(after: eq)...]
-                .trimmingCharacters(in: .whitespaces)
-                .split(separator: ";").first.map(String.init) ?? ""
-            switch key {
-            case "FID": family = Int(value.trimmingCharacters(in: .whitespaces))
-            case "PRODUCTCODE": product = Int(value.trimmingCharacters(in: .whitespaces)) ?? 1
+        var page: Int?
+        // TextLines.of, not split: a CRLF file would be one line and no TYP at all.
+        for line in TextLines.of(text).prefix(200) {
+            guard let (key, noted) = TypSource.entry(of: line) else { continue }
+            let value = noted.split(separator: ";").first.map(String.init) ?? ""
+            switch key.uppercased() {
+            // Numbers as mkgmap reads them: `FID=0x1234` too.
+            case "FID": family = TypSource.decodedInteger(value)
+            case "PRODUCTCODE": product = TypSource.decodedInteger(value) ?? 1
+            case "CODEPAGE": page = TypSource.decodedInteger(value)
             default: break
             }
         }
         guard let family else { return nil }
-        return TypInfo(url: url, familyID: family, productID: product, isBinary: false)
+        return TypInfo(url: url, familyID: family, productID: product, isBinary: false, codePage: page)
     }
 }

@@ -99,7 +99,10 @@ enum GPIFile {
 
     private static func header(fileName: String, madeAt: Date) -> Data {
         var out = Data("GRMREC00".utf8)
-        out += u32(UInt32(max(0, madeAt.timeIntervalSince(epoch))))
+        // Held to what 32 bits of seconds hold: a date from a bad clock or a stray
+        // SOURCE_DATE_EPOCH must not stop the file being written.
+        let seconds = madeAt.timeIntervalSince(epoch)
+        out += u32(seconds.isFinite ? UInt32(min(max(0, seconds), Double(UInt32.max))) : 0)
         out += u16(0)
         let name = Array(fileName.utf8)
         out += u16(UInt16(name.count))

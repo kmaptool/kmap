@@ -136,6 +136,7 @@ final class ProfilesScreen: Screen {
                 let made = ctx.settings.addProfile(named: wanted, choices: choices)
                 profiles = ctx.settings.profiles
                 select(made.id)
+                guard !saidUnsaved(ctx) else { return .none }
                 return .push(edit(made, ctx))
             case .copy(let source):
                 let made = ctx.settings.addProfile(
@@ -144,17 +145,25 @@ final class ProfilesScreen: Screen {
                 )
                 profiles = ctx.settings.profiles
                 select(made.id)
-                notice.say(t("copied to %@", made.name))
+                if !saidUnsaved(ctx) { notice.say(t("copied to %@", made.name)) }
             case .rename(let id):
                 guard !wanted.isEmpty else { return .none }
                 ctx.settings.renameProfile(id, to: wanted)
                 profiles = ctx.settings.profiles
                 select(id)
-                if let now = ctx.settings.profile(id) { notice.say(t("renamed to %@", now.name)) }
+                if !saidUnsaved(ctx), let now = ctx.settings.profile(id) { notice.say(t("renamed to %@", now.name)) }
             case .none: break
             }
         }
         return .none
+    }
+
+    /// Whether the settings file refused the change just made, said in red if so: this run
+    /// holds it, the next start will not.
+    private func saidUnsaved(_ ctx: AppContext) -> Bool {
+        guard let failure = ctx.settings.saveFailure else { return false }
+        notice.say(t("could not save the settings: %@", failure.localizedDescription), error: true)
+        return true
     }
 
     private func handleConfirm(_ key: KeyEvent, profile: BuildProfile, ctx: AppContext) -> Route {
@@ -162,9 +171,21 @@ final class ProfilesScreen: Screen {
         case .yes:
             confirming = nil
             let wasCurrent = ctx.settings.currentProfile.id == profile.id
-            guard ctx.settings.deleteProfile(profile.id) else { return .none }
+            guard ctx.settings.deleteProfile(profile.id) else {
+                // Another kmap deleted it, or left it the last one: the list shows the file.
+                profiles = ctx.settings.profiles
+                list.jump(to: min(list.selected, filtered.count - 1), count: filtered.count)
+                notice.say(
+                    profiles.contains(where: { $0.id == profile.id })
+                        ? t("the last profile stays — the build screen opens on one")
+                        : t("%@ is already gone — another kmap deleted it", profile.name),
+                    error: true
+                )
+                return .none
+            }
             profiles = ctx.settings.profiles
             list.jump(to: min(list.selected, filtered.count - 1), count: filtered.count)
+            if saidUnsaved(ctx) { return .none }
             guard wasCurrent else {
                 notice.say(t("deleted %@", profile.name))
                 return .none

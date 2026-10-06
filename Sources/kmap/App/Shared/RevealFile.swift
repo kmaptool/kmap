@@ -2,8 +2,10 @@ import Foundation
 
 /// Shows a file in the desktop's file manager. Nothing happens where there is none.
 enum Reveal {
-    static func show(_ url: URL) {
-        guard let command = Platform.revealCommand(for: url) else { return }
+    /// False where there is no file manager or it did not start.
+    @discardableResult
+    static func show(_ url: URL) -> Bool {
+        guard let command = Platform.revealCommand(for: url) else { return false }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: command.executable)
         process.arguments = command.arguments
@@ -11,6 +13,6 @@ enum Reveal {
         process.standardInput = ChildProcess.emptyInput
         process.standardOutput = ChildProcess.discardedOutput
         process.standardError = ChildProcess.discardedOutput
-        try? process.run()
+        return (try? process.run()) != nil
     }
 }

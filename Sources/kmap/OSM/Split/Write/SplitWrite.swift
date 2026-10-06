@@ -18,11 +18,9 @@ extension TileSplitter {
             }
             return try write(into: writers, assignment: assignment, plan: plan)
         } catch {
-            // A tile half written looks whole to the next stage; none stays.
-            for writer in writers {
-                try? writer.finish()
-                FileTools.removeIfPresent(writer.url)
-            }
+            // No tile of a split that failed stays: one finished goes, and one not lands
+            // nowhere, its writer taking its partial file with it.
+            for writer in writers { FileTools.removeIfPresent(writer.url) }
             throw error
         }
     }

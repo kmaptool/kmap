@@ -141,20 +141,36 @@ struct TilePacker {
         return out
     }
 
-    /// The region, or country, a tile belongs to. Tile boundaries ignore borders, so a tile
-    /// goes with whichever region contains its centre, or failing that the nearest one.
+    /// The region a tile belongs to; tile boundaries ignore borders. The region whose outline
+    /// holds the tile's centre, the smallest where several do (Andorra within Spain's box);
+    /// for a tile between 2 regions of a joined map, the one whose boxes it overlaps most;
+    /// failing that, the one nearest its centre.
     private func fileKey(for tile: Tile) -> String {
         let lat = (tile.bbox.minLat + tile.bbox.maxLat) / 2
         let lon = (tile.bbox.minLon + tile.bbox.maxLon) / 2
+        // Each box at its own latitude, so a northern region is not taken for a larger one.
+        func area(_ box: BBox) -> Double {
+            (box.maxLat - box.minLat) * (box.maxLon - box.minLon) * cos((box.minLat + box.maxLat) / 2 * .pi / 180)
+        }
+        let holders = regions.filter { $0.holds(lat: lat, lon: lon) }
+        var found = holders.min { a, b in
+            a.boxes.filter(\.isValid).map(area).reduce(0, +) < b.boxes.filter(\.isValid).map(area).reduce(0, +)
+        }?.id
         var nearest: (id: String, distance: Double)?
-        var found: String?
-        for region in regions {
-            for box in region.boxes where box.isValid {
-                if box.contains(lat: lat, lon: lon) { found = region.id; break }
-                let away = box.distance(toLat: lat, lon: lon)
-                if away < (nearest?.distance ?? .infinity) { nearest = (region.id, away) }
+        var most: (id: String, area: Double)?
+        if found == nil {
+            for region in regions {
+                var overlap = 0.0
+                for box in region.boxes where box.isValid {
+                    let height = min(box.maxLat, tile.bbox.maxLat) - max(box.minLat, tile.bbox.minLat)
+                    let width = min(box.maxLon, tile.bbox.maxLon) - max(box.minLon, tile.bbox.minLon)
+                    if height > 0, width > 0 { overlap += height * width }
+                    let away = box.contains(lat: lat, lon: lon) ? 0 : box.distance(toLat: lat, lon: lon)
+                    if away < (nearest?.distance ?? .infinity) { nearest = (region.id, away) }
+                }
+                if overlap > (most?.area ?? 0) { most = (region.id, overlap) }
             }
-            if found != nil { break }
+            found = most?.id
         }
         let regionID = found ?? nearest?.id ?? regions.first?.id ?? slug
         if case .perCountry = mode {

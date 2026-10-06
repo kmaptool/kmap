@@ -9,11 +9,23 @@ extension TypEdit {
         case noDrawOrder
         case notALevel(Int)
         case noNightForm(Int)
+        /// What mkgmap refuses in a line's or a polygon's colours: see `refusal(ofSimple:)`.
+        case tooManyColours
+        case onlyColourClear
+        case bothClear(night: Bool)
 
         var errorDescription: String? {
             switch self {
             case .noDrawOrder:
                 return t("this TYP declares no draw order")
+            case .tooManyColours:
+                return t("a line or polygon has at most 4 colours: an ink and a background, by day and by night")
+            case .onlyColourClear:
+                return t("the only colour of a line or polygon cannot be clear")
+            case .bothClear(let night):
+                return night
+                    ? t("the night ink and background cannot both be clear")
+                    : t("the day ink and background cannot both be clear")
             case .notALevel(let level):
                 return t("%d is not a draw-order level — the lowest is 1", level)
             case .noNightForm(let code):

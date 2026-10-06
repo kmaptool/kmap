@@ -96,6 +96,10 @@ line 0x04 4 #f7fabf #707d05  Secondary
 line 0x05 4 #ffffff #8f8f8f  Tertiary
 line 0x06 3 #ffffff #bbbbbb  Minor road
 line 0x0c 4 #ffffff #bbbbbb  Roundabout
+line 0x10801 5 #f9b29c #c84e2f  Roundabout, trunk  # filled, not theirs: the road's own
+line 0x10802 5 #fcd6a4 #a06b00  Roundabout, primary  # filled, not theirs: the road's own
+line 0x10803 4 #f7fabf #707d05  Roundabout, secondary  # filled, not theirs: the road's own
+line 0x10804 4 #ffffff #8f8f8f  Roundabout, tertiary  # filled, not theirs: the road's own
 line 0x30 3 #ffffff #bbbbbb  Track loop
 line 0x16 3 #aaaaaa           Construction
 line 0x0a 2 #996600           Track

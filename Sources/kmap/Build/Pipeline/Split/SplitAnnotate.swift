@@ -17,19 +17,8 @@ extension BuildPipeline {
     ) async throws -> [String] {
         // Announced once for the whole group; the per-region lines carry a prefix. A
         // single region announces itself.
-        if extracts.count > 1,
-            recipe.needsBarrierContext || recipe.descriptions != .off || (recipe.healRoadEnds && recipe.routable)
-        {
-            log.step(
-                recipe.healRoadEnds && recipe.routable
-                    ? "classifying barriers, and repairing road ends OSM left short"
-                        + " — \(extracts.count) region(s) at once"
-                    : (recipe.descriptions != .off && !recipe.needsBarrierContext
-                        ? "removing descriptions that only repeat the name"
-                            + " — \(extracts.count) region(s) at once"
-                        : "classifying barriers, and tidying descriptions"
-                            + " — \(extracts.count) region(s) at once")
-            )
+        if extracts.count > 1, let step = annotateStep(foldsContours: recipe.contours) {
+            log.step(step + " — \(extracts.count) region(s) at once")
         }
         // At most three passes at once, fewer on a small machine: a pass holds its
         // extract's node table, roads and barriers, roughly 14x the extract's size.
@@ -99,6 +88,21 @@ extension BuildPipeline {
         return results.withLock { $0 }.flatMap { $0 }
     }
 
+    /// What the annotate step says it does; nil where it has nothing to do.
+    private func annotateStep(foldsContours: Bool) -> String? {
+        if recipe.healRoadEnds && recipe.routable {
+            return "classifying barriers, and repairing road ends OSM left short"
+        }
+        if recipe.needsBarrierContext {
+            return "classifying barriers, and tidying descriptions"
+        }
+        if recipe.descriptions != .off {
+            return "removing descriptions that only repeat the name"
+        }
+        if foldsContours { return "folding the contours in" }
+        return recipe.codePage != CodePage.utf8 ? "taking out of labels what the code page lacks" : nil
+    }
+
     /// Rewrites one extract with what mkgmap's rule language cannot express: barriers
     /// classified by the way they stand on, redundant descriptions dropped, road ends
     /// repaired, contours folded in. Returns the files the splitter should read.
@@ -112,25 +116,21 @@ extension BuildPipeline {
         let dropDuplicates = recipe.descriptions != .off
         let heal = recipe.healRoadEnds && recipe.routable
         let features = recipe.needsBarrierContext || dropDuplicates || heal
-        // With no feature switched on the pass only folds the contours in, so there is no
-        // scan to overlap with the tracer.
+        // A Unicode map draws what a code page cannot.
+        let cleans = recipe.codePage != CodePage.utf8
+        // With no feature switched on the pass only folds the contours in and cleans the
+        // labels, so there is no scan to overlap with the tracer.
         var contours: [URL] = []
         if !features {
             contours = try await contoursReady?() ?? []
-            guard !contours.isEmpty else { return [extract.path] }
+            guard !contours.isEmpty || cleans else { return [extract.path] }
         }
 
         let annotated = workDirectory.appendingPathComponent("annotated\(suffix).osm.pbf")
         FileTools.removeIfPresent(annotated)
         // With several regions the caller has already announced the step for all of them.
         if suffix.isEmpty {
-            log.step(
-                heal
-                    ? "classifying barriers, and repairing road ends OSM left short"
-                    : (dropDuplicates && !recipe.needsBarrierContext
-                        ? "removing descriptions that only repeat the name"
-                        : "classifying barriers, and tidying descriptions")
-            )
+            if let step = annotateStep(foldsContours: !contours.isEmpty) { log.step(step) }
         }
 
         var pass = AnnotatePass(source: extract, destination: annotated)
@@ -138,13 +138,15 @@ extension BuildPipeline {
         pass.contours = contours
         pass.markDuplicateVenues = true
         pass.dropDuplicateDescriptions = dropDuplicates
+        pass.cleanLabels = cleans
+        pass.keepsJoiners = recipe.codePage == CodePage.arabic
         if heal {
             pass.repairRadius = recipe.healRadius
             // A low obstacle between the ends is crossed by a link of its own rather than
             // a shared node; a building or fence is never crossed.
             pass.bridgeObstacles = true
             // The link is named in the map's own alphabet, saying what was crossed.
-            pass.language = recipe.codePage == 1251 ? "ru" : "en"
+            pass.language = recipe.speaksRussian ? "ru" : "en"
             // The DEM tells a slope from a face. Read from the DEM layer's tiles once fetched, so
             // a first build and a rebuild repair alike.
             pass.demReady = { await terrain.value }
@@ -178,6 +180,8 @@ extension BuildPipeline {
             }
         } catch {
             try rethrowIfCancelled(error)
+            // A full disk fails the build rather than a map without its repairs.
+            if FileTools.isOutOfSpace(error) { throw error }
             // Asked first: an elevation that failed fails the build, which then does not go on
             // without the annotation.
             let fallback = try await contoursReady?() ?? contours

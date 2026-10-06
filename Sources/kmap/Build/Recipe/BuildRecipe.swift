@@ -42,6 +42,12 @@ struct BuildRecipe {
 
     var descriptions: DescriptionCarrier = .off
 
+    /// Whether kmap's own words on the map are Russian: a Cyrillic code page, and labels
+    /// not asked for in English, which would make a mixed map.
+    var speaksRussian: Bool {
+        codePage == CodePage.cyrillic && nameTagList != LabelLanguage.english.tagList
+    }
+
     /// The `--name-tag-list` this build passes. An explicit list passes through untouched;
     /// otherwise a 1251 build falls back to a Cyrillic-first order, since mkgmap replaces
     /// every character the code page cannot hold with `?`. A 1252 build passes nothing.
@@ -85,15 +91,20 @@ struct BuildRecipe {
     /// The Garmin product identity of this map. Two maps sharing a family id read as one
     /// product and only one is shown. A borrowed TYP's family id is not inherited: mkgmap
     /// rewrites the embedded TYP to whatever `--family-id` says.
-    static let defaultFamilyID = 6324
-    /// Tile ids are the family id and 4 digits, and mkgmap names a tile's files with 8
-    /// characters: a 5-digit family would give 10 tiles 1 name.
-    static let familyIDRange = 1...9999
+    static let defaultFamilyID = 6300
+    /// Tile ids are the family id and 4 digits, and mkgmap takes a tile id of 8 digits
+    /// exactly: a 5-digit family would give 10 tiles 1 name, a 3-digit one is refused.
+    static let familyIDRange = 1000...9999
+    /// Family ids kmap never hands out: 6324 is mkgmap's own default, so a map left at
+    /// mkgmap's defaults by any other tool claims the same family, tiles and overview.
+    static let reservedFamilyIDs: Set<Int> = [6324]
     var familyID: Int = BuildRecipe.defaultFamilyID
 
     /// Tile ids are `familyID x 10000 + n`, the convention Garmin's own products follow.
     /// Distinct per map, so two maps never claim the same tiles.
     var mapIDBase: Int { familyID * 10000 + 1 }
+    /// Tile ids past this run into the next family's.
+    static let mostTiles = 9999
 
     /// The overview map's id: the slot before the first tile. Numeric and family-scoped,
     /// because mkgmap names the overview file after this and a non-numeric name falls back

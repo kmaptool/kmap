@@ -159,6 +159,14 @@ enum AssetEmbedder {
             path: "labels-ru.txt"
         ),
         Asset(
+            property: "russianSports",
+            doc: [
+                "/// Russian names of OSM sport values, from the iD editor's preset schema (ISC).",
+                "/// See Assets/sport-ru.txt and NOTICE.md."
+            ],
+            path: "sport-ru.txt"
+        ),
+        Asset(
             property: "garminTypes",
             doc: [
                 "/// The conventional Garmin type vocabulary, shown for codes the rules do not name:",

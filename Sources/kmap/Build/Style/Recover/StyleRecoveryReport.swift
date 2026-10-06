@@ -10,6 +10,8 @@ extension StyleRecovery {
         /// The recovered style: their pictures on kmap's numbers. A TYP that builds,
         /// which is what a recovery is for.
         var style = ""
+        /// The code page of their TYP, which `style`'s labels are in.
+        var codePage: Int?
         /// What their style draws and kmap has no number for, worst first.
         var uncovered: [StylePort.Ported] = []
         /// How many of our numbers took a picture, by kind, for the report.

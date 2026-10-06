@@ -6,6 +6,10 @@ extension TypeEditScreen {
     private static let mostStyleColours = 48
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        if let (answer, picture) = replacing.take(key) {
+            if answer == .confirmed { apply(picture) }
+            return .none
+        }
         if picker != nil { return handlePicker(key) }
         if editing != nil { return handleEditing(key) }
 
@@ -38,7 +42,22 @@ extension TypeEditScreen {
         }
         return .push(
             IconDonorScreen(kind: kind, target: section) { [weak self] picture in
-                self?.apply(picture)
+                guard let self else { return }
+                guard self.section?.picture != nil else { return self.apply(picture) }
+                self.replacing = Question(
+                    dialog: Dialog(
+                        title: t("Replace the drawing"),
+                        body: [
+                            t(
+                                "%@ keeps no copy of the drawing it has now: once replaced, it is gone.",
+                                TypeMeaning.hex(self.code)
+                            )
+                        ],
+                        confirm: t("replace"),
+                        cancel: t("cancel")
+                    ),
+                    subject: picture
+                )
             }
         )
     }
@@ -65,12 +84,24 @@ extension TypeEditScreen {
     private func apply(_ picture: XpmBlock) {
         guard let source = document.source, let url = document.sourceURL else { return }
         do {
-            let edited = try TypEdit.setPicture(
+            var edited = try TypEdit.setPicture(
                 in: source,
                 kind: kind,
                 code: code,
                 to: picture
             )
+            // A point's old night picture would show the old icon after dark: the new
+            // drawing takes its place, in the day's colours until changed.
+            let night = kind == .point && source.section(.point, code)?.nightXpm != nil
+            if night {
+                edited = try TypEdit.setPicture(
+                    in: TypSource.parse(edited),
+                    kind: kind,
+                    code: code,
+                    to: picture,
+                    tag: "NightXpm"
+                )
+            }
             try TypLibrary.save(edited, to: url)
             reload()
             say(
@@ -78,7 +109,7 @@ extension TypeEditScreen {
                     "drawing replaced — %@, %@",
                     "\(picture.width)×\(picture.height)",
                     tn("%d colour(s)", picture.declaredColours)
-                )
+                ) + (night ? " · " + t("the night picture too, in these colours") : "")
             )
         } catch {
             say(error.localizedDescription, error: true)

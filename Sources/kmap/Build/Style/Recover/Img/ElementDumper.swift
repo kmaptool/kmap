@@ -6,68 +6,12 @@ import Foundation
 /// The binary form `write` produces matches, byte for byte, the Java helper compiled
 /// against mkgmap.jar that this replaced.
 enum ElementDumper {
-    enum Kind: Character {
-        case point = "P", line = "L", area = "A"
-
-        /// Its place in a key, and the byte written for it in a dump.
-        var slot: Int {
-            switch self {
-            case .point: return 0
-            case .line: return 1
-            case .area: return 2
-            }
-        }
-
-        /// The same kind as the style side names it.
-        var styleKind: MapElementKind {
-            switch self {
-            case .point: return .point
-            case .line: return .line
-            case .area: return .polygon
-            }
-        }
-
-        /// From the byte written for it in a dump.
-        init?(byte: UInt8) {
-            switch byte {
-            case 0: self = .point
-            case 1: self = .line
-            case 2: self = .area
-            default: return nil
-            }
-        }
-    }
-
     /// One element: what it is, and where its vertex chain sits in the dump's cells.
     struct Element: Sendable {
         let kind: Kind
         let type: Int
         let from: Int32
         let count: Int32
-    }
-
-    /// Every element of a map, as one table.
-    ///
-    /// One array of packed cells with a range per element, rather than an array per
-    /// element: a country-sized map holds tens of millions of them.
-    struct Dump: Sendable {
-        var elements: [Element] = []
-        var cells: [UInt64] = []
-        /// The resolution each element is drawn at, where the walk recorded it. Held
-        /// beside the elements rather than inside them: the binary dump's shape is a
-        /// byte-compare anchor and does not change.
-        var resolutions: [Int16] = []
-        var count: Int { elements.count }
-
-        func resolution(_ at: Int) -> Int? {
-            at < resolutions.count ? Int(resolutions[at]) : nil
-        }
-
-        /// The vertex chain of one element.
-        func chain(_ at: Int) -> ArraySlice<UInt64> {
-            let element = elements[at]
-            return cells[Int(element.from)..<Int(element.from + element.count)]
-        }
     }
 
     /// Dumps every element of every tile that reaches the ground being searched.
@@ -84,6 +28,7 @@ enum ElementDumper {
     ) throws -> Dump {
         var dump = Dump()
         var seen = 0
+        var full = false
         // Extended-type polygons and points too: a third-party style may keep whole
         // classes of feature on an extended code.
         try ImgElements.read(
@@ -97,20 +42,22 @@ enum ElementDumper {
                     try Task.checkCancellation()
                     progress?.count(seen)
                 }
-            }
+            },
+            // A map whose tiles lie far from the ground reads no element to ask on.
+            tile: { try Task.checkCancellation() }
         ) { kind, type, coords, resolution in
-            let from = dump.cells.count
+            // A dump counts its cells in 32 bits: past that, the rest of the map goes unread.
+            guard let from = Int32(exactly: dump.cells.count), let count = Int32(exactly: coords.count),
+                Int(from) + Int(count) <= Int(Int32.max)
+            else {
+                full = true
+                return
+            }
             for c in coords { dump.cells.append(GarminGrid.pack(latUnit: c.lat, lonUnit: c.lon)) }
-            dump.elements.append(
-                Element(
-                    kind: kind,
-                    type: type,
-                    from: Int32(from),
-                    count: Int32(coords.count)
-                )
-            )
-            dump.resolutions.append(Int16(resolution))
+            dump.elements.append(Element(kind: kind, type: type, from: from, count: count))
+            dump.resolutions.append(Int16(clamping: resolution))
         }
+        if full { throw ImgElements.Trouble.malformed(img.lastPathComponent, "more vertices than 1 reading holds") }
         return dump
     }
 
@@ -160,7 +107,7 @@ enum ElementDumper {
                     )
                 )
                 at += 9
-                guard count > 0, at + count * 8 <= end else { break }
+                guard count > 0, at + count * 8 <= end, dump.cells.count + count <= Int(Int32.max) else { break }
                 let from = dump.cells.count
                 for vertex in 0..<count {
                     let lat = Int32(

@@ -66,6 +66,78 @@ final class ToolchainTests: XCTestCase {
         )
     }
 
+    /// A Java gone since it was found, as one another kmap reinstalled, is looked for
+    /// again rather than handed to a build that cannot start it.
+    func testAJavaGoneSinceItWasFoundIsLookedForAgain() throws {
+        let first = directory.appendingPathComponent("first/java")
+        try FileManager.default.createDirectory(
+            at: first.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try makeExecutable(first, printing: "openjdk version \"21.0.12\"")
+        let settings = SettingsStore()
+        settings.overrideForRun { $0.javaBinary = first.path }
+        let tools = Toolchain(settings: settings)
+        XCTAssertEqual(tools.findJava()?.path, first.path)
+
+        try FileManager.default.removeItem(at: first)
+        let second = directory.appendingPathComponent("second/java")
+        try FileManager.default.createDirectory(
+            at: second.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try makeExecutable(second, printing: "openjdk version \"25.0.1\"")
+        settings.overrideForRun { $0.javaBinary = second.path }
+
+        XCTAssertEqual(tools.findJava()?.path, second.path)
+    }
+
+    /// kmap's Java and mkgmap are not replaced or removed under a running build.
+    func testToolsABuildHoldsAreNotSwapped() throws {
+        Paths.ensure(Paths.locks)
+        var build: HeldLock? = try XCTUnwrap(HeldLock(trying: Toolchain.inUseLock, shared: true))
+        XCTAssertThrowsError(try Toolchain.refuseWhileBuilding())
+        let fresh = directory.appendingPathComponent("fresh")
+        try FileTools.write("new", to: fresh)
+        let tool = directory.appendingPathComponent("tool")
+        try FileTools.write("old", to: tool)
+        XCTAssertThrowsError(try Toolchain.replaceUnused(tool, with: fresh))
+        XCTAssertEqual(try String(contentsOf: tool, encoding: .utf8), "old")
+        XCTAssertNotNil(build)
+        build = nil
+        XCTAssertNoThrow(try Toolchain.refuseWhileBuilding(), "once it ends")
+        XCTAssertNoThrow(try Toolchain.replaceUnused(tool, with: fresh))
+    }
+
+    /// Another install's swap holds the tools a moment: waited out, not taken for a build.
+    func testAnotherInstallsSwapIsWaitedFor() throws {
+        Paths.ensure(Paths.locks)
+        var swap: [HeldLock] = [
+            try XCTUnwrap(HeldLock(trying: Toolchain.inUseLock)),
+            try XCTUnwrap(HeldLock(trying: Paths.locks.appendingPathComponent("tool-swaps.lock")))
+        ]
+        let ended = expectation(description: "swap ended")
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.8) {
+            swap.removeAll()
+            ended.fulfill()
+        }
+        let started = Date()
+        XCTAssertNoThrow(try Toolchain.refuseWhileBuilding())
+        XCTAssertGreaterThan(Date().timeIntervalSince(started), 0.5)
+        wait(for: [ended], timeout: 2)
+    }
+
+    /// A build is not waited for: it runs for an hour.
+    func testABuildIsRefusedAtOnce() throws {
+        Paths.ensure(Paths.locks)
+        var build: HeldLock? = try XCTUnwrap(HeldLock(trying: Toolchain.inUseLock, shared: true))
+        let started = Date()
+        XCTAssertThrowsError(try Toolchain.refuseWhileBuilding())
+        XCTAssertLessThan(Date().timeIntervalSince(started), 2)
+        XCTAssertNotNil(build)
+        build = nil
+    }
+
     /// The screen used to answer "already installed" to anything ready, which left the
     /// runtime-without-javac row offering an install that did nothing, forever.
     func testAToolThatWorksButCannotDoEverythingStillTakesAnInstall() {

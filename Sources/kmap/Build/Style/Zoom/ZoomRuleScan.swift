@@ -63,14 +63,25 @@ struct ZoomRuleScan {
         return out
     }
 
-    /// The `resolution` value in a type, if it has one.
+    /// The `resolution` value in a type, if it has one: its floor, its ceiling where it is
+    /// written as a range (`19-23`), and the whole token, so a rewrite replaces both.
     ///
     /// Read as its own token because the number is not always last in the bracket:
-    /// `continue`, `with_actions` and `default_name '...'` follow it.
-    static func resolution(in type: String) -> (value: Int, range: Range<String.Index>)? {
+    /// `continue`, `with_actions` and `default_name 'x'` follow it.
+    static func resolution(in type: String) -> (value: Int, ceiling: Int?, range: Range<String.Index>)? {
         guard let at = type.range(of: "resolution ") else { return nil }
-        let digits = type[at.upperBound...].prefix { $0.isNumber }
+        let rest = type[at.upperBound...]
+        let digits = rest.prefix { $0.isNumber }
         guard !digits.isEmpty, let value = Int(digits) else { return nil }
-        return (value, at.upperBound..<type.index(at.upperBound, offsetBy: digits.count))
+        var end = type.index(at.upperBound, offsetBy: digits.count)
+        var ceiling: Int?
+        if end < type.endIndex, type[end] == "-" {
+            let more = type[type.index(after: end)...].prefix { $0.isNumber }
+            if let top = Int(more) {
+                ceiling = top
+                end = type.index(end, offsetBy: 1 + more.count)
+            }
+        }
+        return (value, ceiling, at.upperBound..<end)
     }
 }

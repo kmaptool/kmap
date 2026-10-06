@@ -22,6 +22,9 @@ final class AppContext {
     var frame: Int = 0
     /// Set while the region index is loading, so screens can say why they are empty.
     var indexState: IndexState = .idle
+    /// Whether the last load reached Geofabrik, rather than falling back on the copy kept.
+    private(set) var indexFetched = false
+    private var refreshAfterLoad = false
 
     /// Snapshots taken off the render loop: probing the toolchain launches programs and
     /// counting the caches walks the filesystem.
@@ -34,6 +37,8 @@ final class AppContext {
     private(set) var packsChecked = false
     /// Set while a patch from an older kmap is being rebuilt, so no install runs into it.
     private(set) var renewingPatch = false
+    /// Set before the question whether to renew: an install meanwhile would meet it.
+    private(set) var checkingPatch = false
 
     /// What the machine is doing, sampled for the header bar.
     private(set) var load = MachineLoad(cpu: nil, usedMemory: 0, totalMemory: 0)
@@ -123,11 +128,18 @@ final class AppContext {
     /// Rebuilds the mkgmap patch an older kmap left, off the render loop. Nothing happens
     /// where the patch was never installed.
     func renewPatchIfStale() {
-        guard !toolsFrozen, !renewingPatch else { return }
-        renewingPatch = true
+        guard !toolsFrozen, !renewingPatch, !checkingPatch else { return }
+        checkingPatch = true
         let toolchain = self.toolchain
         Task.detached(priority: .utility) { [weak self] in
-            let renewed = toolchain.patchIsStale ? await toolchain.renewStalePatch(log: Log()) : false
+            // The check asks Java, which takes a moment.
+            let stale = toolchain.patchIsStale
+            await MainActor.run { [weak self] in
+                self?.checkingPatch = false
+                self?.renewingPatch = stale
+            }
+            guard stale else { return }
+            let renewed = await toolchain.renewStalePatch(log: Log())
             await MainActor.run { [weak self] in
                 self?.renewingPatch = false
                 if renewed { self?.refreshTools(force: true) }
@@ -195,7 +207,7 @@ final class AppContext {
     /// rate limits, for use after something is deleted.
     func refreshOverview(force: Bool = false) {
         guard force || frame - lastOverviewFrame > AppContext.overviewEvery else { return }
-        // One walk at a time, on a slow folder above all; a forced one runs when it lands.
+        // 1 walk at a time, on a slow folder above all; a forced one runs when it lands.
         if countingOverview { countAgain = countAgain || force; return }
         countingOverview = true
         lastOverviewFrame = frame
@@ -228,17 +240,25 @@ final class AppContext {
     /// Kicks off the index load once; safe to call from any screen's `tick`. A failed
     /// load stays failed until `force`, since screens call this every frame.
     func loadIndexIfNeeded(force: Bool = false) {
-        if case .loading = indexState { return }
+        if case .loading = indexState {
+            // Asked to refresh while the start's load runs: done once that one lands.
+            if force { refreshAfterLoad = true }
+            return
+        }
         if case .ready = indexState, !force { return }
         if case .failed = indexState, !force { return }
         indexState = .loading
         Task { [weak self] in
             guard let self else { return }
             do {
-                try await self.index.load(forceRefresh: force)
+                self.indexFetched = try await self.index.load(forceRefresh: force)
                 self.indexState = .ready
             } catch {
                 self.indexState = .failed(error.localizedDescription)
+            }
+            if self.refreshAfterLoad {
+                self.refreshAfterLoad = false
+                self.loadIndexIfNeeded(force: true)
             }
         }
     }

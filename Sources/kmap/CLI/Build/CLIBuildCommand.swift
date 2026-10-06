@@ -4,17 +4,33 @@ import Foundation
 /// offers has an equivalent here. The order is fixed: read the profile, let the flags
 /// override it, refuse everything wrong at once, then hand a recipe to the pipeline.
 extension CLI {
+    static func regionRefusal(_ flags: Flags, arguments: [String]) -> String? {
+        guard flags.positionals.count != 1 else { return nil }
+        guard let second = flags.positionals.dropFirst().first else {
+            return "build needs a region id, e.g. austria"
+        }
+        // A mistyped option leaves its value standing alone, where it reads as a region.
+        let unknown = unknownBuildOptions(in: flags)
+        guard unknown.isEmpty else {
+            return unknown.map { "--\($0) is not an option of `kmap build` — see `kmap help`" }
+                .joined(separator: "; ")
+        }
+        // A value given after a space to an `=`-only option, before or after the region.
+        for (at, word) in arguments.enumerated().dropFirst() where flags.positionals.contains(word) {
+            let before = arguments[at - 1]
+            if valuedOnlyAfterEquals.map({ "--" + $0 }).contains(before) {
+                return "\"\(word)\" follows \(before), which takes a value only after =,"
+                    + " as \(before)=\(word); several regions are joined with +"
+            }
+        }
+        return "build takes one region id, and \"\(second)\" is a second;"
+            + " several regions are joined with +, e.g. austria+germany"
+    }
+
     static func build(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: buildValuedOptions)
-        guard let regionID = flags.positionals.first else {
-            return CLIOutput.refuse("build needs a region id, e.g. austria")
-        }
-        if flags.positionals.count > 1 {
-            return CLIOutput.refuse(
-                "build takes one region id, and \"\(flags.positionals[1])\" is a second;"
-                    + " several regions are joined with +, e.g. austria+germany"
-            )
-        }
+        if let refusal = regionRefusal(flags, arguments: arguments) { return CLIOutput.refuse(refusal) }
+        let regionID = flags.positionals[0]
 
         // Flags apply to this run only: a one-off `--out=` must not become the stored
         // output folder.
@@ -129,11 +145,11 @@ extension CLI {
             styles: catalog,
             showing: CLIOutput.showing
         )
-        pipeline.start()
-        // Ctrl+C reaches the pipeline's own cancellation rather than the default action,
-        // so the child processes are stopped and the stream ends with its last event.
+        // Ctrl+C cancels the pipeline, so its tools stop and the stream ends with its last
+        // event; watched before the first tool can start.
         let interrupts = watchInterrupts { pipeline.cancel() }
         defer { interrupts.stop() }
+        pipeline.start()
         return await follow(pipeline, landingIn: recipe.destinationDirectory)
     }
 
@@ -145,7 +161,7 @@ extension CLI {
         catalog: StyleCatalog
     ) -> MapStyle? {
         if asked.flags.has("style") { return asked.style(in: catalog) }
-        if let found = catalog.availableStyles().first(where: { $0.id == choices.styleID }) { return found }
+        if let found = StyleCatalog.find(choices.styleID, in: catalog.availableStyles()) { return found }
         let named = asked.flags.has("profile") ? "the profile's style" : "the style"
         asked.refused.append("\(named) \"\(choices.styleID)\" is not a style kmap can find — see `kmap styles`")
         return nil
@@ -178,8 +194,14 @@ extension CLI {
         _ asked: inout BuildOptions,
         choices: BuildChoices
     ) -> (shape: Int, land: Int) {
-        let shape = BuildChoices.sane(asked.number("overlap", in: BuildOptions.overlap) ?? choices.shapeOverlap)
-        let land = BuildChoices.sane(asked.number("land-overlap", in: BuildOptions.overlap) ?? choices.landOverlap)
+        let shapeAsked = asked.number("overlap", in: BuildOptions.overlap)
+        let landAsked = asked.number("land-overlap", in: BuildOptions.overlap)
+        for (name, value) in [("overlap", shapeAsked), ("land-overlap", landAsked)] {
+            if let refusal = value.flatMap({ BuildChoices.offStep(name, $0) }) { asked.refused.append(refusal) }
+        }
+        let shape = BuildChoices.sane(shapeAsked ?? choices.shapeOverlap)
+        // A land overlap nobody gave follows a lower shape one down, as for a profile.
+        let land = landAsked.map(BuildChoices.sane) ?? min(BuildChoices.sane(choices.landOverlap), shape)
         if land > shape {
             asked.refused.append(
                 "--land-overlap=\(land) is past --overlap=\(shape)"

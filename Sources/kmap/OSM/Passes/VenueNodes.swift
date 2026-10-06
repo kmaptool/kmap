@@ -27,7 +27,8 @@ extension VenueScan {
             // dictionary: this runs on every node of the extract.
             var bestKey = Int.max
             var bestValue = ""
-            var name = ""
+            // Where the name is, read only for a venue: most named nodes are not one.
+            var nameAt: Int32 = -1
             var at = tags.startIndex
             while at + 1 < tags.endIndex {
                 let key = block.text(Int(tags[at]))
@@ -35,11 +36,12 @@ extension VenueScan {
                     bestKey = rank
                     bestValue = block.text(Int(tags[at + 1]))
                 } else if key == "name" {
-                    name = block.text(Int(tags[at + 1]))
+                    nameAt = tags[at + 1]
                 }
                 at += 2
             }
             if bestKey != Int.max {
+                let name = nameAt >= 0 ? block.text(Int(nameAt)) : ""
                 venues.append((VenueScan.keys[bestKey] + "=" + bestValue, longitude, latitude, name))
             }
         }

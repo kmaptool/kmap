@@ -7,7 +7,9 @@ extension CLI {
     private static let findingLabelColumn = 14
 
     static func verify(_ arguments: [String]) -> Int32 {
-        let paths = Flags(arguments).positionals
+        let flags = Flags(arguments)
+        if let refused = flags.refusal("verify", knows: []) { return refused }
+        let paths = flags.positionals
         let checked = paths.isEmpty ? builtMaps(in: SettingsStore().settings.outputURL) : paths
         guard !checked.isEmpty else {
             CLILog.line("no maps to check — pass a .img path, or build one first")

@@ -230,6 +230,30 @@ final class MatcherTests: XCTestCase {
         XCTAssertEqual(again.codes["P900"]?.resolutions[22], 1)
     }
 
+    func testAGuessByPlaceGoesOnlyToAPointNoExtractAnsweredAtAll() {
+        func rescue(_ at: Int, _ way: Int64, _ shop: String) -> CoarseEvidence.Rescue {
+            CoarseEvidence.Rescue(at: at, kind: .point, type: 0x2e00, way: way, tags: ["shop": shop])
+        }
+        // 0 nothing answered; 1 matched exactly by a later extract; 2 found ambiguous.
+        var table: [UInt8] = [
+            Evidence.Match.unmatched.rawValue, Evidence.Match.matched.rawValue, Evidence.Match.ambiguous.rawValue
+        ]
+        var evidence = Evidence()
+        table.withUnsafeMutableBufferPointer { matches in
+            // The first extract's guess for point 0 stands over the second's.
+            CoarseEvidence.settle(
+                [rescue(0, 10, "bakery"), rescue(1, 11, "kiosk"), rescue(2, 12, "florist"), rescue(0, 13, "butcher")],
+                matches: matches,
+                into: &evidence
+            )
+        }
+        XCTAssertEqual(evidence.codes["P2e00"]?.sources.keys.sorted(), [10])
+        XCTAssertEqual(
+            table,
+            [Evidence.Match.matched.rawValue, Evidence.Match.matched.rawValue, Evidence.Match.ambiguous.rawValue]
+        )
+    }
+
     // MARK: The ground index
 
     func testABorderSharedByTwoDistrictsIsIndexed() throws {

@@ -76,6 +76,51 @@ final class GroundMaskTests: XCTestCase {
         XCTAssertFalse(m.contains(lat: 40.5, lon: 12.5))
     }
 
+    func testOneRegionsHoleKeepsTheRegionThatFillsIt() throws {
+        // South Africa's outline cuts Lesotho out as a hole; a map of both keeps Lesotho.
+        let outer = try XCTUnwrap(
+            RegionOutline.parse(
+                """
+                outer
+                1
+                   10.0 40.0
+                   11.0 40.0
+                   11.0 41.0
+                   10.0 41.0
+                END
+                !2
+                   10.3 40.3
+                   10.7 40.3
+                   10.7 40.7
+                   10.3 40.7
+                END
+                END
+                """
+            )
+        )
+        let inner = try XCTUnwrap(
+            RegionOutline.parse(
+                """
+                inner
+                1
+                   10.3 40.3
+                   10.7 40.3
+                   10.7 40.7
+                   10.3 40.7
+                END
+                END
+                """
+            )
+        )
+        for regions in [[outer, inner], [inner, outer]] {
+            let m = try XCTUnwrap(GroundMask(regions: regions))
+            XCTAssertTrue(m.contains(lat: 40.5, lon: 10.5))
+            XCTAssertTrue(m.contains(lat: 40.9, lon: 10.5))
+            XCTAssertFalse(m.contains(lat: 40.5, lon: 12.5))
+        }
+        XCTAssertFalse(try XCTUnwrap(GroundMask(rings: outer)).contains(lat: 40.5, lon: 10.5))
+    }
+
     // MARK: Cutting the lines
 
     private func line(
@@ -154,5 +199,15 @@ final class GroundMaskTests: XCTestCase {
             let b = m.contains(lat: 40.9999999, lon: lon)
             XCTAssertEqual(a, b)
         }
+    }
+
+    /// A .poly saved on Windows ends its lines in CR LF: read the same.
+    func testAPolyWithWindowsLineEndsReadsTheSame() throws {
+        let unix = try XCTUnwrap(RegionOutline.parse(PolyFixture.square))
+        let windows = try XCTUnwrap(
+            RegionOutline.parse(PolyFixture.square.replacingOccurrences(of: "\n", with: "\r\n"))
+        )
+        XCTAssertEqual(windows.count, unix.count)
+        XCTAssertEqual(windows.first?.points.count, unix.first?.points.count)
     }
 }

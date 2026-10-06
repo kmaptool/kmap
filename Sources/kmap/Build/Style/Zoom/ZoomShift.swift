@@ -56,7 +56,8 @@ extension StyleCatalog {
                         from: start,
                         to: window.rungs.lowerBound,
                         on: rungs,
-                        floor: keepsFloor ? found.value : nil
+                        floor: keepsFloor ? found.value : nil,
+                        ceiling: found.ceiling
                     )
                 else { continue }
                 let type = rule.type.replacingCharacters(in: found.range, with: text)
@@ -91,10 +92,20 @@ extension StyleCatalog {
 
     /// What to write after `resolution`: a floor, or a floor and a ceiling. `finest == 0`
     /// is no ceiling, which the plain 1-number form already expresses; any other is
-    /// written as a range, 1 rung wide too, since a bare number reaches up to 24.
-    private func resolution(from start: Int, to finest: Int, on rungs: ZoomRungs, floor kept: Int? = nil) -> String? {
+    /// written as a range, 1 rung wide too, since a bare number reaches up to 24. A rule's
+    /// own ceiling, where it hands the finer zooms to another rule, is kept within that.
+    private func resolution(
+        from start: Int,
+        to finest: Int,
+        on rungs: ZoomRungs,
+        floor kept: Int? = nil,
+        ceiling own: Int? = nil
+    ) -> String? {
         guard let floor = kept ?? rungs.resolution(atRung: start) else { return nil }
-        guard finest > 0, let ceiling = rungs.resolution(atRung: finest) else { return "\(floor)" }
-        return "\(floor)-\(ceiling)"
+        let window = finest > 0 ? rungs.resolution(atRung: finest) : nil
+        guard let top = [window, own].compactMap({ $0 }).min() else { return "\(floor)" }
+        // A floor past the ceiling is no range mkgmap reads, and a rule that hands the
+        // closest zooms to another must not draw there: it keeps its own last zoom alone.
+        return "\(min(floor, top))-\(top)"
     }
 }

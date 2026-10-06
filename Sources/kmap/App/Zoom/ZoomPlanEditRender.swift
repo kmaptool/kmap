@@ -58,9 +58,17 @@ extension ZoomPlanEditScreen {
         renderHeader(s, grid: grid, rungs: rungs, y: y, theme: theme)
         y += 1
 
-        for (i, row) in rows.enumerated() {
-            guard case .family(let family) = row, y < formRect.maxY - 2 else { continue }
-            fieldRows[row.key] = y
+        // The families, a window that keeps the cursor's row on screen; rows[0] is the ladder.
+        let families = rows.count - 1
+        let visible = max(1, formRect.maxY - 2 - y)
+        let cursor = list.selected - 1
+        if cursor >= 0, cursor < familyScroll { familyScroll = cursor }
+        if cursor >= familyScroll + visible { familyScroll = cursor - visible + 1 }
+        familyScroll = max(0, min(familyScroll, families - visible))
+        let top = y
+        for i in (familyScroll + 1)..<max(familyScroll + 1, min(rows.count, familyScroll + 1 + visible)) {
+            guard case .family(let family) = rows[i] else { continue }
+            fieldRows[rows[i].key] = y
             renderFamily(
                 family,
                 selected: i == list.selected,
@@ -73,6 +81,14 @@ extension ZoomPlanEditScreen {
             )
             y += 1
         }
+        Widgets.scrollHint(
+            s,
+            rect: Rect(x: formRect.x, y: top, w: formRect.w, h: visible),
+            offset: familyScroll,
+            count: families,
+            visible: visible,
+            theme: theme
+        )
 
         // Once under the grid rather than in every row.
         let note =
@@ -95,6 +111,7 @@ extension ZoomPlanEditScreen {
     }
 
     func renderOverlay(into s: Surface, rect: Rect, ctx: AppContext) {
+        changingLadder?.render(into: s, rect: rect, theme: ctx.theme)
         guard picking != nil, let at = fieldRows[Row.ladder.key] else { return }
         Widgets.optionList(
             s,

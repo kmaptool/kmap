@@ -15,7 +15,7 @@ enum TypEdit {
     /// pointing at a missing key comes out transparent.
     ///
     /// - Parameter tag: which `Xpm` block, for a point that keeps a night picture in a
-    ///   second one. Nil takes whichever comes first.
+    ///   second one. Nil is the day picture, as the parse takes it.
     /// - Throws: `EditError.noSuchSection`, `.noSuchColour` or `.notAColour`.
     static func setColour(
         in source: TypSource,
@@ -28,7 +28,7 @@ enum TypEdit {
         guard let section = source.section(kind, code) else {
             throw EditError.noSuchSection(kind, code)
         }
-        let value = try normalize(colour)
+        var value = try normalize(colour)
 
         guard let paletteLines = paletteLineNumbers(in: source, section: section, tag: tag),
             colourIndex >= 0, colourIndex < paletteLines.count
@@ -46,9 +46,20 @@ enum TypEdit {
             throw EditError.noSuchColour(code, colourIndex)
         }
 
+        value =
+            keepingAlpha(value, typed: colour, of: block(of: section, tag: tag)?.palette[safe: colourIndex]?.colour)
+            ?? "none"
         var lines = source.lines
         lines[lineNumber] = indentation(of: original) + "\"\(key) c \(value)\""
-        return lines.joined(separator: "\n")
+        let edited = lines.joined(separator: "\n")
+        // Refused here, not by mkgmap at the next build; read back as the parser reads it,
+        // so a clear alpha counts as clear.
+        if kind != .point, let after = TypSource.parse(edited).section(kind, code),
+            let colours = block(of: after, tag: tag)?.palette.map(\.colour), let refused = refusal(ofSimple: colours)
+        {
+            throw refused
+        }
+        return edited
     }
 
     // MARK: Labels
@@ -73,30 +84,17 @@ enum TypEdit {
         var lastLabelLine: Int?
 
         for number in section.lines {
-            let line = lines[number].trimmingCharacters(in: .whitespaces)
             // `String1=` is the numbered spelling other tools write, and is replaced in
             // place rather than doubled by a plain `String=`.
-            let lowered = line.lowercased()
-            guard let eq = line.firstIndex(of: "="),
-                lowered.hasPrefix("string"),
-                line[line.startIndex..<eq].dropFirst("string".count)
-                    .allSatisfy(\.isNumber)
+            guard let (key, value) = TypSource.entry(of: lines[number]), key.lowercased().hasPrefix("string")
             else { continue }
             lastLabelLine = number
-            let value = line[line.index(after: eq)...]
-            guard let comma = value.firstIndex(of: ","),
-                let parsed = Int(
-                    value[value.startIndex..<comma]
-                        .trimmingCharacters(in: .whitespaces).dropFirst(2),
-                    radix: 16
-                ),
-                parsed == language
-            else { continue }
+            guard TypSource.label(in: value).language == language else { continue }
             lines[number] = indentation(of: lines[number]) + "String=\(wanted),\(text)"
             return lines.joined(separator: "\n")
         }
 
-        let insertAt = (lastLabelLine ?? (section.lines.upperBound - 2)) + 1
+        let insertAt = lastLabelLine.map { $0 + 1 } ?? closingLine(of: section, in: lines)
         let indent = lastLabelLine.map { indentation(of: lines[$0]) } ?? ""
         lines.insert(indent + "String=\(wanted),\(text)", at: insertAt)
         return lines.joined(separator: "\n")
@@ -145,11 +143,9 @@ enum TypEdit {
         )
     }
 
-    /// Replaces a single-value tag in a section, adds it where there is none, or takes it
-    /// out when the value is nil.
-    ///
-    /// A new tag is added before `[end]` rather than at the top, leaving the section's
-    /// opening comments in place.
+    /// Replaces a single-value tag in a section, adds it where there is none, or takes it out
+    /// when the value is nil. A new tag goes at the section's end, before its `[end]` where it
+    /// has one, leaving the section's opening comments in place.
     private static func setTag(
         _ tag: String,
         in source: TypSource,
@@ -161,22 +157,31 @@ enum TypEdit {
             throw EditError.noSuchSection(kind, code)
         }
         var lines = source.lines
-        let existing = section.lines.first {
-            lines[$0].trimmingCharacters(in: .whitespaces).lowercased()
-                .hasPrefix(tag.lowercased() + "=")
-        }
+        // The last, as mkgmap takes the last; a removal takes them all.
+        let matching = section.lines.filter { TypSource.sets(tag, lines[$0]) }
+        let existing = matching.last
 
         guard let value else {
-            if let existing { lines.remove(at: existing) }
+            for at in matching.reversed() { lines.remove(at: at) }
             return lines.joined(separator: "\n")
         }
         if let existing {
             lines[existing] = indentation(of: lines[existing]) + "\(tag)=\(value)"
         } else {
-            let end = section.lines.upperBound - 1
-            lines.insert(indentation(of: lines[end]) + "\(tag)=\(value)", at: end)
+            let end = closingLine(of: section, in: lines)
+            lines.insert(indentation(of: lines[end - 1]) + "\(tag)=\(value)", at: end)
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// Where a line added at the end of a section goes: before its `[end]`, or after its
+    /// last line where the next header closes it, as mkgmap allows.
+    static func closingLine(of section: TypSection, in lines: [String]) -> Int {
+        let last = section.lines.upperBound - 1
+        let closed =
+            last > section.lines.lowerBound
+            && TypSource.header(of: lines[last]) == "[end]"
+        return closed ? last : section.lines.upperBound
     }
 
     // MARK: Adding what is not there
@@ -312,51 +317,66 @@ enum TypEdit {
             return nil
         }
         let declared = charsCount(of: section, tag: tag)
+        let width = block(of: section, tag: tag)?.charsPerPixel ?? 1
+        // The lines the parse took for the palette, a line it could not read left out.
         var out: [Int] = []
         for number in extent.dropFirst() where out.count < declared {
-            guard source.lines[number].trimmingCharacters(in: .whitespaces).hasPrefix("\"")
-            else { break }
-            out.append(number)
+            let line = source.lines[number].trimmingCharacters(in: .whitespaces)
+            if line.isEmpty { continue }
+            guard line.hasPrefix("\"") else { break }
+            if TypSource.isPaletteEntry(line, keyLength: width) { out.append(number) }
         }
         return out
     }
 
-    /// The full extent of an `Xpm=` block: the tag line and every quoted line under it.
+    /// The full extent of an `Xpm=` block: the tag line and every quoted line under it. The
+    /// last block of the tag, as mkgmap takes the last.
     static func pictureLineRange(
         in source: TypSource,
         section: TypSection,
         tag wanted: String? = nil
     ) -> Range<Int>? {
-        var start: Int?
-        for number in section.lines {
-            guard let found = pictureTag(of: source.lines[number]) else { continue }
-            // A point keeps its night picture in a second block, so the requested tag
-            // must match rather than the first block found.
-            if let wanted, found.lowercased() != wanted.lowercased() { continue }
-            start = number
-            break
-        }
-        guard let start else { return nil }
+        pictureLineRanges(in: source, section: section, tag: wanted).last
+    }
 
-        var end = start + 1
-        while end < section.lines.upperBound,
-            source.lines[end].trimmingCharacters(in: .whitespaces).hasPrefix("\"")
-        {
-            end += 1
+    /// Every block of a tag in the section, in order. Nil is the picture drawn by day, as
+    /// the parse takes it; a point keeps its night picture apart, so the tag must match.
+    static func pictureLineRanges(
+        in source: TypSource,
+        section: TypSection,
+        tag wanted: String? = nil
+    ) -> [Range<Int>] {
+        let wanted = wanted ?? (section.kind == .point && section.dayXpm != nil ? "DayXpm" : "Xpm")
+        return section.lines.compactMap { number -> Range<Int>? in
+            guard let found = pictureTag(of: source.lines[number]), found.lowercased() == wanted.lowercased() else {
+                return nil
+            }
+            return number..<pictureEnd(in: source.lines, from: number + 1, before: section.lines.upperBound)
         }
-        return start..<end
+    }
+
+    /// Where a picture's quoted lines end: blank lines inside it are its own, as mkgmap
+    /// looks past them for the next quote.
+    static func pictureEnd(in lines: [String], from first: Int, before limit: Int) -> Int {
+        var end = first
+        var at = first
+        while at < limit {
+            let line = lines[at].trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("\"") {
+                at += 1
+                end = at
+            } else if line.isEmpty {
+                at += 1
+            } else {
+                break
+            }
+        }
+        return end
     }
 
     /// `Xpm`, `DayXpm` or `NightXpm` where the line opens one, otherwise nil.
     static func pictureTag(of line: String) -> String? {
-        let trimmed = line.trimmingCharacters(in: .whitespaces)
-        for tag in ["DayXpm", "NightXpm", "Xpm"]
-        where trimmed.lowercased()
-            .hasPrefix(tag.lowercased() + "=")
-        {
-            return tag
-        }
-        return nil
+        ["DayXpm", "NightXpm", "Xpm"].first { TypSource.sets($0, line) }
     }
 
     private static func block(of section: TypSection, tag: String?) -> XpmBlock? {
@@ -396,6 +416,17 @@ enum TypEdit {
         let text = colour.trimmingCharacters(in: .whitespaces)
         if text.lowercased() == "none" { return "none" }
         guard Color.hex(text) != nil else { throw EditError.notAColour(text) }
-        return "#" + text.replacingOccurrences(of: "#", with: "").uppercased()
+        // As mkgmap holds it: an alpha of 00 shows nothing, and FF is no alpha at all.
+        return TypSource.withAlpha(nil, on: "#" + text.replacingOccurrences(of: "#", with: "").uppercased()) ?? "none"
+    }
+
+    /// A new colour for a palette entry: a see-through one stays so, the new colour taking
+    /// the old alpha where what was `typed` names none of its own.
+    static func keepingAlpha(_ colour: String, typed: String?, of old: String?) -> String? {
+        let digits = (typed ?? "").filter { $0.isASCII && $0.isHexDigit }
+        guard colour.count == 7, digits.count == 6, let old, old.count == 9, Color.channels(of: old) != nil else {
+            return colour == "none" ? nil : colour
+        }
+        return colour + old.suffix(2)
     }
 }

@@ -153,6 +153,39 @@ final class ShippedStyleTests: XCTestCase {
         }
     }
 
+    /// kmap's rules draw a roundabout on an extended overlay above 24 bits: a palette
+    /// without those numbers leaves the main roads' roundabouts out on every coarser rung.
+    func testEveryShippedPalettePaintsTheRoundaboutOverlays() throws {
+        for shipped in StyleCatalog.shippedPalettes {
+            let palette = try StylePalette.read(
+                try String(contentsOf: paletteFile(of: shipped.id), encoding: .utf8)
+            )
+            let codes = Set(palette.lines.map(\.code))
+            for code in 0x10801...0x10804 {
+                XCTAssertTrue(codes.contains(code), "\(shipped.id) lacks line 0x\(String(code, radix: 16))")
+            }
+        }
+    }
+
+    /// The width is the whole stroke: below 3 pixels there is no room for a border either
+    /// side, so the line is its casing colour alone rather than a 3-pixel road.
+    func testANarrowCasedLineIsDrawnInItsCasingAlone() throws {
+        let palette = try StylePalette.read(
+            "line 0x0e 1 #ffffff #ababab  Path\nline 0x10 2 #ededed #bbbbbb  Living street\nline 0x06 3 #ffffff #bbbbbb  Minor road"
+        )
+        let text = TypGenerator.text(from: palette, fid: 6325)
+        func section(_ code: String) -> String {
+            text.components(separatedBy: "Type=\(code)\n")[1].components(separatedBy: "[end]")[0]
+        }
+        XCTAssertTrue(section("0x0e").contains("\"1 c #ababab\""))
+        XCTAssertTrue(section("0x0e").contains("LineWidth=1"))
+        XCTAssertFalse(section("0x0e").contains("BorderWidth"))
+        XCTAssertTrue(section("0x10").contains("LineWidth=2"))
+        XCTAssertFalse(section("0x10").contains("BorderWidth"))
+        XCTAssertTrue(section("0x06").contains("LineWidth=1"))
+        XCTAssertTrue(section("0x06").contains("BorderWidth=1"))
+    }
+
     func testANoteAfterTheNameStaysOutOfIt() throws {
         let palette = try StylePalette.read(
             "poly 0x50 3 #77cc77  Forest  # filled, not theirs"
@@ -242,10 +275,20 @@ final class ShippedStyleTests: XCTestCase {
     /// parser uses.
     func testGraphicsWithWindowsLineEndingsStillOverride() throws {
         let palette = try StylePalette.read("poly 0x50 3 #77cc77 Forest")
-        let graphics = "[_polygon]\r\nType=0x50 ; forest\r\nXpm=\"0 0 1 0\"\r\n\"a c #123456\"\r\n[end]\r\n"
+        let graphics = "[_polygon] ; forest\r\nType=0x50\r\nXpm=\"0 0 1 0\"\r\n\"a c #123456\"\r\n[end]\r\n"
         let text = TypGenerator.text(from: palette, fid: 1, graphics: graphics)
         XCTAssertTrue(text.contains("#123456"), "the pattern section replaced the flat one")
         XCTAssertFalse(text.contains("#77cc77"), "the flat twin is gone")
+    }
+
+    /// A note after the type makes it no number to mkgmap, which would refuse the whole
+    /// TYP: such a section replaces nothing.
+    func testAGraphicsSectionWithANoteAfterItsTypeReplacesNothing() throws {
+        let palette = try StylePalette.read("poly 0x50 3 #77cc77 Forest")
+        let graphics = "[_polygon]\nType=0x50 ; forest\nXpm=\"0 0 1 0\"\n\"a c #123456\"\n[end]\n"
+        let text = TypGenerator.text(from: palette, fid: 1, graphics: graphics)
+        XCTAssertFalse(text.contains("0x50 ; forest"))
+        XCTAssertTrue(text.contains("#77cc77"))
     }
 
     /// A palette kmap ships paints only numbers kmap's rules emit. The two meet through

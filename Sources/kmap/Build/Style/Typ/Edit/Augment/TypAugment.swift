@@ -1,34 +1,15 @@
 import Foundation
 
-/// Adds kmap's own sections to whatever TYP a build is using: the repair pass emits two
-/// type codes no other style draws. The sections travel with the build - the original file
+/// Adds kmap's own sections to whatever TYP a build is using: the repair pass emits 2
+/// type codes no other style draws. The sections travel with the build: the original file
 /// is never written to, a TYP already defining one of these types keeps its own, and
-/// everything else comes through verbatim with the sections appended at the end.
+/// everything else comes through verbatim with the sections appended.
 enum TypAugment {
     /// Where a copy goes when the caller names nowhere. A build names its own scratch
     /// directory instead, so the copy - which carries the theme applied to it - is removed
     /// with the rest of that build's work files.
     static var directory: URL {
         Paths.styles.appendingPathComponent("build-typ", isDirectory: true)
-    }
-
-    struct Result {
-        /// The TYP the build should compile. The original where nothing had to be added.
-        let url: URL
-        /// Which types were added, for the log.
-        let added: [String]
-        /// What was said about the day/night pass, where it ran.
-        var theme: String?
-        /// Why nothing could be added, where that is the case.
-        let refusal: String?
-        /// Marks that had to move because the borrowed style already draws their
-        /// number: old code to new, per kind. The rules emitting them move too.
-        var moved: [MapElementKind: [Int: Int]] = [:]
-        /// Whether the draw order was rearranged to put the woods over the ground tints.
-        var woodsLaidOver = false
-        /// The mkgmap option that goes with the copies laid over the woods, where there
-        /// are any: `--x-shape-lift=`, each fill with its copy, then the woods.
-        var shapeLift: String?
     }
 
     /// Returns the TYP a build should use, adding kmap's sections where they are missing.
@@ -53,21 +34,49 @@ enum TypAugment {
                 ? "kmap's repair marks cannot be added to it"
                 : "kmap can neither drop its night colours nor add "
                     + "the repair marks"
-            return Result(
-                url: typURL,
-                added: [],
-                theme: nil,
-                refusal: "\(typURL.lastPathComponent) is a compiled TYP, so \(what)"
-                    + " — import it again to decompile it, and it will work"
-            )
+            // Handed over as a copy beside the build: mkgmap writes its own copy, with the
+            // map's family id, next to the file it is given, and in the user's folder that
+            // copy would be taken for a style of its own.
+            let folder = destination ?? directory
+            let copy = folder.appendingPathComponent(typURL.lastPathComponent)
+            var refusal =
+                "\(typURL.lastPathComponent) is a compiled TYP, so \(what)"
+                + " — import it again to decompile it, and it will work"
+            // Already where a copy would go: it is a copy.
+            guard !copy.sameFile(as: typURL) else {
+                return Result(url: typURL, added: [], theme: nil, refusal: refusal)
+            }
+            Paths.ensure(folder)
+            FileTools.removeIfPresent(copy)
+            do {
+                try FileTools.copy(typURL, to: copy)
+            } catch {
+                // Built without it rather than with the user's own file: mkgmap would write
+                // its own copy into the user's folder. A part-written copy would be passed on.
+                FileTools.removeIfPresent(copy)
+                refusal +=
+                    "; it could not be copied for this build (\(ErrorWords.of(error))), so the map is built without it"
+                return Result(url: copy, added: [], theme: nil, refusal: refusal)
+            }
+            return Result(url: copy, added: [], theme: nil, refusal: refusal)
         }
-        guard let original = TypSource.text(of: typURL) else {
+        guard let data = try? Data(contentsOf: typURL) else {
             return Result(url: typURL, added: [], refusal: nil)
         }
+        // A page kmap cannot read was read byte for byte, and goes to mkgmap the same way.
+        let (decoded, byteForByte) = TypSource.decoding([UInt8](data))
+        // Line by line in LF alone: Swift reads CRLF as 1 character, which a split on LF
+        // leaves whole off Apple's platforms. mkgmap reads either.
+        let original = TextLines.keepingTrailingBlank(decoded).joined(separator: "\n")
+        let trips = TypSource.codePageTripsMkgmap(original)
 
         // The theme pass runs first, so the marks are added to text already in the same
         // terms as the rest of the file.
-        var text = repairedDrawOrder(original)
+        var text = repairedDrawOrder(
+            trips ? TypSource.mendedCodingLine(TypSource.plainCodePageLine(original)) : original
+        )
+        // A point drawn by night alone crashes mkgmap, which writes its day picture.
+        text = TypEdit.givingNightOnlyPointsADay(text)
         var themeNote: String?
         if theme != .all {
             let pass = TypEdit.keeping(theme, in: text)
@@ -107,7 +116,8 @@ enum TypAugment {
         // Handed through as it is only where mkgmap reads it as kmap does: pure ASCII, or
         // saying how it is written.
         let readsAlike =
-            !original.unicodeScalars.contains { !$0.isASCII } || TypSource.declaringUTF8(original) == original
+            (!original.unicodeScalars.contains { !$0.isASCII } || TypSource.declaringUTF8(original) == original
+                || byteForByte) && !trips
         guard !wanted.isEmpty || text != original || !readsAlike else {
             return Result(
                 url: typURL,
@@ -124,6 +134,16 @@ enum TypAugment {
                     || moved.values.contains { $0[section.code] != nil }
             }
         additions.append(contentsOf: copies)
+        // Such a page holds no Cyrillic: a mark's label in it is left out, not the file
+        // turned to UTF-8 under the style's own labels.
+        if byteForByte {
+            additions = additions.map { section in
+                let kept = section.text.components(separatedBy: "\n").filter { line in
+                    line.unicodeScalars.allSatisfy { $0.value <= 0xFF }
+                }
+                return (code: section.code, text: kept.joined(separator: "\n"))
+            }
+        }
         // A moved mark is the same drawing under another number.
         additions = additions.map { section in
             guard let to = moved.values.compactMap({ $0[section.code] }).first
@@ -175,9 +195,19 @@ enum TypAugment {
             FileTools.removeIfPresent(directory)
         }
         // Written as UTF-8, and said to be: without the line mkgmap would read it in the
-        // CodePage it names, and the marks' Cyrillic would come out garbled.
-        guard (try? FileTools.write(TypSource.declaringUTF8(text), to: written)) != nil else {
-            return Result(url: typURL, added: [], theme: nil, refusal: nil)
+        // CodePage it names, and the marks' Cyrillic would come out garbled. A page kmap
+        // cannot read goes back in its own bytes.
+        let bytes = TypSource.bytesToWrite(text, declaring: true, byteForByte: byteForByte)
+        do {
+            try FileTools.write(bytes, to: written)
+        } catch {
+            return Result(
+                url: typURL,
+                added: [],
+                theme: nil,
+                refusal: "the build's copy of \(typURL.lastPathComponent) could not be written"
+                    + " (\(ErrorWords.of(error))), so it is used as it is, without marks or theme"
+            )
         }
 
         return Result(

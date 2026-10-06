@@ -1,0 +1,70 @@
+# Russian names of OSM sport values, for the label of a pitch, a stadium or a sports
+# centre on a map labelled in Cyrillic. Not kmap's own: the translations of the sport
+# field of the iD editor's preset schema, made by the OpenStreetMap community.
+#
+# Source: @openstreetmap/id-tagging-schema 6.19.2, dist/translations/ru.json,
+# presets.fields.sport.options. License: ISC, Copyright (c) 2017, iD Contributors.
+# Regenerate from a newer release rather than editing by hand.
+#
+# One line per value: value|label.
+
+10pin|Боулинг с десятью кеглями
+5pin|Боулинг с пятью кеглями
+9pin|Боулинг с девятью кеглями
+american_football|Американский футбол
+athletics|Лёгкая атлетика
+badminton|Бадминтон
+baseball|Бейсбол
+basketball|Баскетбол
+beachvolleyball|Пляжный волейбол
+billiards|Бильярд
+bmx|BMX
+boules|Игра в шары (буль)
+bowls|Игра в боулз
+candlepin|Кэндлпин боулинг
+canoe|Каноэ
+chess|Шахматы
+climbing|Скалолазание
+cricket|Крикет
+curling|Кёрлинг
+cycling|Езда на велосипеде
+darts|Дартс
+disc_golf|Диск-гольф
+dog_racing|Собачьи бега
+duckpin|Дакпин боулинг
+equestrian|Конный спорт
+fitness|Фитнес
+free_flying|Парапланеризм / дельтапланеризм
+futsal|Футзал (мини-футбол)
+gaelic_games|Гэльские игры
+golf|Гольф
+gymnastics|Гимнастика
+handball|Командный гандбол
+horse_racing|Скачки
+ice_hockey|Хоккей на льду
+ice_skating|Фигурное катание
+ice_stock|Баварский кёрлинг
+karting|Картинг
+motocross|Мотокросс
+motor|Мотоспорт
+multi|Другие виды спорта
+netball|Нетбол
+orienteering|Спортивное ориентирование
+padel|Падел
+pelota|Пелота
+pickleball|Малый теннис (пиклбол)
+rugby_union|Регби
+running|Бег
+scuba_diving|Плавание с аквалангом
+shooting|Стрельба
+skateboard|Скейтборд
+ski_jumping|Прыжки на лыжах с трамплина
+skiing|Катание на лыжах
+soccer|Футбол
+softball|Софтбол
+speedway|Спидвей
+swimming|Плавание
+table_tennis|Настольный теннис
+tennis|Теннис
+volleyball|Волейбол
+yoga|Йога

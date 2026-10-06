@@ -18,34 +18,48 @@ extension TileSplitter {
         func tooRound(_ v: Int32) -> Bool {
             v != 0 && v % tooRoundStride == 0
         }
-        // A value moves only where every area starting on it meets areas ending on it
-        // across its whole width. The split drops empty ground, so an area can start on a
-        // value others end on elsewhere with nothing below it, and would lose a row.
-        func interior(_ pick: (Area) -> (Int32, Int32), across: (Area) -> (Int32, Int32)) -> Set<Int32> {
+        // A value moves only into ground the other side covers. The split drops empty
+        // ground, so an area can start on a value others end on elsewhere with nothing
+        // below it: moved up, the row it gives away would be in no area. Moving down
+        // asks the same of the areas ending on it, against those starting on it.
+        func covers(_ cover: [(Int32, Int32)], _ spans: [(Int32, Int32)]) -> Bool {
+            let sorted = cover.sorted { $0.0 < $1.0 }
+            return spans.allSatisfy { from, to in
+                var reach = from
+                for span in sorted where span.0 <= reach { reach = max(reach, span.1) }
+                return reach >= to
+            }
+        }
+        // One grid cell up, so the boundary stays on the grid the whole split lives on; down
+        // where an area starting on it is 1 cell tall and would be left with none, and not
+        // at all where neither way is safe.
+        func steps(_ pick: (Area) -> (Int32, Int32), across: (Area) -> (Int32, Int32)) -> [Int32: Int32] {
             var lows: Set<Int32> = [], highs: Set<Int32> = []
             for area in areas {
                 let (low, high) = pick(area)
                 lows.insert(low); highs.insert(high)
             }
-            return lows.intersection(highs).filter(tooRound).filter { value in
-                let below = areas.filter { pick($0).1 == value }.map(across).sorted { $0.0 < $1.0 }
-                return areas.allSatisfy { area in
-                    guard pick(area).0 == value else { return true }
-                    let (from, to) = across(area)
-                    var reach = from
-                    for span in below where span.0 <= reach { reach = max(reach, span.1) }
-                    return reach >= to
+            var out: [Int32: Int32] = [:]
+            for value in lows.intersection(highs) where tooRound(value) {
+                let starting = areas.filter { pick($0).0 == value }
+                let ending = areas.filter { pick($0).1 == value }
+                if starting.allSatisfy({ pick($0).1 - value > TileSplitter.grain }),
+                    covers(ending.map(across), starting.map(across))
+                {
+                    out[value] = TileSplitter.grain
+                } else if ending.allSatisfy({ value - pick($0).0 > TileSplitter.grain }),
+                    covers(starting.map(across), ending.map(across))
+                {
+                    out[value] = -TileSplitter.grain
                 }
             }
+            return out
         }
-        let lats = interior({ ($0.minLat, $0.maxLat) }, across: { ($0.minLon, $0.maxLon) })
-        let lons = interior({ ($0.minLon, $0.maxLon) }, across: { ($0.minLat, $0.maxLat) })
+        let lats = steps({ ($0.minLat, $0.maxLat) }, across: { ($0.minLon, $0.maxLon) })
+        let lons = steps({ ($0.minLon, $0.maxLon) }, across: { ($0.minLat, $0.maxLat) })
         guard !lats.isEmpty || !lons.isEmpty else { return areas }
 
-        // One grid cell, so the boundary stays on the grid the whole split lives on.
-        func moved(_ v: Int32, _ set: Set<Int32>) -> Int32 {
-            set.contains(v) ? v + TileSplitter.grain : v
-        }
+        func moved(_ v: Int32, _ step: [Int32: Int32]) -> Int32 { v + (step[v] ?? 0) }
         return areas.map {
             Area(
                 minLat: moved($0.minLat, lats),
@@ -129,8 +143,12 @@ extension TileSplitter {
         // The header's bounding box is the map: areas are cut inside it and the fringe
         // beyond it is not counted. One window per input, and a node is kept if it falls
         // inside any of them.
+        var unboxed = false
         for input in options.inputs {
-            guard let bbox = try reader(input).headerBBox() else { continue }
+            guard let bbox = try reader(input).headerBBox() else {
+                unboxed = true
+                continue
+            }
             density.clips.append(
                 (
                     minLatCell: Self.mapUnits(bbox.minLat) >> TileSplitter.gridShift,
@@ -149,6 +167,9 @@ extension TileSplitter {
                 )
             )
         }
+        // An input that declares no box would have its nodes clipped by another's: then
+        // none is clipped, as with no box at all.
+        if unboxed { density.clips = [] }
         density.prepare()
         for input in options.inputs {
             let clips = density.clips

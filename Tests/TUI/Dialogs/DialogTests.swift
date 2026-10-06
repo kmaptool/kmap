@@ -153,6 +153,8 @@ final class DialogTests: XCTestCase {
         wordy.render(into: s, rect: Rect(x: 0, y: 0, w: 80, h: 12), theme: .strict)
         let shown = (0..<12).map { rowText(s, $0) }.joined(separator: "\n")
         XCTAssertTrue(shown.contains("…"), "clipped text must leave a mark")
+        // What is agreed to stays in view: the body gives way, not the detail.
+        XCTAssertTrue(shown.contains("style.typ"), shown)
         // A window with room carries no such mark.
         let roomy = surface(80, 40)
         wordy.render(into: roomy, rect: Rect(x: 0, y: 0, w: 80, h: 40), theme: .strict)

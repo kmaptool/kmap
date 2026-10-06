@@ -383,6 +383,20 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertEqual(table.get(7), 2)
     }
 
+    /// Split together, 2 files keep a shared node's first copy, as its coordinates and
+    /// the writer do: its tile and its place come from the same file.
+    func testAnIDInTwoFilesAnswersWithTheFirstFilesValue() {
+        let table = TileSplitter.NodeAreas(expecting: 4)
+        table.set(7, 1)
+        table.set(9, 1)
+        table.markFileEnd()
+        table.set(7, 2)
+        table.markFileEnd()
+        table.seal()
+        XCTAssertEqual(table.get(7), 1)
+        XCTAssertEqual(TileSplitter.NodeAreas.Cursor(table).value(for: 7), 1)
+    }
+
     func testNegativeAndVeryLargeIDsAreHeld() {
         let table = TileSplitter.NodeAreas(expecting: 4)
         let ids: [Int64] = [Int64.min, -1, 0, 1, Int64.max]
@@ -447,6 +461,30 @@ final class TileSplitterTests: XCTestCase {
         let coords = try splitter(inputs: [first, second]).ringCoordinates([7, 9])
         XCTAssertEqual(coords[7]?.lat, TileSplitter.mapUnits(1))
         XCTAssertEqual(coords[9]?.lat, TileSplitter.mapUnits(3))
+    }
+
+    /// An input with no box beside one with: its nodes are in tiles too.
+    func testAnInputWithoutABoxKeepsItsNodes() throws {
+        func file(_ name: String, box: Bool, at lat: Double, ids: ClosedRange<Int64>) throws -> URL {
+            let url = path(name)
+            let writer = try PBFWriter(to: url)
+            if box {
+                writer.header(bbox: (minLat: lat - 0.1, minLon: 9.9, maxLat: lat + 0.1, maxLon: 10.1))
+            } else {
+                writer.header()
+            }
+            writer.nodes(ids.map { PBFWriter.Node(id: $0, lat: lat, lon: 10, tags: []) })
+            try writer.finish()
+            return url
+        }
+        let boxed = try file("boxed.osm.pbf", box: true, at: 45, ids: 1...50)
+        let open = try file("open.osm.pbf", box: false, at: 50, ids: 101...150)
+        let areas = try splitter(inputs: [boxed, open]).computeAreas()
+        let fifty = TileSplitter.mapUnits(50), ten = TileSplitter.mapUnits(10)
+        XCTAssertTrue(
+            areas.contains { $0.minLat <= fifty && fifty < $0.maxLat && $0.minLon <= ten && ten < $0.maxLon },
+            "\(areas)"
+        )
     }
 
     private func splitter(inputs: [URL]) -> TileSplitter {
@@ -1449,13 +1487,58 @@ extension TileSplitterTests {
         XCTAssertEqual(after[1].maxLat, round + 100_000)
     }
 
-    func testABoundaryWithNothingAcrossPartOfItStaysPut() {
+    /// Moved up, the boundary would leave the area above it 1 cell tall with none: it moves
+    /// down instead, and every area keeps its ground.
+    func testABoundaryUnderA1CellAreaMovesDown() {
+        let round: Int32 = 1 << 16
+        let g = TileSplitter.grain
+        let before = [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 1000),
+            TileSplitter.Area(minLat: round, minLon: 0, maxLat: round + g, maxLon: 1000),
+            TileSplitter.Area(minLat: round + g, minLon: 0, maxLat: 2 * round, maxLon: 1000)
+        ]
+        let after = TileSplitter.nudgedOffPowersOfTwo(before)
+        XCTAssertTrue(after.allSatisfy { $0.maxLat > $0.minLat }, "\(after)")
+        XCTAssertEqual(after[0].maxLat, round - g)
+        XCTAssertEqual(after[1].minLat, round - g)
+        XCTAssertEqual(after[1].maxLat, round + g)
+    }
+
+    /// Moving down gives the row under the value to the areas starting on it, so it moves
+    /// only where they cover every area ending on it.
+    func testABoundaryUnderA1CellAreaWithNothingAboveAnotherStaysPut() {
+        let round: Int32 = 1 << 16
+        let g = TileSplitter.grain
+        let before = [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 10 * g),
+            TileSplitter.Area(minLat: round, minLon: 0, maxLat: round + g, maxLon: 10 * g),
+            TileSplitter.Area(minLat: 0, minLon: 20 * g, maxLat: round, maxLon: 30 * g)
+        ]
+        let after = TileSplitter.nudgedOffPowersOfTwo(before)
+        XCTAssertEqual(after[2].maxLat, round, "its top row would be in no area")
+        XCTAssertEqual(after[0].maxLat, round)
+        XCTAssertEqual(after[1].minLat, round)
+    }
+
+    func testABoundaryWithNothingAcrossPartOfItMovesDownInstead() {
         // The upper area reaches past the lower one's width, over ground the split
-        // dropped as empty; moving the value up would leave a row of it in no tile.
+        // dropped as empty; moving the value up would leave a row of it in no tile. Down,
+        // the lower area's top row goes to the upper one, which spans all of it.
         let round: Int32 = 1 << 21
         let before = [
             TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 1000),
             TileSplitter.Area(minLat: round, minLon: 0, maxLat: round + 100_000, maxLon: 2000)
+        ]
+        let after = TileSplitter.nudgedOffPowersOfTwo(before)
+        XCTAssertEqual(after[0].maxLat, round - TileSplitter.grain)
+        XCTAssertEqual(after[1].minLat, round - TileSplitter.grain)
+    }
+
+    func testABoundaryCoveredNeitherWayStaysPut() {
+        let round: Int32 = 1 << 21
+        let before = [
+            TileSplitter.Area(minLat: 0, minLon: 0, maxLat: round, maxLon: 1000),
+            TileSplitter.Area(minLat: round, minLon: 500, maxLat: round + 100_000, maxLon: 2000)
         ]
         let after = TileSplitter.nudgedOffPowersOfTwo(before)
         XCTAssertEqual(after[0].maxLat, round)

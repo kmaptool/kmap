@@ -60,9 +60,18 @@ extension Toolchain {
         {
             // A list that will not refresh, say for 1 dead source, still may install.
             do {
-                try await runner.run(refresher, refresh.arguments, environment: ["DEBIAN_FRONTEND": "noninteractive"]) {
+                // Alone: a stop must not reach the dpkg it runs, halfway through a package.
+                try await runner.run(
+                    refresher,
+                    refresh.arguments,
+                    environment: ["DEBIAN_FRONTEND": "noninteractive"],
+                    alone: true
+                ) {
                     line in log.output(line)
                 }
+            } catch ProcessRunner.RunError.cancelled {
+                // A stop, not a list that would not refresh.
+                throw ProcessRunner.RunError.cancelled
             } catch is CancellationError {
                 throw CancellationError()
             } catch {
@@ -73,7 +82,8 @@ extension Toolchain {
         try await runner.run(
             executable,
             command.arguments,
-            environment: ["DEBIAN_FRONTEND": "noninteractive"]
+            environment: ["DEBIAN_FRONTEND": "noninteractive"],
+            alone: true
         ) { line in
             log.output(line)
         }

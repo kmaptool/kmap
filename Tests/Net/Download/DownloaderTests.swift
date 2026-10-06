@@ -179,16 +179,21 @@ final class DownloaderTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: part.url.path), "nothing was opened")
     }
 
+    /// 2 sources keep tiles of 1 name, each in its folder: neither waits on the other.
+    func testTilesOfOneNameInTwoFoldersAreLockedApart() {
+        let tile = "N45E006.assembling"
+        XCTAssertNotEqual(
+            Downloader.lockFile(for: URL(fileURLWithPath: "/cache/copernicus-tif/\(tile)")),
+            Downloader.lockFile(for: URL(fileURLWithPath: "/cache/fabdem-tif/\(tile)"))
+        )
+    }
+
     /// 2 runs fetching 1 file would write into the same parts: the second waits, and
     /// stops waiting when cancelled.
     func testADownloadAnotherRunHoldsIsWaitedForUntilCancelled() throws {
         let destination = directory.appendingPathComponent("held.osm.pbf")
         Paths.ensure(Paths.locks)
-        let held = HeldLock(
-            trying: Paths.locks.appendingPathComponent(
-                "download-\(FileTools.slugify(destination.lastPathComponent)).lock"
-            )
-        )
+        let held = HeldLock(trying: Downloader.lockFile(for: destination))
         XCTAssertNotNil(held)
         let downloader = Downloader(log: Log())
         DispatchQueue.global().asyncAfter(deadline: .now() + 0.3) { downloader.cancel() }

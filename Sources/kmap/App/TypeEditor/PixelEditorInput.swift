@@ -41,10 +41,13 @@ extension PixelEditorScreen {
             default: break
             }
         case .ctrl("s"): save()
-        case .ctrl("c"): return .quit
+        case .ctrl("c"):
+            // Asked as Esc asks: the strokes are not saved anywhere else.
+            guard dirty else { return .quit }
+            begin(.confirmDiscard(quitting: true))
         case .esc:
             guard dirty else { return .pop }
-            begin(.confirmDiscard)
+            begin(.confirmDiscard(quitting: false))
         default: break
         }
         return .none
@@ -64,6 +67,16 @@ extension PixelEditorScreen {
 
     private func handlePrompt(_ key: KeyEvent) -> Route {
         guard let what = prompt else { return .none }
+        // Only y leaves: Enter paints, and a reflexive one must not throw strokes away.
+        if case .confirmDiscard(let quitting) = what {
+            switch YesNo.answer(key) {
+            case .yes: return quitting ? .quit : .pop
+            case .no: prompt = nil
+            case .quit: return .quit
+            case nil: break
+            }
+            return .none
+        }
         switch key {
         case .esc:
             prompt = nil
@@ -76,22 +89,23 @@ extension PixelEditorScreen {
         case .backspace:
             if !draft.isEmpty { draft.removeLast() }
         case .char(let c):
-            if case .confirmDiscard = what {
-                if Keys.latin(c) == "y" { return .pop }
-                if Keys.latin(c) == "n" { prompt = nil }
-                return .none
-            }
             draft.append(c)
+        case .paste(let text):
+            draft += text.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "")
         case .enter:
             switch what {
             case .addColour: addColour(draft)
             case .changeColour(let index): changeColour(index, to: draft)
             case .size: resize(draft)
-            case .confirmDiscard: return .pop
+            case .confirmDiscard: return .none
             }
             prompt = nil
             draft = ""
-        case .ctrl("c"): return .quit
+        case .ctrl("c"):
+            // From a prompt as from the canvas: unsaved strokes are asked about.
+            guard dirty else { return .quit }
+            draft = ""
+            prompt = .confirmDiscard(quitting: true)
         default: break
         }
         return .none
@@ -134,16 +148,21 @@ extension PixelEditorScreen {
 
     private func pixel(at event: MouseEvent) -> (x: Int, y: Int)? {
         // Left of the canvas first: -1 / 2 is 0 in Swift, which is a column.
-        guard event.x >= canvasOrigin.x else { return nil }
-        let x = (event.x - canvasOrigin.x) / 2
-        let y = event.y - canvasOrigin.y
-        guard x >= 0, x < shown.width, y >= 0, y < shown.height else { return nil }
+        guard event.x >= canvasOrigin.x, event.y >= canvasOrigin.y else { return nil }
+        // Within the window drawn: the palette beside it is not a hidden pixel.
+        let column = (event.x - canvasOrigin.x) / 2
+        let row = event.y - canvasOrigin.y
+        guard column < canvasShown.across, row < canvasShown.down else { return nil }
+        let x = column + canvasScroll.x
+        let y = row + canvasScroll.y
+        guard x < shown.width, y < shown.height else { return nil }
         return (x, y)
     }
 
     private func paletteEntry(at event: MouseEvent) -> Int? {
         let row = event.y - paletteOrigin.y
-        guard row >= 0, row < shown.palette.count, event.x >= paletteOrigin.x else { return nil }
-        return row
+        guard row >= 0, row < paletteShown, event.x >= paletteOrigin.x else { return nil }
+        let entry = row + paletteScroll
+        return entry < shown.palette.count ? entry : nil
     }
 }

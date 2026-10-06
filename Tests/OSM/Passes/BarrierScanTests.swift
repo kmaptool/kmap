@@ -56,6 +56,8 @@ final class BarrierScanTests: XCTestCase {
         for (highway, expected) in [
             ("footway", "path"), ("steps", "path"),
             ("service", "minor"), ("residential", "minor"),
+            // A bollard on a pedestrian street stands where cars are kept out, as on a drive.
+            ("pedestrian", "minor"),
             ("primary", "major"), ("motorway", "major"),
             ("tertiary", "major")
         ] {

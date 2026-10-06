@@ -117,8 +117,11 @@ extension CLI {
         mutating func codePage() -> Int? {
             guard let raw = flags.value("code-page") else { return nil }
             if raw.caseInsensitiveCompare("auto") == .orderedSame || raw == "0" { return 0 }
-            if let value = Int(raw), value > 0 { return value }
-            refused.append("--code-page=\(raw) — a number, or auto for the region's own")
+            if let value = Int(raw), CodePage.mkgmapTakes.contains(value) { return value }
+            refused.append(
+                "--code-page=\(raw) — 1250 to 1258, 65001 for UTF-8, a DOS page such as 437 or 866,"
+                    + " 874, 932, 936, 949, 950, or auto for the region's own"
+            )
             return nil
         }
 
@@ -153,7 +156,7 @@ extension CLI {
         /// `--style`: a style the catalog knows, or nil where the flag is absent.
         mutating func style(in catalog: StyleCatalog) -> MapStyle? {
             guard let id = flags.value("style") else { return nil }
-            if let found = catalog.availableStyles().first(where: { $0.id == id }) { return found }
+            if let found = StyleCatalog.find(id, in: catalog.availableStyles()) { return found }
             refused.append("--style=\(id) is not a style kmap can find — see `kmap styles`")
             return nil
         }

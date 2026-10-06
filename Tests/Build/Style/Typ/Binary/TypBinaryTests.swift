@@ -20,6 +20,16 @@ final class TypBinaryTests: XCTestCase {
 
     // MARK: Refusing what is not a TYP
 
+    #if !os(Windows)
+    /// A pipe is never read: it would block until something wrote to it.
+    func testAPipeIsNotATypAndIsNotReadForever() throws {
+        let pipe = FileManager.default.temporaryDirectory.appendingPathComponent("typ-pipe-\(UUID().uuidString)")
+        XCTAssertEqual(mkfifo(pipe.path, 0o600), 0)
+        defer { try? FileManager.default.removeItem(at: pipe) }
+        XCTAssertThrowsError(try TypBinary.read(pipe))
+    }
+    #endif
+
     func testAFileWithoutTheSignatureIsRefused() {
         var bytes = [UInt8](repeating: 0, count: 0x80)
         bytes[0] = 0x5B
@@ -218,5 +228,71 @@ final class TypBinaryTests: XCTestCase {
                 XCTAssertEqual(picture.rows.count, picture.height, "\(name) \(section.hex)")
             }
         }
+    }
+
+    // MARK: Points with no palette
+
+    /// Packs values low bit first into 1 run, as mkgmap's BitWriter does.
+    private func packed(_ fields: [(value: Int, bits: Int)]) -> [UInt8] {
+        var out: [UInt8] = []
+        var at = 0
+        for field in fields {
+            for bit in 0..<field.bits {
+                if at % 8 == 0 { out.append(0) }
+                if (field.value >> bit) & 1 == 1 { out[out.count - 1] |= UInt8(1 << (at % 8)) }
+                at += 1
+            }
+        }
+        return out
+    }
+
+    /// Mode 0x10 names its clear colour, then 24 bits a pixel: what follows is read from
+    /// where the image ends, not from the middle of it.
+    func testATrueColourIconWithAClearColourIsReadToItsEnd() throws {
+        let bytes: [UInt8] = [0, 0x10, 1, 2, 3] + [1, 2, 3, 0x30, 0x20, 0x10] + [0xAB]
+        var cursor = TypBinary.Cursor(bytes, at: 0)
+        let image = try cursor.pointImage(width: 2, height: 1)
+        XCTAssertEqual(image.palette, [nil, "#102030"])
+        XCTAssertEqual(image.pixels, [[0, 1]])
+        XCTAssertEqual(cursor.u1(), 0xAB)
+    }
+
+    /// Mode 0x20 adds 4 bits of transparency to each pixel, with no padding anywhere.
+    func testATrueColourIconWithTransparencyIsReadAt28BitsAPixel() throws {
+        let pixels = packed([(0, 8), (0, 8), (0xFF, 8), (0, 4), (9, 8), (9, 8), (9, 8), (15, 4)])
+        XCTAssertEqual(pixels.count, 7)
+        var cursor = TypBinary.Cursor([0, 0x20] + pixels + [0xAB], at: 0)
+        let image = try cursor.pointImage(width: 2, height: 1)
+        XCTAssertEqual(image.palette, ["#FF0000", nil])
+        XCTAssertEqual(image.pixels, [[0, 1]])
+        XCTAssertEqual(cursor.u1(), 0xAB)
+    }
+
+    func testAPlainTrueColourIconSharesASlotPerColour() throws {
+        let bytes: [UInt8] = [0, 0] + [0x30, 0x20, 0x10, 0, 0, 0, 0x30, 0x20, 0x10] + [0xAB]
+        var cursor = TypBinary.Cursor(bytes, at: 0)
+        let image = try cursor.pointImage(width: 3, height: 1)
+        XCTAssertEqual(image.palette, ["#102030", "#000000"])
+        XCTAssertEqual(image.pixels, [[0, 1, 0]])
+        XCTAssertEqual(cursor.u1(), 0xAB)
+    }
+
+    /// More colours than a palette holds: read past whole, and left without a palette.
+    func testATrueColourIconOfMoreColoursThanAPaletteIsReadPastAndLeftOut() throws {
+        let colours: [UInt8] = (0..<300).flatMap { (n: Int) -> [UInt8] in [UInt8(n & 0xFF), UInt8(n >> 8), 7] }
+        var cursor = TypBinary.Cursor([0, 0] + colours + [0xAB], at: 0)
+        let image = try cursor.pointImage(width: 20, height: 15)
+        XCTAssertTrue(image.palette.isEmpty)
+        XCTAssertEqual(cursor.u1(), 0xAB)
+    }
+
+    /// 256 solid colours count as 0, which is the mark of true colour: such an icon is
+    /// left out rather than written as one that reads back as garbage.
+    func testATrueColourIconOf256SolidColoursIsLeftOut() throws {
+        let colours: [UInt8] = (0..<256).flatMap { (n: Int) -> [UInt8] in [UInt8(n), 0, 7] }
+        var cursor = TypBinary.Cursor([0, 0] + colours + [0xAB], at: 0)
+        let image = try cursor.pointImage(width: 16, height: 16)
+        XCTAssertTrue(image.palette.isEmpty)
+        XCTAssertEqual(cursor.u1(), 0xAB)
     }
 }

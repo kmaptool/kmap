@@ -81,17 +81,27 @@ extension BuildRecipe {
         }
     }
 
-    /// A file-safe id for the map: the region's id, or the first two ids and a count.
-    var slug: String {
+    /// The map's name as its files and the programs show it: the region's id, or the first
+    /// 2 ids and a count.
+    var areaSlug: String {
         guard !extraRegions.isEmpty else { return FileTools.slugify(region.id) }
         let head = regions.prefix(2).map { FileTools.slugify($0.id) }.joined(separator: "+")
         return regions.count > 2 ? "\(head)+\(regions.count - 2)" : head
     }
 
+    /// The map's folders' name: `areaSlug`, past 2 regions with a mark of every id, or 2
+    /// sets sharing their first 2 would share a work folder and an output folder.
+    var slug: String {
+        guard regions.count > 2 else { return areaSlug }
+        let mark = TypLibrary.fingerprint(Data(regions.map(\.id).joined(separator: "+").utf8)) & 0xFF_FFFF
+        let hex = String(mark, radix: 16)
+        return areaSlug + "-" + String(repeating: "0", count: max(0, 6 - hex.count)) + hex
+    }
+
     /// Names for the produced files. The naming belongs to `TilePacker`, which decides the
     /// grouping.
     func partNames(count: Int, axis: SplitAxis) -> [String] {
-        TilePacker(mode: splitMode, axis: axis, slug: slug).partNames(count: count)
+        TilePacker(mode: splitMode, axis: axis, slug: areaSlug).partNames(count: count)
     }
 
     /// The day this build started, as it appears in every name it writes.

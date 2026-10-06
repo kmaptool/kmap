@@ -6,6 +6,7 @@ import Foundation
 extension CLI {
     static func tif(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["dump"])
+        if let refused = flags.refusal("tif", knows: ["dump"], positionals: 1) { return refused }
         guard let path = flags.positionals.first else {
             return CLIOutput.refuse("usage: kmap tif <file.tif> [--dump <out.f32>]")
         }
@@ -16,9 +17,8 @@ extension CLI {
             CLILog.line(String(format: "sample (0,0) at %.9f, %.9f", tiff.originLon, tiff.originLat))
             CLILog.line(String(format: "step %.12f lon, %.12f lat", tiff.stepLon, tiff.stepLat))
             if let dump = flags.value("dump") {
-                let out = try samples(of: tiff)
-                try FileTools.write(out, to: URL(fileURLWithPath: dump))
-                CLILog.line("wrote \(out.count) bytes")
+                let written = try dumpSamples(of: tiff, to: URL(fileURLWithPath: dump))
+                CLILog.line("wrote \(written) bytes")
             }
             let seconds = Date().timeIntervalSince(started)
             CLILog.line(String(format: "read in %.1f s", seconds))
@@ -36,14 +36,22 @@ extension CLI {
         }
     }
 
-    /// Every sample, row by row, as little-endian float32.
-    private static func samples(of tiff: GeoTIFF) throws -> Data {
-        var out = Data(capacity: tiff.width * tiff.height * MemoryLayout<Float>.size)
+    /// Every sample, row by row, as little-endian float32; a row at a time, so the image
+    /// is never held whole. Returns the bytes written.
+    private static func dumpSamples(of tiff: GeoTIFF, to url: URL) throws -> Int {
+        let handle = try FileTools.openForWriting(url, appending: false)
+        defer { try? handle.close() }
+        var written = 0
+        var row = Data(capacity: tiff.width * MemoryLayout<Float>.size)
         for r in 0..<tiff.height {
+            row.removeAll(keepingCapacity: true)
             for value in try tiff.row(r) {
-                withUnsafeBytes(of: value.bitPattern.littleEndian) { out.append(contentsOf: $0) }
+                withUnsafeBytes(of: value.bitPattern.littleEndian) { row.append(contentsOf: $0) }
             }
+            try handle.write(contentsOf: row)
+            written += row.count
         }
-        return out
+        try handle.close()
+        return written
     }
 }

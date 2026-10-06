@@ -95,6 +95,49 @@ final class DeriveTests: XCTestCase {
         return report
     }
 
+    /// A rule's condition read against a source's tags: plain terms only.
+    func testARuleConditionIsReadAgainstTheTags() throws {
+        let big = try XCTUnwrap(
+            DefaultRuleBook.Line(
+                file: "points",
+                text: "place=town & population >  69999 & name=* [0x0600 resolution 17]"
+            )
+        )
+        XCTAssertEqual(big.holds(for: ["place": "town", "population": "5000", "name": "A"]), false)
+        XCTAssertEqual(big.holds(for: ["place": "town", "population": "80000", "name": "A"]), true)
+        XCTAssertEqual(big.holds(for: ["place": "town", "population": "many", "name": "A"]), false)
+        // The leading number, as mkgmap reads it.
+        XCTAssertEqual(big.holds(for: ["place": "town", "population": "75000 (2010)", "name": "A"]), true)
+        XCTAssertEqual(big.holds(for: ["place": "town", "population": "75000;76000", "name": "A"]), true)
+        XCTAssertEqual(big.holds(for: ["place": "town", "population": "~75000", "name": "A"]), true)
+        XCTAssertEqual(big.holds(for: ["place": "town", "population": "c. 75000", "name": "A"]), false)
+        let either = try XCTUnwrap(DefaultRuleBook.Line(file: "lines", text: "(a=b | c=d) [0x01 resolution 20]"))
+        XCTAssertNil(either.holds(for: ["a": "b"]))
+    }
+
+    /// A code first seen at 22 is drawn at 22 and on, so the rule written for it runs to
+    /// the finest zoom rather than stopping where it was first seen.
+    func testAnAddedRuleRunsToTheFinestZoom() {
+        var code = Evidence.ForCode(kind: .area, type: 0x25)
+        for id in Int64(1)...Int64(6) {
+            code.sources[id] = ["power": "plant"]
+            code.sourceZoom[id] = 22
+        }
+        code.resolutions = [22: 6, 23: 6, 24: 6]
+        code.elements = 6
+        let report = derive(["A25": code])
+        XCTAssertTrue(report.sheet.contains("power=plant [0x25 resolution 22-24]"), report.sheet)
+    }
+
+    /// Areas matching coastline ways are beaches, bays and land rings alike: they say
+    /// nothing, and no rule is written or re-aimed from them.
+    func testAreasAlongTheCoastWitnessNothing() {
+        var seed: Int64 = 0
+        let report = derive(["A3d": forCode(.area, 0x3d, seed: &seed, [(["natural": "coastline"], 20)])])
+        XCTAssertFalse(report.sheet.contains("coastline"), report.sheet)
+        XCTAssertFalse(report.sheet.contains("natural=land"), report.sheet)
+    }
+
     func testAForeignCodeRewritesItsRule() {
         var seed: Int64 = 0
         let report = derive([
@@ -1073,9 +1116,8 @@ extension DeriveTests {
 }
 
 extension DeriveTests {
-    /// 2 tags opening on 1 shared rule are 1 meaning: its rules are its commonest tag's,
-    /// whichever witness the dictionary hands over first, and those of another tag only
-    /// where this code draws most of that tag. A stray tag adds none.
+    /// A meaning takes its commonest tag's rules, and another tag's only where this code
+    /// draws most of it.
     func testTagsSharingAFirstRuleShareTheRulesTheCodeLeads() throws {
         try FileTools.write(
             """

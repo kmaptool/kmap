@@ -39,7 +39,7 @@ extension FileTools {
             let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
             try handle.write(contentsOf: Data(text.utf8))
             try handle.close()
-            guard rename(temporary.path, url.path) == 0 else {
+            guard posixRename(temporary.path, url.path) == 0 else {
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
             }
         } catch {
@@ -56,6 +56,93 @@ extension FileTools {
         #else
         try FileManager.default.moveItem(at: source, to: destination)
         #endif
+    }
+
+    /// Renames within one volume, never copying: fails where `destination` is on another
+    /// volume or already there, a dangling link included.
+    static func rename(_ source: URL, to destination: URL) throws {
+        #if os(Windows)
+        try Win32File.rename(source, to: destination)
+        #elseif canImport(Darwin)
+        guard renamex_np(source.path, destination.path, UInt32(RENAME_EXCL)) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        #else
+        // glibc's renameat2 is not in Swift's headers: checked first, a race left open.
+        var held = stat()
+        guard lstat(destination.path, &held) != 0 else { throw POSIXError(.EEXIST) }
+        guard posixRename(source.path, destination.path) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        #endif
+    }
+
+    /// Whether 2 existing paths are on one volume; false where either cannot be asked.
+    static func sameVolume(_ a: URL, _ b: URL) -> Bool {
+        #if os(Windows)
+        guard let one = Win32File.volume(of: a.nativePath), let other = Win32File.volume(of: b.nativePath)
+        else { return false }
+        return one == other
+        #else
+        var one = stat()
+        var other = stat()
+        guard stat(a.path, &one) == 0, stat(b.path, &other) == 0 else { return false }
+        return one.st_dev == other.st_dev
+        #endif
+    }
+
+    /// Puts `fresh` in the place of `destination`, the earlier one set aside until the new
+    /// one is in and put back if it is not.
+    static func replace(_ destination: URL, with fresh: URL, aside: (URL) -> URL = setAside) throws {
+        try replace([(destination, fresh)], aside: aside)
+    }
+
+    /// Puts each fresh one in its destination's place, all or none: the earlier ones are
+    /// set aside until every new one is in, and all put back if one is not.
+    static func replace(_ pairs: [(destination: URL, fresh: URL)], aside: (URL) -> URL = setAside) throws {
+        #if !os(Windows)
+        // 1 file for 1 file is 1 atomic rename on the Unixes, with nothing set aside.
+        if pairs.count == 1, let pair = pairs.first, !isDirectoryItself(pair.destination),
+            !isDirectoryItself(pair.fresh), posixRename(pair.fresh.path, pair.destination.path) == 0
+        {
+            return
+        }
+        #endif
+        var asides: [(destination: URL, aside: URL)] = []
+        var landed: [(destination: URL, fresh: URL)] = []
+        do {
+            for pair in pairs where exists(pair.destination) {
+                let kept = aside(pair.destination)
+                removeIfPresent(kept)
+                try move(pair.destination, to: kept)
+                asides.append((pair.destination, kept))
+            }
+            for pair in pairs {
+                try move(pair.fresh, to: pair.destination)
+                landed.append(pair)
+            }
+        } catch {
+            for pair in landed.reversed() { try? move(pair.destination, to: pair.fresh) }
+            for pair in asides.reversed() { try? move(pair.aside, to: pair.destination) }
+            throw error
+        }
+        for pair in asides { removeIfPresent(pair.aside) }
+    }
+
+    /// Where `replace` keeps the earlier one meanwhile.
+    static func setAside(_ url: URL) -> URL {
+        url.deletingLastPathComponent().appendingPathComponent(url.lastPathComponent + ".old")
+    }
+
+    /// Settles what a killed `replace` left in a folder: an earlier one with nothing in
+    /// its place goes back, and one whose successor arrived goes.
+    static func settleSetAside(in folder: URL) {
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        for name in entries where name.hasSuffix(".old") {
+            let aside = folder.appendingPathComponent(name)
+            let original = folder.appendingPathComponent(String(name.dropLast(".old".count)))
+            if exists(original) { removeIfPresent(aside) } else { try? move(aside, to: original) }
+        }
     }
 
     /// Opens a file for streaming writes, creating it if it is not there: positioned at
@@ -110,3 +197,10 @@ extension FileTools {
         for item in items { removeIfPresent(item) }
     }
 }
+
+#if !os(Windows)
+/// The C call, out of reach inside `FileTools`, whose own `rename` shadows it.
+private func posixRename(_ from: String, _ to: String) -> Int32 {
+    rename(from, to)
+}
+#endif

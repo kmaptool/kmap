@@ -102,6 +102,23 @@ enum FileTools {
         return out.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
+    /// The path `url` leads to past links, or `url` where it will not open. On Windows asked of
+    /// the system: Foundation turns `\\?\UNC\server\share` into a relative path and traps on a
+    /// volume with no drive letter.
+    static func resolvingLinks(_ url: URL) -> URL {
+        #if os(Windows)
+        guard var final = Win32File.finalPath(of: url.nativePath) else { return url }
+        if final.hasPrefix(#"\\?\UNC\"#) {
+            final = #"\\"# + final.dropFirst(8)
+        } else if final.hasPrefix(#"\\?\"#) {
+            final = String(final.dropFirst(4))
+        }
+        return URL(fileURLWithPath: final)
+        #else
+        return url.resolvingSymlinksInPath()
+        #endif
+    }
+
     /// Every file with extension `ext` under `dir`, through links to folders too: a cache
     /// moved to another disk is reached by one, at its root or as 1 of its folders. Each
     /// path goes through the link, so a folder keeps the name it is known by here; a file
@@ -114,7 +131,7 @@ enum FileTools {
         var waiting = [dir]
         while !waiting.isEmpty {
             let shown = waiting.removeFirst()
-            let real = shown.resolvingSymlinksInPath()
+            let real = resolvingLinks(shown)
             guard walked.insert(real.path).inserted, let walker = FileManager.default.enumerator(atPath: real.path)
             else { continue }
             for case let entry as String in walker {
@@ -123,7 +140,7 @@ enum FileTools {
                 if parts.contains(where: { $0.hasPrefix(".") }) { continue }
                 let reached = parts.reduce(shown) { $0.appendingPathComponent($1) }
                 if reached.pathExtension.lowercased() == ext.lowercased() {
-                    let key = reached.resolvingSymlinksInPath().path
+                    let key = resolvingLinks(reached).path
                     if found[key] == nil { found[key] = reached.path }
                 } else if type(of: reached) == .typeSymbolicLink, isDirectory(reached) {
                     waiting.append(reached)
@@ -131,6 +148,46 @@ enum FileTools {
             }
         }
         return found.values.sorted().map { URL(fileURLWithPath: $0) }
+    }
+
+    /// Which volume `url` is on, where the platform says; nil elsewhere.
+    static func volume(of url: URL) -> String? {
+        #if canImport(Darwin)
+        guard let id = (try? url.resourceValues(forKeys: [.volumeIdentifierKey]))?.volumeIdentifier as? NSObject
+        else { return nil }
+        return id.description
+        #elseif os(Windows)
+        return Win32File.volume(of: url.nativePath)
+        #else
+        var info = stat()
+        guard stat(url.path, &info) == 0 else { return nil }
+        return "\(info.st_dev)"
+        #endif
+    }
+
+    /// Whether an error says the disk is full, however the platform wraps it.
+    static func isOutOfSpace(_ error: Error) -> Bool {
+        let ns = error as NSError
+        if ns.domain == NSCocoaErrorDomain, ns.code == CocoaError.fileWriteOutOfSpace.rawValue { return true }
+        #if os(Windows)
+        if let failure = error as? Win32File.Failure,
+            failure.code == DWORD(ERROR_DISK_FULL) || failure.code == DWORD(ERROR_HANDLE_DISK_FULL)
+        {
+            return true
+        }
+        // Foundation's own wrapping of a Windows code, whatever its domain is called; not a
+        // Swift error of a module's, whose domain has a dot and whose code is a case.
+        if ns.domain != NSCocoaErrorDomain, ns.domain != NSPOSIXErrorDomain, !ns.domain.contains("."),
+            ns.code == Int(ERROR_DISK_FULL) || ns.code == Int(ERROR_HANDLE_DISK_FULL)
+        {
+            return true
+        }
+        if ns.domain == NSPOSIXErrorDomain, ns.code == Int(ENOSPC) { return true }
+        #else
+        if ns.domain == NSPOSIXErrorDomain, ns.code == Int(ENOSPC) || ns.code == Int(EDQUOT) { return true }
+        #endif
+        if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? Error { return isOutOfSpace(underlying) }
+        return false
     }
 
     /// Bytes free on the volume holding `url`, or zero where the system will not say.

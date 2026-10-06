@@ -42,6 +42,61 @@ extension StyleCatalog {
             """
     }
 
+    /// A sport is labelled with its OSM value, written as words: "table tennis, billiards",
+    /// not "table_tennis;billiards". On a map labelled in Cyrillic a value the iD editor's
+    /// community translation names is said in Russian; others stay as OSM has them.
+    func labelSportValues(in directory: URL, cyrillic: Bool, log: Log) throws {
+        let marker = "# --- kmap: sport values in words"
+        var rules: [String] = []
+        if cyrillic {
+            for raw in StyleAssets.russianSports.split(separator: "\n") {
+                let line = raw.trimmingCharacters(in: .whitespaces)
+                guard !line.hasPrefix("#"), let bar = line.firstIndex(of: "|") else { continue }
+                rules.append("sport=\(line[..<bar]) { set kmap:sport='\(line[line.index(after: bar)...])' }")
+            }
+        }
+        rules.append("sport=* & kmap:sport!=* { set kmap:sport='\(Self.spelledSport)' }")
+        let block =
+            marker + " ---------------------------\n"
+            + "# Action-only and first: the labels below read kmap:sport. Russian names from\n"
+            + "# the iD editor's preset schema (ISC); see Assets/sport-ru.txt.\n\n"
+            + rules.joined(separator: "\n") + "\n\n\n"
+        var changed = 0
+        for file in ["points", "polygons", "lines"] {
+            let url = directory.appendingPathComponent(file)
+            guard let text = try? String(contentsOf: url, encoding: .utf8), text.contains("${sport}") else { continue }
+            try FileTools.write(Data(text.replacingOccurrences(of: "${sport}", with: "${kmap:sport}").utf8), to: url)
+            try prependRules(block, marked: marker, toFile: file, in: directory)
+            changed += 1
+        }
+        if changed > 0 { log.append("sport values said in words in \(changed) rule file(s)") }
+    }
+
+    /// The OSM value with its underscores and semicolons spelled, by mkgmap's own filter.
+    static let spelledSport = "${sport|subst:\"_=> \"|subst:\";=>, \"}"
+
+    /// The stock rules put an "Internet(wlan)" point over every hotel and cafe that has it.
+    /// Written as 1 line per kind instead, so each can be hidden, and wireless as "Wi-Fi":
+    /// the hide catalogue offers only single-line rules.
+    func splitInternetAccess(in directory: URL, log: Log) throws {
+        let points = directory.appendingPathComponent("points")
+        guard var text = try? String(contentsOf: points, encoding: .utf8) else { return }
+        let yes = "internet_access=yes {name 'Internet ${name}' | 'Internet'} [0x2f12 resolution 24 continue]"
+        let rest = "internet_access=* & internet_access!=no & internet_access!=yes\n"
+        guard text.contains(yes), text.contains(rest) else { return }
+        let wireless = ["wlan", "wifi"].map {
+            "internet_access=\($0) {name 'Wi-Fi ${name}' | 'Wi-Fi'} [0x2f12 resolution 24 continue]"
+        }
+        text = text.replacingOccurrences(of: yes, with: (wireless + [yes]).joined(separator: "\n"))
+        text = text.replacingOccurrences(
+            of: rest,
+            with: "internet_access=* & internet_access!=no & internet_access!=yes & internet_access!=wlan"
+                + " & internet_access!=wifi\n"
+        )
+        try FileTools.write(Data(text.utf8), to: points)
+        log.append("internet access drawn as Wi-Fi where it is, 1 hideable rule per kind")
+    }
+
     /// Labels a summit with its name and its height in metres; the stock mkgmap `points`
     /// file uses feet and runs the two together. Split into four cases - both, either alone,
     /// neither - so none leaves a stray space; the first rule to match takes the point.
@@ -244,7 +299,7 @@ extension StyleCatalog {
     /// object with its raw tag value finds a label already set. Cyrillic builds only.
     func addRussianLabels(in directory: URL, cyrillic: Bool, log: Log) throws {
         guard cyrillic else { return }
-        var rules: [String] = []
+        var rules: [(condition: String, label: String)] = []
         for raw in StyleAssets.russianLabels.split(separator: "\n", omittingEmptySubsequences: false) {
             let line = raw.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty, !line.hasPrefix("#"),
@@ -261,19 +316,58 @@ extension StyleCatalog {
                     String(pair[pair.startIndex..<eq]) + "='"
                     + String(pair[pair.index(after: eq)...]) + "'"
             }
-            rules.append("\(condition) & name!=* { name '\(label)' }")
+            rules.append((condition, label))
         }
         guard !rules.isEmpty else { return }
 
         let marker = "# --- kmap: names for things OSM leaves unnamed"
-        let block =
-            marker + " ---------------------------\n"
-            + "# Generated from Assets/labels-ru.txt; see addRussianLabels. Action-only and\n"
-            + "# first, so the stock mop-up rules cannot get in with a raw tag value.\n\n"
-            + rules.joined(separator: "\n") + "\n\n\n"
         for file in ["points", "polygons", "lines"] {
+            // A parking or a school fenced round carries barrier=fence too: on an area the
+            // word would name the fence, not the place.
+            let fitting = file == "polygons" ? rules.filter { !$0.condition.hasPrefix("barrier=") } : rules
+            let lines = fitting.flatMap { rule -> [String] in
+                // A fenced school's area makes a point too: the word would name the fence.
+                var rule = rule
+                if file == "points" && rule.condition.hasPrefix("barrier=") {
+                    rule.condition += " & mkgmap:area2poi!=true"
+                }
+                // A ref that starts with the word is the label alone: "Pier 3", not "Pier Pier
+                // 3". mkgmap r4924 reads `!~` as `!` and `~`, so the negation is spelled out.
+                let other = "!(ref ~ '(?iuU)\(Self.literal(rule.label))\\b.*')"
+                let word = "'${ref}' | '\(rule.label)'"
+                // Only with nothing else to say, where the stock naming says it: a brand, an
+                // operator or a ref first, "Lukoil" saying more than "fuel". A number with
+                // no name says little alone: "9" becomes "Pier 9".
+                var out = [
+                    "\(rule.condition) & name!=* & brand!=* & operator!=* & ref=* & \(other) { name '\(rule.label) ${ref}' }",
+                    "\(rule.condition) & name!=* & brand!=* & operator!=* { name \(word) }"
+                ]
+                // mkgmap runs a closed way through the lines rules too, ahead of the areas'
+                // naming. An open line has no naming from a brand or an operator, and there
+                // the stock mop-up would write the raw tag value instead. A barrier has no
+                // area naming, so it takes its word closed or not.
+                if file == "lines" {
+                    let open = rule.condition.hasPrefix("barrier=") ? "" : " & is_closed()=false"
+                    out += [
+                        "\(rule.condition) & name!=*\(open) & ref=* & \(other) { name '\(rule.label) ${ref}' }",
+                        "\(rule.condition) & name!=*\(open) { name \(word) }"
+                    ]
+                }
+                return out
+            }
+            let block =
+                marker + " ---------------------------\n"
+                + "# Generated from Assets/labels-ru.txt; see addRussianLabels. Action-only and\n"
+                + "# first, so the stock mop-up rules cannot get in with a raw tag value.\n\n"
+                + lines.joined(separator: "\n") + "\n\n\n"
             try prependRules(block, marked: marker, toFile: file, in: directory)
         }
         log.append("\(rules.count) Russian labels for unnamed objects")
+    }
+
+    /// `text` as a Java pattern matching itself: anything but a letter, a digit, a space
+    /// or a hyphen goes in brackets.
+    static func literal(_ text: String) -> String {
+        text.map { $0.isLetter || $0.isNumber || $0 == " " || $0 == "-" ? String($0) : "[\($0)]" }.joined()
     }
 }

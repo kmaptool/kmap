@@ -164,6 +164,62 @@ final class TilePackerTests: XCTestCase {
         )
     }
 
+    /// A joined map is cut over the rectangle around both regions, so a tile may span the
+    /// empty ground between them: it goes with the region whose ground it holds, however
+    /// near its centre falls to the other.
+    func testATileSpanningTheGapGoesWithTheRegionItOverlaps() {
+        func box(_ minLat: Double, _ maxLat: Double, _ minLon: Double, _ maxLon: Double) -> BBox {
+            BBox(minLon: minLon, minLat: minLat, maxLon: maxLon, maxLat: maxLat)
+        }
+        let andorra = box(42.42, 42.66, 1.41, 1.79)
+        let monaco = box(43.72, 43.75, 7.40, 7.44)
+        let regions = [
+            Region(id: "andorra", name: "Andorra", parentID: nil, pbfURL: nil, bbox: andorra, boxes: [andorra]),
+            Region(id: "monaco", name: "Monaco", parentID: nil, pbfURL: nil, bbox: monaco, boxes: [monaco])
+        ]
+        let tiles = [
+            TilePacker.Tile(id: "south", bbox: box(42.30, 43.07, 1.41, 7.60), bytes: 1),
+            TilePacker.Tile(id: "north", bbox: box(43.07, 43.77, 1.41, 7.60), bytes: 1)
+        ]
+        let groups = packer(.perRegion, regions: regions).groups(tiles, upTo: 4_000_000_000)
+        XCTAssertEqual(groups.map(\.name).sorted(), ["andorra", "monaco"])
+        XCTAssertEqual(groups.first { $0.name == "monaco" }?.members, [1])
+    }
+
+    /// A small region inside a neighbour's box keeps its own tiles: Andorra within Spain's
+    /// rectangle. Its outline holds the tile's centre and Spain's does not.
+    func testASmallRegionInsideItsNeighboursBoxKeepsItsTiles() {
+        let spainBox = BBox(minLon: -9.3, minLat: 36, maxLon: 3.3, maxLat: 43.8)
+        let andorraBox = BBox(minLon: 1.41, minLat: 42.42, maxLon: 1.79, maxLat: 42.66)
+        // Spain's outline leaves a notch where Andorra is.
+        var spain = Region(id: "spain", name: "Spain", parentID: nil, pbfURL: nil, bbox: spainBox, boxes: [spainBox])
+        spain.rings = [
+            [
+                (lon: -9.3, lat: 36), (lon: 3.3, lat: 36), (lon: 3.3, lat: 42.4), (lon: 1.4, lat: 42.4),
+                (lon: 1.4, lat: 42.7), (lon: 3.3, lat: 42.7), (lon: 3.3, lat: 43.8), (lon: -9.3, lat: 43.8)
+            ]
+        ]
+        XCTAssertFalse(spain.holds(lat: 42.55, lon: 1.6), "the notch is Andorra's")
+        XCTAssertTrue(spain.holds(lat: 40, lon: -3))
+        let andorra = Region(
+            id: "andorra",
+            name: "Andorra",
+            parentID: nil,
+            pbfURL: nil,
+            bbox: andorraBox,
+            boxes: [andorraBox]
+        )
+        let tiles = [
+            TilePacker.Tile(id: "pyrenees", bbox: BBox(minLon: 1.3, minLat: 42.3, maxLon: 1.9, maxLat: 42.8), bytes: 1)
+        ]
+        for regions in [[spain, andorra], [andorra, spain]] {
+            XCTAssertEqual(
+                packer(.perRegion, regions: regions).groups(tiles, upTo: 4_000_000_000).map(\.name),
+                ["andorra"]
+            )
+        }
+    }
+
     func testRegionsOfOneCountryShareAFile() {
         let regions = [region("child-a", lat: 48, lon: 11), region("child-b", lat: 50, lon: 9)]
         let tiles = [tile("a", 1, lat: 48.2, lon: 11.2), tile("b", 1, lat: 50.2, lon: 9.2)]

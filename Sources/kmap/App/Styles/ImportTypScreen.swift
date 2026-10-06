@@ -16,7 +16,7 @@ final class ImportTypScreen: Screen {
             return [
                 Hint(key: "↑↓", label: t("move")),
                 Hint(key: Glyph.enter, label: t("import")),
-                Hint(key: "type", label: t("filter")),
+                Hint(key: "abc", label: t("filter")),
                 Hint(key: Glyph.tab, label: t("type a path")),
                 Hint(key: "esc", label: t("back"))
             ]
@@ -34,11 +34,12 @@ final class ImportTypScreen: Screen {
     /// What the questions say about a file, so the second can repeat it.
     typealias Pending = (url: URL, detail: [(label: String, value: String)])
 
-    let onImported: () -> Void
     var mode: Mode = .found
     var candidates: [TypCandidate] = []
     var scanning = true
     private var started = false
+    /// The scan of the volumes, stopped when the screen is left.
+    private var scan: Task<Void, Never>?
     var filter = TypedFilter()
     var path = ""
     var notice = Notice()
@@ -54,10 +55,6 @@ final class ImportTypScreen: Screen {
     /// What the library already holds, by fingerprint and by product.
     var held = TypLibrary.Held()
 
-    init(onImported: @escaping () -> Void) {
-        self.onImported = onImported
-    }
-
     var visible: [TypCandidate] {
         guard !filter.isEmpty else { return candidates }
         return candidates.filter { filter.matches([$0.name, $0.location, "\($0.familyID)"]) }
@@ -69,9 +66,9 @@ final class ImportTypScreen: Screen {
         started = true
         refreshHeld()
         let output = ctx.settings.settings.outputURL
-        Task.detached(priority: .utility) { [weak self] in
-            guard let self else { return }
+        scan = Task.detached(priority: .utility) { [weak self] in
             let found = TypLibrary.discover(excluding: output)
+            guard !Task.isCancelled, let self else { return }
             await MainActor.run {
                 self.candidates = found
                 self.scanning = false
@@ -130,6 +127,7 @@ final class ImportTypScreen: Screen {
             ask(about: candidate.url, candidate: candidate)
         case .esc:
             if filter.clear() { return .none }
+            scan?.cancel()
             return .pop
         default: break
         }
@@ -154,7 +152,9 @@ final class ImportTypScreen: Screen {
             let trimmed = path.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else { return .none }
             ask(about: Paths.expand(trimmed), candidate: nil)
-        case .esc: return .pop
+        case .esc:
+            scan?.cancel()
+            return .pop
         default: break
         }
         return .none

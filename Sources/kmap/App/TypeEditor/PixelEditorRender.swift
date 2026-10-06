@@ -28,14 +28,31 @@ extension PixelEditorScreen {
         y += 1
 
         canvasOrigin = (rect.x + 3, y + 1)
-        drawCanvas(s, theme: theme)
+        // The palette keeps its room beside, the readout and the prompt theirs under: a
+        // canvas larger than what is left shows the window round the cursor.
+        let across = max(1, min(shown.width, (rect.maxX - canvasOrigin.x - Self.paletteWidth - 3) / 2))
+        let down = max(1, min(shown.height, rect.maxY - 2 - canvasOrigin.y))
+        canvasScroll.x = Self.follow(cursor.x, from: canvasScroll.x, showing: across, of: shown.width)
+        canvasScroll.y = Self.follow(cursor.y, from: canvasScroll.y, showing: down, of: shown.height)
+        canvasShown = (across, down)
+        drawCanvas(s, across: across, down: down, theme: theme)
 
-        let paletteX = canvasOrigin.x + shown.width * 2 + 3
+        let paletteX = canvasOrigin.x + across * 2 + 3
         paletteOrigin = (paletteX, canvasOrigin.y)
+        // Above the readout and the prompt, which sit under the canvas.
+        let readout = min(canvasOrigin.y + down + 1, rect.maxY - 2)
+        paletteShown = max(0, min(shown.palette.count, readout - canvasOrigin.y))
+        paletteScroll = Self.follow(
+            selected,
+            from: paletteScroll,
+            showing: max(1, paletteShown),
+            of: shown.palette.count
+        )
         drawPalette(s, x: paletteX, y: canvasOrigin.y, right: rect.maxX, theme: theme)
 
-        y = canvasOrigin.y + shown.height + 1
-        guard y < rect.maxY else { return }
+        y = readout
+        defer { picker?.render(into: s, rect: rect, theme: theme) }
+        guard y >= rect.y, y < rect.maxY else { return }
 
         // What is under the cursor: the swatch, and its exact value.
         if let rows = grid() {
@@ -73,7 +90,6 @@ extension PixelEditorScreen {
 
         if let prompt {
             drawPrompt(prompt, s, rect: rect, y: y, theme: theme)
-            picker?.render(into: s, rect: rect, theme: theme)
             return
         }
         if let message {
@@ -86,32 +102,42 @@ extension PixelEditorScreen {
         }
     }
 
+    /// The first of `shown` cells to draw so that `cursor` is among them.
+    static func follow(_ cursor: Int, from first: Int, showing shown: Int, of total: Int) -> Int {
+        var first = first
+        if cursor < first { first = cursor }
+        if cursor >= first + shown { first = cursor - shown + 1 }
+        return max(0, min(first, total - shown))
+    }
+
     /// Two cells per pixel, a ruler outside, the cursor over the colour in black or white.
-    private func drawCanvas(_ s: Surface, theme: Theme) {
+    private func drawCanvas(_ s: Surface, across: Int, down: Int, theme: Theme) {
         guard let rows = grid() else { return }
-        for x in stride(from: 0, to: shown.width, by: Self.rulerStep) {
+        let columns = canvasScroll.x..<(canvasScroll.x + across)
+        let lines = canvasScroll.y..<(canvasScroll.y + down)
+        for x in columns where x % Self.rulerStep == 0 {
             s.text(
-                canvasOrigin.x + x * 2,
+                canvasOrigin.x + (x - columns.lowerBound) * 2,
                 canvasOrigin.y - 1,
                 String(format: "%-2d", x),
                 Style(fg: theme.faint, bg: theme.appBg)
             )
         }
-        for y in stride(from: 0, to: shown.height, by: Self.rulerStep) {
+        for y in lines where y % Self.rulerStep == 0 {
             s.textRight(
                 canvasOrigin.x - 1,
-                canvasOrigin.y + y,
+                canvasOrigin.y + y - lines.lowerBound,
                 "\(y)",
                 Style(fg: theme.faint, bg: theme.appBg)
             )
         }
 
-        for y in 0..<shown.height {
-            for x in 0..<shown.width {
+        for y in lines {
+            for x in columns {
                 let entry = shown.palette[safe: rows[y][x]]
                 let colour = entry?.colour.flatMap { $0 }
-                let cellX = canvasOrigin.x + x * 2
-                let cellY = canvasOrigin.y + y
+                let cellX = canvasOrigin.x + (x - columns.lowerBound) * 2
+                let cellY = canvasOrigin.y + y - lines.lowerBound
                 let onCursor = x == cursor.x && y == cursor.y
 
                 // Transparency is a chequer: on the device it shows what lies beneath.
@@ -158,8 +184,9 @@ extension PixelEditorScreen {
     /// The marker is lit only while the palette holds the arrow keys.
     private func drawPalette(_ s: Surface, x: Int, y: Int, right: Int, theme: Theme) {
         guard x < right - Self.leastPaletteRoom else { return }
-        for (index, entry) in shown.palette.enumerated() {
-            let rowY = y + index
+        for (index, entry) in shown.palette.enumerated()
+        where index >= paletteScroll && index < paletteScroll + paletteShown {
+            let rowY = y + index - paletteScroll
             let isSelected = index == selected
             let bg = isSelected ? theme.selectionBg : theme.appBg
             s.fill(Rect(x: x, y: rowY, w: min(right - x, Self.paletteWidth), h: 1), Style(fg: theme.text, bg: bg))

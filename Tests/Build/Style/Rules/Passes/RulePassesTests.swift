@@ -219,6 +219,36 @@ final class RulePassesTests: XCTestCase {
         }
     }
 
+    /// In the name, the description goes on the finished label, after the rules that
+    /// built it: a summit's height or a spring's warning stays in it.
+    func testADescriptionInTheNameIsAppendedInFinalize() throws {
+        try writeStandIn()
+        try catalog().addDescriptionRules(in: directory, carrier: .inName, log: Log(showing: .error))
+        for name in ["points", "lines", "polygons"] {
+            let text = try read(name)
+            let finalize = try XCTUnwrap(text.range(of: "\n<finalize>"), name)
+            let rule = try XCTUnwrap(text.range(of: "set mkgmap:label:1='${mkgmap:label:1} (${description:ru})'"), name)
+            XCTAssertGreaterThan(rule.lowerBound, finalize.upperBound, name)
+            XCTAssertTrue(text.hasPrefix("# stand-in"), "nothing goes in front: \(name)")
+            XCTAssertEqual(text.components(separatedBy: "<finalize>").count, 2, name)
+        }
+    }
+
+    /// Without Cyrillic in the code page, Russian text would come out as question marks:
+    /// English goes first and Russian not at all.
+    func testALatinMapPrefersTheEnglishDescriptionAndSkipsTheRussian() throws {
+        try writeStandIn()
+        try catalog().addDescriptionRules(in: directory, carrier: .street, cyrillic: false, log: Log(showing: .error))
+        let text = try read("points")
+        XCTAssertTrue(text.contains("description:en=* { set "), text)
+        XCTAssertTrue(text.contains("description=* & description:en!=* { set "), text)
+        XCTAssertFalse(text.contains("description:ru"), text)
+
+        try writeStandIn()
+        try catalog().addDescriptionRules(in: directory, carrier: .street, log: Log(showing: .error))
+        XCTAssertTrue(try read("points").contains("description:en=* & description:ru!=* & description!=* { set "))
+    }
+
     func testDescriptionsAreWrittenOnce() throws {
         try writeStandIn()
         let styles = catalog()

@@ -17,6 +17,13 @@ extension CLI {
             arguments,
             valued: ["output-dir", "mapid", "max-nodes", "description", "use-areas"]
         )
+        if let refused = flags.refusal(
+            "split",
+            knows: ["output-dir", "mapid", "max-nodes", "description", "use-areas"],
+            positionals: 1
+        ) {
+            return refused
+        }
         guard let input = flags.positionals.first, let outputDir = flags.value("output-dir") else {
             return CLIOutput.refuse(
                 "usage: kmap split <extract.osm.pbf> --output-dir <dir> [--mapid N]"
@@ -31,6 +38,12 @@ extension CLI {
             let parsed = parseAreas(text)
             guard !parsed.isEmpty else {
                 return CLIOutput.failure("no areas in \(list)")
+            }
+            // A node's area is held in 14 bits beside its flags.
+            guard parsed.count <= TileSplitter.mostGivenAreas else {
+                return CLIOutput.refuse(
+                    "\(list) has \(parsed.count) areas; the splitter takes \(TileSplitter.mostGivenAreas) at most"
+                )
             }
             areas = parsed
         }
@@ -96,7 +109,7 @@ extension CLI {
     static func parseAreas(_ text: String) -> [TileSplitter.Area] {
         var parsed: [TileSplitter.Area] = []
         // `Lines`: one written on Windows ends its lines in CRLF.
-        for line in Lines.of(text) {
+        for line in TextLines.of(text) {
             let row = line.trimmingCharacters(in: .whitespaces)
             guard !row.hasPrefix("#"), let colon = row.firstIndex(of: ":") else { continue }
             let corners = row[row.index(after: colon)...].components(separatedBy: " to ")

@@ -32,10 +32,23 @@ struct WaterMask {
         minLat = Double(lat)
         minLon = Double(lon)
         words = [UInt64](repeating: 0, count: (side * side + Self.bitsPerWord - 1) / Self.bitsPerWord)
-        // A multipolygon's shores, then its islands cut back out, then the ponds that are
-        // closed ways of their own and may stand on one of those islands.
-        for ring in rings where !ring.standalone && !ring.island { fill(ring, wet: true) }
-        for ring in rings where ring.island { fill(ring, wet: false) }
+        // A multipolygon's shores, its islands cut back out, then the ponds that are closed ways
+        // of their own and may stand on those islands. Islands cut only their own multipolygon's
+        // water, so one with islands is drawn on a layer of its own and joined.
+        let withIslands = Set(rings.filter(\.island).map(\.group))
+        for ring in rings where !ring.standalone && !ring.island && !withIslands.contains(ring.group) {
+            fill(ring, wet: true)
+        }
+        if !withIslands.isEmpty {
+            var joined = words
+            for group in withIslands.sorted() {
+                words = [UInt64](repeating: 0, count: joined.count)
+                for ring in rings where ring.group == group && !ring.island { fill(ring, wet: true) }
+                for ring in rings where ring.group == group && ring.island { fill(ring, wet: false) }
+                for i in joined.indices { joined[i] |= words[i] }
+            }
+            words = joined
+        }
         for ring in rings where ring.standalone { fill(ring, wet: true) }
     }
 

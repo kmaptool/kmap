@@ -231,13 +231,13 @@ final class LanguageTests: XCTestCase {
         // The map's label language and the interface language are separate settings.
         L10n.use(.ru)
         XCTAssertEqual(LabelLanguage.local.tagList, "")
-        XCTAssertEqual(LabelLanguage.russian.tagList, "name:ru,int_name,name")
+        XCTAssertEqual(LabelLanguage.russian.tagList, "name:ru,name,int_name")
         XCTAssertEqual(LabelLanguage.english.tagList, "name:en,int_name,name")
         // The name is a word on screen and is translated; the tag list is not.
         XCTAssertEqual(LabelLanguage.russian.name, "Русские")
         L10n.use(.en)
         XCTAssertEqual(LabelLanguage.russian.name, "Russian")
-        XCTAssertEqual(LabelLanguage.russian.tagList, "name:ru,int_name,name")
+        XCTAssertEqual(LabelLanguage.russian.tagList, "name:ru,name,int_name")
     }
 
     func testTheFormatsOwnWordsAreLeftAlone() async {
@@ -261,5 +261,22 @@ final class LanguageTests: XCTestCase {
 private extension Character {
     var isCyrillic: Bool {
         unicodeScalars.contains { (0x0400...0x04FF).contains($0.value) }
+    }
+
+    /// kmap's own words follow the labels asked for: a 1251 map with English labels gets
+    /// English repair signs, captions and POI names, not a mix.
+    func testAnEnglishMapInTheCyrillicCodePageSpeaksEnglish() {
+        var recipe = BuildRecipe(
+            region: Region(id: "r", name: "R", parentID: nil, pbfURL: nil, bbox: .empty, boxes: []),
+            style: .standIn,
+            outputDirectory: URL(fileURLWithPath: NSTemporaryDirectory())
+        )
+        recipe.codePage = CodePage.cyrillic
+        XCTAssertTrue(recipe.speaksRussian)
+        recipe.nameTagList = LabelLanguage.english.tagList
+        XCTAssertFalse(recipe.speaksRussian)
+        recipe.nameTagList = LabelLanguage.russian.tagList
+        recipe.codePage = CodePage.westernEuropean
+        XCTAssertFalse(recipe.speaksRussian)
     }
 }

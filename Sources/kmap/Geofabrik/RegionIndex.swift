@@ -38,8 +38,9 @@ final class RegionIndex: Sendable {
 
     // MARK: Loading
 
-    /// Returns cached JSON if it is fresh, otherwise downloads and caches it.
-    private static func fetchIndexData(forceRefresh: Bool = false) async throws -> Data {
+    /// Returns cached JSON if it is fresh, otherwise downloads and caches it; `fetched`
+    /// says whether the server answered, and false for a stale copy fallen back on.
+    private static func fetchIndexData(forceRefresh: Bool = false) async throws -> (data: Data, fetched: Bool) {
         Paths.bootstrap()
         let cached = Paths.indexCache
         if !forceRefresh,
@@ -48,28 +49,45 @@ final class RegionIndex: Sendable {
             Date().timeIntervalSince(modified) < maxCacheAge,
             let data = try? Data(contentsOf: cached), data.count > 1024
         {
-            return data
+            return (data, false)
         }
 
         do {
-            let data = try await Fetch.data(indexURL, timeout: indexTimeout)
-            // Cached only once it proves to be JSON: garbage written here would shadow
-            // the stale copy the catch below falls back to, for a whole cache period.
-            if (try? JSONSerialization.jsonObject(with: data)) != nil {
-                try? FileTools.write(data, to: cached)
-            }
-            return data
+            return (try await Fetch.data(indexURL, timeout: indexTimeout), true)
         } catch {
             // Fall back to a stale cache rather than failing.
-            if let data = try? Data(contentsOf: cached), data.count > 1024 { return data }
+            if let data = try? Data(contentsOf: cached), data.count > 1024 { return (data, false) }
             throw LoadError.network(error.localizedDescription)
         }
     }
 
-    func load(forceRefresh: Bool = false) async throws {
-        let data = try await RegionIndex.fetchIndexData(forceRefresh: forceRefresh)
+    /// - Returns: whether the server answered, rather than the copy kept from before.
+    @discardableResult
+    func load(forceRefresh: Bool = false) async throws -> Bool {
+        let (data, fetched) = try await RegionIndex.fetchIndexData(forceRefresh: forceRefresh)
         // Parsed off the calling thread, which is where the time goes; installing is a swap.
-        install(try RegionIndex.tables(from: data))
+        let read = try RegionIndex.tables(from: data, fetched: fetched) { try? Data(contentsOf: Paths.indexCache) }
+        install(read.tables)
+        // Cached only once it reads as an index: anything else would shadow the copy kept
+        // from before for a whole cache period.
+        if fetched && !read.stale { try? FileTools.write(data, to: Paths.indexCache) }
+        return fetched && !read.stale
+    }
+
+    /// The index in `data`, or, where the server answered with something else, a captive
+    /// portal or a proxy's notice, in the copy kept from before.
+    static func tables(
+        from data: Data,
+        fetched: Bool,
+        kept: () -> Data?
+    ) throws -> (tables: (regions: [String: Region], roots: [String]), stale: Bool) {
+        do {
+            return (try tables(from: data), false)
+        } catch {
+            if fetched, let old = kept(), let tables = try? tables(from: old) { return (tables, true) }
+            if let error = error as? LoadError { throw error }
+            throw LoadError.malformed(error.localizedDescription)
+        }
     }
 
     // MARK: Parsing

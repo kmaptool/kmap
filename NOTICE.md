@@ -15,7 +15,8 @@ LICENSE.md — upstream's own where the project publishes one, otherwise one tha
 it does say — beside a PROVENANCE.md recording what was taken and what was changed. The
 attribution also rides in each file's header and — where the licence asks to be credited —
 in every map built with that style. Vendored code:
-stb_image (public domain) and libdeflate 1.26 (MIT). Each folder's
+stb_image (public domain) and libdeflate 1.26 (MIT). `Assets/sport-ru.txt` holds the
+Russian names of sport values from the iD editor's preset schema (ISC), quoted below. Each folder's
 own README or PROVENANCE.md has the details.
 
 mkgmap (GPL v2), pyhgtmap (GPL v2) and Java (Eclipse Temurin from Adoptium) are not
@@ -28,6 +29,27 @@ Geofabrik) and so is everything built from it; coastline and boundary packs come
 thkukuk.de; elevation comes from Copernicus DEM (Copernicus DEM licence), FABDEM (CC BY-NC-SA 4.0,
 non-commercial), GEDTM30 (CC BY 4.0), Viewfinder Panoramas, SRTM or ALOS, each under its
 provider's own terms. kmap downloads them on the user's machine and ships none of them.
+
+## iD tagging schema
+
+`Assets/sport-ru.txt`, embedded in the binary, holds the Russian translations of the sport
+field's options from `@openstreetmap/id-tagging-schema` 6.19.2, under its own licence:
+
+```
+Copyright (c) iD Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+```
 
 ## libdeflate
 

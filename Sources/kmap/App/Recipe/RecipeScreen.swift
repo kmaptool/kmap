@@ -39,7 +39,8 @@ final class RecipeScreen: Screen {
             region: region,
             extraRegions: Array(regions.dropFirst()),
             style: .standIn,
-            familyID: store.familyID(for: BuildRecipe.identityKey(regions)),
+            // Shown, not taken: a form left without building keeps no id.
+            familyID: store.previewFamilyID(for: BuildRecipe.identityKey(regions)),
             countryOf: RecipeScreen.countries(of: regions, in: index),
             outputDirectory: settings.outputURL,
             workRoot: settings.workURL,
@@ -47,7 +48,7 @@ final class RecipeScreen: Screen {
             heapGB: settings.resolvedHeapGB,
             downloadConnections: settings.downloadConnections
         )
-        recipe.apply(profile.choices, style: nil, regionCodePage: regionCodePage)
+        recipe.apply(profile.choices, style: nil, regionCodePage: regionCodePage, plans: store.zoomPlans)
 
         form = RecipeForm(
             mode: .build,
@@ -81,7 +82,9 @@ final class RecipeScreen: Screen {
         // Esc and ^C are the screen's, unless the form is editing text or holds a list open.
         if !form.isPicking && !form.isEditingText {
             switch key {
-            case .esc: return .pop
+            case .esc:
+                cost.stop()
+                return .pop
             case .ctrl("c"): return .quit
             default: break
             }
@@ -98,6 +101,10 @@ final class RecipeScreen: Screen {
     }
 
     private func startBuild(_ ctx: AppContext) -> Route {
+        if let missing = form.missingStyleID {
+            form.message = t("%@ not found — pick a style", missing)
+            return .none
+        }
         guard region.pbfURL != nil else {
             form.message = t("this region has no downloadable extract")
             return .none

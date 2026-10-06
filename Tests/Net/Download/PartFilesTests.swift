@@ -22,6 +22,23 @@ final class PartFilesTests: XCTestCase {
         return url
     }
 
+    /// Parts of another copy of the same size are not joined to this one's: the date says
+    /// which copy they are of. A record from before the date was kept still holds.
+    func testPartsOfAnotherCopyOfTheSameSizeGo() throws {
+        let files = PartFiles(destination: directory.appendingPathComponent("x.osm.pbf"))
+        files.keepLayout(size: 100, count: 2, lastModified: "Mon, 05 Oct 2026 20:00:00 GMT")
+        _ = try makeFile("x.osm.pbf.part0")
+        files.keepLayout(size: 100, count: 2, lastModified: "Mon, 05 Oct 2026 20:00:00 GMT")
+        XCTAssertTrue(FileTools.exists(files.part(0)), "the same copy resumes")
+        files.keepLayout(size: 100, count: 2, lastModified: "Tue, 06 Oct 2026 20:00:00 GMT")
+        XCTAssertFalse(FileTools.exists(files.part(0)), "another copy starts over")
+
+        try FileTools.write("100/2\n", to: files.layout)
+        _ = try makeFile("x.osm.pbf.part0")
+        files.keepLayout(size: 100, count: 2, lastModified: "Tue, 06 Oct 2026 20:00:00 GMT")
+        XCTAssertTrue(FileTools.exists(files.part(0)), "an earlier kmap's record of the same layout")
+    }
+
     func testASinglePartThatCameUpShortIsRefusedNotInstalled() throws {
         // One connection, no ranges: the server can close early without an error, and
         // the short part must not be renamed into place as if whole.

@@ -11,13 +11,15 @@ final class WaterMaskTests: XCTestCase {
         _ lon: Double,
         side: Double,
         island: Bool = false,
-        standalone: Bool = true
+        standalone: Bool = true,
+        group: Int32 = -1
     ) -> WaterBodies.Ring {
         let corners = [(lat, lon), (lat, lon + side), (lat + side, lon + side), (lat + side, lon), (lat, lon)]
         return WaterBodies.Ring(
             points: corners.flatMap { [Float($0.0), Float($0.1)] },
             island: island,
-            standalone: standalone
+            standalone: standalone,
+            group: group
         )
     }
 
@@ -66,6 +68,25 @@ final class WaterMaskTests: XCTestCase {
         XCTAssertTrue(mask.isWater(lat: 44.3, lon: 34.3), "the lake")
         XCTAssertFalse(mask.isWater(lat: 44.42, lon: 34.42), "the island")
         XCTAssertTrue(mask.isWater(lat: 44.5, lon: 34.5), "the pond on the island")
+    }
+
+    /// A lake mapped as a multipolygon of its own on another lake's island: the island is
+    /// cut out of its own lake only.
+    func testAnIslandCutsOnlyItsOwnLake() throws {
+        let mask = try XCTUnwrap(
+            WaterMask(
+                cellAt: 44,
+                34,
+                water: water(
+                    square(44.1, 34.1, side: 0.8, standalone: false, group: 0),
+                    square(44.3, 34.3, side: 0.4, island: true, standalone: false, group: 0),
+                    square(44.45, 34.45, side: 0.1, standalone: false, group: 1)
+                )
+            )
+        )
+        XCTAssertTrue(mask.isWater(lat: 44.2, lon: 34.2), "the big lake")
+        XCTAssertFalse(mask.isWater(lat: 44.35, lon: 34.35), "its island")
+        XCTAssertTrue(mask.isWater(lat: 44.5, lon: 34.5), "the other lake on the island")
     }
 
     func testTheOrderTheRingsArriveInDoesNotMatter() throws {

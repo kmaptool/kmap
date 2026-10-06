@@ -9,7 +9,7 @@ enum PBFSchema {
     static let granularity = 17, latOffset = 19, lonOffset = 20
     static let headerBBox = 1, headerRequiredFeature = 4, headerWritingProgram = 16
     static let bboxLeft = 1, bboxRight = 2, bboxTop = 3, bboxBottom = 4
-    static let groupDense = 2, groupWays = 3, groupRelations = 4
+    static let groupNodes = 1, groupDense = 2, groupWays = 3, groupRelations = 4
     static let denseID = 1, denseLat = 8, denseLon = 9, denseKeysVals = 10
     static let elementID = 1, elementKeys = 2, elementVals = 3
     static let wayRefs = 8

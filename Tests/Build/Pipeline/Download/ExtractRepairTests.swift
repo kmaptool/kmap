@@ -88,4 +88,21 @@ final class ExtractRepairTests: XCTestCase {
         let unknown = try cachedExtract("no-md5.osm.pbf", stamped: false)
         XCTAssertEqual(pipeline().damagedExtracts(among: [unknown]), [unknown])
     }
+
+    /// A copy put aside as damaged goes back where nothing replaced it, and goes where a
+    /// fresh one did.
+    func testACopyPutAsideIsSettled() throws {
+        let alone = directory.appendingPathComponent("alone.osm.pbf")
+        try FileTools.write(Data("kept".utf8), to: alone.appendingPathExtension("suspect"))
+        BuildPipeline.settleSuspect(besides: alone)
+        XCTAssertEqual(try Data(contentsOf: alone), Data("kept".utf8))
+        XCTAssertFalse(FileTools.exists(alone.appendingPathExtension("suspect")))
+
+        let fresh = directory.appendingPathComponent("fresh.osm.pbf")
+        try FileTools.write(Data("new".utf8), to: fresh)
+        try FileTools.write(Data("old".utf8), to: fresh.appendingPathExtension("suspect"))
+        BuildPipeline.settleSuspect(besides: fresh)
+        XCTAssertEqual(try Data(contentsOf: fresh), Data("new".utf8))
+        XCTAssertFalse(FileTools.exists(fresh.appendingPathExtension("suspect")))
+    }
 }

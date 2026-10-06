@@ -1,7 +1,7 @@
 import Foundation
 
 /// The rule text a materialized style is shaped from: a zoom plan's mark on its identity,
-/// and blocks spliced in. Substitutions are in Reassign, ladder fitting in Zoom.
+/// and blocks spliced in.
 extension StyleCatalog {
     /// What a zoom plan adds to the materialized style's identity: the windows, not the
     /// plan's name - two plans with the same windows produce the same rules.

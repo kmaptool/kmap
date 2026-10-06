@@ -2,7 +2,7 @@ import Foundation
 
 /// Stage 6: moves the finished files into the output folder and writes the manifest.
 extension BuildPipeline {
-    // MARK: 6 — collect
+    // MARK: 6 - collect
 
     /// The extensions an output carries: a card file, and the BaseCamp folder.
     private static let outputExtensions: Set<String> = ["img", "gmap"]
@@ -51,7 +51,6 @@ extension BuildPipeline {
         // an earlier build left in the work directory is not this map.
         let groups = outputGroups.map { buildRoot.appendingPathComponent($0, isDirectory: true) }
 
-        var written: [Output] = []
         let parts =
             groups
             .filter { FileTools.exists($0.appendingPathComponent("gmapsupp.img")) }
@@ -70,22 +69,24 @@ extension BuildPipeline {
             log.step(t("another build already uses this name — files carry -%d", copy))
         }
 
-        for (ordinal, group) in parts.enumerated() {
+        var outputs: [(source: URL, destination: URL)] = parts.enumerated().map { ordinal, group in
             let name = recipe.fileName(ordinal: ordinal + 1, of: parts.count, copy: copy)
-            written.append(
-                try place(group.appendingPathComponent("gmapsupp.img"), at: destinationDir.appendingPathComponent(name))
-            )
+            return (group.appendingPathComponent("gmapsupp.img"), destinationDir.appendingPathComponent(name))
         }
         if let gmap {
-            let folder = destinationDir.appendingPathComponent(recipe.gmapName(copy: copy), isDirectory: true)
-            written.append(try place(gmap, at: folder))
+            outputs.append(
+                (gmap, destinationDir.appendingPathComponent(recipe.gmapName(copy: copy), isDirectory: true))
+            )
+        }
+        let written = try place(outputs)
+        if gmap != nil {
             log.append(
                 "BaseCamp tells maps apart by family id: another kmap map installed with id"
                     + " \(recipe.familyID) replaces this one there"
             )
         }
 
-        guard !written.isEmpty else { throw BuildError.noOutput(recipe.slug) }
+        guard !written.isEmpty else { throw BuildError.noOutput(recipe.areaSlug) }
         removeEarlierOutputs(in: destinationDir, keeping: written)
 
         if recipe.customPOIs {
@@ -93,62 +94,104 @@ extension BuildPipeline {
         } else {
             // The output folder name does not encode the Custom POI switch, so an earlier
             // build's .gpi can be sitting here and must be removed.
-            let stale = destinationDir.appendingPathComponent("\(recipe.slug).gpi")
+            let stale = destinationDir.appendingPathComponent("\(recipe.areaSlug).gpi")
             if FileTools.exists(stale) {
                 FileTools.removeIfPresent(stale)
                 log.step("removed the custom POI file left by an earlier build")
             }
         }
 
-        try writeManifest(to: destinationDir, outputs: written)
+        // The maps are in place by now: a record that will not write does not undo them.
+        do {
+            try writeManifest(to: destinationDir, outputs: written)
+        } catch {
+            log.warn("build-info.txt could not be written: \(ErrorWords.of(error))")
+        }
 
         publish(written)
         cleanUp()
         set(.collect, .done, "\(written.count) file(s)")
     }
 
-    /// Puts one finished output, a file or a folder, in its place and reports it. Moved
+    /// Puts the finished outputs, files or folders, in their places, all or none: a set
+    /// with a part new and the next old would show both maps on a receiver. Moved
     /// rather than copied where work area and output share a volume: these run to
     /// gigabytes.
-    private func place(_ source: URL, at destination: URL) throws -> Output {
+    func place(_ outputs: [(source: URL, destination: URL)]) throws -> [Output] {
         // Under another name until whole, so a copy that fails midway leaves the earlier
-        // file in place and no part of the new one under its name.
-        let partial = destination.deletingLastPathComponent()
-            .appendingPathComponent(destination.lastPathComponent + ".partial")
-        FileTools.removeIfPresent(partial)
-        var moved = false
-        do {
+        // files in place and no part of the new ones under their names.
+        var staged: [(source: URL, partial: URL, moved: Bool)] = []
+        // A moved partial is the only copy of the new map: it goes back, or stays and is
+        // said to, until a build into the same folder lands or the user removes it.
+        func unstage() {
+            for item in staged {
+                guard item.moved else {
+                    FileTools.removeIfPresent(item.partial)
+                    continue
+                }
+                if (try? FileTools.move(item.partial, to: item.source)) == nil, FileTools.exists(item.partial) {
+                    log.warn("the new map stays in \(Paths.display(item.partial))")
+                }
+            }
+        }
+        for output in outputs {
+            let partial = Self.leftover(of: output.destination, ".partial")
+            FileTools.removeIfPresent(partial)
             do {
-                try FileTools.move(source, to: partial)
-                moved = true
+                try FileTools.move(output.source, to: partial)
+                staged.append((output.source, partial, true))
             } catch {
                 FileTools.removeIfPresent(partial)
-                try FileTools.copy(source, to: partial)
+                do {
+                    try FileTools.copy(output.source, to: partial)
+                    staged.append((output.source, partial, false))
+                } catch {
+                    FileTools.removeIfPresent(partial)
+                    unstage()
+                    throw error
+                }
             }
-            FileTools.removeIfPresent(destination)
-            try FileTools.move(partial, to: destination)
+        }
+        // A BaseCamp folder held open stays whole, with the new map not put in.
+        do {
+            try FileTools.replace(zip(outputs, staged).map { ($0.destination, $1.partial) })
         } catch {
-            // A moved partial is the only copy of the new map: it goes back, or stays.
-            if moved { try? FileTools.move(partial, to: source) } else { FileTools.removeIfPresent(partial) }
+            unstage()
             throw error
         }
-        let size = FileTools.isDirectory(destination) ? directorySize(destination) : FileTools.size(of: destination)
-        log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(size))")
-        return Output(name: destination.lastPathComponent, url: destination, size: size)
+        return outputs.map { output in
+            let destination = output.destination
+            let size = FileTools.isDirectory(destination) ? directorySize(destination) : FileTools.size(of: destination)
+            log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(size))")
+            return Output(name: destination.lastPathComponent, url: destination, size: size)
+        }
     }
 
-    /// Removes the card files and BaseCamp folder an earlier build of this map wrote into
-    /// the same folder and this one did not replace: another part count or format would
-    /// otherwise leave them beside the new set, and a receiver shows both.
-    private func removeEarlierOutputs(in directory: URL, keeping written: [Output]) {
+    /// The suffixes an output wears on its way in, and an earlier one on its way out; see
+    /// `FileTools.replace`.
+    static let leftoverSuffixes = [".partial", ".old"]
+
+    static func leftover(of output: URL, _ suffix: String) -> URL {
+        output.deletingLastPathComponent().appendingPathComponent(output.lastPathComponent + suffix)
+    }
+
+    /// Removes this map's earlier files this build did not replace, which a receiver would
+    /// show beside the new set, and what a stopped build left under `leftoverSuffixes`.
+    func removeEarlierOutputs(in directory: URL, keeping written: [Output]) {
         let kept = Set(written.map(\.name))
         let entries =
             (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
         var removed = 0
-        for entry in entries where !kept.contains(entry.lastPathComponent) {
-            guard recipe.namesAnOutput(entry.lastPathComponent) else { continue }
-            FileTools.removeIfPresent(entry)
-            removed += 1
+        for entry in entries {
+            let name = entry.lastPathComponent
+            let suffix = Self.leftoverSuffixes.first { name.hasSuffix($0) }
+            let output = suffix.map { String(name.dropLast($0.count)) } ?? name
+            guard recipe.namesAnOutput(output), suffix != nil || !kept.contains(name) else { continue }
+            guard (try? FileTools.remove(entry)) != nil else {
+                log.warn("could not remove \(Paths.display(entry)), left by an earlier build")
+                continue
+            }
+            if suffix == nil { removed += 1 }
         }
         if removed > 0 { log.step("removed \(removed) map file(s) left by an earlier build") }
     }
@@ -157,19 +200,27 @@ extension BuildPipeline {
     /// an OSM description; the map's own POI records have no description field.
     /// Best-effort: a failure warns and leaves the build successful.
     private func writeCustomPOIs(to directory: URL) async {
-        // Every region of a joined map, not the first alone.
-        let extracts = recipe.regions.map { Paths.cachedExtract(forRegion: $0.id) }.filter(FileTools.exists)
+        // Every region of a joined map, not the first alone, as this build read them.
+        let extracts = recipe.regions.map { region in
+            let cached = Paths.cachedExtract(forRegion: region.id)
+            let pinned = pinnedExtract(cached)
+            return FileTools.exists(pinned) ? pinned : cached
+        }
+        .filter(FileTools.exists)
         guard !extracts.isEmpty else { return }
-        let destination = directory.appendingPathComponent("\(recipe.slug).gpi")
+        let destination = directory.appendingPathComponent("\(recipe.areaSlug).gpi")
+        // An earlier build's file is not this map's, whether or not a new one is written.
+        FileTools.removeIfPresent(destination)
 
         log.step("writing custom POIs with descriptions")
         var gpi = MakeGPI(sources: extracts, destination: destination)
         // The same code page the map is built with, or the labels come out as `?`.
         gpi.codepage = recipe.codePage == CodePage.utf8 ? "utf8" : "cp\(recipe.codePage)"
         gpi.category = recipe.seriesName
-        gpi.prefer = recipe.codePage == 1251 ? "ru" : "en"
+        gpi.prefer = recipe.speaksRussian ? "ru" : "en"
         // Features hidden on the map are hidden here too.
         gpi.exclude = recipe.hidden.compactMap { HideableFeature.feature(id: $0)?.tag }.sorted()
+        gpi.shouldStop = stopAsked
 
         do {
             let report = try gpi.run()
@@ -179,6 +230,8 @@ extension BuildPipeline {
                     + " as uninformative"
             )
             log.ok("→ \(Paths.display(destination))  \(Fmt.bytes(FileTools.size(of: destination)))")
+        } catch is CancellationError {
+            log.warn("custom POIs left out: the build was stopped once its maps were in place")
         } catch {
             log.warn("custom POIs could not be written: \(error)")
         }
@@ -230,22 +283,16 @@ extension BuildPipeline {
         try FileTools.write(lines.joined(separator: "\n"), to: directory.appendingPathComponent("build-info.txt"))
     }
 
-    /// Removes this build's scratch directory, and the work root if it is then empty.
+    /// Removes this build's scratch directory, or marks it kept so no sweep takes it.
     /// Downloaded extracts and elevation tiles live in the cache and survive.
     private func cleanUp() {
         guard !settings.settings.keepWorkFiles else {
+            try? FileTools.write("", to: workDirectory.appendingPathComponent(Self.keptMarker))
             log.append("work files kept in \(Paths.display(workDirectory))")
             return
         }
         let freed = directorySize(workDirectory)
         FileTools.removeIfPresent(workDirectory)
-
-        let root = recipe.workRoot
-        if let remaining = try? FileManager.default.contentsOfDirectory(
-            atPath: root.path
-        ), remaining.isEmpty {
-            FileTools.removeIfPresent(root)
-        }
         log.ok("cleaned up work files\(freed > 0 ? " · freed \(Fmt.bytes(freed))" : "")")
     }
 

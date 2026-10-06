@@ -19,7 +19,8 @@ struct PBFRewriter {
         }
 
         /// Throws where `destination` is `source` or one of `others`, by any spelling: the
-        /// output is emptied before the input is read.
+        /// output takes the input's place when it is done, and a file still being read
+        /// will not move on Windows.
         static func refuseOverwriting(_ source: URL, _ others: [URL] = [], with destination: URL) throws {
             if ([source] + others).contains(where: destination.sameFile) {
                 throw Trouble.writesOverItsInput(destination.nativePath)
@@ -41,6 +42,10 @@ struct PBFRewriter {
     var barriers: [Int64: String] = [:]
     /// Whether to drop a description that only repeats the name beside it.
     var tidyDescriptions = false
+    /// Strips from names and descriptions what no code page draws: see `cleaned`.
+    var cleanLabels = false
+    /// Keeps the zero-width joiners in that cleaning, for the Arabic code page.
+    var keepsJoiners = false
     /// Areas repeating a venue already on the map, tagged so the style can hide the
     /// second icon.
     var duplicateVenues: Set<Int64> = []
@@ -103,7 +108,7 @@ struct PBFRewriter {
         var scratches = [[UInt8]](repeating: [], count: width)
         // One set of decode buffers per slot, kept for the whole file.
         var fieldSets = (0..<width).map { _ in PBFReader.Scratch() }
-        var decoded = [Block?](repeating: nil, count: width)
+        var decoded = [RewriteBlock?](repeating: nil, count: width)
         var prepared = [Rebuilt?](repeating: nil, count: width)
         var failures = [Error?](repeating: nil, count: width)
         var batch:
@@ -117,6 +122,8 @@ struct PBFRewriter {
             func decodeBatch() throws {
                 guard !batch.isEmpty else { return }
                 if shouldStop() { throw CancellationError() }
+                // A failed write, a full disk, fails the rest: no use reading on.
+                if let failure = writer.writeFailure { throw failure }
                 let items = batch
                 try scratches.withUnsafeMutableBufferPointer { buffers in
                     try fieldSets.withUnsafeMutableBufferPointer { fields in
@@ -129,9 +136,10 @@ struct PBFRewriter {
                                     into: &buffers[i]
                                 )
                                 blocks[i] = try buffers[i].withUnsafeBytes {
-                                    try Block(
+                                    try RewriteBlock(
                                         UnsafeRawBufferPointer(rebasing: $0[0..<size]),
-                                        fields: &fields[i]
+                                        fields: &fields[i],
+                                        relations: tidyDescriptions || cleanLabels
                                     )
                                 }
                             }
@@ -196,17 +204,18 @@ struct PBFRewriter {
         /// Nil when the block needs nothing and its bytes go through as they are.
         var nodes: [PBFWriter.Node]?
         var ways: [PBFWriter.Way]?
+        var relations: [PBFWriter.Relation]?
         var tagged = 0
         var dropped = 0
         var marked = 0
-        var touched: Bool { nodes != nil || ways != nil }
+        var touched: Bool { nodes != nil || ways != nil || relations != nil }
     }
 
     /// Returns the block with repairs, barrier tags and tidied descriptions applied, or an
     /// untouched result if it needs none.
     /// - Throws: `Trouble.mixedBlock` when the block holds relations as well as ways.
     private func rebuild(
-        _ block: Block,
+        _ block: RewriteBlock,
         moved: [Int64: (lat: Double, lon: Double)],
         inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
         nodeFilter: IDFilter,
@@ -225,6 +234,8 @@ struct PBFRewriter {
             }
             || block.usesAny(of: plan.merges, filter: mergeFilter)
             || (tidyDescriptions && block.hasRedundantDescription)
+            || (cleanLabels && block.hasUnprintable
+                && (!block.hasRelations || !(block.hasNodes || block.hasWays) || block.nodesOrWaysUnprintable))
         guard touched else { return out }
         if block.hasRelations && (block.hasWays || block.hasNodes) { throw Trouble.mixedBlock }
 
@@ -237,6 +248,9 @@ struct PBFRewriter {
                     out.tagged += 1
                 }
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
+                if cleanLabels && block.hasUnprintable {
+                    Self.clean(&batch[i].tags, keepingJoiners: keepsJoiners)
+                }
             }
             out.nodes = batch
         }
@@ -248,13 +262,31 @@ struct PBFRewriter {
                 mergeFilter: mergeFilter
             )
             for i in batch.indices {
-                if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
+                if tidyDescriptions {
+                    let stays = Self.wordStays(refs: batch[i].refs, tags: batch[i].tags)
+                    out.dropped += Self.tidy(&batch[i].tags, wordStays: stays)
+                }
+                if cleanLabels && block.hasUnprintable {
+                    Self.clean(&batch[i].tags, keepingJoiners: keepsJoiners)
+                }
                 if wayFilter.mayContain(batch[i].id), duplicateVenues.contains(batch[i].id) {
                     batch[i].tags.append((Self.duplicateVenueTag, "yes"))
                     out.marked += 1
                 }
             }
             out.ways = batch
+        }
+        // Read only for tidying and cleaning; a block mixing them with nodes or ways was
+        // refused above.
+        if block.hasRelations && !block.relationIDs.isEmpty {
+            var batch = block.relations()
+            for i in batch.indices {
+                if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
+                if cleanLabels && block.hasUnprintable {
+                    Self.clean(&batch[i].tags, keepingJoiners: keepsJoiners)
+                }
+            }
+            out.relations = batch
         }
         return out
     }
@@ -263,7 +295,7 @@ struct PBFRewriter {
     /// and updates the running totals.
     private mutating func write(
         _ ready: Rebuilt?,
-        of block: Block,
+        of block: RewriteBlock,
         header: UnsafeRawBufferPointer,
         blob: UnsafeRawBufferPointer,
         writer: PBFWriter,
@@ -280,8 +312,16 @@ struct PBFRewriter {
             // file's own nodes stay ahead of the added ones and every node ahead of
             // the ways.
             if block.hasNodes {
-                // Written again from what was read, and relations are not read.
-                if block.hasRelations { throw Trouble.mixedBlock }
+                // Relations are not read, so a block written again would lose them: refused
+                // unless it is copied unchanged, with nothing written before it.
+                if block.hasRelations {
+                    guard ready?.touched != true, contours.isEmpty, inventedNodes().isEmpty, inventedWays().isEmpty
+                    else { throw Trouble.mixedBlock }
+                    addedWays = true
+                    writer.copy(header: header, blob: blob)
+                    tally.copied += 1
+                    return
+                }
                 writer.nodes(ready?.nodes ?? block.nodes(movedBy: [:], filter: IDFilter()))
                 try addNodes(into: writer, tally: &tally, scratch: &scratch)
                 writer.ways(
@@ -308,6 +348,7 @@ struct PBFRewriter {
         count(ready, in: &tally)
         if let nodes = ready.nodes { writer.nodes(nodes) }
         if let ways = ready.ways { writer.ways(ways) }
+        if let relations = ready.relations { writer.relations(relations) }
     }
 
     private func count(_ ready: Rebuilt?, in tally: inout Tally) {
@@ -317,18 +358,19 @@ struct PBFRewriter {
         tally.marked += ready.marked
     }
 
-    /// The contour nodes, then the nodes this pass invents.
+    /// The nodes this pass invents, from 2^40, then the contour nodes, from 2^42: in that
+    /// order the ids keep ascending, which the split's lookups rely on.
     private mutating func addNodes(into writer: PBFWriter, tally: inout Tally, scratch: inout [UInt8]) throws {
-        tally.contourBlocks += try copyContours(.nodes, into: writer, scratch: &scratch)
         let batch = inventedNodes()
         writer.nodes(batch)
         tally.addedNodes = batch.count
+        tally.contourBlocks += try copyContours(.nodes, into: writer, scratch: &scratch)
     }
 
     private mutating func addWays(into writer: PBFWriter, tally: inout Tally, scratch: inout [UInt8]) throws {
-        tally.contourBlocks += try copyContours(.ways, into: writer, scratch: &scratch)
         let batch = inventedWays()
         writer.ways(batch)
         tally.addedWays = batch.count
+        tally.contourBlocks += try copyContours(.ways, into: writer, scratch: &scratch)
     }
 }

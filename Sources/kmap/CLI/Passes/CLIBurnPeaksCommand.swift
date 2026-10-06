@@ -8,6 +8,14 @@ extension CLI {
 
     static func burnPeaks(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["pbf", "hgt-dir", "out", "threshold", "radius"])
+        // Each extract with its own --pbf: one after a single --pbf would go unread.
+        if let refused = flags.refusal(
+            "burn-peaks",
+            knows: ["pbf", "hgt-dir", "out", "threshold", "radius", "quiet"],
+            positionals: 0
+        ) {
+            return refused
+        }
         let pbfs = flags.values("pbf")
         guard !pbfs.isEmpty, let source = flags.value("hgt-dir"), let out = flags.value("out") else {
             return CLIOutput.refuse(

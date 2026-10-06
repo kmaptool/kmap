@@ -92,8 +92,11 @@ extension ViewfinderDEM {
     /// The degree tiles inside 1 rectangle of the coverage image map. The rounding and the
     /// southern hemisphere test follow pyhgtmap, so indexes written by either program agree.
     static func innerAreas(_ coords: String) -> [String] {
+        // Held to the image map, 1800 x 900: a rectangle past it names no tile but would
+        // name millions.
         let parts = coords.split(separator: ",")
             .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+            .enumerated().map { at, pixel in min(max(pixel, 0), at % 2 == 0 ? 1800 : 900) }
         guard parts.count == 4 else { return [] }
         func degrees(_ pixel: Int) -> Int { Int(Double(pixel) / pixelsPerDegree + 0.5) }
         let west = degrees(parts[0]) - 180, north = 90 - degrees(parts[1])

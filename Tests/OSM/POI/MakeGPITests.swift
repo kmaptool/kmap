@@ -27,10 +27,12 @@ final class MakeGPITests: XCTestCase {
     }
 
     func testAVeryShortDescriptionIsNotWorthCarrying() {
-        // Under a dozen characters tells a walker nothing.
+        // A single word under 12 characters tells a walker nothing.
         XCTAssertFalse(MakeGPI.worthCarrying("вода", ""))
         XCTAssertFalse(MakeGPI.worthCarrying("spring", "Woodland"))
         XCTAssertTrue(MakeGPI.worthCarrying("вода круглый год, чистая", "Родник"))
+        // A short phrase does say something.
+        XCTAssertTrue(MakeGPI.worthCarrying("Вино и рыба", "Ресторан"))
     }
 
     func testADescriptionSayingMoreThanTheNameIsCarried() {
@@ -66,6 +68,20 @@ final class MakeGPITests: XCTestCase {
     }
 
     // MARK: Text encoding
+
+    /// The file is dated by its data, so the same extracts give the same bytes.
+    func testTheFileIsDatedByItsData() throws {
+        let extract = FileManager.default.temporaryDirectory.appendingPathComponent("gpi-date-\(UUID().uuidString)")
+        try FileTools.write("x", to: extract)
+        defer { FileTools.removeIfPresent(extract) }
+        let then = Date(timeIntervalSince1970: 1_700_000_000)
+        try FileManager.default.setAttributes([.modificationDate: then], ofItemAtPath: extract.path)
+        XCTAssertEqual(MakeGPI.dataDate(of: [extract], environment: [:]), then)
+        XCTAssertEqual(
+            MakeGPI.dataDate(of: [extract], environment: ["SOURCE_DATE_EPOCH": "1600000000"]),
+            Date(timeIntervalSince1970: 1_600_000_000)
+        )
+    }
 
     func testTheDeviceCodepagesAreKnownByName() {
         XCTAssertEqual(MakeGPI.codePage(named: "cp1250"), 1250)
@@ -104,7 +120,9 @@ final class MakeGPITests: XCTestCase {
     private func scan(
         nodes: [(id: Int64, lat: Double, lon: Double, tags: [(String, String)])],
         ways: [(id: Int64, refs: [Int64], tags: [(String, String)])] = [],
-        exclude: [String] = []
+        relations: [PBFWriter.Relation] = [],
+        exclude: [String] = [],
+        prefer: String = "ru"
     ) throws -> [MakeGPI.Point] {
         let url = directory.appendingPathComponent("in.osm.pbf")
         let writer = try PBFWriter(to: url)
@@ -117,15 +135,19 @@ final class MakeGPITests: XCTestCase {
         if !ways.isEmpty {
             writer.ways(ways.map { PBFWriter.Way(id: $0.id, refs: $0.refs, tags: $0.tags) })
         }
+        if !relations.isEmpty { writer.relations(relations) }
         try writer.finish()
 
-        var found = MakeGPI.Scan(prefer: "ru", exclude: MakeGPI.parse(exclude))
+        var found = MakeGPI.Scan(prefer: prefer, exclude: MakeGPI.parse(exclude))
+        var ranges: [ClosedRange<Int64>?] = []
         try PBFReader(url: url).readInOrder(make: {
-            MakeGPI.Scan(prefer: "ru", exclude: MakeGPI.parse(exclude))
+            MakeGPI.Scan(prefer: prefer, exclude: MakeGPI.parse(exclude))
         }) { part in
+            ranges.append(part.wayIDs)
             found.take(part)
             part.clear()
         }
+        try found.addMultipolygons(urls: [url], blobWays: [ranges])
         return try found.resolve(urls: [url])
     }
 
@@ -237,6 +259,128 @@ final class MakeGPITests: XCTestCase {
         XCTAssertTrue(points.isEmpty)
     }
 
+    /// A crescent's box centre lies outside it, in the bay: the point is put on the
+    /// crescent itself.
+    func testACrescentIsCarriedInsideItself() {
+        let crescent: [(lat: Double, lon: Double)] = [
+            (0, 0), (0, 10), (10, 10), (10, 0), (8, 0), (8, 8), (2, 8), (2, 0), (0, 0)
+        ]
+        let inside = MakeGPI.pointInside(crescent)!
+        XCTAssertFalse(inside.lat > 2 && inside.lat < 8 && inside.lon < 8, "\(inside) is in the bay")
+    }
+
+    /// An outer ring pieced from 2 ways is read in a second look, and carried too.
+    func testAMultipolygonWhoseRingIsInPiecesIsCarried() throws {
+        let points = try scan(
+            nodes: [
+                (1, 44.0, 33.0, []), (2, 44.0, 33.02, []),
+                (3, 44.02, 33.02, []), (4, 44.02, 33.0, [])
+            ],
+            ways: [(10, [1, 2, 3], []), (11, [3, 4, 1], [])],
+            relations: [
+                PBFWriter.Relation(
+                    id: 100,
+                    members: [.init(kind: 1, ref: 10, role: "outer"), .init(kind: 1, ref: 11, role: "outer")],
+                    tags: [
+                        ("type", "multipolygon"), ("tourism", "museum"), ("name", "Музей"),
+                        ("description", "Краеведческий музей в старой усадьбе")
+                    ]
+                )
+            ]
+        )
+        XCTAssertEqual(points.map(\.name), ["Музей"])
+        XCTAssertEqual(points[0].lat, 44.01, accuracy: 1e-6)
+    }
+
+    /// A museum mapped as a multipolygon is carried, at a point inside its outer ring.
+    func testAMultipolygonIsCarried() throws {
+        let points = try scan(
+            nodes: [
+                (1, 44.0, 33.0, []), (2, 44.0, 33.02, []),
+                (3, 44.02, 33.02, []), (4, 44.02, 33.0, [])
+            ],
+            ways: [(10, [1, 2, 3, 4, 1], [])],
+            relations: [
+                PBFWriter.Relation(
+                    id: 100,
+                    members: [.init(kind: 1, ref: 10, role: "outer")],
+                    tags: [
+                        ("type", "multipolygon"), ("tourism", "museum"), ("name", "Музей"),
+                        ("description", "Краеведческий музей в старой усадьбе")
+                    ]
+                )
+            ]
+        )
+        XCTAssertEqual(points.map(\.name), ["Музей"])
+        XCTAssertEqual(points[0].lat, 44.01, accuracy: 1e-6)
+    }
+
+    /// A building round a courtyard: its point is on the building, not in the yard.
+    func testAMultipolygonsPointIsNotInItsCourtyard() throws {
+        let points = try scan(
+            nodes: [
+                (1, 44.0, 33.0, []), (2, 44.0, 33.03, []), (3, 44.03, 33.03, []), (4, 44.03, 33.0, []),
+                (5, 44.01, 33.01, []), (6, 44.01, 33.02, []), (7, 44.02, 33.02, []), (8, 44.02, 33.01, [])
+            ],
+            ways: [(10, [1, 2, 3, 4, 1], []), (11, [5, 6, 7, 8, 5], [])],
+            relations: [
+                PBFWriter.Relation(
+                    id: 100,
+                    members: [.init(kind: 1, ref: 10, role: "outer"), .init(kind: 1, ref: 11, role: "inner")],
+                    tags: [
+                        ("type", "multipolygon"), ("tourism", "museum"), ("name", "Музей"),
+                        ("description", "Краеведческий музей в старой усадьбе")
+                    ]
+                )
+            ]
+        )
+        let point = try XCTUnwrap(points.first)
+        let inYard = point.lat > 44.01 && point.lat < 44.02 && point.lon > 33.01 && point.lon < 33.02
+        XCTAssertFalse(inYard, "\(point)")
+        XCTAssertTrue(point.lat > 44.0 && point.lat < 44.03 && point.lon > 33.0 && point.lon < 33.03)
+    }
+
+    /// Old-style tagging: the outer way carries the relation's tags too. The relation's
+    /// point stands for both, and the way's own, in the yard, is not written.
+    func testAnOuterWayTaggedAsItsMultipolygonIsWrittenOnce() throws {
+        let tags: [(String, String)] = [
+            ("tourism", "museum"), ("name", "Музей"), ("description", "Краеведческий музей в старой усадьбе")
+        ]
+        let points = try scan(
+            nodes: [
+                (1, 44.0, 33.0, []), (2, 44.0, 33.03, []), (3, 44.03, 33.03, []), (4, 44.03, 33.0, []),
+                (5, 44.01, 33.01, []), (6, 44.01, 33.02, []), (7, 44.02, 33.02, []), (8, 44.02, 33.01, [])
+            ],
+            ways: [(10, [1, 2, 3, 4, 1], tags), (11, [5, 6, 7, 8, 5], [])],
+            relations: [
+                PBFWriter.Relation(
+                    id: 100,
+                    members: [.init(kind: 1, ref: 10, role: "outer"), .init(kind: 1, ref: 11, role: "inner")],
+                    tags: [("type", "multipolygon")] + tags
+                )
+            ]
+        )
+        XCTAssertEqual(points.count, 1, "\(points)")
+        let point = try XCTUnwrap(points.first)
+        XCTAssertFalse(point.lat > 44.01 && point.lat < 44.02 && point.lon > 33.01 && point.lon < 33.02, "\(point)")
+    }
+
+    /// An unnamed lighthouse is called by the singular, not by the hide list's heading.
+    func testAnUnnamedPointIsNamedInTheSingular() {
+        XCTAssertEqual(MakeGPI.russianName(key: "man_made", value: "lighthouse"), "Маяк")
+        XCTAssertEqual(MakeGPI.russianName(key: "leisure", value: "slipway"), "Спуск для лодок")
+    }
+
+    /// The name in the map's own language where OSM has it.
+    func testTheNameIsTakenInTheMapsLanguage() throws {
+        let tags: [(String, String)] = [
+            ("tourism", "viewpoint"), ("name", "Вид"), ("name:en", "View"),
+            ("description", "Широкий вид на долину")
+        ]
+        XCTAssertEqual(try scan(nodes: [(1, 44.5, 33.5, tags)], prefer: "en").first?.name, "View")
+        XCTAssertEqual(try scan(nodes: [(1, 44.5, 33.5, tags)], prefer: "ru").first?.name, "Вид")
+    }
+
     func testAnAreaIsCarriedAtTheCentreOfItsBox() throws {
         let points = try scan(
             nodes: [
@@ -269,7 +413,16 @@ final class MakeGPITests: XCTestCase {
                 ]
             )
         ])
-        XCTAssertEqual(points.first?.name, "water well")
+        // In the map's language, as the map labels it.
+        XCTAssertEqual(points.first?.name, "Колодец")
+        // And kinds the map never labels, from the hide list or the GPI's own few.
+        XCTAssertEqual(MakeGPI.russianName(key: "natural", value: "spring"), "Родник")
+        XCTAssertEqual(MakeGPI.russianName(key: "natural", value: "tree"), "Дерево")
+        let english = try scan(
+            nodes: [(1, 44.5, 33.5, [("man_made", "water_well"), ("description", "Старый колодец, вода солоноватая")])],
+            prefer: "en"
+        )
+        XCTAssertEqual(english.first?.name, "water well")
     }
 
     func testManyDescribedObjectsAcrossManyBlocks() throws {
@@ -287,5 +440,20 @@ final class MakeGPITests: XCTestCase {
         }
         let points = try scan(nodes: nodes)
         XCTAssertEqual(points.count, 12_000)
+    }
+
+    /// A code page kmap cannot write is said before the extract is read: the source here
+    /// is not even there.
+    func testAnUnknownCodePageIsRefusedBeforeAnythingIsRead() {
+        var gpi = MakeGPI(
+            source: URL(fileURLWithPath: "/nonexistent/extract.osm.pbf"),
+            destination: URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("never.gpi")
+        )
+        gpi.codepage = "cp866"
+        XCTAssertThrowsError(try gpi.run()) { error in
+            guard case MakeGPI.Trouble.unknownCodePage("cp866") = error else {
+                return XCTFail("\(error)")
+            }
+        }
     }
 }

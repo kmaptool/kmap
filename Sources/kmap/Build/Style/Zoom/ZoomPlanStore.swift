@@ -61,7 +61,9 @@ extension SettingsStore {
     func uniqueZoomPlanName(_ wanted: String, ignoring id: String? = nil) -> String {
         let trimmed = wanted.trimmingCharacters(in: .whitespaces)
         let base = trimmed.isEmpty ? "Zoom plan" : trimmed
-        let taken = Set(zoomPlans.filter { $0.id != id }.map { $0.name.lowercased() })
+        // As stored and as shown: a copy of a built-in named in the interface's language must
+        // not read the same as the built-in.
+        let taken = Set(zoomPlans.filter { $0.id != id }.flatMap { [$0.name.lowercased(), $0.shownName.lowercased()] })
         guard taken.contains(base.lowercased()) else { return base }
         var n = 2
         while taken.contains("\(base.lowercased()) \(n)") { n += 1 }

@@ -4,7 +4,6 @@ import Foundation
 /// it into the cache a build reads.
 extension RecoverScreen {
     private static let mostAlternatives = 2
-    private static let downloadConnections = 4
 
     /// Weighs the regions that would cover the map and offers the lightest worth having.
     func offer(_ ctx: AppContext, frame: BBox) {
@@ -18,21 +17,33 @@ extension RecoverScreen {
                 // Against the map's own tiles, not its frame, which spans ground a
                 // non-rectangular map never draws.
                 let drawn = RegionSuggestion.drawnGround(of: img)
-                let regions = RegionSuggestion.suggestedRegions(on: drawn, index: index)
+                let suggested = RegionSuggestion.suggestedRegions(on: drawn, index: index)
+                // A cached one was already found off the map: offered again, it would be
+                // downloaded and refused in a loop.
+                let regions = suggested.filter { !FileTools.exists(RegionSuggestion.cacheDestination(for: $0.region)) }
                 guard !regions.isEmpty else {
                     await MainActor.run {
-                        self.failure = t("no region kmap can download overlaps this map (%@)", frame.display)
+                        self.failure =
+                            suggested.isEmpty
+                            ? t("no region kmap can download overlaps this map (%@)", frame.display)
+                            : t(
+                                "the extracts kmap holds around this map do not cover what it draws (%@)",
+                                frame.display
+                            )
                         self.phase = .failed
                     }
                     return
                 }
                 let weighed = await Self.weighed(regions)
                 guard let pick = RegionSuggestion.worthDownloading(weighed) ?? regions.first else { return }
-                // Left with Esc while the sizes were asked: no dialog after all.
-                guard !Task.isCancelled else { return }
+                // Esc while the sizes were asked: no dialog, and a screen Esc can leave.
+                guard !Task.isCancelled else {
+                    await MainActor.run { self.phase = .cancelled }
+                    return
+                }
                 await MainActor.run { self.present(pick, among: weighed) }
             } catch is CancellationError {
-                return
+                await MainActor.run { self.phase = .cancelled }
             } catch {
                 await MainActor.run { self.fail(error) }
             }
@@ -104,6 +115,8 @@ extension RecoverScreen {
         let log = self.log
         let downloader = Downloader(log: log)
         self.downloader = downloader
+        // The build's count: a download one stops, the other resumes from the same parts.
+        let connections = ctx.settings.settings.downloadConnections
 
         work = Task.detached(priority: .userInitiated) { [weak self] in
             guard let self else { return }
@@ -111,13 +124,45 @@ extension RecoverScreen {
                 for region in regions {
                     guard let latest = region.pbfURL else { continue }
                     await MainActor.run { self.fetching = region.name }
+                    // Under the build's lock, landed beside the cache and moved in whole.
+                    let destination = RegionSuggestion.cacheDestination(for: region)
+                    let landing = BuildPipeline.extractLanding(of: destination)
+                    let lock = try await downloader.holdingDownload(of: landing)
+                    defer { withExtendedLifetime(lock) {} }
+                    // Another kmap may have put it there while this one waited.
+                    if FileTools.exists(destination) { continue }
                     // The dated file where the mirror's `-latest` alias is broken.
-                    let url = (try? await ExtractLocator.locate(latest))?.url ?? latest
-                    try await downloader.download(
-                        url: url,
-                        to: RegionSuggestion.cacheDestination(for: region),
-                        connections: Self.downloadConnections
-                    )
+                    let found = try? await ExtractLocator.locate(latest)
+                    let sum = found.map { $0.md5 } ?? region.md5URL
+                    var expected: String?
+                    if let sum { expected = await Downloader.fetchExpectedMD5(sum) }
+                    // A run stopped while it checked a whole download: checked again, not
+                    // fetched again.
+                    var whole = false
+                    if FileTools.exists(landing), !PartFiles(destination: landing).hasParts, let expected {
+                        whole = try Downloader.md5(of: landing, shouldStop: { Task.isCancelled }) == expected
+                    }
+                    if !whole {
+                        try await downloader.download(
+                            url: found?.url ?? latest,
+                            to: landing,
+                            connections: connections,
+                            lockHeld: true
+                        )
+                    }
+                    // Checked and stamped as a build does, so the next build takes it as is.
+                    var md5: String?
+                    if let expected {
+                        let got = whole ? expected : try Downloader.md5(of: landing, shouldStop: { Task.isCancelled })
+                        guard got == expected else {
+                            FileTools.removeIfPresent(landing)
+                            throw DownloadError.checksumMismatch(expected: expected, got: got)
+                        }
+                        md5 = got
+                    }
+                    try FileTools.move(landing, to: destination)
+                    CacheStamp(size: FileTools.size(of: destination), lastModified: found?.info.lastModified, md5: md5)
+                        .write(besides: destination)
                 }
                 await MainActor.run { self.start(ctx) }
             } catch is CancellationError {

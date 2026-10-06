@@ -59,6 +59,9 @@ struct Settings: Codable {
     /// share one. Tile numbers are `family × 10000 + n`, so maps sharing a family id
     /// hide each other on the receiver.
     var familyIDs: [String: Int] = [:]
+    /// The reserved id a map had before it was given a new one, until a build has said
+    /// so: the recipe screen allocates ids too, and may be left without building.
+    var movedFamilyIDs: [String: Int] = [:]
 
     static let `default` = Settings()
 

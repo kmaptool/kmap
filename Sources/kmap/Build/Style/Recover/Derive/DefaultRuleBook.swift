@@ -21,6 +21,7 @@ struct DefaultRuleBook {
     /// The building tag, its value that says there is none, and the condition that
     /// keeps a rule off buildings.
     static let buildingKey = "building"
+    static let coastline = "natural=coastline"
     static let noBuilding = "no"
     static let openGroundOnly = "building!=*"
     static let adminLevelKey = "admin_level"

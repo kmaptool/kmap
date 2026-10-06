@@ -8,7 +8,7 @@ import FoundationNetworking
 /// What the setup screen and `kmap doctor` show: a row per tool, and whether a build can run.
 extension Toolchain {
     /// What this machine can install unattended, resolved once per probe: detection costs
-    /// eight `which` calls plus a `sudo -n` with a five-second timeout.
+    /// 8 `which` calls plus a `sudo -n` with a 5-second timeout.
     struct Installability {
         let manager: PackageManager?
         let unattended: Bool
@@ -113,7 +113,7 @@ extension Toolchain {
 
     private func javaStatus(_ java: JavaRuntime?, installs: Installability) -> ToolStatus {
         // A runtime builds maps; only the seam patch needs a compiler. So a Java without
-        // one is ready with a note, not a fault — and the install stays offered, since
+        // one is ready with a note, not a fault, and the install stays offered, since
         // every package kmap would install is a whole JDK.
         let kit = java == nil ? nil : findJavaKit()
         return ToolStatus(
@@ -191,7 +191,8 @@ extension Toolchain {
             detail: detail,
             state: installed ? .ready : .missing,
             path: installed ? Paths.display(file) : nil,
-            version: installed ? "\(Fmt.bytes(FileTools.size(of: file)))" : nil,
+            // The pack itself, where it is reached by a link.
+            version: installed ? "\(Fmt.bytes(FileTools.size(of: FileTools.resolvingLinks(file))))" : nil,
             note: installed ? nil : missingNote,
             installable: true,
             isOptional: true
@@ -199,7 +200,7 @@ extension Toolchain {
     }
 
     /// Contour tracing and GeoTIFF reading are kmap's own, so pyhgtmap is needed only
-    /// for the two sources that require an account, and only to download.
+    /// for the 2 sources that require an account, and only to download.
     private func pyhgtmapStatus(installs: Installability) -> ToolStatus {
         let python = findPython3()
         let pyhgtmap = findPyhgtmap()

@@ -60,7 +60,7 @@ final class ZoomPlansScreen: Screen {
             switch Keys.latin(typed) {
             case "c":
                 naming = .copy(plan)
-                name.text = ctx.settings.uniqueZoomPlanName(t(plan.name))
+                name.text = ctx.settings.uniqueZoomPlanName(plan.shownName)
                 notice.clear()
             case "r":
                 guard !plan.isBuiltin else { return refuse(plan) }
@@ -80,7 +80,7 @@ final class ZoomPlansScreen: Screen {
     }
 
     private func refuse(_ plan: ZoomPlan) -> Route {
-        notice.say(t("%@ ships with kmap — press c to copy it", t(plan.name)), error: true)
+        notice.say(t("%@ ships with kmap — press c to copy it", plan.shownName), error: true)
         return .none
     }
 
@@ -95,19 +95,29 @@ final class ZoomPlansScreen: Screen {
             switch what {
             case .copy(let source):
                 // Every new plan is a copy: a plan records only what it moves.
-                let made = ctx.settings.copyZoomPlan(source, named: wanted.isEmpty ? source.name : wanted)
+                let made = ctx.settings.copyZoomPlan(source, named: wanted.isEmpty ? source.shownName : wanted)
                 plans = ctx.settings.zoomPlans
                 select(made.id)
+                guard !saidUnsaved(ctx) else { return .none }
                 return .push(ZoomPlanEditScreen(plan: made, settings: ctx.settings))
             case .rename(let id):
                 guard !wanted.isEmpty else { return .none }
                 ctx.settings.renameZoomPlan(id, to: wanted)
                 plans = ctx.settings.zoomPlans
                 select(id)
+                saidUnsaved(ctx)
             case .none: break
             }
         }
         return .none
+    }
+
+    /// Whether the settings file refused the change just made, said in red if so.
+    @discardableResult
+    private func saidUnsaved(_ ctx: AppContext) -> Bool {
+        guard let failure = ctx.settings.saveFailure else { return false }
+        notice.say(t("could not save the settings: %@", failure.localizedDescription), error: true)
+        return true
     }
 
     private func handleConfirm(_ key: KeyEvent, plan: ZoomPlan, ctx: AppContext) -> Route {
@@ -117,7 +127,9 @@ final class ZoomPlansScreen: Screen {
             guard ctx.settings.deleteZoomPlan(plan.id) else { return .none }
             plans = ctx.settings.zoomPlans
             list.jump(to: min(list.selected, plans.count - 1), count: plans.count)
-            notice.say(t("deleted %@ — any profile using it goes back to what ships", t(plan.name)))
+            if !saidUnsaved(ctx) {
+                notice.say(t("deleted %@ — any profile using it goes back to what ships", plan.shownName))
+            }
         case .no: confirming = nil
         case .quit: return .quit
         case nil: break
@@ -167,7 +179,7 @@ final class ZoomPlansScreen: Screen {
                 s,
                 rect: Rect(x: rect.x, y: y, w: rect.w - 1, h: 1),
                 y: y,
-                text: t(plan.name) + "   " + ladder,
+                text: plan.shownName + "   " + ladder,
                 trailing: moved,
                 theme: theme,
                 selected: index == list.selected,
@@ -204,7 +216,7 @@ final class ZoomPlansScreen: Screen {
                 theme: theme
             )
         } else if let plan = confirming {
-            s.text(rect.x, y, t("delete %@?", t(plan.name)), Style(fg: theme.warn, bg: theme.appBg, bold: true))
+            s.text(rect.x, y, t("delete %@?", plan.shownName), Style(fg: theme.warn, bg: theme.appBg, bold: true))
         } else if let text = notice.text {
             s.text(
                 rect.x,

@@ -8,6 +8,9 @@ import Foundation
 /// four steps a MIP watch can actually show (0, 85, 170, 255). A night palette drawn in
 /// finer steps looks fine on paper and collapses to mud on the wrist.
 enum TypGenerator {
+    /// The narrowest cased stroke: a pixel of border either side, one of ink between.
+    static let narrowestCased = 3
+
     /// `points` is a block of ready `[_point]` sections appended as it is - icons are
     /// bitmaps made once from their SVGs, not something to regenerate at build time.
     ///
@@ -70,10 +73,10 @@ enum TypGenerator {
             out.append("[_line]")
             out.append(String(format: "Type=0x%02x", line.code))
             out.append("; \(line.name)")
-            if let casing = line.casing {
+            if let casing = line.casing, line.width >= Self.narrowestCased {
                 // The table's width is the whole stroke, casing included: one pixel of
                 // border either side, ink in the middle.
-                let ink = max(1, line.width - 2)
+                let ink = line.width - 2
                 out.append("Xpm=\"0 0 4 0\"")
                 out.append("\"1 c \(line.day)\"")
                 out.append("\"2 c \(casing)\"")
@@ -82,9 +85,12 @@ enum TypGenerator {
                 out.append("LineWidth=\(ink)")
                 out.append("BorderWidth=1")
             } else {
+                // Narrower than a border either side and a pixel of ink, a cased line is
+                // drawn in its casing alone: a border would make it 3 pixels wide.
+                let ink = line.casing ?? line.day
                 out.append("Xpm=\"0 0 2 0\"")
-                out.append("\"1 c \(line.day)\"")
-                out.append("\"2 c \(night(of: line.day))\"")
+                out.append("\"1 c \(ink)\"")
+                out.append("\"2 c \(night(of: ink))\"")
                 out.append("LineWidth=\(line.width)")
             }
             out.append("String=0x00,\(line.name)")
@@ -109,23 +115,23 @@ enum TypGenerator {
     /// name goes in first where there is none of kmap's own, so a device does not offer a
     /// German word for a Russian map.
     private static func named(_ section: String, _ name: String) -> String {
-        guard !section.contains("String=0x00,") else { return section }
-        var lines = section.components(separatedBy: "\n")
+        var lines = TextLines.keepingTrailingBlank(section)
+        let hasOwn = lines.contains { line in
+            guard let (key, value) = TypSource.entry(of: line), key.lowercased().hasPrefix("string") else {
+                return false
+            }
+            return TypSource.label(in: value).language == 0
+        }
+        guard !hasOwn else { return section }
         // First, so it is the label a device reads before their own language entries.
-        guard
-            let type = lines.firstIndex(where: {
-                $0.trimmingCharacters(in: .whitespaces).lowercased().hasPrefix("type=")
-            })
-        else { return section }
+        guard let type = lines.firstIndex(where: { TypSource.sets("Type", $0) }) else { return section }
         lines.insert("String=0x00,\(name)", at: type + 1)
         return lines.joined(separator: "\n")
     }
 
-    /// Splits a graphics block into whole sections, keyed by kind and type code.
-    ///
-    /// Through `TypSource.parse`, the one reader of TYP text: it already knows a
-    /// section's kind and code, tolerates CRLF, casing and a comment after the type,
-    /// and a second hand-written splitter here accepted strictly less than it.
+    /// Splits a graphics block into whole sections, keyed by kind and type code, through
+    /// `TypSource.parse`, the one reader of TYP text, which tolerates CRLF and casing. A note
+    /// after the type is no number to mkgmap, nor here.
     static func parseGraphics(
         _ text: String
     ) -> (polygons: [Int: String], lines: [Int: String]) {

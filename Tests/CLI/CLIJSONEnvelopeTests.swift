@@ -104,15 +104,16 @@ final class CLIJSONEnvelopeTests: XCTestCase {
     }
 
     func testARefusedBuildNamesEveryProblemInOneEvent() async throws {
-        let made = try await run(["build", "nowhere-at-all", "--interval=zzz", "--json"])
+        let made = try await run(["build", "nowhere-at-all", "--interval=zzz", "--overlap=63", "--json"])
         XCTAssertEqual(made.code, 2)
         assertEnvelope(made, command: "build")
-        // The refusal reaches the stream as data, not as suppressed prose.
+        // The refusal reaches the stream as an error event carrying every problem, as the
+        // README says a failure does.
         let carried = made.events.contains {
-            ($0["event"] as? String) == "error" || $0["refused"] != nil
-                || (($0["data"] as? [String: Any])?["refused"]) != nil
+            ($0["event"] as? String) == "error" && (($0["refused"] as? [Any])?.count ?? 0) >= 2
         }
         XCTAssertTrue(carried, "\(made.events)")
+        XCTAssertFalse(made.events.contains { ($0["event"] as? String) == "result" }, "\(made.events)")
     }
 
     func testExtractTypRefusesUnderJSONInsteadOfWaitingOnStdin() async throws {

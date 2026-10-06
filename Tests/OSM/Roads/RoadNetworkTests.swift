@@ -166,6 +166,44 @@ final class RoadNetworkTests: XCTestCase {
         XCTAssertLessThan(network.lat[0], network.lat[1])
     }
 
+    /// A passage through a building runs at street level: it meets the street, as a tunnel
+    /// under it does not.
+    func testABuildingPassageIsAtStreetLevel() {
+        let street = RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "no")
+        XCTAssertEqual(RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "building_passage"), street)
+        XCTAssertNotEqual(RoadNetworkLoader.level(layer: "0", bridge: "no", tunnel: "yes"), street)
+    }
+
+    /// A dead end mapped as one is read with the roads, so the repair leaves it loose.
+    func testANodeTaggedNoExitIsRead() throws {
+        let url = path("noexit.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        writer.nodes([
+            PBFWriter.Node(id: 10, lat: 44.5, lon: 33.5, tags: [("noexit", "yes")]),
+            PBFWriter.Node(id: 11, lat: 44.6, lon: 33.5, tags: [("noexit", "no")]),
+            PBFWriter.Node(id: 12, lat: 44.7, lon: 33.5, tags: [("highway", "crossing")])
+        ])
+        writer.ways([PBFWriter.Way(id: 1, refs: [10, 11, 12], tags: [("highway", "track")])])
+        try writer.finish()
+        XCTAssertEqual(try RoadNetworkLoader(url: url).load().noExit, [10])
+    }
+
+    /// A gate mapped as a node of the road is read with it, so the repair joins nothing there.
+    func testANodeTaggedAsAGateIsRead() throws {
+        let url = path("gates.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        writer.nodes([
+            PBFWriter.Node(id: 10, lat: 44.5, lon: 33.5, tags: [("barrier", "gate")]),
+            PBFWriter.Node(id: 11, lat: 44.6, lon: 33.5, tags: [("barrier", "bollard")]),
+            PBFWriter.Node(id: 12, lat: 44.7, lon: 33.5, tags: [("barrier", "lift_gate")])
+        ])
+        writer.ways([PBFWriter.Way(id: 1, refs: [10, 11, 12], tags: [("highway", "track")])])
+        try writer.finish()
+        XCTAssertEqual(try RoadNetworkLoader(url: url).load().gates, [10, 12])
+    }
+
     /// Past the 255 obstacle words a byte can number, a word is no word, never the first.
     func testAnObstacleWordPastTheLastNumberIsNoWordRatherThanAnother() throws {
         let words = (0..<300).map { "kind\($0)" }

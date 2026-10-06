@@ -6,6 +6,7 @@ final class TypeEditScreen: Screen {
     var page: Page { Page(style.name, subject: TypeMeaning.hex(code), keys: keys) }
 
     private var keys: [Hint] {
+        if let replacing { return replacing.footerHints }
         if picker != nil {
             return [
                 Hint(key: "↑↓←→", label: t("move")),
@@ -13,12 +14,18 @@ final class TypeEditScreen: Screen {
                 Hint(key: "esc", label: t("back to typing"))
             ]
         }
-        if editing != nil {
-            return [
-                Hint(key: Glyph.enter, label: t("apply")),
-                Hint(key: "^P", label: t("pick a colour")),
-                Hint(key: "esc", label: t("cancel"))
-            ]
+        if let editing {
+            // The picker only where a colour is typed.
+            let picks: Bool
+            switch editing {
+            case .colourPair, .labelColour: picks = true
+            default: picks = false
+            }
+            return [Hint(key: Glyph.enter, label: t("apply"))]
+                + (picks ? [Hint(key: "^P", label: t("pick a colour"))] : [])
+                + [
+                    Hint(key: "esc", label: t("cancel"))
+                ]
         }
         var hints = [Hint(key: "↑↓", label: t("move"))]
         if case .colourPair = fields[safe: list.selected] {
@@ -61,6 +68,8 @@ final class TypeEditScreen: Screen {
     var picker: ColourPicker?
     var message: String?
     var messageIsError = false
+    /// A borrowed drawing waiting to replace this type's own, which cannot be had back.
+    var replacing: Question<XpmBlock>?
 
     init(
         style: MapStyle,
@@ -93,7 +102,7 @@ final class TypeEditScreen: Screen {
                 )
             )
         }
-        if section.kind == .point, section.dayXpm != nil, section.nightXpm == nil {
+        if section.kind == .point, section.dayXpm ?? section.xpm != nil, section.nightXpm == nil {
             out.append(.addNight)
         }
 

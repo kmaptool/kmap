@@ -6,10 +6,14 @@ import Foundation
 extension CLI {
     static func hideable(_ arguments: [String]) async -> Int32 {
         let flags = Flags(arguments, valued: ["out", "points"])
+        if let refused = flags.refusal("hideable", knows: ["regenerate", "out", "points", "quiet"]) { return refused }
         if flags.has("regenerate") || flags.has("out") || flags.has("points") {
-            return await regenerateHideable(flags)
+            // Ctrl+C stops its mkgmap and removes what it staged.
+            return await interruptible { await regenerateHideable(flags) }
         }
-        return listHideable(matching: arguments.joined(separator: " "))
+        // The filter is the words typed, not the flags: `--quiet` belongs to regenerating.
+        if flags.has("quiet") { return CLIOutput.refuse("--quiet goes with --regenerate") }
+        return listHideable(matching: flags.positionals.joined(separator: " "))
     }
 
     /// The hideable features, grouped by category.

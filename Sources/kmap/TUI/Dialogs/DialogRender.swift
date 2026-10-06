@@ -67,11 +67,14 @@ extension Dialog {
         s.hline(box.x + 1, y, box.w - 2, Glyph.h, Style(fg: c.edge, bg: c.fill))
         y += 1
 
-        // When the body does not fit, the last visible row is replaced by an ellipsis.
+        // The detail rows are what is being agreed to, a region and its size: their room
+        // is kept first, and a body that does not fit the rest ends in an ellipsis.
         let text = lines(in: rect)
+        let room = box.maxY - 2 - y
+        let bodyRows = max(1, room - (detail.isEmpty ? 0 : min(detail.count + 1, room - 1)))
         for (at, line) in text.enumerated() {
-            guard y < box.maxY - 2 else { break }
-            let last = y == box.maxY - 3 && at < text.count - 1
+            guard at < bodyRows, y < box.maxY - 2 else { break }
+            let last = at == bodyRows - 1 && at < text.count - 1
             s.text(box.x + 3, y, last ? String(Glyph.ellipsis) : line, Style(fg: c.ink, bg: c.fill))
             y += 1
         }

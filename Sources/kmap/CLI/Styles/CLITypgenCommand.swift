@@ -8,6 +8,7 @@ extension CLI {
 
     static func typgen(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["fid", "out"])
+        if let refused = flags.refusal("typgen", knows: ["fid", "out"], positionals: 1) { return refused }
         guard let path = flags.positionals.first else {
             return CLIOutput.refuse("typgen needs a palette.txt path")
         }

@@ -11,6 +11,7 @@ extension CLI {
 
     static func coverage(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["step"])
+        if let refused = flags.refusal("coverage", knows: ["step", "quiet"], positionals: 1) { return refused }
         guard let path = flags.positionals.first, !path.hasPrefix("-") else {
             return CLIOutput.refuse("usage: kmap coverage <map.img> [--step \(coverageStep)] [--quiet]")
         }
@@ -19,6 +20,11 @@ extension CLI {
             return CLIOutput.refuse("--step must be a positive number of degrees")
         }
         let url = URL(fileURLWithPath: path)
+        guard FileTools.exists(url) else { return CLIOutput.failure("no such file: \(path)") }
+        // A map cut short would read as covering less, and pass for a smaller one.
+        guard !ImgContainer.isImg(url) || ImgContainer.isWhole(url, headers: false) else {
+            return CLIOutput.failure("\(url.lastPathComponent) is cut short — its last files end past the end of it")
+        }
         let tiles = MapCoverage.tiles(in: url)
         guard let report = MapCoverage.check(tiles, step: step) else {
             return CLIOutput.refuse(t("no map tiles found"))

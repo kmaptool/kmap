@@ -11,8 +11,10 @@ enum Fetch {
 
     /// The body at `url`. A status outside 2xx throws `DownloadError.badStatus`.
     static func data(_ url: URL, timeout: TimeInterval = timeout) async throws -> Data {
-        try Network.ensureOpen()
-        var request = URLRequest(url: url)
+        try Network.ensureOpen(url)
+        // Never from the local cache: a checksum asked again to settle a doubt would get
+        // the answer it doubts.
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.timeoutInterval = timeout
         let (data, response) = try await URLSession.shared.data(for: request)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {

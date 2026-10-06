@@ -26,6 +26,8 @@ extension GEDTM30 {
             guard version == TIFF.classic || version == TIFF.big else { throw Trouble.notTIFF }
             let big = version == TIFF.big
             let at = Int64(big ? order.int(head, 8, 8) : order.int(head, 4, 4))
+            // Past the largest file there can be, the sums below overflow.
+            guard (0...GEDTM30.mostFileBytes).contains(at) else { throw Trouble.notTIFF }
             let countSize = big ? 8 : 2, entrySize = big ? 20 : 12
             let count = order.int(try await read(at, countSize), 0, countSize)
             guard count > 0, count < Self.mostEntries else { throw Trouble.notTIFF }

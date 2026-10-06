@@ -28,16 +28,18 @@ extension ToolchainScreen {
             )
             return
         }
-        let visible = max(1, (rect.maxY - y) / Self.rowHeight)
+        // The message has its rows kept, wrapped whole: a question whose key is cut off,
+        // or not drawn at all, would still take that key.
+        let said = message.map { wrapText($0, width: max(1, rect.w - 2)) } ?? []
+        let visible = max(1, (rect.maxY - y - said.count) / Self.rowHeight)
         for i in list.window(count: tools.count, visible: visible) {
-            guard y + 2 < rect.maxY else { break }
+            guard y + 2 < rect.maxY - said.count else { break }
             draw(tools[i], into: s, rect: rect, y: y, selected: i == list.selected, ctx: ctx)
             y += Self.rowHeight
         }
 
-        if let message {
-            guard y < rect.maxY else { return }
-            s.text(rect.x + 2, y, message, Style(fg: theme.warn, bg: theme.appBg))
+        for line in said where y < rect.maxY {
+            s.text(rect.x + 2, y, line, Style(fg: theme.warn, bg: theme.appBg))
             y += 1
         }
 

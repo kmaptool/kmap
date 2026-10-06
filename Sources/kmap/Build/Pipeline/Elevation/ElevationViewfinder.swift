@@ -52,6 +52,8 @@ extension BuildPipeline {
                     break
                 }
                 guard var index = indexes[resolution] else { continue }
+                // Kept on a throw too: a fetch that finds a claimed cell missing corrects it.
+                defer { indexes[resolution] = index }
                 do {
                     try Task.checkCancellation()
                     _ = try await ViewfinderDEM.fetch(
@@ -63,10 +65,12 @@ extension BuildPipeline {
                     ) {
                         self.log.append($0)
                     }
-                    indexes[resolution] = index
                     found = true
                     break
                 } catch is CancellationError {
+                    throw CancellationError()
+                } catch  where Task.isCancelled {
+                    // A stop on the last cell would otherwise read as open sea.
                     throw CancellationError()
                 } catch ViewfinderDEM.Trouble.unreachable(let area, let why) {
                     failed = true

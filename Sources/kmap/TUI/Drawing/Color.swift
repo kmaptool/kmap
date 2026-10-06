@@ -22,11 +22,14 @@ struct Color: Equatable {
         return .rgb(UInt8(r), UInt8(g), UInt8(b))
     }
 
-    /// The three channels of `#RRGGBB` as integers, or nil for any other text.
+    /// The 3 channels of `#RRGGBB` as integers, or nil for any other text. The alpha
+    /// of `#RRGGBBAA` is not shown.
     static func channels(of hex: String) -> (Int, Int, Int)? {
         var s = hex.trimmingCharacters(in: .whitespaces)
         if s.hasPrefix("#") { s.removeFirst() }
-        guard s.count == 6, let value = Int(s, radix: 16) else { return nil }
+        guard s.count == 6 || s.count == 8, s.allSatisfy({ $0.isASCII && $0.isHexDigit }),
+            let value = Int(s.prefix(6), radix: 16)
+        else { return nil }
         return ((value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF)
     }
 

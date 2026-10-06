@@ -345,7 +345,7 @@ final class RuleReassignmentsTests: XCTestCase {
         XCTAssertNotEqual(RuleReassignments.fingerprint(in: store), toTwo)
     }
 
-    /// The file is the user's to annotate: undoing one entry leaves every comment.
+    /// The file is the user's to annotate: undoing 1 entry leaves every comment.
     func testUndoingOneLeavesTheCommentsWritten() throws {
         try RuleReassignments.add(move("shop=car_wrecker [0x2f0a resolution 24]", from: 0x2f0a, to: 0x2f03), to: store)
         try RuleReassignments.add(move("shop=bicycle [0x2f13 resolution 24]", from: 0x2f13, to: 0x2f03), to: store)
@@ -376,5 +376,42 @@ final class RuleReassignmentsTests: XCTestCase {
         try FileTools.write(text, to: store)
         try RuleReassignments.remove(entries[0], from: store)
         XCTAssertEqual(RuleReassignments.entries(in: store), [entries[1]])
+    }
+
+    /// Undoing the last one leaves the file and what the user wrote in it: an empty
+    /// store is one with no entries, not one with no file.
+    func testUndoingTheLastOneLeavesTheCommentsWritten() throws {
+        try RuleReassignments.add(move("shop=bicycle [0x2f13 resolution 24]", from: 0x2f13, to: 0x2f03), to: store)
+        try FileTools.write(RuleReassignments.text(in: store) + "# my own note, kept\n", to: store)
+
+        try RuleReassignments.remove(try XCTUnwrap(RuleReassignments.entries(in: store).first), from: store)
+
+        XCTAssertTrue(RuleReassignments.isEmpty(in: store))
+        XCTAssertEqual(RuleReassignments.fingerprint(in: store), "")
+        XCTAssertTrue(RuleReassignments.text(in: store).contains("# my own note, kept"))
+    }
+
+    /// A file a Windows editor saved keeps its line ends through an add and an undo.
+    func testWindowsLineEndsStayWindowsLineEnds() throws {
+        try FileTools.write(
+            "# mine\r\n@@ points\r\n- a=1 [0x01 resolution 24]\r\n+ a=1 [0x02 resolution 24]\r\n",
+            to: store
+        )
+        try RuleReassignments.add(move("b=2 [0x03 resolution 24]", from: 3, to: 4), to: store)
+        XCTAssertEqual(RuleReassignments.entries(in: store).count, 2)
+        try RuleReassignments.remove(try XCTUnwrap(RuleReassignments.entries(in: store).first), from: store)
+
+        let bytes = try Data(contentsOf: store)
+        let text = String(decoding: bytes, as: UTF8.self)
+        XCTAssertFalse(text.replacingOccurrences(of: "\r\n", with: "").contains("\n"), "no bare line end")
+        XCTAssertEqual(RuleReassignments.entries(in: store).map(\.old), [["b=2 [0x03 resolution 24]"]])
+    }
+
+    /// A file that is not UTF-8 is refused, not read as empty and written over.
+    func testAFileThatIsNotUTF8IsLeftAsItIs() throws {
+        let bytes: [UInt8] = Array("# mine\n@@ points\n- a=\"".utf8) + [0xE9] + Array("\" [0x01 resolution 24]\n".utf8)
+        try Data(bytes).write(to: store)
+        XCTAssertThrowsError(try RuleReassignments.add(move("b=2 [0x03 resolution 24]", from: 3, to: 4), to: store))
+        XCTAssertEqual([UInt8](try Data(contentsOf: store)), bytes)
     }
 }

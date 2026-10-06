@@ -40,6 +40,9 @@ extension RepairPlanner {
         return abs(ax * dy - ay * dx) / length <= reach
     }
 
+    /// Barriers that close a way rather than slow it: an end on one is shut out.
+    static let gateWords: Set<String> = ["gate", "lift_gate", "swing_gate", "sliding_gate", "wicket_gate", "turnstile"]
+
     enum Gate {
         case refused(String)
         case allowed(Blockage?)
@@ -48,14 +51,63 @@ extension RepairPlanner {
     /// Everything that can stop a repair before the routing test is reached.
     func stopped(_ gap: Gap, obstacles: CellTable) -> Gate {
         let p = gap.origin, q = gap.landing
+        // An end on a fence or a building is a gate or a door, as is a landing on one: private
+        // ground or indoors. A building passage is a street and meets the wall it runs through,
+        // on either of the 2 lines; a fence or a gate still shuts it.
+        let passage = [gap.candidate.way, gap.candidate.otherWay].contains {
+            network.passages.contains(network.wayID[Int($0)])
+        }
+        for point in [p, q] {
+            let through = obstaclesThrough(
+                point.lat,
+                point.lon,
+                grid: obstacles,
+                cell: RoadRepair.cellDegrees,
+                closing: true
+            )
+            if !passage, through.contains(where: { $0.kind == .building }) {
+                return .refused(Verdict.stoppedBy(Verdict.building))
+            }
+            if through.contains(where: { $0.kind.isImpassable && $0.kind != .building }) {
+                return .refused(Verdict.stoppedBy(Verdict.fence))
+            }
+            // A gate drawn as a line of its own across the way.
+            if let gate = through.first(where: { Self.gateWords.contains($0.word) }) {
+                return .refused(Verdict.stoppedBy(gate.word))
+            }
+        }
+        // A gate mapped as a node of the road: the end itself, or the node it would land on.
+        if network.gates.contains(gap.ref) || network.gates.contains(network.refs[gap.at]) {
+            return .refused(Verdict.stoppedBy("gate"))
+        }
+        for node in [gap.segment, gap.segment + 1] where network.gates.contains(network.refs[node]) {
+            let dx = (network.lon[node] - q.lon) * gap.kx
+            let dy = (network.lat[node] - q.lat) * RoadRepair.metresPerDegree
+            if (dx * dx + dy * dy).squareRoot() <= Self.slip { return .refused(Verdict.stoppedBy("gate")) }
+        }
+        // A dead end mapped as one takes no join from another line either.
+        for node in [gap.segment, gap.segment + 1] where network.noExit.contains(network.refs[node]) {
+            let dx = (network.lon[node] - q.lon) * gap.kx
+            let dy = (network.lat[node] - q.lat) * RoadRepair.metresPerDegree
+            if (dx * dx + dy * dy).squareRoot() <= Self.slip { return .refused(Verdict.deadEnd) }
+        }
         var blocked = blockedBy(p.lat, p.lon, q.lat, q.lon, grid: obstacles, cell: RoadRepair.cellDegrees)
         if let refusal = refusal(by: blocked) { return .refused(refusal) }
         // A pavement running alongside a road is not a junction, however close it comes.
         if runsAlongside(gap) { return .refused(Verdict.alongside) }
-        if let reason = groundSays(p.lat, p.lon, q.lat, q.lon, distance: gap.distance) {
+        if let (reason, height) = groundSays(p.lat, p.lon, q.lat, q.lon, distance: gap.distance) {
             if !bridging { return .refused(Verdict.stoppedBy(reason.rawValue)) }
+            // The ground's own height counts as an obstacle's does: past `tooHigh` nothing
+            // is getting over it.
+            if height.isFinite, height > Self.tooHigh {
+                return .refused(Verdict.tooHigh(reason.rawValue, Self.tooHigh))
+            }
             if blocked == nil {
-                blocked = Blockage(kind: reason == .ravine ? .ravine : .cliff, word: reason.rawValue, height: .nan)
+                blocked = Blockage(
+                    kind: reason == .ravine ? .ravine : .cliff,
+                    word: reason.rawValue,
+                    height: Float(height)
+                )
             }
         }
         return .allowed(blocked)
@@ -107,18 +159,18 @@ extension RepairPlanner {
         _ qlat: Double,
         _ qlon: Double,
         distance: Double
-    ) -> Ground? {
+    ) -> (Ground, height: Double)? {
         guard let terrain, distance > Self.groundMinimum else { return nil }
         guard let here = terrain.elevation(plat, plon),
             let there = terrain.elevation(qlat, qlon)
         else { return nil }
-        if abs(here - there) > Self.step { return .drop }
+        if abs(here - there) > Self.step { return (.drop, abs(here - there)) }
         if let middle = terrain.elevation((plat + qlat) / 2, (plon + qlon) / 2),
             min(here, there) - middle > Self.dip
         {
-            return .ravine
+            return (.ravine, min(here, there) - middle)
         }
-        if let steep = terrain.slope(plat, plon), steep > Self.cliffDegrees { return .face }
+        if let steep = terrain.slope(plat, plon), steep > Self.cliffDegrees { return (.face, .nan) }
         return nil
     }
 }

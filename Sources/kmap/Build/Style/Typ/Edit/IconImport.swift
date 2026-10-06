@@ -16,8 +16,7 @@ import AppKit
 /// on a small square grid. The result reports how far the picture was scaled, how many
 /// colours it lost, and how many pixels had to be forced solid or clear.
 enum IconImport {
-    /// The palette ceiling: a point image indexes its palette with at most eight bits. One
-    /// slot goes to transparency wherever the source has any.
+    /// The palette ceiling: 8 bits a pixel, of which 255 solid colours at most.
     static let maximumColours = 256
 
     /// Below this, a pixel is treated as clear; at or above it, as solid. A TYP has one
@@ -190,7 +189,8 @@ enum IconImport {
         }
 
         let hasTransparency = pixels.contains { $0.a < UInt8(alphaThreshold) }
-        let room = hasTransparency ? maximumColours - 1 : maximumColours
+        // 255 solid at most: mkgmap writes the solid count as a byte, and 0 means true colour.
+        let room = maximumColours - 1
         // Ties broken by the colour itself, so the same picture imports the same way twice.
         let ordered = tally.sorted { ($0.value, $1.key) > ($1.value, $0.key) }
         let kept = ordered.prefix(room).map(\.key)

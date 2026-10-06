@@ -5,6 +5,13 @@ import Foundation
 extension CLI {
     static func typdump(_ arguments: [String]) -> Int32 {
         let flags = Flags(arguments, valued: ["type"])
+        if let refused = flags.refusal(
+            "typdump",
+            knows: ["type", "all", "polygons", "lines", "points", "draw-order"],
+            positionals: 1
+        ) {
+            return refused
+        }
         guard let path = flags.positionals.first else {
             return CLIOutput.refuse(
                 "usage: kmap typdump <file.typ|map.img> [--polygons] [--lines] [--points]"
@@ -40,11 +47,13 @@ extension CLI {
             return CLIOutput.failure("\(error.localizedDescription)")
         }
 
-        let wantedTypes: Set<Int> = Set(
-            flags.values("type").compactMap { text -> Int? in
-                Int(text.hasPrefix("0x") ? text.dropFirst(2) : text[...], radix: 16)
+        var wantedTypes = Set<Int>()
+        for text in flags.values("type") {
+            guard let type = Int(text.hasPrefix("0x") ? text.dropFirst(2) : text[...], radix: 16) else {
+                return CLIOutput.refuse("--type=\(text) is not a hex type")
             }
-        )
+            wantedTypes.insert(type)
+        }
         let all = flags.has("all")
         var kinds: [MapElementKind] = []
         if all || flags.has("polygons") { kinds.append(.polygon) }

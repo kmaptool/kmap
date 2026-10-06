@@ -24,8 +24,13 @@ final class BuildRecipeNamesTests: RecipeTestCase {
         let a = region("continent/region-a", "A"), b = region("continent/region-b", "B")
         let c = region("continent/region-c", "C"), d = region("continent/region-d", "D")
         XCTAssertEqual(recipe([a, b]).slug, "continent-region-a+continent-region-b")
-        XCTAssertEqual(recipe([a, b, c]).slug, "continent-region-a+continent-region-b+1")
-        XCTAssertEqual(recipe([a, b, c, d]).slug, "continent-region-a+continent-region-b+2")
+        XCTAssertTrue(recipe([a, b, c]).slug.hasPrefix("continent-region-a+continent-region-b+1-"))
+        XCTAssertTrue(recipe([a, b, c, d]).slug.hasPrefix("continent-region-a+continent-region-b+2-"))
+        // 2 sets sharing their first 2 and their count share no work or output folder.
+        XCTAssertNotEqual(recipe([a, b, c]).slug, recipe([a, b, d]).slug)
+        // The name the programs show stays readable.
+        XCTAssertEqual(recipe([a, b, c]).areaSlug, "continent-region-a+continent-region-b+1")
+        XCTAssertEqual(recipe([a, b, c]).slug, recipe([a, b, c]).slug)
     }
 
     // MARK: What the finished files are called
@@ -83,7 +88,9 @@ final class BuildRecipeNamesTests: RecipeTestCase {
         }
         let narrower = dated(recipe([region("crimean", "Crimea")]))
         for name in [
-            "kmap-crimean-fed-district-2026-08-22.img", "kmap-crimean-fed-district-2026-08-21.img.partial",
+            "kmap-crimean-fed-district-2026-08-22.img",
+            // This build's own name, refused only by what follows it.
+            made.fileName() + ".partial", made.gmapName() + ".old",
             "kmap-crimean-fed-district-2026-08-21-x.img", "my-own.img", "build-info.txt"
         ] {
             XCTAssertFalse(made.namesAnOutput(name), name)

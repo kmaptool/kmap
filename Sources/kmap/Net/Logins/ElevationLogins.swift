@@ -28,7 +28,8 @@ enum ElevationLogins {
         var sourceIDs: [String] {
             switch self {
             case .srtm: return ["srtm1", "srtm3"]
-            case .alos: return ["alos1", "alos3"]
+            // pyhgtmap 4.1 reads ALOS at 1 arc-second only, whatever its help says.
+            case .alos: return ["alos1"]
             }
         }
     }
@@ -49,16 +50,23 @@ enum ElevationLogins {
             + #"\s*(?:\s[;#]\s*(?<comment>.*?)\s*)?$"#
     )
 
+    /// Read again only when the file changes: the settings screen asks on every frame.
     private static func parse() -> [String: String] {
-        guard let text = try? String(contentsOf: configFile, encoding: .utf8) else { return [:] }
-        return parse(text)
+        let stamp =
+            "\(FileTools.size(of: configFile)) \(FileTools.modified(of: configFile)?.timeIntervalSince1970 ?? 0)"
+        if let held = parsed.withLock({ $0 }), held.stamp == stamp, held.path == configFile.path { return held.values }
+        let values = (try? String(contentsOf: configFile, encoding: .utf8)).map(parse) ?? [:]
+        parsed.withLock { $0 = (configFile.path, stamp, values) }
+        return values
     }
+
+    private static let parsed = Locked<(path: String, stamp: String, values: [String: String])?>(nil)
 
     static func parse(_ text: String) -> [String: String] {
         guard let line else { return [:] }
         var values: [String: String] = [:]
-        // `Lines.of` strips a trailing carriage return, which would end up in the value.
-        for rawLine in Lines.of(text) {
+        // `TextLines.of` strips a trailing carriage return, which would end up in the value.
+        for rawLine in TextLines.of(text) {
             guard let found = pair(in: rawLine, by: line) else { continue }
             values[found.key] = found.value
         }

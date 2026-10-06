@@ -39,7 +39,7 @@ extension PBFRewriter {
                     } else {
                         let size = try PBFReader.inflate(blob, into: &scratch)
                         let block = try scratch.withUnsafeBytes {
-                            try Block(UnsafeRawBufferPointer(rebasing: $0[0..<size]), fields: &fields)
+                            try RewriteBlock(UnsafeRawBufferPointer(rebasing: $0[0..<size]), fields: &fields)
                         }
                         holds = (block.hasNodes ? Self.holdsNodes : 0) | (block.hasWays ? Self.holdsWays : 0)
                         kinds.append(holds)
@@ -71,6 +71,9 @@ extension PBFRewriter {
                     ]
                 )
             )
+        }
+        for end in plan.extensions {
+            batch.append(PBFWriter.Node(id: end.node, lat: end.lat, lon: end.lon, tags: []))
         }
         return batch
     }

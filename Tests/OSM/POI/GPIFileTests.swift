@@ -43,6 +43,23 @@ final class GPIFileTests: XCTestCase {
         XCTAssertEqual(data.suffix(8), Data([0xff, 0xff, 0, 0, 0, 0, 0, 0]))
     }
 
+    func testADateOutsideWhat32BitsHoldIsHeldToTheEdgeRatherThanTrapping() {
+        func stamp(_ date: Date) -> UInt32 {
+            let data = GPIFile.data(
+                points: [point(45, 34, "AB", "CD")],
+                category: [],
+                codePage: 1252,
+                fileName: "x",
+                madeAt: date
+            )
+            return data[16..<20].reversed().reduce(0) { $0 << 8 | UInt32($1) }
+        }
+        XCTAssertEqual(stamp(GPIFile.epoch.addingTimeInterval(1e10)), UInt32.max)
+        XCTAssertEqual(stamp(Date(timeIntervalSince1970: .infinity)), 0)
+        XCTAssertEqual(stamp(GPIFile.epoch.addingTimeInterval(-5)), 0)
+        XCTAssertEqual(stamp(GPIFile.epoch.addingTimeInterval(7)), 7)
+    }
+
     func testTheCodePageIsWrittenWhereTheDeviceLooksForIt() throws {
         // Written, not patched in afterwards: the text is encoded in this page.
         for page in [1250, 1251, 1252] {

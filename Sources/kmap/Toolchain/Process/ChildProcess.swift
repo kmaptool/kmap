@@ -29,25 +29,56 @@ enum ChildProcess {
     }
 
     /// The tools running now, for a kmap that is made to leave to stop first: each runs in
-    /// a process group of its own, which a closed terminal's hang-up does not reach.
-    private static let live = Locked<[ObjectIdentifier: Process]>([:])
+    /// a process group of its own, which a closed terminal's hang-up does not reach. Each
+    /// with whether it is signalled alone (see `track`), under the same lock.
+    private static let live = Locked<[ObjectIdentifier: (process: Process, alone: Bool)]>([:])
 
-    static func track(_ process: Process) { live.withLock { $0[ObjectIdentifier(process)] = process } }
+    /// Set once kmap is on its way out, for good: see `leave`.
+    private static let leaving = Locked(false)
 
-    static func untrack(_ process: Process) { _ = live.withLock { $0.removeValue(forKey: ObjectIdentifier(process)) } }
+    static var isLeaving: Bool { leaving.withLock { $0 } }
+
+    /// Takes the leave back, for a test that left: kmap itself never comes back.
+    static func stayForTests() { leaving.withLock { $0 = false } }
+
+    /// A tool started while kmap is leaving is killed at once.
+    ///
+    /// - Parameter alone: signal the tool, not its group: dpkg under apt finishes.
+    static func track(_ process: Process, alone: Bool = false) {
+        live.withLock { $0[ObjectIdentifier(process)] = (process, alone) }
+        if isLeaving { insist(on: process) }
+    }
+
+    static func untrack(_ process: Process) {
+        _ = live.withLock { $0.removeValue(forKey: ObjectIdentifier(process)) }
+    }
+
+    private static func isAlone(_ process: Process) -> Bool {
+        live.withLock { $0[ObjectIdentifier(process)]?.alone ?? false }
+    }
+
+    /// Stops every tool on kmap's way out, and every one started after: work not told it
+    /// is ending may start the next tool before the process ends.
+    static func leave(grace: TimeInterval = exitGrace) {
+        leaving.withLock { $0 = true }
+        stopAll(grace: grace)
+    }
 
     /// Stops every tool still running: all asked at once, then SIGKILL after the grace.
-    static func stopAll() {
-        let running = live.withLock { Array($0.values) }.filter(\.isRunning)
-        for process in running { process.terminate() }
-        let deadline = Date().addingTimeInterval(exitGrace)
-        while running.contains(where: \.isRunning), Date() < deadline { Thread.sleep(forTimeInterval: pollInterval) }
-        for process in running { insist(on: process) }
+    static func stopAll(grace: TimeInterval = exitGrace) {
+        // Read once, with how each is signalled: one that ends in the grace is untracked.
+        let running = live.withLock { Array($0.values) }.filter(\.process.isRunning)
+        for tool in running { ask(tool.process, alone: tool.alone) }
+        let deadline = Date().addingTimeInterval(grace)
+        while running.contains(where: \.process.isRunning), Date() < deadline {
+            Thread.sleep(forTimeInterval: pollInterval)
+        }
+        for tool in running { insist(on: tool.process, alone: tool.alone) }
     }
 
     /// Terminate, `exitGrace`, then SIGKILL.
     static func stop(_ process: Process) {
-        process.terminate()
+        ask(process)
         if !waitForExit(process, within: exitGrace) {
             insist(on: process)
             waitForExit(process, within: exitGrace)
@@ -59,13 +90,39 @@ enum ChildProcess {
     /// `Process.terminate()` sends SIGTERM on the Unixes, which a program may handle or
     /// ignore; SIGKILL it cannot. On Windows `terminate()` is already `TerminateProcess`,
     /// which is not refusable, and there are no signals.
-    static func insist(on process: Process) {
+    static func insist(on process: Process, alone: Bool? = nil) {
         #if os(Windows)
         if process.isRunning { process.terminate() }
         #else
-        if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+        let single = alone ?? isAlone(process)
+        if process.isRunning {
+            signalGroup(of: process, SIGKILL, alone: single)
+        } else if process.processIdentifier > 0, !single {
+            // A leader gone may leave what it forked: its group, never its own pid alone.
+            // The pid is not given out again while the group lives.
+            kill(-process.processIdentifier, SIGKILL)
+        }
         #endif
     }
+
+    /// Asks it to stop: SIGTERM, which a program may handle, on the Unixes.
+    static func ask(_ process: Process, alone: Bool? = nil) {
+        #if os(Windows)
+        if process.isRunning { process.terminate() }
+        #else
+        if process.isRunning { signalGroup(of: process, SIGTERM, alone: alone ?? isAlone(process)) }
+        #endif
+    }
+
+    #if !os(Windows)
+    /// The tool's group, which holds what it forks; the tool alone where it leads none or
+    /// was tracked `alone`.
+    private static func signalGroup(of process: Process, _ number: Int32, alone single: Bool) {
+        let pid = process.processIdentifier
+        guard pid > 0 else { return }
+        if single || kill(-pid, number) != 0 { kill(pid, number) }
+    }
+    #endif
 
     /// Somewhere for a child's standard input to come from, with nothing in it, so a tool
     /// that asks a question meets an immediate end of input rather than the raw-mode terminal.

@@ -56,34 +56,23 @@ extension StyleCatalog {
         return (applied, missed, hidden)
     }
 
-    /// The language-proof fallback for one substitution.
-    ///
-    /// A sheet is derived against the pristine rule set, where labels are English and
-    /// the zoom plan has not moved anything; it is applied to the rules this build
-    /// actually has, where a label may read a Russian word for a ford and a rule may sit
-    /// at another resolution. Exact-line matching then misses a rule that is plainly the same
-    /// one, so it is found here by what cannot drift: the bare condition, and the type
-    /// it emits.
-    ///
-    /// Three shapes are honoured - a rule deleted, a rule re-aimed, and a rule kept
-    /// with strokes stacked above it. Anything else is left to the exact match, and
-    /// reported when that misses.
-    /// Whether the rule `old` names is one the hide pass took the type from: its own first
-    /// line, commented out or not, with the hidden mark on it or the lines of the rule after.
-    /// Not the first place the condition appears: a comment quoting it, or a hidden rule
-    /// just below, is another rule.
+    /// Whether the hide pass took the type from the rule `old` names: its own first line
+    /// carries the hidden mark, not a comment or another rule quoting it.
     static func isHidden(_ old: String, in text: String) -> Bool {
+        // The condition alone: a hidden rule keeps its actions with deletes added.
+        func bare(_ line: String) -> String {
+            let upTo = line.components(separatedBy: " [0x").first ?? line
+            return (upTo.components(separatedBy: "{").first ?? upTo).trimmingCharacters(in: .whitespaces)
+        }
         let first = (old.components(separatedBy: "\n").first ?? old)
-        let condition = (first.components(separatedBy: " [0x").first ?? first).trimmingCharacters(in: .whitespaces)
+        let condition = bare(first)
         guard !condition.isEmpty else { return false }
         let lines = text.components(separatedBy: "\n")
         for (at, line) in lines.enumerated() {
             // Commented out whole, or kept with its actions and its type dropped.
             let body = String(line.trimmingCharacters(in: .whitespaces).drop { $0 == "#" || $0 == " " })
             // The whole condition, not its start: `shop=car` is not `shop=car_repair`.
-            let head =
-                (body.components(separatedBy: " [0x").first ?? body)
-                .components(separatedBy: "# kmap:").first?.trimmingCharacters(in: .whitespaces) ?? ""
+            let head = bare(body.components(separatedBy: "# kmap:").first ?? body)
             guard head == condition else { continue }
             let rule = lines[at..<min(lines.count, at + old.components(separatedBy: "\n").count)]
             if rule.contains(where: { $0.contains("# kmap: hidden") }) { return true }
@@ -91,6 +80,15 @@ extension StyleCatalog {
         return false
     }
 
+    /// The language-proof fallback for a substitution. A sheet is derived against the
+    /// pristine rules (English labels, nothing moved by a zoom plan) but applied to this
+    /// build's, where a ford's label may be Russian and a rule may sit at another resolution.
+    /// Exact-line matching misses such a rule, so it is found by what cannot drift: the bare
+    /// condition and the type it emits.
+    ///
+    /// 3 shapes are honoured: a rule deleted, a rule re-aimed, and a rule kept with strokes
+    /// stacked above it. Anything else is left to the exact match, and reported when that
+    /// misses.
     private static func retype(_ text: inout String, old: String, new: String) -> Bool {
         func token(of rule: String) -> Substring? {
             guard let open = rule.range(of: "[0x") else { return nil }
@@ -111,9 +109,12 @@ extension StyleCatalog {
         let newLines = new.isEmpty ? [] : new.components(separatedBy: "\n")
         // Every replacement line must be about the same rule, or this substitution is
         // doing more than the fallback understands.
+        // A line that is the type alone is the second line of a 2-line rule.
         guard
             newLines.allSatisfy({ line in
-                line.contains("[0x") ? bareCondition(of: line) == condition : true
+                guard line.contains("[0x") else { return true }
+                return line.trimmingCharacters(in: .whitespaces).hasPrefix("[")
+                    || bareCondition(of: line) == condition
             })
         else { return false }
 
@@ -127,7 +128,7 @@ extension StyleCatalog {
                         .trimmingCharacters(in: .whitespaces)
                 ) == condition
             else { continue }
-            // The type may sit on this line or, for a two-line rule, on the next.
+            // The type may sit on this line or, for a 2-line rule, on the next.
             guard
                 let target = [at, at + 1].first(where: {
                     $0 < lines.count && lines[$0].contains(oldToken)
@@ -194,11 +195,8 @@ extension StyleCatalog {
             // ones before it are strokes stacked above.
             guard let closing = newLines.last, let newToken = token(of: closing)
             else { return false }
-            let layers = newLines.dropLast(
-                oldLines.count == newLines.count
-                    ? 1
-                    : oldLines.count
-            ).map(fitted)
+            // The rule's own lines, 1 or 2, end the replacement.
+            let layers = newLines.dropLast(oldLines.count).map(fitted)
             lines[target] = lines[target].replacingOccurrences(
                 of: String(oldToken),
                 with: String(newToken)

@@ -5,6 +5,7 @@ final class SettingsScreen: Screen {
     var page: Page { Page(t("settings"), keys: keys) }
 
     private var keys: [Hint] {
+        if let asking { return asking.footerHints }
         if picking != nil {
             return [
                 Hint(key: "↑↓", label: t("move")),
@@ -31,11 +32,20 @@ final class SettingsScreen: Screen {
     var list = ListState()
     var editing: Field?
     var draft = ""
-    var message: String?
+    var message: String? { didSet { messageIsError = false } }
+    /// A refusal or a failure, drawn as one.
+    private(set) var messageIsError = false
+
+    func refuse(_ text: String) {
+        message = text
+        messageIsError = true
+    }
     /// The open list: its field, its options, and the cursor in it.
     var picking: (field: Field, labels: [String], at: Int)?
     /// The row the open list hangs under.
     var pickerRow: Int?
+    /// Whether to empty a cache: hours of downloads go with 1 key.
+    var asking: Question<Field>?
 
     /// The login fields serve srtm1 and alos1, which need pyhgtmap.
     func fields(_ ctx: AppContext) -> [Field] {
@@ -48,6 +58,10 @@ final class SettingsScreen: Screen {
     }
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        if let (answer, field) = asking.take(key) {
+            if answer == .confirmed { clear(field, ctx) }
+            return .none
+        }
         if let field = editing { return handleEditing(field, key, ctx) }
         if picking != nil { return handlePicking(key, ctx) }
 
@@ -112,12 +126,8 @@ final class SettingsScreen: Screen {
     /// Enter: edit the text, clear the cache, or open the list.
     private func open(_ field: Field, _ ctx: AppContext) {
         switch field {
-        case .clearCache:
-            clearCache(ctx)
-            ctx.refreshOverview(force: true)
-        case .clearElevation:
-            clearElevationCache(ctx)
-            ctx.refreshOverview(force: true)
+        case .clearCache, .clearElevation:
+            askToClear(field, ctx)
         default:
             if field.isText {
                 editing = field

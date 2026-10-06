@@ -94,15 +94,18 @@ final class DrawOrderScreen: Screen {
         let rows = self.rows
         guard !rows.isEmpty else { return }
         list.move(delta, count: rows.count, wrap: wrap)
-        settle(forward: delta > 0)
+        settle(forward: delta > 0, wrap: wrap)
     }
 
-    /// Steps off a caption onto the nearest polygon, wrapping round.
-    func settle(forward: Bool) {
+    /// Steps off a caption onto the nearest polygon: wrapping round, or turning back at
+    /// an end, as the move that landed there did.
+    func settle(forward: Bool, wrap: Bool = true) {
         let rows = self.rows
         guard rows.contains(where: { $0.code != nil }) else { return }
+        var step = forward ? 1 : -1
         while rows[safe: list.selected]?.code == nil {
-            list.move(forward ? 1 : -1, count: rows.count)
+            if !wrap, !rows.indices.contains(list.selected + step) { step = -step }
+            list.move(step, count: rows.count, wrap: wrap)
         }
     }
 
@@ -115,8 +118,8 @@ final class DrawOrderScreen: Screen {
         case .down, .char("j"): move(1)
         case .pageUp: move(-ListState.pageStep, wrap: false)
         case .pageDown: move(ListState.pageStep, wrap: false)
-        case .home: list.jump(to: 0, count: rows.count); settle(forward: true)
-        case .end: list.jump(to: rows.count - 1, count: rows.count); settle(forward: false)
+        case .home: list.jump(to: 0, count: rows.count); settle(forward: true, wrap: false)
+        case .end: list.jump(to: rows.count - 1, count: rows.count); settle(forward: false, wrap: false)
         case .left: shift(-1)
         case .right: shift(1)
         case .enter: beginTyping()

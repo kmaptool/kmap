@@ -48,14 +48,62 @@ final class HideableFeatureTests: XCTestCase {
         }
     }
 
-    func testTheGeneratedEntriesCommentTheirRuleOutWhole() {
+    /// A generated entry drops its type and deletes its keys, so no catch-all below draws
+    /// the object instead: `shop=* & name=*` as a generic shop, a `cuisine` rule as food.
+    func testTheGeneratedEntriesStopTheObjectWhereItsRuleStood() {
         let curatedIDs = Set(HideableFeature.all.prefix(4).map(\.id))
         for feature in HideableFeature.all where !curatedIDs.contains(feature.id) {
             for substitution in feature.substitutions {
-                XCTAssertTrue(substitution.new.hasPrefix("# "), feature.id)
-                XCTAssertTrue(substitution.new.contains(substitution.old), feature.id)
+                XCTAssertFalse(substitution.new.contains("[0x"), feature.id)
+                XCTAssertEqual(
+                    substitution.new.contains("delete cuisine"),
+                    !feature.id.hasPrefix("internet_access-"),
+                    feature.id
+                )
+                XCTAssertTrue(substitution.new.hasSuffix("# kmap: hidden"), feature.id)
+                let condition = substitution.old.components(separatedBy: " [0x")[0]
+                    .components(separatedBy: "{")[0].trimmingCharacters(in: .whitespaces)
+                XCTAssertTrue(substitution.new.hasPrefix(condition), feature.id)
             }
         }
+    }
+
+    /// Only the entry's own key goes, with any other key the rule tests for the same value,
+    /// and `cuisine`: a fuel station hidden keeps the shop on the same node. Label actions
+    /// go: a hidden peak's name and height would label the viewpoint beside it.
+    func testAHiddenRuleDeletesOnlyItsOwnKeyAndKeepsNoLabel() {
+        XCTAssertEqual(
+            HideableFeature.hidden(
+                "amenity=cafe {delete cuisine} [0x2a0e resolution 24 continue with_actions]",
+                tag: "amenity=cafe"
+            ),
+            "amenity=cafe {delete cuisine; delete amenity}  # kmap: hidden"
+        )
+        XCTAssertEqual(
+            HideableFeature.hidden(
+                "amenity=border_control | barrier=border_control [0x3006 resolution 20]",
+                tag: "amenity=border_control"
+            ),
+            "amenity=border_control | barrier=border_control {delete amenity; delete barrier; delete cuisine}  # kmap: hidden"
+        )
+        XCTAssertEqual(
+            HideableFeature.hidden("leisure=garden & name=* [0x2c06 resolution 24]", tag: "leisure=garden"),
+            "leisure=garden & name=* {delete leisure; delete cuisine}  # kmap: hidden"
+        )
+        XCTAssertEqual(
+            HideableFeature.hidden(
+                "natural=peak {name '${name} ${ele}'; set kmap:peak=yes} [0x6616 resolution 24]",
+                tag: "natural=peak"
+            ),
+            "natural=peak {set kmap:peak=yes; delete natural; delete cuisine}  # kmap: hidden"
+        )
+        XCTAssertEqual(
+            HideableFeature.hidden(
+                "amenity=fast_food & cuisine=* {add name='${cuisine|subst:\"_=> \"}'} [0x2a07 resolution 24]",
+                tag: "amenity=fast_food"
+            ),
+            "amenity=fast_food & cuisine=* {delete amenity; delete cuisine}  # kmap: hidden"
+        )
     }
 
     func testTheBarrierChoicesAreTheOnesSettingsAlreadyHold() {

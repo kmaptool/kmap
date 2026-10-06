@@ -42,7 +42,9 @@ extension GEDTM30 {
                     for tile in run {
                         let offset = order.int(offsets, (tile - first) * offsetSize, offsetSize)
                         let count = order.int(counts, (tile - first) * countSize, countSize)
-                        guard offset >= 0, (0...largestSpan).contains(count) else { throw Trouble.notTIFF }
+                        guard (0...Int(mostFileBytes)).contains(offset), (0...largestSpan).contains(count) else {
+                            throw Trouble.notTIFF
+                        }
                         found[tile] = Span(offset: Int64(offset), count: count)
                     }
                     out.withLock { $0.merge(found) { a, _ in a } }

@@ -103,6 +103,8 @@ extension BuildPipeline {
 
         let tiles = try parseTiles(in: tileDir)
         guard !tiles.isEmpty else { throw BuildError.noTiles }
+        // Ids are the family and 4 digits: past 9999 a tile takes the next family's id.
+        guard tiles.count <= BuildRecipe.mostTiles else { throw BuildError.tooManyTiles(tiles.count) }
         log.ok("\(tiles.count) tile(s)")
         set(.split, .done, "\(tiles.count) tile(s)")
         return TileSet(directory: tileDir, tiles: tiles, nodeCap: maxNodes)

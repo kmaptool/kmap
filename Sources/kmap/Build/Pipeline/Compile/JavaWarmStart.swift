@@ -82,11 +82,11 @@ enum JavaWarmStart {
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> URL {
         // Through a link to the file itself, which is what changes when mkgmap is replaced.
-        let target = jar.resolvingSymlinksInPath()
+        let target = FileTools.resolvingLinks(jar)
         let stamp = FileTools.modified(of: target).map { Int($0.timeIntervalSince1970) } ?? 0
         // The JVM itself, where a link names it: a rebuilt JVM under the same name and
         // version refuses a cache the old one made, and says nothing with the log off.
-        let binary = URL(fileURLWithPath: java.path).resolvingSymlinksInPath()
+        let binary = FileTools.resolvingLinks(URL(fileURLWithPath: java.path))
         let built = FileTools.modified(of: binary).map { Int($0.timeIntervalSince1970) } ?? 0
         // The options the JVM takes from the environment too: they change its layout as
         // the command line does.

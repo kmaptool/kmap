@@ -112,6 +112,38 @@ final class ZoomShiftTests: XCTestCase {
         XCTAssertTrue(out.contains("[0x4f resolution 19-22]"))
     }
 
+    /// A rule already written as a range is rewritten whole: its own ceiling, where it
+    /// hands the closest zoom to another rule, stays within the window's.
+    func testARangedRuleIsRewrittenAsOneRange() throws {
+        try write(
+            "polygons",
+            """
+            landuse=industrial [0x0c resolution 19-23]
+            landuse=residential [0x10 resolution 18-23 continue]
+            """
+        )
+        try apply(plan(["landuse": 1...4]))
+        var out = try read("polygons")
+        XCTAssertTrue(out.contains("[0x0c resolution 21-23]"), out)
+        XCTAssertTrue(out.contains("[0x10 resolution 19-23 continue]"), out)
+
+        try write("polygons", "landuse=industrial [0x0c resolution 19-23]\nlanduse=residential [0x10 resolution 18-23]")
+        try apply(plan(["landuse": 2...4]))
+        out = try read("polygons")
+        XCTAssertTrue(out.contains("[0x0c resolution 21-22]"), out)
+
+        try write("polygons", "landuse=industrial [0x0c resolution 19-23]\nlanduse=residential [0x10 resolution 18-23]")
+        try apply(plan(["landuse": 0...4]))
+        XCTAssertTrue(try read("polygons").contains("[0x0c resolution 21-23]"))
+
+        // Moved past its own ceiling, the rule keeps its own last zoom alone: the closest
+        // one belongs to the rule it hands over to.
+        try write("polygons", "landuse=industrial [0x0c resolution 19-23]\nlanduse=residential [0x10 resolution 18-23]")
+        try apply(plan(["landuse": 0...0]))
+        out = try read("polygons")
+        XCTAssertTrue(out.contains("[0x0c resolution 23-23]"), out)
+    }
+
     /// A window 1 rung wide away from rung 0 is a range too: a bare number reaches to 24.
     func testAWindowOfOneRungKeepsItsCeiling() throws {
         try write("polygons", "landuse=forest [0x50 resolution 19]")
@@ -119,13 +151,33 @@ final class ZoomShiftTests: XCTestCase {
         XCTAssertTrue(try read("polygons").contains("[0x50 resolution 23-23]"))
     }
 
-    /// The sea is drawn for the overview, below the tiles: a window that keeps its far end
+    /// A rule drawn for the overview, below the tiles: a window that keeps its far end
     /// leaves it there, with the window's ceiling.
     func testAnOverviewRuleKeepsItsFloorWhereTheFarEndStays() throws {
-        try write("polygons", "natural=sea [0x32 resolution 10]\nnatural=water [0x3c resolution 18]")
+        try write("polygons", "natural=water & water=lake [0x3c resolution 10]\nnatural=water [0x3c resolution 18]")
         try apply(plan(["water": 1...6]))
         let out = try read("polygons")
-        XCTAssertTrue(out.contains("[0x32 resolution 10-23]"), out)
+        XCTAssertTrue(out.contains("[0x3c resolution 10-23]"), out)
+    }
+
+    /// The land and the sea belong to no family: a plan for the water or the open ground
+    /// neither moves them nor measures its spread from them.
+    func testTheLandAndTheSeaStayWhereTheyAre() throws {
+        try write(
+            "polygons",
+            """
+            natural=sea {add mkgmap:skipSizeFilter=true; set mkgmap:drawLevel=2} [0x32 resolution 10]
+            natural=land [0x27 resolution 17]
+            natural=water [0x3c resolution 21]
+            natural=scree [0x54 resolution 21]
+            """
+        )
+        try apply(plan(["water": 0...4, "terrain": 0...4]))
+        let out = try read("polygons")
+        XCTAssertTrue(out.contains("[0x32 resolution 10]"), out)
+        XCTAssertTrue(out.contains("natural=land [0x27 resolution 17]"), out)
+        XCTAssertTrue(out.contains("natural=water [0x3c resolution 19]"), out)
+        XCTAssertTrue(out.contains("natural=scree [0x54 resolution 19]"), out)
     }
 
     /// The plan editor reads the shared rules after a build has moved them: it is told
@@ -154,6 +206,28 @@ final class ZoomShiftTests: XCTestCase {
             before,
             "a plan with no windows should not even rewrite the file"
         )
+    }
+
+    /// The trail pass matches exact lines and moves them to 22: run after the plan, it
+    /// would miss the lines the plan rewrote, or undo the plan on those it found.
+    func testThePlanMovesTrailsFromWhereABuildWithoutOneDrawsThem() throws {
+        try write(
+            "lines",
+            """
+            highway=path [0x0e road_class=0 road_speed=0 resolution 23]  # kmap: not the footway's number
+            highway=track [0x0a road_class=0 road_speed=1 resolution 22]
+            """
+        )
+        var choices = StyleChoices()
+        choices.zoom = (plan(["trails": 0...4]), .smooth)
+        try catalog.materializeChoices(in: directory, choices: choices, log: log)
+        let out = try read("lines")
+        // Both drawn from 22 (rung 2) by the trail pass; the plan's window starts at rung 4.
+        XCTAssertTrue(out.contains("[0x0e road_class=0 road_speed=0 resolution 19]"), out)
+        XCTAssertTrue(out.contains("[0x0a road_class=0 road_speed=1 resolution 19]"), out)
+        // The trail pass found both; the other trail rules are not in this file.
+        let missed = log.snapshot().filter { $0.text.contains("rule not found") }.map(\.text)
+        XCTAssertFalse(missed.contains { $0.contains("highway=path") || $0.contains("highway=track") }, "\(missed)")
     }
 
     func testAFamilyThatMatchesNothingIsReported() throws {

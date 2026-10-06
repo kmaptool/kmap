@@ -350,6 +350,14 @@ final class TypLibraryTests: XCTestCase {
         XCTAssertEqual(TypLibrary.contents(in: library()).count, 2)
     }
 
+    /// Its own name, in any case, leaves it where it is: not `alpha-2`.
+    func testRenamingToItsOwnNameKeepsIt() throws {
+        let url = try TypLibrary.create(named: "alpha", into: library())
+        XCTAssertEqual(try TypLibrary.rename(url, to: "alpha", library: library()), url)
+        XCTAssertEqual(try TypLibrary.rename(url, to: "Alpha", library: library()), url)
+        XCTAssertEqual(TypLibrary.contents(in: library()).count, 1)
+    }
+
     func testRenamingToNothingIsRefused() throws {
         let url = try TypLibrary.create(named: "alpha", into: library())
         XCTAssertThrowsError(try TypLibrary.rename(url, to: "   ", library: library()))
@@ -719,6 +727,24 @@ final class TypLibraryTests: XCTestCase {
         XCTAssertNil(TypLibrary.importedSource(of: loneEntry, library: folder))
     }
 
+    /// A rename takes the map along; a delete forgets it, so a style later taking the
+    /// name does not offer to recover from another's map.
+    func testTheMapFollowsARenameAndGoesWithADelete() throws {
+        let img = try makeImg(named: "taken.img")
+        let entry = try TypLibrary.create(named: "taken", into: folder)
+        TypLibrary.recordImport(from: img, to: entry, note: "rights", in: folder)
+
+        let moved = try TypLibrary.rename(entry, to: "kept", library: folder)
+        XCTAssertEqual(TypLibrary.importedSource(of: moved, library: folder), img)
+        let again = try TypLibrary.create(named: "taken", into: folder)
+        XCTAssertEqual(again.lastPathComponent, entry.lastPathComponent)
+        XCTAssertNil(TypLibrary.importedSource(of: again, library: folder))
+
+        try TypLibrary.delete(moved, library: folder)
+        _ = try TypLibrary.create(named: "kept", into: folder)
+        XCTAssertNil(TypLibrary.importedSource(of: moved, library: folder))
+    }
+
     func testTheLatestImportOfAnEntryWins() throws {
         let first = try makeImg(named: "first.img")
         let second = try makeImg(named: "second.img")
@@ -726,6 +752,22 @@ final class TypLibraryTests: XCTestCase {
         TypLibrary.recordImport(from: first, to: entry, note: "rights", in: folder)
         TypLibrary.recordImport(from: second, to: entry, note: "rights", in: folder)
         XCTAssertEqual(TypLibrary.importedSource(of: entry, library: folder), second)
+    }
+
+    /// `Foo Bar.typ` is the style `foo-bar`: a new `foo-bar.txt` would take that id, and a
+    /// profile that saved it would build the newcomer.
+    func testANameIsTakenByAFileWhoseIdItWouldShare() throws {
+        let library = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
+            "kmap-lib-\(UUID().uuidString)"
+        )
+        try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: library) }
+        try FileTools.write("x", to: library.appendingPathComponent("Foo Bar.typ"))
+        XCTAssertEqual(TypLibrary.freeName("foo-bar", extension: "txt", in: library).lastPathComponent, "foo-bar-2.txt")
+        // 2 files of 1 id hand out `foo-bar-2`, which a profile may hold.
+        try FileTools.write("x", to: library.appendingPathComponent("foo-bar.txt"))
+        XCTAssertEqual(TypLibrary.freeName("foo-bar", extension: "txt", in: library).lastPathComponent, "foo-bar-3.txt")
+        XCTAssertEqual(TypLibrary.freeName("other", extension: "txt", in: library).lastPathComponent, "other.txt")
     }
 
     /// A `.typ` and a `.txt` of 1 name would be 1 style, and share 1 kept original.
@@ -744,5 +786,35 @@ final class TypLibraryTests: XCTestCase {
         try FileTools.write("x", to: originals.appendingPathComponent("base.typ"))
         XCTAssertNil(TypLibrary.original(of: library.appendingPathComponent("base.typ"), library: library))
         XCTAssertNotNil(TypLibrary.original(of: library.appendingPathComponent("base.txt"), library: library))
+    }
+
+    /// An edit saved over a file with Windows line ends keeps them.
+    func testASaveKeepsWindowsLineEnds() throws {
+        let library = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
+            "kmap-lib-\(UUID().uuidString)"
+        )
+        try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: library) }
+        let url = library.appendingPathComponent("windows.txt")
+        try Data("[_id]\r\nFID=1\r\n[end]\r\n".utf8).write(to: url)
+        try TypLibrary.save("[_id]\nFID=2\n[end]\n", to: url, library: library)
+        XCTAssertEqual(String(decoding: try Data(contentsOf: url), as: UTF8.self), "[_id]\r\nFID=2\r\n[end]\r\n")
+    }
+
+    /// A Baltic file kept byte for byte refuses a Cyrillic label rather than saving `?`.
+    func testASaveThePageCannotHoldIsRefusedAndTheFileKept() throws {
+        let library = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
+            "kmap-lib-\(UUID().uuidString)"
+        )
+        try FileManager.default.createDirectory(at: library, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: library) }
+        let url = library.appendingPathComponent("baltic.txt")
+        let bytes: [UInt8] = Array("[_id]\nCodePage=1257\n[end]\nString=0x04,".utf8) + [0xE0, 0x0A]
+        try Data(bytes).write(to: url)
+        let text = TypSource.decodeText(bytes) + "String=0x19,\u{41B}\n"
+        XCTAssertThrowsError(try TypLibrary.save(text, to: url, library: library)) {
+            XCTAssertTrue($0.localizedDescription.contains("\u{41B}"), $0.localizedDescription)
+        }
+        XCTAssertEqual([UInt8](try Data(contentsOf: url)), bytes)
     }
 }

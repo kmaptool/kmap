@@ -138,30 +138,35 @@ enum WaterScan {
         _ places: NodePlaces
     ) -> WaterBodies {
         var bodies = WaterBodies()
-        func ring(of chain: some Sequence<Int64>, island: Bool, standalone: Bool) -> WaterBodies.Ring {
+        func ring(of chain: some Sequence<Int64>, island: Bool, standalone: Bool, group: Int32 = -1) -> WaterBodies.Ring
+        {
             var points: [Float] = []
             for id in chain {
                 guard let place = places.place(of: id) else { continue }
                 points.append(Float(place.lat))
                 points.append(Float(place.lon))
             }
-            return WaterBodies.Ring(points: points, island: island, standalone: standalone)
+            return WaterBodies.Ring(points: points, island: island, standalone: standalone, group: group)
         }
 
+        // A way that is a multipolygon's shore is drawn as that shore, islands cut out,
+        // even where it carries water tags of its own: filled again on its own, it would
+        // flood the islands back.
+        let shores = Set(lakes.members.joined().filter { !$0.island }.map(\.way))
         var chainOf: [Int64: Range<Int>] = [:]
         for (at, id) in ways.ids.enumerated() {
             let range = Int(ways.starts[at])..<Int(ways.starts[at + 1])
             chainOf[id] = range
-            if ways.standalone[at] {
+            if ways.standalone[at], !shores.contains(id) {
                 bodies.add(ring(of: ways.refs[range], island: false, standalone: true))
             }
         }
-        for relation in lakes.members {
+        for (group, relation) in lakes.members.enumerated() {
             for island in [false, true] {
                 let pieces = relation.filter { $0.island == island }
                     .compactMap { chainOf[$0.way].map { Array(ways.refs[$0]) } }
                 for chain in WaterBodies.closedChains(of: pieces) {
-                    bodies.add(ring(of: chain, island: island, standalone: false))
+                    bodies.add(ring(of: chain, island: island, standalone: false, group: Int32(group)))
                 }
             }
         }

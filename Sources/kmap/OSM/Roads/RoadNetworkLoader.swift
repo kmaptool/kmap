@@ -23,7 +23,9 @@ struct RoadNetworkLoader {
     static func level(layer: String, bridge: String, tunnel: String) -> Int32 {
         // Clamped: layer is free text, and a junk value must not overflow the arithmetic.
         let deck = min(max(Int32(layer) ?? 0, -furthestLayer), furthestLayer)
-        return deck * levelsPerDeck + (bridge == "no" ? 0 : bridgeLevel) + (tunnel == "no" ? 0 : tunnelLevel)
+        // A passage through a building runs at street level, and meets the street.
+        let underground = tunnel != "no" && tunnel != "building_passage"
+        return deck * levelsPerDeck + (bridge == "no" ? 0 : bridgeLevel) + (underground ? tunnelLevel : 0)
     }
 
     /// The layer numbers kept apart; any further from the ground count as this far.
@@ -61,12 +63,15 @@ struct RoadNetworkLoader {
         let shape = try collectShapes()
         // Which node positions are actually wanted, once, in order.
         let unique = NodePlaces.wantedIDs(from: [shape.network.refs, shape.obstacleRefs])
-        let places = try NodePlaces.gather(unique, from: url, shouldStop: shouldStop)
+        let (places, noExit, gates) = try NodePlaces.gatherNotingNoExit(unique, from: url, shouldStop: shouldStop)
 
         // A way may name a node the extract does not contain, since the cut runs through
         // ways. Such points are dropped, and a way left too short goes with them.
         var network = RoadNetwork()
         network.vocabulary = shape.network.vocabulary
+        network.noExit = noExit
+        network.gates = gates
+        network.passages = shape.network.passages
         Self.placeWays(of: shape, at: places, into: &network)
         Self.placeObstacles(of: shape, at: places, into: &network)
         return network

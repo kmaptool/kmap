@@ -76,11 +76,12 @@ extension ElevationLogins {
         return verdict
     }
 
-    /// JAXA serves the archives from a Basic-auth directory: a HEAD settles it, 401 or 403
-    /// being a refusal.
+    /// JAXA serves the archives over HTTP Basic: a HEAD of 1 archive as pyhgtmap fetches
+    /// it settles it. Only a challenge is a refusal: the folder itself answers 403 to
+    /// anyone, a listing being off.
     private static func verifyBasic(_ login: (user: String, password: String)) async -> Verdict {
         guard Network.isOpen else { return .unreachable }
-        guard let url = URL(string: "https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2303/"),
+        guard let url = URL(string: "https://www.eorc.jaxa.jp/ALOS/aw3d30/data/release_v2303/N045E030/N045E034.zip"),
             let credentials = "\(login.user):\(login.password)"
                 .data(using: .utf8)?.base64EncodedString()
         else { return .unreachable }
@@ -91,7 +92,7 @@ extension ElevationLogins {
         guard let (_, response) = try? await URLSession.shared.data(for: request),
             let http = response as? HTTPURLResponse
         else { return .unreachable }
-        if http.statusCode == 401 || http.statusCode == 403 { return .rejected }
+        if http.statusCode == 401, http.value(forHTTPHeaderField: "WWW-Authenticate") != nil { return .rejected }
         return (200...399).contains(http.statusCode) ? .valid : .unreachable
     }
 
@@ -101,6 +102,7 @@ extension ElevationLogins {
         guard Network.isOpen else { return .unreachable }
         guard let entry = URL(string: "https://ers.cr.usgs.gov/login") else { return .unreachable }
         let session = URLSession(configuration: .ephemeral)
+        defer { session.finishTasksAndInvalidate() }
         guard let (data, _) = try? await session.data(from: entry),
             let page = String(data: data, encoding: .utf8),
             page.contains("loginForm")

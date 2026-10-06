@@ -17,8 +17,13 @@ enum Network {
         var errorDescription: String? { "no network in a test run" }
     }
 
-    /// Called first by everything that opens a connection.
-    static func ensureOpen() throws {
-        guard isOpen else { throw Closed() }
+    /// Called first by everything that opens a connection. A test's own server on this
+    /// machine is reached in a test run too.
+    static func ensureOpen(_ url: URL? = nil) throws {
+        guard isOpen || url.map(isLoopback) == true else { throw Closed() }
+    }
+
+    static func isLoopback(_ url: URL) -> Bool {
+        ["127.0.0.1", "localhost", "::1"].contains(url.host ?? "")
     }
 }

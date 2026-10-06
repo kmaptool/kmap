@@ -1,7 +1,7 @@
 import Foundation
 
-/// Selects the features to leave off the map. Space toggles, typing filters. The choice
-/// applies to the next build and is undone by rebuilding without it.
+/// Selects the features to leave off the map. Enter toggles, and space while nothing is
+/// typed; typing filters, spaces included. The choice applies to the next build.
 final class HideScreen: Screen {
     var page: Page {
         Page(t("hide on map"), subject: filter.isEmpty ? nil : t("filter"), keys: keys)
@@ -9,8 +9,8 @@ final class HideScreen: Screen {
 
     private var keys: [Hint] {
         [
-            Hint(key: "space", label: t("toggle")),
-            Hint(key: "type", label: t("filter")),
+            Hint(key: filter.isEmpty ? "space" : Glyph.enter, label: t("toggle")),
+            Hint(key: "abc", label: t("filter")),
             Hint(key: "^A", label: t("hide all shown")),
             Hint(key: "^N", label: t("show all")),
             Hint(key: "esc", label: t("done"))
@@ -68,6 +68,12 @@ final class HideScreen: Screen {
         }
     }
 
+    private func toggle(_ rows: [Row]) {
+        guard case .feature(let feature)? = rows[safe: filter.list.selected] else { return }
+        if hidden.contains(feature.id) { hidden.remove(feature.id) } else { hidden.insert(feature.id) }
+        onChange(hidden)
+    }
+
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
         let rows = self.rows
         switch key {
@@ -75,10 +81,17 @@ final class HideScreen: Screen {
         case .down: step(1, in: rows)
         case .pageUp: for _ in 0..<Self.pageRows { step(-1, in: rows) }
         case .pageDown: for _ in 0..<Self.pageRows { step(1, in: rows) }
-        case .char(" "), .enter:
-            guard case .feature(let feature)? = rows[safe: filter.list.selected] else { return .none }
-            if hidden.contains(feature.id) { hidden.remove(feature.id) } else { hidden.insert(feature.id) }
-            onChange(hidden)
+        // To the first or last entry, past the headings.
+        case .home:
+            filter.list.selected = rows.count - 1
+            step(1, in: rows)
+        case .end:
+            filter.list.selected = 0
+            step(-1, in: rows)
+        case .enter:
+            toggle(rows)
+        case .char(" ") where filter.isEmpty:
+            toggle(rows)
         case .ctrl("a"):
             // What the filter shows: "amenity" + ^A hides that group, not the catalogue.
             for feature in matching { hidden.insert(feature.id) }

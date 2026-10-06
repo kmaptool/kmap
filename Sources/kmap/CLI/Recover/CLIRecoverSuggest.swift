@@ -7,10 +7,16 @@ extension CLI {
     private static let mostSuggested = 6
     private static let bytesPerMB = 1_048_576.0
 
-    static func suggestExtracts(for frame: BBox, path: String) async -> Int32 {
-        CLILog.error("recover: no downloaded OSM data matches \(frame.display)")
+    static func suggestExtracts(for frame: BBox, path: String, why: String? = nil) async -> Int32 {
+        CLILog.error("recover: \(why ?? "no downloaded OSM data matches \(frame.display)")")
         let index = RegionIndex()
-        guard (try? await index.load()) != nil else { return 1 }
+        do {
+            try await index.load()
+        } catch {
+            if Task.isCancelled { return CLIOutput.cancelled() }
+            CLILog.line("pass an extract of the map's region with --extract=<file.osm.pbf>")
+            return CLIOutput.failure("the list of downloadable regions did not load: \(CLIOutput.said(error))")
+        }
         let wanted = RegionSuggestion.suggestedRegions(
             on: RegionSuggestion.drawnGround(of: Paths.expand(path)),
             index: index

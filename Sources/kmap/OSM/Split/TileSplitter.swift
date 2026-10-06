@@ -100,6 +100,9 @@ final class TileSplitter {
 
     /// The alignment grid: 2048 map units, resolution 13.
     static let grain: Int32 = 2048
+    /// The most areas a list given to the splitter may hold: a node's area is kept in the
+    /// bits below `NodeAreas.flags`.
+    static let mostGivenAreas = Int(NodeAreas.bandFlag) - 1
     /// The same grain as a shift and a mask.
     static let gridShift: Int32 = 11
     static let gridMask: Int32 = grain - 1

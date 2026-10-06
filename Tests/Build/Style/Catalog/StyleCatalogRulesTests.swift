@@ -77,6 +77,26 @@ final class StyleCatalogRulesTests: XCTestCase {
         XCTAssertFalse(text.contains("[0x10"))
     }
 
+    /// A rule whose type sits on the line under its condition, taken under one zoom plan
+    /// and applied under another: the same condition and type, retyped in place.
+    func testATwoLineRuleTakenAtAnotherResolutionIsStillRetyped() throws {
+        try write(
+            "x=y [0x05 resolution 24]\ncuisine=american | cuisine=burger\n    [0x2a01 resolution 24]\n",
+            to: "points"
+        )
+        let result = try StyleCatalog.applySubstitutions(
+            "@@ points\n- cuisine=american | cuisine=burger\n-     [0x2a01 resolution 23-23]\n"
+                + "+ cuisine=american | cuisine=burger\n+     [0x2a0f resolution 23-23]\n",
+            in: directory
+        )
+        XCTAssertEqual(result.applied, 1, "\(result.missed)")
+        XCTAssertEqual(
+            try read("points"),
+            "x=y [0x05 resolution 24]\ncuisine=american | cuisine=burger\n    [0x2a0f resolution 24]\n",
+            "retyped where it stands, with no line stacked above"
+        )
+    }
+
     func testTheWholeConditionMustMatchNotAPrefixOfIt() throws {
         let stock = "highway=motorway & fast=yes [0x01 resolution 20]\n"
         try write(stock, to: "lines")
@@ -170,14 +190,26 @@ final class StyleCatalogRulesTests: XCTestCase {
         XCTAssertEqual(catalog.zoomTag(one), catalog.zoomTag(other))
     }
 
-    /// Rules fitted to 1 ladder's rungs are not the rules for another's.
-    func testTheLadderIsPartOfWhatTheRulesAre() {
+    /// Rules fitted to 1 ladder's rungs are not the rules for another's; rules fitted to
+    /// none are the same for both, and builds for 2 devices do not keep remaking them.
+    func testTheLadderIsPartOfWhatTheRulesAreOnlyWhereSomethingIsFittedToIt() {
         let settings = SettingsStore()
         let catalog = StyleCatalog(settings: settings, toolchain: Toolchain(settings: settings))
         var smooth = StyleChoices()
         smooth.zoom = (.asMeasured, .smooth)
         var standard = StyleChoices()
         standard.zoom = (.asMeasured, .standard)
+        XCTAssertEqual(catalog.materializedIdentity(smooth), catalog.materializedIdentity(standard))
+        XCTAssertNotEqual(
+            catalog.materializedIdentity(smooth, fittedToLadder: true),
+            catalog.materializedIdentity(standard, fittedToLadder: true),
+            "a recovered sheet's bands"
+        )
+
+        var plan = ZoomPlan(id: "a", name: "First", levelsID: LevelsProfile.smooth.id)
+        plan.windows["trails"] = ZoomPlan.Window(finest: 2, coarsest: 0)
+        smooth.zoom = (plan, .smooth)
+        standard.zoom = (plan, .standard)
         XCTAssertNotEqual(catalog.materializedIdentity(smooth), catalog.materializedIdentity(standard))
     }
 
@@ -194,7 +226,12 @@ final class StyleCatalogRulesTests: XCTestCase {
         try FileTools.write("highway=path [0x16 resolution 23]", to: real.appendingPathComponent("lines"))
         try FileTools.write("mine", to: real.appendingPathComponent("kmap-version"))
         let link = root.appendingPathComponent("linked")
-        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        do {
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        } catch {
+            // Windows grants links only to an elevated or developer-mode user.
+            throw XCTSkip("no symbolic links here: \(error)")
+        }
 
         let copy = root.appendingPathComponent("copy")
         XCTAssertTrue(try catalog.snapshot(link, to: copy, expecting: "mine"))
@@ -206,6 +243,29 @@ final class StyleCatalogRulesTests: XCTestCase {
         )
 
         XCTAssertFalse(try catalog.snapshot(real, to: copy, expecting: "another build's"))
+    }
+
+    func testASnapshotCutShortLeavesNoCopyBehind() throws {
+        #if os(Windows)
+        throw XCTSkip("permissions do not stop a read here")
+        #else
+        try XCTSkipIf(getuid() == 0, "root reads whatever the permissions say")
+        let settings = SettingsStore()
+        let catalog = StyleCatalog(settings: settings, toolchain: Toolchain(settings: settings))
+        let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("kmap-snap-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let real = root.appendingPathComponent("real")
+        try FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        try FileTools.write("highway=path [0x16 resolution 23]", to: real.appendingPathComponent("lines"))
+        let unreadable = real.appendingPathComponent("points")
+        try FileTools.write("amenity=cafe [0x2a0e resolution 24]", to: unreadable)
+        try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: unreadable.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: unreadable.path) }
+
+        let copy = root.appendingPathComponent("copy")
+        XCTAssertThrowsError(try catalog.snapshot(real, to: copy))
+        XCTAssertFalse(FileTools.exists(copy), "the build falls back to the shared rules, not to half of them")
+        #endif
     }
 
     /// 2 names making 1 id would leave the second never buildable.
@@ -222,6 +282,7 @@ final class StyleCatalogRulesTests: XCTestCase {
                 productID: 1
             )
         }
+        // The first in the list keeps the plain id.
         XCTAssertEqual(
             StyleCatalog.distinctIDs([style("My Style"), style("my-style")]).map(\.id),
             ["dir:my-style", "dir:my-style-2"]
@@ -243,25 +304,125 @@ final class StyleCatalogRulesTests: XCTestCase {
         )
     }
 
+    /// The style that held a plain id keeps it when a file named into the same id comes
+    /// before it in the list.
+    func testAPlainIDStaysWithTheStyleThatHeldIt() {
+        func style(_ file: String) -> MapStyle {
+            MapStyle(
+                id: "typ:topo",
+                name: String(file.split(separator: ".")[0]),
+                summary: "",
+                origin: .importedTYP(URL(fileURLWithPath: "/typ/\(file)")),
+                styleDirectory: nil,
+                typURL: URL(fileURLWithPath: "/typ/\(file)"),
+                familyID: 6324,
+                productID: 1
+            )
+        }
+        XCTAssertEqual(
+            StyleCatalog.distinctIDs([style("Topo.typ"), style("topo.txt")], owners: ["typ:topo": "topo.txt"])
+                .map(\.id),
+            ["typ:topo-2", "typ:topo"]
+        )
+        XCTAssertEqual(
+            StyleCatalog.distinctIDs([style("Topo.typ"), style("topo.txt")], owners: ["typ:topo": "gone.txt"])
+                .map(\.id),
+            ["typ:topo", "typ:topo-2"],
+            "an owner no longer there holds nothing"
+        )
+    }
+
+    /// 1.7.3 offered kmap's recovered rule sets as folders: a profile saved on one builds
+    /// the library style the folder is made for.
+    func testAFolderIDOfARecoveredStyleFindsItsLibraryStyle() {
+        let typ = URL(fileURLWithPath: "/typ/My Map.txt")
+        let recovered = MapStyle(
+            id: "typ:my-map",
+            name: "My Map",
+            summary: "",
+            origin: .importedTYP(typ),
+            styleDirectory: URL(fileURLWithPath: "/styles/recovered-my-map", isDirectory: true),
+            typURL: typ,
+            familyID: 6324,
+            productID: 1
+        )
+        XCTAssertEqual(StyleCatalog.find("dir:recovered-my-map", in: [recovered])?.id, "typ:my-map")
+        XCTAssertEqual(StyleCatalog.find("typ:my-map", in: [recovered])?.id, "typ:my-map")
+        XCTAssertNil(StyleCatalog.find("dir:recovered-other", in: [recovered]))
+    }
+
+    /// A recovered rule set is kmap's by its marker, not by its name alone.
+    func testOnlyKmapsOwnRecoveredFoldersAreKeptFromTheList() throws {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("kmap-own-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ours = root.appendingPathComponent("recovered-topo")
+        let theirs = root.appendingPathComponent("recovered-by-hand")
+        for folder in [ours, theirs] {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try FileTools.write("highway=path [0x16 resolution 23]", to: folder.appendingPathComponent("lines"))
+        }
+        try FileTools.write("marker", to: ours.appendingPathComponent("kmap-version"))
+        XCTAssertTrue(StyleCatalog.isKmapsOwnFolder(ours))
+        XCTAssertFalse(StyleCatalog.isKmapsOwnFolder(theirs))
+        XCTAssertTrue(StyleCatalog.isKmapsOwnFolder(root.appendingPathComponent("kmap-base")))
+    }
+
+    /// 2 recovered styles of 1 id would each remake the other's rule set in 1 folder.
+    func testANumberedRecoveredStyleHasAFolderOfItsOwn() {
+        let folder = URL(fileURLWithPath: "/styles/recovered-my-map", isDirectory: true)
+        func style(_ name: String, origin: MapStyle.Origin) -> MapStyle {
+            MapStyle(
+                id: "typ:my-map",
+                name: name,
+                summary: "",
+                origin: origin,
+                styleDirectory: folder,
+                typURL: nil,
+                familyID: 6324,
+                productID: 1
+            )
+        }
+        let typ = URL(fileURLWithPath: "/typ/My Map.typ")
+        let both = StyleCatalog.distinctIDs([
+            style("My Map", origin: .importedTYP(typ)), style("my-map", origin: .importedTYP(typ))
+        ])
+        XCTAssertEqual(both.map(\.styleDirectory?.lastPathComponent), ["recovered-my-map", "recovered-my-map-2"])
+        // A folder of the user's named so is where it is, numbered or not.
+        let theirs = StyleCatalog.distinctIDs([
+            style("My Map", origin: .customDirectory(folder)), style("my-map", origin: .customDirectory(folder))
+        ])
+        XCTAssertEqual(theirs.map(\.styleDirectory?.lastPathComponent), ["recovered-my-map", "recovered-my-map"])
+    }
+
     /// What a killed run left among the styles goes after a day; fresh ones stay.
     func testAbandonedStyleBuildsAreSweptAfterADay() throws {
         let styles = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
             "kmap-styles-\(UUID().uuidString)"
         )
         defer { try? FileManager.default.removeItem(at: styles) }
-        for name in [".neutral-build-1A2B3C4D", ".base-build-1A2B3C4D", "unpack-1A2B3C4D", "kmap-base", "mine", ".lock"]
-        {
+        for name in [
+            ".neutral-build-1A2B3C4D", ".base-build-1A2B3C4D", "unpack-1A2B3C4D", ".unpack-5E6F7A8B", "unpack-maps",
+            "kmap-base", "mine", ".lock", ".kmap-base.old", ".recovered-topo.old", "recovered-mine.old", "mine.old"
+        ] {
             try FileManager.default.createDirectory(
                 at: styles.appendingPathComponent(name),
                 withIntermediateDirectories: true
             )
         }
+        // A swap's leftover is settled at once: gone beside its rule set, put back without.
         StyleCatalog.removeAbandonedStaging(in: styles, now: Date())
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: styles.path).count, 6)
+        XCTAssertEqual(
+            Set(try FileManager.default.contentsOfDirectory(atPath: styles.path)),
+            [
+                ".neutral-build-1A2B3C4D", ".base-build-1A2B3C4D", "unpack-1A2B3C4D", ".unpack-5E6F7A8B",
+                "unpack-maps", "kmap-base", "mine", ".lock", "recovered-topo", "recovered-mine.old", "mine.old"
+            ]
+        )
         StyleCatalog.removeAbandonedStaging(in: styles, now: Date().addingTimeInterval(2 * 86_400))
         XCTAssertEqual(
             Set(try FileManager.default.contentsOfDirectory(atPath: styles.path)),
-            ["kmap-base", "mine", ".lock"]
+            ["unpack-maps", "kmap-base", "mine", ".lock", "recovered-topo", "recovered-mine.old", "mine.old"],
+            "the user's own folders stay"
         )
     }
 
@@ -278,5 +439,15 @@ final class StyleCatalogRulesTests: XCTestCase {
         // A condition that only starts another's is another rule.
         let shops = "shop=car [0x2f07 resolution 22]\n# shop=car_repair [0x2f03 resolution 24]  # kmap: hidden"
         XCTAssertFalse(StyleCatalog.isHidden("shop=car [0x2f07 resolution 24]", in: shops))
+    }
+
+    /// A rule folder of the user's own takes none of kmap's passes, and the build says so.
+    func testTheChoicesAnOwnFolderDoesNotTakeAreNamed() {
+        XCTAssertEqual(StyleCatalog.choicesNotApplied(StyleChoices()), [])
+        var choices = StyleChoices()
+        choices.hidden = ["amenity-cafe"]
+        choices.descriptions = .street
+        choices.cyrillic = true
+        XCTAssertEqual(StyleCatalog.choicesNotApplied(choices), ["hidden features", "descriptions", "Russian labels"])
     }
 }

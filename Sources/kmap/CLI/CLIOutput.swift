@@ -84,16 +84,32 @@ enum CLIOutput {
         return code
     }
 
+    /// The user stopped the run: said so, and not as an error.
+    static func cancelled() -> Int32 {
+        CLILog.line("\ncancelled")
+        result(["cancelled": .bool(true)])
+        return Exit.cancelled
+    }
+
     /// The command line was wrong: a usage line, or a flag nothing answers to.
     static func refuse(_ message: String) -> Int32 {
         failure(message, code: Exit.refused)
     }
 
     /// Several things wrong at once: each on the error stream, and all of them in one
-    /// result under `--json`, so one run reports everything wrong with it.
+    /// error event under `--json`, so one run reports everything wrong with it.
     static func refuse(_ lines: [String]) -> Int32 {
         for line in lines { CLILog.error(line) }
-        result(["refused": .array(lines.map(JSONValue.string))])
+        if isJSON {
+            emit(
+                "error",
+                [
+                    "message": .string(lines.joined(separator: "; ")),
+                    "code": .int(Int(Exit.refused)),
+                    "refused": .array(lines.map(JSONValue.string))
+                ]
+            )
+        }
         return Exit.refused
     }
 

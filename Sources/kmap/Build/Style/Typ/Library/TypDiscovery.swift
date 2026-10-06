@@ -29,6 +29,8 @@ extension TypLibrary {
 
         for root in roots {
             for url in files(under: root, excludingPrefix: outputPath) {
+                // A screen left behind stops its scan.
+                if Task.isCancelled { return [] }
                 let extensionName = url.pathExtension.lowercased()
                 let folder = url.deletingLastPathComponent().lastPathComponent
 

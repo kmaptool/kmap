@@ -147,17 +147,28 @@ extension StyleCatalog {
 
     /// Carries OSM `description` into the object card. The format has no free-text field,
     /// so the text rides in an address field, which is shown only when an object is opened.
-    /// Preference is `description:ru`, `description`, `description:en`, each excluding the
-    /// others.
+    /// Preference is `description:ru`, `description`, `description:en` on a Cyrillic map,
+    /// each excluding the others; elsewhere `description:en`, then `description`, as a
+    /// code page without Cyrillic turns Russian text into question marks.
     func addDescriptionRules(
         in directory: URL,
         carrier: BuildRecipe.DescriptionCarrier,
+        cyrillic: Bool = true,
         log: Log
     ) throws {
         guard carrier != .off else { return }
         let marker = "# --- kmap: descriptions"
+        let order = cyrillic ? ["description:ru", "description", "description:en"] : ["description:en", "description"]
+        /// Each tag where none before it in the order is there.
+        func ladder(_ action: (String) -> String, after guardTag: String = "") -> String {
+            order.enumerated().map { at, tag in
+                let absent = order[..<at].map { " & \($0)!=*" }.joined()
+                return guardTag + tag + "=*" + absent + " { " + action(tag) + " }"
+            }.joined(separator: "\n")
+        }
 
-        let rules: String
+        var rules: String
+        var labelRules: [String: String] = [:]
         if let tag = carrier.tag {
             rules = """
 
@@ -166,34 +177,59 @@ extension StyleCatalog {
                 # OSM description text, carried into the object's card on the device.
                 # Address fields never draw on the map, which is the point of using one.
 
-                description:ru=* { set \(tag)='${description:ru}' }
-                description=* & description:ru!=* { set \(tag)='${description}' }
-                description:en=* & description:ru!=* & description!=* { set \(tag)='${description:en}' }
+                \(ladder { "set \(tag)='${\($0)}'" })
 
                 """
         } else {
-            // Appended to the label instead of an address field: an address block exists
-            // only on POIs, so this carrier reaches ways and areas, but is drawn on the map.
-            rules = """
+            // Appended to the label rather than an address field, which only POIs have, so it
+            // reaches ways and areas but is drawn on the map. In <finalize>, after the rules
+            // that built the label: set first, it would keep a summit's height or a spring's
+            // warning out. Marked, so an element drawn twice is not described twice.
+            let label = "mkgmap:label:1"
+            let append: (String) -> String = { "set \(label)='${\(label)} (${\($0)})'; set kmap:described=yes" }
+            let unset = "\(label)=* & kmap:described!=yes & "
+            // Not on a road: its first label is the number shield. A trail without a number
+            // keeps its note. Nor on a summit, whose notes say where the height came from.
+            let guards = [
+                "points": [unset + "natural!=peak & natural!=volcano & natural!=saddle & "],
+                "lines": [
+                    unset + "highway!=* & ",
+                    unset + "highway ~ '(path|track|footway|bridleway|steps|via_ferrata)' & ref!=* & "
+                ],
+                "polygons": [unset]
+            ]
+            rules = ""
+            for (file, prefixes) in guards {
+                labelRules[file] = """
 
 
-                \(marker) -------------------------------------------------
-                # OSM description text, appended to the object's own label in brackets.
+                    \(marker) -------------------------------------------------
+                    # OSM description text, appended to the object's own label in brackets.
 
-                name=* & description:ru=* { name '${name} (${description:ru})' }
-                name=* & description=* & description:ru!=* { name '${name} (${description})' }
-                name=* & description:en=* & description:ru!=* & description!=* \
-                { name '${name} (${description:en})' }
+                    \(prefixes.map { ladder(append, after: $0) }.joined(separator: "\n"))
 
-                """
+                    """
+            }
         }
 
-        // Action-only rules with no type fall through to the rules below, annotating the
-        // element rather than consuming it, and must come first to do so.
+        // An address field is set first, by action-only rules that fall through to the
+        // rules below; a label is changed last, in the <finalize> section.
         var patched = 0
         for name in ["points", "lines", "polygons"] {
-            if try prependRules(rules + "\n", marked: marker, toFile: name, in: directory) {
-                patched += 1
+            if carrier.tag != nil {
+                if try prependRules(rules + "\n", marked: marker, toFile: name, in: directory) { patched += 1 }
+            } else {
+                try amendRuleFile(name, in: directory, unlessMarked: marker) { text in
+                    // The stock viewpoint puts the description in its name already.
+                    text = text.replacingOccurrences(
+                        of: "{name '${name} - ${description}' | '${name}'}",
+                        with: "{name '${name}'}"
+                    )
+                    if !text.contains("\n<finalize>") { text += "\n<finalize>\n" }
+                    text += labelRules[name] ?? ""
+                    patched += 1
+                    return true
+                }
             }
         }
         log.append(

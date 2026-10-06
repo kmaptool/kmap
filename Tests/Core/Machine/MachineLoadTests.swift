@@ -28,14 +28,17 @@ final class MachineLoadTests: XCTestCase {
         var sink = 0.0
         for i in 0..<4_000_000 { sink += Double(i).squareRoot() }
         XCTAssertGreaterThan(sink, 0)
-        try await Task.sleep(nanoseconds: 300_000_000)
-
-        let (load, _) = MachineLoad.read(since: first)
-        let cpu = try XCTUnwrap(
-            load.cpu,
-            "two readings a third of a second apart should"
-                + " give a rate"
-        )
+        // Counters can step back as cores park, or wrap, which reads as no rate: a few
+        // tries, each from the reading before.
+        var rate: Double?
+        var since = first
+        for _ in 0..<5 where rate == nil {
+            try await Task.sleep(nanoseconds: 300_000_000)
+            let reading = MachineLoad.read(since: since)
+            rate = reading.load.cpu
+            since = reading.ticks ?? since
+        }
+        let cpu = try XCTUnwrap(rate, "readings a third of a second apart and more should give a rate")
         XCTAssertTrue((0...1).contains(cpu), "\(cpu) is not a fraction")
     }
 

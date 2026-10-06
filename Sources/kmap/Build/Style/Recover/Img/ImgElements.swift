@@ -32,26 +32,29 @@ enum ImgElements {
 
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case noTiles
+        case cutShort
         case malformed(String, String)
         var description: String {
             switch self {
             case .noTiles: return "no map tiles found — is this a Garmin .img?"
+            case .cutShort: return "the map is cut short — its last files end past the end of it; download it again"
             case .malformed(let tile, let what): return "\(tile): \(what)"
             }
         }
     }
 
-    /// Walks the map and hands every element of the detail level to `emit`, in the
-    /// order the file has them: tile by tile, subdivision by subdivision, lines then
-    /// polygons then points within each.
+    /// Walks the map and hands every element of the detail level to `emit`, in file order:
+    /// tile by tile, subdivision by subdivision, lines then polygons then points within each.
     ///
     /// - Parameters:
     ///   - extendedAreasAndPoints: whether polygons and points of the extended types
     ///     (0x10000 and up) are read. Lines of extended types are always read.
     ///   - tick: called once per element read, for progress.
+    ///   - tile: called once per tile, before it is read: where cancellation is asked
+    ///     when no element of a tile lies near the ground.
     /// - Parameter resolution: read only the subdivisions drawn at this resolution,
-    ///   whatever level or tile they live in - the way to compare two maps that ladder
-    ///   their zooms differently, or to ask what one draws at a given zoom.
+    ///   whatever level or tile they live in: to compare 2 maps that ladder their zooms
+    ///   differently, or to ask what one draws at a given zoom.
     static func read(
         img: URL,
         grounds: [Ground],
@@ -59,6 +62,7 @@ enum ImgElements {
         coarserLevels: Bool = false,
         resolution: Int? = nil,
         tick: () throws -> Void,
+        tile: () throws -> Void = {},
         emit: (ElementDumper.Kind, Int, [Coord]) -> Void
     ) throws {
         try read(
@@ -67,7 +71,8 @@ enum ImgElements {
             extendedAreasAndPoints: extendedAreasAndPoints,
             coarserLevels: coarserLevels,
             resolution: resolution,
-            tick: tick
+            tick: tick,
+            tile: tile
         ) {
             kind,
             type,
@@ -86,19 +91,22 @@ enum ImgElements {
         coarserLevels: Bool = false,
         resolution: Int? = nil,
         tick: () throws -> Void,
+        tile: () throws -> Void = {},
         emit: (ElementDumper.Kind, Int, [Coord], Int) -> Void
     ) throws {
         let directory = ImgContainer.directory(of: img)
         let tiles = directory.filter { $0.ext.uppercased() == "TRE" }
         guard !tiles.isEmpty else { throw Trouble.noTiles }
+        // Read in part, a map would be taken for a smaller one: a style recovered from what
+        // it draws, a count of what it holds.
+        guard ImgContainer.isWhole(img, headers: false) else { throw Trouble.cutShort }
         for tre in tiles {
             guard
                 let rgn = directory.first(where: {
                     $0.name == tre.name && $0.ext.uppercased() == "RGN"
                 })
             else { continue }
-            // Asked once a tile too: a tile far from the ground emits nothing to ask on.
-            try tick()
+            try tile()
             guard let treData = ImgContainer.read(tre, from: img) else { continue }
             let tree = try Tree(treData, tile: tre.name)
             // Level 0 is the most detailed; it is named by that number, not by its

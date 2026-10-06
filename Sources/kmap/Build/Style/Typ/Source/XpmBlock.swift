@@ -67,19 +67,41 @@ struct XpmBlock: Equatable {
         )
     }
 
+    /// The same picture with 1 more palette entry, which no pixel uses yet.
+    func adding(_ entry: (key: String, colour: String?)) -> XpmBlock {
+        XpmBlock(
+            width: width,
+            height: height,
+            declaredColours: palette.count + 1,
+            charsPerPixel: charsPerPixel,
+            palette: palette + [entry],
+            rows: rows
+        )
+    }
+
     /// The same picture on a different grid, cropped or padded, anchored top-left. Padding
-    /// is transparent; a transparent palette entry is appended where the palette has none.
-    func resized(width newWidth: Int, height newHeight: Int) -> XpmBlock {
-        guard newWidth > 0, newHeight > 0 else { return self }
+    /// is transparent; a transparent palette entry is appended where padding needs one
+    /// and the palette has none. Returned as it is where there is no key left for it.
+    ///
+    /// - Parameter clearAt: the clear entry to pad with, where not just any will do: one
+    ///   clear at night as well.
+    func resized(width newWidth: Int, height newHeight: Int, clearAt: Int? = nil) -> XpmBlock {
+        // A picture of colours rather than keys, true colour, is not resized here.
+        guard newWidth > 0, newHeight > 0, !palette.isEmpty else { return self }
 
         var palette = self.palette
-        var clearIndex = palette.firstIndex { $0.colour == nil }
-        if clearIndex == nil {
-            // A key as wide as the picture's: 2 characters a pixel are keyed in pairs.
+        var clearIndex =
+            clearAt.flatMap { palette.indices.contains($0) && palette[$0].colour == nil ? $0 : nil }
+            ?? palette.firstIndex { $0.colour == nil }
+        // A crop pads nothing, and a full palette does not stop it.
+        let padding = newWidth > width || newHeight > height
+        if clearIndex == nil, padding {
+            // 256 entries at most, as 8 bits a pixel hold.
+            guard palette.count < Self.mostColours else { return self }
+            // A key as wide as the picture's; 1 slot past the palette's is free if any.
             let used = Set(palette.map(\.key))
             let width = max(1, charsPerPixel)
-            let keys = width == 1 ? XpmBlock.keyAlphabet.count : XpmBlock.keyAlphabet.count * XpmBlock.keyAlphabet.count
-            let free = (0..<keys).lazy.map { XpmBlock.key($0, width: width) }.first { !used.contains($0) }
+            let free = (0...palette.count).lazy.map { XpmBlock.key($0, width: width) }.first { !used.contains($0) }
             guard let free else { return self }
             palette.append((key: free, colour: nil))
             clearIndex = palette.count - 1
@@ -123,6 +145,9 @@ struct XpmBlock: Equatable {
         )
     }
 
+    /// The most entries a palette takes: 8 bits a pixel.
+    static let mostColours = 256
+
     /// Characters usable as palette keys, in a fixed order: every character except the
     /// double quote that ends the string. The fixed order makes resize, decompile and icon
     /// import reproducible, so a file can be diffed against its previous self.
@@ -131,12 +156,17 @@ struct XpmBlock: Equatable {
             + "abcdefghijklmnopqrstuvwxyz{|}~"
     )
 
-    /// The key for palette slot `index`: one character where `width` is 1, otherwise the
-    /// two-character form the TYP format allows.
+    /// The key for palette slot `index`, `width` characters long: the slot written in
+    /// the alphabet's digits, most significant first.
     static func key(_ index: Int, width: Int) -> String {
         let n = keyAlphabet.count
-        if width == 1 { return String(keyAlphabet[index % n]) }
-        return String(keyAlphabet[(index / n) % n]) + String(keyAlphabet[index % n])
+        var digits: [Character] = []
+        var rest = index
+        for _ in 0..<max(1, width) {
+            digits.append(keyAlphabet[rest % n])
+            rest /= n
+        }
+        return String(digits.reversed())
     }
 
     /// The picture as a grid of colours, nil where transparent.

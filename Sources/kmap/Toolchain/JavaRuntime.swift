@@ -39,15 +39,18 @@ struct JavaRuntime: Equatable {
         FileTools.isExecutable(kitTool("javac", beside: java)) && FileTools.isExecutable(kitTool("jar", beside: java))
     }
 
-    /// A tool of the JDK this Java belongs to. Found beside the file a link leads to: with
-    /// Debian's alternatives `/usr/bin/java` and `/usr/bin/javac` can be 2 different JDKs.
+    /// A tool of this Java's JDK: beside the file a link leads to (Debian's links may point
+    /// at 2 JDKs), or beside the link where it leads to no `java` (Gentoo's script).
     func kitTool(_ name: String) -> String { Self.kitTool(name, beside: path) }
 
     static func kitTool(_ name: String, beside java: String) -> String {
         #if os(Windows)
         return ToolLocations.companion(name, of: java)
         #else
-        return ToolLocations.companion(name, of: URL(fileURLWithPath: java).resolvingSymlinksInPath().path)
+        let target = FileTools.resolvingLinks(URL(fileURLWithPath: java))
+        let led = ToolLocations.companion(name, of: target.path)
+        let ledToJava = target.lastPathComponent == "java"
+        return FileTools.isExecutable(led) || ledToJava ? led : ToolLocations.companion(name, of: java)
         #endif
     }
 }

@@ -20,7 +20,14 @@ extension GEDTM30 {
                 FileTools.removeIfPresent(file)
                 FileTools.removeIfPresent(PartFiles(destination: file).part(0))
             }
-            try await Downloader(log: Log()).download(url: url, from: offset, count: Int64(count), to: file)
+            // A file of its own: nobody else writes it.
+            try await Downloader(log: Log()).download(
+                url: url,
+                from: offset,
+                count: Int64(count),
+                to: file,
+                locking: false
+            )
             let data = try Data(contentsOf: file)
             Self.readsKept.withLock { $0.keep(data, for: key) }
             return data

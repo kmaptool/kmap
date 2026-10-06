@@ -12,10 +12,11 @@ enum ContourOutput {
     private static let nodesPerBatch = 8_000
     private static let waysPerBatch = 4_000
 
-    /// First invented ids for contour nodes and ways, clear of the ids OSM itself uses.
-    /// A multi-cell build takes one slice per cell, so no two cells collide.
-    static let nodeIDBase: Int64 = 20_000_000_000
-    static let wayIDBase: Int64 = 5_000_000_000
+    /// First ids invented for contour nodes and ways: above OSM's own (about 1.4e10 nodes in
+    /// 2026, growing 1e9 a year) and the passes' (from 2^40, 2^32 a region). A multi-cell
+    /// build gives each cell its own slice.
+    static let nodeIDBase: Int64 = 1 << 42
+    static let wayIDBase: Int64 = 1 << 42
     static let nodeIDSlice: Int64 = 200_000_000
     static let wayIDSlice: Int64 = 50_000_000
 
@@ -29,32 +30,29 @@ enum ContourOutput {
     ) throws -> (nodes: Int, ways: Int) {
         // Past its slice a cell's ids run into the next cell's, and stop ascending.
         let nodeCount = lines.reduce(0) { $0 + $1.points.count }
-        guard Int64(nodeCount) <= nodeIDSlice, Int64(lines.count) <= wayIDSlice else {
-            throw Trouble.tooManyNodes(nodeCount)
-        }
-        // A file cut short by a failed write would still be handed on: none is left.
-        do {
-            return try writeWhole(
-                lines,
-                to: url,
-                nodeStart: nodeStart,
-                wayStart: wayStart,
-                major: major,
-                medium: medium
-            )
-        } catch {
-            FileTools.removeIfPresent(url)
-            throw error
-        }
+        guard Int64(nodeCount) <= nodeIDSlice else { throw Trouble.tooManyNodes(nodeCount) }
+        guard Int64(lines.count) <= wayIDSlice else { throw Trouble.tooManyLines(lines.count) }
+        // A write that fails leaves no part of itself: the writer lands the file whole.
+        return try writeWhole(
+            lines,
+            to: url,
+            nodeStart: nodeStart,
+            wayStart: wayStart,
+            major: major,
+            medium: medium
+        )
     }
 
     enum Trouble: Error, CustomStringConvertible, LocalizedError {
         case tooManyNodes(Int)
+        case tooManyLines(Int)
 
         var description: String {
             switch self {
             case .tooManyNodes(let count):
                 "\(count) contour points in 1 degree cell, more than its share of ids -- use a wider interval"
+            case .tooManyLines(let count):
+                "\(count) contour lines in 1 degree cell, more than its share of ids -- use a wider interval"
             }
         }
         var errorDescription: String? { description }
@@ -109,18 +107,23 @@ enum ContourOutput {
             wayID += 1
 
             if nodes.count >= Self.nodesPerBatch {
-                ContourTiming.measure("hand over") { writer.nodes(nodes) }
+                // Handed over as a constant: a closure capturing the growing array itself
+                // moves it to the heap, and every append above pays for that.
+                let batch = nodes
+                ContourTiming.measure("hand over") { writer.nodes(batch) }
                 written += nodes.count
                 nodes.removeAll(keepingCapacity: true)
             }
         }
         if !nodes.isEmpty {
-            ContourTiming.measure("hand over") { writer.nodes(nodes) }
+            let batch = nodes
+            ContourTiming.measure("hand over") { writer.nodes(batch) }
             written += nodes.count
         }
+        let finished = ways
         ContourTiming.measure("hand over") {
-            for batch in stride(from: 0, to: ways.count, by: Self.waysPerBatch) {
-                writer.ways(Array(ways[batch..<min(batch + Self.waysPerBatch, ways.count)]))
+            for batch in stride(from: 0, to: finished.count, by: Self.waysPerBatch) {
+                writer.ways(Array(finished[batch..<min(batch + Self.waysPerBatch, finished.count)]))
             }
         }
         try ContourTiming.measure("finish") { try writer.finish() }

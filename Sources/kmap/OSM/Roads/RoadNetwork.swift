@@ -24,6 +24,13 @@ struct RoadNetwork {
     var obstacleHeight: [Float] = []
     var obstacleLat: [Double] = []
     var obstacleLon: [Double] = []
+    /// Nodes tagged `noexit=yes`: a dead end on purpose, which the repair leaves loose.
+    var noExit: Set<Int64> = []
+    /// Nodes tagged as a gate: an end on one, or a landing, is not joined.
+    var gates: Set<Int64> = []
+    /// Ways through a building, `tunnel=building_passage`: they meet the building's wall
+    /// and are streets for all that, so an end there may be joined.
+    var passages: Set<Int64> = []
 
     var wayCount: Int { wayID.count }
     var obstacleCount: Int { obstacleKind.count }

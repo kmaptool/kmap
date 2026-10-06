@@ -12,7 +12,8 @@ enum ProcessProbe {
         _ arguments: [String],
         timeout: TimeInterval = defaultTimeout
     ) -> Int32? {
-        guard FileTools.isExecutable(executable) else { return nil }
+        // None started once kmap is leaving, and one running is stopped with the rest.
+        guard FileTools.isExecutable(executable), !ChildProcess.isLeaving else { return nil }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -21,6 +22,8 @@ enum ProcessProbe {
         // Never the terminal: the point of the call is to learn whether the tool prompts.
         process.standardInput = ChildProcess.emptyInput
         do { try process.run() } catch { return nil }
+        ChildProcess.track(process)
+        defer { ChildProcess.untrack(process) }
         guard ChildProcess.waitForExit(process, within: timeout) else {
             ChildProcess.stop(process)
             return nil
@@ -35,7 +38,8 @@ enum ProcessProbe {
         _ arguments: [String],
         timeout: TimeInterval = defaultTimeout
     ) -> String? {
-        guard FileTools.isExecutable(executable) else { return nil }
+        // None started once kmap is leaving, and one running is stopped with the rest.
+        guard FileTools.isExecutable(executable), !ChildProcess.isLeaving else { return nil }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
@@ -54,6 +58,8 @@ enum ProcessProbe {
             try? reading.close()
             return nil
         }
+        ChildProcess.track(process)
+        defer { ChildProcess.untrack(process) }
 
         // Waits for the process, not for the end of the pipe: the handler is not called at
         // end of file on every platform.

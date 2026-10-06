@@ -66,8 +66,14 @@ extension StyleDetailScreen {
             facts.append(t("code page") + " \(codePage)")
         }
         facts.append(kindLabel)
-        s.text(rect.x, y, facts.joined(separator: "  ·  "), Style(fg: theme.dim, bg: theme.appBg))
-        y += 1
+        // Wrapped: in Russian the line is wider than 80 columns.
+        y = s.paragraph(
+            facts.joined(separator: "  ·  "),
+            x: rect.x,
+            y: y,
+            width: rect.w,
+            style: Style(fg: theme.dim, bg: theme.appBg)
+        )
 
         if let url = document.sourceURL {
             s.text(rect.x, y, truncate(Paths.display(url), to: rect.w), Style(fg: theme.faint, bg: theme.appBg))
@@ -244,6 +250,6 @@ extension StyleDetailScreen {
 
     private func drawMessage(into s: Surface, rect: Rect, y: Int, theme: Theme) {
         guard let message, y < rect.maxY else { return }
-        s.text(rect.x, y, message, Style(fg: theme.ok, bg: theme.appBg))
+        s.text(rect.x, y, message, Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg), limit: rect.w)
     }
 }

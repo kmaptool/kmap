@@ -5,10 +5,12 @@ extension RecipeForm {
     private static let buttonWidth = 28
     private static let buttonInk = Color.xterm(233)
 
-    func render(into s: Surface, rect: Rect, ctx: AppContext) {
+    func render(into s: Surface, rect whole: Rect, ctx: AppContext) {
         let theme = ctx.theme
         let fields = self.fields
-        zoomPlanCount = ctx.settings.zoomPlans.count
+        madePlanCount = ctx.settings.settings.zoomPlans.count
+        // A message takes the last row from the form rather than a row of it.
+        let rect = message == nil ? whole : Rect(x: whole.x, y: whole.y, w: whole.w, h: max(1, whole.h - 1))
         list.clamp(count: fields.count, visible: fields.count)
         let rows = scrollToSelected(fields, visible: rect.h)
         fieldRows.removeAll(keepingCapacity: true)
@@ -45,7 +47,7 @@ extension RecipeForm {
         Widgets.scrollHint(s, rect: rect, offset: scroll, count: rows, visible: rect.h, theme: theme)
 
         if let message {
-            let my = max(rect.y, min(rect.maxY - 1, y + 1))
+            let my = max(rect.y, min(whole.maxY - 1, y + 1))
             s.text(rect.x + 2, my, truncate(message, to: rect.w - 2), Style(fg: theme.warn, bg: theme.appBg))
         }
     }
@@ -90,7 +92,8 @@ extension RecipeForm {
 
     /// Opens a field's list, the way Enter does. For tests, which would otherwise count rows.
     func openPicker(_ field: Field, _ ctx: AppContext) {
-        guard let choice = choice(for: field, ctx), choice.listable, choice.options.count > 1 else { return }
+        guard let choice = choice(for: field, ctx), choice.listable, choice.options.count > 1 || field == .profile
+        else { return }
         picking = (field, choice.options, choice.current)
     }
 
@@ -107,6 +110,7 @@ extension RecipeForm {
             guard let profile = currentProfile else { return "—" }
             return isModified ? profile.name + "  ·  " + t("changed for this map only") : profile.name
         case .style:
+            if let missing = missingStyleID { return t("%@ not found — pick a style", missing) }
             return scanningStyles
                 ? recipe.style.name + "   " + t("%@ looking for more on your drives", String(Widgets.spinner(frame)))
                 : recipe.style.name
@@ -122,7 +126,7 @@ extension RecipeForm {
         case .zoomPlan:
             let base = RecipeForm.planLabel(recipe.zoomPlan)
             guard recipe.zoomPlan.movesAnything else {
-                return base + "  ·  " + (zoomPlanCount < 2 ? t("⏎ to make another") : t("as it comes"))
+                return base + "  ·  " + (madePlanCount == 0 ? t("⏎ to make another") : t("as it comes"))
             }
             return base
         case .language:
@@ -146,7 +150,7 @@ extension RecipeForm {
         case .customPOIs:
             guard recipe.customPOIs else { return t("off") }
             return mode == .build
-                ? t("on") + "  ·  " + t("%@.gpi alongside the map", recipe.slug)
+                ? t("on") + "  ·  " + t("%@.gpi alongside the map", recipe.areaSlug)
                 : t("on") + "  ·  " + t("a .gpi alongside the map")
         case .hide:
             guard !recipe.hidden.isEmpty else { return t("nothing — ⏎ to choose") }

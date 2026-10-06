@@ -22,7 +22,7 @@ final class ProfileEditScreen: Screen {
             outputDirectory: store.settings.outputURL
         )
         // Code page 0: no region to suggest one; resolved at build time.
-        recipe.apply(profile.choices, style: nil, regionCodePage: 0)
+        recipe.apply(profile.choices, style: nil, regionCodePage: 0, plans: store.zoomPlans)
         self.form = RecipeForm(
             mode: .profile,
             recipe: recipe,
@@ -37,10 +37,15 @@ final class ProfileEditScreen: Screen {
     }
 
     func handle(_ key: KeyEvent, ctx: AppContext) -> Route {
+        // Only the very next key may be the same one again.
+        let refused = refusedKey
+        refusedKey = nil
         if !form.isPicking && !form.isEditingText {
             switch key {
-            case .esc: return save(ctx) ? .pop : .none
-            case .ctrl("c"): return .quit
+            // Leaving saves here, ^C as Esc. Where the file will not take it the screen says
+            // so and stays; the same key again, straight away, leaves without saving.
+            case .esc: return save(ctx) || refused == key ? .pop : refuseLeaving(key)
+            case .ctrl("c"): return save(ctx) || refused == key ? .quit : refuseLeaving(key)
             default: break
             }
         }
@@ -52,9 +57,19 @@ final class ProfileEditScreen: Screen {
         }
     }
 
+    /// The key whose leaving was refused for a failed save, until the next key.
+    private var refusedKey: KeyEvent?
+
+    private func refuseLeaving(_ key: KeyEvent) -> Route {
+        refusedKey = key
+        form.message = (form.message ?? "") + " — " + t("press it again to leave without saving")
+        return .none
+    }
+
     /// False when the file could not be written: the screen stays, saying why.
     private func save(_ ctx: AppContext) -> Bool {
         profile.choices = form.recipe.choices
+        profile.choices.styleID = form.savedStyleID
         if case .failure(let error) = ctx.settings.saveProfile(profile) {
             form.message = t("could not save the settings: %@", error.localizedDescription)
             return false

@@ -8,8 +8,9 @@ extension SettingsScreen {
     func render(into s: Surface, rect: Rect, ctx: AppContext) {
         let theme = ctx.theme
         let fields = fields(ctx)
-        // Two rows a field; the window keeps the selected one on a short terminal.
-        let visible = max(1, rect.h / 2)
+        // 2 rows a field, and the last row kept for what a change says; the window keeps
+        // the selected field on a short terminal.
+        let visible = max(1, (rect.h - 1) / 2)
         pickerRow = nil
 
         var y = rect.y
@@ -40,11 +41,18 @@ extension SettingsScreen {
 
         Widgets.scrollHint(s, rect: rect, offset: list.offset, count: fields.count, visible: visible, theme: theme)
         if let message, y < rect.maxY {
-            s.text(rect.x + 2, y, message, Style(fg: theme.ok, bg: theme.appBg))
+            s.text(
+                rect.x + 2,
+                y,
+                message,
+                Style(fg: messageIsError ? theme.danger : theme.ok, bg: theme.appBg),
+                limit: max(0, rect.w - 2)
+            )
         }
     }
 
     func renderOverlay(into s: Surface, rect: Rect, ctx: AppContext) {
+        asking?.render(into: s, rect: rect, theme: ctx.theme)
         guard let open = picking, let row = pickerRow else { return }
         Widgets.optionList(
             s,
@@ -58,7 +66,10 @@ extension SettingsScreen {
     }
 
     private func value(for field: Field, _ ctx: AppContext) -> String {
-        if editing == field { return draft + "▏" }
+        if editing == field {
+            return (field.isPassword ? String(repeating: "•", count: min(Self.passwordMaskLimit, draft.count)) : draft)
+                + "▏"
+        }
         let settings = ctx.settings.settings
         switch field {
         case .uiLanguage: return L10n.current.nativeName

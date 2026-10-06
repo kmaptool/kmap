@@ -64,7 +64,7 @@ struct ZoomFamily: Identifiable, Equatable {
             tags: [
                 "waterway=*", "dock=*", "natural=water", "natural=wetland",
                 "natural=marsh", "natural=mud", "natural=bay", "natural=beach",
-                "natural=sand", "natural=coastline", "natural=sea",
+                "natural=sand", "natural=coastline",
                 "natural=spring", "natural=waterfall"
             ]
         ),
@@ -84,7 +84,7 @@ struct ZoomFamily: Identifiable, Equatable {
                 "natural=cliff", "natural=scree", "natural=shingle",
                 "natural=bare_rock", "natural=rock", "natural=stone",
                 "natural=grassland", "natural=heath", "natural=tundra",
-                "natural=glacier", "natural=valley", "natural=land",
+                "natural=glacier", "natural=valley",
                 "natural=fell", "man_made=cutline", "kmap:fell_edge=*"
             ]
         ),
@@ -193,6 +193,9 @@ struct ZoomFamily: Identifiable, Equatable {
 
     static func named(_ id: String) -> ZoomFamily? { all.first { $0.id == id } }
 
+    /// Rules no family owns.
+    static let groundLayers = ["natural=land", "natural=sea"]
+
     var name: String { t(nameKey) }
     var note: String { t(noteKey) }
 
@@ -202,6 +205,9 @@ struct ZoomFamily: Identifiable, Equatable {
     func claims(_ condition: String, in file: String) -> Bool {
         guard files.contains(file) else { return false }
         if wholeFile { return true }
+        // The land and the sea lie under everything from the overview in: moved, a device
+        // shows black where they went, and as the coarsest rule they would set the spread.
+        if Self.groundLayers.contains(where: { Self.names(exact: $0, in: condition) }) { return false }
         return tags.contains { tag in
             if tag.hasSuffix("=*") {
                 return ZoomFamily.names(key: String(tag.dropLast(2)), in: condition)

@@ -80,4 +80,30 @@ final class CLIFlagsTests: XCTestCase {
         let flags = CLI.Flags(["-h", "--", "x"])
         XCTAssertEqual(flags.positionals, ["-h", "--", "x"])
     }
+
+    /// A typo or a stray argument stops the command with exit code 2 before any work.
+    func testATypoOrAStrayArgumentIsRefused() async {
+        for line in [
+            ["fetch-dem", "N00E000", "--sorce=view1"],
+            ["dem-cost", "monaco", "--source=copernicus1"],
+            ["dem-cost", "monaco", "--sources=bogus"],
+            ["repair-roads", "in.pbf", "out.pbf", "--no-bridge"],
+            ["repair-roads", "in.pbf", "out.pbf", "extra.pbf"],
+            ["split", "in.pbf", "--output-dir", "tiles", "--max-node", "800000"],
+            ["contours", "t.hgt", "--setp", "10"],
+            ["burn-peaks", "--pbf", "a.pbf", "b.pbf", "--hgt-dir", "d", "--out", "o.pbf"],
+            ["typinfo", "map.img", "--bogus"],
+            ["styles", "--bogus"],
+            ["doctor", "--bogus"],
+            ["hideable", "--regenrate"]
+        ] {
+            let code = await CLI.run(line)
+            XCTAssertEqual(code, 2, line.joined(separator: " "))
+        }
+    }
+
+    func testTheFlagsACommandReadsAreKnownToIt() {
+        let flags = CLI.Flags(["t.hgt", "--step", "10", "--raw", "--no-split"], valued: ["step"])
+        XCTAssertNil(flags.refusal("contours", knows: ["step", "raw", "no-split"], positionals: 1))
+    }
 }

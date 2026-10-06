@@ -12,8 +12,13 @@ extension BuildPipeline {
         /// trimElevationCells().
         var outlineElevationCells: [(lat: Int, lon: Int)]?
         var finished = false
+        /// Whether this run cleared and marked its work folder: on a failure the files are
+        /// its own.
+        var madeWorkFolder = false
         var failure: String?
         var wasCancelled = false
+        /// While the elevation is being stopped, for `stopAsked`.
+        var settling = false
         var outputs: [Output] = []
         /// The output groups in the order the packer laid them, set by the compile stage;
         /// collect names the files p1, p2... along it.

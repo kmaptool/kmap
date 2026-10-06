@@ -65,8 +65,8 @@ final class LineCollector: @unchecked Sendable {
         pending = []
         lock.unlock()
         guard !rest.isEmpty else { return }
-        // `Lines.of` splits on scalars and handles all three kinds of line ending.
-        for line in Lines.of(rest) where !line.isEmpty {
+        // `TextLines.of` splits on scalars and handles all 3 kinds of line ending.
+        for line in TextLines.of(rest) where !line.isEmpty {
             let cleaned = stripControlSequences(line)
             guard !cleaned.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
             lock.lock(); remember(cleaned); lock.unlock()
