@@ -358,7 +358,10 @@ extension BuildPipeline {
     static func removeAbandonedParts(in directory: URL, now: Date = Date()) {
         let entries =
             (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
-        for entry in entries where entry.pathExtension == "part" && entry.lastPathComponent.contains(".hgt.") {
+        for entry in entries
+        where entry.pathExtension == "part" && entry.lastPathComponent.contains(".hgt.")
+            && CacheClearing.isOwn(entry.lastPathComponent, in: .source) && FileTools.isRegularFile(entry)
+        {
             guard let changed = FileTools.modified(of: entry), now.timeIntervalSince(changed) > 3600 else { continue }
             FileTools.removeIfPresent(entry)
         }

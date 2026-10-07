@@ -97,14 +97,14 @@ extension SettingsScreen {
             return ctx.toolchain.findJava()?.path ?? t("not found")
         case .clearCache:
             let overview = ctx.overview
-            guard overview.cachedExtracts > 0 else { return t("empty") }
-            return tn("%d file(s)", overview.cachedExtracts)
+            guard overview.cachedAny else { return t("empty") }
+            return tn("%d extract(s)", overview.cachedExtracts)
                 + " · \(Fmt.bytes(overview.cachedBytes)) — " + t("⏎ to clear")
         case .clearElevation:
             let cache = ctx.overview.elevation
-            guard cache.tiles > 0 else { return t("empty") }
-            return tn("%d tile(s)", cache.tiles) + " · \(Fmt.bytes(cache.bytes))"
-                + " · \(cache.sources.joined(separator: " ")) — " + t("⏎ to clear")
+            guard cache.any else { return t("empty") }
+            let sources = cache.sources.isEmpty ? "" : " · " + cache.sources.joined(separator: " ")
+            return tn("%d tile(s)", cache.tiles) + " · \(Fmt.bytes(cache.bytes))" + sources + " — " + t("⏎ to clear")
         }
     }
 }

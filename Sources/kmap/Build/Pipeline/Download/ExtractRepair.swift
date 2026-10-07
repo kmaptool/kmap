@@ -48,20 +48,16 @@ extension BuildPipeline {
                 "the downloaded map data in \(extract.lastPathComponent) was damaged on"
                     + " disk — downloading it again"
             )
-            let kept = extract.appendingPathExtension("suspect")
-            FileTools.removeIfPresent(kept)
-            if (try? FileTools.move(extract, to: kept)) != nil {
-                aside.append((kept, extract))
-            } else {
-                FileTools.removeIfPresent(extract)
-            }
-            CacheStamp.remove(besides: extract)
+            if let kept = Self.putAside(extract) { aside.append((kept, extract)) }
         }
         for id in board.running where id != .download { set(id, .pending, "") }
         set(.download, .running, t("cached copy was damaged — downloading again"))
         do {
             let fetched = try await downloadExtracts()
-            for held in aside { FileTools.removeIfPresent(held.kept) }
+            for held in aside {
+                FileTools.removeIfPresent(held.kept)
+                FileTools.removeIfPresent(Self.keptStamp(besides: held.extract))
+            }
             return fetched
         } catch {
             // Back where it was fetched anew in vain; gone where a fresh copy took its place.
@@ -70,15 +66,60 @@ extension BuildPipeline {
         }
     }
 
-    /// A copy put aside as damaged, settled: dropped where a fresh extract stands, put
-    /// back where none came, as after a run killed in between.
-    static func settleSuspect(besides extract: URL) {
-        let kept = extract.appendingPathExtension("suspect")
-        guard FileTools.exists(kept) else { return }
-        if FileTools.exists(extract) {
+    /// Puts a damaged copy aside as `<extract>.suspect`, with its stamp; deletes it where it
+    /// will not move. Returns where it went.
+    static func putAside(_ extract: URL) -> URL? {
+        holdingSuspect(of: extract) {
+            let kept = extract.appendingPathExtension("suspect")
             FileTools.removeIfPresent(kept)
-        } else {
-            try? FileTools.move(kept, to: extract)
+            FileTools.removeIfPresent(keptStamp(besides: extract))
+            defer { CacheStamp.remove(besides: extract) }
+            guard (try? FileTools.move(extract, to: kept)) != nil else {
+                FileTools.removeIfPresent(extract)
+                return nil
+            }
+            try? FileTools.move(CacheStamp.url(for: extract), to: keptStamp(besides: extract))
+            return kept
         }
+    }
+
+    /// A copy put aside as damaged, settled: dropped where a fresh extract stands, put
+    /// back where none came, as after a run killed in between. Put back, its stamp loses the
+    /// date, so the next build checks the copy against the checksum.
+    static func settleSuspect(besides extract: URL) {
+        holdingSuspect(of: extract) {
+            let kept = extract.appendingPathExtension("suspect")
+            let stamp = keptStamp(besides: extract)
+            guard FileTools.exists(kept) else { return FileTools.removeIfPresent(stamp) }
+            if FileTools.exists(extract) {
+                FileTools.removeIfPresent(kept)
+                FileTools.removeIfPresent(stamp)
+            } else if (try? FileTools.move(kept, to: extract)) != nil {
+                // Its stamp or one left beside it; one that will not read still marks it kmap's.
+                let had = FileTools.exists(stamp) || FileTools.exists(CacheStamp.url(for: extract))
+                let old = CacheStamp.read(at: stamp) ?? CacheStamp.read(besides: extract)
+                FileTools.removeIfPresent(stamp)
+                guard had else { return }
+                undate(extract, old)
+            }
+        }
+    }
+
+    /// Rewrites the stamp without its date: the next build checks the copy against the
+    /// checksum rather than trusting it.
+    static func undate(_ extract: URL, _ old: CacheStamp?) {
+        CacheStamp(size: old?.size ?? -1, lastModified: nil, md5: old?.md5).write(besides: extract)
+    }
+
+    /// Held while a copy moves aside, back or into the cache, so another kmap never meets
+    /// it half moved. Named apart from the download locks, which are swept when old.
+    static func holdingSuspect<T>(of extract: URL, _ body: () throws -> T) rethrows -> T {
+        Paths.ensure(Paths.locks)
+        let name = "suspect-\(FileTools.slugify(extract.lastPathComponent)).lock"
+        return try FileLock.holding(Paths.locks.appendingPathComponent(name), body)
+    }
+
+    static func keptStamp(besides extract: URL) -> URL {
+        CacheStamp.url(for: extract).appendingPathExtension("suspect")
     }
 }

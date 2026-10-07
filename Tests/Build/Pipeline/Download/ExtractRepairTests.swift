@@ -89,20 +89,56 @@ final class ExtractRepairTests: XCTestCase {
         XCTAssertEqual(pipeline().damagedExtracts(among: [unknown]), [unknown])
     }
 
-    /// A copy put aside as damaged goes back where nothing replaced it, and goes where a
-    /// fresh one did.
+    /// A copy put aside comes back with its stamp, or goes where a fresh one came.
     func testACopyPutAsideIsSettled() throws {
         let alone = directory.appendingPathComponent("alone.osm.pbf")
         try FileTools.write(Data("kept".utf8), to: alone.appendingPathExtension("suspect"))
+        CacheStamp(size: 4, lastModified: "Mon, 05 Oct 2026 00:00:00 GMT", md5: "abc").write(besides: alone)
+        try FileTools.move(CacheStamp.url(for: alone), to: BuildPipeline.keptStamp(besides: alone))
         BuildPipeline.settleSuspect(besides: alone)
         XCTAssertEqual(try Data(contentsOf: alone), Data("kept".utf8))
+        // Undated: it vouches for nothing.
+        XCTAssertEqual(CacheStamp.read(besides: alone), CacheStamp(size: 4, lastModified: nil, md5: "abc"))
         XCTAssertFalse(FileTools.exists(alone.appendingPathExtension("suspect")))
+        XCTAssertFalse(FileTools.exists(BuildPipeline.keptStamp(besides: alone)))
 
         let fresh = directory.appendingPathComponent("fresh.osm.pbf")
         try FileTools.write(Data("new".utf8), to: fresh)
+        try FileTools.write(Data("new stamp".utf8), to: CacheStamp.url(for: fresh))
         try FileTools.write(Data("old".utf8), to: fresh.appendingPathExtension("suspect"))
+        try FileTools.write(Data("old stamp".utf8), to: BuildPipeline.keptStamp(besides: fresh))
         BuildPipeline.settleSuspect(besides: fresh)
         XCTAssertEqual(try Data(contentsOf: fresh), Data("new".utf8))
+        XCTAssertEqual(try Data(contentsOf: CacheStamp.url(for: fresh)), Data("new stamp".utf8))
         XCTAssertFalse(FileTools.exists(fresh.appendingPathExtension("suspect")))
+        XCTAssertFalse(FileTools.exists(BuildPipeline.keptStamp(besides: fresh)))
+    }
+
+    /// A damaged copy goes aside with its stamp.
+    func testADamagedCopyGoesAsideWithItsStamp() throws {
+        let extract = directory.appendingPathComponent("aside.osm.pbf")
+        try FileTools.write(Data("bad".utf8), to: extract)
+        CacheStamp(size: 3, lastModified: "x", md5: "abc").write(besides: extract)
+        let kept = try XCTUnwrap(BuildPipeline.putAside(extract))
+        XCTAssertEqual(kept, extract.appendingPathExtension("suspect"))
+        XCTAssertFalse(FileTools.exists(extract))
+        XCTAssertFalse(FileTools.exists(CacheStamp.url(for: extract)))
+        XCTAssertEqual(CacheStamp.read(at: BuildPipeline.keptStamp(besides: extract))?.md5, "abc")
+    }
+
+    /// Any stamp beside a copy put back loses its date; one unreadable leaves a marker.
+    func testAnyStampBesideACopyPutBackStopsVouching() throws {
+        let stray = directory.appendingPathComponent("stray.osm.pbf")
+        try FileTools.write(Data("kept".utf8), to: stray.appendingPathExtension("suspect"))
+        CacheStamp(size: 4, lastModified: "Mon, 05 Oct 2026 00:00:00 GMT", md5: "abc").write(besides: stray)
+        BuildPipeline.settleSuspect(besides: stray)
+        XCTAssertEqual(CacheStamp.read(besides: stray), CacheStamp(size: 4, lastModified: nil, md5: "abc"))
+
+        let unreadable = directory.appendingPathComponent("unreadable.osm.pbf")
+        try FileTools.write(Data("kept".utf8), to: unreadable.appendingPathExtension("suspect"))
+        try FileTools.write(Data("not json".utf8), to: BuildPipeline.keptStamp(besides: unreadable))
+        BuildPipeline.settleSuspect(besides: unreadable)
+        XCTAssertEqual(CacheStamp.read(besides: unreadable), CacheStamp(size: -1, lastModified: nil, md5: nil))
+        XCTAssertFalse(FileTools.exists(BuildPipeline.keptStamp(besides: unreadable)))
     }
 }

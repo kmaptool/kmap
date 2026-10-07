@@ -9,6 +9,9 @@ import Foundation
 /// and another read the corner back out of the name without its sign. Both are silent --
 /// the build finishes and the peaks are simply not there.
 enum HGTName {
+    /// Characters in a name: `N44E033`.
+    static let length = 7
+
     /// The name of the tile holding a point, without the extension.
     static func of(lat: Int, lon: Int) -> String {
         String(
@@ -29,7 +32,7 @@ enum HGTName {
     static func corner(of name: String) -> (lat: Int, lon: Int)? {
         let stem = name.hasSuffix(".hgt") ? String(name.dropLast(4)) : name
         let letters = Array(stem.uppercased())
-        guard letters.count >= 7 else { return nil }
+        guard letters.count >= length else { return nil }
         guard letters[0] == "N" || letters[0] == "S" else { return nil }
         guard letters[3] == "E" || letters[3] == "W" else { return nil }
         guard let degreesNorth = Int(String(letters[1...2])),

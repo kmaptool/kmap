@@ -118,4 +118,33 @@ final class PartFilesTests: XCTestCase {
         )
         for url in [extract, stamp, odd, alsoOdd] { XCTAssertTrue(FileTools.exists(url), "\(url)") }
     }
+
+    /// In a folder of the person's only kmap's own parts go, and none below its top.
+    func testOnlyKmapsOwnPartsGoWhereAsked() throws {
+        let later = Date().addingTimeInterval(30 * 24 * 3600)
+        let ours = try makeFile("region-a.osm.pbf.part0", bytes: 10)
+        let mine = try makeFile("video.mp4.part1", bytes: 10)
+        let below = directory.appendingPathComponent("sub/region-b.osm.pbf.part0")
+        try FileManager.default.createDirectory(
+            at: below.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try FileTools.write("1234567890", to: below)
+        let freed = PartFiles.sweepAbandoned(in: directory, now: later, topOnly: true) {
+            CacheClearing.isOwn($0, in: .extracts)
+        }
+        XCTAssertEqual(freed, 10)
+        XCTAssertFalse(FileTools.exists(ours))
+        XCTAssertTrue(FileTools.exists(mine))
+        XCTAssertTrue(FileTools.exists(below))
+    }
+
+    func testADownloadsTailIsNothingALayoutOrNumberedPart() {
+        for tail in ["", ".layout", ".part0", ".part12"] {
+            XCTAssertTrue(PartFiles.isDownloadTail(Substring(tail)), tail)
+        }
+        for tail in [".part", ".partx", ".layout.part0", ".part\u{0661}", ".bak", "part0"] {
+            XCTAssertFalse(PartFiles.isDownloadTail(Substring(tail)), tail)
+        }
+    }
 }

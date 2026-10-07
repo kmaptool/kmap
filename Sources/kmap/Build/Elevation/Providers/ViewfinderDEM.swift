@@ -137,18 +137,34 @@ enum ViewfinderDEM {
             guard name.hasPrefix("download-"), let zip = name.range(of: ".zip") else { return name }
             return String(name[..<zip.upperBound])
         }
+        let staging = entries.filter { isOwnStaging($0, in: directory) }
         var newest: [String: Date] = [:]
-        for entry in entries where isStaging(entry.lastPathComponent) {
+        for entry in staging {
             let key = archive(entry.lastPathComponent)
             let changed = FileTools.modified(of: entry) ?? now
             newest[key] = max(newest[key] ?? .distantPast, changed)
         }
-        for entry in entries where isStaging(entry.lastPathComponent) {
+        for entry in staging {
             guard let changed = newest[archive(entry.lastPathComponent)], now.timeIntervalSince(changed) > 3600 else {
                 continue
             }
             FileTools.removeIfPresent(entry)
         }
+    }
+
+    /// `download-<8 hex>.zip` with its parts and layout, or `unpack-<8 hex>`.
+    static func isOwnStagingName(_ name: String) -> Bool {
+        guard isStaging(name) else { return false }
+        guard let zip = name.range(of: ".zip") else { return true }
+        return PartFiles.isDownloadTail(name[zip.upperBound...])
+    }
+
+    /// Staging kmap may delete: an archive as a file, an unpacking only as kmap's own folder.
+    static func isOwnStaging(_ entry: URL, in directory: URL) -> Bool {
+        let name = entry.lastPathComponent
+        guard isOwnStagingName(name) else { return false }
+        return name.hasPrefix("unpack-")
+            ? FileTools.isPlainFolder(entry, in: directory) : FileTools.isRegularFile(entry)
     }
 
     /// A fetch's own archive, its parts or unpacking: never a source of tiles.

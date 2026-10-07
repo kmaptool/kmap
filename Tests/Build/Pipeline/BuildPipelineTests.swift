@@ -333,9 +333,9 @@ final class BuildPipelineTests: XCTestCase {
             if marked {
                 let marker = url.appendingPathComponent(BuildPipeline.workMarker)
                 try Data().write(to: marker)
-                try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: marker.path)
+                try FileDates.setModified(marker, to: date)
             }
-            try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path)
+            try FileDates.setModified(url, to: date)
             return url
         }
         _ = try folder("gone", marked: true, at: old)
@@ -482,9 +482,9 @@ final class BuildPipelineTests: XCTestCase {
         for name in ["output-a.lock", "work-a.lock", "download-x.lock", "tools-in-use.lock", "output-fresh.lock"] {
             try Data().write(to: locks.appendingPathComponent(name))
         }
-        try FileManager.default.setAttributes(
-            [.modificationDate: later.addingTimeInterval(-3600)],
-            ofItemAtPath: locks.appendingPathComponent("output-fresh.lock").path
+        try FileDates.setModified(
+            locks.appendingPathComponent("output-fresh.lock"),
+            to: later.addingTimeInterval(-3600)
         )
         BuildPipeline.removeOldLocks(in: locks, now: later)
         withExtendedLifetime(held) {}

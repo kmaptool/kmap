@@ -431,11 +431,18 @@ final class BuildPipeline: Sendable {
             } else {
                 throw BuildError.outputInUse(Paths.display(recipe.destinationDirectory))
             }
-            // Waited for only while an install swaps a tool in, a moment.
-            if let tools = await HeldLock.waiting(for: Toolchain.inUseLock, shared: true) {
-                locks.append(tools)
-            } else {
-                throw CancellationError()
+            // Waited for only while an install swaps a tool in, or a cache is cleared.
+            let shared = [
+                Toolchain.inUseLock, CacheClearing.inUseLock(elevation: false), CacheClearing.inUseLock(elevation: true)
+            ]
+            for lock in shared {
+                if let held = HeldLock(trying: lock, shared: true) {
+                    locks.append(held)
+                    continue
+                }
+                log.append("waiting for an install or a cache clear to end")
+                guard let held = await HeldLock.waiting(for: lock, shared: true) else { throw CancellationError() }
+                locks.append(held)
             }
             try await preflight()
             try stopIfCancelled()
@@ -671,8 +678,18 @@ final class BuildPipeline: Sendable {
         log.append("output:  \(recipe.splitMode.label) → \(Paths.display(recipe.destinationDirectory))")
         // Unfinished downloads leave parts behind; nothing else removes them. The tools
         // folder too: a half-fetched data pack is the largest of them.
+        // In the caches only kmap's folders, their top and kmap's names: a cache may be a
+        // folder of the person's.
+        let folders =
+            CacheClearing.folders(Paths.hgtCache, elevation: true)
+            + CacheClearing.folders(Paths.pbfCache, elevation: false)
         let freed =
-            PartFiles.sweepAbandoned(in: Paths.cache)
+            folders.reduce(Int64(0)) { sum, entry in
+                sum
+                    + PartFiles.sweepAbandoned(in: entry.folder, topOnly: true) {
+                        CacheClearing.isOwn($0, in: entry.kind)
+                    }
+            }
             + PartFiles.sweepAbandoned(in: Paths.tools)
         if freed > 0 {
             log.append("cleared \(Fmt.bytes(freed)) left by downloads that were never finished")

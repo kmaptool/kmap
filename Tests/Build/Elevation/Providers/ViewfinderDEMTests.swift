@@ -226,7 +226,7 @@ final class ViewfinderDEMTests: XCTestCase {
                 try Data().write(to: entry)
             }
             if name != "unpack-FRESH000" {
-                try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: entry.path)
+                try FileDates.setModified(entry, to: old)
             }
         }
         ViewfinderDEM.removeAbandonedStaging(in: cache)
@@ -246,15 +246,38 @@ final class ViewfinderDEMTests: XCTestCase {
             try Data().write(to: folder.appendingPathComponent(name))
         }
         for name in ["download-1A2B3C4D.zip.part1", "download-5E6F7A8B.zip.part1"] {
-            try FileManager.default.setAttributes(
-                [.modificationDate: old],
-                ofItemAtPath: folder.appendingPathComponent(name).path
-            )
+            try FileDates.setModified(folder.appendingPathComponent(name), to: old)
         }
         ViewfinderDEM.removeAbandonedStaging(in: folder)
         XCTAssertEqual(
             Set(try FileManager.default.contentsOfDirectory(atPath: folder.path)),
             ["download-1A2B3C4D.zip.part1", "download-1A2B3C4D.zip.part2"]
         )
+    }
+
+    /// Only kmap's own staging goes; look-alike names and folders stay.
+    func testOnlyKmapsStagingGoes() throws {
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("kmap-vf-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let old = Date().addingTimeInterval(-7200)
+        let kept = [
+            "download-1a2b3c4d.zip.notes.txt", "download-1a2b3c4d.zipper", "download-1a2b3c4d.zip.bak",
+            "download-3a2b3c4d.zip.d/mine.txt"
+        ]
+        for name in kept + ["download-5a2b3c4d.zip"] {
+            let file = folder.appendingPathComponent(name)
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data().write(to: file)
+        }
+        for name in try FileManager.default.contentsOfDirectory(atPath: folder.path) {
+            try FileDates.setModified(folder.appendingPathComponent(name), to: old)
+        }
+        ViewfinderDEM.removeAbandonedStaging(in: folder)
+        for name in kept { XCTAssertTrue(FileTools.exists(folder.appendingPathComponent(name)), name) }
+        XCTAssertFalse(FileTools.exists(folder.appendingPathComponent("download-5a2b3c4d.zip")))
     }
 }

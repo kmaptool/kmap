@@ -2,10 +2,10 @@ import Foundation
 
 /// Drawing the type editor: the pictures, the field rows, the pickers.
 extension TypeEditScreen {
-    /// The longest Russian field name, 21 letters, and a space.
+    /// Room for the longest Russian field name, 21 letters, and 2 spaces after it.
     private static let labelWidth = 23
     private static let halfWidth = 18
-    /// A colour slot at its narrowest: the pointer, the swatch, a space, 7 hex digits, a space.
+    /// A colour slot at its narrowest: the pointer, the swatch, a space, `#RRGGBB`, a space.
     private static let leastHalf = 13
 
     /// Label and colour slot widths for rows `width` wide: the slots narrow first, then the

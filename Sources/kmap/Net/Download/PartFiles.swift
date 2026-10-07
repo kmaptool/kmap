@@ -92,18 +92,27 @@ struct PartFiles {
     static func sweepAbandoned(
         in directory: URL,
         olderThan age: TimeInterval = 14 * .day,
-        now: Date = Date()
+        now: Date = Date(),
+        topOnly: Bool = false,
+        whose isOwn: (String) -> Bool = { _ in true }
     ) -> Int64 {
-        guard
-            let walker = FileManager.default.enumerator(
-                at: directory,
-                includingPropertiesForKeys: [.contentModificationDateKey],
-                options: [.skipsHiddenFiles]
-            )
-        else { return 0 }
+        let found: [URL]
+        if topOnly {
+            found = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        } else {
+            guard
+                let walker = FileManager.default.enumerator(
+                    at: directory,
+                    includingPropertiesForKeys: [.contentModificationDateKey],
+                    options: [.skipsHiddenFiles]
+                )
+            else { return 0 }
+            found = walker.compactMap { $0 as? URL }
+        }
         var freed: Int64 = 0
         var touched: Set<URL> = []
-        for case let url as URL in walker where isPart(url) {
+        for url in found
+        where isPart(url) && isOwn(url.deletingPathExtension().lastPathComponent) && FileTools.isRegularFile(url) {
             let files = PartFiles(destination: url.deletingPathExtension())
             var abandoned =
                 FileManager.default.fileExists(atPath: files.destination.path)
@@ -127,7 +136,13 @@ struct PartFiles {
     }
 
     private static func isPart(_ url: URL) -> Bool {
-        let ext = url.pathExtension
-        return ext.hasPrefix("part") && Int(ext.dropFirst(4)) != nil
+        isDownloadTail("." + url.pathExtension) && url.pathExtension != "layout" && !url.pathExtension.isEmpty
+    }
+
+    /// Whether `tail` ends a download's name: nothing, `.layout`, or `.part` and digits.
+    static func isDownloadTail(_ tail: Substring) -> Bool {
+        let part = tail.dropFirst(".part".count)
+        return tail.isEmpty || tail == ".layout"
+            || (tail.hasPrefix(".part") && !part.isEmpty && part.allSatisfy { $0.isASCII && $0.isNumber })
     }
 }

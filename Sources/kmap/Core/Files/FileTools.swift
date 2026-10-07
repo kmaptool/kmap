@@ -5,6 +5,18 @@ import WinSDK
 #endif
 
 enum FileTools {
+    /// A second name for the same bytes, which keep them whatever later takes the first
+    /// name's place: a hard link. Foundation's `linkItem` makes a symbolic one on Windows.
+    static func hardLink(_ file: URL, at link: URL) -> Bool {
+        #if os(Windows)
+        file.nativePath.withCString(encodedAs: UTF16.self) { wideFile in
+            link.nativePath.withCString(encodedAs: UTF16.self) { CreateHardLinkW($0, wideFile, nil) }
+        }
+        #else
+        (try? FileManager.default.linkItem(at: file, to: link)) != nil
+        #endif
+    }
+
     static func size(of url: URL) -> Int64 {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
             let number = attrs[.size] as? NSNumber
@@ -39,6 +51,13 @@ enum FileTools {
         #else
         (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
         #endif
+    }
+
+    /// Whether `entry` in `folder` is a real folder there: no link, junction or mount.
+    static func isPlainFolder(_ entry: URL, in folder: URL) -> Bool {
+        isDirectoryItself(entry)
+            && resolvingLinks(entry).path == resolvingLinks(folder).appendingPathComponent(entry.lastPathComponent).path
+            && sameVolume(entry, folder)
     }
 
     static func exists(_ url: URL) -> Bool {
@@ -81,16 +100,17 @@ enum FileTools {
         return filtered.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
-    /// Every file anywhere under `dir`, optionally filtered by extension, sorted by name.
+    /// Every file anywhere under `dir`, optionally filtered by extension, sorted by name;
+    /// hidden ones too where `hidden`.
     ///
     /// For archives whose internal layout is not known in advance, with or without
     /// intermediate folders.
-    static func allFiles(under dir: URL, extension ext: String? = nil) -> [URL] {
+    static func allFiles(under dir: URL, extension ext: String? = nil, hidden: Bool = false) -> [URL] {
         guard
             let walker = FileManager.default.enumerator(
                 at: dir,
                 includingPropertiesForKeys: [.isRegularFileKey],
-                options: [.skipsHiddenFiles]
+                options: hidden ? [] : [.skipsHiddenFiles]
             )
         else { return [] }
         var out: [URL] = []

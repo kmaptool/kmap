@@ -287,6 +287,45 @@ final class GEDTM30Tests: XCTestCase {
         XCTAssertTrue(BuildPipeline.endsWithNoTiles(last: true, onHand: 0))
         XCTAssertFalse(BuildPipeline.endsWithNoTiles(last: true, onHand: 3))
     }
+
+    /// Only stale chunk files go.
+    func testOnlyStaleChunksAreDropped() throws {
+        // A real cache with KMAP_ROOT set.
+        try XCTSkipIf(ProcessInfo.processInfo.environment["KMAP_ROOT"] != nil, "KMAP_ROOT names a real cache")
+        let chunks = GEDTM30.v12.chunkDirectory
+        let names = [
+            "0-100.deflate", "0-9000.deflate.part0", "N01E001.tif", "notes.txt", "Photos/IMG.jpg", "5-5.deflate",
+            "1-2.deflate/mine.txt"
+        ]
+        addTeardownBlock {
+            for name in names + ["Photos", "1-2.deflate"] {
+                FileTools.removeIfPresent(chunks.appendingPathComponent(name))
+            }
+        }
+        for name in names {
+            let file = chunks.appendingPathComponent(name)
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data().write(to: file)
+            if name != "5-5.deflate" {
+                try FileDates.setModified(file, to: Date().addingTimeInterval(-30 * 86400))
+            }
+        }
+        // A stale folder named like a chunk stays.
+        try FileDates.setModified(
+            chunks.appendingPathComponent("1-2.deflate"),
+            to: Date().addingTimeInterval(-30 * 86400)
+        )
+        GEDTM30.v12.dropStaleChunks()
+        for name in ["N01E001.tif", "notes.txt", "Photos/IMG.jpg", "5-5.deflate", "1-2.deflate/mine.txt"] {
+            XCTAssertTrue(FileTools.exists(chunks.appendingPathComponent(name)), name)
+        }
+        for name in ["0-100.deflate", "0-9000.deflate.part0"] {
+            XCTAssertFalse(FileTools.exists(chunks.appendingPathComponent(name)), name)
+        }
+    }
 }
 
 private extension UInt64 {

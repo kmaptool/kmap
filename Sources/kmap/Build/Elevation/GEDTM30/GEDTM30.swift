@@ -34,14 +34,27 @@ struct GEDTM30: DEMSource {
     /// How long a chunk waits for the build that fetched it to come back.
     private static let chunkAge: TimeInterval = 7 * 86400
 
-    /// Removes the chunks no build has touched for `chunkAge`.
+    /// Removes chunk files no build has touched for `chunkAge`, and nothing else.
     func dropStaleChunks() {
         let old = Date().addingTimeInterval(-Self.chunkAge)
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: chunkDirectory.path) else { return }
-        for name in names {
+        for name in names where Self.isChunkName(name) {
             let file = chunkDirectory.appendingPathComponent(name)
-            if let modified = FileTools.modified(of: file), modified < old { FileTools.removeIfPresent(file) }
+            guard FileTools.isRegularFile(file), let modified = FileTools.modified(of: file), modified < old else {
+                continue
+            }
+            FileTools.removeIfPresent(file)
         }
+    }
+
+    /// `<offset>-<count>.deflate`, as `chunk(_:)` names it, or its download parts.
+    static func isChunkName(_ name: String) -> Bool {
+        guard let dot = name.firstIndex(of: "."), name[dot...].hasPrefix(".deflate") else { return false }
+        let span = name[..<dot].split(separator: "-", omittingEmptySubsequences: false)
+        guard span.count == 2, span.allSatisfy({ !$0.isEmpty && $0.allSatisfy { $0.isASCII && $0.isNumber } }) else {
+            return false
+        }
+        return PartFiles.isDownloadTail(name[dot...].dropFirst(".deflate".count))
     }
 
     /// Marks an all-sea cell so a rebuild skips it; later sources may still fill it.

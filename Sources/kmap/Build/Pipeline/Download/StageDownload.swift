@@ -34,6 +34,17 @@ extension BuildPipeline {
         var remote: Downloader.RemoteInfo?
         /// Why the last probe failed, for the warning that falls back to the cache.
         var unreachable: String?
+        /// The cached copy found as the job began and not found damaged, by its size, date
+        /// and stamp: the only one a failed fetch falls back on.
+        var fallback: (size: Int64, modified: Date?, stamp: Data?)?
+    }
+
+    /// A cached copy as a fallback knows it: put aside and back meanwhile, its stamp differs.
+    private static func copy(at destination: URL) -> (size: Int64, modified: Date?, stamp: Data?) {
+        (
+            FileTools.size(of: destination), FileTools.modified(of: destination),
+            try? Data(contentsOf: CacheStamp.url(for: destination))
+        )
     }
 
     /// Fetches every region going into this map, in order. The closing line says how many
@@ -90,7 +101,9 @@ extension BuildPipeline {
                     try rethrowIfCancelled(error)
                     // The older copy was kept for exactly this: a mirror that answers
                     // the question and then fails the download.
-                    guard FileTools.exists(job.destination) else { throw error }
+                    guard let fallback = job.fallback, FileTools.exists(job.destination),
+                        Self.copy(at: job.destination) == fallback
+                    else { throw error }
                     log.warn(
                         "the download did not get through (\(error.localizedDescription))"
                             + " — building from the cached extract ("
@@ -195,6 +208,7 @@ extension BuildPipeline {
     private func reuseCachedExtract(_ job: inout ExtractJob) async throws -> Bool {
         set(.download, .running, t("starting"))
         guard FileTools.exists(job.destination) else { return false }
+        job.fallback = Self.copy(at: job.destination)
         set(.download, .running, t("checking for a newer extract"))
 
         if cachedCopyIsCurrent(at: job.destination, remote: job.remote) {
@@ -241,9 +255,20 @@ extension BuildPipeline {
         }
 
         log.step("found a cached extract — verifying it")
+        let hashed = Self.copy(at: job.destination)
+        let recorded = CacheStamp.read(besides: job.destination)
         let localMD5 = try checksum(of: job.destination, saying: t("verifying cached copy"))
         guard localMD5 == remoteMD5 else {
-            // A mismatch says the bytes are not the published ones, not why.
+            // Not the published bytes: stale, or damaged where the stamp records them. Only
+            // the copy hashed: another kmap may have put a fresh one in its place meanwhile.
+            let damaged = Self.holdingSuspect(of: job.destination) {
+                guard let recorded, recorded.md5 == remoteMD5, Self.copy(at: job.destination) == hashed else {
+                    return false
+                }
+                Self.undate(job.destination, recorded)
+                return true
+            }
+            if damaged { job.fallback = nil }
             log.append("the cached extract is not what the server publishes — fetching it again")
             return false
         }
@@ -335,9 +360,12 @@ extension BuildPipeline {
                 throw DownloadError.checksumMismatch(expected: expected, got: localMD5)
             }
         }
-        FileTools.removeIfPresent(job.destination)
-        CacheStamp.remove(besides: job.destination)
-        try FileTools.move(landing, to: job.destination)
+        // A copy put back by another kmap would stand in the way.
+        try Self.holdingSuspect(of: job.destination) {
+            FileTools.removeIfPresent(job.destination)
+            CacheStamp.remove(besides: job.destination)
+            try FileTools.move(landing, to: job.destination)
+        }
 
         if let remoteMD5 {
             log.ok("checksum verified")

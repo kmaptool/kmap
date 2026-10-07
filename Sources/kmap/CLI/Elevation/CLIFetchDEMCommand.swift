@@ -23,6 +23,12 @@ extension CLI {
         let log = Log(showing: CLIOutput.showing)
         let runner = ProcessRunner()
         let downloader = Downloader(log: log)
+        // As a build does: no cache clear starts under it.
+        Paths.ensure(Paths.locks)
+        guard let inUse = await HeldLock.waiting(for: CacheClearing.inUseLock(elevation: true), shared: true) else {
+            return CLIOutput.cancelled()
+        }
+        defer { withExtendedLifetime(inUse) {} }
         do {
             var index = try await ViewfinderDEM.index(resolution) { CLILog.line($0) }
             CLILog.line("index: \(index.entries.count) archive(s), \(index.urls(for: area).count) claim \(area)")

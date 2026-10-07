@@ -169,20 +169,19 @@ extension SettingsScreen {
     /// Asks before emptying a cache, and refuses while a build or a download may be
     /// reading or writing it.
     func askToClear(_ field: Field, _ ctx: AppContext) {
+        guard !Self.clearing.contains(field) else {
+            message = t("clearing…")
+            return
+        }
         let elevation = field == .clearElevation
-        // The folder as it is now, parts of a stopped download included: the overview
-        // counts finished files only, and late.
         let folder = elevation ? Paths.hgtCache : Paths.pbfCache
-        // Through a link at the root: macOS will not list a folder by its link's path.
-        guard !FileTools.contents(of: FileTools.resolvingLinks(folder)).isEmpty else {
+        // Counted on the key: the overview may be late.
+        let found = CacheClearing.preview(folder, elevation: elevation)
+        guard found.any else {
             message = t("the cache is empty — nothing to clear")
             return
         }
-        // Summed once, on the key: the overview's figure is late, 0 before its first walk, and
-        // counts finished tiles only. What the clearing will empty, links it follows included.
-        let held = Self.emptied(folder, elevation: elevation).reduce(Int64(0)) {
-            $0 + Self.tally($1, elevation: elevation).bytes
-        }
+        let held = found.bytes
         guard !Self.buildOrDownloadRunning() else {
             refuse(t("a build or a download is running — clear the cache once it ends"))
             return
@@ -213,14 +212,26 @@ extension SettingsScreen {
         }
         // Off the render loop: a cache of tens of gigabytes takes a while to size and empty.
         message = t("clearing…")
+        // 1 clear at a time per cache.
+        guard Self.clearing.insert(field).inserted else { return }
         let elevation = field == .clearElevation
         let cache = elevation ? Paths.hgtCache : Paths.pbfCache
-        let plan = Self.setAside(cache, elevation: elevation)
+        // Held while the files go, so no build starts on them meanwhile.
+        Paths.ensure(Paths.locks)
+        // Asked again under the lock: one may have started since the question.
+        guard let inUse = HeldLock(trying: CacheClearing.inUseLock(elevation: elevation)), inUse.isHeld,
+            !Self.buildOrDownloadRunning()
+        else {
+            Self.clearing.remove(field)
+            refuse(t("a build or a download is running — clear the cache once it ends"))
+            return
+        }
         Task { @MainActor [weak self] in
-            let said = await Task.detached(priority: .utility) {
-                Self.clear(plan, elevation: elevation)
+            let gone = await Task.detached(priority: .utility) {
+                withExtendedLifetime(inUse) { CacheClearing.clear(cache, elevation: elevation) }
             }.value
-            self?.message = said
+            Self.clearing.remove(field)
+            self?.message = Self.cleared(gone, elevation: elevation)
             ctx.refreshOverview(force: true)
         }
     }
@@ -234,119 +245,11 @@ extension SettingsScreen {
         }
     }
 
-    /// The folders a clear empties: the cache, and in the elevation cache each source
-    /// folder linked elsewhere, another disk say. A link among the extracts is the
-    /// person's own and is left as it is.
-    /// Each once, and none inside the cache, which goes with it.
-    nonisolated static func emptied(_ cache: URL, elevation: Bool) -> [URL] {
-        let root = FileTools.resolvingLinks(cache)
-        var out = [root]
-        for folder in elevation ? linkedFolders(in: root) : []
-        where !out.contains(folder) && !folder.path.hasPrefix(root.path + "/") {
-            out.append(folder)
-        }
-        return out
-    }
+    private static var clearing: Set<Field> = []
 
-    nonisolated private static func linkedFolders(in folder: URL) -> [URL] {
-        let inside = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        return inside.filter { FileTools.isDirectory($0) && !FileTools.isDirectoryItself($0) }
-            .map(FileTools.resolvingLinks)
-    }
-
-    /// Files and bytes under a folder, links not followed: tiles alone in the elevation cache.
-    nonisolated static func tally(_ folder: URL, elevation: Bool) -> (files: Int, bytes: Int64) {
-        let files = FileTools.allFiles(under: folder, extension: elevation ? "hgt" : nil)
-        return (files.count, files.reduce(Int64(0)) { $0 + FileTools.size(of: $1) })
-    }
-
-    /// Set aside: renamed, to be deleted whole. In place: emptied where it is.
-    typealias ClearPlan = (aside: [URL], inPlace: [URL])
-
-    private nonisolated static let clearingMark = "-kmap-clearing-"
-    /// Folders set aside and not yet deleted, which a sweep for leftovers leaves alone.
-    private nonisolated static let underway = Locked<Set<String>>([])
-
-    /// Renames each folder a clear empties and puts an empty one in its place, so a build
-    /// started meanwhile finds nothing rather than files going from under it, and a second
-    /// clear finds the new folder. A folder that will not rename, a mount point or one on
-    /// another volume than its parent, is emptied in place; a link to it stays.
-    static func setAside(_ cache: URL, elevation: Bool) -> ClearPlan {
-        var plan: ClearPlan = ([], [])
-        for folder in emptied(cache, elevation: elevation) {
-            if let aside = renameAside(folder) {
-                plan.aside.append(aside)
-            } else {
-                plan.inPlace.append(folder)
-            }
-        }
-        return plan
-    }
-
-    private static func renameAside(_ folder: URL) -> URL? {
-        let parent = folder.deletingLastPathComponent()
-        guard FileTools.sameVolume(folder, parent) else { return nil }
-        let aside = parent.appendingPathComponent(
-            ".\(folder.lastPathComponent)\(clearingMark)\(UUID().uuidString.prefix(8))"
-        )
-        // The links inside stay with the new folder.
-        let links = ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
-            .filter { FileTools.isDirectory($0) && !FileTools.isDirectoryItself($0) }
-        // Marked before it exists, so no other clear's sweep takes it.
-        underway.withLock { _ = $0.insert(aside.path) }
-        guard (try? FileTools.rename(folder, to: aside)) != nil else {
-            underway.withLock { _ = $0.remove(aside.path) }
-            return nil
-        }
-        Paths.ensure(folder)
-        for link in links {
-            try? FileTools.rename(aside.appendingPathComponent(link.lastPathComponent), to: link)
-        }
-        return aside
-    }
-
-    /// Deletes what `setAside` planned, with any folder an earlier clear left when kmap was
-    /// quit, and says what went: what was there less what is left.
-    nonisolated static func clear(_ plan: ClearPlan, elevation: Bool) -> String {
-        let folders = plan.aside + plan.inPlace
-        let before = folders.map { tally($0, elevation: elevation) }
-        for folder in plan.inPlace { emptyKeepingLinks(folder) }
-        for folder in plan.aside {
-            FileTools.removeIfPresent(folder)
-            underway.withLock { _ = $0.remove(folder.path) }
-            sweepLeftovers(beside: folder)
-        }
-        let after = folders.map { FileTools.exists($0) ? tally($0, elevation: elevation) : (files: 0, bytes: Int64(0)) }
-        var files = 0
-        var bytes: Int64 = 0
-        for (was, left) in zip(before, after) {
-            files += was.files - left.files
-            bytes += was.bytes - left.bytes
-        }
-        let size = Fmt.bytes(bytes)
-        return elevation ? tn("cleared %d tile(s), %@", files, size) : tn("cleared %d file(s), %@", files, size)
-    }
-
-    /// A link to a folder is the clear's to empty on its own, and stays.
-    nonisolated private static func emptyKeepingLinks(_ folder: URL) {
-        let inside = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        for item in inside where !(FileTools.isDirectory(item) && !FileTools.isDirectoryItself(item)) {
-            FileTools.removeIfPresent(item)
-        }
-    }
-
-    nonisolated private static func sweepLeftovers(beside folder: URL) {
-        let name = folder.lastPathComponent
-        guard let mark = name.range(of: clearingMark, options: .backwards) else { return }
-        let stem = name[..<mark.upperBound]
-        let near =
-            (try? FileManager.default.contentsOfDirectory(
-                at: folder.deletingLastPathComponent(),
-                includingPropertiesForKeys: nil
-            )) ?? []
-        let busy = underway.withLock { $0 }
-        for left in near where left.lastPathComponent.hasPrefix(stem) && !busy.contains(left.path) {
-            FileTools.removeIfPresent(left)
-        }
+    nonisolated static func cleared(_ gone: (files: Int, bytes: Int64), elevation: Bool) -> String {
+        let size = Fmt.bytes(gone.bytes)
+        return elevation
+            ? tn("cleared %d tile(s), %@", gone.files, size) : tn("cleared %d extract(s), %@", gone.files, size)
     }
 }

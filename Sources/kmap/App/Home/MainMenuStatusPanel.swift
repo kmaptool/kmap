@@ -56,7 +56,7 @@ struct MainMenuStatusPanel {
         let overview = ctx.overview
         line(
             t("cache"),
-            overview.cachedExtracts == 0
+            !overview.cachedAny
                 ? t("empty")
                 : tn("%d extract(s)", overview.cachedExtracts) + " · \(Fmt.bytes(overview.cachedBytes))"
         )

@@ -120,6 +120,11 @@ extension RecoverScreen {
 
         work = Task.detached(priority: .userInitiated) { [weak self] in
             guard let self else { return }
+            // As a build does: no cache clear starts under it.
+            Paths.ensure(Paths.locks)
+            guard let inUse = await HeldLock.waiting(for: CacheClearing.inUseLock(elevation: false), shared: true)
+            else { return await MainActor.run { self.phase = .cancelled } }
+            defer { withExtendedLifetime(inUse) {} }
             do {
                 for region in regions {
                     guard let latest = region.pbfURL else { continue }
@@ -160,9 +165,17 @@ extension RecoverScreen {
                         }
                         md5 = got
                     }
-                    try FileTools.move(landing, to: destination)
-                    CacheStamp(size: FileTools.size(of: destination), lastModified: found?.info.lastModified, md5: md5)
-                        .write(besides: destination)
+                    // Under the lock a copy put back by a build takes too; such a copy gives way.
+                    try BuildPipeline.holdingSuspect(of: destination) {
+                        FileTools.removeIfPresent(destination)
+                        CacheStamp.remove(besides: destination)
+                        try FileTools.move(landing, to: destination)
+                        CacheStamp(
+                            size: FileTools.size(of: destination),
+                            lastModified: found?.info.lastModified,
+                            md5: md5
+                        ).write(besides: destination)
+                    }
                 }
                 await MainActor.run { self.start(ctx) }
             } catch is CancellationError {

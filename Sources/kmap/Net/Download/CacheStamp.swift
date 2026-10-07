@@ -25,7 +25,11 @@ struct CacheStamp: Codable, Equatable {
     }
 
     static func read(besides file: URL) -> CacheStamp? {
-        guard let data = try? Data(contentsOf: url(for: file)) else { return nil }
+        read(at: url(for: file))
+    }
+
+    static func read(at stamp: URL) -> CacheStamp? {
+        guard let data = try? Data(contentsOf: stamp) else { return nil }
         return try? JSONDecoder().decode(CacheStamp.self, from: data)
     }
 

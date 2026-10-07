@@ -60,25 +60,27 @@ final class AppContext {
     struct Overview {
         var cachedExtracts = 0
         var cachedBytes: Int64 = 0
+        /// Anything a clear would delete, a stamp of no bytes too.
+        var cachedAny = false
         var builtMaps = 0
         var elevation = Elevation()
 
-        /// Cached elevation tiles, counted per source.
+        /// Cached elevation tiles and their sources, as a clear counts them.
         struct Elevation {
             var tiles = 0
             var bytes: Int64 = 0
             var sources: [String] = []
+            /// Anything a clear would delete, a mark of no bytes too.
+            var any = false
 
             static func sample(_ root: URL = Paths.hgtCache) -> Elevation {
-                var out = Elevation()
-                var sources: Set<String> = []
-                for url in FileTools.filesThroughLinks(under: root, extension: "hgt") {
-                    out.tiles += 1
-                    out.bytes += FileTools.size(of: url)
-                    sources.insert(url.deletingLastPathComponent().lastPathComponent)
-                }
-                out.sources = sources.sorted()
-                return out
+                let found = CacheClearing.preview(root, elevation: true)
+                return Elevation(
+                    tiles: found.files,
+                    bytes: found.bytes,
+                    sources: CacheClearing.sourcesHoldingTiles(root),
+                    any: found.any
+                )
             }
         }
     }
@@ -217,10 +219,12 @@ final class AppContext {
         let outputURL = settings.settings.outputURL
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
-            let extracts = FileTools.contents(of: Paths.pbfCache, extension: "pbf")
+            // As a clear counts them, so the row and the clear agree.
+            let extracts = CacheClearing.preview(Paths.pbfCache, elevation: false)
             let snapshot = Overview(
-                cachedExtracts: extracts.count,
-                cachedBytes: extracts.reduce(Int64(0)) { $0 + FileTools.size(of: $1) },
+                cachedExtracts: extracts.files,
+                cachedBytes: extracts.bytes,
+                cachedAny: extracts.any,
                 builtMaps: BuiltMaps.outputs(under: outputURL).count,
                 elevation: walkElevation ? Overview.Elevation.sample() : previousElevation
             )

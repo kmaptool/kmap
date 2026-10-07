@@ -141,8 +141,8 @@ final class LocalizationTests: XCTestCase {
     func testACountedStringCanCarrySomethingElseAsWell() {
         L10n.use(.ru)
         XCTAssertEqual(
-            tn("cleared %d file(s), %@", 2, "1.4 GB"),
-            "очищено 2 файла, 1.4 GB"
+            tn("cleared %d extract(s), %@", 2, "1.4 GB"),
+            "очищено 2 выгрузки, 1.4 GB"
         )
     }
 

@@ -281,7 +281,8 @@ enum RegionSuggestion {
     /// an outline, which errs only towards keeping a marginal extract.
     static func cachedExtracts(drawnOn drawn: DrawnGround) -> [URL] {
         var out: [(URL, Double)] = []
-        for url in FileTools.contents(of: Paths.pbfCache, extension: "pbf") {
+        // Through a link: macOS will not list a folder by its link's path.
+        for url in FileTools.contents(of: FileTools.resolvingLinks(Paths.pbfCache), extension: "pbf") {
             guard let box = try? PBFReader(url: url).headerBBox() else { continue }
             let bbox = BBox(
                 minLon: box.minLon,
