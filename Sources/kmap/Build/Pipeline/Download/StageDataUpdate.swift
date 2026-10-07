@@ -1,19 +1,24 @@
 import Foundation
 
-/// Stage 2: the data packs a build reads but never builds — the coastlines, and the
-/// boundaries an address is written from. Installed once, they then sit for months going
-/// quietly stale. Preflight asks the mirror; this stage fetches what it found, since
-/// 2 GB is not a check.
+/// Stage 2: the data packs a build reads but never builds - the coastlines, and the
+/// boundaries an address is written from. One the build asks for and does not find is
+/// fetched here, once, and kept for every build after. One installed sits for months
+/// going quietly stale: preflight asks its mirror, and this stage fetches what it found,
+/// since 2 GB is not a check.
 extension BuildPipeline {
-    /// The packs this build reads: the coastlines only where it generates the sea, the
-    /// boundaries only where it writes an index, since that is what passes `--bounds`.
-    /// What is not installed is not installed — the toolchain screen decides that.
-    var dataPacksInUse: [DataPack] {
+    /// The packs this build reads, installed or not: the coastlines only where it
+    /// generates the sea, the boundaries only where it writes an index, since that is
+    /// what passes `--bounds`.
+    var dataPacksWanted: [DataPack] {
+        if let packs = dataPacksForTesting { return packs }
         var wanted: [DataPack] = []
         if recipe.generateSea { wanted.append(.sea) }
         if recipe.searchIndex { wanted.append(.bounds) }
-        return wanted.filter(\.isInstalled)
+        return wanted
     }
+
+    /// The ones of them installed: what is worth asking a mirror about.
+    var dataPacksInUse: [DataPack] { dataPacksWanted.filter(\.isInstalled) }
 
     /// Asks each mirror whether it has moved on, as often as Settings says to. Never a
     /// reason to stop: an unreachable server leaves the build the pack it already has.
@@ -52,7 +57,8 @@ extension BuildPipeline {
     /// is not that, and is passed on.
     func updateDataPacks() async throws {
         try stopIfCancelled()
-        guard !pendingPackUpdates.isEmpty else {
+        let missing = dataPacksWanted.filter { !$0.isInstalled }
+        guard !pendingPackUpdates.isEmpty || !missing.isEmpty else {
             let cadence = settings.settings.toolchainUpdates
             if dataPacksInUse.isEmpty {
                 set(.dataUpdate, .skipped, t("nothing this build reads"))
@@ -68,6 +74,23 @@ extension BuildPipeline {
         set(.dataUpdate, .running, t("starting"))
         var done: [String] = []
         var kept = false
+        var without: [String] = []
+        // Asked for by the recipe and not here: whatever the update setting says, since
+        // this is a first fetch, not an update.
+        for pack in missing {
+            do {
+                try stopIfCancelled()
+                try await fetchDataPack(pack, nil)
+                done.append("\(pack.what) · \(Fmt.bytes(FileTools.size(of: pack.file)))")
+            } catch {
+                try rethrowIfCancelled(error)
+                without.append(pack.what)
+                log.warn(
+                    "could not download \(pack.what) - \(Self.clause(error))."
+                        + " Building without it: \(pack.withoutIt)"
+                )
+            }
+        }
         for (pack, news) in pendingPackUpdates {
             do {
                 try stopIfCancelled()
@@ -80,23 +103,36 @@ extension BuildPipeline {
                 try rethrowIfCancelled(error)
                 kept = true
                 log.warn(
-                    "could not update \(pack.what) — \(error.localizedDescription)."
+                    "could not update \(pack.what) — \(Self.clause(error))."
                         + " Building with the pack already here"
                 )
             }
         }
         pendingPackUpdates.removeAll()
-        set(
-            .dataUpdate,
-            .done,
-            done.isEmpty
-                ? t("kept what was already here")
-                : done.joined(separator: " · ") + (kept ? " · " + t("one kept") : "")
-        )
+        var line =
+            done.isEmpty && kept
+            ? t("kept what was already here")
+            : done.joined(separator: " · ") + (kept ? " · " + t("one kept") : "")
+        if !without.isEmpty {
+            let missed = without.map { "\($0): " + t("not downloaded") }.joined(separator: " · ")
+            line = line.isEmpty ? missed : line + " · " + missed
+        }
+        set(.dataUpdate, .done, line)
     }
 
-    private func fetchDataPack(_ pack: DataPack, _ news: DataPack.News) async throws {
-        log.step("updating \(pack.what) — \(Fmt.bytes(news.size))")
+    /// An error's words as part of a log sentence: without the stop most of them end in.
+    private static func clause(_ error: Error) -> String {
+        let words = ErrorWords.of(error)
+        return words.hasSuffix(".") ? String(words.dropLast()) : words
+    }
+
+    /// An update where `news` says what the mirror offers; a first fetch where it is nil.
+    private func fetchDataPack(_ pack: DataPack, _ news: DataPack.News?) async throws {
+        if let news {
+            log.step("updating \(pack.what) — \(Fmt.bytes(news.size))")
+        } else {
+            log.step("downloading \(pack.what), which this build asks for - kept for every build after")
+        }
         beginPhase(.dataUpdate, t("starting"))
         let downloader = Downloader(log: log)
         retain(downloader)
@@ -119,8 +155,8 @@ extension BuildPipeline {
         try await pack.fetch(
             using: downloader,
             connections: recipe.downloadConnections,
-            lastModified: news.lastModified
+            lastModified: news?.lastModified
         )
-        log.ok("\(pack.what) updated — \(Fmt.bytes(FileTools.size(of: pack.file)))")
+        log.ok("\(pack.what) \(news == nil ? "installed" : "updated") — \(Fmt.bytes(FileTools.size(of: pack.file)))")
     }
 }

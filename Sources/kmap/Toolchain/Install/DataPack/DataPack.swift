@@ -34,6 +34,15 @@ struct DataPack: Equatable {
     /// Where an update is written while it comes down, beside the pack it replaces.
     static let stagingSuffix = "new"
 
+    /// What a build that goes without the pack loses, for its log.
+    var withoutIt: String {
+        switch id {
+        case DataPack.sea.id: return "the coastline comes from the extract and can flood inland at low zoom"
+        case DataPack.bounds.id: return "the city and region on an address are a best guess"
+        default: return "the map is built without it"
+        }
+    }
+
     /// Through a link too: a pack kept on another disk is used by the build all the same.
     var isInstalled: Bool {
         let real = FileTools.resolvingLinks(file)

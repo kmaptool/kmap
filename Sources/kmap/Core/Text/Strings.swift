@@ -159,6 +159,7 @@ enum Strings {
         "up to date": "обновлений нет",
         "kept what was already here": "оставлено как было",
         "one kept": "одно оставлено",
+        "not downloaded": "не скачано",
         "one for the device, one for the computer": "один для прибора, другой для компьютера",
         "Coastlines": "Береговые линии",
         "Code page": "Кодовая страница",

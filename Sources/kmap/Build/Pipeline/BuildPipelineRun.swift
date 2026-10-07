@@ -38,6 +38,8 @@ extension BuildPipeline {
         var repairMoves: [MapElementKind: [Int: Int]] = [:]
         /// Data packs found to have moved on; see `StageDataUpdate`.
         var pendingPackUpdates: [(pack: DataPack, news: DataPack.News)] = []
+        /// Stands in for the packs a recipe reads, so a test never fetches the real ones.
+        var dataPacksForTesting: [DataPack]?
 
         var runners: [ProcessRunner] = []
         var downloaders: [Downloader] = []

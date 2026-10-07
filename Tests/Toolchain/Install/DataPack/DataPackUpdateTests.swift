@@ -265,6 +265,81 @@ final class DataPackUpdateTests: XCTestCase {
         XCTAssertTrue(read.dataChecked.isEmpty)
     }
 
+    // MARK: A pack the build asks for and does not have
+
+    /// The packs follow the recipe, installed or not: a fresh machine has neither, and
+    /// that is exactly when they are wanted.
+    func testTheRecipeDecidesWhichPacksABuildWants() {
+        XCTAssertEqual(build(sea: true, index: true).dataPacksWanted, [.sea, .bounds])
+        XCTAssertEqual(build(sea: true, index: false).dataPacksWanted, [.sea])
+        XCTAssertEqual(build(sea: false, index: true).dataPacksWanted, [.bounds])
+        XCTAssertTrue(build(sea: false, index: false).dataPacksWanted.isEmpty)
+    }
+
+    private func absent(at url: URL) -> DataPack {
+        DataPack(id: "test", url: url, file: folder.appendingPathComponent("absent.zip"), what: "test pack")
+    }
+
+    func testAPackThatWillNotComeDownLeavesTheBuildToGoWithoutIt() throws {
+        let pack = absent(at: URL(string: "https://kmap.invalid/pack.zip")!)
+        let build = build(sea: false, index: false)
+        build.dataPacksForTesting = [pack]
+        try blocking { try await build.updateDataPacks() }
+
+        XCTAssertFalse(pack.isInstalled)
+        let stage = try XCTUnwrap(build.snapshot().stages.first { $0.id == .dataUpdate })
+        XCTAssertEqual(stage.status, .done, "a pack that will not come down is not a failed build")
+        XCTAssertEqual(stage.detail, "test pack: " + t("not downloaded"))
+    }
+
+    // The loopback server is POSIX sockets: not on Windows.
+    #if !os(Windows)
+    /// A pack served from this machine, and how many times it was asked for.
+    private func served(_ body: Data) throws -> (LoopbackServer, Locked<Int>) {
+        let gets = Locked(0)
+        let server = try LoopbackServer { request in
+            let headers = [("Content-Length", "\(body.count)")]
+            guard request.method == "GET" else { return .init(status: 200, headers: headers) }
+            gets.withLock { $0 += 1 }
+            return .init(status: 200, headers: headers, body: body)
+        }
+        return (server, gets)
+    }
+
+    func testAPackTheBuildAsksForAndLacksIsFetchedForEveryBuildAfter() throws {
+        let (server, gets) = try served(Data(repeating: 7, count: 2_000_000))
+        defer { server.stop() }
+        let pack = absent(at: URL(string: "http://127.0.0.1:\(server.port)/pack.zip")!)
+        let build = build(sea: false, index: false)
+        build.dataPacksForTesting = [pack]
+        try blocking { try await build.updateDataPacks() }
+
+        XCTAssertTrue(pack.isInstalled, "kept where every build after finds it")
+        XCTAssertEqual(gets.withLock { $0 }, 1)
+        let stage = try XCTUnwrap(build.snapshot().stages.first { $0.id == .dataUpdate })
+        XCTAssertEqual(stage.status, .done)
+        XCTAssertTrue(stage.detail.hasPrefix("test pack"), stage.detail)
+    }
+
+    func testAnInstalledPackIsNotFetchedAgain() throws {
+        let (server, gets) = try served(Data(repeating: 7, count: 2_000_000))
+        defer { server.stop() }
+        let installed = try pack()
+        let here = DataPack(
+            id: "test",
+            url: URL(string: "http://127.0.0.1:\(server.port)/pack.zip")!,
+            file: installed.file,
+            what: "test pack"
+        )
+        let build = build(sea: false, index: false)
+        build.dataPacksForTesting = [here]
+        try blocking { try await build.updateDataPacks() }
+
+        XCTAssertEqual(gets.withLock { $0 }, 0, "only news brings an installed pack down again")
+        XCTAssertEqual(build.snapshot().stages.first { $0.id == .dataUpdate }?.status, .done)
+    }
+    #endif
+
     // MARK: The stage
 
     func testTheStageIsMarkedDoneWithNothingToDoRatherThanLeftPending() async throws {

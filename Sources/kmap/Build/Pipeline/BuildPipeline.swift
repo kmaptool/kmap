@@ -46,6 +46,10 @@ final class BuildPipeline: Sendable {
         get { state.withLock { $0.pendingPackUpdates } }
         set { state.withLock { $0.pendingPackUpdates = newValue } }
     }
+    var dataPacksForTesting: [DataPack]? {
+        get { state.withLock { $0.dataPacksForTesting } }
+        set { state.withLock { $0.dataPacksForTesting = newValue } }
+    }
     var wasCancelled: Bool { state.withLock { $0.wasCancelled } }
 
     /// - Parameter showing: the lowest severity the caller wants to be shown. The log
