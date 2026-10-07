@@ -6,7 +6,7 @@ import XCTest
 /// that some were left out.
 @MainActor
 final class FooterFitTests: XCTestCase {
-    func testTheLastHintsStayAndAnEllipsisMarksTheGap() throws {
+    func testTheLastHintsStayAndAnEllipsisMarksTheGap() async throws {
         let hints =
             (1...8).map { Hint(key: "k\($0)", label: "label \($0)") } + [
                 Hint(key: "^S", label: "save"), Hint(key: "esc", label: "back")
@@ -20,7 +20,7 @@ final class FooterFitTests: XCTestCase {
     }
 
     /// The way on and the way back stay wherever a screen lists them.
-    func testEnterAndEscStayWhereverTheyStand() throws {
+    func testEnterAndEscStayWhereverTheyStand() async throws {
         let hints =
             [Hint(key: Glyph.enter, label: "done"), Hint(key: "esc", label: "back")]
             + (1...8).map { Hint(key: "k\($0)", label: "label \($0)") }
@@ -31,7 +31,7 @@ final class FooterFitTests: XCTestCase {
     }
 
     /// Where the last 2 do not fit beside Enter and Esc, those go too.
-    func testTheLastHintsWinWhenEnterAndEscLeaveNoRoom() throws {
+    func testTheLastHintsWinWhenEnterAndEscLeaveNoRoom() async throws {
         let hints = [
             Hint(key: Glyph.enter, label: "done"), Hint(key: "esc", label: "back to the map's settings"),
             Hint(key: "↑↓", label: "scroll log"), Hint(key: "v", label: "detail")

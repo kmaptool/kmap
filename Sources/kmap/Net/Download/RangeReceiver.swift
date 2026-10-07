@@ -17,6 +17,9 @@ extension RangeSession {
             let continuation: CheckedContinuation<Void, Error>
             /// Why the task was cancelled from in here, which its own error does not say.
             var failure: Error?
+            /// Whether its answer was taken. Linux's FoundationNetworking hands on the body of
+            /// an answer refused too, which written would be spliced onto the part.
+            var accepted = false
         }
 
         struct State {
@@ -64,7 +67,9 @@ extension RangeSession {
         func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
             // The write happens outside the lock: the delegate queue is serial, so one task's
             // bytes arrive in order and nothing else touches its handle.
-            guard let transfer = state.withLock({ $0.transfers[dataTask.taskIdentifier] }) else { return }
+            guard let transfer = state.withLock({ $0.transfers[dataTask.taskIdentifier] }),
+                transfer.accepted, transfer.failure == nil
+            else { return }
             do {
                 try transfer.handle.write(contentsOf: data)
                 progress.advance(part: transfer.part, by: Int64(data.count))
@@ -80,7 +85,7 @@ extension RangeSession {
             didReceive response: URLResponse,
             completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
         ) {
-            guard let http = response as? HTTPURLResponse else { return completionHandler(.allow) }
+            guard let http = response as? HTTPURLResponse else { return accept(dataTask, completionHandler) }
             // Bytes asked that the file no longer has: it shrank, a copy replaced it.
             if http.statusCode == 416, dataTask.originalRequest?.value(forHTTPHeaderField: "Range") != nil {
                 fail(dataTask, with: DownloadError.changedMeanwhile)
@@ -131,6 +136,14 @@ extension RangeSession {
                 fail(dataTask, with: DownloadError.rangesIgnored)
                 return completionHandler(.cancel)
             }
+            accept(dataTask, completionHandler)
+        }
+
+        private func accept(
+            _ task: URLSessionTask,
+            _ completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+        ) {
+            state.withLock { $0.transfers[task.taskIdentifier]?.accepted = true }
             completionHandler(.allow)
         }
 

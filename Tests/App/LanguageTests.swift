@@ -256,16 +256,10 @@ final class LanguageTests: XCTestCase {
         L10n.use(.en)
         XCTAssertEqual(MapElementKind.line.plural, "lines")
     }
-}
-
-private extension Character {
-    var isCyrillic: Bool {
-        unicodeScalars.contains { (0x0400...0x04FF).contains($0.value) }
-    }
 
     /// kmap's own words follow the labels asked for: a 1251 map with English labels gets
     /// English repair signs, captions and POI names, not a mix.
-    func testAnEnglishMapInTheCyrillicCodePageSpeaksEnglish() {
+    func testAnEnglishMapInTheCyrillicCodePageSpeaksEnglish() async {
         var recipe = BuildRecipe(
             region: Region(id: "r", name: "R", parentID: nil, pbfURL: nil, bbox: .empty, boxes: []),
             style: .standIn,
@@ -278,5 +272,11 @@ private extension Character {
         recipe.nameTagList = LabelLanguage.russian.tagList
         recipe.codePage = CodePage.westernEuropean
         XCTAssertFalse(recipe.speaksRussian)
+    }
+}
+
+private extension Character {
+    var isCyrillic: Bool {
+        unicodeScalars.contains { (0x0400...0x04FF).contains($0.value) }
     }
 }

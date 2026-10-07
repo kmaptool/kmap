@@ -13,7 +13,8 @@ final class ElevationKernelTests: XCTestCase {
         let awkward: [Double] = [
             0.5, -0.5, 1.5, -2.5, 0.49999999999999994, -0.49999999999999994, 2.4999, -2.5001,
             32767.4, 32767.5, 40000, -32768.5, -40000, .nan, .infinity, -.infinity, 0, -0.0, 3.4e38,
-            Double(Float(0.5).nextDown), 1e-310, -1e-310, 3e9, -3e9, 1e300
+            Double(Float(0.5).nextDown), Double.leastNormalMagnitude / 2, -Double.leastNormalMagnitude / 2, 3e9, -3e9,
+            1e300
         ]
         return (0..<count).map { i in
             i % 3 == 0 ? awkward[(i / 3) % awkward.count] : Double.random(in: -500...9000, using: &random)

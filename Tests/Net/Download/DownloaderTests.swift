@@ -24,7 +24,7 @@ final class DownloaderTests: XCTestCase {
         for code: URLError.Code in [
             .timedOut, .networkConnectionLost, .cannotConnectToHost,
             .cannotFindHost, .dnsLookupFailed, .notConnectedToInternet,
-            .resourceUnavailable, .badServerResponse, .zeroByteResource
+            .resourceUnavailable, .badServerResponse, .zeroByteResource, .unknown
         ] {
             XCTAssertTrue(Downloader.worthRetrying(URLError(code)), "\(code)")
         }

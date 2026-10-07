@@ -6,7 +6,7 @@ import XCTest
 /// cursor is on is drawn, so space never edits a row out of sight.
 @MainActor
 final class ZoomPlanEditScrollTests: XCTestCase {
-    func testTheCursorsFamilyIsAlwaysDrawn() {
+    func testTheCursorsFamilyIsAlwaysDrawn() async {
         let ctx = AppContext()
         let screen = ZoomPlanEditScreen(plan: ZoomPlan.builtins[0], settings: ctx.settings)
         func drawn() -> String {

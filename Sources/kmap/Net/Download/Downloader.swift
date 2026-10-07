@@ -279,14 +279,19 @@ final class Downloader: Sendable {
     // MARK: Retrying
 
     /// Whether `error` is transient: a 5xx status, or a connection-level `URLError`. A
-    /// 4xx, a checksum failure, a full disk and a cancellation are all final.
+    /// 4xx, a checksum failure, a full disk and a cancellation are all final. Asked by
+    /// domain and code: on Linux the error is an NSError that need not cast to URLError.
     static func worthRetrying(_ error: Error) -> Bool {
         if case DownloadError.badStatus(let code) = error { return code == 429 || (500...599).contains(code) }
-        guard let url = error as? URLError else { return false }
-        switch url.code {
+        let found = error as NSError
+        guard found.domain == NSURLErrorDomain else { return false }
+        switch URLError.Code(rawValue: found.code) {
         case .timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost,
             .dnsLookupFailed, .notConnectedToInternet, .resourceUnavailable,
             .badServerResponse, .zeroByteResource:
+            return true
+        // Linux's FoundationNetworking reports a connection closed midway so.
+        case .unknown:
             return true
         default:
             return false

@@ -189,7 +189,7 @@ final class DataPackUpdateTests: XCTestCase {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let real = folder.appendingPathComponent("real.zip")
-        FileManager.default.createFile(atPath: real.path, contents: nil)
+        _ = FileManager.default.createFile(atPath: real.path, contents: nil)
         let handle = try FileHandle(forWritingTo: real)
         try handle.truncate(atOffset: UInt64(DataPack.smallestPack) + 1)
         try handle.close()

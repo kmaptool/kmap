@@ -112,13 +112,13 @@ final class ToolchainTests: XCTestCase {
     /// Another install's swap holds the tools a moment: waited out, not taken for a build.
     func testAnotherInstallsSwapIsWaitedFor() throws {
         Paths.ensure(Paths.locks)
-        var swap: [HeldLock] = [
+        let swap = Locked<[HeldLock]>([
             try XCTUnwrap(HeldLock(trying: Toolchain.inUseLock)),
             try XCTUnwrap(HeldLock(trying: Paths.locks.appendingPathComponent("tool-swaps.lock")))
-        ]
+        ])
         let ended = expectation(description: "swap ended")
         DispatchQueue.global().asyncAfter(deadline: .now() + 0.8) {
-            swap.removeAll()
+            swap.withLock { $0.removeAll() }
             ended.fulfill()
         }
         let started = Date()

@@ -18,7 +18,7 @@ extension BuildPipeline {
             let pinned = pinnedExtract(cached)
             FileTools.removeIfPresent(pinned)
             Paths.ensure(pinned.deletingLastPathComponent())
-            guard (try? FileManager.default.linkItem(at: cached, to: pinned)) != nil else { return cached }
+            guard FileTools.hardLink(cached, at: pinned) else { return cached }
             return pinned
         }
     }

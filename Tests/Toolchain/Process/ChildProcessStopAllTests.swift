@@ -81,10 +81,14 @@ final class ChildProcessStopAllTests: XCTestCase {
         tool.executableURL = URL(fileURLWithPath: "/bin/sh")
         tool.arguments = ["-c", "trap 'exit 0' TERM; sleep 30 & echo $! > '\(file.path)'; wait"]
         // As the runner does once the tool has ended, before `stopAll` sees it end.
+        #if !os(Linux)
         let untracked = expectation(description: "untracked")
+        #endif
         tool.terminationHandler = { ended in
             ChildProcess.untrack(ended)
+            #if !os(Linux)
             untracked.fulfill()
+            #endif
         }
         try tool.run()
         ChildProcess.track(tool, alone: true)
@@ -92,9 +96,14 @@ final class ChildProcessStopAllTests: XCTestCase {
         defer { kill(worker, SIGKILL) }
 
         ChildProcess.stopAll(grace: 1.5)
+        #if os(Linux)
+        // Foundation here hears of an end by a socket the worker holds too, so not while the
+        // worker lives: the tool's end is read from the kernel.
+        XCTAssertTrue(isGone(tool.processIdentifier, within: 2), "the tool")
+        #else
         wait(for: [untracked], timeout: 2)
-
         XCTAssertFalse(tool.isRunning)
+        #endif
         XCTAssertFalse(isGone(worker, within: 0.3), "the worker it forked")
     }
 

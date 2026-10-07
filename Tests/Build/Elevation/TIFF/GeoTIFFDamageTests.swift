@@ -40,7 +40,10 @@ final class GeoTIFFDamageTests: XCTestCase {
                     values += tag.bytes
                 }
             }
-            return [0x49, 0x49] + le16(42) + le32(8) + entries + le32(0) + values
+            var header: [UInt8] = [0x49, 0x49]
+            header += le16(42)
+            header += le32(8)
+            return header + entries + le32(0) + values
         }
         return build(build(0).count) + body
     }

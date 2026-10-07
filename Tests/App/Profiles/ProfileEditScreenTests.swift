@@ -46,7 +46,7 @@ final class ProfileEditScreenTests: XCTestCase {
         return form
     }
 
-    func testAProfilesOwnZoomPlanIsKept() throws {
+    func testAProfilesOwnZoomPlanIsKept() async throws {
         let mine = ctx.settings.copyZoomPlan(ZoomPlan.builtins[0], named: "kept plan")
         defer { _ = ctx.settings.deleteZoomPlan(mine.id) }
         var choices = BuildChoices()
@@ -64,7 +64,7 @@ final class ProfileEditScreenTests: XCTestCase {
         XCTAssertEqual(ctx.settings.profile(alps.id)?.choices.zoomPlanID, mine.id)
     }
 
-    func testAMissingStyleIsSaidAndKept() throws {
+    func testAMissingStyleIsSaidAndKept() async throws {
         var choices = BuildChoices()
         choices.styleID = "typ:gone-away"
         let alps = profile(choices)
@@ -76,7 +76,7 @@ final class ProfileEditScreenTests: XCTestCase {
         let screen = ProfileEditScreen(profile: alps, settings: ctx.settings, hasSeamPatch: false)
         for _ in 0..<500 where ctx.styles.styles().scanning {
             screen.tick(ctx)
-            Thread.sleep(forTimeInterval: 0.01)
+            try? await Task.sleep(nanoseconds: 10_000_000)
         }
         screen.tick(ctx)
         _ = screen.handle(.esc, ctx: ctx)
@@ -84,7 +84,7 @@ final class ProfileEditScreenTests: XCTestCase {
     }
 
     /// A save the file refuses keeps the screen; only the same key, straight away, leaves.
-    func testARefusedSaveLeavesOnlyOnTheSameKeyAgain() throws {
+    func testARefusedSaveLeavesOnlyOnTheSameKeyAgain() async throws {
         let alps = profile(BuildChoices())
         let screen = ProfileEditScreen(profile: alps, settings: ctx.settings, hasSeamPatch: false)
         screen.tick(ctx)

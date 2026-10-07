@@ -47,14 +47,16 @@ enum Machine {
         #endif
         var limit = rlimit()
         guard getrlimit(resource, &limit) == 0, limit.rlim_cur < rlim_t(count) else { return }
-        var most = limit.rlim_max
         #if canImport(Darwin)
+        var most = limit.rlim_max
         // Darwin refuses a soft limit past the per-process maximum.
         var perProcess: Int32 = 0
         var size = MemoryLayout<Int32>.size
         if sysctlbyname("kern.maxfilesperproc", &perProcess, &size, nil, 0) == 0, perProcess > 0 {
             most = min(most, rlim_t(perProcess))
         }
+        #else
+        let most = limit.rlim_max
         #endif
         limit.rlim_cur = min(rlim_t(count), most)
         _ = setrlimit(resource, &limit)

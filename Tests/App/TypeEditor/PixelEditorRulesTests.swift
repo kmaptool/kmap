@@ -97,7 +97,7 @@ final class PixelEditorRulesTests: XCTestCase {
     }
 
     /// A pattern's colours are fixed at 4: a 5th stops mkgmap.
-    func testAPatternTakesNoColourMore() throws {
+    func testAPatternTakesNoColourMore() async throws {
         let screen = try editor(.polygon, 0x16)
         screen.addColour("#123456")
         XCTAssertTrue(screen.messageIsError)
@@ -105,7 +105,7 @@ final class PixelEditorRulesTests: XCTestCase {
     }
 
     /// Both halves of a pair clear, or a single colour clear, stops mkgmap.
-    func testAClearMkgmapRefusesIsRefused() throws {
+    func testAClearMkgmapRefusesIsRefused() async throws {
         let screen = try editor(.polygon, 0x16)
         XCTAssertNil(screen.shown.palette[1].colour, "the day background is clear")
         screen.changeColour(0, to: "none")
@@ -114,20 +114,20 @@ final class PixelEditorRulesTests: XCTestCase {
     }
 
     /// A line or polygon is 1 bit a pixel: the night pair is not a paint.
-    func testThePatternsNightPairIsNotAPaint() throws {
+    func testThePatternsNightPairIsNotAPaint() async throws {
         let screen = try editor(.polygon, 0x16)
         XCTAssertFalse(screen.paint(x: 0, y: 0, with: 2))
         XCTAssertTrue(screen.paint(x: 0, y: 0, with: 1))
     }
 
     /// A pattern started from a cased line keeps its night fill, not its border.
-    func testACasedLinesPatternKeepsItsNightFill() throws {
+    func testACasedLinesPatternKeepsItsNightFill() async throws {
         let screen = try editor(.line, 0x02)
         XCTAssertEqual(screen.shown.palette.map(\.colour), ["#FFFFFF", nil, "#888888", nil])
     }
 
     /// The day palette is the night's: a colour is added by day.
-    func testAColourIsAddedByDayOnly() throws {
+    func testAColourIsAddedByDayOnly() async throws {
         let screen = try editor(.point, 0x2f00)
         screen.toggleNight()
         screen.addColour("#0000FF")
@@ -137,7 +137,7 @@ final class PixelEditorRulesTests: XCTestCase {
     }
 
     /// Grown, a point's new ground is clear at night too, on screen and once saved.
-    func testAGrownPointsNewGroundIsClearByNight() throws {
+    func testAGrownPointsNewGroundIsClearByNight() async throws {
         let screen = try editor(.point, 0x2f00)
         screen.toggleNight()
         screen.resize("3x3")
@@ -151,7 +151,7 @@ final class PixelEditorRulesTests: XCTestCase {
     }
 
     /// A pattern taller than the terminal still shows its prompt and its palette.
-    func testThePromptAndPaletteShowOnAnOrdinaryTerminal() throws {
+    func testThePromptAndPaletteShowOnAnOrdinaryTerminal() async throws {
         let screen = try editor(.polygon, 0x16)
         _ = screen.handle(.char("c"), ctx: ctx)
         let drawn = draw(screen)
@@ -160,7 +160,7 @@ final class PixelEditorRulesTests: XCTestCase {
     }
 
     /// Enter is a paint key: on the leave question it leaves nothing.
-    func testEnterDoesNotThrowUnsavedWorkAway() throws {
+    func testEnterDoesNotThrowUnsavedWorkAway() async throws {
         let screen = try editor(.polygon, 0x16)
         screen.paint(x: 0, y: 0, with: 1)
         _ = screen.handle(.esc, ctx: ctx)
@@ -169,7 +169,7 @@ final class PixelEditorRulesTests: XCTestCase {
     }
 
     /// A night drawn apart keeps its own size and key width when painted and saved.
-    func testANightDrawnApartKeepsItsShape() throws {
+    func testANightDrawnApartKeepsItsShape() async throws {
         let screen = try editor(.point, 0x2f01)
         screen.toggleNight()
         XCTAssertTrue(screen.paint(x: 2, y: 2, with: 1))

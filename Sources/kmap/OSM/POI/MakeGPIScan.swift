@@ -14,6 +14,12 @@ extension MakeGPI {
         let prefer: String
         let exclude: (exact: Set<String>, wildcard: Set<String>)
 
+        /// Written out: Swift 6.0 makes the memberwise one private for `keyKinds`.
+        init(prefer: String, exclude: (exact: Set<String>, wildcard: Set<String>)) {
+            self.prefer = prefer
+            self.exclude = exclude
+        }
+
         /// Takes another block's findings: the counts add, and the areas keep their order.
         mutating func take(_ other: Scan) {
             points.append(contentsOf: other.points)

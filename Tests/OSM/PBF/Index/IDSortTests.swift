@@ -31,6 +31,38 @@ final class IDSortTests: XCTestCase {
         }
     }
 
+    /// Ids sharing their bytes sort in 0 or 1 pass.
+    func testIdsThatShareTheirBytesNeedFewPasses() {
+        for ids in [[Int64](repeating: 42, count: 1500), (0..<1500).map { $0 % 2 == 0 ? Int64.min : 0 }] {
+            var sorted = ids
+            var scratch = [Int64](repeating: 0, count: ids.count)
+            let inScratch = sorted.withUnsafeMutableBufferPointer { ids in
+                scratch.withUnsafeMutableBufferPointer {
+                    kmap_sort_i64_either(ids.baseAddress, $0.baseAddress, ids.count)
+                }
+            }
+            XCTAssertEqual(inScratch != 0 ? scratch : sorted, ids.sorted())
+        }
+        var none: [Int64] = []
+        IDSort.sort(&none)
+        XCTAssertEqual(none, [])
+    }
+
+    /// A stride of 0, or no keys or fences, finds nothing rather than dividing by 0.
+    func testAFencedSearchWithNothingToSearchFindsNothing() {
+        let keys: [Int64] = [1, 2, 3, 4]
+        let fences: [Int64] = [1, 3]
+        let ids: [Int64] = [1, 3, 5]
+        for (stride, keyCount, fenceCount) in [(0, 4, 2), (2, 0, 2), (2, 4, 0)] {
+            var out = [Int64](repeating: 7, count: ids.count)
+            kmap_find_fenced(keys, keyCount, fences, fenceCount, stride, ids, ids.count, &out)
+            XCTAssertEqual(out, [-1, -1, -1], "stride \(stride), \(keyCount) keys, \(fenceCount) fences")
+        }
+        var found = [Int64](repeating: 7, count: ids.count)
+        kmap_find_fenced(keys, keys.count, fences, fences.count, 2, ids, ids.count, &found)
+        XCTAssertEqual(found, [0, 2, -1])
+    }
+
     func testACountThatIsNotAMultipleOfTheLanesStillSorts() {
         // The last chunk and the last merge are the short ones, and an off-by-one there
         // leaves a tail unsorted or reads past the end.

@@ -5,7 +5,7 @@ import XCTest
 /// Typing filters, spaces included; only Enter, or space with nothing typed, toggles.
 @MainActor
 final class HideScreenTests: XCTestCase {
-    func testASpaceInTheFilterHidesNothing() {
+    func testASpaceInTheFilterHidesNothing() async {
         let ctx = AppContext()
         var hidden: Set<String> = []
         let screen = HideScreen(hidden: []) { hidden = $0 }

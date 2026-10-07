@@ -28,12 +28,15 @@ enum Paths {
         return CommandLine.arguments.first?.contains(".xctest") ?? false
     }()
 
-    /// One directory per run of the suite, so nothing survives into the next run.
-    static let testRoot: URL = FileManager.default.temporaryDirectory
-        .appendingPathComponent(
+    /// One directory per run of the suite, removed as the run ends; one that crashes leaves it.
+    static let testRoot: URL = {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(
             "kmap-tests-\(ProcessInfo.processInfo.processIdentifier)",
             isDirectory: true
         )
+        atexit { try? FileManager.default.removeItem(at: Paths.testRoot) }
+        return root
+    }()
 
     /// The default root: `~/.kmap` on the Unixes, and `%LOCALAPPDATA%\kmap` on Windows,
     /// which is not copied around a domain network as the roaming profile is. The layout

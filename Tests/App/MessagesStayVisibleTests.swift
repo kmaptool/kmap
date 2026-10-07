@@ -36,7 +36,7 @@ final class MessagesStayVisibleTests: XCTestCase {
         for character in text { _ = screen.handle(.char(character), ctx: ctx) }
     }
 
-    func testASettingsRefusalIsDrawn() {
+    func testASettingsRefusalIsDrawn() async {
         for (width, height) in [(80, 24), (80, 26), (110, 40)] {
             let screen = SettingsScreen()
             _ = drawn(screen, width, height)
@@ -51,7 +51,7 @@ final class MessagesStayVisibleTests: XCTestCase {
     }
 
     /// A question whose key is not on screen must not be live: it is drawn, whole.
-    func testTheToolchainsQuestionIsDrawnWhole() {
+    func testTheToolchainsQuestionIsDrawnWhole() async {
         var tools: [ToolStatus] = []
         for id in ["java", "mkgmap", "mkgmap-patch", "sea", "bounds", "python", "pyhgtmap", "unzip"] {
             var tool = ToolStatus(
@@ -79,7 +79,7 @@ final class MessagesStayVisibleTests: XCTestCase {
         }
     }
 
-    func testARecoverSaveFailureIsDrawnUnderALongList() {
+    func testARecoverSaveFailureIsDrawnUnderALongList() async {
         for (width, height) in [(80, 24), (110, 40)] {
             let screen = RecoverScreen(
                 img: URL(fileURLWithPath: "/tmp/x.img"),
@@ -111,7 +111,7 @@ final class MessagesStayVisibleTests: XCTestCase {
         }
     }
 
-    func testATypeEditorRefusalIsDrawnWithAFullList() throws {
+    func testATypeEditorRefusalIsDrawnWithAFullList() async throws {
         for (width, height) in [(80, 24), (110, 40)] {
             let screen = TypeEditScreen(style: style, kind: .point, code: TypFixture.iconCode, onEdited: {})
             _ = drawn(screen, width, height)
@@ -128,7 +128,7 @@ final class MessagesStayVisibleTests: XCTestCase {
         }
     }
 
-    func testATypeBrowserNoticeShowsWithThePreviewOpen() {
+    func testATypeBrowserNoticeShowsWithThePreviewOpen() async {
         let screen = TypeBrowserScreen(document: StyleDocument.load(style), kind: .polygon)
         _ = drawn(screen, 110, 40)
         for _ in 0..<50 where screen.selectedRow?.isStyled != true { _ = screen.handle(.down, ctx: ctx) }
@@ -139,7 +139,7 @@ final class MessagesStayVisibleTests: XCTestCase {
     }
 
     /// A palette longer than the terminal follows the colour painted with.
-    func testTheColourPaintedWithIsInSight() throws {
+    func testTheColourPaintedWithIsInSight() async throws {
         let screen = try XCTUnwrap(
             PixelEditorScreen(style: style, kind: .point, code: TypFixture.iconCode, onSaved: {})
         )
@@ -154,7 +154,7 @@ final class MessagesStayVisibleTests: XCTestCase {
     }
 
     /// A finished recovery not saved is not left on 1 key, Esc or ^C.
-    func testAnUnsavedRecoveryIsNotLeftUnasked() {
+    func testAnUnsavedRecoveryIsNotLeftUnasked() async {
         let screen = RecoverScreen(img: URL(fileURLWithPath: "/tmp/x.img"), typ: URL(fileURLWithPath: "/tmp/r18.txt"))
         var report = StyleRecovery.Report()
         report.style = "; recovered\n"

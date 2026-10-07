@@ -262,7 +262,7 @@ final class ToolchainScreenInstallTests: XCTestCase {
 
     /// Rows come and go as installs finish: the cursor stays with its tool, so the next
     /// Enter does not start a gigabyte download on the row that slid under it.
-    func testTheCursorStaysWithItsTool() throws {
+    func testTheCursorStaysWithItsTool() async throws {
         try select("sea")
         ctx.useForTesting(tools: [tool("unzip")] + ctx.tools)
         _ = drawn()
@@ -273,7 +273,7 @@ final class ToolchainScreenInstallTests: XCTestCase {
     }
 
     /// A removal is asked about, and any key but y drops the question for good.
-    func testARemovalIsAskedAndAnyOtherKeyDropsIt() throws {
+    func testARemovalIsAskedAndAnyOtherKeyDropsIt() async throws {
         var bounds = tool("bounds", ready: true)
         bounds.removable = true
         ctx.useForTesting(tools: ctx.tools.map { $0.id == "bounds" ? bounds : $0 })
