@@ -161,7 +161,8 @@ final class PBFRewriterLabelChoiceTests: XCTestCase {
             return out
         }
         let javac = java.deletingLastPathComponent().appendingPathComponent("javac")
-        _ = try run(javac, ["-nowarn", "-cp", jar.path, "-d", work.path, source.path])
+        // javac is a JVM too, and takes what this machine's JVM needs to start through -J.
+        _ = try run(javac, kit.toolOptions + ["-nowarn", "-cp", jar.path, "-d", work.path, source.path])
         let listed = try run(java, kit.options + ["-cp", jar.path + ":" + work.path, "Unreadable"])
         var lines = listed.split(separator: "\n")
         let feature = Int(lines.first?.split(separator: " ").last ?? "") ?? 0
