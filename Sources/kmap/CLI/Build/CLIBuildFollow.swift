@@ -37,7 +37,8 @@ extension CLI {
     /// What the stages say at each poll: headings for the text and events for the stream,
     /// each dated when it happened, so they stand among the log lines in their order.
     struct StageNews {
-        /// The status each stage was last reported with in JSON.
+        /// The status each stage was last reported with in JSON. A stage seen only once it
+        /// had ended is reported running first, as it was.
         private var lastReported: [String: BuildPipeline.StageStatus] = [:]
         /// Stages whose heading is printed: one that began and ended between 2 polls is
         /// never seen running.
@@ -71,6 +72,13 @@ extension CLI {
                     marks.append((began, .heading("── \(stage.id.title)")))
                 }
                 if let status {
+                    // Begun and ended between 2 polls: its running goes out first, dated when
+                    // it began, so a reader of the stream never sees a stage skip the step.
+                    if status == .done || status == .failed, lastReported[id] != .running,
+                        let started = stage.startedAt
+                    {
+                        marks.append((max(started, lastPoll), .stage(stage.id, .running, detail: "")))
+                    }
                     lastReported[id] = status
                     marks.append(
                         (at, .stage(stage.id, status, detail: status == stage.status ? stage.detail : stopped))

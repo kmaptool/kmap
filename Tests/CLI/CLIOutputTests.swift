@@ -234,6 +234,28 @@ final class CLIOptionsTests: XCTestCase {
         )
     }
 
+    /// A stage that begins and ends between 2 polls is still told running before done: a
+    /// reader of the stream never sees a stage skip the step.
+    func testAStageBegunAndEndedBetween2PollsIsToldRunningThenDone() {
+        let start = Date(timeIntervalSince1970: 1000)
+        var news = CLI.StageNews()
+        let first = news.marks(
+            [stage(.preflight, .pending, from: nil)],
+            ended: false,
+            stopped: "failed",
+            polled: start
+        )
+        XCTAssertEqual(first.map { Self.said($0.mark) }, ["preflight pending"])
+        let marks = news.marks(
+            [stage(.preflight, .done, from: start.addingTimeInterval(0.05), for: 0.1)],
+            ended: false,
+            stopped: "failed",
+            polled: start.addingTimeInterval(0.25)
+        )
+        let said = CLI.LogPrinter.interleaved([], marks: marks).map(Self.said)
+        XCTAssertEqual(said.filter { $0.hasPrefix("preflight") }, ["preflight running", "preflight done"])
+    }
+
     func testALineWrittenAfterThePollWaitsForTheNext() {
         // Counted by number, not by time: a clock set back holds nothing up.
         var printer = CLI.LogPrinter()
