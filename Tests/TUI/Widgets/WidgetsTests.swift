@@ -130,3 +130,32 @@ final class RectTests: XCTestCase {
         XCTAssertEqual(below.h, 4)
     }
 }
+
+/// The log under a build: how far back it scrolls.
+final class LogPaneTests: XCTestCase {
+    /// One row of the surface as text, blanks either side dropped.
+    private func row(_ y: Int, of surface: Surface) -> String {
+        let text = String((0..<40).compactMap { surface.cell($0, y)?.ch })
+        return text.trimmingCharacters(in: .whitespaces)
+    }
+
+    func testTheLogScrollsBackUntilItsFirstLineIsAtTheTopAndNoFurther() {
+        XCTAssertEqual(Widgets.logScroll(500, lines: 100, height: 20), 80)
+        XCTAssertEqual(Widgets.logScroll(30, lines: 100, height: 20), 30)
+        XCTAssertEqual(Widgets.logScroll(-4, lines: 100, height: 20), 0)
+        XCTAssertEqual(Widgets.logScroll(9, lines: 10, height: 20), 0, "a log shorter than its pane does not move")
+    }
+
+    /// Scrolled far past the start, the pane shows the first lines and stays full: it
+    /// does not drain from the bottom one line a key.
+    func testAPaneScrolledPastTheStartStaysFullFromTheFirstLine() {
+        let lines = (1...30).map { LogEvent(text: "line \($0)") }
+        let theme = Theme.strict
+        let surface = Surface()
+        surface.resize(40, 10)
+        surface.clear(theme.base)
+        Widgets.logPane(surface, rect: Rect(x: 0, y: 0, w: 40, h: 10), lines: lines, theme: theme, scrollOffset: 1000)
+        XCTAssertEqual(row(0, of: surface), "line 1", "the first line at the top")
+        XCTAssertEqual(row(9, of: surface), "line 10", "and the pane still full to the bottom")
+    }
+}

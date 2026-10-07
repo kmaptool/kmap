@@ -255,6 +255,11 @@ final class BuildScreen: Screen {
     /// The log, scrolled back however far the person has gone.
     private func renderLog(into s: Surface, rect: Rect, theme: Theme, y: inout Int) {
         guard y < rect.maxY - 1 else { return }
+        let logRect = Rect(x: rect.x, y: y + 1, w: rect.w, h: max(0, rect.maxY - y - 1))
+        let lines = pipeline.log.snapshot().filter { showingDetail || $0.severity > .debug }
+        // Held where the first line meets the top, so the label and the next key down
+        // start from where the pane really is.
+        logScroll = Widgets.logScroll(logScroll, lines: lines.count, height: logRect.h)
         s.sectionRule(
             rect,
             y,
@@ -263,9 +268,6 @@ final class BuildScreen: Screen {
             ruleStyle: Style(fg: theme.rule, bg: theme.appBg)
         )
         y += 1
-        let logRect = Rect(x: rect.x, y: y, w: rect.w, h: max(0, rect.maxY - y))
-        let lines = pipeline.log.snapshot().filter { showingDetail || $0.severity > .debug }
-        logScroll = min(logScroll, max(0, lines.count - 1))
         Widgets.logPane(s, rect: logRect, lines: lines, theme: theme, scrollOffset: logScroll)
     }
 }

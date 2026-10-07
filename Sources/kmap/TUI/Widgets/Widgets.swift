@@ -146,7 +146,7 @@ enum Widgets {
         scrollOffset: Int = 0
     ) {
         guard rect.h > 0, rect.w > 0 else { return }
-        let end = max(0, lines.count - scrollOffset)
+        let end = lines.count - Self.logScroll(scrollOffset, lines: lines.count, height: rect.h)
         let start = max(0, end - rect.h)
         for (i, line) in lines[start..<end].enumerated() {
             let y = rect.y + i
@@ -154,6 +154,12 @@ enum Widgets {
             let x = s.text(rect.x, y, prefix, style)
             s.text(x, y, truncate(line.text, to: max(0, rect.maxX - x)), style)
         }
+    }
+
+    /// How far back a log pane can be scrolled: until its first line is at the top, and
+    /// no further, or the lines would drain away from the bottom one by one.
+    static func logScroll(_ asked: Int, lines: Int, height: Int) -> Int {
+        min(max(0, asked), max(0, lines - height))
     }
 
     /// The mark and colour of a log line: what kind of thing it is first, how much it
