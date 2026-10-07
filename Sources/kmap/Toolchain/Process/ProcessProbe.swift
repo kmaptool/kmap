@@ -38,6 +38,28 @@ enum ProcessProbe {
         _ arguments: [String],
         timeout: TimeInterval = defaultTimeout
     ) -> String? {
+        run(executable, arguments, timeout: timeout, errorsToo: true)?.text
+    }
+
+    /// Runs a command for its standard output alone, and only where it exits 0: a tool
+    /// that answers with a path must not have its complaint read as one.
+    static func output(
+        _ executable: String,
+        _ arguments: [String],
+        timeout: TimeInterval = defaultTimeout
+    ) -> String? {
+        guard let run = run(executable, arguments, timeout: timeout, errorsToo: false), run.status == 0
+        else { return nil }
+        return run.text
+    }
+
+    /// The output, and the exit code where the command ended by itself.
+    private static func run(
+        _ executable: String,
+        _ arguments: [String],
+        timeout: TimeInterval,
+        errorsToo: Bool
+    ) -> (text: String?, status: Int32?)? {
         // None started once kmap is leaving, and one running is stopped with the rest.
         guard FileTools.isExecutable(executable), !ChildProcess.isLeaving else { return nil }
         let process = Process()
@@ -45,7 +67,7 @@ enum ProcessProbe {
         process.arguments = arguments
         let pipe = Pipe()
         process.standardOutput = pipe
-        process.standardError = pipe
+        process.standardError = errorsToo ? pipe : ChildProcess.discardedOutput
         // Never the terminal, as in `ProcessRunner`: a prompting probe would swallow keystrokes.
         process.standardInput = ChildProcess.emptyInput
 
@@ -63,14 +85,15 @@ enum ProcessProbe {
 
         // Waits for the process, not for the end of the pipe: the handler is not called at
         // end of file on every platform.
-        if !ChildProcess.waitForExit(process, within: timeout) { ChildProcess.stop(process) }
+        let exited = ChildProcess.waitForExit(process, within: timeout)
+        if !exited { ChildProcess.stop(process) }
         output.takeOver()
         reading.readabilityHandler = nil
         // The last write is still in the pipe. Read without waiting: a grandchild may
         // hold the writing end open.
         ChildProcess.readWhatIsWaiting(reading) { output.append($0) }
         try? reading.close()
-        return output.text
+        return (output.text, exited ? process.terminationStatus : nil)
     }
 
     /// The output so far, shared by the handler and the drain. A class: a local mutated

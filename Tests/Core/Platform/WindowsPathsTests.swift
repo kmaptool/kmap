@@ -75,4 +75,17 @@ final class WindowsPathsTests: XCTestCase {
             "/mnt/e/x"
         )
     }
+
+    #if !os(Windows)
+    func testAWslpathThatFailsIsNotTakenAtItsWord() {
+        // Asked for a drive WSL has not mounted, wslpath fails, and its complaint starts
+        // with its own path, "/usr/bin/wslpath: ...". A shell given the same arguments fails
+        // the same way.
+        XCTAssertEqual(
+            Platform.linuxPath(fromWindows: #"E:\Garmin\style.typ"#, which: { _ in TestShell.path }),
+            "/mnt/e/Garmin/style.typ"
+        )
+        XCTAssertNil(Platform.linuxPath(fromWindows: #"\\server\share\map.typ"#, which: { _ in TestShell.path }))
+    }
+    #endif
 }

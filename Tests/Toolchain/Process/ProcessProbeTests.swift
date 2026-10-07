@@ -16,6 +16,17 @@ final class ProcessProbeTests: XCTestCase {
         XCTAssertNil(ProcessProbe.capture(NSTemporaryDirectory(), ["-version"]))
     }
 
+    func testOutputLeavesTheErrorStreamOut() {
+        let out = ProcessProbe.output(TestShell.path, TestShell.arguments(.toBothStreams))
+        XCTAssertEqual(out?.trimmingCharacters(in: .whitespacesAndNewlines), "out")
+    }
+
+    func testOutputIsNothingWhereTheToolFailed() {
+        // A failing tool's complaint is not its answer, whichever stream it uses.
+        XCTAssertNil(ProcessProbe.output(TestShell.path, TestShell.arguments(.failWithReason)))
+        XCTAssertNil(ProcessProbe.output(TestShell.path, TestShell.arguments(.exitSeven)))
+    }
+
     func testCaptureGivesUpOnSomethingThatNeverFinishes() {
         // The toolchain screen probes candidate paths this way, and a probe that never
         // returns freezes the interface behind it.

@@ -12,7 +12,7 @@ extension Platform {
         for url: URL,
         on platform: Platform = Platform.current,
         which: (String) -> String? = { Platform.which($0) },
-        runner: (String, [String]) -> String? = { ProcessProbe.capture($0, $1, timeout: 5) }
+        runner: (String, [String]) -> String? = { ProcessProbe.output($0, $1, timeout: 5) }
     ) -> String? {
         // A native build has nothing to translate, and `wslpath` would reject the path.
         if platform.usesWindowsPaths { return url.nativePath }
@@ -45,7 +45,7 @@ extension Platform {
     static func linuxPath(
         fromWindows windows: String,
         which: (String) -> String? = { Platform.which($0) },
-        runner: (String, [String]) -> String? = { ProcessProbe.capture($0, $1, timeout: 5) }
+        runner: (String, [String]) -> String? = { ProcessProbe.output($0, $1, timeout: 5) }
     ) -> String? {
         if let wslpath = which("wslpath"),
             let out = runner(wslpath, ["-u", windows])?.trimmingCharacters(in: .whitespacesAndNewlines),
