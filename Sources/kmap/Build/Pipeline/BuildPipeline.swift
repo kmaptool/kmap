@@ -677,6 +677,9 @@ final class BuildPipeline: Sendable {
                 + "  dem=\(recipe.demLayer ? "on" : "off")"
                 + "  routable=\(recipe.routable)  index=\(recipe.searchIndex)"
         )
+        if recipe.houseNumbers, !recipe.searchIndex {
+            log.append("house numbers left out: they are found only through the search index, which is off")
+        }
         log.append("levels:  \(recipe.levels.name) — \(recipe.levels.levels)")
         log.append("work:    \(Paths.display(workDirectory))")
         log.append("output:  \(recipe.splitMode.label) → \(Paths.display(recipe.destinationDirectory))")

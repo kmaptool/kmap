@@ -51,7 +51,9 @@ extension RecipeForm {
         case .routable: return toggle(recipe.routable) { self.recipe.routable = $0 }
         case .healRoads: return toggle(recipe.healRoadEnds) { self.recipe.healRoadEnds = $0 }
         case .index: return toggle(recipe.searchIndex) { self.recipe.searchIndex = $0 }
-        case .houseNumbers: return toggle(recipe.houseNumbers) { self.recipe.houseNumbers = $0 }
+        case .houseNumbers:
+            guard recipe.searchIndex else { return nil }
+            return toggle(recipe.houseNumbers) { self.recipe.houseNumbers = $0 }
         case .sea: return toggle(recipe.generateSea) { self.recipe.generateSea = $0 }
         case .customPOIs: return toggle(recipe.customPOIs) { self.recipe.customPOIs = $0 }
         case .interval:

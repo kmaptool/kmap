@@ -31,6 +31,10 @@ struct BuildRecipe {
     var houseNumbers: Bool = true
     var generateSea: Bool = true
 
+    /// House numbers are found only through address search, so without the index they
+    /// are left out, whatever `houseNumbers` holds.
+    var writesHouseNumbers: Bool { searchIndex && houseNumbers }
+
     /// mkgmap's `--code-page`. Decides which alphabet survives into the map, and overrides
     /// the CodePage declared inside the TYP. 1252 is Latin-1, 1251 Cyrillic.
     var codePage: Int = CodePage.westernEuropean

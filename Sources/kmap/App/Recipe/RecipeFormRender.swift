@@ -139,7 +139,10 @@ extension RecipeForm {
                 ? t("on") + "  ·  " + t("joins ends within %d m that block a route", Int(recipe.healRadius))
                 : t("off") + "  ·  " + t("the data is used exactly as OSM has it")
         case .index: return onOff(recipe.searchIndex)
-        case .houseNumbers: return onOff(recipe.houseNumbers)
+        case .houseNumbers:
+            // Found only through address search: with no index there is nothing to choose.
+            guard recipe.searchIndex else { return "—" }
+            return onOff(recipe.houseNumbers)
         case .sea: return onOff(recipe.generateSea)
         case .theme:
             let hint = RecipeForm.themeHint(recipe.theme)
@@ -179,6 +182,7 @@ extension RecipeForm {
         case .demSource: disabled = !recipe.needsElevationData
         case .splitMode: disabled = !recipe.format.writesCardFiles
         case .parts: disabled = !recipe.format.writesCardFiles || recipe.splitMode.fileCount == 0
+        case .houseNumbers: disabled = !recipe.searchIndex
         default: disabled = false
         }
         if disabled { return Style(fg: theme.faint, bg: theme.appBg) }

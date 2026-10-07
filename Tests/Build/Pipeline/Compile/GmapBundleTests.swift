@@ -116,6 +116,26 @@ final class GmapBundleTests: XCTestCase {
         XCTAssertTrue(packed.contains("--index"))
     }
 
+    /// House numbers are found only through address search: with no index they are left
+    /// out, whatever the recipe says.
+    func testHouseNumbersGoWithTheIndexOnly() throws {
+        var recipe = pipeline.recipe
+        recipe.houseNumbers = true
+        for index in [true, false] {
+            recipe.searchIndex = index
+            let settings = SettingsStore()
+            let toolchain = Toolchain(settings: settings)
+            let built = BuildPipeline(
+                recipe: recipe,
+                settings: settings,
+                toolchain: toolchain,
+                styles: StyleCatalog(settings: settings, toolchain: toolchain)
+            )
+            let options = try built.mkgmapOptions(name: "here", outputDir: scratch, tileCount: 2, gmapsupp: true)
+            XCTAssertEqual(options.contains("--housenumbers"), index, "index \(index)")
+        }
+    }
+
     /// mkgmap refuses an option its help does not list, even one its code reads, and
     /// fails the whole build: every option kmap passes is one it lists.
     func testEveryOptionPassedIsOneMkgmapKnows() throws {

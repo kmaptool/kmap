@@ -214,7 +214,7 @@ extension BuildPipeline {
         options += indexOptions().filter { gmapsupp || !Self.packOnlyIndexOptions.contains($0) }
         // Address search only: mkgmap indexes house numbers off the building outlines, and
         // receivers show no address lines on the map-cursor card.
-        if recipe.houseNumbers { options.append("--housenumbers") }
+        if recipe.writesHouseNumbers { options.append("--housenumbers") }
 
         if recipe.generateSea {
             if FileTools.exists(Paths.seaData) {

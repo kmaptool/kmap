@@ -256,7 +256,7 @@ extension BuildPipeline {
             "elevation     \(recipe.needsElevationData ? recipe.demSources : "—")",
             "routable      \(recipe.routable)",
             "search index  \(recipe.searchIndex)",
-            "house numbers \(recipe.houseNumbers ? "on — address search" : "off")",
+            "house numbers \(recipe.writesHouseNumbers ? "on — address search" : "off")",
             "descriptions  \(recipe.descriptions == .off ? "off" : recipe.descriptions.label)",
             "custom POIs   \(recipe.customPOIs ? "on" : "off")",
             "format        \(recipe.format.rawValue)",
