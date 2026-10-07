@@ -2,5 +2,5 @@
 // Edit that file, not this one.
 extension Version {
     /// The number the VERSION file holds.
-    static let number = "1.7.4"
+    static let number = "1.7.5"
 }
