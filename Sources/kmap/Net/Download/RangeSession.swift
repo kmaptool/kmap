@@ -50,15 +50,15 @@ final class RangeSession: Sendable {
     }
 
     deinit {
-        // URLSession keeps its delegate until invalidated; this frees both and the queues.
-        session.invalidateAndCancel()
+        // URLSession keeps its delegate until invalidated.
+        RetiredSessions.cancel(session)
     }
 
     func cancel() {
         receiver.markCancelled()
         invalidated.withLock { dead in
             dead = true
-            session.invalidateAndCancel()
+            RetiredSessions.cancel(session)
         }
     }
 

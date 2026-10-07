@@ -102,7 +102,7 @@ extension ElevationLogins {
         guard Network.isOpen else { return .unreachable }
         guard let entry = URL(string: "https://ers.cr.usgs.gov/login") else { return .unreachable }
         let session = URLSession(configuration: .ephemeral)
-        defer { session.finishTasksAndInvalidate() }
+        defer { RetiredSessions.finish(session) }
         guard let (data, _) = try? await session.data(from: entry),
             let page = String(data: data, encoding: .utf8),
             page.contains("loginForm")
