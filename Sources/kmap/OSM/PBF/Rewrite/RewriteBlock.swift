@@ -26,12 +26,30 @@ struct RewriteBlock: OSMSink {
     private var memberIDs: [Int64] = []
     private var memberRoles: [Int32] = []
 
-    /// Decodes one block, its relations too where `relations`.
+    /// Decodes one block, its relations too where `relations`. With `names`, mkgmap's name
+    /// order, the code page and how labels are cleaned, it also finds whether an object's
+    /// name must be swapped.
     ///
     /// - Parameter fields: decode buffers owned by the caller and reused between blocks.
-    init(_ bytes: UnsafeRawBufferPointer, fields: inout PBFReader.Scratch, relations: Bool = false) throws {
+    init(
+        _ bytes: UnsafeRawBufferPointer,
+        fields: inout PBFReader.Scratch,
+        relations: Bool = false,
+        names: (order: [String], codePage: Int, keepingJoiners: Bool)? = nil
+    ) throws {
         readsRelations = relations
+        self.names = names
         try PBFReader.decodeBlock(bytes, into: &self, fields: &fields)
+        guard let names, mayNeedRenaming, !(hasRelations && (hasNodes || hasWays)) else { return }
+        // Judged cleaned, as they are renamed: a name the cleaning empties is none for mkgmap.
+        let cleans = hasUnprintable
+        func swaps(_ tags: [(String, String)]) -> Bool {
+            var tags = tags
+            if cleans { PBFRewriter.clean(&tags, keepingJoiners: names.keepingJoiners) }
+            return PBFRewriter.readableName(for: tags, order: names.order, codePage: names.codePage) != nil
+        }
+        needsRenaming =
+            nodeTags.contains(where: swaps) || wayTags.contains(where: swaps) || relationTags.contains(where: swaps)
     }
 
     /// Decodes one block, with decode buffers allocated for this call alone.
@@ -39,6 +57,13 @@ struct RewriteBlock: OSMSink {
         var fields = PBFReader.Scratch()
         try self.init(bytes, fields: &fields, relations: relations)
     }
+
+    private let names: (order: [String], codePage: Int, keepingJoiners: Bool)?
+    /// Whether a string of the table does not read in the code page: only then are the
+    /// objects asked.
+    private var mayNeedRenaming = false
+    /// Whether an object's name, as mkgmap takes it, must be swapped for one that reads.
+    private(set) var needsRenaming = false
 
     var wantedParts: OSMParts { readsRelations ? [.nodes, .ways, .relations] : [.nodes, .ways] }
 
@@ -52,6 +77,7 @@ struct RewriteBlock: OSMSink {
     mutating func begin(_ block: OSMBlock) {
         strings = block.strings.all()
         hasUnprintable = strings.contains { PBFRewriter.hasUnprintable($0) }
+        if let names { mayNeedRenaming = strings.contains { !PBFRewriter.reads($0, codePage: names.codePage) } }
     }
 
     private func text(_ index: Int) -> String {

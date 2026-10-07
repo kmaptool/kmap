@@ -573,4 +573,68 @@ final class PBFRewriterTests: XCTestCase {
             }
         }
     }
+
+    /// On a Russian map a Georgian name with an English one beside it is labelled in English.
+    func testANameTheCodePageCannotDrawIsSwapped() throws {
+        let source = try makeExtract(
+            path("in.osm.pbf"),
+            nodes: [
+                PBFWriter.Node(id: 1, lat: 42.9, lon: 43.4, tags: [("name", "ზოფხიტური"), ("name:en", "Zopkhituri")]),
+                PBFWriter.Node(id: 2, lat: 42.9, lon: 43.4, tags: [("name", "Ставрополь"), ("name:en", "Stavropol")])
+            ],
+            ways: []
+        )
+        let out = path("out.osm.pbf")
+        var pass = rewriter(source)
+        pass.cleanLabels = true
+        pass.nameOrder = ["name:ru", "name", "int_name", "name:en"]
+        pass.codePage = CodePage.cyrillic
+        let tally = try pass.write(to: out)
+        let after = try read(out)
+        XCTAssertEqual(after.nodes.first { $0.id == 1 }?.tags.first { $0.0 == "name" }?.1, "Zopkhituri")
+        XCTAssertEqual(after.nodes.first { $0.id == 2 }?.tags.first { $0.0 == "name" }?.1, "Ставрополь")
+        XCTAssertEqual(tally.renamed, 1)
+    }
+
+    /// A name the cleaning empties is none, alone in its block or not: the next one is
+    /// judged, as mkgmap drops the empty tag.
+    func testANameEmptiedByCleaningGivesWay() throws {
+        let source = try makeExtract(
+            path("in.osm.pbf"),
+            nodes: [
+                PBFWriter.Node(
+                    id: 1,
+                    lat: 42.9,
+                    lon: 43.4,
+                    tags: [("name:ru", "🏔"), ("name", "ზოფხიტური"), ("name:en", "Zopkhituri")]
+                )
+            ],
+            ways: []
+        )
+        let out = path("out.osm.pbf")
+        var pass = rewriter(source)
+        pass.cleanLabels = true
+        pass.nameOrder = ["name:ru", "name", "int_name", "name:en"]
+        pass.codePage = CodePage.cyrillic
+        let tally = try pass.write(to: out)
+        let tags = try XCTUnwrap(try read(out).nodes.first?.tags)
+        XCTAssertEqual(tags.first { $0.0 == "name" }?.1, "Zopkhituri")
+        XCTAssertEqual(tally.renamed, 1)
+    }
+
+    /// A name that reads leaves its block as it was, whatever other languages it carries.
+    func testABlockWhoseNamesReadIsCopied() throws {
+        let source = try makeExtract(
+            path("in.osm.pbf"),
+            nodes: [PBFWriter.Node(id: 1, lat: 55.7, lon: 37.6, tags: [("name", "Москва"), ("name:zh", "莫斯科")])],
+            ways: []
+        )
+        var pass = rewriter(source)
+        pass.cleanLabels = true
+        pass.nameOrder = ["name:ru", "name", "int_name", "name:en"]
+        pass.codePage = CodePage.cyrillic
+        let tally = try pass.write(to: path("out.osm.pbf"))
+        XCTAssertEqual(tally.rebuilt, 0)
+        XCTAssertEqual(tally.renamed, 0)
+    }
 }

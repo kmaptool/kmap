@@ -24,6 +24,9 @@ struct AnnotatePass {
     var cleanLabels = false
     /// Keeps the zero-width joiners there, for the Arabic code page.
     var keepsJoiners = false
+    /// With `cleanLabels`: mkgmap's name tags in order, and the code page they must read in.
+    var nameOrder: [String] = []
+    var codePage = CodePage.westernEuropean
     var markDuplicateVenues = false
     /// Where the .hgt tiles are, asked in order.
     var dem: [URL] = []
@@ -131,6 +134,8 @@ struct AnnotatePass {
         rewriter.tidyDescriptions = dropDuplicateDescriptions
         rewriter.cleanLabels = cleanLabels
         rewriter.keepsJoiners = keepsJoiners
+        rewriter.nameOrder = nameOrder
+        rewriter.codePage = codePage
         rewriter.contours = contourFiles
         rewriter.duplicateVenues = scanned.venues
         rewriter.shouldStop = shouldStop
@@ -301,6 +306,9 @@ struct AnnotatePass {
         }
         if tally.marked > 0 {
             log("marked \(tally.marked) area(s) that repeat an enclosing venue")
+        }
+        if tally.renamed > 0 {
+            log("named \(tally.renamed) object(s) another way: the code page has no letters for their own name")
         }
     }
 }

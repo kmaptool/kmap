@@ -140,6 +140,10 @@ extension BuildPipeline {
         pass.dropDuplicateDescriptions = dropDuplicates
         pass.cleanLabels = cleans
         pass.keepsJoiners = recipe.codePage == CodePage.arabic
+        // mkgmap's order: the list it is given, or `name` alone.
+        let list = recipe.effectiveNameTagList.split(separator: ",").map(String.init)
+        pass.nameOrder = list.isEmpty ? ["name"] : list
+        pass.codePage = recipe.codePage
         if heal {
             pass.repairRadius = recipe.healRadius
             // A low obstacle between the ends is crossed by a link of its own rather than

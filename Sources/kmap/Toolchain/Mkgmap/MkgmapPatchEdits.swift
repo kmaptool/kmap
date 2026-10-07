@@ -17,6 +17,7 @@ extension Toolchain {
         let preparer = "uk/me/parabola/imgfmt/app/trergn/LinePreparer.java"
         let heights = "uk/me/parabola/mkgmap/reader/hgt/HGTConverter.java"
         let heightFile = "uk/me/parabola/mkgmap/reader/hgt/HGTReader.java"
+        let transliterator = "uk/me/parabola/imgfmt/app/labelenc/TableTransliterator.java"
 
         let edits: [(String, String, String)] = [
             // mkgmap tries a few bases for a line's deltas and writes the whole stream for
@@ -786,6 +787,18 @@ extension Toolchain {
                 \t/**
                 \t * @return the resolution to use with this file, -1 is return if file is invalid
                 \t */
+                """
+            ),
+            // Labels are capitalised before transliteration, and Java capitalises Georgian
+            // into Mtavruli, which has no table: read as the small letters, which have one.
+            (
+                transliterator,
+                "\t\tfor (char c : s.toCharArray()) {\n\t\t\tif (c <= (useLatin? 0xff: 0x7f)) {",
+                """
+                \t\tfinal char mtavruli = 0x1c90, mtavruliLast = 0x1cbf, mkhedruli = 0x10d0;
+                \t\tfor (char c0 : s.toCharArray()) {
+                \t\t\tchar c = c0 >= mtavruli && c0 <= mtavruliLast ? (char) (c0 - mtavruli + mkhedruli) : c0;
+                \t\t\tif (c <= (useLatin? 0xff: 0x7f)) {
                 """
             )
         ]

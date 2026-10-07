@@ -46,6 +46,11 @@ struct PBFRewriter {
     var cleanLabels = false
     /// Keeps the zero-width joiners in that cleaning, for the Arabic code page.
     var keepsJoiners = false
+    /// With `cleanLabels`: mkgmap's name tags in order, and the code page they must read in.
+    var nameOrder: [String] = []
+    var codePage = CodePage.westernEuropean
+    /// Whether names are swapped at all: a single-byte page kmap has a table for.
+    private var renames: Bool { cleanLabels && !nameOrder.isEmpty && MkgmapUnreadable.pages[codePage] != nil }
     /// Areas repeating a venue already on the map, tagged so the style can hide the
     /// second icon.
     var duplicateVenues: Set<Int64> = []
@@ -67,6 +72,7 @@ struct PBFRewriter {
         var dropped = 0
         var marked = 0
         var contourBlocks = 0
+        var renamed = 0
     }
 
     /// What each contour file's data blobs hold, recorded on the first walk: bit 0 nodes,
@@ -125,6 +131,7 @@ struct PBFRewriter {
                 // A failed write, a full disk, fails the rest: no use reading on.
                 if let failure = writer.writeFailure { throw failure }
                 let items = batch
+                let names = renames ? (order: nameOrder, codePage: codePage, keepingJoiners: keepsJoiners) : nil
                 try scratches.withUnsafeMutableBufferPointer { buffers in
                     try fieldSets.withUnsafeMutableBufferPointer { fields in
                         try decoded.withUnsafeMutableBufferPointer { blocks in
@@ -139,7 +146,8 @@ struct PBFRewriter {
                                     try RewriteBlock(
                                         UnsafeRawBufferPointer(rebasing: $0[0..<size]),
                                         fields: &fields[i],
-                                        relations: tidyDescriptions || cleanLabels
+                                        relations: tidyDescriptions || cleanLabels,
+                                        names: names
                                     )
                                 }
                             }
@@ -208,6 +216,7 @@ struct PBFRewriter {
         var tagged = 0
         var dropped = 0
         var marked = 0
+        var renamed = 0
         var touched: Bool { nodes != nil || ways != nil || relations != nil }
     }
 
@@ -236,6 +245,7 @@ struct PBFRewriter {
             || (tidyDescriptions && block.hasRedundantDescription)
             || (cleanLabels && block.hasUnprintable
                 && (!block.hasRelations || !(block.hasNodes || block.hasWays) || block.nodesOrWaysUnprintable))
+            || block.needsRenaming
         guard touched else { return out }
         if block.hasRelations && (block.hasWays || block.hasNodes) { throw Trouble.mixedBlock }
 
@@ -248,9 +258,7 @@ struct PBFRewriter {
                     out.tagged += 1
                 }
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
-                if cleanLabels && block.hasUnprintable {
-                    Self.clean(&batch[i].tags, keepingJoiners: keepsJoiners)
-                }
+                out.renamed += relabel(&batch[i].tags, in: block)
             }
             out.nodes = batch
         }
@@ -266,9 +274,7 @@ struct PBFRewriter {
                     let stays = Self.wordStays(refs: batch[i].refs, tags: batch[i].tags)
                     out.dropped += Self.tidy(&batch[i].tags, wordStays: stays)
                 }
-                if cleanLabels && block.hasUnprintable {
-                    Self.clean(&batch[i].tags, keepingJoiners: keepsJoiners)
-                }
+                out.renamed += relabel(&batch[i].tags, in: block)
                 if wayFilter.mayContain(batch[i].id), duplicateVenues.contains(batch[i].id) {
                     batch[i].tags.append((Self.duplicateVenueTag, "yes"))
                     out.marked += 1
@@ -282,9 +288,7 @@ struct PBFRewriter {
             var batch = block.relations()
             for i in batch.indices {
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
-                if cleanLabels && block.hasUnprintable {
-                    Self.clean(&batch[i].tags, keepingJoiners: keepsJoiners)
-                }
+                out.renamed += relabel(&batch[i].tags, in: block)
             }
             out.relations = batch
         }
@@ -351,11 +355,21 @@ struct PBFRewriter {
         if let relations = ready.relations { writer.relations(relations) }
     }
 
+    /// Cleans an object's labels and swaps a name the code page cannot draw. Returns 1 where
+    /// a name was swapped.
+    private func relabel(_ tags: inout [(String, String)], in block: RewriteBlock) -> Int {
+        guard cleanLabels else { return 0 }
+        if block.hasUnprintable { Self.clean(&tags, keepingJoiners: keepsJoiners) }
+        guard block.needsRenaming else { return 0 }
+        return Self.chooseReadableName(&tags, order: nameOrder, codePage: codePage) ? 1 : 0
+    }
+
     private func count(_ ready: Rebuilt?, in tally: inout Tally) {
         guard let ready else { return }
         tally.tagged += ready.tagged
         tally.dropped += ready.dropped
         tally.marked += ready.marked
+        tally.renamed += ready.renamed
     }
 
     /// The nodes this pass invents, from 2^40, then the contour nodes, from 2^42: in that
