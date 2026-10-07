@@ -118,7 +118,13 @@ enum StyleRecovery {
             }
             grounds.append(within)
         }
-        let share = wholeFrame ? 1 : RegionSuggestion.share(of: drawn, within: grounds)
+        // Where the map's data lies, not the ground its tiles span: a map of 2 distant
+        // regions has tiles stretched over the land between them.
+        let share =
+            wholeFrame
+            ? 1
+            : ImgElements.dataShare(of: img, within: grounds)
+                ?? RegionSuggestion.share(of: drawn, within: grounds)
 
         log.step("reading the map's elements")
         progress?.move(to: .reading)
