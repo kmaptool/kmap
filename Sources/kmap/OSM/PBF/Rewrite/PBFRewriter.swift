@@ -248,6 +248,8 @@ struct PBFRewriter {
             || block.needsRenaming
         guard touched else { return out }
         if block.hasRelations && (block.hasWays || block.hasNodes) { throw Trouble.mixedBlock }
+        let cleaning = block.hasUnprintable
+        let renaming = block.needsRenaming
 
         // A block may hold both nodes and ways.
         if block.hasNodes {
@@ -258,7 +260,7 @@ struct PBFRewriter {
                     out.tagged += 1
                 }
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
-                out.renamed += relabel(&batch[i].tags, in: block)
+                if cleanLabels { out.renamed += relabel(&batch[i].tags, cleaning: cleaning, renaming: renaming) }
             }
             out.nodes = batch
         }
@@ -274,7 +276,7 @@ struct PBFRewriter {
                     let stays = Self.wordStays(refs: batch[i].refs, tags: batch[i].tags)
                     out.dropped += Self.tidy(&batch[i].tags, wordStays: stays)
                 }
-                out.renamed += relabel(&batch[i].tags, in: block)
+                if cleanLabels { out.renamed += relabel(&batch[i].tags, cleaning: cleaning, renaming: renaming) }
                 if wayFilter.mayContain(batch[i].id), duplicateVenues.contains(batch[i].id) {
                     batch[i].tags.append((Self.duplicateVenueTag, "yes"))
                     out.marked += 1
@@ -288,7 +290,7 @@ struct PBFRewriter {
             var batch = block.relations()
             for i in batch.indices {
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
-                out.renamed += relabel(&batch[i].tags, in: block)
+                if cleanLabels { out.renamed += relabel(&batch[i].tags, cleaning: cleaning, renaming: renaming) }
             }
             out.relations = batch
         }
@@ -355,12 +357,13 @@ struct PBFRewriter {
         if let relations = ready.relations { writer.relations(relations) }
     }
 
-    /// Cleans an object's labels and swaps a name the code page cannot draw. Returns 1 where
-    /// a name was swapped.
-    private func relabel(_ tags: inout [(String, String)], in block: RewriteBlock) -> Int {
-        guard cleanLabels else { return 0 }
-        if block.hasUnprintable { Self.clean(&tags, keepingJoiners: keepsJoiners) }
-        guard block.needsRenaming else { return 0 }
+    /// Cleans an object's labels where its block has some to clean, and swaps a name the
+    /// code page cannot draw where the block has one. Returns 1 where a name was swapped.
+    /// Given the block's flags, not the block: a struct of many arrays passed per object
+    /// costs their retains.
+    private func relabel(_ tags: inout [(String, String)], cleaning: Bool, renaming: Bool) -> Int {
+        if cleaning { Self.clean(&tags, keepingJoiners: keepsJoiners) }
+        guard renaming else { return 0 }
         return Self.chooseReadableName(&tags, order: nameOrder, codePage: codePage) ? 1 : 0
     }
 
