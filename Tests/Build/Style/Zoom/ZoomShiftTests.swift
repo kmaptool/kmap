@@ -244,17 +244,11 @@ final class ZoomShiftTests: XCTestCase {
 
 /// Whether a plan reaches the rules a real build compiles.
 ///
-/// Works on the style kmap has materialized -- mkgmap's own, with every kmap edit applied.
-/// Skipped where no build has run and there is nothing to read.
+/// Works on the style this code materializes -- mkgmap's own, with every kmap edit applied.
+/// Skipped where the machine has no mkgmap.
 final class ZoomShiftOnTheRealStyleTests: XCTestCase {
     func testMovingWoodlandOnTheStyleOnDisk() async throws {
-        let source = ZoomRealStyle.directory
-        try XCTSkipUnless(
-            FileManager.default.fileExists(
-                atPath: source.appendingPathComponent("polygons").path
-            ),
-            "no materialized style on this machine"
-        )
+        let source = try await RealBaseStyle.directory()
 
         let copy = FileManager.default.temporaryDirectory
             .appendingPathComponent("zoom-real-\(UUID().uuidString.prefix(8))")

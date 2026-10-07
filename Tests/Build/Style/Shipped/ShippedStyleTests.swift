@@ -22,15 +22,9 @@ final class ShippedStyleTests: XCTestCase {
 
     private var cartoPalette: URL { paletteFile(of: "osm-carto") }
 
-    /// The rule set a build materialized on this machine, read where there is one.
+    /// The rule set a build of this code materializes, where the machine has mkgmap.
     private func index() throws -> RuleSetIndex {
-        let directory = ZoomRealStyle.directory
-        try XCTSkipUnless(
-            FileManager.default.fileExists(
-                atPath: directory.appendingPathComponent("polygons").path
-            ),
-            "no materialized style on this machine"
-        )
+        let directory = try RealBaseStyle.preparedDirectory()
         return try XCTUnwrap(RuleSetIndex.read(styleDirectory: directory))
     }
 

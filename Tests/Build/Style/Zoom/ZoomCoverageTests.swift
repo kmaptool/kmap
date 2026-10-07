@@ -2,35 +2,17 @@ import XCTest
 
 @testable import kmap
 
-/// The style a real build materialized, for tests that only read it.
-///
-/// Tests run in an isolated root where no build has happened, so the suites that need
-/// mkgmap's actual rule set read the real home directory. Read-only: the shift test
-/// copies before it writes.
-enum ZoomRealStyle {
-    static var directory: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".kmap/styles/kmap-base", isDirectory: true)
-    }
-}
-
 /// Whether every rule a build compiles belongs to some family.
 ///
 /// A rule no family claims cannot be moved, and no row on screen says so. Reads the style
-/// on disk; skipped where no build has run.
+/// this code materializes; skipped where the machine has no mkgmap.
 final class ZoomCoverageTests: XCTestCase {
     /// Rules left out, by their condition: kmap's repair marker is a diagnostic, not
     /// scenery, and the land and the sea lie under every zoom.
     private static let notOffered = ["kmap:repair="] + ZoomFamily.groundLayers
 
     func testEveryRuleInTheStyleBelongsToAFamily() throws {
-        let directory = ZoomRealStyle.directory
-        try XCTSkipUnless(
-            FileManager.default.fileExists(
-                atPath: directory.appendingPathComponent("polygons").path
-            ),
-            "no materialized style on this machine"
-        )
+        let directory = try RealBaseStyle.preparedDirectory()
 
         var orphans: [String] = []
         var counted = 0
