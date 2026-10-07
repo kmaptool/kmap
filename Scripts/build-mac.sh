@@ -3,7 +3,8 @@
 # and Apple silicon.
 #
 # kmap is a terminal program, so the bundle's executable is a small launcher that opens
-# Terminal on the real binary in Resources. For a terminal-only install use `make install`.
+# Terminal on the binary in Resources and closes the window when it ends. For a
+# terminal-only install use `make install`.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -66,11 +67,39 @@ fi
 
 cat > "$APP/Contents/MacOS/kmap" <<'LAUNCHER'
 #!/bin/bash
-# Opens Terminal on the binary in Resources. `open -a` needs no automation permission.
+# Opens Terminal on the session script in Resources. `open -a` needs no automation permission.
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec open -a Terminal "$here/../Resources/kmap"
+exec open -a Terminal "$here/../Resources/kmap-session"
 LAUNCHER
 chmod +x "$APP/Contents/MacOS/kmap"
+
+# Runs kmap in the window the app opened and closes that window afterwards, whatever the
+# Terminal profile says. A window with other tabs is left alone.
+cat > "$APP/Contents/Resources/kmap-session" <<'SESSION'
+#!/bin/bash
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# A handler, not an ignore: kmap still gets Ctrl+C, and this script outlives it.
+trap : INT
+"$here/kmap"
+nohup osascript - "$(tty)" >/dev/null 2>&1 <<'CLOSE' &
+on run argv
+    tell application "Terminal"
+        repeat 20 times
+            delay 0.25
+            repeat with w in windows
+                if (count of tabs of w) is 1 and tty of tab 1 of w is item 1 of argv then
+                    if not busy of tab 1 of w then
+                        close w
+                        return
+                    end if
+                end if
+            end repeat
+        end repeat
+    end tell
+end run
+CLOSE
+SESSION
+chmod +x "$APP/Contents/Resources/kmap-session"
 
 # CFBundleIconFile only when the file exists; naming a missing one gets a console warning.
 if [ -f "$APP/Contents/Resources/kmap.icns" ]; then
