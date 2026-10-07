@@ -44,21 +44,27 @@ struct ZoomRungs {
         return to
     }
 
-    /// The scale label without its space, to fit a column six characters wide.
+    /// The scale label without its space, to fit a narrow column.
     static func shortScale(bits: Int) -> String? {
         scale(bits: bits)?.replacingOccurrences(of: " ", with: "")
     }
 
-    /// How far a rung is from the eye, as a translated label: unit and decimal mark both
-    /// change with the language. Only measured rungs are named; the rest are nil rather
-    /// than interpolated.
+    /// Roughly how far a rung is from the eye, as a translated label: unit and decimal
+    /// mark both change with the language. Approximate on purpose: a device's model and
+    /// its detail setting move it a step or so either way. 24 to 21 were measured on a
+    /// GPSMAP 67 (the scale a rung shows from), 19 was set beside them; 20, 18, 17 and 16
+    /// are the next steps of the device's scale bar, not yet measured.
     static func scale(bits: Int) -> String? {
         switch bits {
-        case 24: return t("300 m")
-        case 23: return t("600 m")
-        case 22: return t("1.2 km")
-        case 21: return t("3 km")
-        case 19: return t("5 km")
+        case 24: return t("≈300 m")
+        case 23: return t("≈600 m")
+        case 22: return t("≈1.2 km")
+        case 21: return t("≈3 km")
+        case 20: return t("≈4 km")
+        case 19: return t("≈5 km")
+        case 18: return t("≈8 km")
+        case 17: return t("≈12 km")
+        case 16: return t("≈20 km")
         default: return nil
         }
     }

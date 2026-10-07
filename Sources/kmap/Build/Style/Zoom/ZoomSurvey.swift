@@ -100,9 +100,8 @@ struct ZoomSurvey {
         return t("and stops at level %d", at) + scale
     }
 
-    /// How a rung reads in a list of them: its number, and its scale where one is known.
-    /// A rung with no known scale says its number alone; the mapping from bits to a scale
-    /// bar is irregular and is never interpolated.
+    /// How a rung reads in a list of them: its number, and its rough scale where one is
+    /// given. A rung with none says its number alone.
     func rungLabel(_ rung: Int) -> String {
         let at = clamp(rung)
         guard let scale = ZoomRungs.scale(bits: rungs.bits[at]) else {

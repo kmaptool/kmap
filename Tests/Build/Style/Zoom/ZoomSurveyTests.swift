@@ -66,4 +66,18 @@ final class ZoomSurveyTests: XCTestCase {
         XCTAssertTrue(survey.stopsAt(rung: 3).contains("3"))
         XCTAssertNotEqual(survey.startsAt(rung: 2), survey.stopsAt(rung: 2), "two sentences, not one")
     }
+
+    /// Every rung of every ladder kmap offers says roughly how far it is from the eye,
+    /// short enough for a column of the zoom grid: never a bare rung number beside the
+    /// scales, which read as one more distance.
+    func testEveryRungOfEveryLadderHasARoughScaleThatFitsItsColumn() {
+        for profile in LevelsProfile.all {
+            for bits in ZoomRungs(levels: profile.levels).bits {
+                let short = ZoomRungs.shortScale(bits: bits)
+                XCTAssertNotNil(short, "\(profile.id) rung \(bits)")
+                XCTAssertTrue(short?.hasPrefix("≈") ?? false, "\(profile.id) rung \(bits) reads as exact")
+                XCTAssertLessThanOrEqual(short?.count ?? 0, 6, "\(profile.id) rung \(bits)")
+            }
+        }
+    }
 }
