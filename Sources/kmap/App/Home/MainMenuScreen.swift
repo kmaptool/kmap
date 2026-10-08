@@ -111,7 +111,8 @@ final class MainMenuScreen: Screen {
         switch key.command {
         case .up, .char("k"): list.move(-1, count: items.count)
         case .down, .char("j"): list.move(1, count: items.count)
-        case .char("q"), .ctrl("c"), .esc: return .quit
+        // Not Esc: pressed again on the way back from a screen, it would close kmap.
+        case .char("q"), .ctrl("c"): return .quit
         case .enter:
             guard let item = items[safe: list.selected] else { return .none }
             return .push(item.open())

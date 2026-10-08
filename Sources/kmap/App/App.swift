@@ -81,7 +81,8 @@ final class App {
         switch route {
         case .none: break
         case .push(let screen): stack.append(screen)
-        case .pop: if stack.count > 1 { stack.removeLast() } else { running = false }
+        // The main menu stays: only q or ^C leaves kmap.
+        case .pop: if stack.count > 1 { stack.removeLast() }
         case .popToRoot: if stack.count > 1 { stack.removeSubrange(1...) }
         case .replace(let screen): if !stack.isEmpty { stack[stack.count - 1] = screen }
         case .quit: running = false
