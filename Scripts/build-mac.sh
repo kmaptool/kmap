@@ -84,8 +84,7 @@ trap : INT
 nohup osascript - "$(tty)" >/dev/null 2>&1 <<'CLOSE' &
 on run argv
     tell application "Terminal"
-        repeat 20 times
-            delay 0.25
+        repeat 50 times
             repeat with w in windows
                 if (count of tabs of w) is 1 and tty of tab 1 of w is item 1 of argv then
                     if not busy of tab 1 of w then
@@ -94,6 +93,7 @@ on run argv
                     end if
                 end if
             end repeat
+            delay 0.1
         end repeat
     end tell
 end run
