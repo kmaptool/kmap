@@ -324,4 +324,15 @@ final class ProfileStoreTests: XCTestCase {
         let kept = try JSONDecoder().decode(BuildChoices.self, from: Data(#"{"contourInterval": 25}"#.utf8))
         XCTAssertEqual(kept.contourInterval, 25)
     }
+
+    /// A new machine or a new profile takes Copernicus for elevation; a profile that has
+    /// saved its sources keeps them.
+    func testNewChoicesTakeCopernicusAndSavedOnesKeepTheirSources() throws {
+        XCTAssertEqual(BuildChoices().demSources, "copernicus1,copernicus3")
+        var settings = Settings()
+        SettingsStore.addFirstProfile(to: &settings)
+        XCTAssertEqual(settings.profiles.first?.choices.demSources, "copernicus1,copernicus3")
+        let saved = try JSONDecoder().decode(BuildChoices.self, from: Data(#"{"demSources": "view1,view3"}"#.utf8))
+        XCTAssertEqual(saved.demSources, "view1,view3")
+    }
 }

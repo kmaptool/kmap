@@ -10,7 +10,7 @@ struct BuildChoices: Codable, Equatable {
     var contourInterval: Int = 10
     var demLayer: Bool = true
     var fixSummits: Bool = true
-    var demSources: String = "view1,view3"
+    var demSources: String = BuildRecipe.recommendedDEMSources
     var levelsID: String = LevelsProfile.smooth.id
     var labelLanguageID: String = LabelLanguage.local.id
     /// 0 leaves the choice open, so the region's own suggestion decides.

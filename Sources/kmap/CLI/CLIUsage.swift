@@ -51,9 +51,9 @@ extension CLI {
           --summits, --no-summits       lifts the DEM at each summit to its OSM height. On with
                                         --dem unless switched off
           --sources=<list>              elevation sources, tried in order — each fills only what
-                                        the ones before it lack. Default view1,view3;
-                                        copernicus1,copernicus3 is recommended (global, no
-                                        login); fabdem1 is the same with forests and
+                                        the ones before it lack. Default
+                                        copernicus1,copernicus3 (global, no login); view1,view3
+                                        is Viewfinder; fabdem1 is Copernicus with forests and
                                         buildings removed, 60S to 80N, non-commercial use
                                         only; gedtm1 is OpenGeoHub's bare-earth model,
                                         65S to 85N; also srtm1, alos1
