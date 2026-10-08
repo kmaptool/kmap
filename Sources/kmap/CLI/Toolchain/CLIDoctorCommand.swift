@@ -26,6 +26,8 @@ extension CLI {
         CLILog.line("output  \(Paths.display(settings.settings.outputURL))")
         CLILog.line("work    \(Paths.display(settings.settings.workURL))")
         CLILog.line("cache   \(Paths.display(Paths.pbfCache))")
+        CLILog.line("")
+        CLILog.line("vector code  \(VectorCode.name)")
         CLIOutput.result([
             "ready": .bool(allReady),
             "tools": .array(
@@ -43,7 +45,8 @@ extension CLI {
                 "output": .string(settings.settings.outputURL.path),
                 "work": .string(settings.settings.workURL.path),
                 "cache": .string(Paths.pbfCache.path)
-            ]
+            ],
+            "vectorCode": .string(VectorCode.name)
         ])
         return allReady ? 0 : 1
     }
