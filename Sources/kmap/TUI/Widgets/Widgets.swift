@@ -162,6 +162,14 @@ enum Widgets {
         min(max(0, asked), max(0, lines - height))
     }
 
+    /// A scroll offset carried over lines that arrived since `newest` was the last one: a
+    /// pane scrolled back keeps the lines being read in place, and only one at the bottom
+    /// follows the log. By sequence number, since a full ring keeps its length.
+    static func logScroll(_ offset: Int, holding lines: [LogEvent], after newest: Int?) -> Int {
+        guard offset > 0, let newest else { return offset }
+        return offset + lines.reversed().prefix { $0.seq > newest }.count
+    }
+
     /// The mark and colour of a log line: what kind of thing it is first, how much it
     /// matters where the kind says nothing.
     private static func logMark(_ line: LogEvent, theme: Theme) -> (String, Style) {

@@ -131,7 +131,7 @@ final class RectTests: XCTestCase {
     }
 }
 
-/// The log under a build: how far back it scrolls.
+/// The log under a build: how far back it scrolls, and what it holds while scrolled back.
 final class LogPaneTests: XCTestCase {
     /// One row of the surface as text, blanks either side dropped.
     private func row(_ y: Int, of surface: Surface) -> String {
@@ -144,6 +144,41 @@ final class LogPaneTests: XCTestCase {
         XCTAssertEqual(Widgets.logScroll(30, lines: 100, height: 20), 30)
         XCTAssertEqual(Widgets.logScroll(-4, lines: 100, height: 20), 0)
         XCTAssertEqual(Widgets.logScroll(9, lines: 10, height: 20), 0, "a log shorter than its pane does not move")
+    }
+
+    private func lines(_ seqs: ClosedRange<Int>) -> [LogEvent] {
+        seqs.map { LogEvent(text: "line \($0)", seq: $0) }
+    }
+
+    private func rows(_ lines: [LogEvent], offset: Int) -> [String] {
+        let theme = Theme.strict
+        let surface = Surface()
+        surface.resize(40, 10)
+        surface.clear(theme.base)
+        Widgets.logPane(surface, rect: Rect(x: 0, y: 0, w: 40, h: 10), lines: lines, theme: theme, scrollOffset: offset)
+        return (0..<10).map { row($0, of: surface) }
+    }
+
+    /// Scrolled back, the lines being read stay where they are while new ones arrive.
+    func testAPaneScrolledBackHoldsItsLinesAsNewOnesArrive() {
+        let before = rows(lines(1...30), offset: 5)
+        let offset = Widgets.logScroll(5, holding: lines(1...33), after: 30)
+        XCTAssertEqual(offset, 8)
+        XCTAssertEqual(rows(lines(1...33), offset: offset), before)
+        XCTAssertEqual(before.first, "line 16")
+    }
+
+    func testAPaneAtTheBottomFollowsTheLog() {
+        XCTAssertEqual(Widgets.logScroll(0, holding: lines(1...33), after: 30), 0)
+    }
+
+    /// A full ring keeps its length, so what arrived is told by sequence number.
+    func testLinesArrivingIntoAFullRingStillHoldThePane() {
+        XCTAssertEqual(Widgets.logScroll(5, holding: lines(4...33), after: 30), 8)
+    }
+
+    func testTheFirstDrawingMovesNothing() {
+        XCTAssertEqual(Widgets.logScroll(5, holding: lines(1...30), after: nil), 5)
     }
 
     /// Scrolled far past the start, the pane shows the first lines and stays full: it

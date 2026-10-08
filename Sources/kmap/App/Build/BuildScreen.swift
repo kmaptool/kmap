@@ -30,6 +30,8 @@ final class BuildScreen: Screen {
     private let pipeline: BuildPipeline
     private var started = false
     private var logScroll = 0
+    /// The newest line the log pane had at its last drawing.
+    private var logNewest: Int?
     /// Whether the pane shows what the tools printed as well as what kmap says.
     private var showingDetail = false
 
@@ -257,6 +259,8 @@ final class BuildScreen: Screen {
         guard y < rect.maxY - 1 else { return }
         let logRect = Rect(x: rect.x, y: y + 1, w: rect.w, h: max(0, rect.maxY - y - 1))
         let lines = pipeline.log.snapshot().filter { showingDetail || $0.severity > .debug }
+        logScroll = Widgets.logScroll(logScroll, holding: lines, after: logNewest)
+        logNewest = lines.last?.seq
         // Held where the first line meets the top, so the label and the next key down
         // start from where the pane really is.
         logScroll = Widgets.logScroll(logScroll, lines: lines.count, height: logRect.h)
