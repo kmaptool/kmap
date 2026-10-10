@@ -26,7 +26,10 @@ struct ZoomSurvey {
     static func record(_ directory: URL) {
         var all: [String: [String: Spread]] = [:]
         for levels in LevelsProfile.all { all[levels.id] = ZoomSurvey(scanning: directory, levels: levels).spreads }
-        guard let data = try? JSONEncoder().encode(all) else { return }
+        let encoder = JSONEncoder()
+        // Sorted, so the file's bytes depend only on what it records.
+        encoder.outputFormatting = .sortedKeys
+        guard let data = try? encoder.encode(all) else { return }
         try? FileTools.write(data, to: directory.appendingPathComponent(measuredFile))
     }
 

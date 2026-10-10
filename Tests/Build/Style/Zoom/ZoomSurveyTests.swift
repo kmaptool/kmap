@@ -34,6 +34,19 @@ final class ZoomSurveyTests: XCTestCase {
         return (ZoomSurvey(styleAt: directory, levels: .smooth), family, far)
     }
 
+    /// The recorded spreads are written with sorted keys, so the same rules give the same
+    /// bytes in every run.
+    func testTheRecordIsWrittenWithSortedKeys() throws {
+        _ = try surveyed()
+        ZoomSurvey.record(directory)
+        let data = try Data(contentsOf: directory.appendingPathComponent(ZoomSurvey.measuredFile))
+        let spreads = try JSONDecoder().decode([String: [String: ZoomSurvey.Spread]].self, from: data)
+        XCTAssertFalse(spreads.values.allSatisfy(\.isEmpty), "the path family was recorded")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        XCTAssertEqual(data, try encoder.encode(spreads))
+    }
+
     func testAStyleWithoutRulesSurveysAsEmpty() {
         let survey = ZoomSurvey(styleAt: directory, levels: .smooth)
         XCTAssertTrue(survey.isEmpty)
