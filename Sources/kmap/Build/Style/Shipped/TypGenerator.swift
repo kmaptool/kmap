@@ -11,20 +11,24 @@ enum TypGenerator {
     /// The narrowest cased stroke: a pixel of border either side, one of ink between.
     static let narrowestCased = 3
 
-    /// `points` is a block of ready `[_point]` sections appended as it is - icons are
-    /// bitmaps made once from their SVGs, not something to regenerate at build time.
+    /// `points` is a block of ready `[_point]` sections, appended with their pictures as
+    /// they are: icons are bitmaps made once from their SVGs.
     ///
     /// `graphics` is a block of ready `[_polygon]`/`[_line]` sections, a style's own
-    /// pattern drawings taken whole: a section whose code the palette carries REPLACES
-    /// the flat colour that would be generated, a line section for a code the palette
-    /// does not carry is appended, and a polygon for an unknown code is dropped - a
-    /// polygon needs a draw order, and the palette is where draw orders live.
+    /// pattern drawings: a section whose code the palette carries REPLACES the flat colour
+    /// that would be generated, a line section for a code the palette does not carry is
+    /// appended, and a polygon for an unknown code is dropped - a polygon needs a draw
+    /// order, and the palette is where draw orders live.
+    ///
+    /// `names` gives every section its English and Russian label by kind and code; a
+    /// borrowed section's own labels give way to them (see `named`).
     static func text(
         from palette: StylePalette,
         fid: Int,
         productCode: Int = 1,
         points: String = "",
-        graphics: String = ""
+        graphics: String = "",
+        names: [String: (english: String, russian: String)] = TypeNames.all
     ) -> String {
         let overrides = parseGraphics(graphics)
         var out: [String] = []
@@ -48,7 +52,7 @@ enum TypGenerator {
 
         for poly in palette.polygons {
             if let section = overrides.polygons[poly.code] {
-                out.append(named(section, poly.name))
+                out.append(named(section, .polygon, poly.code, poly.name, names))
                 out.append("")
                 continue
             }
@@ -58,7 +62,7 @@ enum TypGenerator {
             out.append("Xpm=\"0 0 2 0\"")
             out.append("\"1 c \(poly.day)\"")
             out.append("\"2 c \(night(of: poly.night))\"")
-            out.append("String=0x00,\(poly.name)")
+            out += labels(.polygon, poly.code, poly.name, names)
             out.append("FontStyle=NoLabel")
             out.append("[end]")
             out.append("")
@@ -66,7 +70,7 @@ enum TypGenerator {
 
         for line in palette.lines {
             if let section = overrides.lines[line.code] {
-                out.append(named(section, line.name))
+                out.append(named(section, .line, line.code, line.name, names))
                 out.append("")
                 continue
             }
@@ -93,7 +97,7 @@ enum TypGenerator {
                 out.append("\"2 c \(night(of: ink))\"")
                 out.append("LineWidth=\(line.width)")
             }
-            out.append("String=0x00,\(line.name)")
+            out += labels(.line, line.code, line.name, names)
             out.append("[end]")
             out.append("")
         }
@@ -101,32 +105,80 @@ enum TypGenerator {
         let lineCodes = Set(palette.lines.map(\.code))
         for (code, section) in overrides.lines.sorted(by: { $0.key < $1.key })
         where !lineCodes.contains(code) {
-            out.append(section)
+            out.append(named(section, .line, code, nil, names))
             out.append("")
         }
 
         if !points.isEmpty {
-            out.append(points)
+            out.append(namedPoints(points, names))
         }
         return out.joined(separator: "\n")
     }
 
-    /// A borrowed section carries its own style's label, in its own language. The table's
-    /// name goes in first where there is none of kmap's own, so a device does not offer a
-    /// German word for a Russian map.
-    private static func named(_ section: String, _ name: String) -> String {
+    /// The names of a generated section: the table's, else the palette's in English.
+    private static func labels(
+        _ kind: MapElementKind,
+        _ code: Int,
+        _ fallback: String,
+        _ names: [String: (english: String, russian: String)]
+    ) -> [String] {
+        let named = names[TypeNames.key(kind, code)]
+        var out = ["String=0x00,\(named?.english ?? fallback)"]
+        if let russian = named?.russian { out.append("String=0x19,\(russian)") }
+        return out
+    }
+
+    /// A borrowed section takes the table's English and Russian in place of its own labels,
+    /// which name the meaning it had in its own style, not the one its code has here. A
+    /// code the table lacks keeps its labels and gains English where it has none. Inserted
+    /// after the type, English first: the label a device reads before other languages.
+    private static func named(
+        _ section: String,
+        _ kind: MapElementKind,
+        _ code: Int,
+        _ fallback: String?,
+        _ names: [String: (english: String, russian: String)]
+    ) -> String {
+        let named = names[TypeNames.key(kind, code)]
         var lines = TextLines.keepingTrailingBlank(section)
-        let hasOwn = lines.contains { line in
-            guard let (key, value) = TypSource.entry(of: line), key.lowercased().hasPrefix("string") else {
-                return false
-            }
-            return TypSource.label(in: value).language == 0
+        func isLabel(_ line: String) -> Bool {
+            TypSource.entry(of: line)?.key.lowercased().hasPrefix("string") ?? false
         }
-        guard !hasOwn else { return section }
-        // First, so it is the label a device reads before their own language entries.
-        guard let type = lines.firstIndex(where: { TypSource.sets("Type", $0) }) else { return section }
-        lines.insert("String=0x00,\(name)", at: type + 1)
+        if named != nil { lines.removeAll(where: isLabel) }
+        let languages = Set(
+            lines.compactMap { line -> Int? in
+                guard let (key, value) = TypSource.entry(of: line), key.lowercased().hasPrefix("string") else {
+                    return nil
+                }
+                return TypSource.label(in: value).language
+            }
+        )
+        guard var at = lines.firstIndex(where: { TypSource.sets("Type", $0) }) else { return section }
+        if at + 1 < lines.count, TypSource.sets("SubType", lines[at + 1]) { at += 1 }
+        var added: [String] = []
+        if !languages.contains(0), let english = named?.english ?? fallback { added.append("String=0x00,\(english)") }
+        if !languages.contains(0x19), let russian = named?.russian { added.append("String=0x19,\(russian)") }
+        lines.insert(contentsOf: added, at: at + 1)
         return lines.joined(separator: "\n")
+    }
+
+    /// Each `[_point]` of a block of icons, named as `named` does; the rest left as it is.
+    private static func namedPoints(_ block: String, _ names: [String: (english: String, russian: String)]) -> String {
+        var sections: [[String]] = [[]]
+        for line in block.components(separatedBy: "\n") {
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("[_") { sections.append([]) }
+            sections[sections.count - 1].append(line)
+        }
+        return sections.map { lines -> String in
+            let text = lines.joined(separator: "\n")
+            guard lines.first?.trimmingCharacters(in: .whitespaces).lowercased() == "[_point]",
+                let section = TypSource.parse(text).sections.first
+            else { return text }
+            let code = section.code
+            return named(text, .point, code, nil, names)
+        }
+        .filter { !$0.isEmpty }
+        .joined(separator: "\n")
     }
 
     /// Splits a graphics block into whole sections, keyed by kind and type code, through

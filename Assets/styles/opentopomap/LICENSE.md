@@ -1,9 +1,16 @@
 # OpenTopoMap style — licence
 
-The drawings in `points.txt` and `graphics.txt` are OpenTopoMap's own, taken verbatim from
-`garmin/style/typ/opentopomap.txt` in <https://github.com/der-stefan/OpenTopoMap>. The
-colours in `palette.txt` were read from the same file. See `PROVENANCE.md` for exactly what
-was taken and what was changed.
+The drawings `graphics.txt` copies from their TYP are OpenTopoMap's own,
+copied from `garmin/style/typ/opentopomap.txt` in <https://github.com/der-stefan/OpenTopoMap>
+with their pixels and day colours as they are; kmap adds night colours and moves some onto
+another type number of its own, and adds clear sections for what their map does not draw.
+Their icons in `points.txt` are copied the same way, some onto another number of kmap's,
+where they take kmap's names in place of their own. The colours in `palette.txt` were read
+from the same file and from `typ/contours.txt`. The other icons in `points.txt`,
+for meanings their file draws nothing for, are openstreetmap-carto's symbols, CC0 (see
+`../osm-carto/LICENSE.md`), and each says so in its own comment; where neither draws a
+meaning, the icon is the plain anchor square of kmap's own reference TYP. See `PROVENANCE.md` for
+exactly what was taken and what was changed.
 
     https://github.com/der-stefan/OpenTopoMap
     CC-BY-SA — © OpenTopoMap, https://opentopomap.org

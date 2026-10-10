@@ -1,0 +1,270 @@
+# Names of the Garmin types the shipped styles draw, one row per kmap code.
+#
+# Every shipped TYP takes its names from here, English (String=0x00) and Russian
+# (String=0x19), so a device shows them in its own language. The codes are kmap's;
+# the meaning of each is the one the owner's topoactive TYP gives it. Where a row's
+# English is not topoactive's, it is the name the styles' palettes gave the code.
+#
+#   <kind> <code>|<English>|<Russian>      kind: polygon, line or point
+
+# From the owner's topoactive TYP: the same code and meaning, both names.
+line 0x7|Service Road|Подъездная дорога
+line 0xa|Track|Грунтовая дорога
+line 0x11|Cycleway|Велодорожка
+line 0x12|Plateau rim|Край плато
+line 0x14|Railway|Железная дорога
+line 0x16|Path|Тропа
+line 0x17|Barrier|Ограждение
+line 0x18|Stream|Ручей
+line 0x19|Protected area|Охраняемая территория
+line 0x1a|Ferry|Паром
+line 0x1b|Ferry|Паром
+line 0x1c|Boundary|Граница
+line 0x1d|Boundary|Граница
+line 0x1e|Boundary|Граница
+line 0x1f|River|Река
+line 0x20|Contour|Горизонталь
+line 0x21|Contour|Горизонталь
+line 0x22|Contour|Горизонталь
+line 0x23|Cutline|Просека
+line 0x24|Valley|Долина
+line 0x25|Aerial way|Канатная дорога
+line 0x26|Intermittent Stream|Пересыхающий ручей
+line 0x27|Runway|Взлётно-посадочная полоса
+line 0x28|Pipeline|Трубопровод
+line 0x29|Power Line|ЛЭП
+line 0x2b|Cliff|Обрыв
+line 0x2d|Military area|Военная зона
+line 0x30|Track|Грунтовая дорога
+line 0x33|Canal|Канал
+line 0x10801|Roundabout|Круговое движение
+line 0x10802|Roundabout|Круговое движение
+line 0x10803|Roundabout|Круговое движение
+line 0x10804|Roundabout|Круговое движение
+point 0x2000|Junction|Съезд
+point 0x230f|Services|Зона дорожного сервиса
+point 0x2a00|Restaurant|Ресторан
+point 0x2a01|Restaurant (American)|Ресторан (американский)
+point 0x2a02|Restaurant (Asian)|Ресторан (азиатский)
+point 0x2a03|Restaurant (Barbecue)|Ресторан (барбекю)
+point 0x2a04|Restaurant (Chinese)|Ресторан (китайский)
+point 0x2a05|Restaurant (Deli)|Ресторан (деликатесы)
+point 0x2a06|Restaurant (International)|Ресторан (международный)
+point 0x2a07|Fast food|Фастфуд
+point 0x2a08|Restaurant (Italian)|Ресторан (итальянский)
+point 0x2a09|Restaurant (Mexican)|Ресторан (мексиканский)
+point 0x2a0a|Restaurant (Pizza)|Пиццерия
+point 0x2a0b|Restaurant (Seafood)|Ресторан (морепродукты)
+point 0x2a0c|Restaurant|Ресторан
+point 0x2a0d|Restaurant (Vegetarian)|Ресторан (вегетарианский)
+point 0x2a0e|Cafe|Кафе
+point 0x2a0f|Restaurant (French)|Ресторан (французский)
+point 0x2a10|Restaurant (German)|Ресторан (немецкий)
+point 0x2a11|Restaurant (British)|Ресторан (британский)
+point 0x2a12|Restaurant|Ресторан
+point 0x2a13|Food court|Фуд-корт
+point 0x2b01|Hotel|Отель
+point 0x2b02|Guest house / alpine hut|Гостевой дом / горная хижина
+point 0x2b03|Campsite|Кемпинг
+point 0x2b05|Lean-to|Навес
+point 0x2b06|Shelter|Укрытие
+point 0x2b07|Wilderness hut|Изба
+point 0x2c01|Theme park|Парк развлечений
+point 0x2c02|Museum|Музей
+point 0x2c03|Library|Библиотека
+point 0x2c04|Viewpoint|Смотровая площадка
+point 0x2c05|School|Школа
+point 0x2c06|Park|Парк
+point 0x2c07|Zoo|Зоопарк
+point 0x2c08|Sports ground|Спортивная площадка
+point 0x2c0a|Wine cellar|Винный погреб
+point 0x2c0b|Place of worship|Культовое сооружение
+point 0x2c0c|Volcano|Вулкан
+point 0x2c0d|Tourist site|Достопримечательность
+point 0x2c0e|Rock climbing|Скалолазание
+point 0x2c0f|Playground|Детская площадка
+point 0x2c12|Memorial|Памятник
+point 0x2d01|Theatre|Театр
+point 0x2d02|Bar / pub|Бар / паб
+point 0x2d03|Cinema|Кинотеатр
+point 0x2d04|Casino|Казино
+point 0x2d05|Golf course|Поле для гольфа
+point 0x2d06|Skiing|Горнолыжная зона
+point 0x2d07|Bowling|Боулинг
+point 0x2d08|Ice rink|Каток
+point 0x2d09|Swimming|Бассейн
+point 0x2d0a|Sports centre|Спортивный комплекс
+point 0x2e01|Department store|Универмаг
+point 0x2e02|Supermarket|Супермаркет
+point 0x2e04|Shopping mall|Торговый центр
+point 0x2e05|Pharmacy|Аптека
+point 0x2e06|Fuel with shop|АЗС с магазином
+point 0x2e07|Clothes shop|Магазин одежды
+point 0x2e08|Outdoor / garden shop|Магазин: сад и туризм
+point 0x2e09|Hardware shop|Хозяйственный магазин
+point 0x2e0b|Computer shop|Компьютерный магазин
+point 0x2e0c|Shop|Магазин
+point 0x2f01|Fuel|АЗС
+point 0x2f02|Car rental|Прокат автомобилей
+point 0x2f03|Car repair|Автосервис
+point 0x2f04|Airport|Аэропорт
+point 0x2f05|Post office|Почта
+point 0x2f06|Bank / ATM|Банк / банкомат
+point 0x2f07|Car dealer|Автосалон
+point 0x2f08|Station|Вокзал / станция
+point 0x2f09|Marina|Пристань
+point 0x2f0b|Parking|Парковка
+point 0x2f0c|WC|Туалет
+point 0x2f0e|Car wash|Автомойка
+point 0x2f10|Hairdresser|Парикмахерская
+point 0x2f12|Wi-Fi|Вай-фай
+point 0x2f13|Bicycle shop|Веломагазин
+point 0x2f14|Nursing home|Дом престарелых
+point 0x2f15|Post box|Почтовый ящик
+point 0x2f16|Emergency phone|Экстренный телефон
+point 0x2f17|Bus stop|Автобусная остановка
+point 0x2f18|Telephone|Телефон
+point 0x2f19|Taxi|Такси
+point 0x2f1a|Charging station|Зарядная станция
+point 0x2f1b|Lift station|Станция канатной дороги
+point 0x3001|Police|Полиция
+point 0x3002|Hospital|Больница
+point 0x3003|Town hall / embassy|Ратуша / посольство
+point 0x3004|Courthouse|Суд
+point 0x3005|Community centre|Дом культуры
+point 0x3006|Border crossing|Пограничный переход
+point 0x3008|Fire station|Пожарная часть
+point 0x3200|Barrier|Препятствие
+point 0x3201|Lift gate|Шлагбаум
+point 0x3202|Bollard|Столбик, блок
+point 0x4a00|Picnic site|Место для пикника
+point 0x4c00|Information|Информация
+point 0x5000|Drinking water|Питьевая вода
+point 0x5904|Helipad|Вертолётная площадка
+point 0x6403|Cemetery|Кладбище
+point 0x640b|Military area|Военная территория
+point 0x6411|Tower / mast|Башня / мачта
+point 0x6414|Well|Колодец
+point 0x6415|Lighthouse|Маяк
+point 0x6503|Bay|Залив
+point 0x6505|Canal|Канал
+point 0x6508|Waterfall|Водопад
+point 0x6509|Geyser|Гейзер
+point 0x650a|Glacier|Ледник
+point 0x650c|Island|Остров
+point 0x650d|Lake|Озеро
+point 0x650f|Reservoir|Водохранилище
+point 0x6511|Spring|Родник
+point 0x6512|Stream|Ручей
+point 0x6513|Wetland|Болото
+point 0x6514|Ford|Брод
+point 0x6515|Spring (seasonal)|Родник (сезонный)
+point 0x6516|Spring (intermittent)|Родник (пересыхающий)
+point 0x6517|Spring (non-potable)|Родник (непитьевой)
+point 0x6603|Water|Водоём
+point 0x6604|Beach|Пляж
+point 0x6605|Bench|Скамейка
+point 0x6606|Cape|Мыс
+point 0x6607|Cliff|Обрыв
+point 0x660b|Repaired link|Перемычка (достроена)
+point 0x6612|Nature reserve|Заповедник
+point 0x6613|Mountain pass|Перевал
+point 0x6614|Rock|Скала
+point 0x6616|Peak|Вершина
+point 0x6618|Forest|Лес
+point 0x6619|Cave|Пещера
+point 0x661a|Facility|Объект
+polygon 0x2|Suburb|Район города
+polygon 0x3|Village|Населённый пункт
+polygon 0x4|Military|Военная территория
+polygon 0x5|Parking|Парковка
+polygon 0x6|Parking|Парковка
+polygon 0x7|Airport|Аэропорт
+polygon 0x8|Shopping|Магазины и кафе
+polygon 0x9|Water Park|Аквапарк
+polygon 0xa|School|Школа
+polygon 0xb|Hospital|Больница
+polygon 0xc|Industrial|Промзона
+polygon 0xe|Runway|Взлётно-посадочная полоса
+polygon 0xf|Commercial|Деловой район
+polygon 0x10|Residential|Жилая зона
+polygon 0x11|Danger Area|Опасная зона
+polygon 0x12|Retail|Торговая зона
+polygon 0x13|Building|Здание
+polygon 0x15|Village Green|Сельский сквер
+polygon 0x16|Nature Reserve|Заповедник
+polygon 0x17|Park|Парк
+polygon 0x18|Golf Course|Поле для гольфа
+polygon 0x19|Sports Ground|Спортивная площадка
+polygon 0x1a|Cemetery|Кладбище
+polygon 0x1c|Grassland|Луг
+polygon 0x1d|Common|Общественная территория
+polygon 0x1e|Heath|Пустошь
+polygon 0x1f|Mountain meadow|Горный луг
+polygon 0x20|Garden|Сад
+polygon 0x21|Tourism|Туристический объект
+polygon 0x22|Historic|Историческое место
+polygon 0x23|Amenity|Общественный объект
+polygon 0x24|Structure|Сооружение
+polygon 0x25|Pedestrian Area|Пешеходная зона
+polygon 0x26|Farm|Сельхозугодья
+polygon 0x27|Land|Суша
+polygon 0x32|Sea|Море
+polygon 0x3b|Water|Вода
+polygon 0x3c|Water|Вода
+polygon 0x3d|Bay|Залив
+polygon 0x3f|Reservoir|Водохранилище
+polygon 0x41|Water|Вода
+polygon 0x46|River|Река
+polygon 0x47|Waterfall|Водопад
+polygon 0x48|Canal|Канал
+polygon 0x4b|Background|Фон
+polygon 0x4c|Dock|Док
+polygon 0x4d|Glacier|Ледник
+polygon 0x4e|Orchard|Сад (плодовый)
+polygon 0x4f|Scrub|Кустарник
+polygon 0x50|Forest|Лес
+polygon 0x51|Wetland|Болото
+polygon 0x52|Bare Ground|Открытый грунт
+polygon 0x53|Sand|Песок
+polygon 0x54|Scree|Осыпь
+polygon 0x55|Grassland|Луг, яйла
+polygon 0x56|Bare rock|Скалы
+polygon 0x57|Coniferous forest|Хвойный лес
+polygon 0x58|Broadleaved forest|Лиственный лес
+polygon 0x59|Woodland|Лес
+polygon 0x5b|Scrub|Кустарник
+
+# Russian: topoactive's word for its roundabout types (0x10801-0x10804).
+line 0xc|Roundabout|Круговое движение
+
+# Russian: topoactive's word for a path (its 0x16).
+line 0xe|Path|Тропа
+
+# Not in topoactive. Russian from the owner's travel-map-russia TYP, where the
+# meaning is the same.
+line 0x1|Motorway|Автомагистраль
+line 0x2|Trunk|Федеральная трасса (автомагистраль)
+line 0x3|Primary|Федеральная трасса
+line 0x4|Secondary|Региональная дорога
+line 0x5|Tertiary|Региональная дорога
+line 0x6|Minor road|Жилая улица
+line 0x8|Primary link|Федеральная трасса
+line 0x9|Motorway link|Федеральная трасса (автомагистраль)
+line 0xb|Motorway exit|Федеральная трасса (автомагистраль)
+line 0xf|Steps|Ступеньки
+line 0x10|Living street|Улица в жилой зоне
+line 0x31|Tree row|Ряд деревьев (аллея)
+line 0x35|Ditch|Канава/ров
+polygon 0xd|Quarry|Карьер
+polygon 0x5a|Allotments|Загородный дом с садом
+
+# Not in either TYP. Russian from kmap's own labels (Assets/labels-ru.txt).
+line 0x32|City wall|Городская стена
+point 0x6608|Tower|Башня
+
+# Not in any source. Russian chosen by the owner.
+line 0x34|Drain|Сток
+polygon 0x1b|Vineyard|Виноградник
+polygon 0x28|Salt pond|Солончак
+polygon 0x29|Greenhouses|Теплицы

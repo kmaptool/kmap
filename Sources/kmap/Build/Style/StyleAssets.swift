@@ -262,139 +262,1406 @@ how the map looks on the device.
 #####"""
 # The look of openstreetmap.org, on the type codes kmap's rules emit.
 #
-# Colours are openstreetmap-carto's own, read from its files (CC0). The codes
-# are kmap's, read out of the materialized rule set. One line per code:
+# Every colour and width is openstreetmap-carto's own (CC0), commit
+# 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2, read at z16; the note on each line says
+# where. The codes are kmap's; each is drawn as carto draws the OSM features kmap's
+# rules put on it, and named as Assets/styles/type-names.txt names it. PROVENANCE.md
+# has the rules.
 #
-#   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
+#   poly <code> <level> <day> <name>        level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
-# A missing night colour means the day one is used at night too: carto has no
-# night design, and inventing one here would be kmap's guess wearing carto's
-# name. Use the theme setting to pack day only.
+# A translucent colour is composited over carto's land colour #f2efe9. Night colours
+# are derived by kmap.
+#
+# Widths are not the original's: a line takes the whole width kmap's topoactive gives
+# the same code, casing included, and a line topoactive leaves to the device has no row
+# here or in graphics.txt, so the device draws it at its own width. The original's
+# width in a note is for the record.
+#
+# graphics.txt draws the dashes, line patterns and fill patterns, and clear sections
+# for what carto does not draw. Its sections replace the flat colours here,
+# which stay as a fallback.
 
 name    OpenStreetMap
-summary the look of openstreetmap.org — carto's own colours
+summary the look of openstreetmap.org, in carto's own colours
 
 # --- polygons, bottom of the stack upward ------------------------------------
-# The device's own background, on a level below everything: a fenix
-# draws it where the land polygon has not arrived yet, and shows black
-# without it. The ground colour the style paints land with.
-poly 0x4b 1 #f2efe9  Background
-poly 0x27 3 #f2efe9  Land
-poly 0x1c 5 #eef0d5  Farmland
-poly 0x29 5 #eef0d5  Greenhouses
-poly 0x26 5 #eef0d5  Farm
-poly 0x4e 5 #aedfa3  Orchard
-poly 0x1b 5 #aedfa3  Vineyard
-poly 0x5a 5 #c9e1bf  Allotments
-poly 0x1f 5 #cdebb0  Fell  # filled, not theirs
-poly 0x55 5 #cdebb0  Grassland
-poly 0x15 5 #cdebb0  Village green
-poly 0x1d 5 #cdebb0  Common
-poly 0x4f 5 #c8d7ab  Scrub
-poly 0x5b 5 #c8d7ab  Scrub
-poly 0x1e 5 #d6d99f  Heath
-poly 0x50 5 #add19e  Forest
-poly 0x57 5 #add19e  Coniferous forest
-poly 0x58 5 #add19e  Broadleaved forest
-poly 0x59 5 #add19e  Wood
-poly 0x53 5 #fff1ba  Beach
-poly 0x54 5 #eee5dc  Scree
-poly 0x56 5 #eee5dc  Bare rock
-poly 0x52 5 #d6d99f  Tundra
-poly 0x4d 5 #ddecec  Glacier
-poly 0x02 6 #dddddd  Suburb
-poly 0x03 6 #dddddd  Village
-poly 0x10 6 #e0dfdf  Residential
-poly 0x0f 6 #f2dad9  Commercial
-poly 0x0c 6 #c7c7b4  Construction
-poly 0x0d 6 #c5c3c3  Quarry
-poly 0x07 6 #e9e7e2  Airport ground
-poly 0x0e 6 #bbbbc8  Runway
-poly 0x05 6 #eeeeee  Parking
-poly 0x06 6 #eeeeee  Covered parking
-poly 0x1a 6 #aacbaf  Cemetery
-# The sea over the fills and what grows: a fill drawn across the shoreline in
-# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
-poly 0x32 7 #aad3df  Sea
-poly 0x25 8 #dddde8  Square
-poly 0x08 6 #ffd6d1  Food and drink
-poly 0x0a 6 #ffffe5  Kindergarten
-poly 0x0b 6 #ffffe5  Hospital
-poly 0x04 6 #f2efe9  Prison
-poly 0x12 6 #e9e7e2  Services
-poly 0x21 6 #f2efe9  Tourism
-poly 0x22 6 #f2efe9  Historic
-poly 0x23 6 #f2efe9  Amenity
-poly 0x24 8 #f2efe9  Man-made
-poly 0x17 8 #c8facc  Park
-poly 0x20 8 #c8facc  Garden
-poly 0x18 8 #b5e3b5  Golf course
-poly 0x19 8 #ddecec  Ice rink
-poly 0x09 8 #c8facc  Water park
-poly 0x3c 9 #aad3df  Water
-poly 0x41 9 #aad3df  Small water
-poly 0x46 9 #aad3df  Riverbank
-poly 0x48 9 #aad3df  Canal
-poly 0x3d 9 #aad3df  Bay
-poly 0x3b 9 #aad3df  Waterway area
-poly 0x28 9 #aad3df  Salt pond
-poly 0x3f 9 #aad3df  Basin
-poly 0x4c 9 #aad3df  Dock
-poly 0x47 9 #aad3df  Waterfall
-poly 0x51 10 #cdebb0  Marsh
-poly 0x16 4 #c8facc  Nature reserve
-poly 0x11 10 #ff5555  Military
-poly 0x13 11 #d9d0c9  Building
+# The device's own background, on a level below everything: a fenix draws it where
+# the land polygon has not arrived yet, and shows black without it.
+poly 0x4b 1 #f2efe9  Background  # @land-color style.mss:6, the Map background style.mss:2
+poly 0x27 3 #f2efe9  Land  # @land-color style.mss:6
+poly 0x16 4 #f2efe9  Nature Reserve  # not drawn by carto: protected areas are outlined only (admin.mss:495-551); land
+poly 0x1c 5 #eef0d5  Grassland  # kmap puts landuse=farmland here (and greenfield, which carto does not draw): @farmland landcover.mss:24, landuse_farmland landcover.mss:340-343
+poly 0x29 5 #eef0d5  Greenhouses  # @farmland landcover.mss:24, landuse_greenhouse_horticulture landcover.mss:340-343
+poly 0x26 5 #f5dcba  Farm  # kmap puts landuse=farmyard here (and farm, which carto does not draw): @farmyard landcover.mss:26, landuse_farmyard landcover.mss:330-338
+poly 0x4e 5 #aedfa3  Orchard  # @orchard landcover.mss:9,140-142; pattern in graphics.txt
+poly 0x1b 5 #aedfa3  Vineyard  # @orchard landcover.mss:9,126-128; pattern in graphics.txt
+poly 0x5a 5 #c9e1bf  Allotments  # @allotments landcover.mss:8,303-305; pattern in graphics.txt
+poly 0x1f 5 #f2efe9  Mountain meadow  # not drawn by carto: no layer selects natural=fell (project.mml); land
+poly 0x55 5 #cdebb0  Grassland  # @grass landcover.mss:3,353-357
+poly 0x15 5 #cdebb0  Village Green  # @grass landcover.mss:3, landuse_village_green landcover.mss:356-357
+poly 0x1d 5 #f2efe9  Common  # not drawn by carto: leisure=common is in no layer's list (project.mml landcover); land
+poly 0x4f 5 #c8d7ab  Scrub  # @scrub landcover.mss:4,506-507; pattern in graphics.txt
+poly 0x5b 5 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub landcover.mss:4
+poly 0x1e 5 #d6d99f  Heath  # @heath landcover.mss:51,500-501
+poly 0x50 5 #add19e  Forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
+poly 0x57 5 #add19e  Coniferous forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
+poly 0x58 5 #add19e  Broadleaved forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
+poly 0x59 5 #add19e  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @forest landcover.mss:5
+poly 0x53 5 #f5e9c6  Sand  # @sand landcover.mss:58, natural_sand landcover.mss:494-495
+poly 0x54 5 #eee5dc  Scree  # @bare_ground landcover.mss:47,480-483; pattern in graphics.txt
+poly 0x56 5 #eee5dc  Bare rock  # @bare_ground landcover.mss:47,469-470; pattern in graphics.txt
+poly 0x52 5 #f2efe9  Bare Ground  # not drawn by carto: kmap puts natural=tundra here, in no layer's list (project.mml); land
+poly 0x4d 5 #ddecec  Glacier  # @glacier water.mss:2,34-38
+poly 0x02 6 #f2efe9  Suburb  # not drawn by carto: place areas are only labelled (placenames.mss); land
+poly 0x03 6 #f2efe9  Village  # not drawn by carto: place areas are only labelled (placenames.mss); land
+poly 0x10 6 #e0dfdf  Residential  # @residential landcover.mss:16,246-249
+poly 0x0f 6 #f2dad9  Commercial  # @commercial landcover.mss:20,434-437
+poly 0x0c 6 #ebdbe8  Industrial  # @industrial landcover.mss:22,378-381
+poly 0x0d 6 #c5c3c3  Quarry  # @quarry landcover.mss:61,115-116; pattern in graphics.txt
+poly 0x07 6 #e9e7e2  Airport  # @transportation-area landcover.mss:36, aeroway_aerodrome landcover.mss:621-624
+poly 0x0e 6 #bbbbcc  Runway  # @runway-fill = @aeroway-fill #bbc roads.mss:21-22, aeroway_runway roads.mss:3422-3423
+poly 0x05 6 #eeeeee  Parking  # @parking landcover.mss:39, amenity_parking landcover.mss:595-600
+poly 0x06 6 #eeeeee  Parking  # @parking landcover.mss:39, amenity_parking landcover.mss:595-600
+poly 0x1a 6 #aacbaf  Cemetery  # @cemetery landcover.mss:49,203-206; pattern in graphics.txt
+poly 0x08 6 #ffd6d1  Shopping  # @retail landcover.mss:18, shop_mall landcover.mss:362-368
+poly 0x0a 6 #ffffe5  School  # @societal_amenities landcover.mss:59, amenity_school landcover.mss:556-574
+poly 0x0b 6 #ffffe5  Hospital  # @societal_amenities landcover.mss:59, amenity_hospital landcover.mss:556-574
+poly 0x04 6 #f3e3dd  Military  # #ff5555 at polygon-opacity 0.08 over land, landcover.mss:787-791; hatch in graphics.txt
+poly 0x12 6 #ffd6d1  Retail  # @retail landcover.mss:18, landuse_retail landcover.mss:362-368
+poly 0x21 6 #f2efe9  Tourism  # not drawn by carto: tourism=* areas past camp, caravan and picnic sites (project.mml landcover); land
+poly 0x22 6 #f2efe9  Historic  # not drawn by carto: historic=* areas are in no fill layer (project.mml); land
+poly 0x23 6 #f2efe9  Amenity  # not drawn by carto: amenity=* outside its list (project.mml landcover); land
+# The sea over the fills and what grows: a fill drawn across the shoreline in OSM stops
+# at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #aad3df  Sea  # @water-color style.mss:5, the ocean layer (project.mml)
+poly 0x25 8 #dddde8  Pedestrian Area  # @pedestrian-fill roads.mss:7, highway_pedestrian roads.mss:3400-3403
+poly 0x24 8 #f2efe9  Structure  # not drawn by carto: man_made=* past works, wastewater and water works (project.mml landcover); land
+poly 0x17 8 #c8facc  Park  # @park landcover.mss:7, leisure_park landcover.mss:264-266
+poly 0x20 8 #cdebb0  Garden  # @grass landcover.mss:3, leisure_garden landcover.mss:154-156; pattern in graphics.txt
+poly 0x18 8 #def6c0  Golf Course  # @golf_course = @campsite landcover.mss:48,74,296-298
+poly 0x19 8 #88e0be  Sports Ground  # @pitch landcover.mss:71, leisure_pitch landcover.mss:675-676
+poly 0x09 8 #dffce2  Water Park  # @stadium = @leisure = lighten(@park, 5%) landcover.mss:55,73,651-655
+poly 0x3c 9 #aad3df  Water  # @water-color style.mss:5, natural=water water.mss:46-52
+poly 0x41 9 #aad3df  Water  # @water-color style.mss:5, natural=water water.mss:46-52
+poly 0x46 9 #aad3df  River  # @water-color style.mss:5, waterway=riverbank water.mss:46-52
+poly 0x48 9 #aad3df  Canal  # @water-color style.mss:5, natural=water water.mss:46-52
+poly 0x3d 9 #aad3df  Bay  # carto fills no bay (natural=bay is only labelled) but the sea under it: @water-color style.mss:5
+poly 0x3b 9 #aad3df  Water  # @water-color style.mss:5, waterway areas water.mss:46-52
+poly 0x28 9 #aad3df  Salt pond  # @water-color style.mss:5, landuse_salt_pond landcover.mss:463-464; pattern in graphics.txt
+poly 0x3f 9 #aad3df  Reservoir  # @water-color style.mss:5, landuse=reservoir/basin water.mss:46-52
+poly 0x4c 9 #aad3df  Dock  # @water-color style.mss:5, waterway=dock water.mss:46-52
+poly 0x47 9 #f2efe9  Waterfall  # not drawn by carto: waterfall areas are in no area layer (project.mml water-areas); land
+poly 0x51 10 #f2efe9  Wetland  # natural=wetland with no type has no fill in carto (landcover.mss:512-554 fill types only); pattern over a clear ground in graphics.txt
+poly 0x11 10 #f3e0da  Danger Area  # #ff5555 at polygon-opacity 0.1 over land, landcover.mss:804-806; hatch in graphics.txt
+poly 0x13 11 #d9d0c9  Building  # @building-fill buildings.mss:1,17-18
 
 # --- lines --------------------------------------------------------------------
-line 0x01 5 #e892a2 #dc2a67  Motorway
-line 0x09 4 #e892a2 #dc2a67  Motorway link
-line 0x0b 4 #e892a2 #dc2a67  Motorway exit
-line 0x02 5 #f9b29c #c84e2f  Trunk
-line 0x03 5 #fcd6a4 #a06b00  Primary
-line 0x08 4 #fcd6a4 #a06b00  Primary link
-line 0x04 4 #f7fabf #707d05  Secondary
-line 0x05 4 #ffffff #8f8f8f  Tertiary
-line 0x06 3 #ffffff #bbbbbb  Minor road
-line 0x0c 4 #ffffff #bbbbbb  Roundabout
-line 0x10801 5 #f9b29c #c84e2f  Roundabout, trunk  # filled, not theirs: the road's own
-line 0x10802 5 #fcd6a4 #a06b00  Roundabout, primary  # filled, not theirs: the road's own
-line 0x10803 4 #f7fabf #707d05  Roundabout, secondary  # filled, not theirs: the road's own
-line 0x10804 4 #ffffff #8f8f8f  Roundabout, tertiary  # filled, not theirs: the road's own
-line 0x30 3 #ffffff #bbbbbb  Track loop
-line 0x16 3 #aaaaaa           Construction
-line 0x0a 2 #996600           Track
-line 0x0e 1 #ffffff #ababab    Path  # carto dashes it; a TYP cannot
-line 0x10 2 #ededed #bbbbbb    Living street
-line 0x07 2 #aaddaa           Bridleway
-line 0x11 2 #9999ff           Cycleway
-line 0x2b 2 #cc6666           Via ferrata
-line 0x18 2 #aad3df           Stream
-line 0x1f 3 #aad3df           River
-line 0x33 2 #aad3df           Canal
-line 0x34 1 #aad3df           Drain
-line 0x35 1 #aad3df           Ditch
-line 0x26 2 #aad3df           Intermittent river
-line 0x1a 2 #6699ff           Ferry
-line 0x1b 2 #6699ff           Foot ferry
-line 0x17 2 #bbbbbb           Breakwater
-line 0x31 1 #aacea3           Tree row  # filled, not theirs
-line 0x32 2 #b0aca2           City wall  # filled, not theirs
-line 0x27 4 #bbbbc8           Runway
-line 0x29 1 #888888           Power line
-line 0x25 2 #888888           Cableway
-line 0x28 1 #888888           Pipeline
-line 0x23 1 #a0a060           Cutline
-line 0x24 1 #46673b           Valley
-line 0x12 1 #b0a090           Fell edge
-line 0x19 2 #4c9a4c           National park boundary
-line 0x1c 1 #ac46ac           Boundary
-line 0x1d 2 #ac46ac           Region boundary
-line 0x1e 2 #ac46ac           Country boundary
-line 0x2d 2 #ff5555           Military boundary
-# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
-# a flat colour here would replace kmap's red dashes with a plain stripe.
+# Roads at z16: ink = carto's fill width (its line width less 2 casings), rounded;
+# width = ink + 2. A z15 value holds at z16 where carto sets none for z16.
+line 0x10801 8 #f9b29c #c84e2f  Roundabout  # carto draws a roundabout as its road: @trunk-fill, @trunk-casing road-colors-generated.mss:8,12
+line 0x10802 7 #fcd6a4 #a06b00  Roundabout  # carto draws a roundabout as its road: @primary-fill, @primary-casing road-colors-generated.mss:9,13
+line 0x10803 7 #f7fabf #707d05  Roundabout  # carto draws a roundabout as its road: @secondary-fill, @secondary-casing road-colors-generated.mss:10,14
+line 0x10804 6 #ffffff #8f8f8f  Roundabout  # carto draws a roundabout as its road: @tertiary-fill, @tertiary-casing roads.mss:3,33
+line 0x07 3 #ffffff #bbbbbb  Service Road  # @service-fill roads.mss:5, @service-casing roads.mss:36; @service-width-z16 3.5 - 2 x 0.6 = 2.3 -> 2, roads.mss:166,251,2123
+# Paths, tracks, steps and railway: dashed in graphics.txt; this is the fallback.
+line 0x16 1 #fa8072 #f7f5f2  Path  # @footway-fill salmon roads.mss:10, 1.3 -> 1; halo white @0.4 -> #f7f5f2, roads.mss:2358-2406
+line 0x11 2 #0000ff #f7f5f2  Cycleway  # @cycleway-fill blue roads.mss:14, 0.9 -> 1; halo as a path, roads.mss:2435-2486
+line 0x0a 2 #ab812f #f7f5f2  Track  # @track-fill #996600 at 0.8 -> #ab812f roads.mss:18,2535-2540; 1.5 -> 2, roads.mss:155,2562
+line 0x30 2 #88e0be  Track  # kmap puts leisure=track here (and raceway, gallop): #leisure-track @pitch landcover.mss:71, amenity-points.mss:2987-2997; project.mml:528-541
+line 0x14 3 #ffffff #707070  Railway  # railway=rail: #707070 3 px under white 1 px, roads.mss:2632-2642
+# Water at z16.
+line 0x1f 2 #aad3df  River  # @water-color style.mss:5, @river-width-z16 8 water.mss:17,191-196
+line 0x18 1 #aad3df  Stream  # @water-color style.mss:5, @stream-width-z16 3 water.mss:25,250-252
+line 0x26 1 #aad3df  Intermittent Stream  # as a stream, dashed 4,3 in graphics.txt, water.mss:261-263
+line 0x1a 1 #6666ff  Ferry  # @ferry-route #66f, 0.8 -> 1, ferry-routes.mss:1,9-14; dashed in graphics.txt
+line 0x1b 1 #6666ff  Ferry  # @ferry-route #66f, 0.8 -> 1, ferry-routes.mss:1,9-14; dashed in graphics.txt
+# The rest.
+line 0x17 1 #444444  Barrier  # #barriers at z16: #444, 0.4 -> 1, landcover.mss:840-844
+line 0x27 6 #bbbbcc  Runway  # @runway-fill roads.mss:21-22; 24 at z16, roads.mss:3705-3713
+line 0x29 1 #888888  Power Line  # @power-line-color power.mss:1; 0.7 -> 1, power.mss:10-11
+line 0x25 3 #808080  Aerial way  # cable car line/ #808080 1 px, aerialways.mss:2-9; 1 px in a 3 px band in graphics.txt
+line 0x28 1 #909090  Pipeline  # line/ #909090 1.5 -> 2, aerialways.mss:76-93; dashed in graphics.txt
+line 0x23 2 #cdebb0  Cutline  # @grass, 6 at z16, landcover.mss:686-694
+line 0x2b 4 #999999  Cliff  # symbols/cliff2.svg #999999, landcover.mss:816-821; pattern in graphics.txt
+line 0x19 3 #afd0a8  Protected area  # @protected-area #008000 amenity-points.mss:25; on the boundary carto's inner band (6 at z14+) and outer line (2), each at opacity 0.15, both lie: #afd0a8 over land, admin.mss:510-547
+line 0x1c 1 #c0a8ba  Boundary  # admin_level 6: @admin-boundaries #8d618b at 0.5 -> #c0a8ba; 2.1 -> 2, admin.mss:1,357-379,305; dashed in graphics.txt
+line 0x1d 2 #cbb6c5  Boundary  # admin_level 4 band: @admin-boundaries-wide #a37da1 at 0.5 -> #cbb6c5; 4 at z14+, admin.mss:3,225-275,306
+line 0x1e 2 #cbb6c5  Boundary  # admin_level 2 band: @admin-boundaries-wide #a37da1 at 0.5 -> #cbb6c5; 8 at z14+, admin.mss:3,29-78,306
+line 0x2d 1 #f5cac5  Military area  # @military #f55 at line-opacity 0.24 -> #f5cac5; 2 at z15+, landcover.mss:62,794-800
+# Not here: 0x12 and 0x24, which carto does not draw (transparent, graphics.txt); 0x0d,
+# the link this build puts in across a kerb or a bank, left to kmap's own red dashes.
+
+"""#####
+
+    /// Bitmap sections for the carto style: its dashes, cliff teeth and fill
+    /// patterns, drawn from openstreetmap-carto's own values and symbols (CC0).
+    /// See Assets/styles/osm-carto/PROVENANCE.md.
+    static let cartoGraphics =
+#####"""
+; Generated from the original's values and images by a maintainer's tool; see
+; PROVENANCE.md for the sources. The next run writes this file again.
+
+[_line]
+Type=0x16
+Xpm="32 1 4 1"
+"a c #fa8072"
+"b c #f7f5f2"
+"A c #AA5555"
+"B c #AAAAAA"
+"abbbbaabbbabbbbaabbbabbbbaabbbab"
+[end]
+
+[_line]
+Type=0x11
+Xpm="32 2 4 1"
+"a c #0000ff"
+"b c #f7f5f2"
+"A c #0000AA"
+"B c #AAAAAA"
+"abbbbaabbbabbbbaabbbabbbbaabbbab"
+"abbbbaabbbabbbbaabbbabbbbaabbbab"
+[end]
+
+[_line]
+Type=0x0a
+Xpm="32 2 4 1"
+"a c #ab812f"
+"b c #f7f5f2"
+"A c #555500"
+"B c #AAAAAA"
+"aaaaabbbbaabbbbaaaaabbbbaabbbbaa"
+"aaaaabbbbaabbbbaaaaabbbbaabbbbaa"
+[end]
+
+[_line]
+Type=0x14
+Xpm="32 3 4 1"
+"a c #ffffff"
+"b c #707070"
+"A c #AAAAAA"
+"B c #555555"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbaaaaaaaabbbbbbbbbaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_line]
+Type=0x26
+Xpm="32 1 4 1"
+"a c none"
+"b c #aad3df"
+"A c none"
+"B c #55AAAA"
+"bbbbaaabbbbaaabbbbaaabbbbaaabbbb"
+[end]
+
+[_line]
+Type=0x1a
+Xpm="32 1 4 1"
+"a c none"
+"b c #6666ff"
+"A c none"
+"B c #5555AA"
+"bbbbbbaaaaaabbbbbbaaaaaabbbbbbaa"
+[end]
+
+[_line]
+Type=0x1b
+Xpm="32 1 4 1"
+"a c none"
+"b c #6666ff"
+"A c none"
+"B c #5555AA"
+"bbbbbbaaaaaabbbbbbaaaaaabbbbbbaa"
+[end]
+
+[_line]
+Type=0x1c
+Xpm="32 1 4 1"
+"a c none"
+"b c #c0a8ba"
+"A c none"
+"B c #AA5555"
+"bbbbbbbbbbbbbbbbaabbbaabbbbbbbbb"
+[end]
+
+[_line]
+Type=0x28
+Xpm="32 1 4 1"
+"a c none"
+"b c #909090"
+"A c none"
+"B c #555555"
+"abbbbbbbbbbbbbbbbbbbbaabbbbbbbbb"
+[end]
+
+[_line]
+Type=0x25
+Xpm="32 3 4 1"
+"a c none"
+"b c #808080"
+"A c none"
+"B c #555555"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x2b
+UseOrientation=Y
+Xpm="32 4 4 1"
+"a c none"
+"b c #999999"
+"A c none"
+"B c #555555"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaabbaaaaaaaabbaaaaaaaabbaaaaaa"
+"aaaabbaaaaaaaabbaaaaaaaabbaaaaaa"
+"aaaabbaaaaaaaabbaaaaaaaabbaaaaaa"
+[end]
+
+[_line]
+Type=0x12
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x50
+Xpm="32 32 4 1"
+"a c #93b684"
+"b c #add19e"
+"A c #555555"
+"B c #55AA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbaaabbbbbbbbbbbbb"
+"bbbbbbbbbbbaaabaabaabbbbbbbbbbbb"
+"bbbbbbbbbbbabababbbabbbbbbbbbbbb"
+"bbbbbbbbbbbabababbbabbbbbbbbbbbb"
+"bbbbbbbbbbabbbaaabaabbbbbbbbbbbb"
+"bbbbbbbbbbabbbabaaabbbbbbbbbbbbb"
+"bbbbbbbbbbaaaaabbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x57
+Xpm="32 32 4 1"
+"a c #93b684"
+"b c #add19e"
+"A c #555555"
+"B c #55AA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbaaabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbababbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbababbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbaaaaaaabbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x58
+Xpm="32 32 4 1"
+"a c #93b684"
+"b c #add19e"
+"A c #555555"
+"B c #55AA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbaaabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbaaabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x4f
+Xpm="32 32 4 1"
+"a c #b0be93"
+"b c #c8d7ab"
+"A c #555555"
+"B c #AAAA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbabbbb"
+"bbbbbabbbbbbbbbbbbbbbbbbbbbabbbb"
+"bbbbbabbbbbbbbbbbbbbbbbbbabababb"
+"bbbabababbbbbbbbbbbbbbbbbaaaaabb"
+"bbbaaaaabbbbbbbbbbbbbbbbbbaaabbb"
+"bbbbaaabbbbbbbbbbbbbbbbbaaaaaaab"
+"bbaaaaaaabbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x51
+Xpm="32 32 4 1"
+"a c none"
+"b c #4aa5fa"
+"A c none"
+"B c #5555AA"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaabbbbbbbaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"abbbbbbbaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaabbbbbbbaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaabbbbbbbaaaaaaaaaaaaabbbbbbba"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaabbbbbbbaaaaaaaaaa"
+"aaaabbbbbbbaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaabbbbbbba"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaabbbbbbbaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaabbbbbbbaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaabbbbbbbaaaaaaaaaaaaaa"
+"abbbbbbbaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaabbbbbbba"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaabbbbbbbaaaaaaaa"
+"aaabbbbbbbaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaabbbbbbbaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x54
+Xpm="32 32 4 1"
+"a c #d8d4ce"
+"b c #eee5dc"
+"A c #AAAAAA"
+"B c #AAAAAA"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbabbbbbbbbbabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbabbbbbbbbbbbbb"
+"babbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbabbbbbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbabbbbbbbb"
+"bbbbbbbbbbbbabbbbbbbbbbbbbbbabbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbabbbbb"
+"bbbbbabbbbbbbbabbbbbbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbabbbbbbbbabbbbbbb"
+"bbbbbabbbbbbabbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbabbbabbbbb"
+"bbbbbbbbbbbbbbbabbbbbbbbbbbbbbab"
+"bbbabbbbbbbbbbbbbbabbbbbbbbbbbbb"
+"bbbbbbbbabbbbbbbbbbbbbbbbbabbbbb"
+"bbbbbabbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbbbbbbbbbbbbbbbbbbbbabb"
+"bbbbbbbbbbbbbbbbbabbbbbbbabbbbbb"
+"bbbbbbabbbbbbbbbbbbbbbabbbbbbbbb"
+"babbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbabbbbbbabbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbabbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbabbbbbb"
+"babbbbbbbabbbbbbbbbbbbbbbbbbbabb"
+"bbbbbbbabbbbbbbbbbbbbabbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x56
+Xpm="32 32 4 1"
+"a c #d5d2ce"
+"b c #eee5dc"
+"A c #AAAAAA"
+"B c #AAAAAA"
+"bbbbaaabbabbabbabbabbbbaaaaaabba"
+"aababaaaababbabbbbbbaaabbbbabaaa"
+"aabaaaaabbbabbbbbbbbaaaababbbaba"
+"bbaaabbabbbbbbabbbbabbabbabbbbba"
+"bbbbabbabbbbabbabbabbabbbbbbaaba"
+"baabaaabbbbbabbaabababbbbbabaaab"
+"bbbbbabbbbbbbabbabbbabbbbaabbbbb"
+"bbbabbbbabaaabaabbbbbbbbbaaabbbb"
+"aaaabbbbbbabbaaabbabbbbbbbaaabbb"
+"aaabbbabbaaaabaaabbbaabbaaabbaaa"
+"abbbbaaaaabbbbbbabbbbabbabaabbba"
+"bbabbaaabbbbbbbbabbaaabbaaaabbbb"
+"baabbbbbbbaaabbaabbaabbbbaaabbab"
+"aaabbaaaaaabbabaabbabbbaaaaabbbb"
+"bbabbbaabbbababbbbaabbabbbbabbbb"
+"bbbbbbabaabaaaabbbbbbbaabbbbabbb"
+"aabbbbbbbaaaabbbbbbbabbbbbbbbbba"
+"baabbaaabbabbbbbbbaaabaaaaabbaaa"
+"bbaaabaabbbbbbbbabbababbaabbbaaa"
+"abbaabababbbbbbbbbabbabbbbbbabab"
+"abbbbbbbabbbbaabbbbbbabbbbababbb"
+"aaabaabbbbbbaaaabbbaaaabbbaabbbb"
+"bbaabbababbbbbabbbbbaabbbbbbabbb"
+"abbabbaaabaaabbbbbabaabaabbbbbbb"
+"aabbbbbabaaaababbbbbabbabbabbaba"
+"babbbbaabaabaaabbbbbaababbaaabbb"
+"aabbbbabbbbaababbababaabbaaabbbb"
+"bbbbbbabbbbabbbabbbabbabaaabbaab"
+"aabbbbbbabbbbbabbbabababaaababbb"
+"bbbbbbbbbbababababbbaaabbabaabbb"
+"aaabbabbbbaaabaabbbbbaaababbbbbb"
+"aabbbbbbbbaaababbabbbbbbbbaaabab"
+[end]
+
+[_polygon]
+Type=0x1b
+Xpm="32 32 4 1"
+"a c #98c68e"
+"b c #aedfa3"
+"A c #55AA55"
+"B c #55AA55"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+[end]
+
+[_polygon]
+Type=0x4e
+Xpm="32 32 4 1"
+"a c #759e6c"
+"b c #aedfa3"
+"A c #555555"
+"B c #55AA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x5a
+Xpm="32 32 4 1"
+"a c #f2efe9"
+"b c #c9e1bf"
+"A c #AAAAAA"
+"B c #AAAA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x20
+Xpm="32 32 4 1"
+"a c #8bb773"
+"b c #cdebb0"
+"A c #555555"
+"B c #AAAA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"babbbbbabbbbbabbbbbabbbbbabbbbba"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbabbbbbabbbbbabbbbbabbbbbabbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"babbbbbabbbbbabbbbbabbbbbabbbbba"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbabbbbbabbbbbabbbbbabbbbbabbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"babbbbbabbbbbabbbbbabbbbbabbbbba"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbabbbbbabbbbbabbbbbabbbbbabbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x1a
+Xpm="32 32 4 1"
+"a c #88b78e"
+"b c #aacbaf"
+"A c #555555"
+"B c #55AA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbaabbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbaaaabbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbaaaabbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbaaaabbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbaaaabbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbaaaabbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbaaaabbbbbbbbbbbbbbbbbbbbbb"
+"bbbbaaaaaaaabbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x0d
+Xpm="32 32 4 1"
+"a c #e6e6e6"
+"b c #c5c3c3"
+"A c #AAAAAA"
+"B c #AAAAAA"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbaabbbbabbbbbbbb"
+"bbbbbbbbbbbbbbbbaaabbbaaabbbbbbb"
+"bbbbbbbbbbbbbbbaaabbbbbaaabbbbbb"
+"bbbbbbbbbbbbbbaaaabbbbbaaabbbbbb"
+"bbbbbbbbbbbbbbaabbabbbabbaabbbbb"
+"bbbbbbbbbbbbbbbbbbbababbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbaaabbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbaaabbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbaabbabbbbbbbbb"
+"bbbbbbbbbbbbbbbbbaabbbaabbbbbbbb"
+"bbbbbbbbbbbbbbbbaabbbbbaabbbbbbb"
+"bbbbbbbbbbbbbbbaabbbbbbbaabbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x28
+Xpm="32 32 4 1"
+"a c #ffffff"
+"b c #aad3df"
+"A c #AAAAAA"
+"B c #55AAAA"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbaaabbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbaaaaabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbaaabbbbbbbbbbbbbbbbaaabbbbb"
+"bbbbaaaaabbbbbbbbbbbbbbaaaaabbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x04
+Xpm="32 32 4 1"
+"a c none"
+"b c #f4d2cd"
+"A c none"
+"B c #AAAAAA"
+"aaabaaaaaaabaaaaaaabaaaaaaabaaaa"
+"aabaaaaaaabaaaaaaabaaaaaaabaaaaa"
+"abaaaaaaabaaaaaaabaaaaaaabaaaaaa"
+"baaaaaaabaaaaaaabaaaaaaabaaaaaaa"
+"aaaaaaabaaaaaaabaaaaaaabaaaaaaab"
+"aaaaaabaaaaaaabaaaaaaabaaaaaaaba"
+"aaaaabaaaaaaabaaaaaaabaaaaaaabaa"
+"aaaabaaaaaaabaaaaaaabaaaaaaabaaa"
+"aaabaaaaaaabaaaaaaabaaaaaaabaaaa"
+"aabaaaaaaabaaaaaaabaaaaaaabaaaaa"
+"abaaaaaaabaaaaaaabaaaaaaabaaaaaa"
+"baaaaaaabaaaaaaabaaaaaaabaaaaaaa"
+"aaaaaaabaaaaaaabaaaaaaabaaaaaaab"
+"aaaaaabaaaaaaabaaaaaaabaaaaaaaba"
+"aaaaabaaaaaaabaaaaaaabaaaaaaabaa"
+"aaaabaaaaaaabaaaaaaabaaaaaaabaaa"
+"aaabaaaaaaabaaaaaaabaaaaaaabaaaa"
+"aabaaaaaaabaaaaaaabaaaaaaabaaaaa"
+"abaaaaaaabaaaaaaabaaaaaaabaaaaaa"
+"baaaaaaabaaaaaaabaaaaaaabaaaaaaa"
+"aaaaaaabaaaaaaabaaaaaaabaaaaaaab"
+"aaaaaabaaaaaaabaaaaaaabaaaaaaaba"
+"aaaaabaaaaaaabaaaaaaabaaaaaaabaa"
+"aaaabaaaaaaabaaaaaaabaaaaaaabaaa"
+"aaabaaaaaaabaaaaaaabaaaaaaabaaaa"
+"aabaaaaaaabaaaaaaabaaaaaaabaaaaa"
+"abaaaaaaabaaaaaaabaaaaaaabaaaaaa"
+"baaaaaaabaaaaaaabaaaaaaabaaaaaaa"
+"aaaaaaabaaaaaaabaaaaaaabaaaaaaab"
+"aaaaaabaaaaaaabaaaaaaabaaaaaaaba"
+"aaaaabaaaaaaabaaaaaaabaaaaaaabaa"
+"aaaabaaaaaaabaaaaaaabaaaaaaabaaa"
+[end]
+
+[_polygon]
+Type=0x11
+Xpm="32 32 4 1"
+"a c none"
+"b c #f4cfca"
+"A c none"
+"B c #AAAAAA"
+"aabbbaaaaaaaaaaaaabbbaaaaaaaaaaa"
+"abbbaaaaaaaaaaaaabbbaaaaaaaaaaaa"
+"bbbaaaaaaaaaaaaabbbaaaaaaaaaaaaa"
+"bbaaaaaaaaaaaaabbbaaaaaaaaaaaaab"
+"baaaaaaaaaaaaabbbaaaaaaaaaaaaabb"
+"aaaaaaaaaaaaabbbaaaaaaaaaaaaabbb"
+"aaaaaaaaaaaabbbaaaaaaaaaaaaabbba"
+"aaaaaaaaaaabbbaaaaaaaaaaaaabbbaa"
+"aaaaaaaaaabbbaaaaaaaaaaaaabbbaaa"
+"aaaaaaaaabbbaaaaaaaaaaaaabbbaaaa"
+"aaaaaaaabbbaaaaaaaaaaaaabbbaaaaa"
+"aaaaaaabbbaaaaaaaaaaaaabbbaaaaaa"
+"aaaaaabbbaaaaaaaaaaaaabbbaaaaaaa"
+"aaaaabbbaaaaaaaaaaaaabbbaaaaaaaa"
+"aaaabbbaaaaaaaaaaaaabbbaaaaaaaaa"
+"aaabbbaaaaaaaaaaaaabbbaaaaaaaaaa"
+"aabbbaaaaaaaaaaaaabbbaaaaaaaaaaa"
+"abbbaaaaaaaaaaaaabbbaaaaaaaaaaaa"
+"bbbaaaaaaaaaaaaabbbaaaaaaaaaaaaa"
+"bbaaaaaaaaaaaaabbbaaaaaaaaaaaaab"
+"baaaaaaaaaaaaabbbaaaaaaaaaaaaabb"
+"aaaaaaaaaaaaabbbaaaaaaaaaaaaabbb"
+"aaaaaaaaaaaabbbaaaaaaaaaaaaabbba"
+"aaaaaaaaaaabbbaaaaaaaaaaaaabbbaa"
+"aaaaaaaaaabbbaaaaaaaaaaaaabbbaaa"
+"aaaaaaaaabbbaaaaaaaaaaaaabbbaaaa"
+"aaaaaaaabbbaaaaaaaaaaaaabbbaaaaa"
+"aaaaaaabbbaaaaaaaaaaaaabbbaaaaaa"
+"aaaaaabbbaaaaaaaaaaaaabbbaaaaaaa"
+"aaaaabbbaaaaaaaaaaaaabbbaaaaaaaa"
+"aaaabbbaaaaaaaaaaaaabbbaaaaaaaaa"
+"aaabbbaaaaaaaaaaaaabbbaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x16
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x1f
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x1d
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x52
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x02
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x03
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x21
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x22
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x23
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x47
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
 
 """#####
 
@@ -405,162 +1672,178 @@ line 0x2d 2 #ff5555           Military boundary
 #####"""
 # The OpenTopoMap look, on the type codes kmap's rules emit.
 #
-# Colours were read out of OpenTopoMap's own Garmin TYP source
-# (der-stefan/OpenTopoMap, garmin/style/typ/opentopomap.txt, CC-BY-SA;
-# fetched 2026-08-31) for every code whose meaning both maps share, by
-# chaining kmap rule -> tag -> OpenTopoMap rule -> its TYP colour. Codes
-# their style does not cover are filled in the same palette's spirit and
-# say so in their comment. Attribution: (c) OpenTopoMap (CC-BY-SA).
+# Every colour, width and draw order here is OpenTopoMap's own, read from its Garmin
+# style: github.com/der-stefan/OpenTopoMap, garmin/style/ at commit
+# 60c50cb8329d67c8556cd9f25b4a8e50bfc19c91 (CC-BY-SA). A note names the source as a
+# path under garmin/style/ and its lines: typ/opentopomap.txt (their TYP),
+# typ/contours.txt, and their rules under opentopomap/.
+#
+# Each code is drawn the way they draw the OSM features kmap's rules put on it, named as
+# Assets/styles/type-names.txt names it, and the drawing moves to kmap's number
+# where theirs differs. Where their map shows nothing for a meaning, graphics.txt draws
+# the code clear; the polygon's row here keeps their background colour as a fallback.
+#
+#   poly <code> <level> <day> <name>      level = draw order, 1 lowest
+#   line <code> <width> <day> [casing] <name>
+#
+# Draw order is their [_drawOrder], typ/opentopomap.txt:10-47: their background (0)
+# is level 1 here and their levels 1-6 are 3-8. Level 2 holds what their order does
+# not list: kmap's land and every polygon in their background colour, so none of
+# those covers anything they draw.
+#
+# Their TYP is day only. Night colours are kmap's, derived from the day ones.
+# Codes drawn by a pattern or bitmap in graphics.txt keep a row here for the draw
+# order (polygons) and carry the pattern's ink. Attribution: (c) OpenTopoMap (CC-BY-SA).
 
 name OpenTopoMap
-summary the OpenTopoMap look — its own Garmin colours where the maps share a meaning
+summary the OpenTopoMap look, drawn from its own Garmin style
 
-# The device's own background, on a level below everything: a fenix
-# draws it where the land polygon has not arrived yet, and shows black
-# without it. Their own background, 0x4b in their TYP.
-poly 0x4b 1 #ffffff  Background
-poly 0x27 3 #ffffff  Land  # the ground, in their own background colour
-poly 0x1c 5 #eef0d5  Farmland  # filled, not theirs
-poly 0x29 5 #eef0d5  Greenhouses  # filled, not theirs
-poly 0x26 5 #eef0d5  Farm  # filled, not theirs
-poly 0x4e 5 #00c000  Orchard
-poly 0x1b 5 #00c000  Vineyard
-poly 0x5a 5 #dfefc9  Allotments  # filled, not theirs
-poly 0x55 5 #cdebb0  Grassland  # filled, not theirs
-poly 0x15 5 #cdebb0  Village green  # filled, not theirs
-poly 0x1d 5 #cdebb0  Common  # filled, not theirs
-poly 0x4f 5 #00c000  Scrub
-poly 0x5b 5 #00c000  Scrub
-poly 0x1e 5 #c8d7ab  Heath  # filled, not theirs
-poly 0x50 5 #77cc77  Forest
-poly 0x57 5 #77cc77  Coniferous forest
-poly 0x58 5 #77cc77  Broadleaved forest
-poly 0x59 5 #77cc77  Wood
-poly 0x53 5 #f5f500  Beach
-poly 0x54 5 #e5e3e0  Scree  # filled, not theirs
-poly 0x1f 5 #e8e6e0  Fell  # filled, not theirs
-poly 0x56 5 #d8d6d2  Bare rock  # filled, not theirs
-poly 0x52 5 #ddecd8  Tundra  # filled, not theirs
-poly 0x4d 5 #fafaff  Glacier  # filled, not theirs
-poly 0x02 6 #ffffff  Suburb  # ground: their style draws nothing here, and their own background is white
-poly 0x03 6 #ffffff  Village  # ground: their style draws nothing here, and their own background is white
-poly 0x10 6 #ebebeb  Residential
-poly 0x0f 6 #ebebeb  Commercial
-poly 0x0c 6 #ffffff  Construction  # ground: their style draws nothing here, and their own background is white
-poly 0x0d 6 #d8d6d2  Quarry  # filled, not theirs
-poly 0x07 6 #ffffff  Airport ground  # ground: their style draws nothing here, and their own background is white
-poly 0x0e 6 #ffffff  Runway  # ground: their style draws nothing here, and their own background is white
-poly 0x05 6 #ffffff  Parking  # ground: their style draws nothing here, and their own background is white
-poly 0x06 6 #ffffff  Covered parking  # ground: their style draws nothing here, and their own background is white
-poly 0x1a 6 #000000  Cemetery
-# The sea over the fills and what grows: a fill drawn across the shoreline in
-# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
-poly 0x32 7 #72ceff  Sea
-poly 0x25 8 #ffffff  Square  # ground: their style draws nothing here, and their own background is white
-poly 0x08 6 #ffffff  Food and drink  # ground: their style draws nothing here, and their own background is white
-poly 0x0a 6 #ffffff  Kindergarten  # ground: their style draws nothing here, and their own background is white
-poly 0x0b 6 #ffffff  Hospital  # ground: their style draws nothing here, and their own background is white
-poly 0x04 6 #ff4040  Prison
-poly 0x12 6 #ffffff  Services  # ground: their style draws nothing here, and their own background is white
-poly 0x21 6 #ffffff  Tourism  # ground: their style draws nothing here, and their own background is white
-poly 0x22 6 #ffffff  Historic  # ground: their style draws nothing here, and their own background is white
-poly 0x23 6 #ffffff  Amenity  # ground: their style draws nothing here, and their own background is white
-poly 0x24 8 #ffffff  Man-made  # ground: their style draws nothing here, and their own background is white
-poly 0x17 8 #00c000  Park
-poly 0x20 8 #00c000  Garden
-poly 0x18 8 #ffffff  Golf course  # ground: their style draws nothing here, and their own background is white
-poly 0x19 8 #beffba  Ice rink
-poly 0x09 8 #ffffff  Water park  # ground: their style draws nothing here, and their own background is white
-poly 0x28 9 #72ceff  Salt pond  # filled, not theirs
-poly 0x3c 9 #72ceff  Water
-poly 0x41 9 #72ceff  Small water
-poly 0x46 9 #72ceff  Riverbank
-poly 0x48 9 #72ceff  Canal
-poly 0x3d 9 #72ceff  Bay  # their water: their rules make a bay water
-poly 0x3b 9 #72ceff  Waterway area  # their water: a waterway area is their riverbank
-poly 0x3f 9 #72ceff  Basin  # their water: a basin and a reservoir are water in their rules
-poly 0x4c 9 #72ceff  Dock  # their water: a lock is water in their rules
-poly 0x47 9 #72ceff  Waterfall
-poly 0x51 10 #ffffff  Marsh  # their number for it, but their TYP draws it nowhere
-poly 0x16 4 #ffffff  Nature reserve  # not drawn: their style has no reserve section at all, so this is the ground
-poly 0x11 10 #ffffff  Military  # ground: their style draws nothing here, and their own background is white
-poly 0x13 11 #a5a5a5  Building  # filled, not theirs
-line 0x01 3 #fdb548 #000000  Motorway
-line 0x09 3 #fdb548 #000000  Motorway link
-line 0x0b 3 #ffffff #000000  Motorway exit
-line 0x02 4 #fdb548 #000000  Trunk
-line 0x03 4 #fdb548 #000000  Primary
-line 0x08 4 #fdfd4f #000000  Primary link
-line 0x04 4 #fdfd4f #000000  Secondary
-line 0x05 4 #ffffff #000000  Tertiary
-line 0x06 3 #ffffff #000000  Minor road
-line 0x0c 4 #ffffff #000000  Roundabout
-line 0x10801 4 #fdb548 #000000  Roundabout, trunk  # filled, not theirs: the road's own
-line 0x10802 4 #fdb548 #000000  Roundabout, primary  # filled, not theirs: the road's own
-line 0x10803 4 #fdfd4f #000000  Roundabout, secondary  # filled, not theirs: the road's own
-line 0x10804 4 #ffffff #000000  Roundabout, tertiary  # filled, not theirs: the road's own
-line 0x30 3 #ffffff #000000  Track loop  # filled, not theirs
-line 0x16 2 #000000  Construction
-line 0x0a 2 #000000  Track
-line 0x0e 2 #000000  Path
-line 0x10 3 #ffffff #000000  Living street  # filled, not theirs
-line 0x07 2 #000000  Bridleway
-line 0x11 2 #000000  Cycleway
-line 0x2b 2 #ffffff #000000  Via ferrata  # filled, not theirs
-# Two the palette names only so the map can say what they are: their own drawing
-# replaces the colour, and their own word for it is German. (Their rail tunnel and
-# bridge sections ride along too, on numbers kmap's rules do not reach.)
-line 0x0f 1 #000000  Steps
-line 0x14 2 #ffffff #000000  Railway
-line 0x18 2 #1d4dff  Stream
-line 0x1f 2 #1d4dff  River
-line 0x33 2 #1d4dff  Canal
-line 0x34 1 #1d4dff  Drain  # filled, not theirs
-line 0x35 1 #1d4dff  Ditch  # filled, not theirs
-line 0x26 2 #1d4dff  Intermittent river
-line 0x1a 2 #0000ff  Ferry
-line 0x1b 2 #0000ff  Foot ferry
-line 0x17 2 #ffffff #000000  Breakwater  # filled, not theirs
-line 0x31 1 #4eb539  Tree row
-line 0x32 2 #a5a5a5  City wall  # filled, not theirs
-line 0x27 2 #a0a0a0  Runway
-line 0x29 2 #000000  Power line
-line 0x25 2 #ffffff #000000  Cableway  # filled, not theirs
-line 0x28 1 #ffffff #000000  Pipeline  # filled, not theirs
-line 0x23 1 #ffffff #000000  Cutline  # filled, not theirs
-line 0x24 1 #ffffff #000000  Valley  # filled, not theirs
-line 0x12 1 #ffffff #000000  Fell edge  # filled, not theirs
-line 0x19 2 #4eb539  National park boundary  # their forest-edge green; the band is kmap's, they draw none
-# Contour lines, from their own contour TYP (garmin/style/typ/contours.txt): one
-# brown for all three, a pixel wide, and the same three numbers kmap draws them with.
-line 0x21 1 #c08040  Contour, index
-line 0x20 1 #c08040  Contour
-line 0x22 1 #c08040  Contour, minor
-line 0x1c 2 #ff80ff  Boundary
-line 0x1d 2 #ff80ff  Region boundary
-line 0x1e 2 #ff80ff  Country boundary
-line 0x2d 2 #ffffff #000000  Military boundary  # filled, not theirs
+# Below everything: a fenix draws the background where the land polygon has not
+# arrived yet, and shows black without it.
+poly 0x4b 1 #ffffff  Background  # their 0x4b, typ/opentopomap.txt:2636-2640; order :11
+
+# Level 2: their background colour, #ffffff (typ/opentopomap.txt:2636-2640), the land and
+# what their map does not draw; graphics.txt draws the latter clear.
+poly 0x27 2 #ffffff  Land  # no rule for natural=land; the ground
+poly 0x02 2 #ffffff  Suburb  # no rule for place=suburb
+poly 0x03 2 #ffffff  Village  # opentopomap/polygons:56 emits 0x03; no section in their TYP, nor in its draw order
+poly 0x05 2 #ffffff  Parking  # opentopomap/polygons:27-28,69 emit 0x05; no section
+poly 0x06 2 #ffffff  Parking  # opentopomap/polygons:26 emits 0x06; no section
+poly 0x07 2 #ffffff  Airport  # opentopomap/polygons:19-20 emit 0x07; no section
+poly 0x08 2 #ffffff  Shopping  # opentopomap/polygons:24,32 emit 0x08; no section
+poly 0x09 2 #ffffff  Water Park  # opentopomap/polygons:52 emits 0x09; no section
+poly 0x0a 2 #ffffff  School  # opentopomap/polygons:23,25,30,33 emit 0x0a; no section
+poly 0x0b 2 #ffffff  Hospital  # opentopomap/polygons:35-38 emit 0x0b; no section
+poly 0x0e 2 #ffffff  Runway  # opentopomap/polygons:21 emits 0x0e (helipad); no section
+poly 0x4d 2 #ffffff  Glacier  # opentopomap/inc/water_polygons:3 emits 0x4d; no section
+poly 0x51 2 #ffffff  Wetland  # opentopomap/inc/water_polygons:4-6 emit 0x51; no section
+poly 0x0d 2 #ffffff  Quarry  # rule commented out, opentopomap/inc/landuse_polygons:8
+poly 0x11 2 #ffffff  Danger Area  # rule commented out, opentopomap/inc/landuse_polygons:17
+poly 0x12 2 #ffffff  Retail  # rule commented out, opentopomap/inc/landuse_polygons:12
+poly 0x15 2 #ffffff  Village Green  # rule commented out, opentopomap/inc/landuse_polygons:13
+poly 0x16 2 #ffffff  Nature Reserve  # rule commented out, opentopomap/polygons:44
+poly 0x18 2 #ffffff  Golf Course  # rule commented out, opentopomap/polygons:42
+poly 0x1d 2 #ffffff  Common  # rule commented out, opentopomap/polygons:40
+poly 0x1e 2 #ffffff  Heath  # no rule for natural=heath
+poly 0x1f 2 #ffffff  Mountain meadow  # no rule for natural=fell
+poly 0x21 2 #ffffff  Tourism  # rule commented out, opentopomap/polygons:79
+poly 0x22 2 #ffffff  Historic  # opentopomap/polygons:71-72 emit 0x1e; no section
+poly 0x23 2 #ffffff  Amenity  # no rule for other amenities
+poly 0x24 2 #ffffff  Structure  # rules commented out, opentopomap/polygons:81-87
+poly 0x25 2 #ffffff  Pedestrian Area  # opentopomap/polygons:69 emits 0x05; no section
+poly 0x26 2 #ffffff  Farm  # rules commented out, opentopomap/inc/landuse_polygons:4-5
+poly 0x28 2 #ffffff  Salt pond  # no rule for landuse=salt_pond
+poly 0x29 2 #ffffff  Greenhouses  # no rule for landuse=greenhouse_horticulture
+poly 0x4e 2 #ffffff  Orchard  # no rule for landuse=orchard
+poly 0x52 2 #ffffff  Bare Ground  # no rule for natural=tundra
+poly 0x54 2 #ffffff  Scree  # no rule for natural=scree
+poly 0x56 2 #ffffff  Bare rock  # no rule for natural=bare_rock
+poly 0x5a 2 #ffffff  Allotments  # rule commented out, opentopomap/inc/landuse_polygons:1
+
+# Their built-up area, 0x10, typ/opentopomap.txt:2387-2395; order :13 (1).
+# Rule: opentopomap/inc/landuse_polygons:27.
+poly 0x10 3 #ebebeb  Residential
+poly 0x0c 3 #ebebeb  Industrial
+poly 0x0f 3 #ebebeb  Commercial
+
+# Their forests, order typ/opentopomap.txt:15-19 (2). Patterns in graphics.txt.
+poly 0x50 4 #77cc77  Forest  # their 0x50, typ/opentopomap.txt:2724-2765
+poly 0x59 4 #77cc77  Woodland  # the floor kmap lays under every wood, flat as topoactive's: their 0x50's ground, typ/opentopomap.txt:2724-2765
+poly 0x57 4 #77cc77  Coniferous forest  # their 0x38, typ/opentopomap.txt:2495-2536
+poly 0x58 4 #77cc77  Broadleaved forest  # their 0x39, typ/opentopomap.txt:2538-2579
+
+# Order typ/opentopomap.txt:21-29 (3).
+poly 0x53 5 #f5f500  Sand  # their 0x55 pattern, typ/opentopomap.txt:2767-2806
+poly 0x17 5 #00c000  Park  # their meadow 0x17 pattern, typ/opentopomap.txt:2405-2444; rule opentopomap/polygons:45
+poly 0x20 5 #00c000  Garden  # their meadow 0x17 pattern; rule opentopomap/polygons:41
+poly 0x1c 2 #ffffff  Grassland  # kmap puts landuse=farmland here: no rule for it in opentopomap (greenfield, the rest, is their meadow, inc/landuse_polygons:32)
+poly 0x55 5 #00c000  Grassland  # their meadow 0x17 pattern; rule opentopomap/inc/landuse_polygons:31-32
+poly 0x19 5 #beffba  Sports Ground  # their 0x19, typ/opentopomap.txt:2446-2452
+poly 0x1b 5 #00c000  Vineyard  # their 0x4e pattern, typ/opentopomap.txt:2642-2681
+poly 0x4f 5 #00c000  Scrub  # their 0x4f pattern, typ/opentopomap.txt:2683-2722
+poly 0x5b 5 #ffffff  Scrub  # the floor kmap lays under every scrub: their scrub has no ground, so clear (graphics.txt)
+
+# Their water, #72ceff, order typ/opentopomap.txt:31-39 (4).
+poly 0x32 6 #72ceff  Sea  # their 0x32, typ/opentopomap.txt:2581-2587
+poly 0x3c 6 #72ceff  Water  # their 0x3c, typ/opentopomap.txt:2590-2600
+poly 0x41 6 #72ceff  Water  # their 0x3c and 0x3d, typ/opentopomap.txt:2590-2611; rule opentopomap/inc/water_polygons:16-17
+poly 0x3b 6 #72ceff  Water  # their 0x3c, typ/opentopomap.txt:2590-2600
+poly 0x3d 6 #72ceff  Bay  # a bay is water in their rules, opentopomap/inc/water_polygons:1; their 0x3d, typ/opentopomap.txt:2603-2611
+poly 0x3f 6 #72ceff  Reservoir  # a basin and a reservoir are water in their rules, opentopomap/inc/water_polygons:1
+poly 0x48 6 #72ceff  Canal  # natural=water, their 0x3c, typ/opentopomap.txt:2590-2600
+poly 0x4c 6 #72ceff  Dock  # natural=water (a lock), their 0x3c, typ/opentopomap.txt:2590-2600
+poly 0x46 6 #72ceff  River  # their 0x46, typ/opentopomap.txt:2614-2624
+poly 0x47 6 #72ceff  Waterfall  # their 0x47, typ/opentopomap.txt:2626-2634
+
+# Order typ/opentopomap.txt:41-45 (5 and 6).
+poly 0x13 7 #404040  Building  # their 0x13, typ/opentopomap.txt:2397-2403
+poly 0x1a 7 #000000  Cemetery  # their 0x1a pattern, typ/opentopomap.txt:2454-2493
+poly 0x04 8 #ff4040  Military  # their 0x04 pattern, typ/opentopomap.txt:2344-2385
+
+# Roads. Width is the whole stroke: their LineWidth and a 1-pixel border either side.
+line 0x02 5 #fdb548 #000000  Trunk  # their 0x02, typ/opentopomap.txt:2003-2014; rule opentopomap/lines:126
+line 0x03 4 #fdb548 #000000  Primary  # their 0x03, typ/opentopomap.txt:2016-2027; rule opentopomap/lines:133
+line 0x04 4 #fdfd4f #000000  Secondary  # their 0x04, typ/opentopomap.txt:2029-2038; rule opentopomap/lines:138
+line 0x05 4 #ffffff #000000  Tertiary  # their 0x05, typ/opentopomap.txt:2040-2049; rule opentopomap/lines:143
+line 0x06 3 #ffffff #000000  Minor road  # their 0x06, typ/opentopomap.txt:2051-2060; rule opentopomap/lines:147,158
+line 0x10 3 #ffffff #000000  Living street  # their 0x06, typ/opentopomap.txt:2051-2060; rule opentopomap/lines:157
+line 0x08 3 #fdfd4f #000000  Primary link  # their 0x08, typ/opentopomap.txt:2072-2081; rule opentopomap/lines:134,140,145
+line 0x09 3 #fdb548 #000000  Motorway link  # their 0x09, typ/opentopomap.txt:2083-2092; rule opentopomap/lines:122
+line 0x0b 3 #ffffff #000000  Motorway exit  # their 0x06, typ/opentopomap.txt:2051-2060; rule opentopomap/lines:121,128
+line 0x0c 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:99-104
+line 0x10801 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:99
+line 0x10802 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:100
+line 0x10803 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:101
+line 0x10804 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:102
+line 0x07 2 #000000  Service Road  # their 0x07, typ/opentopomap.txt:2062-2070; rule opentopomap/lines:167
+line 0x11 2 #000000  Cycleway  # their 0x07, typ/opentopomap.txt:2062-2070; rule opentopomap/lines:170
+line 0x0a 1 #000000  Track  # their 0x0a, typ/opentopomap.txt:2094-2101; rule opentopomap/lines:178
+line 0x27 2 #a0a0a0  Runway  # their 0x27, typ/opentopomap.txt:2246-2253; rule opentopomap/lines:11-12
+
+# Water.
+line 0x1f 3 #1d4dff  River  # their 0x1f, typ/opentopomap.txt:2233-2244; rule opentopomap/inc/water_lines:7
+line 0x33 3 #1d4dff  Canal  # their 0x1f, typ/opentopomap.txt:2233-2244; rule opentopomap/inc/water_lines:8
+line 0x18 1 #1d4dff  Stream  # their 0x18, typ/opentopomap.txt:2177-2184; rule opentopomap/inc/water_lines:11
+line 0x26 1 #1d4dff  Intermittent Stream  # their 0x18, typ/opentopomap.txt:2177-2184
+line 0x34 1 #1d4dff  Drain  # their 0x18, typ/opentopomap.txt:2177-2184; rule opentopomap/inc/water_lines:9
+line 0x35 1 #1d4dff  Ditch  # their 0x18, typ/opentopomap.txt:2177-2184; rule opentopomap/inc/water_lines:9
+
+# Contour lines, from their contour TYP: one brown, a pixel wide.
+line 0x20 1 #c08040  Contour  # typ/contours.txt:13-19 (a 32x1 bitmap of one colour)
+line 0x21 1 #c08040  Contour  # typ/contours.txt:21-27
+line 0x22 1 #c08040  Contour  # typ/contours.txt:29-35
+
+# Drawn in graphics.txt, so not here: from their bitmaps 0x01 Motorway, 0x0e and
+# 0x16 Path, 0x0f Steps, 0x14 Railway, 0x17 Barrier, 0x1a and 0x1b Ferry, 0x1c-0x1e
+# Boundary, 0x29 Power Line, 0x2b Cliff; drawn by nothing 0x12, 0x19, 0x23, 0x24,
+# 0x25, 0x28, 0x2d, 0x31, 0x32.
 # 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
 # a flat colour here would replace kmap's red dashes with a plain stripe.
 
 """#####
 
-    /// POI icon sections for the OpenTopoMap style, taken verbatim from its own
-    /// Garmin TYP source (© OpenTopoMap, CC-BY-SA) for every point code kmap's
-    /// rules also emit. See Assets/styles/opentopomap/points.txt.
+    /// POI icon sections for the OpenTopoMap style: its own Garmin TYP drawings
+    /// ((c) OpenTopoMap, CC-BY-SA) where it draws a meaning, openstreetmap-carto's
+    /// symbols (CC0) where it does not. See Assets/styles/opentopomap/points.txt.
     static let otmPoints =
 #####"""
 ; POI icons for the OpenTopoMap shipped style.
-; TAKEN VERBATIM from OpenTopoMap's own Garmin TYP source --
-; garmin/style/typ/opentopomap.txt in der-stefan/OpenTopoMap, (c) OpenTopoMap,
-; CC-BY-SA -- for every point code kmap's rules also emit. Appended as-is to the
-; generated TYP; day drawings only, as their file has them.
-; Five of their drawings sit on another number, marked where they do: kmap draws
-; a tower, a wood's name and a barrier on three numbers where their rules never
-; reach. Their file covers 48 of the 146 point codes kmap's rules emit. The rest carry
-; openstreetmap-carto's symbols (CC0), the same set the carto style here ships and
-; CyclOSM already borrows -- otherwise a third of what the map knows would have no
-; mark at all. Each of those says so in its own comment.
+; Their drawings are copied from OpenTopoMap's own Garmin TYP source,
+; garmin/style/typ/opentopomap.txt in der-stefan/OpenTopoMap (commit 60c50cb8),
+; (c) OpenTopoMap, CC-BY-SA, each for the meaning kmap's rules give the code (named
+; in Assets/styles/type-names.txt) as their rules draw that meaning. 37 sit on the
+; number they have there, whole, their labels included. 11 sit on another number
+; of kmap's: only the Type line differs, their labels are left out (the generator
+; names them from type-names.txt), and a note says whose number it was. Their
+; drawings are day only.
+; A meaning their TYP draws nothing for takes openstreetmap-carto's symbol (CC0),
+; the same section the carto style ships, day and night; 51 codes, each saying
+; so in its own comment. A meaning neither draws gets the plain anchor square of the
+; reference TYP (topoactive 0x661a), day only, with its label, so no device icon of
+; another meaning shows (34 codes); it can be edited in kmap's type editor.
+; Every point code kmap's rules emit has a section but the settlement points
+; 0x0100-0x0d00, which the device draws, and kmap's repair mark 0x660b, which the
+; build adds: 133. Appended to the generated TYP.
 
 [_point]
 Type=0x2a01
@@ -598,6 +1881,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a02
 String=0x02,Restaurant (asiatisch)
@@ -634,6 +1918,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a03
 String=0x02,Restaurant (Grill)
@@ -670,6 +1955,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a04
 String=0x02,Restaurant (chinesisch)
@@ -706,6 +1992,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a05
 String=0x02,Restaurant (indisch)
@@ -742,6 +2029,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a06
 String=0x02,Restaurant (international)
@@ -778,6 +2066,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a07
 String=0x02,Fast food
@@ -809,6 +2098,7 @@ DayXpm="16 15 10 1"
 " .####. .@@@@@. "
 "  ....   .....  "
 [end]
+
 [_point]
 Type=0x2a08
 String=0x02,Restaurant (italienisch)
@@ -845,6 +2135,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a09
 String=0x02,Restaurant (mexikanisch)
@@ -881,6 +2172,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0a
 String=0x02,Pizzeria
@@ -917,6 +2209,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0b
 String=0x02,Restaurant (Fisch)
@@ -953,6 +2246,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0c
 String=0x02,Steakhaus
@@ -989,6 +2283,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0d
 String=0x02,Bäckerei
@@ -1023,6 +2318,7 @@ DayXpm="14 11 17 1"
 "   !!%@@%!!   "
 "     !!!!     "
 [end]
+
 [_point]
 Type=0x2a0e
 String=0x02,Café
@@ -1042,6 +2338,7 @@ DayXpm="11 10 3 1"
 " .++++++.  "
 "  ......   "
 [end]
+
 [_point]
 Type=0x2a0f
 String=0x02,Restaurant (französisch)
@@ -1078,6 +2375,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a10
 String=0x02,Restaurant (deutsch)
@@ -1114,6 +2412,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a11
 String=0x02,Restaurant (britisch)
@@ -1150,6 +2449,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a12
 String=0x02,Restaurant (Spezialitäten)
@@ -1186,6 +2486,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a13
 String=0x02,Restaurant
@@ -1222,6 +2523,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2b02
 String=0x02,Hütte/Hostel
@@ -1242,39 +2544,7 @@ DayXpm="9 9 5 1"
 " .+++++. "
 " ....... "
 [end]
-[_point]
-Type=0x2b05
-String=0x02,Campingplatz
-String=0x04,camping
-DayXpm="16 16 11 1"
-" 	c None"
-".	c #025301"
-"+	c #244C14"
-"@	c #146C0C"
-"#	c #3C6639"
-"$	c #038A03"
-"%	c #368328"
-"&	c #00A200"
-"*	c #568441"
-"=	c #00C000"
-"-	c #FEFFFC"
-"          -     "
-"         -*-    "
-"      -- -*-    "
-"     -##-*%*-   "
-"     -@@*%&@-   "
-"     -#$&&=$*-  "
-"    -#+@====@-  "
-"    -+++&===&%- "
-"   -#$@@.&===@- "
-"   -@$@&.$===&%-"
-"   -#$@$@$====$*"
-"  -#$&@$$.&==&@-"
-" -%@$=@$=.$=&@- "
-"-*@&=&@$&$@$@-  "
-"-#.@.@+.@@+.-   "
-" -----------    "
-[end]
+
 [_point]
 Type=0x2b06
 String=0x02,Schutzhütte
@@ -1294,6 +2564,7 @@ DayXpm="9 8 5 1"
 " .+...+. "
 "  .   .  "
 [end]
+
 [_point]
 Type=0x2b07
 String=0x02,Hütte
@@ -1314,6 +2585,7 @@ DayXpm="9 9 5 1"
 " .+++++. "
 " ....... "
 [end]
+
 [_point]
 Type=0x2c02
 String=0x02,Denkmal
@@ -1366,6 +2638,7 @@ DayXpm="9 10 36 1"
 "<[}|1|}}2"
 "-3455567-"
 [end]
+
 [_point]
 Type=0x2c0b
 String=0x02,Kirche
@@ -1396,33 +2669,7 @@ DayXpm="9 20 4 1"
 "         "
 "         "
 [end]
-[_point]
-Type=0x2c0d
-String=0x02,Schloss
-String=0x04,castle
-DayXpm="8 16 5 1"
-" 	c none"
-"#	c #000000"
-"+	c #6B6D6C"
-"@	c #9FA6A5"
-".	c #FFFFFF"
-"  ...   "
-"  .#+@. "
-"  .###+."
-"  .#+@. "
-"  .#.   "
-"  .#.   "
-"...#... "
-".#####. "
-".#####. "
-".#####. "
-".#####. "
-"....... "
-"        "
-"        "
-"        "
-"        "
-[end]
+
 [_point]
 Type=0x2d02
 String=0x02,Kneipe
@@ -1453,6 +2700,7 @@ DayXpm="13 13 11 1"
 "  .@@=@@.    "
 "   .---.     "
 [end]
+
 [_point]
 Type=0x2d09
 String=0x02,Badestelle
@@ -1470,6 +2718,7 @@ DayXpm="11 6 5 1"
 "  .#####.  "
 "   .....   "
 [end]
+
 [_point]
 Type=0x2e02
 String=0x02,Supermarkt
@@ -1510,6 +2759,7 @@ DayXpm="16 16 18 1"
 " .++++++++++++. "
 "  ............  "
 [end]
+
 [_point]
 Type=0x2e05
 String=0x02,Apotheke
@@ -1566,47 +2816,7 @@ DayXpm="11 12 38 1"
 " .89. ..3. "
 "  ..    .  "
 [end]
-[_point]
-Type=0x2e06
-String=0x02,Kiosk
-String=0x04,convenience
-String=0x04,
-DayXpm="16 16 18 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"@	c #F8F048"
-"#	c #F8F848"
-"$	c #F8F040"
-"%	c #F8E830"
-"&	c #F8E028"
-"*	c #F8E020"
-"=	c #F8D820"
-"-	c #F8D818"
-";	c #F8F850"
-">	c #F8F038"
-",	c #F8E838"
-"'	c #F8D810"
-")	c #F8D010"
-"!	c #F8E018"
-"~	c #F8D008"
-"  ............  "
-" .++++++++++++. "
-".+@#$$%%&*==--+."
-".+#;#$>%&**++-+."
-".+##@$,%&*=+--+."
-".+$+++++++++-'+."
-".+>+,+%+&+-+--+."
-".+%+%+&+*+=+-'+."
-".+&+&+*+*+-+-)+."
-".+&&++++++++')+."
-".+***=*=---+)'+."
-".+=++++++++++)+."
-".+!++-----)++~+."
-".+------')'))~+."
-" .++++++++++++. "
-"  ............  "
-[end]
+
 [_point]
 Type=0x2f06
 String=0x02,Bank
@@ -1641,6 +2851,7 @@ DayXpm="9 11 17 1"
 "  !*#.@& "
 "   !!!!  "
 [end]
+
 [_point]
 Type=0x2f0b
 String=0x02,Parkplatz
@@ -1666,6 +2877,7 @@ DayXpm="11 11 8 1"
 ".#########."
 " ......... "
 [end]
+
 [_point]
 Type=0x2f0c
 String=0x02,Toilette
@@ -1720,6 +2932,7 @@ DayXpm="16 16 32 1"
 " .++++++++++++. "
 "  ............  "
 [end]
+
 [_point]
 Type=0x2f12
 String=0x02,Telefon
@@ -1752,60 +2965,7 @@ DayXpm="7 11 15 1",
 "'=+%'  "
 " '''   "
 [end]
-[_point]
-Type=0x2f15
-String=0x02,Recycling
-String=0x04,recycling
-DayXpm="12 12 36 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #2ABF2A"
-"@	c #49C849"
-"#	c #00B200"
-"$	c #04B304"
-"%	c #9AE19A"
-"&	c #25BD25"
-"*	c #37C337"
-"=	c #4DC94D"
-"-	c #12B712"
-";	c #26BD26"
-">	c #B2E8B2"
-",	c #30C030"
-"'	c #99E099"
-")	c #57CC57"
-"!	c #73D573"
-"~	c #67D167"
-"{	c #56CC56"
-"]	c #13B813"
-"^	c #5ACD5A"
-"/	c #B1E7B1"
-"(	c #15B815"
-"_	c #7DD87D"
-":	c #11B711"
-"<	c #E7F7E7"
-"[	c #F0FAF0"
-"}	c #46C746"
-"|	c #65D065"
-"1	c #4CC94C"
-"2	c #0AB50A"
-"3	c #CDF0CD"
-"4	c #05B405"
-"5	c #8ADB8A"
-"6	c #7FD87F"
-"7	c #A8E5A8"
-"    .....   "
-"   .+@#$%.  "
-"  .&#*=#-.  "
-"  .;#.>#,.  "
-" .'.. ...). "
-".!#,.  .~#{."
-".]#^.  ./#(."
-"._:....<[}{."
-" .|##1.##2. "
-" .34#15##6. "
-"  .....75.  "
-"       ..   "
-[end]
+
 [_point]
 Type=0x2f17
 String=0x02,Bushaltestelle
@@ -1832,6 +2992,7 @@ DayXpm="9 9 11 1"
 " .@#$#@. "
 "  ..+..  "
 [end]
+
 [_point]
 Type=0x3002
 String=0x02,Arzt/Krankenhaus
@@ -1851,6 +3012,7 @@ DayXpm="10 10 3 1"
 "   1221   "
 "   1111   "
 [end]
+
 [_point]
 Type=0x4c00
 String=0x02,Information
@@ -1874,80 +3036,7 @@ DayXpm="8 12 5 1"
 ".++++++."
 " ...... "
 [end]
-[_point]
-Type=0x6411
-String=0x02,Turm
-String=0x04,tower
-DayXpm="9 18 14 1"
-"  c none"
-"1 c #f0f8f8"
-"2 c #f7f7f7"
-"3 c #101818"
-"4 c #111111"
-"5 c #e0efef"
-"6 c #141414"
-"7 c #f0f0f0"
-"8 c #1c1c1c"
-"9 c #707c7c"
-": c #202020"
-"; c #f0fbfb"
-"< c #ffffff"
-"= c #101919"
-"         "
-"    1    "
-"   232   "
-"   242   "
-"   242   "
-"   242   "
-"   565   "
-"  78987  "
-" 7:7;7:7 "
-"235<<<532"
-"242<<<242"
-"235<<<532"
-" 7:525:7 "
-"  7=4=7  "
-"   222   "
-"         "
-"         "
-"         "
-[end]
-[_point]
-Type=0x6414
-String=0x02,Trinkwasser
-String=0x04,drinking water
-DayXpm="13 14 16 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"@	c #D0D0A0"
-"#	c #E8E8A8"
-"$	c #F8F8B0"
-"%	c #D8D8A0"
-"&	c #C8C898"
-"*	c #B0B090"
-"=	c #A0A088"
-"-	c #888880"
-";	c #C8C8A0"
-">	c #E0E0A8"
-",	c #00F8F8"
-"'	c #0080F8"
-")	c #0000F8"
-"   ....      "
-"  .++++.     "
-"  ..++...... "
-" .++++++++++."
-".+@#$$%&*=-+."
-".+;%>>++++++."
-".++++++..... "
-" ..+...      "
-"  .+.        "
-" .+,+.       "
-".+'')+.      "
-".+)))+.      "
-" .+++.       "
-"  ...        "
-[end]
+
 [_point]
 Type=0x6619
 String=0x02,Höhle
@@ -2023,72 +3112,305 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
-; kmap: a tower, drawn as their observation tower. Their 0x6701, this number.
-Type=0x6608
-String=0x02,Aussichtsturm
-String=0x04,observation tower
-DayXpm="19 20 34 1"
+; kmap: a campsite or caravan site. Their 0x2b05, this number.
+Type=0x2b03
+DayXpm="16 16 11 1"
 " 	c None"
-".	c #F8F8F8"
-"+	c #F7F7F7"
-"@	c #181818"
-"#	c #111111"
-"$	c #EFEFEF"
-"%	c #141414"
-"&	c #F0F0F0"
-"*	c #1C1C1C"
-"=	c #7C7C7C"
-"-	c #202020"
-";	c #FBFBFB"
-">	c #FFFFFF"
-",	c #ACACAC"
-"'	c #C4C4C4"
-")	c #000000"
-"!	c #242424"
-"~	c #323232"
-"{	c #F1F1F1"
-"]	c #CECECE"
-"^	c #212121"
-"/	c #191919"
-"(	c #898989"
-"_	c #2C2C2C"
-":	c #747474"
-"<	c #313131"
-"[	c #9F9F9F"
-"}	c #1B1B1B"
-"|	c #909090"
-"1	c #858585"
-"2	c #5E5E5E"
-"3	c #4F4F4F"
-"4	c #D3D3D3"
-"5	c #BFBFBF"
-"                   "
-"         .         "
-"        +@+        "
-"        +#+        "
-"        +#+        "
-"        +#+        "
-"        $%$        "
-"       &*=*&       "
-"      &-&;&-&      "
-">,'>>+@$>>>$@+>>',>"
-">))))+#+>>>+#+))))>"
-">,'>>+!$>>>$@+>>',>"
-"     >+~$+$-{      "
-"    >]>+^#/{>>     "
-"   >(_> +++ >:.    "
-"  {<)>  >)> >[}|   "
-"  >12   >)>  >3)4  "
-"   >    ')'   [5>  "
-"        ,),        "
-"        >>>        "
+".	c #025301"
+"+	c #244C14"
+"@	c #146C0C"
+"#	c #3C6639"
+"$	c #038A03"
+"%	c #368328"
+"&	c #00A200"
+"*	c #568441"
+"=	c #00C000"
+"-	c #FEFFFC"
+"          -     "
+"         -*-    "
+"      -- -*-    "
+"     -##-*%*-   "
+"     -@@*%&@-   "
+"     -#$&&=$*-  "
+"    -#+@====@-  "
+"    -+++&===&%- "
+"   -#$@@.&===@- "
+"   -@$@&.$===&%-"
+"   -#$@$@$====$*"
+"  -#$&@$$.&==&@-"
+" -%@$=@$=.$=&@- "
+"-*@&=&@$&$@$@-  "
+"-#.@.@+.@@+.-   "
+" -----------    "
 [end]
+
 [_point]
-; kmap: a barrier. Their 0x660f, this number.
+; kmap: a lean-to, which their rules draw as their hut (tourism=lean_to). Their 0x2b07, this number.
+Type=0x2b05
+DayXpm="9 9 5 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"@	c #1F1F1F"
+"#	c #3F3F3F"
+"    .    "
+"   .+.   "
+"  .+.+.  "
+" .+...+. "
+".@#...#@."
+" .+...+. "
+" .+...+. "
+" .+++++. "
+" ....... "
+[end]
+
+[_point]
+; kmap: a memorial, which their rules draw as their monument (historic=memorial). Their 0x2c02, this number.
+Type=0x2c12
+DayXpm="9 10 36 1"
+" 	c None"
+".	c #EAEAEA"
+"+	c #FFFFFF"
+"@	c #848484"
+"#	c #616161"
+"$	c #2B2B2B"
+"%	c #DCDCDC"
+"&	c #A3A3A3"
+"*	c #ACACAC"
+"=	c #7C7C7C"
+"-	c #F3F3F3"
+";	c #969696"
+">	c #B6B6B6"
+",	c #282828"
+"'	c #424242"
+")	c #E8E8E8"
+"!	c #101010"
+"~	c #747474"
+"{	c #565656"
+"]	c #E7E7E7"
+"^	c #8D8D8D"
+"/	c #B7B7B7"
+"(	c #2E2E2E"
+"_	c #1E1E1E"
+":	c #111111"
+"<	c #E3E3E3"
+"[	c #606060"
+"}	c #000000"
+"|	c #636363"
+"1	c #434343"
+"2	c #DADADA"
+"3	c #CDCDCD"
+"4	c #CBCBCB"
+"5	c #C7C7C7"
+"6	c #CACACA"
+"7	c #CFCFCF"
+"    .    "
+"  +@#$+  "
+"  %&+*=+ "
+"  -;+>,+ "
+"   ')!+  "
+"  +~){+  "
+"  ]^+/(+ "
+" +_+++:. "
+"<[}|1|}}2"
+"-3455567-"
+[end]
+
+[_point]
+; kmap: an emergency phone, which their rules draw as their telephone. Their 0x2f12, this number.
+Type=0x2f16
+DayXpm="7 11 15 1",
+" 	c none"
+".	c #000000"
+"+	c #010101"
+"@	c #020202"
+"#	c #060606"
+"$	c #0B0B0B"
+"%	c #353535"
+"&	c #3C3C3C"
+"*	c #606060"
+"=	c #727272"
+"-	c #A7A7A7"
+";	c #A9A9A9"
+">	c #B3B3B3"
+",	c #CDCDCD"
+"'	c #FFFFFF"
+" '''   "
+"'=@%'  "
+"';.+&' "
+"'>@*@-'"
+" ','#;'"
+"   '$-'"
+" ','#;'"
+"'>@*@-'"
+"';.+&' "
+"'=+%'  "
+" '''   "
+[end]
+
+[_point]
+; kmap: a telephone. Their 0x2f12, this number.
+Type=0x2f18
+DayXpm="7 11 15 1",
+" 	c none"
+".	c #000000"
+"+	c #010101"
+"@	c #020202"
+"#	c #060606"
+"$	c #0B0B0B"
+"%	c #353535"
+"&	c #3C3C3C"
+"*	c #606060"
+"=	c #727272"
+"-	c #A7A7A7"
+";	c #A9A9A9"
+">	c #B3B3B3"
+",	c #CDCDCD"
+"'	c #FFFFFF"
+" '''   "
+"'=@%'  "
+"';.+&' "
+"'>@*@-'"
+" ','#;'"
+"   '$-'"
+" ','#;'"
+"'>@*@-'"
+"';.+&' "
+"'=+%'  "
+" '''   "
+[end]
+
+[_point]
+; kmap: a taxi rank, which their rules draw as their bus stop (amenity=taxi). Their 0x2f17, this number.
+Type=0x2f19
+DayXpm="9 9 11 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #E0F3E4"
+"@	c #ACDFB7"
+"#	c #18A736"
+"$	c #09A125"
+"%	c #25AB27"
+"&	c #AADB30"
+"*	c #FBF836"
+"=	c #45B629"
+"-	c #049F24"
+"  ..+..  "
+" .@#$#@. "
+".@%&*&=@."
+".#*-*-*#."
+"+$*---*$+"
+".#*-*-*#."
+".@=&*&=@."
+" .@#$#@. "
+"  ..+..  "
+[end]
+
+[_point]
+; kmap: drinking water. Their 0x6414, this number.
+Type=0x5000
+DayXpm="13 14 16 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"@	c #D0D0A0"
+"#	c #E8E8A8"
+"$	c #F8F8B0"
+"%	c #D8D8A0"
+"&	c #C8C898"
+"*	c #B0B090"
+"=	c #A0A088"
+"-	c #888880"
+";	c #C8C8A0"
+">	c #E0E0A8"
+",	c #00F8F8"
+"'	c #0080F8"
+")	c #0000F8"
+"   ....      "
+"  .++++.     "
+"  ..++...... "
+" .++++++++++."
+".+@#$$%&*=-+."
+".+;%>>++++++."
+".++++++..... "
+" ..+...      "
+"  .+.        "
+" .+,+.       "
+".+'')+.      "
+".+)))+.      "
+" .+++.       "
+"  ...        "
+[end]
+
+[_point]
+; kmap: a mast; chimneys, generators, water towers, beacons land here too. Their 0x6702, this number.
+Type=0x6411
+DayXpm="11 12 8 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"@	c #9A9A9A"
+"#	c #F8F8F8"
+"$	c #F7F7F7"
+"%	c #181818"
+"&	c #111111"
+"  .     .  "
+" .+.   .+. "
+".+.@.#.@.+."
+".+.+$%$+.+."
+".+.@$&$@.+."
+" .+.$&$.+. "
+"  . $&$ .  "
+"    .+.    "
+"    .+.    "
+"   ..+..   "
+"   .+++.   "
+"   .....   "
+[end]
+
+[_point]
+; kmap: a tower, drawn as their plain tower (man_made=tower). Their 0x6411, this number.
+Type=0x6608
+DayXpm="9 18 14 1"
+"  c none"
+"1 c #f0f8f8"
+"2 c #f7f7f7"
+"3 c #101818"
+"4 c #111111"
+"5 c #e0efef"
+"6 c #141414"
+"7 c #f0f0f0"
+"8 c #1c1c1c"
+"9 c #707c7c"
+": c #202020"
+"; c #f0fbfb"
+"< c #ffffff"
+"= c #101919"
+"         "
+"    1    "
+"   232   "
+"   242   "
+"   242   "
+"   242   "
+"   565   "
+"  78987  "
+" 7:7;7:7 "
+"235<<<532"
+"242<<<242"
+"235<<<532"
+" 7:525:7 "
+"  7=4=7  "
+"   222   "
+"         "
+"         "
+"         "
+[end]
+
+[_point]
+; kmap: a gate, stile, kissing gate or cycle barrier: their barrier. Their 0x660f, this number.
 Type=0x3200
-String=0x02,Pfosten/Barriere
-String=0x04,barrier
 DayXpm="7 7 3 1"
 " 	c None"
 ".	c #FFFFFF"
@@ -2101,41 +3423,27 @@ DayXpm="7 7 3 1"
 "  .+.  "
 "   .   "
 [end]
+
 [_point]
-; kmap: the name of a wood, marked with their broadleaf tree. Their 0x6416, this number.
-Type=0x6618
-String=0x02,Laubbaum
-String=0x04,broadleaf tree
-DayXpm="9 12 13 1"
+; kmap: a bollard, block or bus trap: their barrier. Their 0x660f, this number.
+Type=0x3202
+DayXpm="7 7 3 1"
 " 	c None"
 ".	c #FFFFFF"
-"+	c #A2A2A2"
-"@	c #000000"
-"#	c #959595"
-"$	c #B4B4B4"
-"%	c #666666"
-"&	c #BDBDBD"
-"*	c #949494"
-"=	c #DADADA"
-"-	c #EBEBEB"
-";	c #696969"
-">	c #585858"
-"   .+.   "
-"  .@#@$  "
-" .@...@. "
-".%..&*=@."
-".@..-;-@."
-".@...>.@."
-".@..&=@%."
-" .@..@@. "
-"  .@@@.  "
-"  ..@..  "
-"  .@@@.  "
-"  .....  "
+"+	c #000000"
+"   .   "
+"  .+.  "
+" .+++. "
+".++.++."
+" .+++. "
+"  .+.  "
+"   .   "
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2b01
-; Hotel — openstreetmap-carto symbol (CC0), 16 px
+; Hotel - openstreetmap-carto symbols/tourism/hotel.svg (CC0), 16 px, ink @accommodation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -2174,54 +3482,12 @@ NightXpm="16 16 2 1"
 "................"
 "................"
 "................"
-String=0x00,Hotel
 [end]
+
 [_point]
-Type=0x2b03
-; Campsite — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"......!..!......"
-"......!!!!......"
-"......!!!!......"
-".......!!......."
-"......!!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".....!!!!!!....."
-"....!!!!!!!!...."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"..!!!!....!!!!.."
-"..!!!!....!!!!.."
-".!!!!......!!!!."
-".!!!!......!!!!."
-"!!!!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"......!..!......"
-"......!!!!......"
-"......!!!!......"
-".......!!......."
-"......!!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".....!!!!!!....."
-"....!!!!!!!!...."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"..!!!!....!!!!.."
-"..!!!!....!!!!.."
-".!!!!......!!!!."
-".!!!!......!!!!."
-"!!!!!!!!!!!!!!!!"
-String=0x00,Campsite
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2c03
-; Library — openstreetmap-carto symbol (CC0), 16 px
+; Library - openstreetmap-carto symbols/amenity/library.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -2260,11 +3526,12 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 ".....!!!!!!....."
 "................"
-String=0x00,Library
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2c04
-; Viewpoint — openstreetmap-carto symbol (CC0), 16 px
+; Viewpoint - openstreetmap-carto symbols/tourism/viewpoint.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -2303,54 +3570,12 @@ NightXpm="16 16 2 1"
 "...!!!....!!!..."
 "...!!!....!!!..."
 "................"
-String=0x00,Viewpoint
 [end]
+
 [_point]
-Type=0x2c08
-; Fishing — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0D7813"
-". c none"
-"!..............."
-"!..............."
-"!..............."
-"!..............."
-"!.....!........."
-"!....!!........."
-"!....!!........."
-"!!...!.........."
-".!!!!..........."
-"................"
-"....!!!!!......."
-"..!!!!!!!!!...!!"
-"!!..!!!!!!!!.!!!"
-"!!!.!!!!!!!!.!!!"
-".!!!!!!!!!!...!!"
-"...!!!!!!......!"
-NightXpm="16 16 2 1"
-"! c #AAFFAA"
-". c none"
-"!..............."
-"!..............."
-"!..............."
-"!..............."
-"!.....!........."
-"!....!!........."
-"!....!!........."
-"!!...!.........."
-".!!!!..........."
-"................"
-"....!!!!!......."
-"..!!!!!!!!!...!!"
-"!!..!!!!!!!!.!!!"
-"!!!.!!!!!!!!.!!!"
-".!!!!!!!!!!...!!"
-"...!!!!!!......!"
-String=0x00,Fishing
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2c0f
-; Playground — openstreetmap-carto symbol (CC0), 16 px
+; Playground - openstreetmap-carto symbols/leisure/playground.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -2389,97 +3614,56 @@ NightXpm="16 16 2 1"
 "......!!!!..!!!!"
 "......!!!!.....!"
 "......!!!!......"
-String=0x00,Playground
 [end]
+
 [_point]
-Type=0x2c12
-; Memorial — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
-"......!!!!!!...."
-".....!!!!!!!!..."
-"....!!!!!!!!!!.."
-"....!!!!..!!!!.."
-"....!!!!!!!!!!.."
-"....!!......!!.."
-"....!!!!!!!!!!.."
-"....!!!....!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-".....!!!!!!!!!.."
-"................"
-"...!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"......!!!!!!...."
-".....!!!!!!!!..."
-"....!!!!!!!!!!.."
-"....!!!!..!!!!.."
-"....!!!!!!!!!!.."
-"....!!......!!.."
-"....!!!!!!!!!!.."
-"....!!!....!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-".....!!!!!!!!!.."
-"................"
-"...!!!!!!!!!!!!!"
-String=0x00,Memorial
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d01
-; Arts centre — openstreetmap-carto symbol (CC0), 16 px
+; Theatre - openstreetmap-carto symbols/amenity/theatre.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
-".....!!!!!!...!!"
-"...!!!!!.!!!..!!"
-"..!!!!!...!!..!!"
-".!!..!!...!!..!!"
-".!!...!!!!!...!!"
-"!!!!.!!!!!!...!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!...!!"
-"!!!!!!!!!!!...!!"
-".!!!!!!!!...!!!!"
-".!!!!!....!!!!!!"
-"..!!!!...!!!!!!!"
-"...!!!...!!!!!!."
-"..........!!!!.."
+"!!.....!!......."
+"!!!!!!!!!......."
+"!..!!!..!......."
+"!.!............!"
+"!!!!...!!!!!!!!!"
+"!.!!...!!!!!!!!!"
+"!......!!!!!!!!!"
+"!...!!.!!..!..!!"
+"!.!!!!.!!..!..!!"
+"!!!!!!.!!!!!!!!!"
+".!.....!!!!!!!!!"
+".!!!!!.!!!!!!!!!"
+"...!!!.!!!...!!!"
+".......!!!!.!!!!"
+"........!!!!!!!."
+".........!!!!!.."
 NightXpm="16 16 2 1"
 "! c #AAAAAA"
 ". c none"
-".....!!!!!!...!!"
-"...!!!!!.!!!..!!"
-"..!!!!!...!!..!!"
-".!!..!!...!!..!!"
-".!!...!!!!!...!!"
-"!!!!.!!!!!!...!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!...!!"
-"!!!!!!!!!!!...!!"
-".!!!!!!!!...!!!!"
-".!!!!!....!!!!!!"
-"..!!!!...!!!!!!!"
-"...!!!...!!!!!!."
-"..........!!!!.."
-String=0x00,Arts centre
+"!!.....!!......."
+"!!!!!!!!!......."
+"!..!!!..!......."
+"!.!............!"
+"!!!!...!!!!!!!!!"
+"!.!!...!!!!!!!!!"
+"!......!!!!!!!!!"
+"!...!!.!!..!..!!"
+"!.!!!!.!!..!..!!"
+"!!!!!!.!!!!!!!!!"
+".!.....!!!!!!!!!"
+".!!!!!.!!!!!!!!!"
+"...!!!.!!!...!!!"
+".......!!!!.!!!!"
+"........!!!!!!!."
+".........!!!!!.."
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d03
-; Cinema — openstreetmap-carto symbol (CC0), 16 px
+; Cinema - openstreetmap-carto symbols/amenity/cinema.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -2518,11 +3702,12 @@ NightXpm="16 16 2 1"
 "!!!!!......!!!!!"
 "!.!!!......!!!.!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Cinema
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d04
-; Casino — openstreetmap-carto symbol (CC0), 16 px
+; Casino - openstreetmap-carto symbols/amenity/casino.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -2561,11 +3746,12 @@ NightXpm="16 16 2 1"
 ".......!..!!!!!!"
 "........!!!!!!!."
 "................"
-String=0x00,Casino
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d05
-; Golf course — openstreetmap-carto symbol (CC0), 16 px
+; Golf course - openstreetmap-carto symbols/leisure/golf.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -2604,11 +3790,12 @@ NightXpm="16 16 2 1"
 ".!.....!!..!...."
 ".!.....!...!...."
 "................"
-String=0x00,Golf course
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d07
-; Bowling alley — openstreetmap-carto symbol (CC0), 16 px
+; Bowling - openstreetmap-carto symbols/leisure/bowling_alley.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -2647,54 +3834,12 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!.!!!!!!"
 ".!!!!!!!..!!!!!!"
 "..!!!!!...!!!!!."
-String=0x00,Bowling alley
 [end]
+
 [_point]
-Type=0x2d0a
-; Sports center — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0D7813"
-". c none"
-"..........!!...."
-"..........!!!..."
-"..........!!...."
-".........!!....."
-"......!!!!!!.!!."
-".....!!.!!!!!!.."
-".....!.!!!.!!..."
-".......!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".!!!!!!.!!!....."
-"..!!!!...!!....."
-".........!!....."
-".........!......"
-"........!!......"
-".........!......"
-NightXpm="16 16 2 1"
-"! c #AAFFAA"
-". c none"
-"..........!!...."
-"..........!!!..."
-"..........!!...."
-".........!!....."
-"......!!!!!!.!!."
-".....!!.!!!!!!.."
-".....!.!!!.!!..."
-".......!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".!!!!!!.!!!....."
-"..!!!!...!!....."
-".........!!....."
-".........!......"
-"........!!......"
-".........!......"
-String=0x00,Sports center
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2e01
-; Department store — openstreetmap-carto symbol (CC0), 16 px
+; Department store - openstreetmap-carto symbols/shop/department_store.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -2733,269 +3878,12 @@ NightXpm="16 16 2 1"
 ".!!!!.......!!!."
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
-String=0x00,Department store
 [end]
+
 [_point]
-Type=0x2e04
-; Mall — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-".....!!!!!!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!.!!!!!!!."
-".!!!!..!..!!!!!."
-".!!!!..!..!!!!!."
-".!!!!!...!!!!!!."
-".!!!!....!!!!!!."
-".!!!..!....!!!!."
-".!!!..!!...!!!!."
-".!!!!.......!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-".....!!!!!!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!.!!!!!!!."
-".!!!!..!..!!!!!."
-".!!!!..!..!!!!!."
-".!!!!!...!!!!!!."
-".!!!!....!!!!!!."
-".!!!..!....!!!!."
-".!!!..!!...!!!!."
-".!!!!.......!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-String=0x00,Mall
-[end]
-[_point]
-Type=0x2e07
-; Clothes — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"...!!!....!!!..."
-".!!!!!....!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-".!!!!!!!!!!!!.!."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"...!!!....!!!..."
-".!!!!!....!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-".!!!!!!!!!!!!.!."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"................"
-String=0x00,Clothes
-[end]
-[_point]
-Type=0x2e08
-; Garden centre — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-".........!!!!!.."
-"........!!!!!!!."
-".......!!....!!."
-".......!!.....!!"
-"..!!...!!.....!!"
-".!!!...!!.....!!"
-"!!!!...!!!!!!!!!"
-"!!!!!..!!!!!!!!!"
-"....!!!!!!!!!!!!"
-".....!!!!!!!!!!."
-".....!!!!!!!!!!."
-"......!!!!!!!!!."
-".......!!!!!!!!."
-"........!!!!!!!."
-".........!!!!!.."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-".........!!!!!.."
-"........!!!!!!!."
-".......!!....!!."
-".......!!.....!!"
-"..!!...!!.....!!"
-".!!!...!!.....!!"
-"!!!!...!!!!!!!!!"
-"!!!!!..!!!!!!!!!"
-"....!!!!!!!!!!!!"
-".....!!!!!!!!!!."
-".....!!!!!!!!!!."
-"......!!!!!!!!!."
-".......!!!!!!!!."
-"........!!!!!!!."
-".........!!!!!.."
-String=0x00,Garden centre
-[end]
-[_point]
-Type=0x2e09
-; Doityourself — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"...!!!.........."
-".!!!!!!!.!....!."
-"!!!!!!!!.!!..!!."
-".!!!!!!!.!!!!!!."
-".!!!!!!!.!!!!!!."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"....!!.....!!..."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"...!!!.........."
-".!!!!!!!.!....!."
-"!!!!!!!!.!!..!!."
-".!!!!!!!.!!!!!!."
-".!!!!!!!.!!!!!!."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"....!!.....!!..."
-String=0x00,Doityourself
-[end]
-[_point]
-Type=0x2e0b
-; Computer — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"...!!!!!!!!!!..."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!!!!!!!!!!!.."
-"................"
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"...!!!!!!!!!!..."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!!!!!!!!!!!.."
-"................"
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-String=0x00,Computer
-[end]
-[_point]
-Type=0x2e0c
-; Butcher — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"......!!........"
-"....!!..!......."
-"..!!..!.!......."
-"..!...!.!......."
-"...!.....!......"
-"...!.....!......"
-"....!.....!....."
-"....!.....!....."
-".....!...!!!...."
-"......!.!!!!!..."
-"......!!..!!!..."
-"...........!!!.."
-"...........!!!.."
-"............!!.."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"......!!........"
-"....!!..!......."
-"..!!..!.!......."
-"..!...!.!......."
-"...!.....!......"
-"...!.....!......"
-"....!.....!....."
-"....!.....!....."
-".....!...!!!...."
-"......!.!!!!!..."
-"......!!..!!!..."
-"...........!!!.."
-"...........!!!.."
-"............!!.."
-"................"
-String=0x00,Butcher
-[end]
-[_point]
-Type=0x2f01
-; Fuel — openstreetmap-carto symbol (CC0), 16 px
+; kmap: fuel with a shop is fuel to them (their 0x2f01), which their TYP does not draw, so it takes openstreetmap-carto's symbol.
+Type=0x2e06
+; Fuel with shop - openstreetmap-carto symbols/amenity/fuel.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -3034,11 +3922,232 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!..!!.."
 ".!!!!!!!!!......"
 ".!!!!!!!!!......"
-String=0x00,Fuel
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e07
+; Clothes shop - openstreetmap-carto symbols/shop/clothes.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+"...!!!....!!!..."
+".!!!!!....!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!!!!!!!!!.!."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"................"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+"...!!!....!!!..."
+".!!!!!....!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!!!!!!!!!.!."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"................"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e08
+; Outdoor / garden shop - openstreetmap-carto symbols/shop/garden_centre.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+".........!!!!!.."
+"........!!!!!!!."
+".......!!....!!."
+".......!!.....!!"
+"..!!...!!.....!!"
+".!!!...!!.....!!"
+"!!!!...!!!!!!!!!"
+"!!!!!..!!!!!!!!!"
+"....!!!!!!!!!!!!"
+".....!!!!!!!!!!."
+".....!!!!!!!!!!."
+"......!!!!!!!!!."
+".......!!!!!!!!."
+"........!!!!!!!."
+".........!!!!!.."
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+".........!!!!!.."
+"........!!!!!!!."
+".......!!....!!."
+".......!!.....!!"
+"..!!...!!.....!!"
+".!!!...!!.....!!"
+"!!!!...!!!!!!!!!"
+"!!!!!..!!!!!!!!!"
+"....!!!!!!!!!!!!"
+".....!!!!!!!!!!."
+".....!!!!!!!!!!."
+"......!!!!!!!!!."
+".......!!!!!!!!."
+"........!!!!!!!."
+".........!!!!!.."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e09
+; Hardware shop - openstreetmap-carto symbols/shop/diy.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"...!!!.........."
+".!!!!!!!.!....!."
+"!!!!!!!!.!!..!!."
+".!!!!!!!.!!!!!!."
+".!!!!!!!.!!!!!!."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"....!!.....!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"...!!!.........."
+".!!!!!!!.!....!."
+"!!!!!!!!.!!..!!."
+".!!!!!!!.!!!!!!."
+".!!!!!!!.!!!!!!."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"....!!.....!!..."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e0b
+; Computer shop - openstreetmap-carto symbols/shop/computer.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+"...!!!!!!!!!!..."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!!!!!!!!!!!.."
+"................"
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+"...!!!!!!!!!!..."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!!!!!!!!!!!.."
+"................"
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f01
+; Fuel - openstreetmap-carto symbols/amenity/fuel.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"............!..."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!...!!."
+".!!!!!!!!!...!!."
+".!.......!!..!!."
+".!.......!!!..!."
+".!!......!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!..!!!."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!......"
+".!!!!!!!!!......"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"............!..."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!...!!."
+".!!!!!!!!!...!!."
+".!.......!!..!!."
+".!.......!!!..!."
+".!!......!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!..!!!."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!......"
+".!!!!!!!!!......"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f03
-; Car repair — openstreetmap-carto symbol (CC0), 16 px
+; Car repair - openstreetmap-carto symbols/shop/car_repair.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -3077,11 +4186,12 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 "..!!!!!!!!!!!!.."
 "....!!....!!...."
-String=0x00,Car repair
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f04
-; Aerodrome — openstreetmap-carto symbol (CC0), 16 px
+; Airport - openstreetmap-carto symbols/amenity/aerodrome.svg (CC0), 16 px, ink @airtransport
 DayXpm="16 16 2 1"
 "! c #8461C4"
 ". c none"
@@ -3120,11 +4230,12 @@ NightXpm="16 16 2 1"
 "......!!!!!....."
 "....!!!!!!!!...."
 "....!!....!!...."
-String=0x00,Aerodrome
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f05
-; Post office — openstreetmap-carto symbol (CC0), 16 px
+; Post office - openstreetmap-carto symbols/amenity/post_office.svg (CC0), 16 px, ink @public-service
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -3163,11 +4274,12 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!!!!!!!!"
 "................"
 "................"
-String=0x00,Post office
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f07
-; Car — openstreetmap-carto symbol (CC0), 16 px
+; Car dealer - openstreetmap-carto symbols/shop/car.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -3206,71 +4318,563 @@ NightXpm="16 16 2 1"
 ".!!!........!!!."
 ".!!..........!!."
 "................"
-String=0x00,Car
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f08
-; Bus station — openstreetmap-carto symbol (CC0), 16 px
+; Station - openstreetmap-carto symbols/amenity/bus_station.svg (CC0), 16 px, ink the SVG's own colours
+; Bus and railway stations land here; topoactive draws a bus. carto draws the
+; bus station in the SVG's own blue and white, so both are kept.
+DayXpm="16 16 3 1"
+"! c #0092DA"
+"- c #FFFFFF"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!--------!!!!"
+"!!!----------!!!"
+"!!--!!!!!!!!--!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!-!--------!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!------------!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 3 1"
+"! c #AAFFFF"
+"- c #FFFFFF"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!--------!!!!"
+"!!!----------!!!"
+"!!--!!!!!!!!--!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!-!--------!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!------------!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f0e
+; Car wash - openstreetmap-carto symbols/amenity/car_wash.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"......!!!!......"
+"................"
+"....!..!!..!...."
+"....!..!!..!...."
+"...!...!!...!..."
+"...!...!!...!..."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"......!!!!......"
+"................"
+"....!..!!..!...."
+"....!..!!..!...."
+"...!...!!...!..."
+"...!...!!...!..."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f10
+; Hairdresser - openstreetmap-carto symbols/shop/hairdresser.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"....!!!..!!!!!!."
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!.......!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"..!!!!!!!!....!!"
+"!!!!!!!!!!!...!!"
+"!...!!!...!...!!"
+"!...!!!...!...!!"
+"!!..!.!!.!!...!!"
+".!!!!..!!!....!!"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"....!!!..!!!!!!."
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!.......!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"..!!!!!!!!....!!"
+"!!!!!!!!!!!...!!"
+"!...!!!...!...!!"
+"!...!!!...!...!!"
+"!!..!.!!.!!...!!"
+".!!!!..!!!....!!"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f13
+; Bicycle shop - openstreetmap-carto symbols/shop/bicycle.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+"................"
+".........!!....."
+"...!!!!...!!...."
+"....!!....!!...."
+"....!!!!!!!!...."
+"....!...!!.!...."
+".!!!!...!.!!!!!."
+"!!...!!!..!...!!"
+"!....!!..!!....!"
+"!.....!..!.....!"
+"!!...!!..!!...!!"
+".!!!!!....!!!!!."
+"..!!!......!!!.."
+"................"
+"................"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+"................"
+".........!!....."
+"...!!!!...!!...."
+"....!!....!!...."
+"....!!!!!!!!...."
+"....!...!!.!...."
+".!!!!...!.!!!!!."
+"!!...!!!..!...!!"
+"!....!!..!!....!"
+"!.....!..!.....!"
+"!!...!!..!!...!!"
+".!!!!!....!!!!!."
+"..!!!......!!!.."
+"................"
+"................"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f14
+; Nursing home - openstreetmap-carto symbols/amenity/social_facility.svg (CC0), 16 px, ink @public-service
+; carto draws social_facility=nursing_home so; a bare amenity=nursing_home is a dot.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!......."
+"......!!!!......"
+".!....!!!!....!."
+".!............!."
+".!............!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!!...!!!!...!!."
+".!!...!!!!...!!."
+".!!!........!!!."
+"..!!!!....!!!!.."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+"......!!!!......"
+".!....!!!!....!."
+".!............!."
+".!............!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!!...!!!!...!!."
+".!!...!!!!...!!."
+".!!!........!!!."
+"..!!!!....!!!!.."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+[end]
+
+[_point]
+; kmap: their rules have no post box (their 0x2f15 drawing is recycling), so it takes openstreetmap-carto's symbol.
+Type=0x2f15
+; Post box - openstreetmap-carto symbols/amenity/post_box.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!............!!"
+"!..............!"
+"!..!!!!!!!.!!..!"
+"...!!!!!!..!!..."
+"...!!!!!..!!!..."
+"...!!!!!..!!!..."
+"...!!!!..!!!!..."
+"...!!!!.!!!!!..."
+"...!!!..!!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!!..!!!..."
+"...!!!!!!.!!!..."
+"...!!!!!!..!!..."
+"...!!!!!!!..!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!............!!"
+"!..............!"
+"!..!!!!!!!.!!..!"
+"...!!!!!!..!!..."
+"...!!!!!..!!!..."
+"...!!!!!..!!!..."
+"...!!!!..!!!!..."
+"...!!!!.!!!!!..."
+"...!!!..!!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!!..!!!..."
+"...!!!!!!.!!!..."
+"...!!!!!!..!!..."
+"...!!!!!!!..!..."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f1a
+; Charging station - openstreetmap-carto symbols/amenity/charging_station.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
+"................"
+".!!!!!!........."
+"!!!!!!!!....!.!."
+"!!!!!!!!....!.!."
+"!!!...!!...!!!!."
+"!!!..!!!...!!!!."
+"!!...!!!!!.!!!!."
+"!!....!!.!..!!!."
+"!!!..!!!.!!.!!.."
+"!!!..!!!.!!.!!.."
+"!!!.!!!!.!!.!!.."
+"!!.!!!!!.!!.!!.."
+"!!!!!!!!.!!.!!.."
+"!!!!!!!!.!!!!!.."
+"!!!!!!!!..!!!..."
+"!!!!!!!!........"
 NightXpm="16 16 2 1"
 "! c #AAFFFF"
 ". c none"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-String=0x00,Bus station
+"................"
+".!!!!!!........."
+"!!!!!!!!....!.!."
+"!!!!!!!!....!.!."
+"!!!...!!...!!!!."
+"!!!..!!!...!!!!."
+"!!...!!!!!.!!!!."
+"!!....!!.!..!!!."
+"!!!..!!!.!!.!!.."
+"!!!..!!!.!!.!!.."
+"!!!.!!!!.!!.!!.."
+"!!.!!!!!.!!.!!.."
+"!!!!!!!!.!!.!!.."
+"!!!!!!!!.!!!!!.."
+"!!!!!!!!..!!!..."
+"!!!!!!!!........"
 [end]
+
 [_point]
-Type=0x2f09
-; Slipway — openstreetmap-carto symbol (CC0), 16 px
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3001
+; Police - openstreetmap-carto symbols/amenity/police.svg (CC0), 16 px, ink @public-service
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".....!!!!!!....."
+"....!!!!!!!!...."
+"................"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"................"
+"...!!!!!!!.!!..."
+"...!!!!!!..!!!.."
+"..!!!!!!..!!!!.."
+"..!!!!!!.!!!!!.."
+"..!!!!!.!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!..!!!!!!!.."
+"..!!!.!!!!!!!!.."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".....!!!!!!....."
+"....!!!!!!!!...."
+"................"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"................"
+"...!!!!!!!.!!..."
+"...!!!!!!..!!!.."
+"..!!!!!!..!!!!.."
+"..!!!!!!.!!!!!.."
+"..!!!!!.!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!..!!!!!!!.."
+"..!!!.!!!!!!!!.."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3003
+; Town hall / embassy - openstreetmap-carto symbols/amenity/town_hall.svg (CC0), 16 px, ink @public-service
+; Town halls, embassies and government offices: carto's town hall.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!!!!!..."
+".......!!!!!...."
+".......!!!!!!..."
+".......!!.!!!..."
+".......!!......."
+"......!!!!......"
+"....!!!!!!!!...."
+"..!!!!!!!!!!!!.."
+"................"
+".!!!!!!!!!!!!!!."
+"..!!!!!!!!!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+".!!!!!!!!!!!!!!."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!!!!!..."
+".......!!!!!...."
+".......!!!!!!..."
+".......!!.!!!..."
+".......!!......."
+"......!!!!......"
+"....!!!!!!!!...."
+"..!!!!!!!!!!!!.."
+"................"
+".!!!!!!!!!!!!!!."
+"..!!!!!!!!!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+".!!!!!!!!!!!!!!."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3004
+; Courthouse - openstreetmap-carto symbols/amenity/courthouse.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!...!!...!!.."
+"..!!...!!...!!.."
+".!..!..!!..!..!."
+".!..!..!!..!..!."
+"!...!!.!!.!!...!"
+"!!!!!!.!!.!!!!!!"
+"!!!!!..!!..!!!!!"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"..!!!!!!!!!!!!.."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!...!!...!!.."
+"..!!...!!...!!.."
+".!..!..!!..!..!."
+".!..!..!!..!..!."
+"!...!!.!!.!!...!"
+"!!!!!!.!!.!!!!!!"
+"!!!!!..!!..!!!!!"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"..!!!!!!!!!!!!.."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3005
+; Community centre - openstreetmap-carto symbols/amenity/community_centre.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"................"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"....!......!...."
+"................"
+"!!!!!!!!!!!!!!!!"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!.!....!.!..."
+"..!!..!..!..!!.."
+"..!...!..!...!.."
+".!!....!!....!!."
+"................"
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"................"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"....!......!...."
+"................"
+"!!!!!!!!!!!!!!!!"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!.!....!.!..."
+"..!!..!..!..!!.."
+"..!...!..!...!.."
+".!!....!!....!!."
+"................"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3008
+; Fire station - openstreetmap-carto symbols/amenity/firestation.svg (CC0), 16 px, ink @public-service
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!........"
+".....!!!........"
+"....!!!!........"
+"....!!!!..!!...."
+"...!!!!!.!!!...."
+"...!!!!!!!!!...."
+"..!!!!!!!!!!!..."
+"..!!!!!.!!!!!..."
+"..!!!!..!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!...!!!!!!.."
+"...!!...!!.!!!.."
+"...!!!.....!!..."
+"...!!!.....!!..."
+"....!!.....!...."
+"......!........."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!........"
+".....!!!........"
+"....!!!!........"
+"....!!!!..!!...."
+"...!!!!!.!!!...."
+"...!!!!!!!!!...."
+"..!!!!!!!!!!!..."
+"..!!!!!.!!!!!..."
+"..!!!!..!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!...!!!!!!.."
+"...!!...!!.!!!.."
+"...!!!.....!!..."
+"...!!!.....!!..."
+"....!!.....!...."
+"......!........."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x4a00
+; Picnic site - openstreetmap-carto symbols/tourism/picnic.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
 "................"
 "................"
-".......!!......."
-".......!!!!....."
-".!!!!..!!!!....."
-"..!!!!!!!!!....."
-"..!!!!!!!!!!...."
-".....!!!!!!!!!!!"
-"!!......!!!!!!!."
-"!!!!!!......!!.."
-"!!!!!!!!!......."
-"!!!!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".....!....!....."
+"....!!....!!...."
+"....!!....!!...."
+"....!!....!!...."
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
+"...!!......!!..."
+"...!!......!!..."
+"..!!........!!.."
+"..!!........!!.."
 "................"
 "................"
 NightXpm="16 16 2 1"
@@ -3278,589 +4882,6 @@ NightXpm="16 16 2 1"
 ". c none"
 "................"
 "................"
-".......!!......."
-".......!!!!....."
-".!!!!..!!!!....."
-"..!!!!!!!!!....."
-"..!!!!!!!!!!...."
-".....!!!!!!!!!!!"
-"!!......!!!!!!!."
-"!!!!!!......!!.."
-"!!!!!!!!!......."
-"!!!!!!!!!!!!!..."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"................"
-"................"
-String=0x00,Slipway
-[end]
-[_point]
-Type=0x2f0e
-; Car wash — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"......!!!!......"
-"................"
-"....!..!!..!...."
-"....!..!!..!...."
-"...!...!!...!..."
-"...!...!!...!..."
-"................"
-"....!!!!!!!!...."
-"....!!....!!...."
-"....!......!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!.!!!!!!.!!.."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"....!!....!!...."
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"......!!!!......"
-"................"
-"....!..!!..!...."
-"....!..!!..!...."
-"...!...!!...!..."
-"...!...!!...!..."
-"................"
-"....!!!!!!!!...."
-"....!!....!!...."
-"....!......!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!.!!!!!!.!!.."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"....!!....!!...."
-String=0x00,Car wash
-[end]
-[_point]
-Type=0x2f10
-; Beauty — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"....!!!!!......."
-"...!!!!!!!!....."
-"..!!!!!..!!!!..."
-".!!!!.......!!.."
-"!!!!!.........!."
-".!!............."
-".............!.."
-"..!.......!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!.!!"
-"!!.!!!!!!..!!..."
-"...!!..!!..!!..."
-"...!...!!......."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"....!!!!!......."
-"...!!!!!!!!....."
-"..!!!!!..!!!!..."
-".!!!!.......!!.."
-"!!!!!.........!."
-".!!............."
-".............!.."
-"..!.......!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!.!!"
-"!!.!!!!!!..!!..."
-"...!!..!!..!!..."
-"...!...!!......."
-"................"
-"................"
-String=0x00,Beauty
-[end]
-[_point]
-Type=0x2f13
-; Bicycle — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"................"
-".........!!....."
-"...!!!!...!!...."
-"....!!....!!...."
-"....!!!!!!!!...."
-"....!...!!.!...."
-".!!!!...!.!!!!!."
-"!!...!!!..!...!!"
-"!....!!..!!....!"
-"!.....!..!.....!"
-"!!...!!..!!...!!"
-".!!!!!....!!!!!."
-"..!!!......!!!.."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"................"
-".........!!....."
-"...!!!!...!!...."
-"....!!....!!...."
-"....!!!!!!!!...."
-"....!...!!.!...."
-".!!!!...!.!!!!!."
-"!!...!!!..!...!!"
-"!....!!..!!....!"
-"!.....!..!.....!"
-"!!...!!..!!...!!"
-".!!!!!....!!!!!."
-"..!!!......!!!.."
-"................"
-"................"
-String=0x00,Bicycle
-[end]
-[_point]
-Type=0x2f14
-; Nursing home — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #BF0000"
-". c none"
-".......!!......."
-"......!!!!......"
-".!....!!!!....!."
-".!............!."
-".!............!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!!...!!!!...!!."
-".!!...!!!!...!!."
-".!!!........!!!."
-"..!!!!....!!!!.."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-NightXpm="16 16 2 1"
-"! c #FFAAAA"
-". c none"
-".......!!......."
-"......!!!!......"
-".!....!!!!....!."
-".!............!."
-".!............!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!!...!!!!...!!."
-".!!...!!!!...!!."
-".!!!........!!!."
-"..!!!!....!!!!.."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-String=0x00,Nursing home
-[end]
-[_point]
-Type=0x2f16
-; Emergency phone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #BF0000"
-". c none"
-"................"
-".!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!......!!!!!"
-"!!!!........!!!!"
-"!!!!........!!!!"
-"................"
-"................"
-".!!!..!!!!..!!!."
-"!!....!..!.!!..."
-"!!!!..!..!.!!!!."
-".!!!!.!..!..!!!!"
-"...!!.!..!....!!"
-".!!!..!!!!..!!!."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAAA"
-". c none"
-"................"
-".!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!......!!!!!"
-"!!!!........!!!!"
-"!!!!........!!!!"
-"................"
-"................"
-".!!!..!!!!..!!!."
-"!!....!..!.!!..."
-"!!!!..!..!.!!!!."
-".!!!!.!..!..!!!!"
-"...!!.!..!....!!"
-".!!!..!!!!..!!!."
-"................"
-String=0x00,Emergency phone
-[end]
-[_point]
-Type=0x2f18
-; Telephone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"..........!!!!.."
-".........!!!!!!."
-"........!!!!!!.!"
-".......!!!!!!.!!"
-"......!!!!!!.!!."
-".....!!!!...!!.."
-"....!!!!....!..."
-"...!!!!........."
-"..!!!!.........."
-".!!!!..........."
-"!!!!!..........."
-"!!!!!..........."
-"!!!!.!!........."
-"!!!.!!.........."
-".!.!!..........."
-"..!!............"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"..........!!!!.."
-".........!!!!!!."
-"........!!!!!!.!"
-".......!!!!!!.!!"
-"......!!!!!!.!!."
-".....!!!!...!!.."
-"....!!!!....!..."
-"...!!!!........."
-"..!!!!.........."
-".!!!!..........."
-"!!!!!..........."
-"!!!!!..........."
-"!!!!.!!........."
-"!!!.!!.........."
-".!.!!..........."
-"..!!............"
-String=0x00,Telephone
-[end]
-[_point]
-Type=0x2f19
-; Taxi — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"......!!!!......"
-"......!..!......"
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!.!!!!!!!!.!!!"
-"!!..!!!!!!!!..!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"..!!!......!!!.."
-"..!!........!!.."
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"......!!!!......"
-"......!..!......"
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!.!!!!!!!!.!!!"
-"!!..!!!!!!!!..!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"..!!!......!!!.."
-"..!!........!!.."
-String=0x00,Taxi
-[end]
-[_point]
-Type=0x2f1a
-; Charging station — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"................"
-".!!!!!!........."
-"!!!!!!!!....!.!."
-"!!!!!!!!....!.!."
-"!!!...!!...!!!!."
-"!!!..!!!...!!!!."
-"!!...!!!!!.!!!!."
-"!!....!!.!..!!!."
-"!!!..!!!.!!.!!.."
-"!!!..!!!.!!.!!.."
-"!!!.!!!!.!!.!!.."
-"!!.!!!!!.!!.!!.."
-"!!!!!!!!.!!.!!.."
-"!!!!!!!!.!!!!!.."
-"!!!!!!!!..!!!..."
-"!!!!!!!!........"
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"................"
-".!!!!!!........."
-"!!!!!!!!....!.!."
-"!!!!!!!!....!.!."
-"!!!...!!...!!!!."
-"!!!..!!!...!!!!."
-"!!...!!!!!.!!!!."
-"!!....!!.!..!!!."
-"!!!..!!!.!!.!!.."
-"!!!..!!!.!!.!!.."
-"!!!.!!!!.!!.!!.."
-"!!.!!!!!.!!.!!.."
-"!!!!!!!!.!!.!!.."
-"!!!!!!!!.!!!!!.."
-"!!!!!!!!..!!!..."
-"!!!!!!!!........"
-String=0x00,Charging station
-[end]
-[_point]
-Type=0x3001
-; Police — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".....!!!!!!....."
-"....!!!!!!!!...."
-"................"
-".....!!!!!!....."
-".....!!!!!!....."
-".....!!!!!!....."
-"......!!!!......"
-"................"
-"...!!!!!!!.!!..."
-"...!!!!!!..!!!.."
-"..!!!!!!..!!!!.."
-"..!!!!!!.!!!!!.."
-"..!!!!!.!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!..!!!!!!!.."
-"..!!!.!!!!!!!!.."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".....!!!!!!....."
-"....!!!!!!!!...."
-"................"
-".....!!!!!!....."
-".....!!!!!!....."
-".....!!!!!!....."
-"......!!!!......"
-"................"
-"...!!!!!!!.!!..."
-"...!!!!!!..!!!.."
-"..!!!!!!..!!!!.."
-"..!!!!!!.!!!!!.."
-"..!!!!!.!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!..!!!!!!!.."
-"..!!!.!!!!!!!!.."
-String=0x00,Police
-[end]
-[_point]
-Type=0x3003
-; Embassy — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #4863A0"
-". c none"
-".!........!!!!.."
-".!......!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!..!!."
-".!..!!!!!......."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-NightXpm="16 16 2 1"
-"! c #AAAAFF"
-". c none"
-".!........!!!!.."
-".!......!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!..!!."
-".!..!!!!!......."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-String=0x00,Embassy
-[end]
-[_point]
-Type=0x3004
-; Courthouse — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!...!!...!!.."
-"..!!...!!...!!.."
-".!..!..!!..!..!."
-".!..!..!!..!..!."
-"!...!!.!!.!!...!"
-"!!!!!!.!!.!!!!!!"
-"!!!!!..!!..!!!!!"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"..!!!!!!!!!!!!.."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!...!!...!!.."
-"..!!...!!...!!.."
-".!..!..!!..!..!."
-".!..!..!!..!..!."
-"!...!!.!!.!!...!"
-"!!!!!!.!!.!!!!!!"
-"!!!!!..!!..!!!!!"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"..!!!!!!!!!!!!.."
-String=0x00,Courthouse
-[end]
-[_point]
-Type=0x3005
-; Community centre — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"....!......!...."
-"................"
-"!!!!!!!!!!!!!!!!"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!.!....!.!..."
-"..!!..!..!..!!.."
-"..!...!..!...!.."
-".!!....!!....!!."
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"....!......!...."
-"................"
-"!!!!!!!!!!!!!!!!"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!.!....!.!..."
-"..!!..!..!..!!.."
-"..!...!..!...!.."
-".!!....!!....!!."
-"................"
-String=0x00,Community centre
-[end]
-[_point]
-Type=0x3008
-; Fire station — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!........"
-".....!!!........"
-"....!!!!........"
-"....!!!!..!!...."
-"...!!!!!.!!!...."
-"...!!!!!!!!!...."
-"..!!!!!!!!!!!..."
-"..!!!!!.!!!!!..."
-"..!!!!..!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!...!!!!!!.."
-"...!!...!!.!!!.."
-"...!!!.....!!..."
-"...!!!.....!!..."
-"....!!.....!...."
-"......!........."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!........"
-".....!!!........"
-"....!!!!........"
-"....!!!!..!!...."
-"...!!!!!.!!!...."
-"...!!!!!!!!!...."
-"..!!!!!!!!!!!..."
-"..!!!!!.!!!!!..."
-"..!!!!..!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!...!!!!!!.."
-"...!!...!!.!!!.."
-"...!!!.....!!..."
-"...!!!.....!!..."
-"....!!.....!...."
-"......!........."
-String=0x00,Fire station
-[end]
-[_point]
-Type=0x4a00
-; Picnic site — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
 "...!!!!!!!!!!..."
 "..!!!!!!!!!!!!.."
 ".....!....!....."
@@ -3875,73 +4896,12 @@ DayXpm="16 16 2 1"
 "..!!........!!.."
 "................"
 "................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-".....!....!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"...!!......!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"................"
-"................"
-String=0x00,Picnic site
 [end]
+
 [_point]
-Type=0x5000
-; Drinking water — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!!!!!...."
-".........!!....."
-"......!!!!!!!!!."
-".....!!!!!!!!!!."
-".....!!........."
-".....!.........."
-"................"
-".!!!!!!!!!......"
-".!!......!......"
-"..!......!......"
-"..!!!!!!!!......"
-"..!!!!!!!!......"
-"..!!!!!!!......."
-"..!!!!!!!......."
-"..!!!!!!!......."
-"...!!!!!!......."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!!!!!...."
-".........!!....."
-"......!!!!!!!!!."
-".....!!!!!!!!!!."
-".....!!........."
-".....!.........."
-"................"
-".!!!!!!!!!......"
-".!!......!......"
-"..!......!......"
-"..!!!!!!!!......"
-"..!!!!!!!!......"
-"..!!!!!!!......."
-"..!!!!!!!......."
-"..!!!!!!!......."
-"...!!!!!!......."
-String=0x00,Drinking water
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x5904
-; Helipad — openstreetmap-carto symbol (CC0), 16 px
+; Helipad - openstreetmap-carto symbols/amenity/helipad.svg (CC0), 16 px, ink @airtransport
 DayXpm="16 16 2 1"
 "! c #8461C4"
 ". c none"
@@ -3980,13 +4940,14 @@ NightXpm="16 16 2 1"
 "...!!......!!..."
 "....!!!!!!!!...."
 ".......!!......."
-String=0x00,Helipad
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6508
-; Waterfall — openstreetmap-carto symbol (CC0), 16 px
+; Waterfall - openstreetmap-carto symbols/natural/waterfall.svg (CC0), 16 px, ink @water-text
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #4D80B3"
 ". c none"
 "................"
 "!!!!!!!!!!......"
@@ -4005,7 +4966,7 @@ DayXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 "..!!!...!!!..!!."
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "!!!!!!!!!!......"
@@ -4023,56 +4984,14 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!.!!!!.."
 ".!!!!!!!!!!!!!!."
 "..!!!...!!!..!!."
-String=0x00,Waterfall
 [end]
+
 [_point]
-Type=0x6509
-; Geyser — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #576DDF"
-". c none"
-"................"
-"......!!!!......"
-"....!!!!!!!!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-".!!!!!!..!!!!!!."
-".!!!!!....!!!!!."
-".!!!!!....!!!!!."
-".!!!!!!..!!!!!!."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-"......!!!!......"
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAFF"
-". c none"
-"................"
-"......!!!!......"
-"....!!!!!!!!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-".!!!!!!..!!!!!!."
-".!!!!!....!!!!!."
-".!!!!!....!!!!!."
-".!!!!!!..!!!!!!."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-"......!!!!......"
-"................"
-String=0x00,Geyser
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6511
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -4091,7 +5010,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -4109,13 +5028,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6515
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (seasonal) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -4134,7 +5054,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -4152,13 +5072,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6516
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (intermittent) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -4177,7 +5098,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -4195,13 +5116,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6517
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (non-potable) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -4220,7 +5142,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -4238,13 +5160,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6605
-; Bench — openstreetmap-carto symbol (CC0), 16 px
+; Bench - openstreetmap-carto symbols/amenity/bench.svg (CC0), 16 px, ink @man-made-icon
 DayXpm="16 16 2 1"
-"! c #734A08"
+"! c #666666"
 ". c none"
 "................"
 "................"
@@ -4281,13 +5204,15 @@ NightXpm="16 16 2 1"
 "................"
 "................"
 "................"
-String=0x00,Bench
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6607
-; Cliff — openstreetmap-carto symbol (CC0), 16 px
+; Cliff - openstreetmap-carto symbols/cliff.svg (CC0), 16 px, ink the SVG's own colour
+; carto draws a cliff only as a line; this is the tile of that line, in its own grey.
 DayXpm="16 16 2 1"
-"! c #D08F55"
+"! c #999999"
 ". c none"
 "................"
 "................"
@@ -4306,7 +5231,7 @@ DayXpm="16 16 2 1"
 ".......!!......."
 ".......!!......."
 NightXpm="16 16 2 1"
-"! c #FFFFAA"
+"! c #FFFFFF"
 ". c none"
 "................"
 "................"
@@ -4324,54 +5249,12 @@ NightXpm="16 16 2 1"
 ".......!!......."
 ".......!!......."
 ".......!!......."
-String=0x00,Cliff
 [end]
+
 [_point]
-Type=0x6614
-; Stone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
-"....!!!!!......."
-"..!!!!!!!!!....."
-".!!!!!!!!!!!!..."
-"!!!!!!!...!!!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!..........!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!.....!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-".....!!!!!!....."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"....!!!!!......."
-"..!!!!!!!!!....."
-".!!!!!!!!!!!!..."
-"!!!!!!!...!!!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!..........!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!.....!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-".....!!!!!!....."
-"................"
-"................"
-String=0x00,Stone
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6616
-; Summit — openstreetmap-carto symbol (CC0), 16 px
+; Peak - openstreetmap-carto symbols/natural/peak.svg (CC0), 16 px, ink @landform-color
 DayXpm="16 16 2 1"
 "! c #D08F55"
 ". c none"
@@ -4410,54 +5293,12 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
 "!!!!!!!!!!!!!!!!"
-String=0x00,Summit
 [end]
+
 [_point]
-Type=0x661a
-; Prison — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!...!!....!!...!"
-"!...!!....!!...!"
-"!...!!.!!.!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!.!!.!!...!"
-"!...!!....!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!!!!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!...!!....!!...!"
-"!...!!....!!...!"
-"!...!!.!!.!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!.!!.!!...!"
-"!...!!....!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!!!!!!!!!!!!!!!!"
-String=0x00,Prison
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6415
-; Lighthouse - openstreetmap-carto symbol (CC0), 16 px
+; Lighthouse - openstreetmap-carto symbols/man_made/lighthouse.svg (CC0), 16 px, ink @man-made-icon
 DayXpm="16 16 2 1"
 "! c #666666"
 ". c none"
@@ -4496,68 +5337,969 @@ NightXpm="16 16 2 1"
 ".....!!!!!!....."
 ".....!!!!!!....."
 ".....!!!!!!....."
-String=0x00,Lighthouse
 [end]
+
 [_point]
-; kmap: their barrier drawing, this number.
+; kmap: their barrier rules leave lift gates out, so it takes openstreetmap-carto's symbol.
 Type=0x3201
-String=0x02,Pfosten/Barriere
-String=0x04,barrier
-DayXpm="7 7 3 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"   .   "
-"  .+.  "
-" .+++. "
-".++.++."
-" .+++. "
-"  .+.  "
-"   .   "
+; Lift gate - openstreetmap-carto symbols/barrier/lift_gate.svg (CC0), 6 x 5 at 16/14, ink @barrier-icon
+DayXpm="7 6 2 1"
+"! c #3F3F3F"
+". c none"
+"!!....."
+"!!!!!!!"
+"!!!...."
+"!!....."
+"!!....."
+"!!....."
+NightXpm="7 6 2 1"
+"! c #AAAAAA"
+". c none"
+"!!....."
+"!!!!!!!"
+"!!!...."
+"!!....."
+"!!....."
+"!!....."
 [end]
+
 [_point]
-; kmap: their barrier drawing, this number.
-Type=0x3202
-String=0x02,Pfosten/Barriere
-String=0x04,barrier
-DayXpm="7 7 3 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"   .   "
-"  .+.  "
-" .+++. "
-".++.++."
-" .+++. "
-"  .+.  "
-"   .   "
+Type=0x2000
+; kmap: Junction - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x230f
+; kmap: Services - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c01
+; kmap: Theme park - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c05
+; kmap: School - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c06
+; kmap: Park - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c07
+; kmap: Zoo - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c08
+; kmap: Sports ground - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c0a
+; kmap: Wine cellar - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2c0c
+; Volcano - openstreetmap-carto symbols/natural/peak.svg (CC0), 16 px, ink natural_volcano #d40000
+; carto draws a volcano as its peak in red; drawn at 16 px as the peak 0x6616 is.
+DayXpm="16 16 2 1"
+"! c #D40000"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+"....!!!!!!!!...."
+"....!!!!!!!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+"....!!!!!!!!...."
+"....!!!!!!!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2c0d
+; Tourist site - openstreetmap-carto symbols/tourism/artwork.svg (CC0), 16 px, ink @memorials
+; Attractions have no symbol in carto; artworks, which land here too, have this one.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+"................"
+"...!!!!!!!!!!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+"................"
+"...!!!!!!!!!!..."
+[end]
+
+[_point]
+Type=0x2c0e
+; kmap: Rock climbing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d06
+; kmap: Skiing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d08
+; kmap: Ice rink - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d0a
+; kmap: Sports centre - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2e04
+; kmap: Shopping mall - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2e0c
+; kmap: Shop - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f02
+; Car rental - openstreetmap-carto symbols/amenity/rental_car.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"..!!!!.........."
+".!!!!!!!!!!!!..."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!.."
+"..!!!!!........."
+"...!!..........."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"..!!!!.........."
+".!!!!!!!!!!!!..."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!.."
+"..!!!!!........."
+"...!!..........."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f09
+; Marina - openstreetmap-carto symbols/amenity/ferry.svg (CC0), 16 px, ink @airtransport
+; Marinas have no symbol in carto; ferry terminals, which land here too, have this one.
+DayXpm="16 16 2 1"
+"! c #8461C4"
+". c none"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".......!!......."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".......!!......."
+".......!!......."
+".......!!......."
+".!!....!!....!!."
+".!!!...!!...!!!."
+".!!!...!!...!!!."
+"..!!!..!!..!!!.."
+"...!!!!!!!!!!..."
+".....!!!!!!....."
+".......!!......."
+NightXpm="16 16 2 1"
+"! c #DDAAFF"
+". c none"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".......!!......."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".......!!......."
+".......!!......."
+".......!!......."
+".!!....!!....!!."
+".!!!...!!...!!!."
+".!!!...!!...!!!."
+"..!!!..!!..!!!.."
+"...!!!!!!!!!!..."
+".....!!!!!!....."
+".......!!......."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f1b
+; Lift station - openstreetmap-carto symbols/square.svg (CC0), 7 px, ink @station-color
+; carto marks an aerialway station with this square, 6 px at z15, drawn at 16/14.
+DayXpm="7 7 2 1"
+"! c #7981B0"
+". c none"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+NightXpm="7 7 2 1"
+"! c #AAFFFF"
+". c none"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+[end]
+
+[_point]
+Type=0x3006
+; kmap: Border crossing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6403
+; kmap: Cemetery - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x640b
+; kmap: Military area - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6414
+; kmap: Well - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6503
+; kmap: Bay - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6505
+; kmap: Canal - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6509
+; kmap: Geyser - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650a
+; kmap: Glacier - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650c
+; kmap: Island - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650d
+; kmap: Lake - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650f
+; kmap: Reservoir - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6512
+; kmap: Stream - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6513
+; kmap: Wetland - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x6514
+; Ford - openstreetmap-carto symbols/highway/ford.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"................"
+".....!....!....."
+"....!!....!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+"...!!!!!!!!!!..."
+"....!!....!!...."
+".....!....!....."
+"................"
+"!.....!.....!..."
+"!!...!!!...!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!..!!!!!..!!"
+"..!!.....!!....!"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"................"
+".....!....!....."
+"....!!....!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+"...!!!!!!!!!!..."
+"....!!....!!...."
+".....!....!....."
+"................"
+"!.....!.....!..."
+"!!...!!!...!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!..!!!!!..!!"
+"..!!.....!!....!"
+[end]
+
+[_point]
+Type=0x6603
+; kmap: Water - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6604
+; kmap: Beach - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6606
+; kmap: Cape - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6612
+; kmap: Nature reserve - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x6613
+; Mountain pass - openstreetmap-carto symbols/natural/saddle.svg (CC0), 16 px, ink @transportation-icon (mountain_pass)
+; natural=saddle takes it in @landform-color; drawn at 16 px as the peak 0x6616 is.
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............!"
+"!!!..........!!!"
+"!!!!!......!!!!!"
+"!!!!!!!..!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............!"
+"!!!..........!!!"
+"!!!!!......!!!!!"
+"!!!!!!!..!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+Type=0x6614
+; kmap: Rock - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6618
+; kmap: Forest - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x661a
+; kmap: Facility - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
 [end]
 
 """#####
 
-    /// Polygon and line pattern sections for the OpenTopoMap style — forest and
-    /// scrub hatches, dashed borders, the rail line — taken verbatim from its TYP
-    /// (© OpenTopoMap, CC-BY-SA). See Assets/styles/opentopomap/graphics.txt.
+    /// Polygon and line pattern sections for the OpenTopoMap style: its forest
+    /// and scrub hatches, dashed borders and rail line, taken from its TYP
+    /// ((c) OpenTopoMap, CC-BY-SA), night colours added by kmap.
+    /// See Assets/styles/opentopomap/PROVENANCE.md.
     static let otmGraphics =
 #####"""
-; Polygon and line graphics for the OpenTopoMap shipped style.
-; TAKEN VERBATIM from OpenTopoMap's own Garmin TYP source (der-stefan/OpenTopoMap,
-; (c) OpenTopoMap, CC-BY-SA). A section here REPLACES the flat colour the palette
-; table would generate for that code; a line section for a code the palette does
-; not carry is appended whole. Several sections sit on a number of kmap's rather
-; than their own -- the two forest kinds, the meadow that also serves a garden and
-; a village green, their footway that draws kmap's path -- and each says so in its
-; own comment. The drawing is theirs; only the number changed.
+; Generated from the original's values and images by a maintainer's tool; see
+; PROVENANCE.md for the sources. The next run writes this file again.
+
+; OpenTopoMap's own [_polygon] and [_line] sections, copied whole from their Garmin TYP
+; (github.com/der-stefan/OpenTopoMap, garmin/style/typ/opentopomap.txt at commit
+; 60c50cb8329d67c8556cd9f25b4a8e50bfc19c91, (c) OpenTopoMap, CC-BY-SA). Only the Type
+; line differs where kmap's number for the meaning is not theirs; the note after it names
+; their number and the lines it was copied from.
+; Their TYP is day only; kmap gives each section its night colours.
 
 [_polygon]
 Type=0x04
+; kmap Military: their own number, typ/opentopomap.txt:2344-2385
 String=0x02,Sperrgebiet
 String=0x04,exclusion zone
 ExtendedLabels=Y
 FontStyle=NoLabel (invisible)
-Xpm="32 32 2 1"
+Xpm="32 32 4 1"
 "  c none"
 "0 c #ff4040"
+"A c none"
+"B c #AA0000"
 "       0       0       0       0"
 "      0       0       0       0 "
 "     0       0       0       0  "
@@ -4591,13 +6333,149 @@ Xpm="32 32 2 1"
 " 0       0       0       0      "
 "0       0       0       0       "
 [end]
+
+[_polygon]
+Type=0x17
+; kmap Park: their own number, typ/opentopomap.txt:2405-2444
+String=0x02,Wiese
+String=0x04,meadow
+Xpm="32 32 4 1"
+"  c none"
+"0 c #00c000"
+"A c none"
+"B c #00AA00"
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+[end]
+
+[_polygon]
+Type=0x20
+; kmap Garden: their 0x17, typ/opentopomap.txt:2405-2444
+String=0x02,Wiese
+String=0x04,meadow
+Xpm="32 32 4 1"
+"  c none"
+"0 c #00c000"
+"A c none"
+"B c #00AA00"
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+[end]
+
+[_polygon]
+Type=0x55
+; kmap Grassland: their 0x17, typ/opentopomap.txt:2405-2444
+String=0x02,Wiese
+String=0x04,meadow
+Xpm="32 32 4 1"
+"  c none"
+"0 c #00c000"
+"A c none"
+"B c #00AA00"
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+[end]
+
 [_polygon]
 Type=0x1a
+; kmap Cemetery: their own number, typ/opentopomap.txt:2454-2493
 String=0x02,Friedhof
 String=0x04,cemetery
-Xpm="32 32 2 1"
+Xpm="32 32 4 1"
 "  c none"
 "0 c #000000"
+"A c none"
+"B c #000000"
 "                                "
 "                                "
 "           0               0    "
@@ -4631,13 +6509,17 @@ Xpm="32 32 2 1"
 "                                "
 "                                "
 [end]
+
 [_polygon]
-Type=0x4e
+Type=0x1b
+; kmap Vineyard: their 0x4e, typ/opentopomap.txt:2642-2681
 String=0x02,Wein
 String=0x04,wine
-Xpm="32 32 2 1"
+Xpm="32 32 4 1"
 "  c none"
 "0 c #00c000"
+"A c none"
+"B c #00AA00"
 "                                "
 "                                "
 "           0               0    "
@@ -4671,13 +6553,17 @@ Xpm="32 32 2 1"
 "                                "
 "                                "
 [end]
+
 [_polygon]
 Type=0x4f
+; kmap Scrub: their own number, typ/opentopomap.txt:2683-2722
 String=0x02,Busch
 String=0x04,scrubs
-Xpm="32 32 2 1"
+Xpm="32 32 4 1"
 "  c none"
 "0 c #00c000"
+"A c none"
+"B c #00AA00"
 "                                "
 "                                "
 "                                "
@@ -4711,15 +6597,19 @@ Xpm="32 32 2 1"
 "                                "
 "                                "
 [end]
+
 [_polygon]
 Type=0x50
+; kmap Forest: their own number, typ/opentopomap.txt:2724-2765
 String=0x02,Mischwald
 String=0x04,mixed forest
 ExtendedLabels=Y
 FontStyle=NoLabel (invisible)
-Xpm="32 32 2 1"
+Xpm="32 32 4 1"
 "0 c #77cc77"
 "1 c #c7fc65"
+"A c #55AA55"
+"B c #AAAA55"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
@@ -4753,55 +6643,19 @@ Xpm="32 32 2 1"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
 [end]
-[_polygon]
-Type=0x17
-String=0x02,Wiese
-String=0x04,meadow
-Xpm="32 32 2 1"
-"  c none"
-"0 c #00c000"
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
-[end]
+
 [_polygon]
 Type=0x57
+; kmap Coniferous forest: their 0x38, typ/opentopomap.txt:2495-2536
 String=0x02,Nadelwald
 String=0x04,conifer forest
 ExtendedLabels=Y
 FontStyle=NoLabel (invisible)
-Xpm="32 32 2 1"
+Xpm="32 32 4 1"
 "0 c #77cc77"
 "1 c #c7fc65"
+"A c #55AA55"
+"B c #AAAA55"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
@@ -4835,15 +6689,19 @@ Xpm="32 32 2 1"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
 [end]
+
 [_polygon]
 Type=0x58
+; kmap Broadleaved forest: their 0x39, typ/opentopomap.txt:2538-2579
 String=0x02,Laubwald
 String=0x04,broad-leaved forest
 ExtendedLabels=Y
 FontStyle=NoLabel (invisible)
-Xpm="32 32 2 1"
+Xpm="32 32 4 1"
 "0 c #77cc77"
 "1 c #c7fc65"
+"A c #55AA55"
+"B c #AAAA55"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
@@ -4877,699 +6735,3468 @@ Xpm="32 32 2 1"
 "11111111111111111111111111111111"
 "11111111111111111111111111111111"
 [end]
+
+[_polygon]
+Type=0x53
+; kmap Sand: their 0x55, typ/opentopomap.txt:2767-2806
+String=0x02,Sand/Strand
+String=0x04,sand/beach
+Xpm="32 32 4 1"
+"  c #ffffd5"
+"0 c #f5f500"
+"A c #AAAAAA"
+"B c #AAAA00"
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"          0  0            0  0  "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"                                "
+"  0  0            0  0          "
+"                                "
+"                                "
+"                                "
+[end]
+
 [_line]
-Type=0x16
+Type=0x01
+; kmap Motorway: their own number, typ/opentopomap.txt:1990-2001
+String=0x02,Autobahn
+String=0x04,motorway
+ExtendedLabels=Y
+FontStyle=SmallFont
+LineWidth=2
+BorderWidth=2
+Xpm="0 0 4 0"
+"a c #fdb548"
+"b c #000000"
+"A c #AA5555"
+"B c #000000"
+[end]
+
+[_line]
+Type=0x0e
+; kmap Path: their 0x16, typ/opentopomap.txt:2165-2175
 String=0x02,Fußweg
 String=0x04,footway
 ExtendedLabels=Y
 FontStyle=SmallFont
-Xpm="32 1 2 1"
+Xpm="32 1 4 1"
 "  c none"
 "# c #000000"
-"####    ####    ####    ####    "
-[end]
-[_line]
-Type=0x1c
-String=0x02,Grenze
-String=0x04,border
-ExtendedLabels=Y
-FontStyle=NoLabel (invisible)
-Xpm="32 1 2 1"
-"  c none"
-"# c #ff80ff"
-"##############        ##        "
-[end]
-[_line]
-Type=0x1d
-String=0x02,Grenze
-String=0x04,border
-ExtendedLabels=Y
-FontStyle=NoLabel (invisible)
-Xpm="32 1 2 1"
-"  c none"
-"# c #ff80ff"
-"##############        ##        "
-[end]
-[_line]
-Type=0x1e
-String=0x02,Grenze
-String=0x04,border
-ExtendedLabels=Y
-FontStyle=NoLabel (invisible)
-Xpm="32 2 2 1"
-"  c none"
-"# c #ff80ff"
-"##############        ##        "
-"##############        ##        "
-[end]
-[_line]
-Type=0x29
-String=0x02,Stromleitung
-String=0x04,power line
-UseOrientation=Y
-Xpm="32 5 2 1"
-"  c none"
-"# c #000000"
-"                #               "
-"                 #              "
-"################################"
-"                 #              "
-"                #               "
-[end]
-[_line]
-Type=0x14
-String=0x02,Gleis
-String=0x04,rail
-ExtendedLabels=Y
-FontStyle=SmallFont
-Xpm="32 3 2 1"
-". c #ffffff"
-"# c #000000"
-"################################"
-"########........########........"
-"################################"
-[end]
-[_line]
-Type=0x2c
-String=0x02,Bahntunnel
-String=0x04,railway tunnel
-Xpm="32 3 2 1"
-"  c none"
-"# c #000000"
-"################################"
-"#      #        #      #        "
-"################################"
-[end]
-[_line]
-Type=0x2d
-String=0x02,Gleis
-String=0x04,rail
-LineWidth=2
-Xpm="0 0 1 0"
-"0 c #000000"
-[end]
-[_line]
-Type=0x2e
-String=0x02,Bahntunnel
-String=0x04,railway tunnel
-Xpm="32 2 2 1"
-"  c none"
-"# c #000000"
-"####    ####    ####    ####    "
+"A c none"
+"B c #000000"
 "####    ####    ####    ####    "
 [end]
 
 [_line]
-; kmap: a path, drawn as their footway. Their 0x16, this number.
-Type=0x0e
+Type=0x16
+; kmap Path: their own number, typ/opentopomap.txt:2165-2175
 String=0x02,Fußweg
 String=0x04,footway
 ExtendedLabels=Y
 FontStyle=SmallFont
-Xpm="32 1 2 1"
+Xpm="32 1 4 1"
 "  c none"
 "# c #000000"
+"A c none"
+"B c #000000"
 "####    ####    ####    ####    "
 [end]
+
 [_line]
-; kmap: steps. Their 0x13, this number.
+Type=0x30
+; kmap sports track: their 0x16, typ/opentopomap.txt:2165-2175; leisure=track is a footway to them, opentopomap/lines:93-94,173
+String=0x02,Fußweg
+String=0x04,footway
+ExtendedLabels=Y
+FontStyle=SmallFont
+Xpm="32 1 4 1"
+"  c none"
+"# c #000000"
+"A c none"
+"B c #000000"
+"####    ####    ####    ####    "
+[end]
+
+[_line]
 Type=0x0f
+; kmap Steps: their 0x13, typ/opentopomap.txt:2138-2149
 String=0x02,Treppe/Stufen
 String=0x04,steps
 ExtendedLabels=Y
 FontStyle=SmallFont
-Xpm="32 2 2 1"
+Xpm="32 2 4 1"
 " c None"
 "# c #000000"
+"A c none"
+"B c #000000"
 "#  #  #  #  #  #  #  #  #  #  # "
 "#  #  #  #  #  #  #  #  #  #  # "
 [end]
+
 [_line]
-; kmap: a wall, fence or hedge, drawn as their fence. Their 0x33, this number.
+Type=0x14
+; kmap Railway: their own number, typ/opentopomap.txt:2151-2163
+String=0x02,Gleis
+String=0x04,rail
+ExtendedLabels=Y
+FontStyle=SmallFont
+Xpm="32 3 4 1"
+". c #ffffff"
+"# c #000000"
+"A c #AAAAAA"
+"B c #000000"
+"################################"
+"########........########........"
+"################################"
+[end]
+
+[_line]
 Type=0x17
+; kmap Barrier: their 0x33, typ/opentopomap.txt:2315-2327
 String=0x02,Zaun
 String=0x04,fence
-Xpm="32 5 2 1"
+Xpm="32 5 4 1"
 "  c none"
 "# c #000000"
+"A c none"
+"B c #000000"
 "       #                #       "
 "       #                #       "
 "################################"
 "       #                #       "
 "       #                #       "
 [end]
+
 [_line]
-; kmap: a ferry. Their 0x1b, this number.
 Type=0x1a
+; kmap Ferry: their 0x1b, typ/opentopomap.txt:2186-2194
 String=0x02,Fähre
 String=0x04,ferry
-Xpm="32 1 2 1"
+Xpm="32 1 4 1"
 "  c none"
 "# c #0000ff"
+"A c none"
+"B c #0000AA"
 "########        ########        "
 [end]
+
 [_line]
-; kmap: a foot ferry, the same drawing. Their 0x1b, this number.
 Type=0x1b
+; kmap Ferry: their own number, typ/opentopomap.txt:2186-2194
 String=0x02,Fähre
 String=0x04,ferry
-Xpm="32 1 2 1"
+Xpm="32 1 4 1"
 "  c none"
 "# c #0000ff"
+"A c none"
+"B c #0000AA"
 "########        ########        "
 [end]
+
 [_line]
-; kmap: a cliff or a via ferrata, drawn as their slope. Their 0x31, this number.
+Type=0x1c
+; kmap Boundary: their own number, typ/opentopomap.txt:2196-2206
+String=0x02,Grenze
+String=0x04,border
+ExtendedLabels=Y
+FontStyle=NoLabel (invisible)
+Xpm="32 1 4 1"
+"  c none"
+"# c #ff80ff"
+"A c none"
+"B c #AA55AA"
+"##############        ##        "
+[end]
+
+[_line]
+Type=0x1d
+; kmap Boundary: their own number, typ/opentopomap.txt:2208-2218
+String=0x02,Grenze
+String=0x04,border
+ExtendedLabels=Y
+FontStyle=NoLabel (invisible)
+Xpm="32 1 4 1"
+"  c none"
+"# c #ff80ff"
+"A c none"
+"B c #AA55AA"
+"##############        ##        "
+[end]
+
+[_line]
+Type=0x1e
+; kmap Boundary: their own number, typ/opentopomap.txt:2220-2231
+String=0x02,Grenze
+String=0x04,border
+ExtendedLabels=Y
+FontStyle=NoLabel (invisible)
+Xpm="32 2 4 1"
+"  c none"
+"# c #ff80ff"
+"A c none"
+"B c #AA55AA"
+"##############        ##        "
+"##############        ##        "
+[end]
+
+[_line]
+Type=0x29
+; kmap Power Line: their own number, typ/opentopomap.txt:2255-2268
+String=0x02,Stromleitung
+String=0x04,power line
+UseOrientation=Y
+Xpm="32 5 4 1"
+"  c none"
+"# c #000000"
+"A c none"
+"B c #000000"
+"                #               "
+"                 #              "
+"################################"
+"                 #              "
+"                #               "
+[end]
+
+[_line]
 Type=0x2b
+; kmap Cliff: their 0x31, typ/opentopomap.txt:2302-2313
 String=0x02,Hang
 String=0x04,cliff
 UseOrientation=Y
-Xpm="32 3 2 1"
+Xpm="32 3 4 1"
 "  c none"
 "# c #000000"
+"A c none"
+"B c #000000"
 "  ###     ###     ###     ###   "
 "  ###     ###     ###     ###   "
 "################################"
 [end]
+
 [_line]
-; kmap: a row of trees, drawn as their forest edge. Their 0x11002, this number.
+Type=0x12
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x19
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x23
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x25
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x2d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
 Type=0x31
-String=0x02,Waldrand
-String=0x04,edge of the forest
-Xpm="32 1 2 1"
-"  c none"
-"# c #4eb539"
-"# # # # # # # # # # # # # # # # "
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
+
+[_line]
+Type=0x32
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
 [_polygon]
-; kmap: a village green, drawn as their meadow. Their 0x17, this number.
+Type=0x02
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x03
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x05
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x06
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x07
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x08
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x09
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0a
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0b
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0e
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x4d
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x51
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0d
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x11
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x12
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
 Type=0x15
-String=0x02,Wiese
-String=0x04,meadow
-Xpm="32 32 2 1"
-"  c none"
-"0 c #00c000"
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
+
 [_polygon]
-; kmap: a vineyard — their own word for this drawing is Wein. Their 0x4e, this number.
-Type=0x1b
-String=0x02,Wein
-String=0x04,wine
-Xpm="32 32 2 1"
-"  c none"
-"0 c #00c000"
-"                                "
-"                                "
-"           0               0    "
-"           0               0    "
-"           0               0    "
-"           0               0    "
-"                                "
-"                                "
-"                                "
-"                                "
-"   0               0            "
-"   0               0            "
-"   0               0            "
-"   0               0            "
-"                                "
-"                                "
-"                                "
-"                                "
-"           0               0    "
-"           0               0    "
-"           0               0    "
-"           0               0    "
-"                                "
-"                                "
-"                                "
-"                                "
-"   0               0            "
-"   0               0            "
-"   0               0            "
-"   0               0            "
-"                                "
-"                                "
+Type=0x16
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
+
 [_polygon]
-; kmap: common land, drawn as their meadow. Their 0x17, this number.
+Type=0x18
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
 Type=0x1d
-String=0x02,Wiese
-String=0x04,meadow
-Xpm="32 32 2 1"
-"  c none"
-"0 c #00c000"
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
+
 [_polygon]
-; kmap: a garden, drawn as their meadow. Their 0x17, this number.
-Type=0x20
-String=0x02,Wiese
-String=0x04,meadow
-Xpm="32 32 2 1"
-"  c none"
-"0 c #00c000"
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
+Type=0x1e
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
+
 [_polygon]
-; kmap: a beach, drawn as their sand. Their 0x55, this number.
-Type=0x53
-String=0x02,Sand/Strand
-String=0x04,sand/beach
-Xpm="32 32 2 1"
-"  c #ffffd5"
-"0 c #f5f500"
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
+Type=0x1f
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
+
 [_polygon]
-; kmap: grassland, drawn as their meadow. Their 0x17, this number.
-Type=0x55
-String=0x02,Wiese
-String=0x04,meadow
-Xpm="32 32 2 1"
-"  c none"
-"0 c #00c000"
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"          0  0            0  0  "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"                                "
-"  0  0            0  0          "
-"                                "
-"                                "
-"                                "
+Type=0x21
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
+
 [_polygon]
-; kmap: woodland, drawn as their mixed forest. Their 0x50, this number.
-Type=0x59
-String=0x02,Mischwald
-String=0x04,mixed forest
-ExtendedLabels=Y
-FontStyle=NoLabel (invisible)
-Xpm="32 32 2 1"
-"0 c #77cc77"
-"1 c #c7fc65"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111001111111"
-"11111111111111111111110110111111"
-"11111111111111111111110110111111"
-"11111111111111111111111000011111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111011111111111111111111111"
-"11111111011111111111111111111111"
-"11111110101111111111111111111111"
-"11111110101111111111111111111111"
-"11111110101111111111111111111111"
-"11111101100111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
-"11111111111111111111111111111111"
+Type=0x22
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x23
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x25
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x26
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x28
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x29
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x4e
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x52
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x54
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x56
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x5a
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x1c
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x5b
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
 
 """#####
 
-    /// The CyclOSM look as a palette table: its ground colours (Hydda, Apache 2.0)
-    /// and road colours (BSD-3-Clause) against the type codes kmap's rules emit.
+    /// The CyclOSM look as a palette table: its colours (BSD-3-Clause; palette.mss
+    /// credited to Hydda, Apache 2.0) against the type codes kmap's rules emit.
     /// See Assets/styles/cyclosm/PROVENANCE.md and LICENSE.md.
     static let cyclosmPalette =
 #####"""
 # The CyclOSM look, on the type codes kmap's rules emit.
 #
-# Colours are CyclOSM's own, read from its files: `palette.mss` for the ground —
-# those come from the Hydda style, Apache License 2.0 — and `road-colors.mss`
-# for the roads, BSD-3-Clause like the rest of that style. Nothing is invented:
-# `# worked out` marks a colour computed from a CartoCSS expression such as
-# `@land * 1.05`, and `# filled, not theirs` one CyclOSM draws with a pattern or
-# does not draw at all, taken from its nearest neighbour in this table.
-# A colour their palette defines but never uses is not a colour of theirs:
-# @nature_reserve is such a one, and a reserve is a pale wash over the ground in
-# that style, with the boundary band in @wooded. See PROVENANCE.md and
-# LICENSE.md beside this file.
+# Every value is CyclOSM's, read from cyclosm-cartocss-style at commit 0632363794f9;
+# the note after each entry names the file and line. Each code is drawn as CyclOSM
+# draws the OSM features kmap's rules put on it, and named as
+# Assets/styles/type-names.txt names it. Nothing is invented. See PROVENANCE.md and LICENSE.md beside this file.
 #
-#   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
+#   poly <code> <level> <day> <name>       level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
-# CyclOSM has no night design, as carto has none: the day colour serves both,
-# and the theme setting packs day only for a receiver that draws night badly.
+# Reference zoom z16. A colour CyclOSM draws with opacity is
+# composited over its land colour @land #eee5dc (palette.mss:33); the note says so.
+# Where CyclOSM draws nothing, graphics.txt draws the code clear; the note here says
+# "not drawn by CyclOSM".
+#
+# Widths are not the original's: a line takes the whole width kmap's topoactive gives
+# the same code, casing included, and a line topoactive leaves to the device has no row
+# here or in graphics.txt, so the device draws it at its own width. The original's
+# width in a note is for the record.
+#
+# Dashes, cliffs and fill patterns are bitmaps in graphics.txt, made from graphics.txt;
+# a section there replaces the flat colour here. Night colours are derived by kmap.
 
 name    CyclOSM
-summary the CyclOSM look — an outdoor palette, warmer and quieter than carto's
+summary the CyclOSM look, an outdoor palette, warmer and quieter than carto's
 
 # --- polygons, bottom of the stack upward ------------------------------------
-# The device's own background, on a level below everything: a fenix
-# draws it where the land polygon has not arrived yet, and shows black
-# without it. The ground colour the style paints land with.
-poly 0x4b 1 #eee5dc  Background
-poly 0x27 3 #eee5dc  Land
-poly 0x1c 5 #fbf0e3  Farmland
-poly 0x29 5 #fbf0e3  Greenhouses  # filled, not theirs
-poly 0x26 5 #fbf0e3  Farm
-poly 0x4e 5 #e2eecb  Orchard
-poly 0x1b 5 #e2eecb  Vineyard
-poly 0x5a 5 #c2debd  Allotments
-poly 0x1f 5 #b2c068  Fell  # filled, not theirs
-poly 0x55 5 #c2debd  Grassland
-poly 0x15 5 #c2debd  Village green
-poly 0x1d 5 #c2debd  Common  # filled, not theirs
-poly 0x4f 5 #c8d7ab  Scrub
-poly 0x5b 5 #c8d7ab  Scrub
-poly 0x1e 5 #b2c068  Heath
-poly 0x50 5 #95bd84  Forest
-poly 0x57 5 #95bd84  Coniferous forest
-poly 0x58 5 #95bd84  Broadleaved forest
-poly 0x59 5 #95bd84  Wood
-poly 0x53 5 #f5e9c6  Beach
-poly 0x54 5 #eee5dc  Scree
-poly 0x56 5 #eee5dc  Bare rock
-poly 0x52 5 #b2c068  Tundra  # filled, not theirs
-poly 0x4d 5 #ddecec  Glacier
-poly 0x02 6 #faf0e7  Suburb  # worked out
-poly 0x03 6 #faf0e7  Village  # worked out
-poly 0x10 6 #faf0e7  Residential  # worked out
-poly 0x0f 6 #ded8dd  Commercial
-poly 0x0c 6 #e4dcd3  Construction  # worked out
-poly 0x0d 6 #c5c3c3  Quarry
-poly 0x07 6 #e4dcd3  Airport ground  # filled, not theirs
-poly 0x0e 6 #d4d4d4  Runway  # filled, not theirs
-poly 0x05 6 #eeeeee  Parking
-poly 0x06 6 #eeeeee  Covered parking
-poly 0x1a 6 #d6ded2  Cemetery
-# The sea over the fills and what grows: a fill drawn across the shoreline in
-# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
-poly 0x32 7 #8ecbeb  Sea
-poly 0x25 8 #dce3e0  Square
-poly 0x08 6 #e0e0e0  Food and drink  # filled, not theirs
-poly 0x0a 6 #e0e0e0  Kindergarten
-poly 0x0b 6 #e0e0e0  Hospital
-poly 0x04 6 #eee5dc  Prison  # ground: theirs draws the edge, not the field
-poly 0x12 6 #ded8dd  Services  # filled, not theirs
-poly 0x21 6 #eee5dc  Tourism  # filled, not theirs
-poly 0x22 6 #eee5dc  Historic  # filled, not theirs
-poly 0x23 6 #eee5dc  Amenity  # filled, not theirs
-poly 0x24 8 #eee5dc  Man-made  # filled, not theirs
-poly 0x17 8 #c2debd  Park
-poly 0x20 8 #c2debd  Garden
-poly 0x18 8 #c2debd  Golf course  # filled, not theirs
-poly 0x19 8 #e0e0e0  Ice rink
-poly 0x09 8 #c2debd  Water park  # filled, not theirs
-poly 0x3c 9 #8ecbeb  Water
-poly 0x41 9 #8ecbeb  Small water
-poly 0x46 9 #8ecbeb  Riverbank
-poly 0x48 9 #8ecbeb  Canal
-poly 0x3d 9 #8ecbeb  Bay
-poly 0x3b 9 #8ecbeb  Waterway area
-poly 0x28 9 #8ecbeb  Salt pond
-poly 0x3f 9 #8ecbeb  Basin
-poly 0x4c 9 #8ecbeb  Dock
-poly 0x47 9 #8ecbeb  Waterfall
-poly 0x51 10 #c2debd  Marsh
-poly 0x16 4 #d8d6c5  Nature reserve  # worked out: their wash, 15% of a darkened @wooded over the ground
-poly 0x11 10 #eee5dc  Military  # ground: theirs draws the edge, not the field
-poly 0x13 11 #e4dfdb  Building
-# --- lines --------------------------------------------------------------------
-line 0x01 5 #d4d4d4 #f6f6f6    Motorway
-line 0x09 4 #d4d4d4 #f6f6f6    Motorway link
-line 0x0b 4 #d4d4d4 #f6f6f6    Motorway exit
-line 0x02 5 #d4d4d4 #f6f6f6    Trunk  # theirs pinks a trunk a bicycle may use and
-#                                     greys a motorroad; this number carries both,
-#                                     and the false invitation is the worse error
-line 0x03 5 #f4dfc3 #d8b267    Primary
-line 0x08 4 #f4dfc3 #d8b267    Primary link
-line 0x04 4 #f6f8d2 #b1bb5d    Secondary
-line 0x05 4 #f6f6f6 #777777    Tertiary
-line 0x06 3 #f6f6f6 #888888    Minor road
-line 0x0c 4 #f6f6f6 #888888    Roundabout
-line 0x10801 5 #d4d4d4 #f6f6f6  Roundabout, trunk  # filled, not theirs: the road's own
-line 0x10802 5 #f4dfc3 #d8b267  Roundabout, primary  # filled, not theirs: the road's own
-line 0x10803 4 #f6f8d2 #b1bb5d  Roundabout, secondary  # filled, not theirs: the road's own
-line 0x10804 4 #f6f6f6 #777777  Roundabout, tertiary  # filled, not theirs: the road's own
-line 0x30 3 #f6f6f6 #888888    Track loop  # filled, not theirs
-line 0x16 3 #d4d4d4            Construction  # filled, not theirs
-line 0x0a 2 #114021            Track
-line 0x0e 1 #007360            Path
-line 0x10 2 #ddffba #bbbbbb    Living street
-line 0x07 2 #741e18            Bridleway
-line 0x11 2 #0000ce            Cycleway
-line 0x2b 2 #741e18            Via ferrata  # filled, not theirs
-line 0x18 2 #8ecbeb            Stream
-line 0x1f 3 #8ecbeb            River
-line 0x33 2 #8ecbeb            Canal
-line 0x34 1 #8ecbeb            Drain
-line 0x35 1 #8ecbeb            Ditch
-line 0x26 2 #8ecbeb            Intermittent river
-line 0x1a 2 #8ecbeb            Ferry  # filled, not theirs
-line 0x1b 2 #8ecbeb            Foot ferry  # filled, not theirs
-line 0x17 2 #add19e            Breakwater
-line 0x31 1 #add19e            Tree row
-line 0x32 2 #888888            City wall  # filled, not theirs
-line 0x27 4 #d4d4d4            Runway  # filled, not theirs
-line 0x29 1 #888888            Power line
-line 0x25 2 #888888            Cableway  # filled, not theirs
-line 0x28 1 #888888            Pipeline  # filled, not theirs
-line 0x23 1 #95bd84            Cutline  # filled, not theirs
-line 0x24 1 #95bd84            Valley  # filled, not theirs
-line 0x12 1 #b2c068            Fell edge  # filled, not theirs
-line 0x19 2 #95bd84            National park boundary
-line 0x1c 1 #888888            Boundary
-line 0x1d 2 #888888            Region boundary
-line 0x1e 2 #333333            Country boundary
-line 0x2d 2 #f55555            Military boundary
-# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
-# a flat colour here would replace kmap's red dashes with a plain stripe.
+# The device's own background, on a level below everything: a fenix draws it where the
+# land polygon has not arrived yet, and shows black without it.
+poly 0x4b 1 #eee5dc  Background  # @land palette.mss:33
+poly 0x27 3 #eee5dc  Land  # @land palette.mss:33, base.mss:14-16
+# Washes that CyclOSM lays over the ground, under what grows: a forest inside them stays
+# a forest.
+poly 0x16 4 #eee5dc  Nature Reserve  # not drawn by CyclOSM at z16: its fill stops below z11 (admin.mss:227); the band is line 0x19
+poly 0x04 10 #f0d6ce  Military  # graphics.txt: danger_red_hatch.png over @land (base.mss:249-257); no field of its own; above landcover, as the overlay is one of CyclOSM's last layers (project.mml:1906)
+poly 0x11 10 #f0d6ce  Danger Area  # graphics.txt: the same overlay for military=danger_area (base.mss:251)
+poly 0x1c 5 #fbf0e3  Grassland  # kmap puts landuse=farmland here (and greenfield, not drawn by CyclOSM): @farmland palette.mss:41, landuse_farmland base.mss:125-128
+poly 0x29 5 #fbf0e3  Greenhouses  # @farmland palette.mss:41, landuse_greenhouse_horticulture base.mss:125-128
+poly 0x26 5 #eee5dc  Farm  # not drawn by CyclOSM: landuse=farm and farmyard are not in its landuse layer (project.mml:139-168)
+poly 0x4e 5 #e2eecb  Orchard  # @meadow palette.mss:35, base.mss:96-102; graphics.txt adds orchard.png
+poly 0x1b 5 #e2eecb  Vineyard  # @meadow palette.mss:35, base.mss:86-92; graphics.txt adds vineyard.png
+poly 0x5a 5 #c2debd  Allotments  # @grass palette.mss:34, base.mss:103-109; graphics.txt adds allotments.png
+poly 0x1f 5 #eee5dc  Mountain meadow  # not drawn by CyclOSM: kmap puts only natural=fell here, which is not in its landuse layer (project.mml:139-168)
+poly 0x55 5 #c2debd  Grassland  # @grass palette.mss:34, landuse_grass and natural_grassland base.mss:41-45
+poly 0x15 5 #c2debd  Village Green  # @park palette.mss:36, landuse_village_green base.mss:120-123
+poly 0x1d 5 #c2debd  Common  # @park palette.mss:36, leisure_common base.mss:32
+poly 0x4f 5 #c8d7ab  Scrub  # @scrub palette.mss:40, base.mss:77-81; graphics.txt adds scrub.png
+poly 0x5b 5 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub palette.mss:40
+poly 0x1e 5 #b2c068  Heath  # @heath palette.mss:39, base.mss:83
+poly 0x50 5 #95bd84  Forest  # @wooded palette.mss:38, base.mss:33, 169; graphics.txt adds leaftype_unknown.svg
+poly 0x57 5 #95bd84  Coniferous forest  # @wooded; graphics.txt adds leaftype_needleleaved.svg
+poly 0x58 5 #95bd84  Broadleaved forest  # @wooded; graphics.txt adds leaftype_broadleaved.svg
+poly 0x59 5 #95bd84  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @wooded palette.mss:38
+poly 0x53 5 #f5e9c6  Sand  # @sand palette.mss:47, base.mss:62-66
+poly 0x54 5 #eee5dc  Scree  # @bare_ground palette.mss:48, base.mss:71-75; graphics.txt adds scree_overlay.png
+poly 0x56 5 #eee5dc  Bare rock  # @bare_ground palette.mss:48, base.mss:67-70; graphics.txt adds rock_overlay.png
+poly 0x52 5 #eee5dc  Bare Ground  # not drawn by CyclOSM: natural=tundra, kmap's only rule here, is not in its landuse layer
+poly 0x4d 5 #ddecec  Glacier  # @glacier palette.mss:43, base.mss:54-56
+poly 0x02 6 #eee5dc  Suburb  # not drawn by CyclOSM: place areas are not in its landuse layer
+poly 0x03 6 #eee5dc  Village  # not drawn by CyclOSM: place areas are not in its landuse layer
+poly 0x10 6 #faf0e7  Residential  # @residential = @land * 1.05 palette.mss:62, base.mss:141
+poly 0x0f 6 #ded8dd  Commercial  # @commercial palette.mss:63, base.mss:36-39
+poly 0x12 6 #ded8dd  Retail  # @commercial palette.mss:63, landuse_retail base.mss:36-39
+poly 0x0c 6 #e4dcd3  Industrial  # @industrial = @land * 0.96 palette.mss:64, base.mss:47-52
+poly 0x0d 6 #c5c3c3  Quarry  # @quarry palette.mss:46, base.mss:111-113; graphics.txt adds quarry.svg
+poly 0x07 6 #eee5dc  Airport  # not drawn by CyclOSM: aeroway areas are not in its landuse layer
+poly 0x0e 6 #eee5dc  Runway  # not drawn by CyclOSM as an area: its aeroway layer is lines (project.mml:444)
+poly 0x05 6 #eeeeee  Parking  # @parking palette.mss:65, amenity_parking base.mss:129
+poly 0x06 6 #eeeeee  Parking  # @parking palette.mss:65, amenity_parking base.mss:129
+poly 0x1a 6 #d6ded2  Cemetery  # @cemetery palette.mss:37, base.mss:23-30; graphics.txt adds grave_yard_generic_many.svg
+poly 0x08 6 #eee5dc  Shopping  # not drawn by CyclOSM: shops and eateries are not in its landuse layer
+poly 0x0a 6 #e0e0e0  School  # @school palette.mss:55, amenity_school base.mss:142
+poly 0x0b 6 #e0e0e0  Hospital  # @hospital palette.mss:54, base.mss:84
+poly 0x21 6 #eee5dc  Tourism  # not drawn by CyclOSM
+poly 0x22 6 #eee5dc  Historic  # not drawn by CyclOSM
+poly 0x23 6 #eee5dc  Amenity  # not drawn by CyclOSM as such: kmap's catch-all for amenity=* areas
+# The sea over the fills and what grows: a fill drawn across the shoreline in OSM stops
+# at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #8ecbeb  Sea  # @water palette.mss:42, Map background-color base.mss:282
+poly 0x25 8 #dce3e0  Pedestrian Area  # @pedestrian_area_fill road-colors.mss:47, highway_pedestrian base.mss:130
+poly 0x24 8 #eee5dc  Structure  # not drawn by CyclOSM as such: kmap's catch-all for man_made=* areas; works and water works are filled industrial (project.mml:154,163), bridges as buildings (project.mml:409)
+poly 0x17 8 #c2debd  Park  # @park palette.mss:36, leisure_park base.mss:120-123
+poly 0x20 8 #c2debd  Garden  # @grass palette.mss:34, leisure_garden base.mss:41-45
+poly 0x18 8 #c2debd  Golf Course  # @grass palette.mss:34, leisure_golf_course base.mss:34
+poly 0x19 8 #bcd7b7  Sports Ground  # @pitch = @park * 0.97 palette.mss:58, leisure_pitch at z>=13 base.mss:133-140
+poly 0x09 8 #eee5dc  Water Park  # not drawn by CyclOSM
+poly 0x3c 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
+poly 0x41 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
+poly 0x46 9 #8ecbeb  River  # @water palette.mss:42, waterway=riverbank in its water layer (project.mml:372)
+poly 0x48 9 #8ecbeb  Canal  # @water palette.mss:42, base.mss:284-293
+poly 0x3d 9 #eee5dc  Bay  # not drawn by CyclOSM: natural=bay is not in its water layer (project.mml:385-389); the sea under it shows
+poly 0x3b 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
+poly 0x28 9 #eee5dc  Salt pond  # not drawn by CyclOSM: landuse=salt_pond is not in its water or landuse layer
+poly 0x3f 9 #8ecbeb  Reservoir  # @water palette.mss:42, landuse=basin and reservoir in its water layer (project.mml:372)
+poly 0x4c 9 #8ecbeb  Dock  # @water palette.mss:42, waterway=dock in its water layer (project.mml:372)
+poly 0x47 9 #eee5dc  Waterfall  # not drawn by CyclOSM: no waterfall area in its water layer (project.mml:385-389); the river under it shows
+poly 0x51 8 #c2debd  Wetland  # @grass palette.mss:34, natural_wetland base.mss:57-61; graphics.txt adds wetland.png; below water, as CyclOSM draws water over it
+poly 0x13 11 #e4dfdb  Building  # @building palette.mss:53, base.mss:522-523; its 0.3 px outline is not drawn
 
-# --- contour lines, in the burnt orange the style draws them with -------------
-line 0x21 2 #c45700            Contour, index
-line 0x20 1 #c45700            Contour
-line 0x22 1 #c45700            Contour, minor
+# --- lines --------------------------------------------------------------------
+# Roads: ink @rdz16_* (roads.mss:261-280), casing 1 pixel either side. CyclOSM draws a
+# trunk as a motorway (views.sql:8) and fills one a bicycle may use pink
+# (@motorway-trunk-cycle-fill); a motorway, or a trunk tagged motorroad, is closed to
+# bicycles (views.sql:116-126) and grey.
+line 0x10801 8 #f4c3c3 #f6f6f6  Roundabout  # trunk: as line 0x02
+line 0x10802 7 #f4dfc3 #d8b267  Roundabout  # primary: as line 0x03
+line 0x10803 7 #f6f8d2 #b1bb5d  Roundabout  # secondary: as line 0x04
+line 0x10804 6 #f6f6f6 #777777  Roundabout  # tertiary: as line 0x05
+line 0x07 3 #f6f6f6 #888888  Service Road  # @standard-fill (roads.mss:3036), @standard-case (roads.mss:714), @rdz16_service 3.5 roads.mss:272
+line 0x11 2 #0000ce  Cycleway  # @cycle-fill road-colors.mss:13 (roads.mss:3521), @rdz16_cycle 2 x 1.5 for a two-way cycleway (roads.mss:3549; views.sql:49-53, 131-142)
+# Dashed in graphics.txt, the unknown-surface case 10,1: the flat colour is only a fallback.
+line 0x0a 2 #114021  Track  # @track-fill road-colors.mss:52 (roads.mss:3340), @rdz16_track 3 roads.mss:273
+line 0x30 2 #bad5b5  Track  # kmap puts leisure=track here (and raceway, gallop): @track = @park * 0.96 palette.mss:36,59, leisure_track base.mss:172-199; its 1 px outline left out
+line 0x16 1 #7a5b36  Path  # footway: @footway-fill road-colors.mss:19 (roads.mss:3440), @rdz16_footway 0.75 roads.mss:277
+line 0x14 3 #888888  Railway  # @rail-line road-colors.mss:36 (roads.mss:3790), @rdz16_railway 1 roads.mss:280, 3 px cross ties dash 0,4,1,4 (roads.mss:380-396) in graphics.txt
+line 0x27 6 #dddddd  Runway  # @aeroway road-colors.mss:59, runway width 15 at z16 (roads.mss:3853-3860)
+
+# --- water --------------------------------------------------------------------
+line 0x1f 2 #8ecbeb  River  # @water palette.mss:42, river 3 at z16 (base.mss:323-330)
+line 0x18 1 #8ecbeb  Stream  # @water palette.mss:42, stream 0.8 at z16 (base.mss:336-338)
+line 0x26 1 #8ecbeb  Intermittent Stream  # as the stream: CyclOSM's waterway layer does not tell intermittent apart
+line 0x1a 1 #6666ff  Ferry  # @ferry-route palette.mss:104, 0.8 (ferry-routes.mss:12); dash 6,6 in graphics.txt
+line 0x1b 1 #6666ff  Ferry  # as line 0x1a
+
+# --- barriers, landforms, utilities -------------------------------------------
+line 0x17 1 #444444  Barrier  # barriers_line #444 0.4 at z>=16 (base.mss:476-480)
+line 0x2b 4 #999999  Cliff  # cliff2.svg in graphics.txt (base.mss:464-469); the image's own #999999
+line 0x29 1 #888888  Power Line  # @power-line palette.mss:67, 0.7 at z16 (power.mss:1-10)
+line 0x25 3 #808080  Aerial way  # the 1 px #808080 cable (aerialways.mss:6-9, 45-48, 90-93); 1 px in a 3 px band in graphics.txt; the black dash/ marks are not drawn
+# Not drawn by CyclOSM, drawn clear by graphics.txt: 0x12 Plateau rim, 0x23 Cutline,
+# 0x24 Valley, 0x28 Pipeline. 0x0d, the link this build puts in across a kerb or a bank,
+# is left out on purpose: a flat colour here would replace kmap's red dashes with a stripe.
+
+# --- boundaries ---------------------------------------------------------------
+# Admin boundaries are drawn at layer opacity 0.5 with comp-op darken (admin.mss:124-125):
+# composited over @land, #333 is #918c88 and #888 is #bbb7b2.
+line 0x1e 2 #918c88  Boundary  # admin_level 2: @state-boundaries palette.mss:70, 2.5 at z>=9 (admin.mss:42-45), solid
+line 0x1d 2 #bbb7b2  Boundary  # admin_level 3-4: @admin-boundaries palette.mss:69, 2 (admin.mss:65-68, 108-111); dash 3,6 in graphics.txt
+line 0x1c 1 #bbb7b2  Boundary  # admin_level 5-10: 1.4 / 1.2 / 1 (admin.mss:130-195); dash 3,6 in graphics.txt
+# Protected area: CyclOSM draws an inner band of @wooded, multiplied at opacity 0.2, 8 px
+# wide and offset 4 px inward (admin.mss:234-242), and a 4 px one offset 2 px inward
+# (admin.mss:244-252). Next to the boundary both lie, multiplied over @land: #c8ceb4.
+# A TYP line has no offset: the band is drawn centred on the boundary.
+line 0x19 3 #c8ceb4  Protected area
+line 0x2d 1 #f2c2bc  Military area  # @military #f55 palette.mss:45 at line-opacity 0.24 over @land, 2 at z>=15 (base.mss:254-263)
+
+# --- contour lines ------------------------------------------------------------
+# @contours-stroke (palette.mss:147). At z16 every interval CyclOSM draws is 1 px or
+# less: 100 m 1, 50 m 0.8, 20 m 0.4, 10 m 0.4 (base.mss:386-443).
+line 0x22 1 #c45700  Contour  # major, every 10th line
+line 0x21 1 #c45700  Contour  # medium, every 5th line
+line 0x20 1 #c45700  Contour  # minor, the full interval
 
 """#####
 
-    /// Dashed line sections for the CyclOSM style: its paths, tracks and
-    /// footways are broken hairlines, which a flat colour cannot say.
-    /// See Assets/styles/cyclosm/graphics.txt.
+    /// Bitmap sections for the CyclOSM style: its dashes, cliff teeth and fill
+    /// patterns, drawn from its own values and images.
+    /// See Assets/styles/cyclosm/PROVENANCE.md.
     static let cyclosmGraphics =
 #####"""
-; Line patterns for the CyclOSM shipped style.
-; Their paths, tracks and footways are dashed hairlines, not solid strokes: at
-; z13 a track is one pixel and a footway a fifth of one, drawn broken over a
-; pale halo. A flat colour in the table cannot say that, so these five sections
-; carry the dash. Colours are the style's own (`road-colors.mss`, BSD-3-Clause);
-; the dash lengths are the thinnest a Garmin line can hold.
-; Appended verbatim to the generated TYP, replacing the table's flat line.
-
-[_line]
-Type=0x0e
-String=0x00,Path
-FontStyle=NoLabel
-Xpm="32 1 2 1"
-"  c none"
-"# c #007360"
-"###   ###   ###   ###   ###   ##"
-[end]
+; Generated from the original's values and images by a maintainer's tool; see
+; PROVENANCE.md for the sources. The next run writes this file again.
 
 [_line]
 Type=0x0a
-String=0x00,Track
-FontStyle=NoLabel
-Xpm="32 1 2 1"
-"  c none"
-"# c #114021"
-"#####  #####  #####  #####  ####"
-[end]
-
-[_line]
-Type=0x07
-String=0x00,Bridleway
-FontStyle=NoLabel
-Xpm="32 1 2 1"
-"  c none"
-"# c #741e18"
-"####    ####    ####    ####    "
+Xpm="32 2 4 1"
+"a c none"
+"b c #114021"
+"A c none"
+"B c #000000"
+"bbbbbbbbbbabbbbbbbbbbabbbbbbbbbb"
+"bbbbbbbbbbabbbbbbbbbbabbbbbbbbbb"
 [end]
 
 [_line]
 Type=0x16
-String=0x00,Footway
-FontStyle=NoLabel
-Xpm="32 1 2 1"
-"  c none"
-"# c #7a5b36"
-"##  ##  ##  ##  ##  ##  ##  ##  "
+Xpm="32 1 4 1"
+"a c none"
+"b c #7a5b36"
+"A c none"
+"B c #555500"
+"bbbbbbbbbbabbbbbbbbbbabbbbbbbbbb"
+[end]
+
+[_line]
+Type=0x1a
+Xpm="32 1 4 1"
+"a c none"
+"b c #6666ff"
+"A c none"
+"B c #5555AA"
+"bbbbbbaaaaaabbbbbbaaaaaabbbbbbaa"
+[end]
+
+[_line]
+Type=0x1b
+Xpm="32 1 4 1"
+"a c none"
+"b c #6666ff"
+"A c none"
+"B c #5555AA"
+"bbbbbbaaaaaabbbbbbaaaaaabbbbbbaa"
+[end]
+
+[_line]
+Type=0x1d
+Xpm="32 2 4 1"
+"a c none"
+"b c #bbb7b2"
+"A c none"
+"B c #555555"
+"bbbaaaaaabbbaaaaaabbbaaaaaabbbaa"
+"bbbaaaaaabbbaaaaaabbbaaaaaabbbaa"
+[end]
+
+[_line]
+Type=0x1c
+Xpm="32 1 4 1"
+"a c none"
+"b c #bbb7b2"
+"A c none"
+"B c #555555"
+"bbbaaaaaabbbaaaaaabbbaaaaaabbbaa"
+[end]
+
+[_line]
+Type=0x14
+Xpm="32 3 4 1"
+"a c none"
+"b c #888888"
+"A c none"
+"B c #555555"
+"aaaabaaaaaaaabaaaaaaaabaaaaaaaab"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaabaaaaaaaabaaaaaaaabaaaaaaaab"
+[end]
+
+[_line]
+Type=0x25
+Xpm="32 3 4 1"
+"a c none"
+"b c #808080"
+"A c none"
+"B c #555555"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
 
 [_line]
 Type=0x2b
-String=0x00,Via ferrata
+UseOrientation=Y
+Xpm="32 4 4 1"
+"a c none"
+"b c #999999"
+"A c none"
+"B c #555555"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaabbaaaaaaaabbaaaaaaaabbaaaaaa"
+"aaaabbaaaaaaaabbaaaaaaaabbaaaaaa"
+"aaaabbaaaaaaaabbaaaaaaaabbaaaaaa"
+[end]
+
+[_line]
+Type=0x12
 FontStyle=NoLabel
-Xpm="32 1 2 1"
-"  c none"
-"# c #741e18"
-"#  #  #  #  #  #  #  #  #  #  # "
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x23
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x28
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x54
+Xpm="32 32 4 1"
+"a c #cbc9c6"
+"b c #eee5dc"
+"A c #AAAAAA"
+"B c #AAAAAA"
+"bbbabbbbbbbbbbbbbbbbbbbbabbbbbbb"
+"bbbbbbabbbbbbbabbbbbbabbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbbabbbbbbbabbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbabbbbbbabbb"
+"bbbbbbbbabbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbabbbb"
+"bbbbbbbbbbbbbbbbbbbbbabbbbbbbbba"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbabbbbbbbbb"
+"bbbbbabbbbbbbbbbbbabbbbbbabbbbab"
+"bbbbbbbbbbbbabbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbabbabbbbbbb"
+"abbbabbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbabbbbbbbbbbbbbabbabbabbb"
+"babbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbbbbbbbbbbbbbbbbb"
+"bbbbbbabbbbbbbbabbbbbbbbbabbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbabb"
+"bbbbbbbbbbbbabbbbbbbbbbbbabbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbab"
+"babbbbbbabbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbbbbbbbbbbbbbbbbbb"
+"bbbbbaabbbbbbbbbbbbabbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbabbbbbbbbabbb"
+"babbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x56
+Xpm="32 32 4 1"
+"a c #cfcdca"
+"b c #eee5dc"
+"A c #AAAAAA"
+"B c #AAAAAA"
+"baaabaaabbaaababbabaabbbbaaabbaa"
+"bbabbaabbbaaabbbaaabbbaabbbbaaaa"
+"bbbbbbbbbbbabbbbabbbbabaabaaabba"
+"bbbbbbbbbbbbbbbaabbbbabbababbabb"
+"abbabbbbbbbbbbbabbbaaaabaabbaabb"
+"abaabababbbbbbaabbaaababbabaabbb"
+"abaaaaaabbbabbbbbabbabbabaaabbaa"
+"abbaaaaabbbaaaaabaabbbbbbabbbbaa"
+"bbaaaabbbbbababaababbabbbbaaaabb"
+"bbaabbbabbbbbabaabbbbabbbaaaabbb"
+"bbbbabaabaaabbbaabbabbbababbbbbb"
+"bbbbaaaaaaaaaabbbabaaabbbaaababa"
+"abbbbabaabaabbbbabbbabbaaabbbaba"
+"abaababaaaaaabbabbaaabbbbabbaaaa"
+"abaabbbbbabbbaabababbbbbbbbbaaaa"
+"bbbbabbbabbabbbaaabbbbbbbbbbabbb"
+"ababbbbbbbbbbabbaabaaabbbbabaaba"
+"bbaababbbbbbbbaabaabbbabbbbbabaa"
+"baabbabbbbbbbabaaabbbbbabaaabbba"
+"babbbbabbbabbbbbaaaaabaabbbbbbaa"
+"aabaababbbbabbbbbbababbbbbbbaabb"
+"abaaabbbbbaabbbbaabbabaabbbbbbba"
+"abababbbbbaabbaaabbabaaaabbabbaa"
+"bbbbabbbbbbbbbbbbbabbabaabbbabab"
+"bbbabbabbbaabaaaaaabaaabaabaaabb"
+"babaababbaaaabaaaaabbbbbbbbabbbb"
+"bbbbabababaabbbabbbbbaaabbbaabbb"
+"bbbbbbbbbaaaaaaabbbabbababbabbbb"
+"abbbbbabbbbaabaabbbaabbbabbabbba"
+"bbbbbaaabbaaabaabbbbaabbabbabbab"
+"bbabbaaabbbaabbbababbbbbbababbab"
+"abbbbbabbabbbaabbbbabbbbbbaaabbb"
+[end]
+
+[_polygon]
+Type=0x4f
+Xpm="32 32 4 1"
+"a c #b0be93"
+"b c #c8d7ab"
+"A c #555555"
+"B c #AAAA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbabababbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbaaaaabbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbaaabbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbaaaaaaabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x4e
+Xpm="32 32 4 1"
+"a c #759e6c"
+"b c #e2eecb"
+"A c #555555"
+"B c #AAAAAA"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x1b
+Xpm="32 32 4 1"
+"a c #b9d0a7"
+"b c #e2eecb"
+"A c #55AA55"
+"B c #AAAAAA"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"abbbbbbbabbbbbbbabbbbbbbabbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+"bbbbabbbbbbbabbbbbbbabbbbbbbabbb"
+[end]
+
+[_polygon]
+Type=0x5a
+Xpm="32 32 4 1"
+"a c #f2efe9"
+"b c #c2debd"
+"A c #AAAAAA"
+"B c #AAAA55"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbabbbbbbbabbbbbbbabbbbbbbabbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x51
+Xpm="32 32 4 1"
+"a c #4aa5fa"
+"b c #c2debd"
+"A c #5555AA"
+"B c #AAAA55"
+"bbbbbbbbbbbaaaaaaabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbaaaaaaab"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbaaaaaaabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbaaaaaaabbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaaabbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbaaaaaaabbbbbbbbb"
+"bbbbaaaaaaabbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"abbbbaaaaaaabbbaaaaaaabbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaabbbbbbbbbbbbbbbbbbbbaaaaaaab"
+"bbbbbbbbbbbbbbaaaaaaabbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbaaaaaaabbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aabbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbaaaaaaa"
+"bbbbbbbbbbaaaaaaabbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x0d
+Xpm="32 32 4 1"
+"a c #e6e6e6"
+"b c #c5c3c3"
+"A c #AAAAAA"
+"B c #AAAAAA"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbaabbbbabbbbbbbb"
+"bbbbbbbbbbbbbbbbaaabbbaaabbbbbbb"
+"bbbbbbbbbbbbbbbaaabbbbbaaabbbbbb"
+"bbbbbbbbbbbbbbaaaabbbbbaaabbbbbb"
+"bbbbbbbbbbbbbbaabbabbbabbaabbbbb"
+"bbbbbbbbbbbbbbbbbbbababbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbaaabbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbaaabbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbaabbabbbbbbbbb"
+"bbbbbbbbbbbbbbbbbaabbbaabbbbbbbb"
+"bbbbbbbbbbbbbbbbaabbbbbaabbbbbbb"
+"bbbbbbbbbbbbbbbaabbbbbbbaabbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x1a
+Xpm="32 32 4 1"
+"a c #b6bdb3"
+"b c #d6ded2"
+"A c #555555"
+"B c #AAAAAA"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbaabbbbbbbbbbbbbbaabbbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"aaaaaaaabbbbbbbbaaaaaaaabbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbaabbbbbbbbbbbbbbaabbbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"bbaaaabbbbbbbbbbbbaaaabbbbbbbbbb"
+"aaaaaaaabbbbbbbbaaaaaaaabbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x04
+Xpm="32 32 4 1"
+"a c none"
+"b c #f1c8c1"
+"A c none"
+"B c #AAAAAA"
+"baaaaaaaaaaaaabbbaaaaaaaaaaaaabb"
+"aaaaaaaaaaaaabbbaaaaaaaaaaaaabbb"
+"aaaaaaaaaaaabbbaaaaaaaaaaaaabbba"
+"aaaaaaaaaaabbbaaaaaaaaaaaaabbbaa"
+"aaaaaaaaaabbbaaaaaaaaaaaaabbbaaa"
+"aaaaaaaaabbbaaaaaaaaaaaaabbbaaaa"
+"aaaaaaaabbbaaaaaaaaaaaaabbbaaaaa"
+"aaaaaaabbbaaaaaaaaaaaaabbbaaaaaa"
+"aaaaaabbbaaaaaaaaaaaaabbbaaaaaaa"
+"aaaaabbbaaaaaaaaaaaaabbbaaaaaaaa"
+"aaaabbbaaaaaaaaaaaaabbbaaaaaaaaa"
+"aaabbbaaaaaaaaaaaaabbbaaaaaaaaaa"
+"aabbbaaaaaaaaaaaaabbbaaaaaaaaaaa"
+"abbbaaaaaaaaaaaaabbbaaaaaaaaaaaa"
+"bbbaaaaaaaaaaaaabbbaaaaaaaaaaaaa"
+"bbaaaaaaaaaaaaabbbaaaaaaaaaaaaab"
+"baaaaaaaaaaaaabbbaaaaaaaaaaaaabb"
+"aaaaaaaaaaaaabbbaaaaaaaaaaaaabbb"
+"aaaaaaaaaaaabbbaaaaaaaaaaaaabbba"
+"aaaaaaaaaaabbbaaaaaaaaaaaaabbbaa"
+"aaaaaaaaaabbbaaaaaaaaaaaaabbbaaa"
+"aaaaaaaaabbbaaaaaaaaaaaaabbbaaaa"
+"aaaaaaaabbbaaaaaaaaaaaaabbbaaaaa"
+"aaaaaaabbbaaaaaaaaaaaaabbbaaaaaa"
+"aaaaaabbbaaaaaaaaaaaaabbbaaaaaaa"
+"aaaaabbbaaaaaaaaaaaaabbbaaaaaaaa"
+"aaaabbbaaaaaaaaaaaaabbbaaaaaaaaa"
+"aaabbbaaaaaaaaaaaaabbbaaaaaaaaaa"
+"aabbbaaaaaaaaaaaaabbbaaaaaaaaaaa"
+"abbbaaaaaaaaaaaaabbbaaaaaaaaaaaa"
+"bbbaaaaaaaaaaaaabbbaaaaaaaaaaaaa"
+"bbaaaaaaaaaaaaabbbaaaaaaaaaaaaab"
+[end]
+
+[_polygon]
+Type=0x11
+Xpm="32 32 4 1"
+"a c none"
+"b c #f1c8c1"
+"A c none"
+"B c #AAAAAA"
+"baaaaaaaaaaaaabbbaaaaaaaaaaaaabb"
+"aaaaaaaaaaaaabbbaaaaaaaaaaaaabbb"
+"aaaaaaaaaaaabbbaaaaaaaaaaaaabbba"
+"aaaaaaaaaaabbbaaaaaaaaaaaaabbbaa"
+"aaaaaaaaaabbbaaaaaaaaaaaaabbbaaa"
+"aaaaaaaaabbbaaaaaaaaaaaaabbbaaaa"
+"aaaaaaaabbbaaaaaaaaaaaaabbbaaaaa"
+"aaaaaaabbbaaaaaaaaaaaaabbbaaaaaa"
+"aaaaaabbbaaaaaaaaaaaaabbbaaaaaaa"
+"aaaaabbbaaaaaaaaaaaaabbbaaaaaaaa"
+"aaaabbbaaaaaaaaaaaaabbbaaaaaaaaa"
+"aaabbbaaaaaaaaaaaaabbbaaaaaaaaaa"
+"aabbbaaaaaaaaaaaaabbbaaaaaaaaaaa"
+"abbbaaaaaaaaaaaaabbbaaaaaaaaaaaa"
+"bbbaaaaaaaaaaaaabbbaaaaaaaaaaaaa"
+"bbaaaaaaaaaaaaabbbaaaaaaaaaaaaab"
+"baaaaaaaaaaaaabbbaaaaaaaaaaaaabb"
+"aaaaaaaaaaaaabbbaaaaaaaaaaaaabbb"
+"aaaaaaaaaaaabbbaaaaaaaaaaaaabbba"
+"aaaaaaaaaaabbbaaaaaaaaaaaaabbbaa"
+"aaaaaaaaaabbbaaaaaaaaaaaaabbbaaa"
+"aaaaaaaaabbbaaaaaaaaaaaaabbbaaaa"
+"aaaaaaaabbbaaaaaaaaaaaaabbbaaaaa"
+"aaaaaaabbbaaaaaaaaaaaaabbbaaaaaa"
+"aaaaaabbbaaaaaaaaaaaaabbbaaaaaaa"
+"aaaaabbbaaaaaaaaaaaaabbbaaaaaaaa"
+"aaaabbbaaaaaaaaaaaaabbbaaaaaaaaa"
+"aaabbbaaaaaaaaaaaaabbbaaaaaaaaaa"
+"aabbbaaaaaaaaaaaaabbbaaaaaaaaaaa"
+"abbbaaaaaaaaaaaaabbbaaaaaaaaaaaa"
+"bbbaaaaaaaaaaaaabbbaaaaaaaaaaaaa"
+"bbaaaaaaaaaaaaabbbaaaaaaaaaaaaab"
+[end]
+
+[_polygon]
+Type=0x50
+Xpm="32 32 4 1"
+"a c #84aa75"
+"b c #95bd84"
+"A c #555555"
+"B c #555555"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbaaabbbbbbbbbbbbb"
+"bbbbbbbbbbbaaabaabaabbbbbbbbbbbb"
+"bbbbbbbbbbbabababbbabbbbbbbbbbbb"
+"bbbbbbbbbbbabababbbabbbbbbbbbbbb"
+"bbbbbbbbbbabbbaaabaabbbbbbbbbbbb"
+"bbbbbbbbbbabbbabaaabbbbbbbbbbbbb"
+"bbbbbbbbbbaaaaabbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbabbbbabbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x57
+Xpm="32 32 4 1"
+"a c #84aa75"
+"b c #95bd84"
+"A c #555555"
+"B c #555555"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbaaabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbababbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbababbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbaaaaaaabbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x58
+Xpm="32 32 4 1"
+"a c #84aa75"
+"b c #95bd84"
+"A c #555555"
+"B c #555555"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbaaabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbabbbbbabbbbbbbbbbbbbbb"
+"bbbbbbbbbbbabbbabbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbaaabbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbabbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_polygon]
+Type=0x1f
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x3d
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x47
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x16
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x26
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x52
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x02
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x03
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x07
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0e
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x08
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x21
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x22
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x23
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x09
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x28
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
 
 """#####
@@ -5581,147 +10208,1608 @@ Xpm="32 1 2 1"
 #####"""
 # The OSM Liberty Topo look, on the type codes kmap's rules emit.
 #
-# Colours are read from the style's own `style.json` (nst-guide/osm-liberty-topo,
-# gh-pages), fetched 2026-09-08. It is a minimal look by design: its data schema
-# (OpenMapTiles) knows nine kinds of ground — wood, grass, ice, sand, park,
-# residential, cemetery, hospital, school — and everything else renders as the
-# background. A `# ground` note below marks a number this style does not paint,
-# which therefore takes the background colour, exactly as the original does.
-# `# worked out` marks a colour computed from an HSL or a zoom stop.
-# See PROVENANCE.md, LICENSE.md and LICENSE-osm-bright.txt beside this file.
+# Every colour and width is read from the style's own `style.json`
+# (nst-guide/osm-liberty-topo, gh-pages commit fa884f9), whose data schema is the
+# nst-guide fork of OpenMapTiles (commit 9c7ba7a). The note after each row names
+# the layer id it comes from. Values are the ones the style draws at zoom 16,
+# 1 CSS pixel to 1 device pixel. A colour drawn with opacity is composited
+# over the style's background, rgb(239,239,239), and the result is written here.
+#
+# What the style does not draw is a clear section in graphics.txt, and its row here
+# says "not drawn by Liberty Topo"; a line it does not draw has no row here. Dashes,
+# the rail's ties and the pedestrian area's pattern are in graphics.txt too; a row
+# here that graphics.txt draws again says so. See PROVENANCE.md, LICENSE.md and
+# LICENSE-osm-bright.txt.
 #
 #   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
+# Widths are not the original's: a line takes the whole width kmap's topoactive gives
+# the same code, casing included, and a line topoactive leaves to the device has no row
+# here or in graphics.txt, so the device draws it at its own width. The original's
+# width in a note is for the record.
+#
 # The night theme is kmap's, snapped to the steps a MIP watch screen can show.
 
 name    OSM Liberty Topo
-summary a minimal topographic look — quiet ground, orange roads, contour browns
+summary a minimal topographic look: pale ground, orange roads, contour browns
 
 # --- polygons, bottom of the stack upward ------------------------------------
 # The device's own background, on a level below everything: a fenix
 # draws it where the land polygon has not arrived yet, and shows black
-# without it. The ground colour the style paints land with.
-poly 0x4b 1 #efefef  Background
-poly 0x27 3 #efefef  Land
-poly 0x1c 5 #efefef  Farmland  # ground
-poly 0x29 5 #efefef  Greenhouses  # ground
-poly 0x26 5 #efefef  Farm  # ground
-poly 0x4e 5 #efefef  Orchard  # ground
-poly 0x1b 5 #efefef  Vineyard  # ground
-poly 0x5a 5 #efefef  Allotments  # ground
-poly 0x1f 5 #efefef  Fell  # ground
-poly 0x55 5 #b0d59a  Grassland
-poly 0x15 5 #b0d59a  Village green
-poly 0x1d 5 #b0d59a  Common
-poly 0x4f 5 #efefef  Scrub  # ground
-poly 0x5b 5 #efefef  Scrub
-poly 0x1e 5 #efefef  Heath  # ground
-poly 0x50 5 #ace38c  Forest
-poly 0x57 5 #ace38c  Coniferous forest
-poly 0x58 5 #ace38c  Broadleaved forest
-poly 0x59 5 #ace38c  Wood
-poly 0x53 5 #f7efc3  Beach
-poly 0x54 5 #efefef  Scree  # ground
-poly 0x56 5 #efefef  Bare rock  # ground
-poly 0x52 5 #efefef  Tundra  # ground
-poly 0x4d 5 #e0ecec  Glacier
-poly 0x02 6 #f2e3cf  Suburb  # worked out
-poly 0x03 6 #f2e3cf  Village  # worked out
-poly 0x10 6 #f2e3cf  Residential  # worked out
-poly 0x0f 6 #efefef  Commercial  # ground
-poly 0x0c 6 #efefef  Construction  # ground
-poly 0x0d 6 #efefef  Quarry  # ground
-poly 0x07 6 #e5e4e0  Airport ground
-poly 0x0e 6 #f0ede9  Runway
-poly 0x05 6 #efefef  Parking  # ground
-poly 0x06 6 #efefef  Covered parking  # ground
-poly 0x1a 6 #d8e0bd  Cemetery  # worked out
+# without it.
+poly 0x4b 1 #efefef  Background  # background
+poly 0x27 3 #efefef  Land  # background
+poly 0x16 4 #dfead4  Nature Reserve  # park: #d8e8c8 at 0.7
+poly 0x1c 5 #efefef  Grassland  # not drawn by Liberty Topo: kmap puts landuse=farmland here (and greenfield), landcover class farmland, which has no layer
+poly 0x29 5 #efefef  Greenhouses  # not drawn by Liberty Topo: not in its schema
+poly 0x26 5 #efefef  Farm  # not drawn by Liberty Topo: landcover farmland has no layer
+poly 0x4e 5 #efefef  Orchard  # not drawn by Liberty Topo: landcover farmland has no layer
+poly 0x1b 5 #efefef  Vineyard  # not drawn by Liberty Topo: landcover farmland has no layer
+poly 0x5a 5 #dce7d5  Allotments  # landcover_grass: rgb(176,213,154) at 0.3
+poly 0x1f 5 #dce7d5  Mountain meadow  # landcover_grass (fell): rgb(176,213,154) at 0.3
+poly 0x55 5 #dce7d5  Grassland  # landcover_grass: rgb(176,213,154) at 0.3
+poly 0x15 5 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3
+poly 0x1d 5 #efefef  Common  # not drawn by Liberty Topo: not in its schema
+poly 0x4f 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
+poly 0x5b 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
+poly 0x1e 5 #dce7d5  Heath  # landcover_grass (heath): rgb(176,213,154) at 0.3
+poly 0x50 5 #dcecd3  Forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x57 5 #dcecd3  Coniferous forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x58 5 #dcecd3  Broadleaved forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x59 5 #dcecd3  Woodland  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x53 5 #f7efc3  Sand  # landcover_sand: rgba(247,239,195,1)
+poly 0x54 5 #efefef  Scree  # not drawn by Liberty Topo: landcover rock has no layer
+poly 0x56 5 #efefef  Bare rock  # not drawn by Liberty Topo: landcover rock has no layer
+poly 0x52 5 #dce7d5  Bare Ground  # kmap puts natural=tundra here, landcover class grass in the schema: landcover_grass, rgb(176,213,154) at 0.3
+poly 0x4d 5 #e3eded  Glacier  # landcover_ice: rgba(224,236,236,1) at 0.8 (zoom 14 and up)
+poly 0x02 6 #efefef  Suburb  # not drawn by Liberty Topo: place=suburb is landuse class suburb, which has no layer
+poly 0x03 6 #efefef  Village  # not drawn by Liberty Topo: place=village areas are not in its schema
+poly 0x10 6 #efefef  Residential  # not drawn by Liberty Topo at zoom 16: landuse_residential stops at 8
+poly 0x0f 6 #efefef  Commercial  # not drawn by Liberty Topo: landuse commercial has no layer
+poly 0x0c 6 #efefef  Industrial  # not drawn by Liberty Topo: landuse industrial has no layer
+poly 0x0d 6 #efefef  Quarry  # not drawn by Liberty Topo: not in its schema
+poly 0x07 6 #e8e7e4  Airport  # aeroway_fill: rgba(229,228,224,1) at 0.7
+poly 0x0e 6 #e8e7e4  Runway  # aeroway_fill: rgba(229,228,224,1) at 0.7
+poly 0x05 6 #efefef  Parking  # not drawn by Liberty Topo: not in its schema
+poly 0x06 6 #efefef  Parking  # not drawn by Liberty Topo: not in its schema
+poly 0x1a 6 #d8e0bd  Cemetery  # landuse_cemetery: hsl(75,37%,81%)
 # The sea over the fills and what grows: a fill drawn across the shoreline in
 # OSM stops at the water. Under the squares, piers and parks, which may stand on it.
-poly 0x32 7 #9ebdff  Sea
-poly 0x25 8 #efefef  Square  # ground
-poly 0x08 6 #efefef  Food and drink  # ground
-poly 0x0a 6 #eceecc  Kindergarten
-poly 0x0b 6 #ffddee  Hospital
-poly 0x04 6 #efefef  Prison  # ground
-poly 0x12 6 #efefef  Services  # ground
-poly 0x21 6 #efefef  Tourism  # ground
-poly 0x22 6 #efefef  Historic  # ground
-poly 0x23 6 #efefef  Amenity  # ground
-poly 0x24 8 #efefef  Man-made  # ground
-poly 0x17 8 #d8e8c8  Park
-poly 0x20 8 #d8e8c8  Garden
-poly 0x18 8 #d8e8c8  Golf course
-poly 0x19 8 #efefef  Ice rink  # ground
-poly 0x09 8 #d8e8c8  Water park
-poly 0x3c 9 #9ebdff  Water
-poly 0x41 9 #9ebdff  Small water
-poly 0x46 9 #9ebdff  Riverbank
-poly 0x48 9 #9ebdff  Canal
-poly 0x3d 9 #9ebdff  Bay
-poly 0x3b 9 #9ebdff  Waterway area
-poly 0x28 9 #9ebdff  Salt pond
-poly 0x3f 9 #9ebdff  Basin
-poly 0x4c 9 #9ebdff  Dock
-poly 0x47 9 #9ebdff  Waterfall
-poly 0x51 10 #b0d59a  Marsh  # ground
-poly 0x16 4 #d8e8c8  Nature reserve  # ground
-poly 0x11 10 #efefef  Military  # ground
-poly 0x13 11 #dcd9d6  Building
+poly 0x32 7 #9ebdff  Sea  # water: rgb(158,189,255)
+poly 0x25 8 #efefef  Pedestrian Area  # road_area_pattern: pedestrian_polygon, drawn in graphics.txt
+poly 0x08 6 #efefef  Shopping  # not drawn by Liberty Topo: not in its schema
+poly 0x0a 6 #eceecc  School  # landuse_school: rgb(236,238,204)
+poly 0x0b 6 #ffddee  Hospital  # landuse_hospital: #fde
+poly 0x04 6 #efefef  Military  # not drawn by Liberty Topo: landuse military has no layer
+poly 0x12 6 #efefef  Retail  # not drawn by Liberty Topo: landuse retail has no layer
+poly 0x21 6 #efefef  Tourism  # not drawn by Liberty Topo: not in its schema
+poly 0x22 6 #efefef  Historic  # not drawn by Liberty Topo: not in its schema
+poly 0x23 6 #efefef  Amenity  # not drawn by Liberty Topo: not in its schema
+poly 0x24 8 #efefef  Structure  # not drawn by Liberty Topo: not in its schema
+poly 0x17 8 #dce7d5  Park  # landcover_grass (park): rgb(176,213,154) at 0.3
+poly 0x20 8 #dce7d5  Garden  # landcover_grass (garden): rgb(176,213,154) at 0.3
+poly 0x18 8 #dce7d5  Golf Course  # landcover_grass (golf_course): rgb(176,213,154) at 0.3
+poly 0x19 8 #efefef  Sports Ground  # not drawn by Liberty Topo: landuse pitch and stadium have no layer
+poly 0x09 8 #efefef  Water Park  # not drawn by Liberty Topo: not in its schema
+poly 0x3c 9 #9ebdff  Water  # water: rgb(158,189,255)
+poly 0x41 9 #9ebdff  Water  # water: rgb(158,189,255)
+poly 0x46 9 #9ebdff  River  # water: rgb(158,189,255)
+poly 0x48 9 #9ebdff  Canal  # water: rgb(158,189,255)
+poly 0x3d 9 #9ebdff  Bay  # water: rgb(158,189,255)
+poly 0x3b 9 #9ebdff  Water  # water: rgb(158,189,255)
+poly 0x28 9 #efefef  Salt pond  # not drawn by Liberty Topo: landuse=salt_pond is not in its water
+poly 0x3f 9 #9ebdff  Reservoir  # water: rgb(158,189,255)
+poly 0x4c 9 #9ebdff  Dock  # water: rgb(158,189,255)
+poly 0x47 9 #efefef  Waterfall  # not drawn by Liberty Topo: not in its schema
+poly 0x51 10 #efefef  Wetland  # not drawn by Liberty Topo: landcover wetland has no layer
+poly 0x11 10 #efefef  Danger Area  # not drawn by Liberty Topo: not in its schema
+poly 0x13 11 #dcd9d6  Building  # building-3d: hsl(35,8%,85%), seen from above
 # --- lines --------------------------------------------------------------------
-line 0x01 5 #ffcc88 #e9ac77    Motorway
-line 0x09 4 #ffcc88 #e9ac77    Motorway link
-line 0x0b 4 #ffcc88 #e9ac77    Motorway exit
-line 0x02 5 #ffeeaa #e9ac77    Trunk
-line 0x03 5 #ffeeaa #e9ac77    Primary
-line 0x08 4 #ffeeaa #e9ac77    Primary link
-line 0x04 4 #ffeeaa #e9ac77    Secondary
-line 0x05 4 #ffeeaa #e9ac77    Tertiary
-line 0x06 3 #ffffff #cfcdca    Minor road
-line 0x0c 4 #ffffff #cfcdca    Roundabout
-line 0x10801 5 #ffeeaa #e9ac77  Roundabout, trunk  # filled, not theirs: the road's own
-line 0x10802 5 #ffeeaa #e9ac77  Roundabout, primary  # filled, not theirs: the road's own
-line 0x10803 4 #ffeeaa #e9ac77  Roundabout, secondary  # filled, not theirs: the road's own
-line 0x10804 4 #ffeeaa #e9ac77  Roundabout, tertiary  # filled, not theirs: the road's own
-line 0x30 3 #ffffff #cfcdca    Track loop
-line 0x16 3 #ffffff #cfcdca    Construction
-line 0x0a 2 #ffffff #cfcdca    Track
-line 0x0e 1 #ffffff #ceac34    Path
-line 0x10 2 #ffffff #cfcdca    Living street
-line 0x07 2 #ffffff #ceac34    Bridleway
-line 0x11 2 #ffffff #ceac34    Cycleway
-line 0x2b 2 #ffffff #ceac34    Via ferrata  # ground
-line 0x18 2 #a0c8f0            Stream
-line 0x1f 3 #a0c8f0            River
-line 0x33 2 #a0c8f0            Canal
-line 0x34 1 #a0c8f0            Drain
-line 0x35 1 #a0c8f0            Ditch
-line 0x26 2 #a0c8f0            Intermittent river
-line 0x1a 2 #a0c8f0            Ferry  # ground
-line 0x1b 2 #a0c8f0            Foot ferry  # ground
-line 0x17 2 #cdcac6            Breakwater  # ground
-line 0x31 1 #ace38c            Tree row  # ground
-line 0x32 2 #cdcac6            City wall  # ground
-line 0x27 4 #f0ede9            Runway
-line 0x29 1 #bbbbbb            Power line  # ground
-line 0x25 2 #bbbbbb            Cableway  # ground
-line 0x28 1 #bbbbbb            Pipeline  # ground
-line 0x23 1 #cdcac6            Cutline  # ground
-line 0x24 1 #cdcac6            Valley  # ground
-line 0x12 1 #cdcac6            Fell edge  # ground
-line 0x19 2 #9e9cab            National park boundary  # ground
-line 0x1c 1 #9e9cab            Boundary
-line 0x1d 2 #9e9cab            Region boundary
-line 0x1e 2 #68686a            Country boundary
-line 0x2d 2 #9e9cab            Military boundary  # ground
+line 0x10801 8 #ffeeaa #e9ac77 Roundabout  # road_trunk_primary, road_trunk_primary_casing
+line 0x10802 7 #ffeeaa #e9ac77 Roundabout  # road_trunk_primary, road_trunk_primary_casing
+line 0x10803 7 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_secondary_tertiary_casing
+line 0x10804 6 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_secondary_tertiary_casing
+line 0x07 3 #ffffff #cfcdca     Service Road  # road_service_track, road_service_track_casing
+line 0x0a 2 #ffffff #cfcdca     Track  # road_service_track, road_service_track_casing
+line 0x16 1 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt
+line 0x11 2 #ffffff             Cycleway  # road_path_pedestrian; dashed in graphics.txt
+line 0x14 3 #bbbbbb             Railway  # road_major_rail; its ties in graphics.txt
+line 0x27 6 #f0ede9             Runway  # aeroway_runway
+line 0x1f 2 #a0c8f0             River  # waterway_river
+line 0x18 1 #a0c8f0             Stream  # waterway_other
+line 0x26 1 #a0c8f0             Intermittent Stream  # waterway_other_intermittent; dashed in graphics.txt
+line 0x19 3 #8ad98e             Protected area  # park: its outline rgba(95,208,100,1) at 0.7; dashed in graphics.txt
+line 0x1d 2 #9e9cab             Boundary  # boundary_3; dashed in graphics.txt
+line 0x1e 2 #68686a             Boundary  # boundary_2: hsl(248,1%,41%)
 # 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
 # a flat colour here would replace kmap's red dashes with a plain stripe.
 
 # --- contour lines, which this style is built around ---------------------------
-line 0x21 1 #a67442            Contour, index
-line 0x20 1 #b38659            Contour
-line 0x22 1 #b38659            Contour, minor
+# The style's index line is every 5th of its interval: kmap's medium (0x21) and
+# major (0x22) lines are index lines, its minor (0x20) the plain ones.
+line 0x22 1 #d2beaa             Contour  # contour_index_ft: rgb(166,116,66) at 0.4
+line 0x21 1 #d2beaa             Contour  # contour_index_ft: rgb(166,116,66) at 0.4
+line 0x20 1 #d7c5b3             Contour  # contour_ft: rgb(179,134,89) at 0.4
+
+"""#####
+
+    /// Bitmap sections for the OSM Liberty Topo style: its dashes, rail ties and
+    /// pedestrian area pattern, drawn from its style JSON and sprite.
+    /// See Assets/styles/liberty-topo/PROVENANCE.md.
+    static let libertyTopoGraphics =
+#####"""
+; Generated from the original's values and images by a maintainer's tool; see
+; PROVENANCE.md for the sources. The next run writes this file again.
+
+[_line]
+Type=0x16
+Xpm="32 1 4 1"
+"a c #ffffff"
+"b c #ceac34"
+"A c #AAAAAA"
+"B c #AA5500"
+"aaaaabbaaaaabbaaaaabbaaaaabbaaaa"
+[end]
+
+[_line]
+Type=0x11
+Xpm="32 2 4 1"
+"a c none"
+"b c #ffffff"
+"A c none"
+"B c #AAAAAA"
+"bbbaabbbaabbbaabbbaabbbaabbbaabb"
+"bbbaabbbaabbbaabbbaabbbaabbbaabb"
+[end]
+
+[_line]
+Type=0x14
+UseOrientation=Y
+Xpm="32 3 4 1"
+"a c none"
+"b c #bbbbbb"
+"A c none"
+"B c #555555"
+"baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x26
+Xpm="32 1 4 1"
+"a c none"
+"b c #a0c8f0"
+"A c none"
+"B c #55AAAA"
+"bbbbbaaaabbbbbaaaabbbbbaaaabbbbb"
+[end]
+
+[_line]
+Type=0x1d
+Xpm="32 2 4 1"
+"a c none"
+"b c #9e9cab"
+"A c none"
+"B c #555555"
+"bbbbbbbbbaabbbbbbbbbaabbbbbbbbba"
+"bbbbbbbbbaabbbbbbbbbaabbbbbbbbba"
+[end]
+
+[_line]
+Type=0x19
+Xpm="32 3 4 1"
+"a c none"
+"b c #8ad98e"
+"A c none"
+"B c #55AA55"
+"bbabbabbabbabbabbabbabbabbabbabb"
+"bbabbabbabbabbabbabbabbabbabbabb"
+"bbabbabbabbabbabbabbabbabbabbabb"
+[end]
+
+[_polygon]
+Type=0x25
+Xpm="32 32 4 1"
+"a c none"
+"b c #e3e6f0"
+"A c none"
+"B c #AAAAAA"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+"baaabaaabaaabaaabaaabaaabaaabaaa"
+"abaaabaaabaaabaaabaaabaaabaaabaa"
+"aabaaabaaabaaabaaabaaabaaabaaaba"
+"aaabaaabaaabaaabaaabaaabaaabaaab"
+[end]
+
+[_line]
+Type=0x2b
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x1a
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x1b
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x25
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x17
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x29
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x28
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x23
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x12
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x1c
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x2d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x30
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x29
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x26
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x4e
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x1b
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x1d
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x54
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x56
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x02
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x03
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x10
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0f
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0c
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x0d
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x05
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x06
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x08
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x04
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x12
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x21
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x22
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x23
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x24
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x19
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x09
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x28
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x47
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x51
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x11
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x1c
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
 
 """#####
 
@@ -5730,16 +11818,25 @@ line 0x22 1 #b38659            Contour, minor
     /// See Assets/styles/liberty-topo/points.txt.
     static let libertyTopoPoints =
 #####"""
-; POI icons for the OSM Liberty Topo shipped style.
-; GENERATED from the style's own icon set — Maki (CC0), the `_15` markers in
-; svgs/svgs_iconset — rendered at 16 px with rsvg-convert and read back three
-; ways: the marker's ring and glyph are the ink, its disc is white, the rest is
-; transparent. Night turns the marker over: a dark disc under a light glyph.
-; Appended verbatim to the generated TYP.
+; POI icons for the OSM Liberty Topo shipped style. Each section is the style's own
+; icon for the meaning kmap's rules give the code (named in
+; Assets/styles/type-names.txt): the OpenMapTiles class the schema files that OSM tag
+; under, drawn as the Maki `_15` marker of that class in svgs/svgs_iconset (CC0), or
+; the set's own icon for the meaning where the schema keeps no such class. Rendered at
+; 16 px with rsvg-convert and read back 3 ways: a pixel under alpha 112 is clear; of
+; the rest, R+G+B under 600 is ink (#333333: the ring, a square badge, a coloured
+; glyph), the rest white (the disc, a white glyph). Night turns the marker over: a
+; light glyph on a dark disc. Every point code kmap's rules emit has a section but the
+; settlement points 0x0100-0x0d00, which the device draws, and kmap's repair mark
+; 0x660b, which the build adds: 133, 99 with the style's icon. A code whose meaning
+; the style has no icon for gets the plain anchor square of the reference TYP
+; (topoactive 0x661a), day and night, with its label, so no device icon of another
+; meaning shows (34 codes, each saying so); it can be edited in kmap's type editor.
+; Names are added from type-names.txt by the generator. Appended to the generated TYP.
 
 [_point]
 Type=0x2a00
-; Restaurant — Maki restaurant (CC0), 16 px
+; Restaurant - Maki restaurant_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -5780,12 +11877,11 @@ NightXpm="16 16 3 1"
 "..!---!---!---.."
 "...!---------..."
 "....!!-----!...."
-String=0x00,Restaurant
 [end]
 
 [_point]
 Type=0x2a07
-; Fast food — Maki fast_food (CC0), 16 px
+; Fast food - Maki fast_food_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -5826,12 +11922,11 @@ NightXpm="16 16 3 1"
 "..!-----------.."
 "...!---------..."
 "....!!-----!...."
-String=0x00,Fast food
 [end]
 
 [_point]
 Type=0x2a0e
-; Cafe — Maki cafe (CC0), 16 px
+; Cafe - Maki cafe_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -5872,12 +11967,11 @@ NightXpm="16 16 3 1"
 "..!-----------.."
 "...!---------..."
 "....!!-----!...."
-String=0x00,Cafe
 [end]
 
 [_point]
 Type=0x2d02
-; Pub — Maki beer (CC0), 16 px
+; Bar / pub - Maki beer_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -5918,12 +12012,12 @@ NightXpm="16 16 3 1"
 "..!-----------.."
 "...!---------..."
 "....!!-----!...."
-String=0x00,Pub
 [end]
 
 [_point]
 Type=0x2a0c
-; Bar — Maki bar (CC0), 16 px
+; Restaurant - Maki restaurant_15 (CC0), 16 px
+; kmap puts restaurants with cuisine=steak|grill here; the style draws every restaurant so.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -5931,17 +12025,17 @@ DayXpm="16 16 3 1"
 ".....!!!-!!....."
 "...!--------!..."
 "..!----------!.."
-".!-!!!!!!!!!!-!."
-".---!!!!!!!!---!"
-"!----!!!!!!----!"
-"!-----!!!!------"
-"!------!!-------"
-"-------!!-------"
-"!------!!-------"
-"!------!!-------"
-".------!!------!"
-".!----!!!!-----."
-"..!-----------.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
 "...!---------..."
 "....!!-----!...."
 NightXpm="16 16 3 1"
@@ -5951,25 +12045,25 @@ NightXpm="16 16 3 1"
 ".....!!!-!!....."
 "...!--------!..."
 "..!----------!.."
-".!-!!!!!!!!!!-!."
-".---!!!!!!!!---!"
-"!----!!!!!!----!"
-"!-----!!!!------"
-"!------!!-------"
-"-------!!-------"
-"!------!!-------"
-"!------!!-------"
-".------!!------!"
-".!----!!!!-----."
-"..!-----------.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
 "...!---------..."
 "....!!-----!...."
-String=0x00,Bar
 [end]
 
 [_point]
 Type=0x2a13
-; Food court — Maki restaurant (CC0), 16 px
+; Food court - Maki fast_food_15 (CC0), 16 px
+; The schema files a food court under class fast_food, and the style draws that.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -5977,17 +12071,17 @@ DayXpm="16 16 3 1"
 ".....!!!-!!....."
 "...!--------!..."
 "..!----------!.."
-".!---!!!--!!--!."
-".---!!!!-!!!---!"
-"!---!!!!-!!!---!"
-"!---!!!!-!!!----"
-"!----!!--!!!----"
-"-----!!--!!!----"
-"!----!!---!!----"
-"!----!!---!!----"
-".----!!---!!---!"
-".!---!!---!!---."
-"..!---!---!---.."
+".!------------!."
+".---!!!!!!!!---!"
+"!---!!!!!!!!---!"
+"!---!!!!!!!!----"
+"!---!!!!!!!!----"
+"---!!!!!!!!!!---"
+"!---------------"
+"!---!!!!!!!!----"
+".---!!!!!!!!---!"
+".!-------------."
+"..!-----------.."
 "...!---------..."
 "....!!-----!...."
 NightXpm="16 16 3 1"
@@ -5997,25 +12091,24 @@ NightXpm="16 16 3 1"
 ".....!!!-!!....."
 "...!--------!..."
 "..!----------!.."
-".!---!!!--!!--!."
-".---!!!!-!!!---!"
-"!---!!!!-!!!---!"
-"!---!!!!-!!!----"
-"!----!!--!!!----"
-"-----!!--!!!----"
-"!----!!---!!----"
-"!----!!---!!----"
-".----!!---!!---!"
-".!---!!---!!---."
-"..!---!---!---.."
+".!------------!."
+".---!!!!!!!!---!"
+"!---!!!!!!!!---!"
+"!---!!!!!!!!----"
+"!---!!!!!!!!----"
+"---!!!!!!!!!!---"
+"!---------------"
+"!---!!!!!!!!----"
+".---!!!!!!!!---!"
+".!-------------."
+"..!-----------.."
 "...!---------..."
 "....!!-----!...."
-String=0x00,Food court
 [end]
 
 [_point]
 Type=0x2f06
-; Bank — Maki bank (CC0), 16 px
+; Bank / ATM - Maki bank_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6056,12 +12149,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Bank
 [end]
 
 [_point]
 Type=0x2f01
-; Fuel — Maki fuel (CC0), 16 px
+; Fuel - Maki fuel_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6102,12 +12194,11 @@ NightXpm="16 16 3 1"
 "!!!-----!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Fuel
 [end]
 
 [_point]
 Type=0x2e06
-; Fuel — Maki fuel (CC0), 16 px
+; Fuel with shop - Maki fuel_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6148,12 +12239,11 @@ NightXpm="16 16 3 1"
 "!!!-----!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Fuel
 [end]
 
 [_point]
 Type=0x2e05
-; Pharmacy — Maki pharmacy (CC0), 16 px
+; Pharmacy - Maki pharmacy_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6194,12 +12284,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Pharmacy
 [end]
 
 [_point]
 Type=0x3002
-; Hospital — Maki hospital (CC0), 16 px
+; Hospital - Maki hospital_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6240,12 +12329,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Hospital
 [end]
 
 [_point]
 Type=0x3001
-; Police — Maki police (CC0), 16 px
+; Police - Maki police_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6286,12 +12374,13 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Police
 [end]
 
 [_point]
 Type=0x3008
-; Fire station — Maki fire-station (CC0), 16 px
+; Fire station - Maki fire-station_15 (CC0), 16 px
+; The style asks for fire_station_11 and its sprite holds fire-station_11; the
+; icon set's own fire station is used.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6332,12 +12421,11 @@ NightXpm="16 16 3 1"
 "..!---!!!!---!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Fire station
 [end]
 
 [_point]
 Type=0x2f05
-; Post office — Maki post (CC0), 16 px
+; Post office - Maki post_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6378,12 +12466,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Post office
 [end]
 
 [_point]
 Type=0x2f15
-; Post box — Maki post (CC0), 16 px
+; Post box - Maki post_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6424,12 +12511,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Post box
 [end]
 
 [_point]
 Type=0x2f0c
-; Toilets — Maki toilet (CC0), 16 px
+; WC - Maki toilet_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6470,12 +12556,11 @@ NightXpm="16 16 3 1"
 "..!---!-----!!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Toilets
 [end]
 
 [_point]
 Type=0x5000
-; Drinking water — Maki drinking_water (CC0), 16 px
+; Drinking water - Maki drinking_water_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6516,12 +12601,11 @@ NightXpm="16 16 3 1"
 "..------------.."
 "...----------..."
 ".....------....."
-String=0x00,Drinking water
 [end]
 
 [_point]
 Type=0x2f0b
-; Parking — Maki parking (CC0), 16 px
+; Parking - Maki parking_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6562,12 +12646,11 @@ NightXpm="16 16 3 1"
 "!!!!!-!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Parking
 [end]
 
 [_point]
 Type=0x2c0b
-; Place of worship — Maki place_of_worship (CC0), 16 px
+; Place of worship - Maki place_of_worship_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6608,12 +12691,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Place of worship
 [end]
 
 [_point]
 Type=0x2e02
-; Supermarket — Maki grocery (CC0), 16 px
+; Supermarket - Maki grocery_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6654,12 +12736,12 @@ NightXpm="16 16 3 1"
 "..!--!---!---!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Supermarket
 [end]
 
 [_point]
 Type=0x2e01
-; Department store — Maki shop (CC0), 16 px
+; Department store - Maki grocery_15 (CC0), 16 px
+; The schema files a department store under class grocery.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6667,17 +12749,17 @@ DayXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!------------!."
-".-----!!!!-----."
-"!----!----!----!"
-"!----!----!----!"
-"---!!!!!!!!!!---"
-"---!!!!!!!!!!---"
-"!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-".---!!!!!!!!---."
-".!---!!!!!!---!."
-"..!----------!.."
+".!---------!!-!."
+".---------!!!--."
+"!--!!!!!!!!!---!"
+"!--!!!!!!!!!---!"
+"----!!!!!!!!----"
+"----!!!!!!!!----"
+"!----!!!!!!!---!"
+"!---------!----!"
+".---!!!!!!!----."
+".!---!--!!----!."
+"..!--!---!---!.."
 "...!--------!..."
 ".....!!--!!....."
 NightXpm="16 16 3 1"
@@ -6687,25 +12769,24 @@ NightXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!------------!."
-".-----!!!!-----."
-"!----!----!----!"
-"!----!----!----!"
-"---!!!!!!!!!!---"
-"---!!!!!!!!!!---"
-"!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-".---!!!!!!!!---."
-".!---!!!!!!---!."
-"..!----------!.."
+".!---------!!-!."
+".---------!!!--."
+"!--!!!!!!!!!---!"
+"!--!!!!!!!!!---!"
+"----!!!!!!!!----"
+"----!!!!!!!!----"
+"!----!!!!!!!---!"
+"!---------!----!"
+".---!!!!!!!----."
+".!---!--!!----!."
+"..!--!---!---!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Department store
 [end]
 
 [_point]
 Type=0x2e04
-; Mall — Maki shop (CC0), 16 px
+; Shopping mall - Maki shop_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6746,12 +12827,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Mall
 [end]
 
 [_point]
 Type=0x2e09
-; Doityourself — Maki shop (CC0), 16 px
+; Hardware shop - Maki shop_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6792,12 +12872,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Doityourself
 [end]
 
 [_point]
 Type=0x2e0b
-; Computer — Maki shop (CC0), 16 px
+; Computer shop - Maki shop_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6838,12 +12917,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Computer
 [end]
 
 [_point]
 Type=0x2e07
-; Clothes — Maki clothing_store (CC0), 16 px
+; Clothes shop - Maki clothing_store_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6884,12 +12962,12 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Clothes
 [end]
 
 [_point]
 Type=0x2e08
-; Garden centre — Maki garden (CC0), 16 px
+; Outdoor / garden shop - Maki shop_15 (CC0), 16 px
+; The schema files garden centres and outdoor shops under class shop.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -6897,16 +12975,16 @@ DayXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!-----!!-----!."
-".---!!-!!-!!---."
+".!------------!."
+".-----!!!!-----."
+"!----!----!----!"
+"!----!----!----!"
+"---!!!!!!!!!!---"
+"---!!!!!!!!!!---"
 "!---!!!!!!!!---!"
 "!---!!!!!!!!---!"
-"-----!!!!!!-----"
-"----!--!!--!----"
-"!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-".----!!!!!!----."
-".!----!!!!----!."
+".---!!!!!!!!---."
+".!---!!!!!!---!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
@@ -6917,71 +12995,70 @@ NightXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!-----!!-----!."
-".---!!-!!-!!---."
+".!------------!."
+".-----!!!!-----."
+"!----!----!----!"
+"!----!----!----!"
+"---!!!!!!!!!!---"
+"---!!!!!!!!!!---"
 "!---!!!!!!!!---!"
 "!---!!!!!!!!---!"
-"-----!!!!!!-----"
-"----!--!!--!----"
-"!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-".----!!!!!!----."
-".!----!!!!----!."
+".---!!!!!!!!---."
+".!---!!!!!!---!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Garden centre
 [end]
 
 [_point]
 Type=0x2e0c
-; Butcher — Maki butcher (CC0), 16 px
+; Shop - Maki shop_15 (CC0), 16 px
+; Every other shop: class shop.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
 ". c none"
-".....!!!-!!....."
+".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
 ".!------------!."
-".--------------!"
-"!--------------!"
-"!--!!--!!-!!----"
-"!-!!!!!!!!!!!---"
-"--!!!!!!!!!!!!--"
-"!-!!!!!!!!!-----"
-"!-!!!!!!!!------"
-".-!-!---!------!"
-".!!-----!------."
-"..!-----------.."
-"...!---------..."
-"....!!-----!...."
+".-----!!!!-----."
+"!----!----!----!"
+"!----!----!----!"
+"---!!!!!!!!!!---"
+"---!!!!!!!!!!---"
+"!---!!!!!!!!---!"
+"!---!!!!!!!!---!"
+".---!!!!!!!!---."
+".!---!!!!!!---!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
 NightXpm="16 16 3 1"
 "! c #FFFFFF"
 "- c #555555"
 ". c none"
-".....!!!-!!....."
+".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
 ".!------------!."
-".--------------!"
-"!--------------!"
-"!--!!--!!-!!----"
-"!-!!!!!!!!!!!---"
-"--!!!!!!!!!!!!--"
-"!-!!!!!!!!!-----"
-"!-!!!!!!!!------"
-".-!-!---!------!"
-".!!-----!------."
-"..!-----------.."
-"...!---------..."
-"....!!-----!...."
-String=0x00,Butcher
+".-----!!!!-----."
+"!----!----!----!"
+"!----!----!----!"
+"---!!!!!!!!!!---"
+"---!!!!!!!!!!---"
+"!---!!!!!!!!---!"
+"!---!!!!!!!!---!"
+".---!!!!!!!!---."
+".!---!!!!!!---!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
 [end]
 
 [_point]
 Type=0x2f10
-; Beauty — Maki hairdresser (CC0), 16 px
+; Hairdresser - Maki hairdresser_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7022,12 +13099,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Beauty
 [end]
 
 [_point]
 Type=0x2b01
-; Hotel — Maki lodging (CC0), 16 px
+; Hotel - Maki lodging_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7068,12 +13144,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Hotel
 [end]
 
 [_point]
 Type=0x2b03
-; Campsite — Maki campsite (CC0), 16 px
+; Campsite - Maki campsite_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7114,12 +13189,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Campsite
 [end]
 
 [_point]
 Type=0x2b02
-; Alpine hut — Maki lodging (CC0), 16 px
+; Guest house / alpine hut - Maki lodging_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7160,12 +13234,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Alpine hut
 [end]
 
 [_point]
 Type=0x2b05
-; Shelter — Maki shelter (CC0), 16 px
+; Lean-to - Maki shelter_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7206,12 +13279,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Shelter
 [end]
 
 [_point]
 Type=0x2b06
-; Shelter — Maki shelter (CC0), 16 px
+; Shelter - Maki shelter_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7252,58 +13324,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Shelter
-[end]
-
-[_point]
-Type=0x2b07
-; Wilderness hut — Maki shelter (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!---------!!-!."
-".--------!!!!--."
-"!-----!!!!!----!"
-"!---!!!!!------!"
-"---!!!----------"
-"---!!-----------"
-"!---!----------!"
-"!---!----------!"
-".---!!!!!!!!---."
-".!--!!!!!!!!!-!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!---------!!-!."
-".--------!!!!--."
-"!-----!!!!!----!"
-"!---!!!!!------!"
-"---!!!----------"
-"---!!-----------"
-"!---!----------!"
-"!---!----------!"
-".---!!!!!!!!---."
-".!--!!!!!!!!!-!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-String=0x00,Wilderness hut
 [end]
 
 [_point]
 Type=0x2c02
-; Museum — Maki museum (CC0), 16 px
+; Museum - Maki museum_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7344,12 +13369,11 @@ NightXpm="16 16 3 1"
 "..-----------..."
 "...!-------!...."
 "......!-!......."
-String=0x00,Museum
 [end]
 
 [_point]
 Type=0x2c03
-; Library — Maki library (CC0), 16 px
+; Library - Maki library_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7390,12 +13414,12 @@ NightXpm="16 16 3 1"
 "..-----------..."
 "...!-------!...."
 "......!-!......."
-String=0x00,Library
 [end]
 
 [_point]
 Type=0x2c04
-; Viewpoint — Maki viewpoint (CC0), 16 px
+; Viewpoint - Maki attraction_15 (CC0), 16 px
+; The schema files a viewpoint under class attraction, and the style draws that.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7404,14 +13428,14 @@ DayXpm="16 16 3 1"
 "...!--------!..."
 "..!----------!.."
 ".!------------!."
-".-----!--!-----."
-"!-----!--!-----!"
-"!--!!-!!!!-!!--!"
-"----!!-!!-!!----"
-"------!--!------"
-"!--------------!"
-"!------!!------!"
-".------!!------."
+".-----!!!!-----."
+"!---!!!!!!!!---!"
+"!--!!!!--!!!!--!"
+"---!!!-!!-!!!---"
+"---!!!-!!-!!!---"
+"!--!!!----!!!--!"
+"!--!!!!!!!!!!--!"
+".--------------."
 ".!------------!."
 "..!----------!.."
 "...!--------!..."
@@ -7424,24 +13448,23 @@ NightXpm="16 16 3 1"
 "...!--------!..."
 "..!----------!.."
 ".!------------!."
-".-----!--!-----."
-"!-----!--!-----!"
-"!--!!-!!!!-!!--!"
-"----!!-!!-!!----"
-"------!--!------"
-"!--------------!"
-"!------!!------!"
-".------!!------."
+".-----!!!!-----."
+"!---!!!!!!!!---!"
+"!--!!!!--!!!!--!"
+"---!!!-!!-!!!---"
+"---!!!-!!-!!!---"
+"!--!!!----!!!--!"
+"!--!!!!!!!!!!--!"
+".--------------."
 ".!------------!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Viewpoint
 [end]
 
 [_point]
 Type=0x2c0f
-; Playground — Maki playground (CC0), 16 px
+; Playground - Maki playground_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7482,12 +13505,12 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Playground
 [end]
 
 [_point]
 Type=0x2c12
-; Memorial — Maki monument (CC0), 16 px
+; Memorial - Maki monument_15 (CC0), 16 px
+; The schema keeps historic=monument, not memorial; the set's monument is the one.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7528,12 +13551,12 @@ NightXpm="16 16 3 1"
 "..!--!!!!!!--!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Memorial
 [end]
 
 [_point]
 Type=0x2d01
-; Arts centre — Maki art_gallery (CC0), 16 px
+; Theatre - Maki theatre_15 (CC0), 16 px
+; Theatres, arts and concert halls: the theatre.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7541,16 +13564,16 @@ DayXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!-----!!-----!."
-".-----!!!!-----."
-"!--!!!!!!!!!!--!"
-"!--!--------!--!"
-"---!-!!-----!---"
-"---!-----!--!---"
-"!--!-----!!-!--!"
-"!--!--!!!!!-!--!"
-".--!--------!--."
-".!-!!!!!!!!!!-!."
+".!-!!--!!-----!."
+".--!!!!--------."
+"!--!-!-!----!--!"
+"!--!!!-!!!!!!--!"
+"---!!--!-!!-!---"
+"---!---!!!!!!---"
+"!--!!!-!!!!!!--!"
+"!---!!-!----!--!"
+".------!!--!!--."
+".!------!!!!--!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
@@ -7561,25 +13584,24 @@ NightXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!-----!!-----!."
-".-----!!!!-----."
-"!--!!!!!!!!!!--!"
-"!--!--------!--!"
-"---!-!!-----!---"
-"---!-----!--!---"
-"!--!-----!!-!--!"
-"!--!--!!!!!-!--!"
-".--!--------!--."
-".!-!!!!!!!!!!-!."
+".!-!!--!!-----!."
+".--!!!!--------."
+"!--!-!-!----!--!"
+"!--!!!-!!!!!!--!"
+"---!!--!-!!-!---"
+"---!---!!!!!!---"
+"!--!!!-!!!!!!--!"
+"!---!!-!----!--!"
+".------!!--!!--."
+".!------!!!!--!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Arts centre
 [end]
 
 [_point]
 Type=0x2d03
-; Cinema — Maki cinema (CC0), 16 px
+; Cinema - Maki cinema_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7620,12 +13642,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Cinema
 [end]
 
 [_point]
 Type=0x2d05
-; Golf course — Maki golf (CC0), 16 px
+; Golf course - Maki golf_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7666,12 +13687,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Golf course
 [end]
 
 [_point]
 Type=0x2d09
-; Water park — Maki swimming (CC0), 16 px
+; Swimming - Maki swimming_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7712,58 +13732,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Water park
-[end]
-
-[_point]
-Type=0x2d0a
-; Sports center — Maki pitch (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!---!!-------!."
-".--------------."
-"!------!!!-----!"
-"!-----!!!-!----!"
-"----!!-!!-------"
-"-------!!!------"
-"!-----!!!!-----!"
-"!-----!--!!!---!"
-".-----!--------."
-".!----!-------!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!---!!-------!."
-".--------------."
-"!------!!!-----!"
-"!-----!!!-!----!"
-"----!!-!!-------"
-"-------!!!------"
-"!-----!!!!-----!"
-"!-----!--!!!---!"
-".-----!--------."
-".!----!-------!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-String=0x00,Sports center
 [end]
 
 [_point]
 Type=0x6616
-; Summit — Maki mountain (CC0), 16 px
+; Peak - Maki mountain_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7804,12 +13777,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Summit
 [end]
 
 [_point]
 Type=0x6511
-; Spring — Maki water (CC0), 16 px
+; Spring - Maki water_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7850,12 +13822,11 @@ NightXpm="16 16 3 1"
 "..----!!!!----.."
 "...----------..."
 ".....------....."
-String=0x00,Spring
 [end]
 
 [_point]
 Type=0x6515
-; Spring — Maki water (CC0), 16 px
+; Spring (seasonal) - Maki water_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7896,12 +13867,11 @@ NightXpm="16 16 3 1"
 "..----!!!!----.."
 "...----------..."
 ".....------....."
-String=0x00,Spring
 [end]
 
 [_point]
 Type=0x6516
-; Spring — Maki water (CC0), 16 px
+; Spring (intermittent) - Maki water_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7942,12 +13912,11 @@ NightXpm="16 16 3 1"
 "..----!!!!----.."
 "...----------..."
 ".....------....."
-String=0x00,Spring
 [end]
 
 [_point]
 Type=0x6517
-; Spring — Maki water (CC0), 16 px
+; Spring (non-potable) - Maki water_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -7988,104 +13957,11 @@ NightXpm="16 16 3 1"
 "..----!!!!----.."
 "...----------..."
 ".....------....."
-String=0x00,Spring
-[end]
-
-[_point]
-Type=0x6508
-; Waterfall — Maki water (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-".....------....."
-"...----------..."
-"..-----!!-----.."
-".------!!------."
-".-----!!!!-----."
-"-----!!!!!!-----"
-"-----!!!!!!-----"
-"----!!!!!!!!----"
-"----!!!!!!!!----"
-"---!!!!!!!!!----"
-"----!!!!!!!!----"
-".---!!!!!!!!---."
-".----!!!!!!----."
-"..----!!!!----.."
-"...----------..."
-".....------....."
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-".....------....."
-"...----------..."
-"..-----!!-----.."
-".------!!------."
-".-----!!!!-----."
-"-----!!!!!!-----"
-"-----!!!!!!-----"
-"----!!!!!!!!----"
-"----!!!!!!!!----"
-"---!!!!!!!!!----"
-"----!!!!!!!!----"
-".---!!!!!!!!---."
-".----!!!!!!----."
-"..----!!!!----.."
-"...----------..."
-".....------....."
-String=0x00,Waterfall
-[end]
-
-[_point]
-Type=0x6509
-; Geyser — Maki water (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-".....------....."
-"...----------..."
-"..-----!!-----.."
-".------!!------."
-".-----!!!!-----."
-"-----!!!!!!-----"
-"-----!!!!!!-----"
-"----!!!!!!!!----"
-"----!!!!!!!!----"
-"---!!!!!!!!!----"
-"----!!!!!!!!----"
-".---!!!!!!!!---."
-".----!!!!!!----."
-"..----!!!!----.."
-"...----------..."
-".....------....."
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-".....------....."
-"...----------..."
-"..-----!!-----.."
-".------!!------."
-".-----!!!!-----."
-"-----!!!!!!-----"
-"-----!!!!!!-----"
-"----!!!!!!!!----"
-"----!!!!!!!!----"
-"---!!!!!!!!!----"
-"----!!!!!!!!----"
-".---!!!!!!!!---."
-".----!!!!!!----."
-"..----!!!!----.."
-"...----------..."
-".....------....."
-String=0x00,Geyser
 [end]
 
 [_point]
 Type=0x2f17
-; Bus stop — Maki bus (CC0), 16 px
+; Bus stop - Maki bus_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8126,12 +14002,12 @@ NightXpm="16 16 3 1"
 "!!!--!!!!!!--!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Bus stop
 [end]
 
 [_point]
 Type=0x2f08
-; Bus station — Maki bus (CC0), 16 px
+; Station - Maki bus_15 (CC0), 16 px
+; Bus and railway stations land here; topoactive draws a bus.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8172,12 +14048,11 @@ NightXpm="16 16 3 1"
 "!!!--!!!!!!--!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Bus station
 [end]
 
 [_point]
 Type=0x2f03
-; Car repair — Maki car (CC0), 16 px
+; Car repair - Maki car_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8218,12 +14093,11 @@ NightXpm="16 16 3 1"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Car repair
 [end]
 
 [_point]
 Type=0x2f07
-; Car — Maki car (CC0), 16 px
+; Car dealer - Maki car_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8264,58 +14138,11 @@ NightXpm="16 16 3 1"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Car
-[end]
-
-[_point]
-Type=0x2f0e
-; Car wash — Maki car (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!------!!!!!"
-"!!!!-!!!!!!-!!!!"
-"!!!!-!!!!!!-!!!!"
-"!!!----------!!!"
-"!!!----------!!!"
-"!!--!------!--!!"
-"!!------------!!"
-"!!!----------!!!"
-"!!!--!!!!!!--!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!------!!!!!"
-"!!!!-!!!!!!-!!!!"
-"!!!!-!!!!!!-!!!!"
-"!!!----------!!!"
-"!!!----------!!!"
-"!!--!------!--!!"
-"!!------------!!"
-"!!!----------!!!"
-"!!!--!!!!!!--!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-String=0x00,Car wash
 [end]
 
 [_point]
 Type=0x2f19
-; Taxi — Maki car (CC0), 16 px
+; Taxi - Maki car_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8356,12 +14183,11 @@ NightXpm="16 16 3 1"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Taxi
 [end]
 
 [_point]
 Type=0x2f13
-; Bicycle — Maki bicycle (CC0), 16 px
+; Bicycle shop - Maki bicycle_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8402,12 +14228,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Bicycle
 [end]
 
 [_point]
 Type=0x2f04
-; Aerodrome — Maki airport (CC0), 16 px
+; Airport - Maki airport_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8448,12 +14273,11 @@ NightXpm="16 16 3 1"
 "!!!!!------!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Aerodrome
 [end]
 
 [_point]
 Type=0x5904
-; Helipad — Maki heliport (CC0), 16 px
+; Helipad - Maki heliport_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8494,12 +14318,11 @@ NightXpm="16 16 3 1"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Helipad
 [end]
 
 [_point]
 Type=0x2f09
-; Slipway — Maki harbor (CC0), 16 px
+; Marina - Maki harbor_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8540,58 +14363,11 @@ NightXpm="16 16 3 1"
 "!!!!!------!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Slipway
-[end]
-
-[_point]
-Type=0x2f16
-; Emergency phone — Maki telephone (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!------------!."
-".-------!!!!---."
-"!------!!!!----!"
-"!-----!!---!!--!"
-"-----!!---------"
-"----!!----------"
-"!---!!---------!"
-"!---!!---------!"
-".---!-!--------."
-".!----!-------!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!------------!."
-".-------!!!!---."
-"!------!!!!----!"
-"!-----!!---!!--!"
-"-----!!---------"
-"----!!----------"
-"!---!!---------!"
-"!---!!---------!"
-".---!-!--------."
-".!----!-------!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-String=0x00,Emergency phone
 [end]
 
 [_point]
 Type=0x2f18
-; Telephone — Maki telephone (CC0), 16 px
+; Telephone - Maki telephone_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8632,29 +14408,31 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Telephone
 [end]
 
 [_point]
 Type=0x3003
-; Embassy — Maki embassy (CC0), 16 px
+; Town hall / embassy - Maki town-hall_15 (CC0), 16 px
+; Town halls, embassies and government offices: the town hall. The style asks
+; for town_hall_11 and its sprite holds town-hall_11, so its map draws none;
+; the icon set's own town hall is used.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
 ". c none"
 ".....!!!!!!....."
 "...!--------!..."
-"..!----------!.."
-".!-!!---------!."
-".---!-!!!!!!---."
+"..!----!!----!.."
+".!----!!!!!---!."
+".---!!!!!!!!---."
+"!--------------!"
 "!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-"----!!!!!!!!----"
-"----!!!-!!!!----"
-"!---!----------!"
-"!---!----------!"
-".---!----------."
-".!--!---------!."
+"----!-!!!!-!----"
+"----!-!!!!-!----"
+"!---!-!!!!-!---!"
+"!--!!-!!!!-!!--!"
+".--!!!!!!!!!!--."
+".!------------!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
@@ -8664,26 +14442,26 @@ NightXpm="16 16 3 1"
 ". c none"
 ".....!!!!!!....."
 "...!--------!..."
-"..!----------!.."
-".!-!!---------!."
-".---!-!!!!!!---."
+"..!----!!----!.."
+".!----!!!!!---!."
+".---!!!!!!!!---."
+"!--------------!"
 "!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-"----!!!!!!!!----"
-"----!!!-!!!!----"
-"!---!----------!"
-"!---!----------!"
-".---!----------."
-".!--!---------!."
+"----!-!!!!-!----"
+"----!-!!!!-!----"
+"!---!-!!!!-!---!"
+"!--!!-!!!!-!!--!"
+".--!!!!!!!!!!--."
+".!------------!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Embassy
 [end]
 
 [_point]
 Type=0x3004
-; Courthouse — Maki town-hall (CC0), 16 px
+; Courthouse - Maki town-hall_15 (CC0), 16 px
+; Class town_hall; see 0x3003 for the sprite's name.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8724,12 +14502,12 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Courthouse
 [end]
 
 [_point]
 Type=0x3005
-; Community centre — Maki town-hall (CC0), 16 px
+; Community centre - Maki town-hall_15 (CC0), 16 px
+; Class town_hall; see 0x3003 for the sprite's name.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8770,12 +14548,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Community centre
 [end]
 
 [_point]
 Type=0x4a00
-; Picnic site — Maki picnic_site (CC0), 16 px
+; Picnic site - Maki picnic_site_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8816,12 +14593,11 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Picnic site
 [end]
 
 [_point]
 Type=0x4c00
-; Information — Maki information (CC0), 16 px
+; Information - Maki information_15 (CC0), 16 px
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8862,104 +14638,12 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Information
-[end]
-
-[_point]
-Type=0x661a
-; Prison — Maki prison (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!---!!!!!!!--!."
-".----!-!-!-!---."
-"!----!-!-!-!---!"
-"!----!-!-!!!---!"
-"-----!!!!!!!----"
-"-----!!!!!!!----"
-"!----!-!-!!!---!"
-"!----!-!-!-!---!"
-".----!-!-!-!---."
-".!---!!!!!!!--!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-".....!!!!!!....."
-"...!--------!..."
-"..!----------!.."
-".!---!!!!!!!--!."
-".----!-!-!-!---."
-"!----!-!-!-!---!"
-"!----!-!-!!!---!"
-"-----!!!!!!!----"
-"-----!!!!!!!----"
-"!----!-!-!!!---!"
-"!----!-!-!-!---!"
-".----!-!-!-!---."
-".!---!!!!!!!--!."
-"..!----------!.."
-"...!--------!..."
-".....!!--!!....."
-String=0x00,Prison
 [end]
 
 [_point]
 Type=0x2c08
-; Fishing — Maki water (CC0), 16 px
-DayXpm="16 16 3 1"
-"! c #333333"
-"- c #FFFFFF"
-". c none"
-".....------....."
-"...----------..."
-"..-----!!-----.."
-".------!!------."
-".-----!!!!-----."
-"-----!!!!!!-----"
-"-----!!!!!!-----"
-"----!!!!!!!!----"
-"----!!!!!!!!----"
-"---!!!!!!!!!----"
-"----!!!!!!!!----"
-".---!!!!!!!!---."
-".----!!!!!!----."
-"..----!!!!----.."
-"...----------..."
-".....------....."
-NightXpm="16 16 3 1"
-"! c #FFFFFF"
-"- c #555555"
-". c none"
-".....------....."
-"...----------..."
-"..-----!!-----.."
-".------!!------."
-".-----!!!!-----."
-"-----!!!!!!-----"
-"-----!!!!!!-----"
-"----!!!!!!!!----"
-"----!!!!!!!!----"
-"---!!!!!!!!!----"
-"----!!!!!!!!----"
-".---!!!!!!!!---."
-".----!!!!!!----."
-"..----!!!!----.."
-"...----------..."
-".....------....."
-String=0x00,Fishing
-[end]
-
-[_point]
-Type=0x6607
-; Cliff — Maki mountain (CC0), 16 px
+; Sports ground - Maki pitch_15 (CC0), 16 px
+; Pitches, stadiums, tracks: the style draws leisure=pitch so.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -8967,16 +14651,16 @@ DayXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!------------!."
-".------!!------."
-"!------!!------!"
-"!-----!--!-----!"
-"-----!!--!!-----"
-"-----!-!!-!-----"
-"!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-".--!!!!!!!!!!--."
-".!------------!."
+".!---!!-------!."
+".--------------."
+"!------!!!-----!"
+"!-----!!!-!----!"
+"----!!-!!-------"
+"-------!!!------"
+"!-----!!!!-----!"
+"!-----!--!!!---!"
+".-----!--------."
+".!----!-------!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
@@ -8987,25 +14671,25 @@ NightXpm="16 16 3 1"
 ".....!!!!!!....."
 "...!--------!..."
 "..!----------!.."
-".!------------!."
-".------!!------."
-"!------!!------!"
-"!-----!--!-----!"
-"-----!!--!!-----"
-"-----!-!!-!-----"
-"!---!!!!!!!!---!"
-"!---!!!!!!!!---!"
-".--!!!!!!!!!!--."
-".!------------!."
+".!---!!-------!."
+".--------------."
+"!------!!!-----!"
+"!-----!!!-!----!"
+"----!!-!!-------"
+"-------!!!------"
+"!-----!!!!-----!"
+"!-----!--!!!---!"
+".-----!--------."
+".!----!-------!."
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Cliff
 [end]
 
 [_point]
 Type=0x6415
-; Lighthouse - Maki lighthouse (CC0), 16 px
+; Lighthouse - Maki lighthouse_15 (CC0), 16 px
+; The schema keeps no lighthouses; the icon set's own lighthouse is used.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -9046,7 +14730,2630 @@ NightXpm="16 16 3 1"
 "..!----------!.."
 "...!--------!..."
 ".....!!--!!....."
-String=0x00,Lighthouse
+[end]
+
+[_point]
+Type=0x2a01
+; Restaurant (American) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a02
+; Restaurant (Asian) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a03
+; Restaurant (Barbecue) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a04
+; Restaurant (Chinese) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a05
+; Restaurant (Deli) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a06
+; Restaurant (International) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a08
+; Restaurant (Italian) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a09
+; Restaurant (Mexican) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a0a
+; Restaurant (Pizza) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a0b
+; Restaurant (Seafood) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a0d
+; Restaurant (Vegetarian) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a0f
+; Restaurant (French) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a10
+; Restaurant (German) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a11
+; Restaurant (British) - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2a12
+; Restaurant - Maki restaurant_15 (CC0), 16 px
+; The style draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!-!!....."
+"...!--------!..."
+"..!----------!.."
+".!---!!!--!!--!."
+".---!!!!-!!!---!"
+"!---!!!!-!!!---!"
+"!---!!!!-!!!----"
+"!----!!--!!!----"
+"-----!!--!!!----"
+"!----!!---!!----"
+"!----!!---!!----"
+".----!!---!!---!"
+".!---!!---!!---."
+"..!---!---!---.."
+"...!---------..."
+"....!!-----!...."
+[end]
+
+[_point]
+Type=0x2c0d
+; Tourist site - Maki attraction_15 (CC0), 16 px
+; tourism=attraction is class attraction.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".-----!!!!-----."
+"!---!!!!!!!!---!"
+"!--!!!!--!!!!--!"
+"---!!!-!!-!!!---"
+"---!!!-!!-!!!---"
+"!--!!!----!!!--!"
+"!--!!!!!!!!!!--!"
+".--------------."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".-----!!!!-----."
+"!---!!!!!!!!---!"
+"!--!!!!--!!!!--!"
+"---!!!-!!-!!!---"
+"---!!!-!!-!!!---"
+"!--!!!----!!!--!"
+"!--!!!!!!!!!!--!"
+".--------------."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2f14
+; Nursing home - Maki hospital_15 (CC0), 16 px
+; The schema files a nursing home under class hospital.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!-----!!-----!."
+".------!!------."
+"!------!!------!"
+"!------!!------!"
+"---!!!!!!!!!!---"
+"---!!!!!!!!!!---"
+"!------!!------!"
+"!------!!------!"
+".------!!------."
+".!-----!!-----!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!-----!!-----!."
+".------!!------."
+"!------!!------!"
+"!------!!------!"
+"---!!!!!!!!!!---"
+"---!!!!!!!!!!---"
+"!------!!------!"
+"!------!!------!"
+".------!!------."
+".!-----!!-----!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2000
+; kmap: Junction - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x230f
+; kmap: Services - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2b07
+; Wilderness hut - Maki shelter_15 (CC0), 16 px
+; A wilderness hut is not in the schema; its basic huts are class shelter, this icon.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!---------!!-!."
+".--------!!!!--."
+"!-----!!!!!----!"
+"!---!!!!!------!"
+"---!!!----------"
+"---!!-----------"
+"!---!----------!"
+"!---!----------!"
+".---!!!!!!!!---."
+".!--!!!!!!!!!-!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!---------!!-!."
+".--------!!!!--."
+"!-----!!!!!----!"
+"!---!!!!!------!"
+"---!!!----------"
+"---!!-----------"
+"!---!----------!"
+"!---!----------!"
+".---!!!!!!!!---."
+".!--!!!!!!!!!-!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2c01
+; Theme park - Maki amusement_park_15 (CC0), 16 px
+; Class theme_park has no icon of that name; the set's amusement park is used.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!---!!!!!!---!."
+".---!!----!!---."
+"!--!!------!!--!"
+"!--!---!!---!--!"
+"---!---!!---!---"
+"---!!--!!--!!---"
+"!---!------!---!"
+"!---!!----!!---!"
+".----!!!!!!----."
+".!---!!!!!!---!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!---!!!!!!---!."
+".---!!----!!---."
+"!--!!------!!--!"
+"!--!---!!---!--!"
+"---!---!!---!---"
+"---!!--!!--!!---"
+"!---!------!---!"
+"!---!!----!!---!"
+".----!!!!!!----."
+".!---!!!!!!---!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2c05
+; School - Maki school_15 (CC0), 16 px
+; Schools and kindergartens are class school.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+"....-------....."
+"..!----------..."
+".!-!!!--!!!!--.."
+".--!!!!-!!!---!."
+"---!!!!-!!!!---."
+"---!!!!-!!!!---."
+"---!!!!-!!!!---!"
+"---!!!!-!!!!----"
+"---!!!!-!!!----!"
+"---!!!!-!!!!---."
+"----!!--!!!!---."
+".---!!--!!!---!."
+".---!---!!!!--.."
+"..-----------..."
+"...!-------!...."
+"......!-!......."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+"....-------....."
+"..!----------..."
+".!-!!!--!!!!--.."
+".--!!!!-!!!---!."
+"---!!!!-!!!!---."
+"---!!!!-!!!!---."
+"---!!!!-!!!!---!"
+"---!!!!-!!!!----"
+"---!!!!-!!!----!"
+"---!!!!-!!!!---."
+"----!!--!!!!---."
+".---!!--!!!---!."
+".---!---!!!!--.."
+"..-----------..."
+"...!-------!...."
+"......!-!......."
+[end]
+
+[_point]
+Type=0x2c06
+; Park - Maki park_15 (CC0), 16 px
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------!-----!."
+".-----!!!!!----."
+"!----!!!!!!!---!"
+"!---!!!!!!!!!--!"
+"----!!!!!!!!!---"
+"-----!!!!-!!----"
+"!------!!!-----!"
+"!------!!------!"
+".------!!------."
+".!-----!!-----!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------!-----!."
+".-----!!!!!----."
+"!----!!!!!!!---!"
+"!---!!!!!!!!!--!"
+"----!!!!!!!!!---"
+"-----!!!!-!!----"
+"!------!!!-----!"
+"!------!!------!"
+".------!!------."
+".!-----!!-----!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2c07
+; Zoo - Maki zoo_15 (CC0), 16 px
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".--------!!!---."
+"!-------!!!!!--!"
+"!----!!!!!!!!!-!"
+"----!!!!!!!!!---"
+"----!!!!!!!!----"
+"!-!-!!---!!----!"
+"!---!!---!!----!"
+".--------------."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".--------!!!---."
+"!-------!!!!!--!"
+"!----!!!!!!!!!-!"
+"----!!!!!!!!!---"
+"----!!!!!!!!----"
+"!-!-!!---!!----!"
+"!---!!---!!----!"
+".--------------."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2c0a
+; kmap: Wine cellar - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c0c
+; Volcano - Maki volcano_15 (CC0), 16 px
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------!-----!."
+".-----!!!!!----."
+"!-----!!!!-----!"
+"!--------------!"
+"------!--!------"
+"-----!!!!!!-----"
+"!----!!!!!!----!"
+"!---!!!!!!!!---!"
+".---!!!!!!!!---."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------!-----!."
+".-----!!!!!----."
+"!-----!!!!-----!"
+"!--------------!"
+"------!--!------"
+"-----!!!!!!-----"
+"!----!!!!!!----!"
+"!---!!!!!!!!---!"
+".---!!!!!!!!---."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2c0e
+; kmap: Rock climbing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d04
+; kmap: Casino - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d06
+; Skiing - Maki skiing_15 (CC0), 16 px
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".------!!!--!--."
+"!------!!!-!!!-!"
+"!------!-!--!--!"
+"------!!-!------"
+"----!!!--!!-----"
+"!-----!--------!"
+"!-------!------!"
+".---------!!---."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".------!!!--!--."
+"!------!!!-!!!-!"
+"!------!-!--!--!"
+"------!!-!------"
+"----!!!--!!-----"
+"!-----!--------!"
+"!-------!------!"
+".---------!!---."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2d07
+; kmap: Bowling - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d08
+; kmap: Ice rink - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d0a
+; kmap: Sports centre - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2f02
+; Car rental - Maki car_15 (CC0), 16 px
+; Not in the schema; the style draws every car place (shop, repair, taxi) with this icon.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!------!!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!----------!!!"
+"!!!----------!!!"
+"!!--!------!--!!"
+"!!------------!!"
+"!!!----------!!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!------!!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!----------!!!"
+"!!!----------!!!"
+"!!--!------!--!!"
+"!!------------!!"
+"!!!----------!!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+Type=0x2f0e
+; Car wash - Maki car_15 (CC0), 16 px
+; Not in the schema; the style draws every car place (shop, repair, taxi) with this icon.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!------!!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!----------!!!"
+"!!!----------!!!"
+"!!--!------!--!!"
+"!!------------!!"
+"!!!----------!!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!------!!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!!-!!!!!!-!!!!"
+"!!!----------!!!"
+"!!!----------!!!"
+"!!--!------!--!!"
+"!!------------!!"
+"!!!----------!!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+Type=0x2f12
+; kmap: Wi-Fi - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2f16
+; Emergency phone - Maki telephone_15 (CC0), 16 px
+; Not in the schema; the set's telephone.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".-------!!!!---."
+"!------!!!!----!"
+"!-----!!---!!--!"
+"-----!!---------"
+"----!!----------"
+"!---!!---------!"
+"!---!!---------!"
+".---!-!--------."
+".!----!-------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".-------!!!!---."
+"!------!!!!----!"
+"!-----!!---!!--!"
+"-----!!---------"
+"----!!----------"
+"!---!!---------!"
+"!---!!---------!"
+".---!-!--------."
+".!----!-------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2f1a
+; kmap: Charging station - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2f1b
+; Lift station - Maki aerialway_15 (CC0), 16 px
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!------!!!"
+"!!!------!!!!!!!"
+"!!!!!!!--!!!!!!!"
+"!!!!!!!--!!!!!!!"
+"!!!----------!!!"
+"!!------------!!"
+"!!--!!!--!!!--!!"
+"!!--!!!--!!!--!!"
+"!!--!!!--!!!--!!"
+"!!------------!!"
+"!!------------!!"
+"!!!----------!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!------!!!"
+"!!!------!!!!!!!"
+"!!!!!!!--!!!!!!!"
+"!!!!!!!--!!!!!!!"
+"!!!----------!!!"
+"!!------------!!"
+"!!--!!!--!!!--!!"
+"!!--!!!--!!!--!!"
+"!!--!!!--!!!--!!"
+"!!------------!!"
+"!!------------!!"
+"!!!----------!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+Type=0x3006
+; Border crossing - Maki roadblock_15 (CC0), 16 px
+; The schema imports barrier=* points but the style has no icon for them; the set's roadblock.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x3200
+; Barrier - Maki roadblock_15 (CC0), 16 px
+; The schema imports barrier=* points but the style has no icon for them; the set's roadblock.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x3201
+; Lift gate - Maki roadblock_15 (CC0), 16 px
+; The schema imports barrier=* points but the style has no icon for them; the set's roadblock.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x3202
+; Bollard - Maki roadblock_15 (CC0), 16 px
+; The schema imports barrier=* points but the style has no icon for them; the set's roadblock.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!!!!---!.."
+".!--!!!!!!!!--!."
+".--!!!!!!!!!!--."
+"!--!!!!!!!!!!--!"
+"!-!!!!!!!!!!!!-!"
+"--!!!------!!!--"
+"--!!!------!!!--"
+"!-!!!!!!!!!!!!-!"
+"!--!!!!!!!!!!--!"
+".--!!!!!!!!!!--."
+".!--!!!!!!!!--!."
+"..!---!!!!---!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x6403
+; Cemetery - Maki cemetery_15 (CC0), 16 px
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!----!!!!----!."
+".----!!!!!!----."
+"!---!!!!!!!!---!"
+"!----!----!----!"
+"-----!!!!!!-----"
+"-----!!!!!!-----"
+"!----!!!!!!----!"
+"!----!!!!!!----!"
+".----!!!!!!----."
+".!--!!!!!!!!--!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!----!!!!----!."
+".----!!!!!!----."
+"!---!!!!!!!!---!"
+"!----!----!----!"
+"-----!!!!!!-----"
+"-----!!!!!!-----"
+"!----!!!!!!----!"
+"!----!!!!!!----!"
+".----!!!!!!----."
+".!--!!!!!!!!--!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x640b
+; kmap: Military area - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6411
+; kmap: Tower / mast - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6414
+; kmap: Well - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6503
+; kmap: Bay - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6505
+; kmap: Canal - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6508
+; kmap: Waterfall - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6509
+; kmap: Geyser - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650a
+; kmap: Glacier - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650c
+; kmap: Island - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650d
+; kmap: Lake - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650f
+; kmap: Reservoir - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6512
+; kmap: Stream - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6513
+; Wetland - Maki wetland_15 (CC0), 16 px
+; Not in the schema; the set's wetland.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!-------!!---!."
+".-------!!-----."
+"!---!!--!!--!--!"
+"!----!--!!-!!--!"
+"-----!!-!!!!----"
+"-----!!-!-!!----"
+"!----!!!!-!!---!"
+"!------!!------!"
+".--!--!--!--!--."
+".!-!!!-!!-!!!-!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!-------!!---!."
+".-------!!-----."
+"!---!!--!!--!--!"
+"!----!--!!-!!--!"
+"-----!!-!!!!----"
+"-----!!-!-!!----"
+"!----!!!!-!!---!"
+"!------!!------!"
+".--!--!--!--!--."
+".!-!!!-!!-!!!-!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x6514
+; kmap: Ford - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6603
+; kmap: Water - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6604
+; kmap: Beach - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6605
+; kmap: Bench - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6606
+; kmap: Cape - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6607
+; kmap: Cliff - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6608
+; kmap: Tower - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6612
+; kmap: Nature reserve - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6613
+; Mountain pass - Maki viewpoint_15 (CC0), 16 px
+; The style draws a saddle with this icon.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".-----!--!-----."
+"!-----!--!-----!"
+"!--!!-!!!!-!!--!"
+"----!!-!!-!!----"
+"------!--!------"
+"!--------------!"
+"!------!!------!"
+".------!!------."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!----------!.."
+".!------------!."
+".-----!--!-----."
+"!-----!--!-----!"
+"!--!!-!!!!-!!--!"
+"----!!-!!-!!----"
+"------!--!------"
+"!--------------!"
+"!------!!------!"
+".------!!------."
+".!------------!."
+"..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x6614
+; kmap: Rock - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6618
+; kmap: Forest - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6619
+; kmap: Cave - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x661a
+; kmap: Facility - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
 [end]
 
 """#####
@@ -9056,15 +17363,26 @@ String=0x00,Lighthouse
     /// See Assets/styles/osm-carto/points.txt for how they were made.
     static let cartoPoints =
 #####"""
-; POI icons for the osm-carto shipped style.
-; GENERATED from icons/*.svg by the session of 2026-08-31 — the SVGs are
-; openstreetmap-carto's own symbols (CC0), rendered at 16 px and thresholded
-; on alpha; ink colours are carto's category colours from amenity-points.mss.
-; Appended verbatim to the generated TYP.
+; POI icons for the osm-carto shipped style; CyclOSM ships the same file. Each section
+; is the openstreetmap-carto symbol (symbols/**, CC0, commit
+; 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2) that carto draws for the meaning kmap's
+; rules give the code (named in Assets/styles/type-names.txt), or for one of the other
+; objects kmap puts on the code where that fits it. Rendered at 16 px with
+; rsvg-convert; a pixel is ink where its alpha is 96 or more (the lighthouse at more
+; than 127). The ink is the marker-fill carto gives the symbol in
+; style/amenity-points.mss; night ink is the day ink lifted towards white. A symbol
+; that is not 14 px (the gates, the aerialway square) is drawn at the same 16/14
+; scale. Every point code kmap's rules emit has a section but the settlement points
+; 0x0100-0x0d00, which the device draws, and kmap's repair mark 0x660b, which the
+; build adds: 133, 97 with carto's symbol. A code whose meaning carto draws no symbol
+; for gets the plain anchor square of the reference TYP (topoactive 0x661a), day and
+; night, with its label, so no device icon of another meaning shows (36 codes, each
+; saying so); it can be edited in kmap's type editor. Names are added from
+; type-names.txt by the generator. Appended to the generated TYP.
 
 [_point]
 Type=0x2a00
-; Restaurant — openstreetmap-carto symbol (CC0), 16 px
+; Restaurant - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
 DayXpm="16 16 2 1"
 "! c #C77400"
 ". c none"
@@ -9103,12 +17421,11 @@ NightXpm="16 16 2 1"
 "...!!.....!!!..."
 "...!!.....!!!..."
 "..!!!!....!!!..."
-String=0x00,Restaurant
 [end]
 
 [_point]
 Type=0x2a07
-; Fast food — openstreetmap-carto symbol (CC0), 16 px
+; Fast food - openstreetmap-carto symbols/amenity/fast_food.svg (CC0), 16 px, ink @gastronomy-icon
 DayXpm="16 16 2 1"
 "! c #C77400"
 ". c none"
@@ -9147,12 +17464,11 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 "................"
 "................"
-String=0x00,Fast food
 [end]
 
 [_point]
 Type=0x2a0e
-; Cafe — openstreetmap-carto symbol (CC0), 16 px
+; Cafe - openstreetmap-carto symbols/amenity/cafe.svg (CC0), 16 px, ink @gastronomy-icon
 DayXpm="16 16 2 1"
 "! c #C77400"
 ". c none"
@@ -9191,12 +17507,12 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!!!!...."
 ".!!!!!!!!!!!...."
 "................"
-String=0x00,Cafe
 [end]
 
 [_point]
 Type=0x2d02
-; Pub — openstreetmap-carto symbol (CC0), 16 px
+; Bar / pub - openstreetmap-carto symbols/amenity/pub.svg (CC0), 16 px, ink @gastronomy-icon
+; Bars, pubs, biergartens and nightclubs land here; carto's pub symbol.
 DayXpm="16 16 2 1"
 "! c #C77400"
 ". c none"
@@ -9235,56 +17551,55 @@ NightXpm="16 16 2 1"
 "...!!!!!!!!!!..."
 "....!!!!!!!!...."
 "....!!!!!!!!...."
-String=0x00,Pub
 [end]
 
 [_point]
 Type=0x2a0c
-; Bar — openstreetmap-carto symbol (CC0), 16 px
+; Restaurant - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; kmap puts restaurants with cuisine=steak|grill here; carto draws every restaurant so.
 DayXpm="16 16 2 1"
 "! c #C77400"
 ". c none"
-"!!!!!!!!!!!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-".....!!!!!!....."
-"......!!!!......"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"......!!!!......"
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
 NightXpm="16 16 2 1"
 "! c #FFAAAA"
 ". c none"
-"!!!!!!!!!!!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-".....!!!!!!....."
-"......!!!!......"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"......!!!!......"
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-String=0x00,Bar
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
 [end]
 
 [_point]
 Type=0x2f06
-; Bank — openstreetmap-carto symbol (CC0), 16 px
+; Bank / ATM - openstreetmap-carto symbols/amenity/bank.svg (CC0), 16 px, ink @public-service
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -9323,12 +17638,11 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!!!!!!!!"
 "................"
 "................"
-String=0x00,Bank
 [end]
 
 [_point]
 Type=0x2f01
-; Fuel — openstreetmap-carto symbol (CC0), 16 px
+; Fuel - openstreetmap-carto symbols/amenity/fuel.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -9367,12 +17681,11 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!..!!.."
 ".!!!!!!!!!......"
 ".!!!!!!!!!......"
-String=0x00,Fuel
 [end]
 
 [_point]
 Type=0x2e05
-; Pharmacy — openstreetmap-carto symbol (CC0), 16 px
+; Pharmacy - openstreetmap-carto symbols/amenity/pharmacy.svg (CC0), 16 px, ink @health-color
 DayXpm="16 16 2 1"
 "! c #BF0000"
 ". c none"
@@ -9411,12 +17724,11 @@ NightXpm="16 16 2 1"
 "..!!!!!..!!!!!.."
 "..!!!!!!!!!!!!.."
 "..!!!!!!!!!!!!.."
-String=0x00,Pharmacy
 [end]
 
 [_point]
 Type=0x3002
-; Hospital — openstreetmap-carto symbol (CC0), 16 px
+; Hospital - openstreetmap-carto symbols/amenity/hospital.svg (CC0), 16 px, ink @health-color
 DayXpm="16 16 2 1"
 "! c #BF0000"
 ". c none"
@@ -9455,12 +17767,11 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 "...!!!!!!!!!!..."
 ".....!!!!!!....."
-String=0x00,Hospital
 [end]
 
 [_point]
 Type=0x3001
-; Police — openstreetmap-carto symbol (CC0), 16 px
+; Police - openstreetmap-carto symbols/amenity/police.svg (CC0), 16 px, ink @public-service
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -9499,12 +17810,11 @@ NightXpm="16 16 2 1"
 "..!!!!..!!!!!!.."
 "..!!!..!!!!!!!.."
 "..!!!.!!!!!!!!.."
-String=0x00,Police
 [end]
 
 [_point]
 Type=0x2f05
-; Post office — openstreetmap-carto symbol (CC0), 16 px
+; Post office - openstreetmap-carto symbols/amenity/post_office.svg (CC0), 16 px, ink @public-service
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -9543,12 +17853,11 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!!!!!!!!"
 "................"
 "................"
-String=0x00,Post office
 [end]
 
 [_point]
 Type=0x2f0c
-; Toilets — openstreetmap-carto symbol (CC0), 16 px
+; WC - openstreetmap-carto symbols/amenity/toilets.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -9587,12 +17896,11 @@ NightXpm="16 16 2 1"
 "..!!...!!...!!.."
 "..!!...!!...!!.."
 "..!!...!!...!!.."
-String=0x00,Toilets
 [end]
 
 [_point]
 Type=0x5000
-; Drinking water — openstreetmap-carto symbol (CC0), 16 px
+; Drinking water - openstreetmap-carto symbols/amenity/drinking_water.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -9631,12 +17939,11 @@ NightXpm="16 16 2 1"
 "..!!!!!!!......."
 "..!!!!!!!......."
 "...!!!!!!......."
-String=0x00,Drinking water
 [end]
 
 [_point]
 Type=0x2f0b
-; Parking — openstreetmap-carto symbol (CC0), 16 px
+; Parking - openstreetmap-carto symbols/amenity/parking.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -9675,12 +17982,11 @@ NightXpm="16 16 2 1"
 "...!!..........."
 "...!!..........."
 "...!!..........."
-String=0x00,Parking
 [end]
 
 [_point]
 Type=0x2c0b
-; Place of worship — openstreetmap-carto symbol (CC0), 16 px
+; Place of worship - openstreetmap-carto symbols/amenity/place_of_worship.svg (CC0), 16 px, ink @religious-icon
 DayXpm="16 16 2 1"
 "! c #000000"
 ". c none"
@@ -9719,12 +18025,11 @@ NightXpm="16 16 2 1"
 ".....!!!!!......"
 ".....!!!!!!!!!.."
 ".....!!!!!!!!!.."
-String=0x00,Place of worship
 [end]
 
 [_point]
 Type=0x2e02
-; Supermarket — openstreetmap-carto symbol (CC0), 16 px
+; Supermarket - openstreetmap-carto symbols/shop/supermarket.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -9763,12 +18068,11 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!!!!..."
 "...!!.....!!...."
 "................"
-String=0x00,Supermarket
 [end]
 
 [_point]
 Type=0x2b01
-; Hotel — openstreetmap-carto symbol (CC0), 16 px
+; Hotel - openstreetmap-carto symbols/tourism/hotel.svg (CC0), 16 px, ink @accommodation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -9807,14 +18111,13 @@ NightXpm="16 16 2 1"
 "................"
 "................"
 "................"
-String=0x00,Hotel
 [end]
 
 [_point]
 Type=0x2b03
-; Campsite — openstreetmap-carto symbol (CC0), 16 px
+; Campsite - openstreetmap-carto symbols/tourism/camping.svg (CC0), 16 px, ink @accommodation-icon
 DayXpm="16 16 2 1"
-"! c #734A08"
+"! c #0092DA"
 ". c none"
 "......!..!......"
 "......!!!!......"
@@ -9833,7 +18136,7 @@ DayXpm="16 16 2 1"
 ".!!!!......!!!!."
 "!!!!!!!!!!!!!!!!"
 NightXpm="16 16 2 1"
-"! c #AAAAAA"
+"! c #AAFFFF"
 ". c none"
 "......!..!......"
 "......!!!!......"
@@ -9851,12 +18154,11 @@ NightXpm="16 16 2 1"
 ".!!!!......!!!!."
 ".!!!!......!!!!."
 "!!!!!!!!!!!!!!!!"
-String=0x00,Campsite
 [end]
 
 [_point]
 Type=0x2c02
-; Museum — openstreetmap-carto symbol (CC0), 16 px
+; Museum - openstreetmap-carto symbols/tourism/museum.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -9895,12 +18197,11 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 "!!!!!!!!!!!!!!!!"
 "................"
-String=0x00,Museum
 [end]
 
 [_point]
 Type=0x2c04
-; Viewpoint — openstreetmap-carto symbol (CC0), 16 px
+; Viewpoint - openstreetmap-carto symbols/tourism/viewpoint.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -9939,12 +18240,11 @@ NightXpm="16 16 2 1"
 "...!!!....!!!..."
 "...!!!....!!!..."
 "................"
-String=0x00,Viewpoint
 [end]
 
 [_point]
 Type=0x6616
-; Summit — openstreetmap-carto symbol (CC0), 16 px
+; Peak - openstreetmap-carto symbols/natural/peak.svg (CC0), 16 px, ink @landform-color
 DayXpm="16 16 2 1"
 "! c #D08F55"
 ". c none"
@@ -9983,14 +18283,13 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
 "!!!!!!!!!!!!!!!!"
-String=0x00,Summit
 [end]
 
 [_point]
 Type=0x6511
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -10009,7 +18308,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -10027,14 +18326,13 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
 
 [_point]
 Type=0x6508
-; Waterfall — openstreetmap-carto symbol (CC0), 16 px
+; Waterfall - openstreetmap-carto symbols/natural/waterfall.svg (CC0), 16 px, ink @water-text
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #4D80B3"
 ". c none"
 "................"
 "!!!!!!!!!!......"
@@ -10053,7 +18351,7 @@ DayXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 "..!!!...!!!..!!."
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "!!!!!!!!!!......"
@@ -10071,12 +18369,11 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!.!!!!.."
 ".!!!!!!!!!!!!!!."
 "..!!!...!!!..!!."
-String=0x00,Waterfall
 [end]
 
 [_point]
 Type=0x2f17
-; Bus stop — openstreetmap-carto symbol (CC0), 16 px
+; Bus stop - openstreetmap-carto symbols/highway/bus_stop.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -10115,12 +18412,12 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 "..!!!!!!!!!!!!.."
 "...!!......!!..."
-String=0x00,Bus stop
 [end]
 
 [_point]
 Type=0x2a13
-; Food court — openstreetmap-carto symbol (CC0), 16 px
+; Food court - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws amenity=food_court with its restaurant symbol.
 DayXpm="16 16 2 1"
 "! c #C77400"
 ". c none"
@@ -10159,58 +18456,58 @@ NightXpm="16 16 2 1"
 "...!!.....!!!..."
 "...!!.....!!!..."
 "..!!!!....!!!..."
-String=0x00,Food court
 [end]
 
 [_point]
 Type=0x2b02
-; Alpine hut — openstreetmap-carto symbol (CC0), 16 px
+; Guest house / alpine hut - openstreetmap-carto symbols/tourism/guest_house.svg (CC0), 16 px, ink @accommodation-icon
+; Guest houses, hostels, chalets, B&Bs and alpine huts: a bed. carto's guest house.
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-".!!!!!!..!!!!!!."
-"!!!!........!!!!"
-"!!!!........!!!!"
-"..!!...!!...!!.."
-"..!!.!!!....!!.."
-"..!!.!!!!...!!.."
-"..!!.!!!!!..!!.."
-"..!!..!!.!!.!!.."
-"..!!..!!!.!.!!.."
-"..!!..!!!.!.!!.."
-"..!!..!.!.!.!!.."
-"..!!.!!.!...!!.."
-"..!!.!..!!..!!.."
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............."
+"!..!!!.........."
+"!.!!!!.!!!!!!..!"
+"!.!!!!.!!!!!!!.!"
+"!..!!..!!!!!!..!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!..............!"
+"!..............!"
 NightXpm="16 16 2 1"
 "! c #AAFFFF"
 ". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-".!!!!!!..!!!!!!."
-"!!!!........!!!!"
-"!!!!........!!!!"
-"..!!...!!...!!.."
-"..!!.!!!....!!.."
-"..!!.!!!!...!!.."
-"..!!.!!!!!..!!.."
-"..!!..!!.!!.!!.."
-"..!!..!!!.!.!!.."
-"..!!..!!!.!.!!.."
-"..!!..!.!.!.!!.."
-"..!!.!!.!...!!.."
-"..!!.!..!!..!!.."
-String=0x00,Alpine hut
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............."
+"!..!!!.........."
+"!.!!!!.!!!!!!..!"
+"!.!!!!.!!!!!!!.!"
+"!..!!..!!!!!!..!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!..............!"
+"!..............!"
 [end]
 
 [_point]
 Type=0x2b05
-; Shelter — openstreetmap-carto symbol (CC0), 16 px
+; Lean-to - openstreetmap-carto symbols/amenity/shelter.svg (CC0), 16 px, ink @man-made-icon
+; carto draws every amenity=shelter, a lean-to one too, with this symbol.
 DayXpm="16 16 2 1"
-"! c #734A08"
+"! c #666666"
 ". c none"
 "....!....!...!.."
 "....!...!....!.."
@@ -10247,14 +18544,13 @@ NightXpm="16 16 2 1"
 "...!!......!!..."
 "...!!......!!..."
 "...!!......!!..."
-String=0x00,Shelter
 [end]
 
 [_point]
 Type=0x2b06
-; Shelter — openstreetmap-carto symbol (CC0), 16 px
+; Shelter - openstreetmap-carto symbols/amenity/shelter.svg (CC0), 16 px, ink @man-made-icon
 DayXpm="16 16 2 1"
-"! c #734A08"
+"! c #666666"
 ". c none"
 "....!....!...!.."
 "....!...!....!.."
@@ -10291,12 +18587,11 @@ NightXpm="16 16 2 1"
 "...!!......!!..."
 "...!!......!!..."
 "...!!......!!..."
-String=0x00,Shelter
 [end]
 
 [_point]
 Type=0x2b07
-; Wilderness hut — openstreetmap-carto symbol (CC0), 16 px
+; Wilderness hut - openstreetmap-carto symbols/tourism/wilderness_hut.svg (CC0), 16 px, ink @accommodation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -10335,12 +18630,11 @@ NightXpm="16 16 2 1"
 "..!!.!!..!!.!!.."
 "..!!.!!..!!.!!.."
 "..!!.!!!!!!.!!.."
-String=0x00,Wilderness hut
 [end]
 
 [_point]
 Type=0x2c03
-; Library — openstreetmap-carto symbol (CC0), 16 px
+; Library - openstreetmap-carto symbols/amenity/library.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -10379,56 +18673,11 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 ".....!!!!!!....."
 "................"
-String=0x00,Library
-[end]
-
-[_point]
-Type=0x2c08
-; Fishing — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0D7813"
-". c none"
-"!..............."
-"!..............."
-"!..............."
-"!..............."
-"!.....!........."
-"!....!!........."
-"!....!!........."
-"!!...!.........."
-".!!!!..........."
-"................"
-"....!!!!!......."
-"..!!!!!!!!!...!!"
-"!!..!!!!!!!!.!!!"
-"!!!.!!!!!!!!.!!!"
-".!!!!!!!!!!...!!"
-"...!!!!!!......!"
-NightXpm="16 16 2 1"
-"! c #AAFFAA"
-". c none"
-"!..............."
-"!..............."
-"!..............."
-"!..............."
-"!.....!........."
-"!....!!........."
-"!....!!........."
-"!!...!.........."
-".!!!!..........."
-"................"
-"....!!!!!......."
-"..!!!!!!!!!...!!"
-"!!..!!!!!!!!.!!!"
-"!!!.!!!!!!!!.!!!"
-".!!!!!!!!!!...!!"
-"...!!!!!!......!"
-String=0x00,Fishing
 [end]
 
 [_point]
 Type=0x2c0f
-; Playground — openstreetmap-carto symbol (CC0), 16 px
+; Playground - openstreetmap-carto symbols/leisure/playground.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -10467,12 +18716,11 @@ NightXpm="16 16 2 1"
 "......!!!!..!!!!"
 "......!!!!.....!"
 "......!!!!......"
-String=0x00,Playground
 [end]
 
 [_point]
 Type=0x2c12
-; Memorial — openstreetmap-carto symbol (CC0), 16 px
+; Memorial - openstreetmap-carto symbols/historic/memorial.svg (CC0), 16 px, ink @memorials
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -10511,56 +18759,54 @@ NightXpm="16 16 2 1"
 ".....!!!!!!!!!.."
 "................"
 "...!!!!!!!!!!!!!"
-String=0x00,Memorial
 [end]
 
 [_point]
 Type=0x2d01
-; Arts centre — openstreetmap-carto symbol (CC0), 16 px
+; Theatre - openstreetmap-carto symbols/amenity/theatre.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
-".....!!!!!!...!!"
-"...!!!!!.!!!..!!"
-"..!!!!!...!!..!!"
-".!!..!!...!!..!!"
-".!!...!!!!!...!!"
-"!!!!.!!!!!!...!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!...!!"
-"!!!!!!!!!!!...!!"
-".!!!!!!!!...!!!!"
-".!!!!!....!!!!!!"
-"..!!!!...!!!!!!!"
-"...!!!...!!!!!!."
-"..........!!!!.."
+"!!.....!!......."
+"!!!!!!!!!......."
+"!..!!!..!......."
+"!.!............!"
+"!!!!...!!!!!!!!!"
+"!.!!...!!!!!!!!!"
+"!......!!!!!!!!!"
+"!...!!.!!..!..!!"
+"!.!!!!.!!..!..!!"
+"!!!!!!.!!!!!!!!!"
+".!.....!!!!!!!!!"
+".!!!!!.!!!!!!!!!"
+"...!!!.!!!...!!!"
+".......!!!!.!!!!"
+"........!!!!!!!."
+".........!!!!!.."
 NightXpm="16 16 2 1"
 "! c #AAAAAA"
 ". c none"
-".....!!!!!!...!!"
-"...!!!!!.!!!..!!"
-"..!!!!!...!!..!!"
-".!!..!!...!!..!!"
-".!!...!!!!!...!!"
-"!!!!.!!!!!!...!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!...!!"
-"!!!!!!!!!!!...!!"
-".!!!!!!!!...!!!!"
-".!!!!!....!!!!!!"
-"..!!!!...!!!!!!!"
-"...!!!...!!!!!!."
-"..........!!!!.."
-String=0x00,Arts centre
+"!!.....!!......."
+"!!!!!!!!!......."
+"!..!!!..!......."
+"!.!............!"
+"!!!!...!!!!!!!!!"
+"!.!!...!!!!!!!!!"
+"!......!!!!!!!!!"
+"!...!!.!!..!..!!"
+"!.!!!!.!!..!..!!"
+"!!!!!!.!!!!!!!!!"
+".!.....!!!!!!!!!"
+".!!!!!.!!!!!!!!!"
+"...!!!.!!!...!!!"
+".......!!!!.!!!!"
+"........!!!!!!!."
+".........!!!!!.."
 [end]
 
 [_point]
 Type=0x2d03
-; Cinema — openstreetmap-carto symbol (CC0), 16 px
+; Cinema - openstreetmap-carto symbols/amenity/cinema.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -10599,12 +18845,11 @@ NightXpm="16 16 2 1"
 "!!!!!......!!!!!"
 "!.!!!......!!!.!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Cinema
 [end]
 
 [_point]
 Type=0x2d04
-; Casino — openstreetmap-carto symbol (CC0), 16 px
+; Casino - openstreetmap-carto symbols/amenity/casino.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -10643,12 +18888,11 @@ NightXpm="16 16 2 1"
 ".......!..!!!!!!"
 "........!!!!!!!."
 "................"
-String=0x00,Casino
 [end]
 
 [_point]
 Type=0x2d05
-; Golf course — openstreetmap-carto symbol (CC0), 16 px
+; Golf course - openstreetmap-carto symbols/leisure/golf.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -10687,12 +18931,11 @@ NightXpm="16 16 2 1"
 ".!.....!!..!...."
 ".!.....!...!...."
 "................"
-String=0x00,Golf course
 [end]
 
 [_point]
 Type=0x2d07
-; Bowling alley — openstreetmap-carto symbol (CC0), 16 px
+; Bowling - openstreetmap-carto symbols/leisure/bowling_alley.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -10731,12 +18974,12 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!.!!!!!!"
 ".!!!!!!!..!!!!!!"
 "..!!!!!...!!!!!."
-String=0x00,Bowling alley
 [end]
 
 [_point]
 Type=0x2d09
-; Water park — openstreetmap-carto symbol (CC0), 16 px
+; Swimming - openstreetmap-carto symbols/leisure/water_park.svg (CC0), 16 px, ink @leisure-green
+; carto's swimming symbol: water parks, swimming areas, swimming sports centres.
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -10775,56 +19018,11 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
 "!..!!!!..!!!!..!"
-String=0x00,Water park
-[end]
-
-[_point]
-Type=0x2d0a
-; Sports center — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0D7813"
-". c none"
-"..........!!...."
-"..........!!!..."
-"..........!!...."
-".........!!....."
-"......!!!!!!.!!."
-".....!!.!!!!!!.."
-".....!.!!!.!!..."
-".......!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".!!!!!!.!!!....."
-"..!!!!...!!....."
-".........!!....."
-".........!......"
-"........!!......"
-".........!......"
-NightXpm="16 16 2 1"
-"! c #AAFFAA"
-". c none"
-"..........!!...."
-"..........!!!..."
-"..........!!...."
-".........!!....."
-"......!!!!!!.!!."
-".....!!.!!!!!!.."
-".....!.!!!.!!..."
-".......!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".!!!!!!.!!!....."
-"..!!!!...!!....."
-".........!!....."
-".........!......"
-"........!!......"
-".........!......"
-String=0x00,Sports center
 [end]
 
 [_point]
 Type=0x2e01
-; Department store — openstreetmap-carto symbol (CC0), 16 px
+; Department store - openstreetmap-carto symbols/shop/department_store.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -10863,56 +19061,11 @@ NightXpm="16 16 2 1"
 ".!!!!.......!!!."
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
-String=0x00,Department store
-[end]
-
-[_point]
-Type=0x2e04
-; Mall — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-".....!!!!!!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!.!!!!!!!."
-".!!!!..!..!!!!!."
-".!!!!..!..!!!!!."
-".!!!!!...!!!!!!."
-".!!!!....!!!!!!."
-".!!!..!....!!!!."
-".!!!..!!...!!!!."
-".!!!!.......!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-".....!!!!!!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!.!!!!!!!."
-".!!!!..!..!!!!!."
-".!!!!..!..!!!!!."
-".!!!!!...!!!!!!."
-".!!!!....!!!!!!."
-".!!!..!....!!!!."
-".!!!..!!...!!!!."
-".!!!!.......!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-String=0x00,Mall
 [end]
 
 [_point]
 Type=0x2e06
-; Fuel — openstreetmap-carto symbol (CC0), 16 px
+; Fuel with shop - openstreetmap-carto symbols/amenity/fuel.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -10951,12 +19104,11 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!..!!.."
 ".!!!!!!!!!......"
 ".!!!!!!!!!......"
-String=0x00,Fuel
 [end]
 
 [_point]
 Type=0x2e07
-; Clothes — openstreetmap-carto symbol (CC0), 16 px
+; Clothes shop - openstreetmap-carto symbols/shop/clothes.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -10995,12 +19147,11 @@ NightXpm="16 16 2 1"
 "...!!!!!!!!!!..."
 "...!!!!!!!!!!..."
 "................"
-String=0x00,Clothes
 [end]
 
 [_point]
 Type=0x2e08
-; Garden centre — openstreetmap-carto symbol (CC0), 16 px
+; Outdoor / garden shop - openstreetmap-carto symbols/shop/garden_centre.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -11039,12 +19190,11 @@ NightXpm="16 16 2 1"
 ".......!!!!!!!!."
 "........!!!!!!!."
 ".........!!!!!.."
-String=0x00,Garden centre
 [end]
 
 [_point]
 Type=0x2e09
-; Doityourself — openstreetmap-carto symbol (CC0), 16 px
+; Hardware shop - openstreetmap-carto symbols/shop/diy.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -11083,12 +19233,11 @@ NightXpm="16 16 2 1"
 "...!!!....!!!!.."
 "...!!!....!!!!.."
 "....!!.....!!..."
-String=0x00,Doityourself
 [end]
 
 [_point]
 Type=0x2e0b
-; Computer — openstreetmap-carto symbol (CC0), 16 px
+; Computer shop - openstreetmap-carto symbols/shop/computer.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -11127,56 +19276,11 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
-String=0x00,Computer
-[end]
-
-[_point]
-Type=0x2e0c
-; Butcher — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"......!!........"
-"....!!..!......."
-"..!!..!.!......."
-"..!...!.!......."
-"...!.....!......"
-"...!.....!......"
-"....!.....!....."
-"....!.....!....."
-".....!...!!!...."
-"......!.!!!!!..."
-"......!!..!!!..."
-"...........!!!.."
-"...........!!!.."
-"............!!.."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"......!!........"
-"....!!..!......."
-"..!!..!.!......."
-"..!...!.!......."
-"...!.....!......"
-"...!.....!......"
-"....!.....!....."
-"....!.....!....."
-".....!...!!!...."
-"......!.!!!!!..."
-"......!!..!!!..."
-"...........!!!.."
-"...........!!!.."
-"............!!.."
-"................"
-String=0x00,Butcher
 [end]
 
 [_point]
 Type=0x2f03
-; Car repair — openstreetmap-carto symbol (CC0), 16 px
+; Car repair - openstreetmap-carto symbols/shop/car_repair.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -11215,12 +19319,11 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 "..!!!!!!!!!!!!.."
 "....!!....!!...."
-String=0x00,Car repair
 [end]
 
 [_point]
 Type=0x2f04
-; Aerodrome — openstreetmap-carto symbol (CC0), 16 px
+; Airport - openstreetmap-carto symbols/amenity/aerodrome.svg (CC0), 16 px, ink @airtransport
 DayXpm="16 16 2 1"
 "! c #8461C4"
 ". c none"
@@ -11259,12 +19362,11 @@ NightXpm="16 16 2 1"
 "......!!!!!....."
 "....!!!!!!!!...."
 "....!!....!!...."
-String=0x00,Aerodrome
 [end]
 
 [_point]
 Type=0x2f07
-; Car — openstreetmap-carto symbol (CC0), 16 px
+; Car dealer - openstreetmap-carto symbols/shop/car.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -11303,73 +19405,636 @@ NightXpm="16 16 2 1"
 ".!!!........!!!."
 ".!!..........!!."
 "................"
-String=0x00,Car
 [end]
 
 [_point]
 Type=0x2f08
-; Bus station — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
+; Station - openstreetmap-carto symbols/amenity/bus_station.svg (CC0), 16 px, ink the SVG's own colours
+; Bus and railway stations land here; topoactive draws a bus. carto draws the
+; bus station in the SVG's own blue and white, so both are kept.
+DayXpm="16 16 3 1"
 "! c #0092DA"
+"- c #FFFFFF"
 ". c none"
 "!!!!!!!!!!!!!!!!"
+"!!!!--------!!!!"
+"!!!----------!!!"
+"!!--!!!!!!!!--!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!-!--------!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!------------!!"
+"!!!--!!!!!!--!!!"
 "!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
+NightXpm="16 16 3 1"
 "! c #AAFFFF"
+"- c #FFFFFF"
 ". c none"
 "!!!!!!!!!!!!!!!!"
+"!!!!--------!!!!"
+"!!!----------!!!"
+"!!--!!!!!!!!--!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!-!--------!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!------------!!"
+"!!!--!!!!!!--!!!"
 "!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-String=0x00,Bus station
 [end]
 
 [_point]
-Type=0x2f09
-; Slipway — openstreetmap-carto symbol (CC0), 16 px
+Type=0x2f0e
+; Car wash - openstreetmap-carto symbols/amenity/car_wash.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"......!!!!......"
+"................"
+"....!..!!..!...."
+"....!..!!..!...."
+"...!...!!...!..."
+"...!...!!...!..."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"......!!!!......"
+"................"
+"....!..!!..!...."
+"....!..!!..!...."
+"...!...!!...!..."
+"...!...!!...!..."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+[end]
+
+[_point]
+Type=0x2f10
+; Hairdresser - openstreetmap-carto symbols/shop/hairdresser.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"....!!!..!!!!!!."
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!.......!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"..!!!!!!!!....!!"
+"!!!!!!!!!!!...!!"
+"!...!!!...!...!!"
+"!...!!!...!...!!"
+"!!..!.!!.!!...!!"
+".!!!!..!!!....!!"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"....!!!..!!!!!!."
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!.......!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"..!!!!!!!!....!!"
+"!!!!!!!!!!!...!!"
+"!...!!!...!...!!"
+"!...!!!...!...!!"
+"!!..!.!!.!!...!!"
+".!!!!..!!!....!!"
+[end]
+
+[_point]
+Type=0x2f13
+; Bicycle shop - openstreetmap-carto symbols/shop/bicycle.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+"................"
+".........!!....."
+"...!!!!...!!...."
+"....!!....!!...."
+"....!!!!!!!!...."
+"....!...!!.!...."
+".!!!!...!.!!!!!."
+"!!...!!!..!...!!"
+"!....!!..!!....!"
+"!.....!..!.....!"
+"!!...!!..!!...!!"
+".!!!!!....!!!!!."
+"..!!!......!!!.."
+"................"
+"................"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+"................"
+".........!!....."
+"...!!!!...!!...."
+"....!!....!!...."
+"....!!!!!!!!...."
+"....!...!!.!...."
+".!!!!...!.!!!!!."
+"!!...!!!..!...!!"
+"!....!!..!!....!"
+"!.....!..!.....!"
+"!!...!!..!!...!!"
+".!!!!!....!!!!!."
+"..!!!......!!!.."
+"................"
+"................"
+[end]
+
+[_point]
+Type=0x2f14
+; Nursing home - openstreetmap-carto symbols/amenity/social_facility.svg (CC0), 16 px, ink @public-service
+; carto draws social_facility=nursing_home so; a bare amenity=nursing_home is a dot.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!......."
+"......!!!!......"
+".!....!!!!....!."
+".!............!."
+".!............!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!!...!!!!...!!."
+".!!...!!!!...!!."
+".!!!........!!!."
+"..!!!!....!!!!.."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+"......!!!!......"
+".!....!!!!....!."
+".!............!."
+".!............!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!!...!!!!...!!."
+".!!...!!!!...!!."
+".!!!........!!!."
+"..!!!!....!!!!.."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+[end]
+
+[_point]
+Type=0x2f15
+; Post box - openstreetmap-carto symbols/amenity/post_box.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!............!!"
+"!..............!"
+"!..!!!!!!!.!!..!"
+"...!!!!!!..!!..."
+"...!!!!!..!!!..."
+"...!!!!!..!!!..."
+"...!!!!..!!!!..."
+"...!!!!.!!!!!..."
+"...!!!..!!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!!..!!!..."
+"...!!!!!!.!!!..."
+"...!!!!!!..!!..."
+"...!!!!!!!..!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!............!!"
+"!..............!"
+"!..!!!!!!!.!!..!"
+"...!!!!!!..!!..."
+"...!!!!!..!!!..."
+"...!!!!!..!!!..."
+"...!!!!..!!!!..."
+"...!!!!.!!!!!..."
+"...!!!..!!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!!..!!!..."
+"...!!!!!!.!!!..."
+"...!!!!!!..!!..."
+"...!!!!!!!..!..."
+[end]
+
+[_point]
+Type=0x2f16
+; Emergency phone - openstreetmap-carto symbols/amenity/emergency_phone.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"................"
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!......!!!!!"
+"!!!!........!!!!"
+"!!!!........!!!!"
+"................"
+"................"
+".!!!..!!!!..!!!."
+"!!....!..!.!!..."
+"!!!!..!..!.!!!!."
+".!!!!.!..!..!!!!"
+"...!!.!..!....!!"
+".!!!..!!!!..!!!."
+"................"
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"................"
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!......!!!!!"
+"!!!!........!!!!"
+"!!!!........!!!!"
+"................"
+"................"
+".!!!..!!!!..!!!."
+"!!....!..!.!!..."
+"!!!!..!..!.!!!!."
+".!!!!.!..!..!!!!"
+"...!!.!..!....!!"
+".!!!..!!!!..!!!."
+"................"
+[end]
+
+[_point]
+Type=0x2f18
+; Telephone - openstreetmap-carto symbols/amenity/telephone.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"..........!!!!.."
+".........!!!!!!."
+"........!!!!!!.!"
+".......!!!!!!.!!"
+"......!!!!!!.!!."
+".....!!!!...!!.."
+"....!!!!....!..."
+"...!!!!........."
+"..!!!!.........."
+".!!!!..........."
+"!!!!!..........."
+"!!!!!..........."
+"!!!!.!!........."
+"!!!.!!.........."
+".!.!!..........."
+"..!!............"
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"..........!!!!.."
+".........!!!!!!."
+"........!!!!!!.!"
+".......!!!!!!.!!"
+"......!!!!!!.!!."
+".....!!!!...!!.."
+"....!!!!....!..."
+"...!!!!........."
+"..!!!!.........."
+".!!!!..........."
+"!!!!!..........."
+"!!!!!..........."
+"!!!!.!!........."
+"!!!.!!.........."
+".!.!!..........."
+"..!!............"
+[end]
+
+[_point]
+Type=0x2f19
+; Taxi - openstreetmap-carto symbols/amenity/taxi.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"......!!!!......"
+"......!..!......"
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!......!!..."
+"..!!........!!.."
+"..!!........!!.."
+"!!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!.!!!!!!!!.!!!"
+"!!..!!!!!!!!..!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"..!!!......!!!.."
+"..!!........!!.."
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"......!!!!......"
+"......!..!......"
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!......!!..."
+"..!!........!!.."
+"..!!........!!.."
+"!!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!.!!!!!!!!.!!!"
+"!!..!!!!!!!!..!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"..!!!......!!!.."
+"..!!........!!.."
+[end]
+
+[_point]
+Type=0x2f1a
+; Charging station - openstreetmap-carto symbols/amenity/charging_station.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"................"
+".!!!!!!........."
+"!!!!!!!!....!.!."
+"!!!!!!!!....!.!."
+"!!!...!!...!!!!."
+"!!!..!!!...!!!!."
+"!!...!!!!!.!!!!."
+"!!....!!.!..!!!."
+"!!!..!!!.!!.!!.."
+"!!!..!!!.!!.!!.."
+"!!!.!!!!.!!.!!.."
+"!!.!!!!!.!!.!!.."
+"!!!!!!!!.!!.!!.."
+"!!!!!!!!.!!!!!.."
+"!!!!!!!!..!!!..."
+"!!!!!!!!........"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"................"
+".!!!!!!........."
+"!!!!!!!!....!.!."
+"!!!!!!!!....!.!."
+"!!!...!!...!!!!."
+"!!!..!!!...!!!!."
+"!!...!!!!!.!!!!."
+"!!....!!.!..!!!."
+"!!!..!!!.!!.!!.."
+"!!!..!!!.!!.!!.."
+"!!!.!!!!.!!.!!.."
+"!!.!!!!!.!!.!!.."
+"!!!!!!!!.!!.!!.."
+"!!!!!!!!.!!!!!.."
+"!!!!!!!!..!!!..."
+"!!!!!!!!........"
+[end]
+
+[_point]
+Type=0x3003
+; Town hall / embassy - openstreetmap-carto symbols/amenity/town_hall.svg (CC0), 16 px, ink @public-service
+; Town halls, embassies and government offices: carto's town hall.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!!!!!..."
+".......!!!!!...."
+".......!!!!!!..."
+".......!!.!!!..."
+".......!!......."
+"......!!!!......"
+"....!!!!!!!!...."
+"..!!!!!!!!!!!!.."
+"................"
+".!!!!!!!!!!!!!!."
+"..!!!!!!!!!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+".!!!!!!!!!!!!!!."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!!!!!..."
+".......!!!!!...."
+".......!!!!!!..."
+".......!!.!!!..."
+".......!!......."
+"......!!!!......"
+"....!!!!!!!!...."
+"..!!!!!!!!!!!!.."
+"................"
+".!!!!!!!!!!!!!!."
+"..!!!!!!!!!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+".!!!!!!!!!!!!!!."
+[end]
+
+[_point]
+Type=0x3004
+; Courthouse - openstreetmap-carto symbols/amenity/courthouse.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!...!!...!!.."
+"..!!...!!...!!.."
+".!..!..!!..!..!."
+".!..!..!!..!..!."
+"!...!!.!!.!!...!"
+"!!!!!!.!!.!!!!!!"
+"!!!!!..!!..!!!!!"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"..!!!!!!!!!!!!.."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!...!!...!!.."
+"..!!...!!...!!.."
+".!..!..!!..!..!."
+".!..!..!!..!..!."
+"!...!!.!!.!!...!"
+"!!!!!!.!!.!!!!!!"
+"!!!!!..!!..!!!!!"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"..!!!!!!!!!!!!.."
+[end]
+
+[_point]
+Type=0x3005
+; Community centre - openstreetmap-carto symbols/amenity/community_centre.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"................"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"....!......!...."
+"................"
+"!!!!!!!!!!!!!!!!"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!.!....!.!..."
+"..!!..!..!..!!.."
+"..!...!..!...!.."
+".!!....!!....!!."
+"................"
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"................"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"....!......!...."
+"................"
+"!!!!!!!!!!!!!!!!"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!.!....!.!..."
+"..!!..!..!..!!.."
+"..!...!..!...!.."
+".!!....!!....!!."
+"................"
+[end]
+
+[_point]
+Type=0x3008
+; Fire station - openstreetmap-carto symbols/amenity/firestation.svg (CC0), 16 px, ink @public-service
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!........"
+".....!!!........"
+"....!!!!........"
+"....!!!!..!!...."
+"...!!!!!.!!!...."
+"...!!!!!!!!!...."
+"..!!!!!!!!!!!..."
+"..!!!!!.!!!!!..."
+"..!!!!..!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!...!!!!!!.."
+"...!!...!!.!!!.."
+"...!!!.....!!..."
+"...!!!.....!!..."
+"....!!.....!...."
+"......!........."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!........"
+".....!!!........"
+"....!!!!........"
+"....!!!!..!!...."
+"...!!!!!.!!!...."
+"...!!!!!!!!!...."
+"..!!!!!!!!!!!..."
+"..!!!!!.!!!!!..."
+"..!!!!..!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!...!!!!!!.."
+"...!!...!!.!!!.."
+"...!!!.....!!..."
+"...!!!.....!!..."
+"....!!.....!...."
+"......!........."
+[end]
+
+[_point]
+Type=0x4a00
+; Picnic site - openstreetmap-carto symbols/tourism/picnic.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
 "................"
 "................"
-".......!!......."
-".......!!!!....."
-".!!!!..!!!!....."
-"..!!!!!!!!!....."
-"..!!!!!!!!!!...."
-".....!!!!!!!!!!!"
-"!!......!!!!!!!."
-"!!!!!!......!!.."
-"!!!!!!!!!......."
-"!!!!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".....!....!....."
+"....!!....!!...."
+"....!!....!!...."
+"....!!....!!...."
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
+"...!!......!!..."
+"...!!......!!..."
+"..!!........!!.."
+"..!!........!!.."
 "................"
 "................"
 NightXpm="16 16 2 1"
@@ -11377,603 +20042,6 @@ NightXpm="16 16 2 1"
 ". c none"
 "................"
 "................"
-".......!!......."
-".......!!!!....."
-".!!!!..!!!!....."
-"..!!!!!!!!!....."
-"..!!!!!!!!!!...."
-".....!!!!!!!!!!!"
-"!!......!!!!!!!."
-"!!!!!!......!!.."
-"!!!!!!!!!......."
-"!!!!!!!!!!!!!..."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"................"
-"................"
-String=0x00,Slipway
-[end]
-
-[_point]
-Type=0x2f0e
-; Car wash — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"......!!!!......"
-"................"
-"....!..!!..!...."
-"....!..!!..!...."
-"...!...!!...!..."
-"...!...!!...!..."
-"................"
-"....!!!!!!!!...."
-"....!!....!!...."
-"....!......!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!.!!!!!!.!!.."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"....!!....!!...."
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"......!!!!......"
-"................"
-"....!..!!..!...."
-"....!..!!..!...."
-"...!...!!...!..."
-"...!...!!...!..."
-"................"
-"....!!!!!!!!...."
-"....!!....!!...."
-"....!......!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!.!!!!!!.!!.."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"....!!....!!...."
-String=0x00,Car wash
-[end]
-
-[_point]
-Type=0x2f10
-; Beauty — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"....!!!!!......."
-"...!!!!!!!!....."
-"..!!!!!..!!!!..."
-".!!!!.......!!.."
-"!!!!!.........!."
-".!!............."
-".............!.."
-"..!.......!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!.!!"
-"!!.!!!!!!..!!..."
-"...!!..!!..!!..."
-"...!...!!......."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"....!!!!!......."
-"...!!!!!!!!....."
-"..!!!!!..!!!!..."
-".!!!!.......!!.."
-"!!!!!.........!."
-".!!............."
-".............!.."
-"..!.......!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!.!!"
-"!!.!!!!!!..!!..."
-"...!!..!!..!!..."
-"...!...!!......."
-"................"
-"................"
-String=0x00,Beauty
-[end]
-
-[_point]
-Type=0x2f13
-; Bicycle — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"................"
-".........!!....."
-"...!!!!...!!...."
-"....!!....!!...."
-"....!!!!!!!!...."
-"....!...!!.!...."
-".!!!!...!.!!!!!."
-"!!...!!!..!...!!"
-"!....!!..!!....!"
-"!.....!..!.....!"
-"!!...!!..!!...!!"
-".!!!!!....!!!!!."
-"..!!!......!!!.."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"................"
-".........!!....."
-"...!!!!...!!...."
-"....!!....!!...."
-"....!!!!!!!!...."
-"....!...!!.!...."
-".!!!!...!.!!!!!."
-"!!...!!!..!...!!"
-"!....!!..!!....!"
-"!.....!..!.....!"
-"!!...!!..!!...!!"
-".!!!!!....!!!!!."
-"..!!!......!!!.."
-"................"
-"................"
-String=0x00,Bicycle
-[end]
-
-[_point]
-Type=0x2f14
-; Nursing home — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #BF0000"
-". c none"
-".......!!......."
-"......!!!!......"
-".!....!!!!....!."
-".!............!."
-".!............!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!!...!!!!...!!."
-".!!...!!!!...!!."
-".!!!........!!!."
-"..!!!!....!!!!.."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-NightXpm="16 16 2 1"
-"! c #FFAAAA"
-". c none"
-".......!!......."
-"......!!!!......"
-".!....!!!!....!."
-".!............!."
-".!............!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!!...!!!!...!!."
-".!!...!!!!...!!."
-".!!!........!!!."
-"..!!!!....!!!!.."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-String=0x00,Nursing home
-[end]
-
-[_point]
-Type=0x2f15
-; Post box — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!!............!!"
-"!..............!"
-"!..!!!!!!!.!!..!"
-"...!!!!!!..!!..."
-"...!!!!!..!!!..."
-"...!!!!!..!!!..."
-"...!!!!..!!!!..."
-"...!!!!.!!!!!..."
-"...!!!..!!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!!..!!!..."
-"...!!!!!!.!!!..."
-"...!!!!!!..!!..."
-"...!!!!!!!..!..."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!!............!!"
-"!..............!"
-"!..!!!!!!!.!!..!"
-"...!!!!!!..!!..."
-"...!!!!!..!!!..."
-"...!!!!!..!!!..."
-"...!!!!..!!!!..."
-"...!!!!.!!!!!..."
-"...!!!..!!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!!..!!!..."
-"...!!!!!!.!!!..."
-"...!!!!!!..!!..."
-"...!!!!!!!..!..."
-String=0x00,Post box
-[end]
-
-[_point]
-Type=0x2f16
-; Emergency phone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #BF0000"
-". c none"
-"................"
-".!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!......!!!!!"
-"!!!!........!!!!"
-"!!!!........!!!!"
-"................"
-"................"
-".!!!..!!!!..!!!."
-"!!....!..!.!!..."
-"!!!!..!..!.!!!!."
-".!!!!.!..!..!!!!"
-"...!!.!..!....!!"
-".!!!..!!!!..!!!."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAAA"
-". c none"
-"................"
-".!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!......!!!!!"
-"!!!!........!!!!"
-"!!!!........!!!!"
-"................"
-"................"
-".!!!..!!!!..!!!."
-"!!....!..!.!!..."
-"!!!!..!..!.!!!!."
-".!!!!.!..!..!!!!"
-"...!!.!..!....!!"
-".!!!..!!!!..!!!."
-"................"
-String=0x00,Emergency phone
-[end]
-
-[_point]
-Type=0x2f18
-; Telephone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"..........!!!!.."
-".........!!!!!!."
-"........!!!!!!.!"
-".......!!!!!!.!!"
-"......!!!!!!.!!."
-".....!!!!...!!.."
-"....!!!!....!..."
-"...!!!!........."
-"..!!!!.........."
-".!!!!..........."
-"!!!!!..........."
-"!!!!!..........."
-"!!!!.!!........."
-"!!!.!!.........."
-".!.!!..........."
-"..!!............"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"..........!!!!.."
-".........!!!!!!."
-"........!!!!!!.!"
-".......!!!!!!.!!"
-"......!!!!!!.!!."
-".....!!!!...!!.."
-"....!!!!....!..."
-"...!!!!........."
-"..!!!!.........."
-".!!!!..........."
-"!!!!!..........."
-"!!!!!..........."
-"!!!!.!!........."
-"!!!.!!.........."
-".!.!!..........."
-"..!!............"
-String=0x00,Telephone
-[end]
-
-[_point]
-Type=0x2f19
-; Taxi — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"......!!!!......"
-"......!..!......"
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!.!!!!!!!!.!!!"
-"!!..!!!!!!!!..!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"..!!!......!!!.."
-"..!!........!!.."
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"......!!!!......"
-"......!..!......"
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!.!!!!!!!!.!!!"
-"!!..!!!!!!!!..!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"..!!!......!!!.."
-"..!!........!!.."
-String=0x00,Taxi
-[end]
-
-[_point]
-Type=0x2f1a
-; Charging station — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"................"
-".!!!!!!........."
-"!!!!!!!!....!.!."
-"!!!!!!!!....!.!."
-"!!!...!!...!!!!."
-"!!!..!!!...!!!!."
-"!!...!!!!!.!!!!."
-"!!....!!.!..!!!."
-"!!!..!!!.!!.!!.."
-"!!!..!!!.!!.!!.."
-"!!!.!!!!.!!.!!.."
-"!!.!!!!!.!!.!!.."
-"!!!!!!!!.!!.!!.."
-"!!!!!!!!.!!!!!.."
-"!!!!!!!!..!!!..."
-"!!!!!!!!........"
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"................"
-".!!!!!!........."
-"!!!!!!!!....!.!."
-"!!!!!!!!....!.!."
-"!!!...!!...!!!!."
-"!!!..!!!...!!!!."
-"!!...!!!!!.!!!!."
-"!!....!!.!..!!!."
-"!!!..!!!.!!.!!.."
-"!!!..!!!.!!.!!.."
-"!!!.!!!!.!!.!!.."
-"!!.!!!!!.!!.!!.."
-"!!!!!!!!.!!.!!.."
-"!!!!!!!!.!!!!!.."
-"!!!!!!!!..!!!..."
-"!!!!!!!!........"
-String=0x00,Charging station
-[end]
-
-[_point]
-Type=0x3003
-; Embassy — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #4863A0"
-". c none"
-".!........!!!!.."
-".!......!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!..!!."
-".!..!!!!!......."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-NightXpm="16 16 2 1"
-"! c #AAAAFF"
-". c none"
-".!........!!!!.."
-".!......!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!..!!."
-".!..!!!!!......."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-String=0x00,Embassy
-[end]
-
-[_point]
-Type=0x3004
-; Courthouse — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!...!!...!!.."
-"..!!...!!...!!.."
-".!..!..!!..!..!."
-".!..!..!!..!..!."
-"!...!!.!!.!!...!"
-"!!!!!!.!!.!!!!!!"
-"!!!!!..!!..!!!!!"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"..!!!!!!!!!!!!.."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!...!!...!!.."
-"..!!...!!...!!.."
-".!..!..!!..!..!."
-".!..!..!!..!..!."
-"!...!!.!!.!!...!"
-"!!!!!!.!!.!!!!!!"
-"!!!!!..!!..!!!!!"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"..!!!!!!!!!!!!.."
-String=0x00,Courthouse
-[end]
-
-[_point]
-Type=0x3005
-; Community centre — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"....!......!...."
-"................"
-"!!!!!!!!!!!!!!!!"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!.!....!.!..."
-"..!!..!..!..!!.."
-"..!...!..!...!.."
-".!!....!!....!!."
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"....!......!...."
-"................"
-"!!!!!!!!!!!!!!!!"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!.!....!.!..."
-"..!!..!..!..!!.."
-"..!...!..!...!.."
-".!!....!!....!!."
-"................"
-String=0x00,Community centre
-[end]
-
-[_point]
-Type=0x3008
-; Fire station — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!........"
-".....!!!........"
-"....!!!!........"
-"....!!!!..!!...."
-"...!!!!!.!!!...."
-"...!!!!!!!!!...."
-"..!!!!!!!!!!!..."
-"..!!!!!.!!!!!..."
-"..!!!!..!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!...!!!!!!.."
-"...!!...!!.!!!.."
-"...!!!.....!!..."
-"...!!!.....!!..."
-"....!!.....!...."
-"......!........."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!........"
-".....!!!........"
-"....!!!!........"
-"....!!!!..!!...."
-"...!!!!!.!!!...."
-"...!!!!!!!!!...."
-"..!!!!!!!!!!!..."
-"..!!!!!.!!!!!..."
-"..!!!!..!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!...!!!!!!.."
-"...!!...!!.!!!.."
-"...!!!.....!!..."
-"...!!!.....!!..."
-"....!!.....!...."
-"......!........."
-String=0x00,Fire station
-[end]
-
-[_point]
-Type=0x4a00
-; Picnic site — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
 "...!!!!!!!!!!..."
 "..!!!!!!!!!!!!.."
 ".....!....!....."
@@ -11988,31 +20056,12 @@ DayXpm="16 16 2 1"
 "..!!........!!.."
 "................"
 "................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-".....!....!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"...!!......!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"................"
-"................"
-String=0x00,Picnic site
 [end]
 
 [_point]
 Type=0x4c00
-; Information — openstreetmap-carto symbol (CC0), 16 px
+; Information - openstreetmap-carto symbols/tourism/office.svg (CC0), 16 px, ink @amenity-brown
+; carto's information office symbol.
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -12051,12 +20100,11 @@ NightXpm="16 16 2 1"
 "..!!!......!!!.."
 "...!!!!!!!!!!..."
 ".....!!!!!!....."
-String=0x00,Information
 [end]
 
 [_point]
 Type=0x5904
-; Helipad — openstreetmap-carto symbol (CC0), 16 px
+; Helipad - openstreetmap-carto symbols/amenity/helipad.svg (CC0), 16 px, ink @airtransport
 DayXpm="16 16 2 1"
 "! c #8461C4"
 ". c none"
@@ -12095,12 +20143,12 @@ NightXpm="16 16 2 1"
 "...!!......!!..."
 "....!!!!!!!!...."
 ".......!!......."
-String=0x00,Helipad
 [end]
 
 [_point]
 Type=0x6411
-; Mast — openstreetmap-carto symbol (CC0), 16 px
+; Tower / mast - openstreetmap-carto symbols/man_made/mast.svg (CC0), 16 px, ink @man-made-icon
+; Masts, chimneys, generators, water towers, beacons: carto's mast.
 DayXpm="16 16 2 1"
 "! c #666666"
 ". c none"
@@ -12139,58 +20187,13 @@ NightXpm="16 16 2 1"
 ".....!!!!!!....."
 "....!!.!!.!!...."
 "....!..!!..!...."
-String=0x00,Mast
-[end]
-
-[_point]
-Type=0x6509
-; Geyser — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #576DDF"
-". c none"
-"................"
-"......!!!!......"
-"....!!!!!!!!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-".!!!!!!..!!!!!!."
-".!!!!!....!!!!!."
-".!!!!!....!!!!!."
-".!!!!!!..!!!!!!."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-"......!!!!......"
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAFF"
-". c none"
-"................"
-"......!!!!......"
-"....!!!!!!!!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-".!!!!!!..!!!!!!."
-".!!!!!....!!!!!."
-".!!!!!....!!!!!."
-".!!!!!!..!!!!!!."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-"......!!!!......"
-"................"
-String=0x00,Geyser
 [end]
 
 [_point]
 Type=0x6515
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (seasonal) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -12209,7 +20212,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -12227,14 +20230,13 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
 
 [_point]
 Type=0x6516
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (intermittent) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -12253,7 +20255,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -12271,14 +20273,13 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
 
 [_point]
 Type=0x6517
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (non-potable) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -12297,7 +20298,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -12315,14 +20316,13 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
 
 [_point]
 Type=0x6605
-; Bench — openstreetmap-carto symbol (CC0), 16 px
+; Bench - openstreetmap-carto symbols/amenity/bench.svg (CC0), 16 px, ink @man-made-icon
 DayXpm="16 16 2 1"
-"! c #734A08"
+"! c #666666"
 ". c none"
 "................"
 "................"
@@ -12359,14 +20359,14 @@ NightXpm="16 16 2 1"
 "................"
 "................"
 "................"
-String=0x00,Bench
 [end]
 
 [_point]
 Type=0x6607
-; Cliff — openstreetmap-carto symbol (CC0), 16 px
+; Cliff - openstreetmap-carto symbols/cliff.svg (CC0), 16 px, ink the SVG's own colour
+; carto draws a cliff only as a line; this is the tile of that line, in its own grey.
 DayXpm="16 16 2 1"
-"! c #D08F55"
+"! c #999999"
 ". c none"
 "................"
 "................"
@@ -12385,7 +20385,7 @@ DayXpm="16 16 2 1"
 ".......!!......."
 ".......!!......."
 NightXpm="16 16 2 1"
-"! c #FFFFAA"
+"! c #FFFFFF"
 ". c none"
 "................"
 "................"
@@ -12403,100 +20403,11 @@ NightXpm="16 16 2 1"
 ".......!!......."
 ".......!!......."
 ".......!!......."
-String=0x00,Cliff
-[end]
-
-[_point]
-Type=0x6614
-; Stone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
-"....!!!!!......."
-"..!!!!!!!!!....."
-".!!!!!!!!!!!!..."
-"!!!!!!!...!!!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!..........!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!.....!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-".....!!!!!!....."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"....!!!!!......."
-"..!!!!!!!!!....."
-".!!!!!!!!!!!!..."
-"!!!!!!!...!!!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!..........!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!.....!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-".....!!!!!!....."
-"................"
-"................"
-String=0x00,Stone
-[end]
-
-[_point]
-Type=0x661a
-; Prison — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!...!!....!!...!"
-"!...!!....!!...!"
-"!...!!.!!.!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!.!!.!!...!"
-"!...!!....!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!!!!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!...!!....!!...!"
-"!...!!....!!...!"
-"!...!!.!!.!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!.!!.!!...!"
-"!...!!....!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!!!!!!!!!!!!!!!!"
-String=0x00,Prison
 [end]
 
 [_point]
 Type=0x6415
-; Lighthouse - openstreetmap-carto symbol (CC0), 16 px
+; Lighthouse - openstreetmap-carto symbols/man_made/lighthouse.svg (CC0), 16 px, ink @man-made-icon
 DayXpm="16 16 2 1"
 "! c #666666"
 ". c none"
@@ -12535,7 +20446,2169 @@ NightXpm="16 16 2 1"
 ".....!!!!!!....."
 ".....!!!!!!....."
 ".....!!!!!!....."
-String=0x00,Lighthouse
+[end]
+
+[_point]
+Type=0x2a01
+; Restaurant (American) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a02
+; Restaurant (Asian) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a03
+; Restaurant (Barbecue) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a04
+; Restaurant (Chinese) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a05
+; Restaurant (Deli) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a06
+; Restaurant (International) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a08
+; Restaurant (Italian) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a09
+; Restaurant (Mexican) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a0a
+; Restaurant (Pizza) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a0b
+; Restaurant (Seafood) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a0d
+; Restaurant (Vegetarian) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a0f
+; Restaurant (French) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a10
+; Restaurant (German) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a11
+; Restaurant (British) - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x2a12
+; Restaurant - openstreetmap-carto symbols/amenity/restaurant.svg (CC0), 16 px, ink @gastronomy-icon
+; carto draws every restaurant so, whatever its cuisine.
+DayXpm="16 16 2 1"
+"! c #C77400"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+".!.!!.!...!!!..."
+".!.!!.!..!!!!!.."
+".!.!!.!..!!!!!.."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!.!!.!.!!!!!!!."
+".!!!!!!.!!!!!!!."
+".!!!!!!..!!!!!.."
+"..!!!!...!!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"...!!.....!!!..."
+"..!!!!....!!!..."
+[end]
+
+[_point]
+Type=0x3200
+; Barrier - openstreetmap-carto symbols/barrier/gate.svg (CC0), 6 x 5 at 16/14, ink the SVG's own grey and white
+; Gates, stiles, kissing gates and cycle barriers: carto's gate.
+DayXpm="7 6 3 1"
+"! c #3F3F3F"
+"- c #FFFFFF"
+". c none"
+"----!--"
+"!!!!!!!"
+"---!---"
+"!!!!!!!"
+"!!!!!!!"
+"-!-----"
+NightXpm="7 6 3 1"
+"! c #AAAAAA"
+"- c #FFFFFF"
+". c none"
+"----!--"
+"!!!!!!!"
+"---!---"
+"!!!!!!!"
+"!!!!!!!"
+"-!-----"
+[end]
+
+[_point]
+Type=0x3201
+; Lift gate - openstreetmap-carto symbols/barrier/lift_gate.svg (CC0), 6 x 5 at 16/14, ink @barrier-icon
+DayXpm="7 6 2 1"
+"! c #3F3F3F"
+". c none"
+"!!....."
+"!!!!!!!"
+"!!!...."
+"!!....."
+"!!....."
+"!!....."
+NightXpm="7 6 2 1"
+"! c #AAAAAA"
+". c none"
+"!!....."
+"!!!!!!!"
+"!!!...."
+"!!....."
+"!!....."
+"!!....."
+[end]
+
+[_point]
+Type=0x6608
+; Tower - openstreetmap-carto symbols/man_made/tower_generic.svg (CC0), 16 px, ink @man-made-icon
+DayXpm="16 16 2 1"
+"! c #666666"
+". c none"
+"................"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"......!!!!......"
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"................"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"......!!!!......"
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+[end]
+
+[_point]
+Type=0x6619
+; Cave - openstreetmap-carto symbols/natural/cave.svg (CC0), 16 px, ink the SVG's own black
+DayXpm="16 16 2 1"
+"! c #000000"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+".....!!!!!!....."
+"...!!!....!!!..."
+"..!!........!!.."
+".!!...!!!!...!!."
+".!...!!!!!!...!."
+"!!..!!!!!!!!..!!"
+"!...!!!!!!!!...!"
+"!...!!!!!!!!...!"
+"................"
+"................"
+"................"
+"................"
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+".....!!!!!!....."
+"...!!!....!!!..."
+"..!!........!!.."
+".!!...!!!!...!!."
+".!...!!!!!!...!."
+"!!..!!!!!!!!..!!"
+"!...!!!!!!!!...!"
+"!...!!!!!!!!...!"
+"................"
+"................"
+"................"
+"................"
+[end]
+
+[_point]
+Type=0x2000
+; kmap: Junction - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x230f
+; kmap: Services - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c01
+; kmap: Theme park - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c05
+; kmap: School - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c06
+; kmap: Park - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c07
+; kmap: Zoo - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c08
+; kmap: Sports ground - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c0a
+; kmap: Wine cellar - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c0c
+; Volcano - openstreetmap-carto symbols/natural/peak.svg (CC0), 16 px, ink natural_volcano #d40000
+; carto draws a volcano as its peak in red; drawn at 16 px as the peak 0x6616 is.
+DayXpm="16 16 2 1"
+"! c #D40000"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+"....!!!!!!!!...."
+"....!!!!!!!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+"....!!!!!!!!...."
+"....!!!!!!!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+Type=0x2c0d
+; Tourist site - openstreetmap-carto symbols/tourism/artwork.svg (CC0), 16 px, ink @memorials
+; Attractions have no symbol in carto; artworks, which land here too, have this one.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+"................"
+"...!!!!!!!!!!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+"................"
+"...!!!!!!!!!!..."
+[end]
+
+[_point]
+Type=0x2c0e
+; kmap: Rock climbing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d06
+; kmap: Skiing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d08
+; kmap: Ice rink - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d0a
+; kmap: Sports centre - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2e04
+; kmap: Shopping mall - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2e0c
+; kmap: Shop - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2f02
+; Car rental - openstreetmap-carto symbols/amenity/rental_car.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"..!!!!.........."
+".!!!!!!!!!!!!..."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!.."
+"..!!!!!........."
+"...!!..........."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"..!!!!.........."
+".!!!!!!!!!!!!..."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!.."
+"..!!!!!........."
+"...!!..........."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+[end]
+
+[_point]
+Type=0x2f09
+; Marina - openstreetmap-carto symbols/amenity/ferry.svg (CC0), 16 px, ink @airtransport
+; Marinas have no symbol in carto; ferry terminals, which land here too, have this one.
+DayXpm="16 16 2 1"
+"! c #8461C4"
+". c none"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".......!!......."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".......!!......."
+".......!!......."
+".......!!......."
+".!!....!!....!!."
+".!!!...!!...!!!."
+".!!!...!!...!!!."
+"..!!!..!!..!!!.."
+"...!!!!!!!!!!..."
+".....!!!!!!....."
+".......!!......."
+NightXpm="16 16 2 1"
+"! c #DDAAFF"
+". c none"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".......!!......."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".......!!......."
+".......!!......."
+".......!!......."
+".!!....!!....!!."
+".!!!...!!...!!!."
+".!!!...!!...!!!."
+"..!!!..!!..!!!.."
+"...!!!!!!!!!!..."
+".....!!!!!!....."
+".......!!......."
+[end]
+
+[_point]
+Type=0x2f12
+; kmap: Wi-Fi - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2f1b
+; Lift station - openstreetmap-carto symbols/square.svg (CC0), 7 px, ink @station-color
+; carto marks an aerialway station with this square, 6 px at z15, drawn at 16/14.
+DayXpm="7 7 2 1"
+"! c #7981B0"
+". c none"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+NightXpm="7 7 2 1"
+"! c #AAFFFF"
+". c none"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+[end]
+
+[_point]
+Type=0x3006
+; kmap: Border crossing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x3202
+; kmap: Bollard - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6403
+; kmap: Cemetery - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x640b
+; kmap: Military area - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6414
+; kmap: Well - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6503
+; kmap: Bay - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6505
+; kmap: Canal - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6509
+; kmap: Geyser - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650a
+; kmap: Glacier - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650c
+; kmap: Island - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650d
+; kmap: Lake - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650f
+; kmap: Reservoir - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6512
+; kmap: Stream - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6513
+; kmap: Wetland - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6514
+; Ford - openstreetmap-carto symbols/highway/ford.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"................"
+".....!....!....."
+"....!!....!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+"...!!!!!!!!!!..."
+"....!!....!!...."
+".....!....!....."
+"................"
+"!.....!.....!..."
+"!!...!!!...!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!..!!!!!..!!"
+"..!!.....!!....!"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"................"
+".....!....!....."
+"....!!....!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+"...!!!!!!!!!!..."
+"....!!....!!...."
+".....!....!....."
+"................"
+"!.....!.....!..."
+"!!...!!!...!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!..!!!!!..!!"
+"..!!.....!!....!"
+[end]
+
+[_point]
+Type=0x6603
+; kmap: Water - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6604
+; kmap: Beach - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6606
+; kmap: Cape - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6612
+; kmap: Nature reserve - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6613
+; Mountain pass - openstreetmap-carto symbols/natural/saddle.svg (CC0), 16 px, ink @transportation-icon (mountain_pass)
+; natural=saddle takes it in @landform-color; drawn at 16 px as the peak 0x6616 is.
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............!"
+"!!!..........!!!"
+"!!!!!......!!!!!"
+"!!!!!!!..!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............!"
+"!!!..........!!!"
+"!!!!!......!!!!!"
+"!!!!!!!..!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+Type=0x6614
+; kmap: Rock - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6618
+; kmap: Forest - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x661a
+; kmap: Facility - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+NightXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
 [end]
 
 """#####
@@ -14214,6 +24287,283 @@ L|12|Край плато|Plateau rim
 L|2d|Военная зона|Military area
 A|57|Хвойный лес|Coniferous forest
 A|58|Лиственный лес|Broadleaved forest
+
+"""#####
+
+    /// The English and Russian names every shipped TYP gives its types. See
+    /// Assets/styles/type-names.txt.
+    static let typeNames =
+#####"""
+# Names of the Garmin types the shipped styles draw, one row per kmap code.
+#
+# Every shipped TYP takes its names from here, English (String=0x00) and Russian
+# (String=0x19), so a device shows them in its own language. The codes are kmap's;
+# the meaning of each is the one the owner's topoactive TYP gives it. Where a row's
+# English is not topoactive's, it is the name the styles' palettes gave the code.
+#
+#   <kind> <code>|<English>|<Russian>      kind: polygon, line or point
+
+# From the owner's topoactive TYP: the same code and meaning, both names.
+line 0x7|Service Road|Подъездная дорога
+line 0xa|Track|Грунтовая дорога
+line 0x11|Cycleway|Велодорожка
+line 0x12|Plateau rim|Край плато
+line 0x14|Railway|Железная дорога
+line 0x16|Path|Тропа
+line 0x17|Barrier|Ограждение
+line 0x18|Stream|Ручей
+line 0x19|Protected area|Охраняемая территория
+line 0x1a|Ferry|Паром
+line 0x1b|Ferry|Паром
+line 0x1c|Boundary|Граница
+line 0x1d|Boundary|Граница
+line 0x1e|Boundary|Граница
+line 0x1f|River|Река
+line 0x20|Contour|Горизонталь
+line 0x21|Contour|Горизонталь
+line 0x22|Contour|Горизонталь
+line 0x23|Cutline|Просека
+line 0x24|Valley|Долина
+line 0x25|Aerial way|Канатная дорога
+line 0x26|Intermittent Stream|Пересыхающий ручей
+line 0x27|Runway|Взлётно-посадочная полоса
+line 0x28|Pipeline|Трубопровод
+line 0x29|Power Line|ЛЭП
+line 0x2b|Cliff|Обрыв
+line 0x2d|Military area|Военная зона
+line 0x30|Track|Грунтовая дорога
+line 0x33|Canal|Канал
+line 0x10801|Roundabout|Круговое движение
+line 0x10802|Roundabout|Круговое движение
+line 0x10803|Roundabout|Круговое движение
+line 0x10804|Roundabout|Круговое движение
+point 0x2000|Junction|Съезд
+point 0x230f|Services|Зона дорожного сервиса
+point 0x2a00|Restaurant|Ресторан
+point 0x2a01|Restaurant (American)|Ресторан (американский)
+point 0x2a02|Restaurant (Asian)|Ресторан (азиатский)
+point 0x2a03|Restaurant (Barbecue)|Ресторан (барбекю)
+point 0x2a04|Restaurant (Chinese)|Ресторан (китайский)
+point 0x2a05|Restaurant (Deli)|Ресторан (деликатесы)
+point 0x2a06|Restaurant (International)|Ресторан (международный)
+point 0x2a07|Fast food|Фастфуд
+point 0x2a08|Restaurant (Italian)|Ресторан (итальянский)
+point 0x2a09|Restaurant (Mexican)|Ресторан (мексиканский)
+point 0x2a0a|Restaurant (Pizza)|Пиццерия
+point 0x2a0b|Restaurant (Seafood)|Ресторан (морепродукты)
+point 0x2a0c|Restaurant|Ресторан
+point 0x2a0d|Restaurant (Vegetarian)|Ресторан (вегетарианский)
+point 0x2a0e|Cafe|Кафе
+point 0x2a0f|Restaurant (French)|Ресторан (французский)
+point 0x2a10|Restaurant (German)|Ресторан (немецкий)
+point 0x2a11|Restaurant (British)|Ресторан (британский)
+point 0x2a12|Restaurant|Ресторан
+point 0x2a13|Food court|Фуд-корт
+point 0x2b01|Hotel|Отель
+point 0x2b02|Guest house / alpine hut|Гостевой дом / горная хижина
+point 0x2b03|Campsite|Кемпинг
+point 0x2b05|Lean-to|Навес
+point 0x2b06|Shelter|Укрытие
+point 0x2b07|Wilderness hut|Изба
+point 0x2c01|Theme park|Парк развлечений
+point 0x2c02|Museum|Музей
+point 0x2c03|Library|Библиотека
+point 0x2c04|Viewpoint|Смотровая площадка
+point 0x2c05|School|Школа
+point 0x2c06|Park|Парк
+point 0x2c07|Zoo|Зоопарк
+point 0x2c08|Sports ground|Спортивная площадка
+point 0x2c0a|Wine cellar|Винный погреб
+point 0x2c0b|Place of worship|Культовое сооружение
+point 0x2c0c|Volcano|Вулкан
+point 0x2c0d|Tourist site|Достопримечательность
+point 0x2c0e|Rock climbing|Скалолазание
+point 0x2c0f|Playground|Детская площадка
+point 0x2c12|Memorial|Памятник
+point 0x2d01|Theatre|Театр
+point 0x2d02|Bar / pub|Бар / паб
+point 0x2d03|Cinema|Кинотеатр
+point 0x2d04|Casino|Казино
+point 0x2d05|Golf course|Поле для гольфа
+point 0x2d06|Skiing|Горнолыжная зона
+point 0x2d07|Bowling|Боулинг
+point 0x2d08|Ice rink|Каток
+point 0x2d09|Swimming|Бассейн
+point 0x2d0a|Sports centre|Спортивный комплекс
+point 0x2e01|Department store|Универмаг
+point 0x2e02|Supermarket|Супермаркет
+point 0x2e04|Shopping mall|Торговый центр
+point 0x2e05|Pharmacy|Аптека
+point 0x2e06|Fuel with shop|АЗС с магазином
+point 0x2e07|Clothes shop|Магазин одежды
+point 0x2e08|Outdoor / garden shop|Магазин: сад и туризм
+point 0x2e09|Hardware shop|Хозяйственный магазин
+point 0x2e0b|Computer shop|Компьютерный магазин
+point 0x2e0c|Shop|Магазин
+point 0x2f01|Fuel|АЗС
+point 0x2f02|Car rental|Прокат автомобилей
+point 0x2f03|Car repair|Автосервис
+point 0x2f04|Airport|Аэропорт
+point 0x2f05|Post office|Почта
+point 0x2f06|Bank / ATM|Банк / банкомат
+point 0x2f07|Car dealer|Автосалон
+point 0x2f08|Station|Вокзал / станция
+point 0x2f09|Marina|Пристань
+point 0x2f0b|Parking|Парковка
+point 0x2f0c|WC|Туалет
+point 0x2f0e|Car wash|Автомойка
+point 0x2f10|Hairdresser|Парикмахерская
+point 0x2f12|Wi-Fi|Вай-фай
+point 0x2f13|Bicycle shop|Веломагазин
+point 0x2f14|Nursing home|Дом престарелых
+point 0x2f15|Post box|Почтовый ящик
+point 0x2f16|Emergency phone|Экстренный телефон
+point 0x2f17|Bus stop|Автобусная остановка
+point 0x2f18|Telephone|Телефон
+point 0x2f19|Taxi|Такси
+point 0x2f1a|Charging station|Зарядная станция
+point 0x2f1b|Lift station|Станция канатной дороги
+point 0x3001|Police|Полиция
+point 0x3002|Hospital|Больница
+point 0x3003|Town hall / embassy|Ратуша / посольство
+point 0x3004|Courthouse|Суд
+point 0x3005|Community centre|Дом культуры
+point 0x3006|Border crossing|Пограничный переход
+point 0x3008|Fire station|Пожарная часть
+point 0x3200|Barrier|Препятствие
+point 0x3201|Lift gate|Шлагбаум
+point 0x3202|Bollard|Столбик, блок
+point 0x4a00|Picnic site|Место для пикника
+point 0x4c00|Information|Информация
+point 0x5000|Drinking water|Питьевая вода
+point 0x5904|Helipad|Вертолётная площадка
+point 0x6403|Cemetery|Кладбище
+point 0x640b|Military area|Военная территория
+point 0x6411|Tower / mast|Башня / мачта
+point 0x6414|Well|Колодец
+point 0x6415|Lighthouse|Маяк
+point 0x6503|Bay|Залив
+point 0x6505|Canal|Канал
+point 0x6508|Waterfall|Водопад
+point 0x6509|Geyser|Гейзер
+point 0x650a|Glacier|Ледник
+point 0x650c|Island|Остров
+point 0x650d|Lake|Озеро
+point 0x650f|Reservoir|Водохранилище
+point 0x6511|Spring|Родник
+point 0x6512|Stream|Ручей
+point 0x6513|Wetland|Болото
+point 0x6514|Ford|Брод
+point 0x6515|Spring (seasonal)|Родник (сезонный)
+point 0x6516|Spring (intermittent)|Родник (пересыхающий)
+point 0x6517|Spring (non-potable)|Родник (непитьевой)
+point 0x6603|Water|Водоём
+point 0x6604|Beach|Пляж
+point 0x6605|Bench|Скамейка
+point 0x6606|Cape|Мыс
+point 0x6607|Cliff|Обрыв
+point 0x660b|Repaired link|Перемычка (достроена)
+point 0x6612|Nature reserve|Заповедник
+point 0x6613|Mountain pass|Перевал
+point 0x6614|Rock|Скала
+point 0x6616|Peak|Вершина
+point 0x6618|Forest|Лес
+point 0x6619|Cave|Пещера
+point 0x661a|Facility|Объект
+polygon 0x2|Suburb|Район города
+polygon 0x3|Village|Населённый пункт
+polygon 0x4|Military|Военная территория
+polygon 0x5|Parking|Парковка
+polygon 0x6|Parking|Парковка
+polygon 0x7|Airport|Аэропорт
+polygon 0x8|Shopping|Магазины и кафе
+polygon 0x9|Water Park|Аквапарк
+polygon 0xa|School|Школа
+polygon 0xb|Hospital|Больница
+polygon 0xc|Industrial|Промзона
+polygon 0xe|Runway|Взлётно-посадочная полоса
+polygon 0xf|Commercial|Деловой район
+polygon 0x10|Residential|Жилая зона
+polygon 0x11|Danger Area|Опасная зона
+polygon 0x12|Retail|Торговая зона
+polygon 0x13|Building|Здание
+polygon 0x15|Village Green|Сельский сквер
+polygon 0x16|Nature Reserve|Заповедник
+polygon 0x17|Park|Парк
+polygon 0x18|Golf Course|Поле для гольфа
+polygon 0x19|Sports Ground|Спортивная площадка
+polygon 0x1a|Cemetery|Кладбище
+polygon 0x1c|Grassland|Луг
+polygon 0x1d|Common|Общественная территория
+polygon 0x1e|Heath|Пустошь
+polygon 0x1f|Mountain meadow|Горный луг
+polygon 0x20|Garden|Сад
+polygon 0x21|Tourism|Туристический объект
+polygon 0x22|Historic|Историческое место
+polygon 0x23|Amenity|Общественный объект
+polygon 0x24|Structure|Сооружение
+polygon 0x25|Pedestrian Area|Пешеходная зона
+polygon 0x26|Farm|Сельхозугодья
+polygon 0x27|Land|Суша
+polygon 0x32|Sea|Море
+polygon 0x3b|Water|Вода
+polygon 0x3c|Water|Вода
+polygon 0x3d|Bay|Залив
+polygon 0x3f|Reservoir|Водохранилище
+polygon 0x41|Water|Вода
+polygon 0x46|River|Река
+polygon 0x47|Waterfall|Водопад
+polygon 0x48|Canal|Канал
+polygon 0x4b|Background|Фон
+polygon 0x4c|Dock|Док
+polygon 0x4d|Glacier|Ледник
+polygon 0x4e|Orchard|Сад (плодовый)
+polygon 0x4f|Scrub|Кустарник
+polygon 0x50|Forest|Лес
+polygon 0x51|Wetland|Болото
+polygon 0x52|Bare Ground|Открытый грунт
+polygon 0x53|Sand|Песок
+polygon 0x54|Scree|Осыпь
+polygon 0x55|Grassland|Луг, яйла
+polygon 0x56|Bare rock|Скалы
+polygon 0x57|Coniferous forest|Хвойный лес
+polygon 0x58|Broadleaved forest|Лиственный лес
+polygon 0x59|Woodland|Лес
+polygon 0x5b|Scrub|Кустарник
+
+# Russian: topoactive's word for its roundabout types (0x10801-0x10804).
+line 0xc|Roundabout|Круговое движение
+
+# Russian: topoactive's word for a path (its 0x16).
+line 0xe|Path|Тропа
+
+# Not in topoactive. Russian from the owner's travel-map-russia TYP, where the
+# meaning is the same.
+line 0x1|Motorway|Автомагистраль
+line 0x2|Trunk|Федеральная трасса (автомагистраль)
+line 0x3|Primary|Федеральная трасса
+line 0x4|Secondary|Региональная дорога
+line 0x5|Tertiary|Региональная дорога
+line 0x6|Minor road|Жилая улица
+line 0x8|Primary link|Федеральная трасса
+line 0x9|Motorway link|Федеральная трасса (автомагистраль)
+line 0xb|Motorway exit|Федеральная трасса (автомагистраль)
+line 0xf|Steps|Ступеньки
+line 0x10|Living street|Улица в жилой зоне
+line 0x31|Tree row|Ряд деревьев (аллея)
+line 0x35|Ditch|Канава/ров
+polygon 0xd|Quarry|Карьер
+polygon 0x5a|Allotments|Загородный дом с садом
+
+# Not in either TYP. Russian from kmap's own labels (Assets/labels-ru.txt).
+line 0x32|City wall|Городская стена
+point 0x6608|Tower|Башня
+
+# Not in any source. Russian chosen by the owner.
+line 0x34|Drain|Сток
+polygon 0x1b|Vineyard|Виноградник
+polygon 0x28|Salt pond|Солончак
+polygon 0x29|Greenhouses|Теплицы
 
 """#####
 

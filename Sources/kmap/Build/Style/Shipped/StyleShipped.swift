@@ -26,7 +26,8 @@ extension StyleCatalog {
                 + " rule set",
             fid: 6325,
             palette: StyleAssets.cartoPalette,
-            points: StyleAssets.cartoPoints
+            points: StyleAssets.cartoPoints,
+            graphics: StyleAssets.cartoGraphics
         ),
         ShippedPalette(
             id: "opentopomap",
@@ -58,6 +59,7 @@ extension StyleCatalog {
             fid: 6328,
             palette: StyleAssets.libertyTopoPalette,
             points: StyleAssets.libertyTopoPoints,
+            graphics: StyleAssets.libertyTopoGraphics,
             credit: "Style: OSM Liberty Topo, BSD/CC-BY 3.0; (c) OpenMapTiles, CC-BY 4.0"
         )
     ]

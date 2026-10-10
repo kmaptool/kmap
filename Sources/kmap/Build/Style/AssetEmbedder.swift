@@ -44,6 +44,15 @@ enum AssetEmbedder {
             path: "styles/osm-carto/palette.txt"
         ),
         Asset(
+            property: "cartoGraphics",
+            doc: [
+                "/// Bitmap sections for the carto style: its dashes, cliff teeth and fill",
+                "/// patterns, drawn from openstreetmap-carto's own values and symbols (CC0).",
+                "/// See Assets/styles/osm-carto/PROVENANCE.md."
+            ],
+            path: "styles/osm-carto/graphics.txt"
+        ),
+        Asset(
             property: "otmPalette",
             doc: [
                 "/// The OpenTopoMap look as a palette table: colours read out of its own Garmin",
@@ -55,26 +64,27 @@ enum AssetEmbedder {
         Asset(
             property: "otmPoints",
             doc: [
-                "/// POI icon sections for the OpenTopoMap style, taken verbatim from its own",
-                "/// Garmin TYP source (© OpenTopoMap, CC-BY-SA) for every point code kmap's",
-                "/// rules also emit. See Assets/styles/opentopomap/points.txt."
+                "/// POI icon sections for the OpenTopoMap style: its own Garmin TYP drawings",
+                "/// ((c) OpenTopoMap, CC-BY-SA) where it draws a meaning, openstreetmap-carto's",
+                "/// symbols (CC0) where it does not. See Assets/styles/opentopomap/points.txt."
             ],
             path: "styles/opentopomap/points.txt"
         ),
         Asset(
             property: "otmGraphics",
             doc: [
-                "/// Polygon and line pattern sections for the OpenTopoMap style — forest and",
-                "/// scrub hatches, dashed borders, the rail line — taken verbatim from its TYP",
-                "/// (© OpenTopoMap, CC-BY-SA). See Assets/styles/opentopomap/graphics.txt."
+                "/// Polygon and line pattern sections for the OpenTopoMap style: its forest",
+                "/// and scrub hatches, dashed borders and rail line, taken from its TYP",
+                "/// ((c) OpenTopoMap, CC-BY-SA), night colours added by kmap.",
+                "/// See Assets/styles/opentopomap/PROVENANCE.md."
             ],
             path: "styles/opentopomap/graphics.txt"
         ),
         Asset(
             property: "cyclosmPalette",
             doc: [
-                "/// The CyclOSM look as a palette table: its ground colours (Hydda, Apache 2.0)",
-                "/// and road colours (BSD-3-Clause) against the type codes kmap's rules emit.",
+                "/// The CyclOSM look as a palette table: its colours (BSD-3-Clause; palette.mss",
+                "/// credited to Hydda, Apache 2.0) against the type codes kmap's rules emit.",
                 "/// See Assets/styles/cyclosm/PROVENANCE.md and LICENSE.md."
             ],
             path: "styles/cyclosm/palette.txt"
@@ -82,9 +92,9 @@ enum AssetEmbedder {
         Asset(
             property: "cyclosmGraphics",
             doc: [
-                "/// Dashed line sections for the CyclOSM style: its paths, tracks and",
-                "/// footways are broken hairlines, which a flat colour cannot say.",
-                "/// See Assets/styles/cyclosm/graphics.txt."
+                "/// Bitmap sections for the CyclOSM style: its dashes, cliff teeth and fill",
+                "/// patterns, drawn from its own values and images.",
+                "/// See Assets/styles/cyclosm/PROVENANCE.md."
             ],
             path: "styles/cyclosm/graphics.txt"
         ),
@@ -96,6 +106,15 @@ enum AssetEmbedder {
                 "/// CC-BY 4.0). See Assets/styles/liberty-topo/PROVENANCE.md."
             ],
             path: "styles/liberty-topo/palette.txt"
+        ),
+        Asset(
+            property: "libertyTopoGraphics",
+            doc: [
+                "/// Bitmap sections for the OSM Liberty Topo style: its dashes, rail ties and",
+                "/// pedestrian area pattern, drawn from its style JSON and sprite.",
+                "/// See Assets/styles/liberty-topo/PROVENANCE.md."
+            ],
+            path: "styles/liberty-topo/graphics.txt"
         ),
         Asset(
             property: "libertyTopoPoints",
@@ -173,6 +192,14 @@ enum AssetEmbedder {
                 "/// a free slot is picked with its convention in view. See Assets/garmin-types.txt."
             ],
             path: "garmin-types.txt"
+        ),
+        Asset(
+            property: "typeNames",
+            doc: [
+                "/// The English and Russian names every shipped TYP gives its types. See",
+                "/// Assets/styles/type-names.txt."
+            ],
+            path: "styles/type-names.txt"
         ),
         Asset(
             property: "repairMarks",

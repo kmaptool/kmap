@@ -1,143 +1,125 @@
 # The OSM Liberty Topo look, on the type codes kmap's rules emit.
 #
-# Colours are read from the style's own `style.json` (nst-guide/osm-liberty-topo,
-# gh-pages), fetched 2026-09-08. It is a minimal look by design: its data schema
-# (OpenMapTiles) knows nine kinds of ground — wood, grass, ice, sand, park,
-# residential, cemetery, hospital, school — and everything else renders as the
-# background. A `# ground` note below marks a number this style does not paint,
-# which therefore takes the background colour, exactly as the original does.
-# `# worked out` marks a colour computed from an HSL or a zoom stop.
-# See PROVENANCE.md, LICENSE.md and LICENSE-osm-bright.txt beside this file.
+# Every colour and width is read from the style's own `style.json`
+# (nst-guide/osm-liberty-topo, gh-pages commit fa884f9), whose data schema is the
+# nst-guide fork of OpenMapTiles (commit 9c7ba7a). The note after each row names
+# the layer id it comes from. Values are the ones the style draws at zoom 16,
+# 1 CSS pixel to 1 device pixel. A colour drawn with opacity is composited
+# over the style's background, rgb(239,239,239), and the result is written here.
+#
+# What the style does not draw is a clear section in graphics.txt, and its row here
+# says "not drawn by Liberty Topo"; a line it does not draw has no row here. Dashes,
+# the rail's ties and the pedestrian area's pattern are in graphics.txt too; a row
+# here that graphics.txt draws again says so. See PROVENANCE.md, LICENSE.md and
+# LICENSE-osm-bright.txt.
 #
 #   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
+# Widths are not the original's: a line takes the whole width kmap's topoactive gives
+# the same code, casing included, and a line topoactive leaves to the device has no row
+# here or in graphics.txt, so the device draws it at its own width. The original's
+# width in a note is for the record.
+#
 # The night theme is kmap's, snapped to the steps a MIP watch screen can show.
 
 name    OSM Liberty Topo
-summary a minimal topographic look — quiet ground, orange roads, contour browns
+summary a minimal topographic look: pale ground, orange roads, contour browns
 
 # --- polygons, bottom of the stack upward ------------------------------------
 # The device's own background, on a level below everything: a fenix
 # draws it where the land polygon has not arrived yet, and shows black
-# without it. The ground colour the style paints land with.
-poly 0x4b 1 #efefef  Background
-poly 0x27 3 #efefef  Land
-poly 0x1c 5 #efefef  Farmland  # ground
-poly 0x29 5 #efefef  Greenhouses  # ground
-poly 0x26 5 #efefef  Farm  # ground
-poly 0x4e 5 #efefef  Orchard  # ground
-poly 0x1b 5 #efefef  Vineyard  # ground
-poly 0x5a 5 #efefef  Allotments  # ground
-poly 0x1f 5 #efefef  Fell  # ground
-poly 0x55 5 #b0d59a  Grassland
-poly 0x15 5 #b0d59a  Village green
-poly 0x1d 5 #b0d59a  Common
-poly 0x4f 5 #efefef  Scrub  # ground
-poly 0x5b 5 #efefef  Scrub
-poly 0x1e 5 #efefef  Heath  # ground
-poly 0x50 5 #ace38c  Forest
-poly 0x57 5 #ace38c  Coniferous forest
-poly 0x58 5 #ace38c  Broadleaved forest
-poly 0x59 5 #ace38c  Wood
-poly 0x53 5 #f7efc3  Beach
-poly 0x54 5 #efefef  Scree  # ground
-poly 0x56 5 #efefef  Bare rock  # ground
-poly 0x52 5 #efefef  Tundra  # ground
-poly 0x4d 5 #e0ecec  Glacier
-poly 0x02 6 #f2e3cf  Suburb  # worked out
-poly 0x03 6 #f2e3cf  Village  # worked out
-poly 0x10 6 #f2e3cf  Residential  # worked out
-poly 0x0f 6 #efefef  Commercial  # ground
-poly 0x0c 6 #efefef  Construction  # ground
-poly 0x0d 6 #efefef  Quarry  # ground
-poly 0x07 6 #e5e4e0  Airport ground
-poly 0x0e 6 #f0ede9  Runway
-poly 0x05 6 #efefef  Parking  # ground
-poly 0x06 6 #efefef  Covered parking  # ground
-poly 0x1a 6 #d8e0bd  Cemetery  # worked out
+# without it.
+poly 0x4b 1 #efefef  Background  # background
+poly 0x27 3 #efefef  Land  # background
+poly 0x16 4 #dfead4  Nature Reserve  # park: #d8e8c8 at 0.7
+poly 0x1c 5 #efefef  Grassland  # not drawn by Liberty Topo: kmap puts landuse=farmland here (and greenfield), landcover class farmland, which has no layer
+poly 0x29 5 #efefef  Greenhouses  # not drawn by Liberty Topo: not in its schema
+poly 0x26 5 #efefef  Farm  # not drawn by Liberty Topo: landcover farmland has no layer
+poly 0x4e 5 #efefef  Orchard  # not drawn by Liberty Topo: landcover farmland has no layer
+poly 0x1b 5 #efefef  Vineyard  # not drawn by Liberty Topo: landcover farmland has no layer
+poly 0x5a 5 #dce7d5  Allotments  # landcover_grass: rgb(176,213,154) at 0.3
+poly 0x1f 5 #dce7d5  Mountain meadow  # landcover_grass (fell): rgb(176,213,154) at 0.3
+poly 0x55 5 #dce7d5  Grassland  # landcover_grass: rgb(176,213,154) at 0.3
+poly 0x15 5 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3
+poly 0x1d 5 #efefef  Common  # not drawn by Liberty Topo: not in its schema
+poly 0x4f 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
+poly 0x5b 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
+poly 0x1e 5 #dce7d5  Heath  # landcover_grass (heath): rgb(176,213,154) at 0.3
+poly 0x50 5 #dcecd3  Forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x57 5 #dcecd3  Coniferous forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x58 5 #dcecd3  Broadleaved forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x59 5 #dcecd3  Woodland  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x53 5 #f7efc3  Sand  # landcover_sand: rgba(247,239,195,1)
+poly 0x54 5 #efefef  Scree  # not drawn by Liberty Topo: landcover rock has no layer
+poly 0x56 5 #efefef  Bare rock  # not drawn by Liberty Topo: landcover rock has no layer
+poly 0x52 5 #dce7d5  Bare Ground  # kmap puts natural=tundra here, landcover class grass in the schema: landcover_grass, rgb(176,213,154) at 0.3
+poly 0x4d 5 #e3eded  Glacier  # landcover_ice: rgba(224,236,236,1) at 0.8 (zoom 14 and up)
+poly 0x02 6 #efefef  Suburb  # not drawn by Liberty Topo: place=suburb is landuse class suburb, which has no layer
+poly 0x03 6 #efefef  Village  # not drawn by Liberty Topo: place=village areas are not in its schema
+poly 0x10 6 #efefef  Residential  # not drawn by Liberty Topo at zoom 16: landuse_residential stops at 8
+poly 0x0f 6 #efefef  Commercial  # not drawn by Liberty Topo: landuse commercial has no layer
+poly 0x0c 6 #efefef  Industrial  # not drawn by Liberty Topo: landuse industrial has no layer
+poly 0x0d 6 #efefef  Quarry  # not drawn by Liberty Topo: not in its schema
+poly 0x07 6 #e8e7e4  Airport  # aeroway_fill: rgba(229,228,224,1) at 0.7
+poly 0x0e 6 #e8e7e4  Runway  # aeroway_fill: rgba(229,228,224,1) at 0.7
+poly 0x05 6 #efefef  Parking  # not drawn by Liberty Topo: not in its schema
+poly 0x06 6 #efefef  Parking  # not drawn by Liberty Topo: not in its schema
+poly 0x1a 6 #d8e0bd  Cemetery  # landuse_cemetery: hsl(75,37%,81%)
 # The sea over the fills and what grows: a fill drawn across the shoreline in
 # OSM stops at the water. Under the squares, piers and parks, which may stand on it.
-poly 0x32 7 #9ebdff  Sea
-poly 0x25 8 #efefef  Square  # ground
-poly 0x08 6 #efefef  Food and drink  # ground
-poly 0x0a 6 #eceecc  Kindergarten
-poly 0x0b 6 #ffddee  Hospital
-poly 0x04 6 #efefef  Prison  # ground
-poly 0x12 6 #efefef  Services  # ground
-poly 0x21 6 #efefef  Tourism  # ground
-poly 0x22 6 #efefef  Historic  # ground
-poly 0x23 6 #efefef  Amenity  # ground
-poly 0x24 8 #efefef  Man-made  # ground
-poly 0x17 8 #d8e8c8  Park
-poly 0x20 8 #d8e8c8  Garden
-poly 0x18 8 #d8e8c8  Golf course
-poly 0x19 8 #efefef  Ice rink  # ground
-poly 0x09 8 #d8e8c8  Water park
-poly 0x3c 9 #9ebdff  Water
-poly 0x41 9 #9ebdff  Small water
-poly 0x46 9 #9ebdff  Riverbank
-poly 0x48 9 #9ebdff  Canal
-poly 0x3d 9 #9ebdff  Bay
-poly 0x3b 9 #9ebdff  Waterway area
-poly 0x28 9 #9ebdff  Salt pond
-poly 0x3f 9 #9ebdff  Basin
-poly 0x4c 9 #9ebdff  Dock
-poly 0x47 9 #9ebdff  Waterfall
-poly 0x51 10 #b0d59a  Marsh  # ground
-poly 0x16 4 #d8e8c8  Nature reserve  # ground
-poly 0x11 10 #efefef  Military  # ground
-poly 0x13 11 #dcd9d6  Building
+poly 0x32 7 #9ebdff  Sea  # water: rgb(158,189,255)
+poly 0x25 8 #efefef  Pedestrian Area  # road_area_pattern: pedestrian_polygon, drawn in graphics.txt
+poly 0x08 6 #efefef  Shopping  # not drawn by Liberty Topo: not in its schema
+poly 0x0a 6 #eceecc  School  # landuse_school: rgb(236,238,204)
+poly 0x0b 6 #ffddee  Hospital  # landuse_hospital: #fde
+poly 0x04 6 #efefef  Military  # not drawn by Liberty Topo: landuse military has no layer
+poly 0x12 6 #efefef  Retail  # not drawn by Liberty Topo: landuse retail has no layer
+poly 0x21 6 #efefef  Tourism  # not drawn by Liberty Topo: not in its schema
+poly 0x22 6 #efefef  Historic  # not drawn by Liberty Topo: not in its schema
+poly 0x23 6 #efefef  Amenity  # not drawn by Liberty Topo: not in its schema
+poly 0x24 8 #efefef  Structure  # not drawn by Liberty Topo: not in its schema
+poly 0x17 8 #dce7d5  Park  # landcover_grass (park): rgb(176,213,154) at 0.3
+poly 0x20 8 #dce7d5  Garden  # landcover_grass (garden): rgb(176,213,154) at 0.3
+poly 0x18 8 #dce7d5  Golf Course  # landcover_grass (golf_course): rgb(176,213,154) at 0.3
+poly 0x19 8 #efefef  Sports Ground  # not drawn by Liberty Topo: landuse pitch and stadium have no layer
+poly 0x09 8 #efefef  Water Park  # not drawn by Liberty Topo: not in its schema
+poly 0x3c 9 #9ebdff  Water  # water: rgb(158,189,255)
+poly 0x41 9 #9ebdff  Water  # water: rgb(158,189,255)
+poly 0x46 9 #9ebdff  River  # water: rgb(158,189,255)
+poly 0x48 9 #9ebdff  Canal  # water: rgb(158,189,255)
+poly 0x3d 9 #9ebdff  Bay  # water: rgb(158,189,255)
+poly 0x3b 9 #9ebdff  Water  # water: rgb(158,189,255)
+poly 0x28 9 #efefef  Salt pond  # not drawn by Liberty Topo: landuse=salt_pond is not in its water
+poly 0x3f 9 #9ebdff  Reservoir  # water: rgb(158,189,255)
+poly 0x4c 9 #9ebdff  Dock  # water: rgb(158,189,255)
+poly 0x47 9 #efefef  Waterfall  # not drawn by Liberty Topo: not in its schema
+poly 0x51 10 #efefef  Wetland  # not drawn by Liberty Topo: landcover wetland has no layer
+poly 0x11 10 #efefef  Danger Area  # not drawn by Liberty Topo: not in its schema
+poly 0x13 11 #dcd9d6  Building  # building-3d: hsl(35,8%,85%), seen from above
 # --- lines --------------------------------------------------------------------
-line 0x01 5 #ffcc88 #e9ac77    Motorway
-line 0x09 4 #ffcc88 #e9ac77    Motorway link
-line 0x0b 4 #ffcc88 #e9ac77    Motorway exit
-line 0x02 5 #ffeeaa #e9ac77    Trunk
-line 0x03 5 #ffeeaa #e9ac77    Primary
-line 0x08 4 #ffeeaa #e9ac77    Primary link
-line 0x04 4 #ffeeaa #e9ac77    Secondary
-line 0x05 4 #ffeeaa #e9ac77    Tertiary
-line 0x06 3 #ffffff #cfcdca    Minor road
-line 0x0c 4 #ffffff #cfcdca    Roundabout
-line 0x10801 5 #ffeeaa #e9ac77  Roundabout, trunk  # filled, not theirs: the road's own
-line 0x10802 5 #ffeeaa #e9ac77  Roundabout, primary  # filled, not theirs: the road's own
-line 0x10803 4 #ffeeaa #e9ac77  Roundabout, secondary  # filled, not theirs: the road's own
-line 0x10804 4 #ffeeaa #e9ac77  Roundabout, tertiary  # filled, not theirs: the road's own
-line 0x30 3 #ffffff #cfcdca    Track loop
-line 0x16 3 #ffffff #cfcdca    Construction
-line 0x0a 2 #ffffff #cfcdca    Track
-line 0x0e 1 #ffffff #ceac34    Path
-line 0x10 2 #ffffff #cfcdca    Living street
-line 0x07 2 #ffffff #ceac34    Bridleway
-line 0x11 2 #ffffff #ceac34    Cycleway
-line 0x2b 2 #ffffff #ceac34    Via ferrata  # ground
-line 0x18 2 #a0c8f0            Stream
-line 0x1f 3 #a0c8f0            River
-line 0x33 2 #a0c8f0            Canal
-line 0x34 1 #a0c8f0            Drain
-line 0x35 1 #a0c8f0            Ditch
-line 0x26 2 #a0c8f0            Intermittent river
-line 0x1a 2 #a0c8f0            Ferry  # ground
-line 0x1b 2 #a0c8f0            Foot ferry  # ground
-line 0x17 2 #cdcac6            Breakwater  # ground
-line 0x31 1 #ace38c            Tree row  # ground
-line 0x32 2 #cdcac6            City wall  # ground
-line 0x27 4 #f0ede9            Runway
-line 0x29 1 #bbbbbb            Power line  # ground
-line 0x25 2 #bbbbbb            Cableway  # ground
-line 0x28 1 #bbbbbb            Pipeline  # ground
-line 0x23 1 #cdcac6            Cutline  # ground
-line 0x24 1 #cdcac6            Valley  # ground
-line 0x12 1 #cdcac6            Fell edge  # ground
-line 0x19 2 #9e9cab            National park boundary  # ground
-line 0x1c 1 #9e9cab            Boundary
-line 0x1d 2 #9e9cab            Region boundary
-line 0x1e 2 #68686a            Country boundary
-line 0x2d 2 #9e9cab            Military boundary  # ground
+line 0x10801 8 #ffeeaa #e9ac77 Roundabout  # road_trunk_primary, road_trunk_primary_casing
+line 0x10802 7 #ffeeaa #e9ac77 Roundabout  # road_trunk_primary, road_trunk_primary_casing
+line 0x10803 7 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_secondary_tertiary_casing
+line 0x10804 6 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_secondary_tertiary_casing
+line 0x07 3 #ffffff #cfcdca     Service Road  # road_service_track, road_service_track_casing
+line 0x0a 2 #ffffff #cfcdca     Track  # road_service_track, road_service_track_casing
+line 0x16 1 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt
+line 0x11 2 #ffffff             Cycleway  # road_path_pedestrian; dashed in graphics.txt
+line 0x14 3 #bbbbbb             Railway  # road_major_rail; its ties in graphics.txt
+line 0x27 6 #f0ede9             Runway  # aeroway_runway
+line 0x1f 2 #a0c8f0             River  # waterway_river
+line 0x18 1 #a0c8f0             Stream  # waterway_other
+line 0x26 1 #a0c8f0             Intermittent Stream  # waterway_other_intermittent; dashed in graphics.txt
+line 0x19 3 #8ad98e             Protected area  # park: its outline rgba(95,208,100,1) at 0.7; dashed in graphics.txt
+line 0x1d 2 #9e9cab             Boundary  # boundary_3; dashed in graphics.txt
+line 0x1e 2 #68686a             Boundary  # boundary_2: hsl(248,1%,41%)
 # 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
 # a flat colour here would replace kmap's red dashes with a plain stripe.
 
 # --- contour lines, which this style is built around ---------------------------
-line 0x21 1 #a67442            Contour, index
-line 0x20 1 #b38659            Contour
-line 0x22 1 #b38659            Contour, minor
+# The style's index line is every 5th of its interval: kmap's medium (0x21) and
+# major (0x22) lines are index lines, its minor (0x20) the plain ones.
+line 0x22 1 #d2beaa             Contour  # contour_index_ft: rgb(166,116,66) at 0.4
+line 0x21 1 #d2beaa             Contour  # contour_index_ft: rgb(166,116,66) at 0.4
+line 0x20 1 #d7c5b3             Contour  # contour_ft: rgb(179,134,89) at 0.4

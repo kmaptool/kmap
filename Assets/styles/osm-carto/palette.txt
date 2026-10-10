@@ -1,135 +1,132 @@
 # The look of openstreetmap.org, on the type codes kmap's rules emit.
 #
-# Colours are openstreetmap-carto's own, read from its files (CC0). The codes
-# are kmap's, read out of the materialized rule set. One line per code:
+# Every colour and width is openstreetmap-carto's own (CC0), commit
+# 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2, read at z16; the note on each line says
+# where. The codes are kmap's; each is drawn as carto draws the OSM features kmap's
+# rules put on it, and named as Assets/styles/type-names.txt names it. PROVENANCE.md
+# has the rules.
 #
-#   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
+#   poly <code> <level> <day> <name>        level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
-# A missing night colour means the day one is used at night too: carto has no
-# night design, and inventing one here would be kmap's guess wearing carto's
-# name. Use the theme setting to pack day only.
+# A translucent colour is composited over carto's land colour #f2efe9. Night colours
+# are derived by kmap.
+#
+# Widths are not the original's: a line takes the whole width kmap's topoactive gives
+# the same code, casing included, and a line topoactive leaves to the device has no row
+# here or in graphics.txt, so the device draws it at its own width. The original's
+# width in a note is for the record.
+#
+# graphics.txt draws the dashes, line patterns and fill patterns, and clear sections
+# for what carto does not draw. Its sections replace the flat colours here,
+# which stay as a fallback.
 
 name    OpenStreetMap
-summary the look of openstreetmap.org — carto's own colours
+summary the look of openstreetmap.org, in carto's own colours
 
 # --- polygons, bottom of the stack upward ------------------------------------
-# The device's own background, on a level below everything: a fenix
-# draws it where the land polygon has not arrived yet, and shows black
-# without it. The ground colour the style paints land with.
-poly 0x4b 1 #f2efe9  Background
-poly 0x27 3 #f2efe9  Land
-poly 0x1c 5 #eef0d5  Farmland
-poly 0x29 5 #eef0d5  Greenhouses
-poly 0x26 5 #eef0d5  Farm
-poly 0x4e 5 #aedfa3  Orchard
-poly 0x1b 5 #aedfa3  Vineyard
-poly 0x5a 5 #c9e1bf  Allotments
-poly 0x1f 5 #cdebb0  Fell  # filled, not theirs
-poly 0x55 5 #cdebb0  Grassland
-poly 0x15 5 #cdebb0  Village green
-poly 0x1d 5 #cdebb0  Common
-poly 0x4f 5 #c8d7ab  Scrub
-poly 0x5b 5 #c8d7ab  Scrub
-poly 0x1e 5 #d6d99f  Heath
-poly 0x50 5 #add19e  Forest
-poly 0x57 5 #add19e  Coniferous forest
-poly 0x58 5 #add19e  Broadleaved forest
-poly 0x59 5 #add19e  Wood
-poly 0x53 5 #fff1ba  Beach
-poly 0x54 5 #eee5dc  Scree
-poly 0x56 5 #eee5dc  Bare rock
-poly 0x52 5 #d6d99f  Tundra
-poly 0x4d 5 #ddecec  Glacier
-poly 0x02 6 #dddddd  Suburb
-poly 0x03 6 #dddddd  Village
-poly 0x10 6 #e0dfdf  Residential
-poly 0x0f 6 #f2dad9  Commercial
-poly 0x0c 6 #c7c7b4  Construction
-poly 0x0d 6 #c5c3c3  Quarry
-poly 0x07 6 #e9e7e2  Airport ground
-poly 0x0e 6 #bbbbc8  Runway
-poly 0x05 6 #eeeeee  Parking
-poly 0x06 6 #eeeeee  Covered parking
-poly 0x1a 6 #aacbaf  Cemetery
-# The sea over the fills and what grows: a fill drawn across the shoreline in
-# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
-poly 0x32 7 #aad3df  Sea
-poly 0x25 8 #dddde8  Square
-poly 0x08 6 #ffd6d1  Food and drink
-poly 0x0a 6 #ffffe5  Kindergarten
-poly 0x0b 6 #ffffe5  Hospital
-poly 0x04 6 #f2efe9  Prison
-poly 0x12 6 #e9e7e2  Services
-poly 0x21 6 #f2efe9  Tourism
-poly 0x22 6 #f2efe9  Historic
-poly 0x23 6 #f2efe9  Amenity
-poly 0x24 8 #f2efe9  Man-made
-poly 0x17 8 #c8facc  Park
-poly 0x20 8 #c8facc  Garden
-poly 0x18 8 #b5e3b5  Golf course
-poly 0x19 8 #ddecec  Ice rink
-poly 0x09 8 #c8facc  Water park
-poly 0x3c 9 #aad3df  Water
-poly 0x41 9 #aad3df  Small water
-poly 0x46 9 #aad3df  Riverbank
-poly 0x48 9 #aad3df  Canal
-poly 0x3d 9 #aad3df  Bay
-poly 0x3b 9 #aad3df  Waterway area
-poly 0x28 9 #aad3df  Salt pond
-poly 0x3f 9 #aad3df  Basin
-poly 0x4c 9 #aad3df  Dock
-poly 0x47 9 #aad3df  Waterfall
-poly 0x51 10 #cdebb0  Marsh
-poly 0x16 4 #c8facc  Nature reserve
-poly 0x11 10 #ff5555  Military
-poly 0x13 11 #d9d0c9  Building
+# The device's own background, on a level below everything: a fenix draws it where
+# the land polygon has not arrived yet, and shows black without it.
+poly 0x4b 1 #f2efe9  Background  # @land-color style.mss:6, the Map background style.mss:2
+poly 0x27 3 #f2efe9  Land  # @land-color style.mss:6
+poly 0x16 4 #f2efe9  Nature Reserve  # not drawn by carto: protected areas are outlined only (admin.mss:495-551); land
+poly 0x1c 5 #eef0d5  Grassland  # kmap puts landuse=farmland here (and greenfield, which carto does not draw): @farmland landcover.mss:24, landuse_farmland landcover.mss:340-343
+poly 0x29 5 #eef0d5  Greenhouses  # @farmland landcover.mss:24, landuse_greenhouse_horticulture landcover.mss:340-343
+poly 0x26 5 #f5dcba  Farm  # kmap puts landuse=farmyard here (and farm, which carto does not draw): @farmyard landcover.mss:26, landuse_farmyard landcover.mss:330-338
+poly 0x4e 5 #aedfa3  Orchard  # @orchard landcover.mss:9,140-142; pattern in graphics.txt
+poly 0x1b 5 #aedfa3  Vineyard  # @orchard landcover.mss:9,126-128; pattern in graphics.txt
+poly 0x5a 5 #c9e1bf  Allotments  # @allotments landcover.mss:8,303-305; pattern in graphics.txt
+poly 0x1f 5 #f2efe9  Mountain meadow  # not drawn by carto: no layer selects natural=fell (project.mml); land
+poly 0x55 5 #cdebb0  Grassland  # @grass landcover.mss:3,353-357
+poly 0x15 5 #cdebb0  Village Green  # @grass landcover.mss:3, landuse_village_green landcover.mss:356-357
+poly 0x1d 5 #f2efe9  Common  # not drawn by carto: leisure=common is in no layer's list (project.mml landcover); land
+poly 0x4f 5 #c8d7ab  Scrub  # @scrub landcover.mss:4,506-507; pattern in graphics.txt
+poly 0x5b 5 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub landcover.mss:4
+poly 0x1e 5 #d6d99f  Heath  # @heath landcover.mss:51,500-501
+poly 0x50 5 #add19e  Forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
+poly 0x57 5 #add19e  Coniferous forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
+poly 0x58 5 #add19e  Broadleaved forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
+poly 0x59 5 #add19e  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @forest landcover.mss:5
+poly 0x53 5 #f5e9c6  Sand  # @sand landcover.mss:58, natural_sand landcover.mss:494-495
+poly 0x54 5 #eee5dc  Scree  # @bare_ground landcover.mss:47,480-483; pattern in graphics.txt
+poly 0x56 5 #eee5dc  Bare rock  # @bare_ground landcover.mss:47,469-470; pattern in graphics.txt
+poly 0x52 5 #f2efe9  Bare Ground  # not drawn by carto: kmap puts natural=tundra here, in no layer's list (project.mml); land
+poly 0x4d 5 #ddecec  Glacier  # @glacier water.mss:2,34-38
+poly 0x02 6 #f2efe9  Suburb  # not drawn by carto: place areas are only labelled (placenames.mss); land
+poly 0x03 6 #f2efe9  Village  # not drawn by carto: place areas are only labelled (placenames.mss); land
+poly 0x10 6 #e0dfdf  Residential  # @residential landcover.mss:16,246-249
+poly 0x0f 6 #f2dad9  Commercial  # @commercial landcover.mss:20,434-437
+poly 0x0c 6 #ebdbe8  Industrial  # @industrial landcover.mss:22,378-381
+poly 0x0d 6 #c5c3c3  Quarry  # @quarry landcover.mss:61,115-116; pattern in graphics.txt
+poly 0x07 6 #e9e7e2  Airport  # @transportation-area landcover.mss:36, aeroway_aerodrome landcover.mss:621-624
+poly 0x0e 6 #bbbbcc  Runway  # @runway-fill = @aeroway-fill #bbc roads.mss:21-22, aeroway_runway roads.mss:3422-3423
+poly 0x05 6 #eeeeee  Parking  # @parking landcover.mss:39, amenity_parking landcover.mss:595-600
+poly 0x06 6 #eeeeee  Parking  # @parking landcover.mss:39, amenity_parking landcover.mss:595-600
+poly 0x1a 6 #aacbaf  Cemetery  # @cemetery landcover.mss:49,203-206; pattern in graphics.txt
+poly 0x08 6 #ffd6d1  Shopping  # @retail landcover.mss:18, shop_mall landcover.mss:362-368
+poly 0x0a 6 #ffffe5  School  # @societal_amenities landcover.mss:59, amenity_school landcover.mss:556-574
+poly 0x0b 6 #ffffe5  Hospital  # @societal_amenities landcover.mss:59, amenity_hospital landcover.mss:556-574
+poly 0x04 6 #f3e3dd  Military  # #ff5555 at polygon-opacity 0.08 over land, landcover.mss:787-791; hatch in graphics.txt
+poly 0x12 6 #ffd6d1  Retail  # @retail landcover.mss:18, landuse_retail landcover.mss:362-368
+poly 0x21 6 #f2efe9  Tourism  # not drawn by carto: tourism=* areas past camp, caravan and picnic sites (project.mml landcover); land
+poly 0x22 6 #f2efe9  Historic  # not drawn by carto: historic=* areas are in no fill layer (project.mml); land
+poly 0x23 6 #f2efe9  Amenity  # not drawn by carto: amenity=* outside its list (project.mml landcover); land
+# The sea over the fills and what grows: a fill drawn across the shoreline in OSM stops
+# at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #aad3df  Sea  # @water-color style.mss:5, the ocean layer (project.mml)
+poly 0x25 8 #dddde8  Pedestrian Area  # @pedestrian-fill roads.mss:7, highway_pedestrian roads.mss:3400-3403
+poly 0x24 8 #f2efe9  Structure  # not drawn by carto: man_made=* past works, wastewater and water works (project.mml landcover); land
+poly 0x17 8 #c8facc  Park  # @park landcover.mss:7, leisure_park landcover.mss:264-266
+poly 0x20 8 #cdebb0  Garden  # @grass landcover.mss:3, leisure_garden landcover.mss:154-156; pattern in graphics.txt
+poly 0x18 8 #def6c0  Golf Course  # @golf_course = @campsite landcover.mss:48,74,296-298
+poly 0x19 8 #88e0be  Sports Ground  # @pitch landcover.mss:71, leisure_pitch landcover.mss:675-676
+poly 0x09 8 #dffce2  Water Park  # @stadium = @leisure = lighten(@park, 5%) landcover.mss:55,73,651-655
+poly 0x3c 9 #aad3df  Water  # @water-color style.mss:5, natural=water water.mss:46-52
+poly 0x41 9 #aad3df  Water  # @water-color style.mss:5, natural=water water.mss:46-52
+poly 0x46 9 #aad3df  River  # @water-color style.mss:5, waterway=riverbank water.mss:46-52
+poly 0x48 9 #aad3df  Canal  # @water-color style.mss:5, natural=water water.mss:46-52
+poly 0x3d 9 #aad3df  Bay  # carto fills no bay (natural=bay is only labelled) but the sea under it: @water-color style.mss:5
+poly 0x3b 9 #aad3df  Water  # @water-color style.mss:5, waterway areas water.mss:46-52
+poly 0x28 9 #aad3df  Salt pond  # @water-color style.mss:5, landuse_salt_pond landcover.mss:463-464; pattern in graphics.txt
+poly 0x3f 9 #aad3df  Reservoir  # @water-color style.mss:5, landuse=reservoir/basin water.mss:46-52
+poly 0x4c 9 #aad3df  Dock  # @water-color style.mss:5, waterway=dock water.mss:46-52
+poly 0x47 9 #f2efe9  Waterfall  # not drawn by carto: waterfall areas are in no area layer (project.mml water-areas); land
+poly 0x51 10 #f2efe9  Wetland  # natural=wetland with no type has no fill in carto (landcover.mss:512-554 fill types only); pattern over a clear ground in graphics.txt
+poly 0x11 10 #f3e0da  Danger Area  # #ff5555 at polygon-opacity 0.1 over land, landcover.mss:804-806; hatch in graphics.txt
+poly 0x13 11 #d9d0c9  Building  # @building-fill buildings.mss:1,17-18
 
 # --- lines --------------------------------------------------------------------
-line 0x01 5 #e892a2 #dc2a67  Motorway
-line 0x09 4 #e892a2 #dc2a67  Motorway link
-line 0x0b 4 #e892a2 #dc2a67  Motorway exit
-line 0x02 5 #f9b29c #c84e2f  Trunk
-line 0x03 5 #fcd6a4 #a06b00  Primary
-line 0x08 4 #fcd6a4 #a06b00  Primary link
-line 0x04 4 #f7fabf #707d05  Secondary
-line 0x05 4 #ffffff #8f8f8f  Tertiary
-line 0x06 3 #ffffff #bbbbbb  Minor road
-line 0x0c 4 #ffffff #bbbbbb  Roundabout
-line 0x10801 5 #f9b29c #c84e2f  Roundabout, trunk  # filled, not theirs: the road's own
-line 0x10802 5 #fcd6a4 #a06b00  Roundabout, primary  # filled, not theirs: the road's own
-line 0x10803 4 #f7fabf #707d05  Roundabout, secondary  # filled, not theirs: the road's own
-line 0x10804 4 #ffffff #8f8f8f  Roundabout, tertiary  # filled, not theirs: the road's own
-line 0x30 3 #ffffff #bbbbbb  Track loop
-line 0x16 3 #aaaaaa           Construction
-line 0x0a 2 #996600           Track
-line 0x0e 1 #ffffff #ababab    Path  # carto dashes it; a TYP cannot
-line 0x10 2 #ededed #bbbbbb    Living street
-line 0x07 2 #aaddaa           Bridleway
-line 0x11 2 #9999ff           Cycleway
-line 0x2b 2 #cc6666           Via ferrata
-line 0x18 2 #aad3df           Stream
-line 0x1f 3 #aad3df           River
-line 0x33 2 #aad3df           Canal
-line 0x34 1 #aad3df           Drain
-line 0x35 1 #aad3df           Ditch
-line 0x26 2 #aad3df           Intermittent river
-line 0x1a 2 #6699ff           Ferry
-line 0x1b 2 #6699ff           Foot ferry
-line 0x17 2 #bbbbbb           Breakwater
-line 0x31 1 #aacea3           Tree row  # filled, not theirs
-line 0x32 2 #b0aca2           City wall  # filled, not theirs
-line 0x27 4 #bbbbc8           Runway
-line 0x29 1 #888888           Power line
-line 0x25 2 #888888           Cableway
-line 0x28 1 #888888           Pipeline
-line 0x23 1 #a0a060           Cutline
-line 0x24 1 #46673b           Valley
-line 0x12 1 #b0a090           Fell edge
-line 0x19 2 #4c9a4c           National park boundary
-line 0x1c 1 #ac46ac           Boundary
-line 0x1d 2 #ac46ac           Region boundary
-line 0x1e 2 #ac46ac           Country boundary
-line 0x2d 2 #ff5555           Military boundary
-# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
-# a flat colour here would replace kmap's red dashes with a plain stripe.
+# Roads at z16: ink = carto's fill width (its line width less 2 casings), rounded;
+# width = ink + 2. A z15 value holds at z16 where carto sets none for z16.
+line 0x10801 8 #f9b29c #c84e2f  Roundabout  # carto draws a roundabout as its road: @trunk-fill, @trunk-casing road-colors-generated.mss:8,12
+line 0x10802 7 #fcd6a4 #a06b00  Roundabout  # carto draws a roundabout as its road: @primary-fill, @primary-casing road-colors-generated.mss:9,13
+line 0x10803 7 #f7fabf #707d05  Roundabout  # carto draws a roundabout as its road: @secondary-fill, @secondary-casing road-colors-generated.mss:10,14
+line 0x10804 6 #ffffff #8f8f8f  Roundabout  # carto draws a roundabout as its road: @tertiary-fill, @tertiary-casing roads.mss:3,33
+line 0x07 3 #ffffff #bbbbbb  Service Road  # @service-fill roads.mss:5, @service-casing roads.mss:36; @service-width-z16 3.5 - 2 x 0.6 = 2.3 -> 2, roads.mss:166,251,2123
+# Paths, tracks, steps and railway: dashed in graphics.txt; this is the fallback.
+line 0x16 1 #fa8072 #f7f5f2  Path  # @footway-fill salmon roads.mss:10, 1.3 -> 1; halo white @0.4 -> #f7f5f2, roads.mss:2358-2406
+line 0x11 2 #0000ff #f7f5f2  Cycleway  # @cycleway-fill blue roads.mss:14, 0.9 -> 1; halo as a path, roads.mss:2435-2486
+line 0x0a 2 #ab812f #f7f5f2  Track  # @track-fill #996600 at 0.8 -> #ab812f roads.mss:18,2535-2540; 1.5 -> 2, roads.mss:155,2562
+line 0x30 2 #88e0be  Track  # kmap puts leisure=track here (and raceway, gallop): #leisure-track @pitch landcover.mss:71, amenity-points.mss:2987-2997; project.mml:528-541
+line 0x14 3 #ffffff #707070  Railway  # railway=rail: #707070 3 px under white 1 px, roads.mss:2632-2642
+# Water at z16.
+line 0x1f 2 #aad3df  River  # @water-color style.mss:5, @river-width-z16 8 water.mss:17,191-196
+line 0x18 1 #aad3df  Stream  # @water-color style.mss:5, @stream-width-z16 3 water.mss:25,250-252
+line 0x26 1 #aad3df  Intermittent Stream  # as a stream, dashed 4,3 in graphics.txt, water.mss:261-263
+line 0x1a 1 #6666ff  Ferry  # @ferry-route #66f, 0.8 -> 1, ferry-routes.mss:1,9-14; dashed in graphics.txt
+line 0x1b 1 #6666ff  Ferry  # @ferry-route #66f, 0.8 -> 1, ferry-routes.mss:1,9-14; dashed in graphics.txt
+# The rest.
+line 0x17 1 #444444  Barrier  # #barriers at z16: #444, 0.4 -> 1, landcover.mss:840-844
+line 0x27 6 #bbbbcc  Runway  # @runway-fill roads.mss:21-22; 24 at z16, roads.mss:3705-3713
+line 0x29 1 #888888  Power Line  # @power-line-color power.mss:1; 0.7 -> 1, power.mss:10-11
+line 0x25 3 #808080  Aerial way  # cable car line/ #808080 1 px, aerialways.mss:2-9; 1 px in a 3 px band in graphics.txt
+line 0x28 1 #909090  Pipeline  # line/ #909090 1.5 -> 2, aerialways.mss:76-93; dashed in graphics.txt
+line 0x23 2 #cdebb0  Cutline  # @grass, 6 at z16, landcover.mss:686-694
+line 0x2b 4 #999999  Cliff  # symbols/cliff2.svg #999999, landcover.mss:816-821; pattern in graphics.txt
+line 0x19 3 #afd0a8  Protected area  # @protected-area #008000 amenity-points.mss:25; on the boundary carto's inner band (6 at z14+) and outer line (2), each at opacity 0.15, both lie: #afd0a8 over land, admin.mss:510-547
+line 0x1c 1 #c0a8ba  Boundary  # admin_level 6: @admin-boundaries #8d618b at 0.5 -> #c0a8ba; 2.1 -> 2, admin.mss:1,357-379,305; dashed in graphics.txt
+line 0x1d 2 #cbb6c5  Boundary  # admin_level 4 band: @admin-boundaries-wide #a37da1 at 0.5 -> #cbb6c5; 4 at z14+, admin.mss:3,225-275,306
+line 0x1e 2 #cbb6c5  Boundary  # admin_level 2 band: @admin-boundaries-wide #a37da1 at 0.5 -> #cbb6c5; 8 at z14+, admin.mss:3,29-78,306
+line 0x2d 1 #f5cac5  Military area  # @military #f55 at line-opacity 0.24 -> #f5cac5; 2 at z15+, landcover.mss:62,794-800
+# Not here: 0x12 and 0x24, which carto does not draw (transparent, graphics.txt); 0x0d,
+# the link this build puts in across a kerb or a bank, left to kmap's own red dashes.

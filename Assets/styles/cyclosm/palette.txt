@@ -1,148 +1,152 @@
 # The CyclOSM look, on the type codes kmap's rules emit.
 #
-# Colours are CyclOSM's own, read from its files: `palette.mss` for the ground —
-# those come from the Hydda style, Apache License 2.0 — and `road-colors.mss`
-# for the roads, BSD-3-Clause like the rest of that style. Nothing is invented:
-# `# worked out` marks a colour computed from a CartoCSS expression such as
-# `@land * 1.05`, and `# filled, not theirs` one CyclOSM draws with a pattern or
-# does not draw at all, taken from its nearest neighbour in this table.
-# A colour their palette defines but never uses is not a colour of theirs:
-# @nature_reserve is such a one, and a reserve is a pale wash over the ground in
-# that style, with the boundary band in @wooded. See PROVENANCE.md and
-# LICENSE.md beside this file.
+# Every value is CyclOSM's, read from cyclosm-cartocss-style at commit 0632363794f9;
+# the note after each entry names the file and line. Each code is drawn as CyclOSM
+# draws the OSM features kmap's rules put on it, and named as
+# Assets/styles/type-names.txt names it. Nothing is invented. See PROVENANCE.md and LICENSE.md beside this file.
 #
-#   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
+#   poly <code> <level> <day> <name>       level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
-# CyclOSM has no night design, as carto has none: the day colour serves both,
-# and the theme setting packs day only for a receiver that draws night badly.
+# Reference zoom z16. A colour CyclOSM draws with opacity is
+# composited over its land colour @land #eee5dc (palette.mss:33); the note says so.
+# Where CyclOSM draws nothing, graphics.txt draws the code clear; the note here says
+# "not drawn by CyclOSM".
+#
+# Widths are not the original's: a line takes the whole width kmap's topoactive gives
+# the same code, casing included, and a line topoactive leaves to the device has no row
+# here or in graphics.txt, so the device draws it at its own width. The original's
+# width in a note is for the record.
+#
+# Dashes, cliffs and fill patterns are bitmaps in graphics.txt, made from graphics.txt;
+# a section there replaces the flat colour here. Night colours are derived by kmap.
 
 name    CyclOSM
-summary the CyclOSM look — an outdoor palette, warmer and quieter than carto's
+summary the CyclOSM look, an outdoor palette, warmer and quieter than carto's
 
 # --- polygons, bottom of the stack upward ------------------------------------
-# The device's own background, on a level below everything: a fenix
-# draws it where the land polygon has not arrived yet, and shows black
-# without it. The ground colour the style paints land with.
-poly 0x4b 1 #eee5dc  Background
-poly 0x27 3 #eee5dc  Land
-poly 0x1c 5 #fbf0e3  Farmland
-poly 0x29 5 #fbf0e3  Greenhouses  # filled, not theirs
-poly 0x26 5 #fbf0e3  Farm
-poly 0x4e 5 #e2eecb  Orchard
-poly 0x1b 5 #e2eecb  Vineyard
-poly 0x5a 5 #c2debd  Allotments
-poly 0x1f 5 #b2c068  Fell  # filled, not theirs
-poly 0x55 5 #c2debd  Grassland
-poly 0x15 5 #c2debd  Village green
-poly 0x1d 5 #c2debd  Common  # filled, not theirs
-poly 0x4f 5 #c8d7ab  Scrub
-poly 0x5b 5 #c8d7ab  Scrub
-poly 0x1e 5 #b2c068  Heath
-poly 0x50 5 #95bd84  Forest
-poly 0x57 5 #95bd84  Coniferous forest
-poly 0x58 5 #95bd84  Broadleaved forest
-poly 0x59 5 #95bd84  Wood
-poly 0x53 5 #f5e9c6  Beach
-poly 0x54 5 #eee5dc  Scree
-poly 0x56 5 #eee5dc  Bare rock
-poly 0x52 5 #b2c068  Tundra  # filled, not theirs
-poly 0x4d 5 #ddecec  Glacier
-poly 0x02 6 #faf0e7  Suburb  # worked out
-poly 0x03 6 #faf0e7  Village  # worked out
-poly 0x10 6 #faf0e7  Residential  # worked out
-poly 0x0f 6 #ded8dd  Commercial
-poly 0x0c 6 #e4dcd3  Construction  # worked out
-poly 0x0d 6 #c5c3c3  Quarry
-poly 0x07 6 #e4dcd3  Airport ground  # filled, not theirs
-poly 0x0e 6 #d4d4d4  Runway  # filled, not theirs
-poly 0x05 6 #eeeeee  Parking
-poly 0x06 6 #eeeeee  Covered parking
-poly 0x1a 6 #d6ded2  Cemetery
-# The sea over the fills and what grows: a fill drawn across the shoreline in
-# OSM stops at the water. Under the squares, piers and parks, which may stand on it.
-poly 0x32 7 #8ecbeb  Sea
-poly 0x25 8 #dce3e0  Square
-poly 0x08 6 #e0e0e0  Food and drink  # filled, not theirs
-poly 0x0a 6 #e0e0e0  Kindergarten
-poly 0x0b 6 #e0e0e0  Hospital
-poly 0x04 6 #eee5dc  Prison  # ground: theirs draws the edge, not the field
-poly 0x12 6 #ded8dd  Services  # filled, not theirs
-poly 0x21 6 #eee5dc  Tourism  # filled, not theirs
-poly 0x22 6 #eee5dc  Historic  # filled, not theirs
-poly 0x23 6 #eee5dc  Amenity  # filled, not theirs
-poly 0x24 8 #eee5dc  Man-made  # filled, not theirs
-poly 0x17 8 #c2debd  Park
-poly 0x20 8 #c2debd  Garden
-poly 0x18 8 #c2debd  Golf course  # filled, not theirs
-poly 0x19 8 #e0e0e0  Ice rink
-poly 0x09 8 #c2debd  Water park  # filled, not theirs
-poly 0x3c 9 #8ecbeb  Water
-poly 0x41 9 #8ecbeb  Small water
-poly 0x46 9 #8ecbeb  Riverbank
-poly 0x48 9 #8ecbeb  Canal
-poly 0x3d 9 #8ecbeb  Bay
-poly 0x3b 9 #8ecbeb  Waterway area
-poly 0x28 9 #8ecbeb  Salt pond
-poly 0x3f 9 #8ecbeb  Basin
-poly 0x4c 9 #8ecbeb  Dock
-poly 0x47 9 #8ecbeb  Waterfall
-poly 0x51 10 #c2debd  Marsh
-poly 0x16 4 #d8d6c5  Nature reserve  # worked out: their wash, 15% of a darkened @wooded over the ground
-poly 0x11 10 #eee5dc  Military  # ground: theirs draws the edge, not the field
-poly 0x13 11 #e4dfdb  Building
-# --- lines --------------------------------------------------------------------
-line 0x01 5 #d4d4d4 #f6f6f6    Motorway
-line 0x09 4 #d4d4d4 #f6f6f6    Motorway link
-line 0x0b 4 #d4d4d4 #f6f6f6    Motorway exit
-line 0x02 5 #d4d4d4 #f6f6f6    Trunk  # theirs pinks a trunk a bicycle may use and
-#                                     greys a motorroad; this number carries both,
-#                                     and the false invitation is the worse error
-line 0x03 5 #f4dfc3 #d8b267    Primary
-line 0x08 4 #f4dfc3 #d8b267    Primary link
-line 0x04 4 #f6f8d2 #b1bb5d    Secondary
-line 0x05 4 #f6f6f6 #777777    Tertiary
-line 0x06 3 #f6f6f6 #888888    Minor road
-line 0x0c 4 #f6f6f6 #888888    Roundabout
-line 0x10801 5 #d4d4d4 #f6f6f6  Roundabout, trunk  # filled, not theirs: the road's own
-line 0x10802 5 #f4dfc3 #d8b267  Roundabout, primary  # filled, not theirs: the road's own
-line 0x10803 4 #f6f8d2 #b1bb5d  Roundabout, secondary  # filled, not theirs: the road's own
-line 0x10804 4 #f6f6f6 #777777  Roundabout, tertiary  # filled, not theirs: the road's own
-line 0x30 3 #f6f6f6 #888888    Track loop  # filled, not theirs
-line 0x16 3 #d4d4d4            Construction  # filled, not theirs
-line 0x0a 2 #114021            Track
-line 0x0e 1 #007360            Path
-line 0x10 2 #ddffba #bbbbbb    Living street
-line 0x07 2 #741e18            Bridleway
-line 0x11 2 #0000ce            Cycleway
-line 0x2b 2 #741e18            Via ferrata  # filled, not theirs
-line 0x18 2 #8ecbeb            Stream
-line 0x1f 3 #8ecbeb            River
-line 0x33 2 #8ecbeb            Canal
-line 0x34 1 #8ecbeb            Drain
-line 0x35 1 #8ecbeb            Ditch
-line 0x26 2 #8ecbeb            Intermittent river
-line 0x1a 2 #8ecbeb            Ferry  # filled, not theirs
-line 0x1b 2 #8ecbeb            Foot ferry  # filled, not theirs
-line 0x17 2 #add19e            Breakwater
-line 0x31 1 #add19e            Tree row
-line 0x32 2 #888888            City wall  # filled, not theirs
-line 0x27 4 #d4d4d4            Runway  # filled, not theirs
-line 0x29 1 #888888            Power line
-line 0x25 2 #888888            Cableway  # filled, not theirs
-line 0x28 1 #888888            Pipeline  # filled, not theirs
-line 0x23 1 #95bd84            Cutline  # filled, not theirs
-line 0x24 1 #95bd84            Valley  # filled, not theirs
-line 0x12 1 #b2c068            Fell edge  # filled, not theirs
-line 0x19 2 #95bd84            National park boundary
-line 0x1c 1 #888888            Boundary
-line 0x1d 2 #888888            Region boundary
-line 0x1e 2 #333333            Country boundary
-line 0x2d 2 #f55555            Military boundary
-# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
-# a flat colour here would replace kmap's red dashes with a plain stripe.
+# The device's own background, on a level below everything: a fenix draws it where the
+# land polygon has not arrived yet, and shows black without it.
+poly 0x4b 1 #eee5dc  Background  # @land palette.mss:33
+poly 0x27 3 #eee5dc  Land  # @land palette.mss:33, base.mss:14-16
+# Washes that CyclOSM lays over the ground, under what grows: a forest inside them stays
+# a forest.
+poly 0x16 4 #eee5dc  Nature Reserve  # not drawn by CyclOSM at z16: its fill stops below z11 (admin.mss:227); the band is line 0x19
+poly 0x04 10 #f0d6ce  Military  # graphics.txt: danger_red_hatch.png over @land (base.mss:249-257); no field of its own; above landcover, as the overlay is one of CyclOSM's last layers (project.mml:1906)
+poly 0x11 10 #f0d6ce  Danger Area  # graphics.txt: the same overlay for military=danger_area (base.mss:251)
+poly 0x1c 5 #fbf0e3  Grassland  # kmap puts landuse=farmland here (and greenfield, not drawn by CyclOSM): @farmland palette.mss:41, landuse_farmland base.mss:125-128
+poly 0x29 5 #fbf0e3  Greenhouses  # @farmland palette.mss:41, landuse_greenhouse_horticulture base.mss:125-128
+poly 0x26 5 #eee5dc  Farm  # not drawn by CyclOSM: landuse=farm and farmyard are not in its landuse layer (project.mml:139-168)
+poly 0x4e 5 #e2eecb  Orchard  # @meadow palette.mss:35, base.mss:96-102; graphics.txt adds orchard.png
+poly 0x1b 5 #e2eecb  Vineyard  # @meadow palette.mss:35, base.mss:86-92; graphics.txt adds vineyard.png
+poly 0x5a 5 #c2debd  Allotments  # @grass palette.mss:34, base.mss:103-109; graphics.txt adds allotments.png
+poly 0x1f 5 #eee5dc  Mountain meadow  # not drawn by CyclOSM: kmap puts only natural=fell here, which is not in its landuse layer (project.mml:139-168)
+poly 0x55 5 #c2debd  Grassland  # @grass palette.mss:34, landuse_grass and natural_grassland base.mss:41-45
+poly 0x15 5 #c2debd  Village Green  # @park palette.mss:36, landuse_village_green base.mss:120-123
+poly 0x1d 5 #c2debd  Common  # @park palette.mss:36, leisure_common base.mss:32
+poly 0x4f 5 #c8d7ab  Scrub  # @scrub palette.mss:40, base.mss:77-81; graphics.txt adds scrub.png
+poly 0x5b 5 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub palette.mss:40
+poly 0x1e 5 #b2c068  Heath  # @heath palette.mss:39, base.mss:83
+poly 0x50 5 #95bd84  Forest  # @wooded palette.mss:38, base.mss:33, 169; graphics.txt adds leaftype_unknown.svg
+poly 0x57 5 #95bd84  Coniferous forest  # @wooded; graphics.txt adds leaftype_needleleaved.svg
+poly 0x58 5 #95bd84  Broadleaved forest  # @wooded; graphics.txt adds leaftype_broadleaved.svg
+poly 0x59 5 #95bd84  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @wooded palette.mss:38
+poly 0x53 5 #f5e9c6  Sand  # @sand palette.mss:47, base.mss:62-66
+poly 0x54 5 #eee5dc  Scree  # @bare_ground palette.mss:48, base.mss:71-75; graphics.txt adds scree_overlay.png
+poly 0x56 5 #eee5dc  Bare rock  # @bare_ground palette.mss:48, base.mss:67-70; graphics.txt adds rock_overlay.png
+poly 0x52 5 #eee5dc  Bare Ground  # not drawn by CyclOSM: natural=tundra, kmap's only rule here, is not in its landuse layer
+poly 0x4d 5 #ddecec  Glacier  # @glacier palette.mss:43, base.mss:54-56
+poly 0x02 6 #eee5dc  Suburb  # not drawn by CyclOSM: place areas are not in its landuse layer
+poly 0x03 6 #eee5dc  Village  # not drawn by CyclOSM: place areas are not in its landuse layer
+poly 0x10 6 #faf0e7  Residential  # @residential = @land * 1.05 palette.mss:62, base.mss:141
+poly 0x0f 6 #ded8dd  Commercial  # @commercial palette.mss:63, base.mss:36-39
+poly 0x12 6 #ded8dd  Retail  # @commercial palette.mss:63, landuse_retail base.mss:36-39
+poly 0x0c 6 #e4dcd3  Industrial  # @industrial = @land * 0.96 palette.mss:64, base.mss:47-52
+poly 0x0d 6 #c5c3c3  Quarry  # @quarry palette.mss:46, base.mss:111-113; graphics.txt adds quarry.svg
+poly 0x07 6 #eee5dc  Airport  # not drawn by CyclOSM: aeroway areas are not in its landuse layer
+poly 0x0e 6 #eee5dc  Runway  # not drawn by CyclOSM as an area: its aeroway layer is lines (project.mml:444)
+poly 0x05 6 #eeeeee  Parking  # @parking palette.mss:65, amenity_parking base.mss:129
+poly 0x06 6 #eeeeee  Parking  # @parking palette.mss:65, amenity_parking base.mss:129
+poly 0x1a 6 #d6ded2  Cemetery  # @cemetery palette.mss:37, base.mss:23-30; graphics.txt adds grave_yard_generic_many.svg
+poly 0x08 6 #eee5dc  Shopping  # not drawn by CyclOSM: shops and eateries are not in its landuse layer
+poly 0x0a 6 #e0e0e0  School  # @school palette.mss:55, amenity_school base.mss:142
+poly 0x0b 6 #e0e0e0  Hospital  # @hospital palette.mss:54, base.mss:84
+poly 0x21 6 #eee5dc  Tourism  # not drawn by CyclOSM
+poly 0x22 6 #eee5dc  Historic  # not drawn by CyclOSM
+poly 0x23 6 #eee5dc  Amenity  # not drawn by CyclOSM as such: kmap's catch-all for amenity=* areas
+# The sea over the fills and what grows: a fill drawn across the shoreline in OSM stops
+# at the water. Under the squares, piers and parks, which may stand on it.
+poly 0x32 7 #8ecbeb  Sea  # @water palette.mss:42, Map background-color base.mss:282
+poly 0x25 8 #dce3e0  Pedestrian Area  # @pedestrian_area_fill road-colors.mss:47, highway_pedestrian base.mss:130
+poly 0x24 8 #eee5dc  Structure  # not drawn by CyclOSM as such: kmap's catch-all for man_made=* areas; works and water works are filled industrial (project.mml:154,163), bridges as buildings (project.mml:409)
+poly 0x17 8 #c2debd  Park  # @park palette.mss:36, leisure_park base.mss:120-123
+poly 0x20 8 #c2debd  Garden  # @grass palette.mss:34, leisure_garden base.mss:41-45
+poly 0x18 8 #c2debd  Golf Course  # @grass palette.mss:34, leisure_golf_course base.mss:34
+poly 0x19 8 #bcd7b7  Sports Ground  # @pitch = @park * 0.97 palette.mss:58, leisure_pitch at z>=13 base.mss:133-140
+poly 0x09 8 #eee5dc  Water Park  # not drawn by CyclOSM
+poly 0x3c 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
+poly 0x41 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
+poly 0x46 9 #8ecbeb  River  # @water palette.mss:42, waterway=riverbank in its water layer (project.mml:372)
+poly 0x48 9 #8ecbeb  Canal  # @water palette.mss:42, base.mss:284-293
+poly 0x3d 9 #eee5dc  Bay  # not drawn by CyclOSM: natural=bay is not in its water layer (project.mml:385-389); the sea under it shows
+poly 0x3b 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
+poly 0x28 9 #eee5dc  Salt pond  # not drawn by CyclOSM: landuse=salt_pond is not in its water or landuse layer
+poly 0x3f 9 #8ecbeb  Reservoir  # @water palette.mss:42, landuse=basin and reservoir in its water layer (project.mml:372)
+poly 0x4c 9 #8ecbeb  Dock  # @water palette.mss:42, waterway=dock in its water layer (project.mml:372)
+poly 0x47 9 #eee5dc  Waterfall  # not drawn by CyclOSM: no waterfall area in its water layer (project.mml:385-389); the river under it shows
+poly 0x51 8 #c2debd  Wetland  # @grass palette.mss:34, natural_wetland base.mss:57-61; graphics.txt adds wetland.png; below water, as CyclOSM draws water over it
+poly 0x13 11 #e4dfdb  Building  # @building palette.mss:53, base.mss:522-523; its 0.3 px outline is not drawn
 
-# --- contour lines, in the burnt orange the style draws them with -------------
-line 0x21 2 #c45700            Contour, index
-line 0x20 1 #c45700            Contour
-line 0x22 1 #c45700            Contour, minor
+# --- lines --------------------------------------------------------------------
+# Roads: ink @rdz16_* (roads.mss:261-280), casing 1 pixel either side. CyclOSM draws a
+# trunk as a motorway (views.sql:8) and fills one a bicycle may use pink
+# (@motorway-trunk-cycle-fill); a motorway, or a trunk tagged motorroad, is closed to
+# bicycles (views.sql:116-126) and grey.
+line 0x10801 8 #f4c3c3 #f6f6f6  Roundabout  # trunk: as line 0x02
+line 0x10802 7 #f4dfc3 #d8b267  Roundabout  # primary: as line 0x03
+line 0x10803 7 #f6f8d2 #b1bb5d  Roundabout  # secondary: as line 0x04
+line 0x10804 6 #f6f6f6 #777777  Roundabout  # tertiary: as line 0x05
+line 0x07 3 #f6f6f6 #888888  Service Road  # @standard-fill (roads.mss:3036), @standard-case (roads.mss:714), @rdz16_service 3.5 roads.mss:272
+line 0x11 2 #0000ce  Cycleway  # @cycle-fill road-colors.mss:13 (roads.mss:3521), @rdz16_cycle 2 x 1.5 for a two-way cycleway (roads.mss:3549; views.sql:49-53, 131-142)
+# Dashed in graphics.txt, the unknown-surface case 10,1: the flat colour is only a fallback.
+line 0x0a 2 #114021  Track  # @track-fill road-colors.mss:52 (roads.mss:3340), @rdz16_track 3 roads.mss:273
+line 0x30 2 #bad5b5  Track  # kmap puts leisure=track here (and raceway, gallop): @track = @park * 0.96 palette.mss:36,59, leisure_track base.mss:172-199; its 1 px outline left out
+line 0x16 1 #7a5b36  Path  # footway: @footway-fill road-colors.mss:19 (roads.mss:3440), @rdz16_footway 0.75 roads.mss:277
+line 0x14 3 #888888  Railway  # @rail-line road-colors.mss:36 (roads.mss:3790), @rdz16_railway 1 roads.mss:280, 3 px cross ties dash 0,4,1,4 (roads.mss:380-396) in graphics.txt
+line 0x27 6 #dddddd  Runway  # @aeroway road-colors.mss:59, runway width 15 at z16 (roads.mss:3853-3860)
+
+# --- water --------------------------------------------------------------------
+line 0x1f 2 #8ecbeb  River  # @water palette.mss:42, river 3 at z16 (base.mss:323-330)
+line 0x18 1 #8ecbeb  Stream  # @water palette.mss:42, stream 0.8 at z16 (base.mss:336-338)
+line 0x26 1 #8ecbeb  Intermittent Stream  # as the stream: CyclOSM's waterway layer does not tell intermittent apart
+line 0x1a 1 #6666ff  Ferry  # @ferry-route palette.mss:104, 0.8 (ferry-routes.mss:12); dash 6,6 in graphics.txt
+line 0x1b 1 #6666ff  Ferry  # as line 0x1a
+
+# --- barriers, landforms, utilities -------------------------------------------
+line 0x17 1 #444444  Barrier  # barriers_line #444 0.4 at z>=16 (base.mss:476-480)
+line 0x2b 4 #999999  Cliff  # cliff2.svg in graphics.txt (base.mss:464-469); the image's own #999999
+line 0x29 1 #888888  Power Line  # @power-line palette.mss:67, 0.7 at z16 (power.mss:1-10)
+line 0x25 3 #808080  Aerial way  # the 1 px #808080 cable (aerialways.mss:6-9, 45-48, 90-93); 1 px in a 3 px band in graphics.txt; the black dash/ marks are not drawn
+# Not drawn by CyclOSM, drawn clear by graphics.txt: 0x12 Plateau rim, 0x23 Cutline,
+# 0x24 Valley, 0x28 Pipeline. 0x0d, the link this build puts in across a kerb or a bank,
+# is left out on purpose: a flat colour here would replace kmap's red dashes with a stripe.
+
+# --- boundaries ---------------------------------------------------------------
+# Admin boundaries are drawn at layer opacity 0.5 with comp-op darken (admin.mss:124-125):
+# composited over @land, #333 is #918c88 and #888 is #bbb7b2.
+line 0x1e 2 #918c88  Boundary  # admin_level 2: @state-boundaries palette.mss:70, 2.5 at z>=9 (admin.mss:42-45), solid
+line 0x1d 2 #bbb7b2  Boundary  # admin_level 3-4: @admin-boundaries palette.mss:69, 2 (admin.mss:65-68, 108-111); dash 3,6 in graphics.txt
+line 0x1c 1 #bbb7b2  Boundary  # admin_level 5-10: 1.4 / 1.2 / 1 (admin.mss:130-195); dash 3,6 in graphics.txt
+# Protected area: CyclOSM draws an inner band of @wooded, multiplied at opacity 0.2, 8 px
+# wide and offset 4 px inward (admin.mss:234-242), and a 4 px one offset 2 px inward
+# (admin.mss:244-252). Next to the boundary both lie, multiplied over @land: #c8ceb4.
+# A TYP line has no offset: the band is drawn centred on the boundary.
+line 0x19 3 #c8ceb4  Protected area
+line 0x2d 1 #f2c2bc  Military area  # @military #f55 palette.mss:45 at line-opacity 0.24 over @land, 2 at z>=15 (base.mss:254-263)
+
+# --- contour lines ------------------------------------------------------------
+# @contours-stroke (palette.mss:147). At z16 every interval CyclOSM draws is 1 px or
+# less: 100 m 1, 50 m 0.8, 20 m 0.4, 10 m 0.4 (base.mss:386-443).
+line 0x22 1 #c45700  Contour  # major, every 10th line
+line 0x21 1 #c45700  Contour  # medium, every 5th line
+line 0x20 1 #c45700  Contour  # minor, the full interval

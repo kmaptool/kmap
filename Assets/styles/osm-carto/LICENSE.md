@@ -2,7 +2,9 @@
 
 The colours in `palette.txt` and the icons in `points.txt` come from
 **openstreetmap-carto**, the stylesheet that draws openstreetmap.org itself. See
-`PROVENANCE.md` for which files were read and how the icons were made.
+`PROVENANCE.md` for which files were read and how the icons were made. Where carto has
+no symbol for a code, `points.txt` holds the plain anchor square of kmap's own reference
+TYP instead, which is not carto's.
 
     https://github.com/gravitystorm/openstreetmap-carto
     CC0 1.0 Public Domain Dedication

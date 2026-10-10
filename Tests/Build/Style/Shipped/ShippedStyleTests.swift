@@ -217,7 +217,7 @@ final class ShippedStyleTests: XCTestCase {
                 .count - 1
             XCTAssertEqual(sections, 1, "polygon \(code) appears \(sections) times")
         }
-        XCTAssertTrue(text.contains("Xpm=\"32 32 2 1\""), "the patterns ride in whole")
+        XCTAssertTrue(text.contains("Xpm=\"32 32 4 1\""), "the patterns ride in, with night colours")
 
         // The forest kinds carry the third-party style's drawings on kmap's own codes,
         // under the table's own name — theirs is in German, and the map is not.
@@ -225,7 +225,7 @@ final class ShippedStyleTests: XCTestCase {
             text.range(of: "Type=0x57\nString=0x00,Coniferous forest") != nil,
             "conifer pattern renumbered onto 0x57, named from the table"
         )
-        XCTAssertTrue(text.contains("String=0x02,Nadelwald"), "their own label rides along")
+        XCTAssertFalse(text.contains("String=0x02,Nadelwald"), "their label names their meaning, not ours")
         XCTAssertTrue(
             text.range(of: "Type=0x58\nString=0x00,Broadleaved forest") != nil,
             "broadleaf pattern renumbered onto 0x58, named from the table"
@@ -235,7 +235,9 @@ final class ShippedStyleTests: XCTestCase {
         XCTAssertTrue(text.contains("Type=0x14"), "rail rides in")
         // The icons ride along as they do for the other shipped palettes.
         XCTAssertTrue(text.contains("[_point]"))
-        XCTAssertTrue(text.contains("String=0x04,cave"))
+        // Their icon, under the table's names in place of their own.
+        XCTAssertFalse(text.contains("String=0x04,cave"))
+        XCTAssertTrue(text.contains("Type=0x6619\nString=0x00,"))
 
         // Every section is closed: unbalanced [end]s are how a TYP refuses to compile.
         let opened = ["[_polygon]", "[_line]", "[_point]", "[_id]", "[_drawOrder]"]
@@ -326,6 +328,114 @@ final class ShippedStyleTests: XCTestCase {
                 try String(contentsOf: paletteFile(of: shipped.id), encoding: .utf8)
             )
             XCTAssertNil(palette.lines.first { $0.code == 0x0d }, shipped.id)
+        }
+    }
+
+    /// Each look but OpenTopoMap leaves the lines topoactive leaves to the device: the
+    /// roads, their links and the widened numbers, which then fall back to the ones
+    /// topoactive draws.
+    func testTheTranscribedLooksLeaveTheDevicesLinesToTheDevice() throws {
+        let deviceDrawn =
+            [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0b, 0x0c, 0x0e, 0x0f, 0x10]
+            + Array(0x31...0x35)
+        for id in ["osm-carto", "cyclosm", "liberty-topo"] {
+            let shipped = try XCTUnwrap(StyleCatalog.shippedPalette(id: id))
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            let lines = typ.codes(.line)
+            for code in deviceDrawn {
+                XCTAssertFalse(lines.contains(code), "\(id) draws line " + String(format: "0x%02x", code))
+            }
+            XCTAssertTrue(lines.contains(0x16), "\(id) draws the path")
+        }
+    }
+
+    /// Every look's graphics are wired in: each of their sections is in the TYP once, with
+    /// its own picture in place of the palette's flat colour.
+    func testEveryShippedStyleCarriesItsGraphics() throws {
+        for shipped in StyleCatalog.shippedPalettes {
+            XCTAssertFalse(shipped.graphics.isEmpty, shipped.id)
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            for section in TypSource.parse(shipped.graphics).sections {
+                let label = "\(shipped.id) \(section.kind) " + String(format: "0x%02x", section.code)
+                let found = typ.sections.filter { $0.kind == section.kind && $0.code == section.code }
+                XCTAssertEqual(found.count, 1, label)
+                let drawing = try XCTUnwrap(section.dayXpm ?? section.xpm, label)
+                XCTAssertEqual(found.first.flatMap { $0.dayXpm ?? $0.xpm }, drawing, label)
+            }
+        }
+    }
+
+    /// The line widths of the transcribed looks are topoactive's, casing included.
+    func testTheTranscribedLooksDrawTopoactivesLineWidths() throws {
+        let widths: [Int: Int] = [
+            0x07: 3, 0x0a: 2, 0x11: 2, 0x16: 1, 0x18: 1, 0x1f: 2, 0x27: 6,
+            0x10801: 8, 0x10802: 7, 0x10803: 7, 0x10804: 6
+        ]
+        for id in ["osm-carto", "cyclosm", "liberty-topo"] {
+            let shipped = try XCTUnwrap(StyleCatalog.shippedPalette(id: id))
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            for (code, width) in widths {
+                let section = try XCTUnwrap(typ.sections.first { $0.kind == .line && $0.code == code })
+                let lines = section.lines.map { typ.lines[$0] }
+                func value(_ key: String) -> Int? {
+                    lines.first { TypSource.sets(key, $0) }.flatMap { TypSource.entry(of: $0) }.flatMap {
+                        Int($0.value)
+                    }
+                }
+                let drawn = value("LineWidth").map { $0 + 2 * (value("BorderWidth") ?? 0) } ?? section.picture?.height
+                XCTAssertEqual(drawn, width, "\(id) line " + String(format: "0x%02x", code))
+            }
+        }
+    }
+
+    /// What an original does not draw is a clear area, so the ground beneath shows.
+    func testAnAreaTheOriginalDoesNotDrawIsClear() throws {
+        let liberty = try XCTUnwrap(StyleCatalog.shippedPalette(id: "liberty-topo"))
+        let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: liberty))
+        let residential = try XCTUnwrap(typ.sections.first { $0.kind == .polygon && $0.code == 0x10 })
+        XCTAssertTrue(residential.patternIsBlank)
+    }
+
+    /// What an original does not draw shows nothing at all: a clear section carries no label.
+    func testEveryClearSectionIsUnlabelled() throws {
+        for shipped in StyleCatalog.shippedPalettes {
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            for section in typ.sections where section.patternIsBlank {
+                XCTAssertEqual(
+                    section.fontStyle?.lowercased().hasPrefix("nolabel"),
+                    true,
+                    "\(shipped.id) \(section.kind) " + String(format: "0x%02x", section.code)
+                )
+            }
+        }
+    }
+
+    /// A point the table names has a section in every look: one without a section shows the
+    /// device's own icon for its number, which can mean something else (a temple on every
+    /// tourist attraction). The original's symbol, or a clear one where it has none.
+    func testEveryNamedPointHasASectionInEveryLook() throws {
+        let marks = Set(TypAugment.repairTypes.map { TypeNames.key($0.kind, $0.code) })
+        let named = TypeNames.all.keys.filter {
+            $0.hasPrefix(MapElementKind.point.rawValue + " ") && !marks.contains($0)
+        }
+        XCTAssertFalse(named.isEmpty)
+        for shipped in StyleCatalog.shippedPalettes {
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            let drawn = Set(typ.sections.filter { $0.kind == .point }.map { TypeNames.key(.point, $0.code) })
+            for key in named.sorted() {
+                XCTAssertTrue(drawn.contains(key), "\(shipped.id) has no section for \(key)")
+            }
+        }
+    }
+
+    /// The repair link and its mark are kmap's own: a style that drew either number would
+    /// send the build's mark off to another one.
+    func testNoShippedStyleDrawsTheRepairMarks() throws {
+        for shipped in StyleCatalog.shippedPalettes {
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            for mark in TypAugment.repairTypes {
+                XCTAssertNil(typ.section(mark.kind, mark.code), "\(shipped.id) draws \(mark.what)")
+            }
         }
     }
 }

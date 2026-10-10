@@ -1,14 +1,20 @@
 ; POI icons for the OpenTopoMap shipped style.
-; TAKEN VERBATIM from OpenTopoMap's own Garmin TYP source --
-; garmin/style/typ/opentopomap.txt in der-stefan/OpenTopoMap, (c) OpenTopoMap,
-; CC-BY-SA -- for every point code kmap's rules also emit. Appended as-is to the
-; generated TYP; day drawings only, as their file has them.
-; Five of their drawings sit on another number, marked where they do: kmap draws
-; a tower, a wood's name and a barrier on three numbers where their rules never
-; reach. Their file covers 48 of the 146 point codes kmap's rules emit. The rest carry
-; openstreetmap-carto's symbols (CC0), the same set the carto style here ships and
-; CyclOSM already borrows -- otherwise a third of what the map knows would have no
-; mark at all. Each of those says so in its own comment.
+; Their drawings are copied from OpenTopoMap's own Garmin TYP source,
+; garmin/style/typ/opentopomap.txt in der-stefan/OpenTopoMap (commit 60c50cb8),
+; (c) OpenTopoMap, CC-BY-SA, each for the meaning kmap's rules give the code (named
+; in Assets/styles/type-names.txt) as their rules draw that meaning. 37 sit on the
+; number they have there, whole, their labels included. 11 sit on another number
+; of kmap's: only the Type line differs, their labels are left out (the generator
+; names them from type-names.txt), and a note says whose number it was. Their
+; drawings are day only.
+; A meaning their TYP draws nothing for takes openstreetmap-carto's symbol (CC0),
+; the same section the carto style ships, day and night; 51 codes, each saying
+; so in its own comment. A meaning neither draws gets the plain anchor square of the
+; reference TYP (topoactive 0x661a), day only, with its label, so no device icon of
+; another meaning shows (34 codes); it can be edited in kmap's type editor.
+; Every point code kmap's rules emit has a section but the settlement points
+; 0x0100-0x0d00, which the device draws, and kmap's repair mark 0x660b, which the
+; build adds: 133. Appended to the generated TYP.
 
 [_point]
 Type=0x2a01
@@ -46,6 +52,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a02
 String=0x02,Restaurant (asiatisch)
@@ -82,6 +89,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a03
 String=0x02,Restaurant (Grill)
@@ -118,6 +126,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a04
 String=0x02,Restaurant (chinesisch)
@@ -154,6 +163,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a05
 String=0x02,Restaurant (indisch)
@@ -190,6 +200,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a06
 String=0x02,Restaurant (international)
@@ -226,6 +237,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a07
 String=0x02,Fast food
@@ -257,6 +269,7 @@ DayXpm="16 15 10 1"
 " .####. .@@@@@. "
 "  ....   .....  "
 [end]
+
 [_point]
 Type=0x2a08
 String=0x02,Restaurant (italienisch)
@@ -293,6 +306,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a09
 String=0x02,Restaurant (mexikanisch)
@@ -329,6 +343,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0a
 String=0x02,Pizzeria
@@ -365,6 +380,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0b
 String=0x02,Restaurant (Fisch)
@@ -401,6 +417,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0c
 String=0x02,Steakhaus
@@ -437,6 +454,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a0d
 String=0x02,Bäckerei
@@ -471,6 +489,7 @@ DayXpm="14 11 17 1"
 "   !!%@@%!!   "
 "     !!!!     "
 [end]
+
 [_point]
 Type=0x2a0e
 String=0x02,Café
@@ -490,6 +509,7 @@ DayXpm="11 10 3 1"
 " .++++++.  "
 "  ......   "
 [end]
+
 [_point]
 Type=0x2a0f
 String=0x02,Restaurant (französisch)
@@ -526,6 +546,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a10
 String=0x02,Restaurant (deutsch)
@@ -562,6 +583,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a11
 String=0x02,Restaurant (britisch)
@@ -598,6 +620,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a12
 String=0x02,Restaurant (Spezialitäten)
@@ -634,6 +657,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2a13
 String=0x02,Restaurant
@@ -670,6 +694,7 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
 Type=0x2b02
 String=0x02,Hütte/Hostel
@@ -690,39 +715,7 @@ DayXpm="9 9 5 1"
 " .+++++. "
 " ....... "
 [end]
-[_point]
-Type=0x2b05
-String=0x02,Campingplatz
-String=0x04,camping
-DayXpm="16 16 11 1"
-" 	c None"
-".	c #025301"
-"+	c #244C14"
-"@	c #146C0C"
-"#	c #3C6639"
-"$	c #038A03"
-"%	c #368328"
-"&	c #00A200"
-"*	c #568441"
-"=	c #00C000"
-"-	c #FEFFFC"
-"          -     "
-"         -*-    "
-"      -- -*-    "
-"     -##-*%*-   "
-"     -@@*%&@-   "
-"     -#$&&=$*-  "
-"    -#+@====@-  "
-"    -+++&===&%- "
-"   -#$@@.&===@- "
-"   -@$@&.$===&%-"
-"   -#$@$@$====$*"
-"  -#$&@$$.&==&@-"
-" -%@$=@$=.$=&@- "
-"-*@&=&@$&$@$@-  "
-"-#.@.@+.@@+.-   "
-" -----------    "
-[end]
+
 [_point]
 Type=0x2b06
 String=0x02,Schutzhütte
@@ -742,6 +735,7 @@ DayXpm="9 8 5 1"
 " .+...+. "
 "  .   .  "
 [end]
+
 [_point]
 Type=0x2b07
 String=0x02,Hütte
@@ -762,6 +756,7 @@ DayXpm="9 9 5 1"
 " .+++++. "
 " ....... "
 [end]
+
 [_point]
 Type=0x2c02
 String=0x02,Denkmal
@@ -814,6 +809,7 @@ DayXpm="9 10 36 1"
 "<[}|1|}}2"
 "-3455567-"
 [end]
+
 [_point]
 Type=0x2c0b
 String=0x02,Kirche
@@ -844,33 +840,7 @@ DayXpm="9 20 4 1"
 "         "
 "         "
 [end]
-[_point]
-Type=0x2c0d
-String=0x02,Schloss
-String=0x04,castle
-DayXpm="8 16 5 1"
-" 	c none"
-"#	c #000000"
-"+	c #6B6D6C"
-"@	c #9FA6A5"
-".	c #FFFFFF"
-"  ...   "
-"  .#+@. "
-"  .###+."
-"  .#+@. "
-"  .#.   "
-"  .#.   "
-"...#... "
-".#####. "
-".#####. "
-".#####. "
-".#####. "
-"....... "
-"        "
-"        "
-"        "
-"        "
-[end]
+
 [_point]
 Type=0x2d02
 String=0x02,Kneipe
@@ -901,6 +871,7 @@ DayXpm="13 13 11 1"
 "  .@@=@@.    "
 "   .---.     "
 [end]
+
 [_point]
 Type=0x2d09
 String=0x02,Badestelle
@@ -918,6 +889,7 @@ DayXpm="11 6 5 1"
 "  .#####.  "
 "   .....   "
 [end]
+
 [_point]
 Type=0x2e02
 String=0x02,Supermarkt
@@ -958,6 +930,7 @@ DayXpm="16 16 18 1"
 " .++++++++++++. "
 "  ............  "
 [end]
+
 [_point]
 Type=0x2e05
 String=0x02,Apotheke
@@ -1014,47 +987,7 @@ DayXpm="11 12 38 1"
 " .89. ..3. "
 "  ..    .  "
 [end]
-[_point]
-Type=0x2e06
-String=0x02,Kiosk
-String=0x04,convenience
-String=0x04,
-DayXpm="16 16 18 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"@	c #F8F048"
-"#	c #F8F848"
-"$	c #F8F040"
-"%	c #F8E830"
-"&	c #F8E028"
-"*	c #F8E020"
-"=	c #F8D820"
-"-	c #F8D818"
-";	c #F8F850"
-">	c #F8F038"
-",	c #F8E838"
-"'	c #F8D810"
-")	c #F8D010"
-"!	c #F8E018"
-"~	c #F8D008"
-"  ............  "
-" .++++++++++++. "
-".+@#$$%%&*==--+."
-".+#;#$>%&**++-+."
-".+##@$,%&*=+--+."
-".+$+++++++++-'+."
-".+>+,+%+&+-+--+."
-".+%+%+&+*+=+-'+."
-".+&+&+*+*+-+-)+."
-".+&&++++++++')+."
-".+***=*=---+)'+."
-".+=++++++++++)+."
-".+!++-----)++~+."
-".+------')'))~+."
-" .++++++++++++. "
-"  ............  "
-[end]
+
 [_point]
 Type=0x2f06
 String=0x02,Bank
@@ -1089,6 +1022,7 @@ DayXpm="9 11 17 1"
 "  !*#.@& "
 "   !!!!  "
 [end]
+
 [_point]
 Type=0x2f0b
 String=0x02,Parkplatz
@@ -1114,6 +1048,7 @@ DayXpm="11 11 8 1"
 ".#########."
 " ......... "
 [end]
+
 [_point]
 Type=0x2f0c
 String=0x02,Toilette
@@ -1168,6 +1103,7 @@ DayXpm="16 16 32 1"
 " .++++++++++++. "
 "  ............  "
 [end]
+
 [_point]
 Type=0x2f12
 String=0x02,Telefon
@@ -1200,60 +1136,7 @@ DayXpm="7 11 15 1",
 "'=+%'  "
 " '''   "
 [end]
-[_point]
-Type=0x2f15
-String=0x02,Recycling
-String=0x04,recycling
-DayXpm="12 12 36 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #2ABF2A"
-"@	c #49C849"
-"#	c #00B200"
-"$	c #04B304"
-"%	c #9AE19A"
-"&	c #25BD25"
-"*	c #37C337"
-"=	c #4DC94D"
-"-	c #12B712"
-";	c #26BD26"
-">	c #B2E8B2"
-",	c #30C030"
-"'	c #99E099"
-")	c #57CC57"
-"!	c #73D573"
-"~	c #67D167"
-"{	c #56CC56"
-"]	c #13B813"
-"^	c #5ACD5A"
-"/	c #B1E7B1"
-"(	c #15B815"
-"_	c #7DD87D"
-":	c #11B711"
-"<	c #E7F7E7"
-"[	c #F0FAF0"
-"}	c #46C746"
-"|	c #65D065"
-"1	c #4CC94C"
-"2	c #0AB50A"
-"3	c #CDF0CD"
-"4	c #05B405"
-"5	c #8ADB8A"
-"6	c #7FD87F"
-"7	c #A8E5A8"
-"    .....   "
-"   .+@#$%.  "
-"  .&#*=#-.  "
-"  .;#.>#,.  "
-" .'.. ...). "
-".!#,.  .~#{."
-".]#^.  ./#(."
-"._:....<[}{."
-" .|##1.##2. "
-" .34#15##6. "
-"  .....75.  "
-"       ..   "
-[end]
+
 [_point]
 Type=0x2f17
 String=0x02,Bushaltestelle
@@ -1280,6 +1163,7 @@ DayXpm="9 9 11 1"
 " .@#$#@. "
 "  ..+..  "
 [end]
+
 [_point]
 Type=0x3002
 String=0x02,Arzt/Krankenhaus
@@ -1299,6 +1183,7 @@ DayXpm="10 10 3 1"
 "   1221   "
 "   1111   "
 [end]
+
 [_point]
 Type=0x4c00
 String=0x02,Information
@@ -1322,80 +1207,7 @@ DayXpm="8 12 5 1"
 ".++++++."
 " ...... "
 [end]
-[_point]
-Type=0x6411
-String=0x02,Turm
-String=0x04,tower
-DayXpm="9 18 14 1"
-"  c none"
-"1 c #f0f8f8"
-"2 c #f7f7f7"
-"3 c #101818"
-"4 c #111111"
-"5 c #e0efef"
-"6 c #141414"
-"7 c #f0f0f0"
-"8 c #1c1c1c"
-"9 c #707c7c"
-": c #202020"
-"; c #f0fbfb"
-"< c #ffffff"
-"= c #101919"
-"         "
-"    1    "
-"   232   "
-"   242   "
-"   242   "
-"   242   "
-"   565   "
-"  78987  "
-" 7:7;7:7 "
-"235<<<532"
-"242<<<242"
-"235<<<532"
-" 7:525:7 "
-"  7=4=7  "
-"   222   "
-"         "
-"         "
-"         "
-[end]
-[_point]
-Type=0x6414
-String=0x02,Trinkwasser
-String=0x04,drinking water
-DayXpm="13 14 16 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"@	c #D0D0A0"
-"#	c #E8E8A8"
-"$	c #F8F8B0"
-"%	c #D8D8A0"
-"&	c #C8C898"
-"*	c #B0B090"
-"=	c #A0A088"
-"-	c #888880"
-";	c #C8C8A0"
-">	c #E0E0A8"
-",	c #00F8F8"
-"'	c #0080F8"
-")	c #0000F8"
-"   ....      "
-"  .++++.     "
-"  ..++...... "
-" .++++++++++."
-".+@#$$%&*=-+."
-".+;%>>++++++."
-".++++++..... "
-" ..+...      "
-"  .+.        "
-" .+,+.       "
-".+'')+.      "
-".+)))+.      "
-" .+++.       "
-"  ...        "
-[end]
+
 [_point]
 Type=0x6619
 String=0x02,Höhle
@@ -1471,72 +1283,305 @@ DayXpm="8 13 17 1"
 " .,' .)!"
 "  .   . "
 [end]
+
 [_point]
-; kmap: a tower, drawn as their observation tower. Their 0x6701, this number.
-Type=0x6608
-String=0x02,Aussichtsturm
-String=0x04,observation tower
-DayXpm="19 20 34 1"
+; kmap: a campsite or caravan site. Their 0x2b05, this number.
+Type=0x2b03
+DayXpm="16 16 11 1"
 " 	c None"
-".	c #F8F8F8"
-"+	c #F7F7F7"
-"@	c #181818"
-"#	c #111111"
-"$	c #EFEFEF"
-"%	c #141414"
-"&	c #F0F0F0"
-"*	c #1C1C1C"
-"=	c #7C7C7C"
-"-	c #202020"
-";	c #FBFBFB"
-">	c #FFFFFF"
-",	c #ACACAC"
-"'	c #C4C4C4"
-")	c #000000"
-"!	c #242424"
-"~	c #323232"
-"{	c #F1F1F1"
-"]	c #CECECE"
-"^	c #212121"
-"/	c #191919"
-"(	c #898989"
-"_	c #2C2C2C"
-":	c #747474"
-"<	c #313131"
-"[	c #9F9F9F"
-"}	c #1B1B1B"
-"|	c #909090"
-"1	c #858585"
-"2	c #5E5E5E"
-"3	c #4F4F4F"
-"4	c #D3D3D3"
-"5	c #BFBFBF"
-"                   "
-"         .         "
-"        +@+        "
-"        +#+        "
-"        +#+        "
-"        +#+        "
-"        $%$        "
-"       &*=*&       "
-"      &-&;&-&      "
-">,'>>+@$>>>$@+>>',>"
-">))))+#+>>>+#+))))>"
-">,'>>+!$>>>$@+>>',>"
-"     >+~$+$-{      "
-"    >]>+^#/{>>     "
-"   >(_> +++ >:.    "
-"  {<)>  >)> >[}|   "
-"  >12   >)>  >3)4  "
-"   >    ')'   [5>  "
-"        ,),        "
-"        >>>        "
+".	c #025301"
+"+	c #244C14"
+"@	c #146C0C"
+"#	c #3C6639"
+"$	c #038A03"
+"%	c #368328"
+"&	c #00A200"
+"*	c #568441"
+"=	c #00C000"
+"-	c #FEFFFC"
+"          -     "
+"         -*-    "
+"      -- -*-    "
+"     -##-*%*-   "
+"     -@@*%&@-   "
+"     -#$&&=$*-  "
+"    -#+@====@-  "
+"    -+++&===&%- "
+"   -#$@@.&===@- "
+"   -@$@&.$===&%-"
+"   -#$@$@$====$*"
+"  -#$&@$$.&==&@-"
+" -%@$=@$=.$=&@- "
+"-*@&=&@$&$@$@-  "
+"-#.@.@+.@@+.-   "
+" -----------    "
 [end]
+
 [_point]
-; kmap: a barrier. Their 0x660f, this number.
+; kmap: a lean-to, which their rules draw as their hut (tourism=lean_to). Their 0x2b07, this number.
+Type=0x2b05
+DayXpm="9 9 5 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"@	c #1F1F1F"
+"#	c #3F3F3F"
+"    .    "
+"   .+.   "
+"  .+.+.  "
+" .+...+. "
+".@#...#@."
+" .+...+. "
+" .+...+. "
+" .+++++. "
+" ....... "
+[end]
+
+[_point]
+; kmap: a memorial, which their rules draw as their monument (historic=memorial). Their 0x2c02, this number.
+Type=0x2c12
+DayXpm="9 10 36 1"
+" 	c None"
+".	c #EAEAEA"
+"+	c #FFFFFF"
+"@	c #848484"
+"#	c #616161"
+"$	c #2B2B2B"
+"%	c #DCDCDC"
+"&	c #A3A3A3"
+"*	c #ACACAC"
+"=	c #7C7C7C"
+"-	c #F3F3F3"
+";	c #969696"
+">	c #B6B6B6"
+",	c #282828"
+"'	c #424242"
+")	c #E8E8E8"
+"!	c #101010"
+"~	c #747474"
+"{	c #565656"
+"]	c #E7E7E7"
+"^	c #8D8D8D"
+"/	c #B7B7B7"
+"(	c #2E2E2E"
+"_	c #1E1E1E"
+":	c #111111"
+"<	c #E3E3E3"
+"[	c #606060"
+"}	c #000000"
+"|	c #636363"
+"1	c #434343"
+"2	c #DADADA"
+"3	c #CDCDCD"
+"4	c #CBCBCB"
+"5	c #C7C7C7"
+"6	c #CACACA"
+"7	c #CFCFCF"
+"    .    "
+"  +@#$+  "
+"  %&+*=+ "
+"  -;+>,+ "
+"   ')!+  "
+"  +~){+  "
+"  ]^+/(+ "
+" +_+++:. "
+"<[}|1|}}2"
+"-3455567-"
+[end]
+
+[_point]
+; kmap: an emergency phone, which their rules draw as their telephone. Their 0x2f12, this number.
+Type=0x2f16
+DayXpm="7 11 15 1",
+" 	c none"
+".	c #000000"
+"+	c #010101"
+"@	c #020202"
+"#	c #060606"
+"$	c #0B0B0B"
+"%	c #353535"
+"&	c #3C3C3C"
+"*	c #606060"
+"=	c #727272"
+"-	c #A7A7A7"
+";	c #A9A9A9"
+">	c #B3B3B3"
+",	c #CDCDCD"
+"'	c #FFFFFF"
+" '''   "
+"'=@%'  "
+"';.+&' "
+"'>@*@-'"
+" ','#;'"
+"   '$-'"
+" ','#;'"
+"'>@*@-'"
+"';.+&' "
+"'=+%'  "
+" '''   "
+[end]
+
+[_point]
+; kmap: a telephone. Their 0x2f12, this number.
+Type=0x2f18
+DayXpm="7 11 15 1",
+" 	c none"
+".	c #000000"
+"+	c #010101"
+"@	c #020202"
+"#	c #060606"
+"$	c #0B0B0B"
+"%	c #353535"
+"&	c #3C3C3C"
+"*	c #606060"
+"=	c #727272"
+"-	c #A7A7A7"
+";	c #A9A9A9"
+">	c #B3B3B3"
+",	c #CDCDCD"
+"'	c #FFFFFF"
+" '''   "
+"'=@%'  "
+"';.+&' "
+"'>@*@-'"
+" ','#;'"
+"   '$-'"
+" ','#;'"
+"'>@*@-'"
+"';.+&' "
+"'=+%'  "
+" '''   "
+[end]
+
+[_point]
+; kmap: a taxi rank, which their rules draw as their bus stop (amenity=taxi). Their 0x2f17, this number.
+Type=0x2f19
+DayXpm="9 9 11 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #E0F3E4"
+"@	c #ACDFB7"
+"#	c #18A736"
+"$	c #09A125"
+"%	c #25AB27"
+"&	c #AADB30"
+"*	c #FBF836"
+"=	c #45B629"
+"-	c #049F24"
+"  ..+..  "
+" .@#$#@. "
+".@%&*&=@."
+".#*-*-*#."
+"+$*---*$+"
+".#*-*-*#."
+".@=&*&=@."
+" .@#$#@. "
+"  ..+..  "
+[end]
+
+[_point]
+; kmap: drinking water. Their 0x6414, this number.
+Type=0x5000
+DayXpm="13 14 16 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"@	c #D0D0A0"
+"#	c #E8E8A8"
+"$	c #F8F8B0"
+"%	c #D8D8A0"
+"&	c #C8C898"
+"*	c #B0B090"
+"=	c #A0A088"
+"-	c #888880"
+";	c #C8C8A0"
+">	c #E0E0A8"
+",	c #00F8F8"
+"'	c #0080F8"
+")	c #0000F8"
+"   ....      "
+"  .++++.     "
+"  ..++...... "
+" .++++++++++."
+".+@#$$%&*=-+."
+".+;%>>++++++."
+".++++++..... "
+" ..+...      "
+"  .+.        "
+" .+,+.       "
+".+'')+.      "
+".+)))+.      "
+" .+++.       "
+"  ...        "
+[end]
+
+[_point]
+; kmap: a mast; chimneys, generators, water towers, beacons land here too. Their 0x6702, this number.
+Type=0x6411
+DayXpm="11 12 8 1"
+" 	c None"
+".	c #FFFFFF"
+"+	c #000000"
+"@	c #9A9A9A"
+"#	c #F8F8F8"
+"$	c #F7F7F7"
+"%	c #181818"
+"&	c #111111"
+"  .     .  "
+" .+.   .+. "
+".+.@.#.@.+."
+".+.+$%$+.+."
+".+.@$&$@.+."
+" .+.$&$.+. "
+"  . $&$ .  "
+"    .+.    "
+"    .+.    "
+"   ..+..   "
+"   .+++.   "
+"   .....   "
+[end]
+
+[_point]
+; kmap: a tower, drawn as their plain tower (man_made=tower). Their 0x6411, this number.
+Type=0x6608
+DayXpm="9 18 14 1"
+"  c none"
+"1 c #f0f8f8"
+"2 c #f7f7f7"
+"3 c #101818"
+"4 c #111111"
+"5 c #e0efef"
+"6 c #141414"
+"7 c #f0f0f0"
+"8 c #1c1c1c"
+"9 c #707c7c"
+": c #202020"
+"; c #f0fbfb"
+"< c #ffffff"
+"= c #101919"
+"         "
+"    1    "
+"   232   "
+"   242   "
+"   242   "
+"   242   "
+"   565   "
+"  78987  "
+" 7:7;7:7 "
+"235<<<532"
+"242<<<242"
+"235<<<532"
+" 7:525:7 "
+"  7=4=7  "
+"   222   "
+"         "
+"         "
+"         "
+[end]
+
+[_point]
+; kmap: a gate, stile, kissing gate or cycle barrier: their barrier. Their 0x660f, this number.
 Type=0x3200
-String=0x02,Pfosten/Barriere
-String=0x04,barrier
 DayXpm="7 7 3 1"
 " 	c None"
 ".	c #FFFFFF"
@@ -1549,41 +1594,27 @@ DayXpm="7 7 3 1"
 "  .+.  "
 "   .   "
 [end]
+
 [_point]
-; kmap: the name of a wood, marked with their broadleaf tree. Their 0x6416, this number.
-Type=0x6618
-String=0x02,Laubbaum
-String=0x04,broadleaf tree
-DayXpm="9 12 13 1"
+; kmap: a bollard, block or bus trap: their barrier. Their 0x660f, this number.
+Type=0x3202
+DayXpm="7 7 3 1"
 " 	c None"
 ".	c #FFFFFF"
-"+	c #A2A2A2"
-"@	c #000000"
-"#	c #959595"
-"$	c #B4B4B4"
-"%	c #666666"
-"&	c #BDBDBD"
-"*	c #949494"
-"=	c #DADADA"
-"-	c #EBEBEB"
-";	c #696969"
-">	c #585858"
-"   .+.   "
-"  .@#@$  "
-" .@...@. "
-".%..&*=@."
-".@..-;-@."
-".@...>.@."
-".@..&=@%."
-" .@..@@. "
-"  .@@@.  "
-"  ..@..  "
-"  .@@@.  "
-"  .....  "
+"+	c #000000"
+"   .   "
+"  .+.  "
+" .+++. "
+".++.++."
+" .+++. "
+"  .+.  "
+"   .   "
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2b01
-; Hotel — openstreetmap-carto symbol (CC0), 16 px
+; Hotel - openstreetmap-carto symbols/tourism/hotel.svg (CC0), 16 px, ink @accommodation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -1622,54 +1653,12 @@ NightXpm="16 16 2 1"
 "................"
 "................"
 "................"
-String=0x00,Hotel
 [end]
+
 [_point]
-Type=0x2b03
-; Campsite — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"......!..!......"
-"......!!!!......"
-"......!!!!......"
-".......!!......."
-"......!!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".....!!!!!!....."
-"....!!!!!!!!...."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"..!!!!....!!!!.."
-"..!!!!....!!!!.."
-".!!!!......!!!!."
-".!!!!......!!!!."
-"!!!!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"......!..!......"
-"......!!!!......"
-"......!!!!......"
-".......!!......."
-"......!!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".....!!!!!!....."
-"....!!!!!!!!...."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"..!!!!....!!!!.."
-"..!!!!....!!!!.."
-".!!!!......!!!!."
-".!!!!......!!!!."
-"!!!!!!!!!!!!!!!!"
-String=0x00,Campsite
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2c03
-; Library — openstreetmap-carto symbol (CC0), 16 px
+; Library - openstreetmap-carto symbols/amenity/library.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -1708,11 +1697,12 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 ".....!!!!!!....."
 "................"
-String=0x00,Library
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2c04
-; Viewpoint — openstreetmap-carto symbol (CC0), 16 px
+; Viewpoint - openstreetmap-carto symbols/tourism/viewpoint.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -1751,54 +1741,12 @@ NightXpm="16 16 2 1"
 "...!!!....!!!..."
 "...!!!....!!!..."
 "................"
-String=0x00,Viewpoint
 [end]
+
 [_point]
-Type=0x2c08
-; Fishing — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0D7813"
-". c none"
-"!..............."
-"!..............."
-"!..............."
-"!..............."
-"!.....!........."
-"!....!!........."
-"!....!!........."
-"!!...!.........."
-".!!!!..........."
-"................"
-"....!!!!!......."
-"..!!!!!!!!!...!!"
-"!!..!!!!!!!!.!!!"
-"!!!.!!!!!!!!.!!!"
-".!!!!!!!!!!...!!"
-"...!!!!!!......!"
-NightXpm="16 16 2 1"
-"! c #AAFFAA"
-". c none"
-"!..............."
-"!..............."
-"!..............."
-"!..............."
-"!.....!........."
-"!....!!........."
-"!....!!........."
-"!!...!.........."
-".!!!!..........."
-"................"
-"....!!!!!......."
-"..!!!!!!!!!...!!"
-"!!..!!!!!!!!.!!!"
-"!!!.!!!!!!!!.!!!"
-".!!!!!!!!!!...!!"
-"...!!!!!!......!"
-String=0x00,Fishing
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2c0f
-; Playground — openstreetmap-carto symbol (CC0), 16 px
+; Playground - openstreetmap-carto symbols/leisure/playground.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -1837,97 +1785,56 @@ NightXpm="16 16 2 1"
 "......!!!!..!!!!"
 "......!!!!.....!"
 "......!!!!......"
-String=0x00,Playground
 [end]
+
 [_point]
-Type=0x2c12
-; Memorial — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
-"......!!!!!!...."
-".....!!!!!!!!..."
-"....!!!!!!!!!!.."
-"....!!!!..!!!!.."
-"....!!!!!!!!!!.."
-"....!!......!!.."
-"....!!!!!!!!!!.."
-"....!!!....!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-".....!!!!!!!!!.."
-"................"
-"...!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"......!!!!!!...."
-".....!!!!!!!!..."
-"....!!!!!!!!!!.."
-"....!!!!..!!!!.."
-"....!!!!!!!!!!.."
-"....!!......!!.."
-"....!!!!!!!!!!.."
-"....!!!....!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-"....!!!!!!!!!!.."
-".....!!!!!!!!!.."
-"................"
-"...!!!!!!!!!!!!!"
-String=0x00,Memorial
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d01
-; Arts centre — openstreetmap-carto symbol (CC0), 16 px
+; Theatre - openstreetmap-carto symbols/amenity/theatre.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
-".....!!!!!!...!!"
-"...!!!!!.!!!..!!"
-"..!!!!!...!!..!!"
-".!!..!!...!!..!!"
-".!!...!!!!!...!!"
-"!!!!.!!!!!!...!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!...!!"
-"!!!!!!!!!!!...!!"
-".!!!!!!!!...!!!!"
-".!!!!!....!!!!!!"
-"..!!!!...!!!!!!!"
-"...!!!...!!!!!!."
-"..........!!!!.."
+"!!.....!!......."
+"!!!!!!!!!......."
+"!..!!!..!......."
+"!.!............!"
+"!!!!...!!!!!!!!!"
+"!.!!...!!!!!!!!!"
+"!......!!!!!!!!!"
+"!...!!.!!..!..!!"
+"!.!!!!.!!..!..!!"
+"!!!!!!.!!!!!!!!!"
+".!.....!!!!!!!!!"
+".!!!!!.!!!!!!!!!"
+"...!!!.!!!...!!!"
+".......!!!!.!!!!"
+"........!!!!!!!."
+".........!!!!!.."
 NightXpm="16 16 2 1"
 "! c #AAAAAA"
 ". c none"
-".....!!!!!!...!!"
-"...!!!!!.!!!..!!"
-"..!!!!!...!!..!!"
-".!!..!!...!!..!!"
-".!!...!!!!!...!!"
-"!!!!.!!!!!!...!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!!..!!"
-"!!!!!!!!!!!...!!"
-"!!!!!!!!!!!...!!"
-".!!!!!!!!...!!!!"
-".!!!!!....!!!!!!"
-"..!!!!...!!!!!!!"
-"...!!!...!!!!!!."
-"..........!!!!.."
-String=0x00,Arts centre
+"!!.....!!......."
+"!!!!!!!!!......."
+"!..!!!..!......."
+"!.!............!"
+"!!!!...!!!!!!!!!"
+"!.!!...!!!!!!!!!"
+"!......!!!!!!!!!"
+"!...!!.!!..!..!!"
+"!.!!!!.!!..!..!!"
+"!!!!!!.!!!!!!!!!"
+".!.....!!!!!!!!!"
+".!!!!!.!!!!!!!!!"
+"...!!!.!!!...!!!"
+".......!!!!.!!!!"
+"........!!!!!!!."
+".........!!!!!.."
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d03
-; Cinema — openstreetmap-carto symbol (CC0), 16 px
+; Cinema - openstreetmap-carto symbols/amenity/cinema.svg (CC0), 16 px, ink @culture
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -1966,11 +1873,12 @@ NightXpm="16 16 2 1"
 "!!!!!......!!!!!"
 "!.!!!......!!!.!"
 "!!!!!!!!!!!!!!!!"
-String=0x00,Cinema
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d04
-; Casino — openstreetmap-carto symbol (CC0), 16 px
+; Casino - openstreetmap-carto symbols/amenity/casino.svg (CC0), 16 px, ink @amenity-brown
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -2009,11 +1917,12 @@ NightXpm="16 16 2 1"
 ".......!..!!!!!!"
 "........!!!!!!!."
 "................"
-String=0x00,Casino
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d05
-; Golf course — openstreetmap-carto symbol (CC0), 16 px
+; Golf course - openstreetmap-carto symbols/leisure/golf.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -2052,11 +1961,12 @@ NightXpm="16 16 2 1"
 ".!.....!!..!...."
 ".!.....!...!...."
 "................"
-String=0x00,Golf course
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2d07
-; Bowling alley — openstreetmap-carto symbol (CC0), 16 px
+; Bowling - openstreetmap-carto symbols/leisure/bowling_alley.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
@@ -2095,54 +2005,12 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!.!!!!!!"
 ".!!!!!!!..!!!!!!"
 "..!!!!!...!!!!!."
-String=0x00,Bowling alley
 [end]
+
 [_point]
-Type=0x2d0a
-; Sports center — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0D7813"
-". c none"
-"..........!!...."
-"..........!!!..."
-"..........!!...."
-".........!!....."
-"......!!!!!!.!!."
-".....!!.!!!!!!.."
-".....!.!!!.!!..."
-".......!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".!!!!!!.!!!....."
-"..!!!!...!!....."
-".........!!....."
-".........!......"
-"........!!......"
-".........!......"
-NightXpm="16 16 2 1"
-"! c #AAFFAA"
-". c none"
-"..........!!...."
-"..........!!!..."
-"..........!!...."
-".........!!....."
-"......!!!!!!.!!."
-".....!!.!!!!!!.."
-".....!.!!!.!!..."
-".......!!!......"
-"......!!!!......"
-".....!!!!!!....."
-".!!!!!!.!!!....."
-"..!!!!...!!....."
-".........!!....."
-".........!......"
-"........!!......"
-".........!......"
-String=0x00,Sports center
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2e01
-; Department store — openstreetmap-carto symbol (CC0), 16 px
+; Department store - openstreetmap-carto symbols/shop/department_store.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -2181,269 +2049,12 @@ NightXpm="16 16 2 1"
 ".!!!!.......!!!."
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
-String=0x00,Department store
 [end]
+
 [_point]
-Type=0x2e04
-; Mall — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-".....!!!!!!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!.!!!!!!!."
-".!!!!..!..!!!!!."
-".!!!!..!..!!!!!."
-".!!!!!...!!!!!!."
-".!!!!....!!!!!!."
-".!!!..!....!!!!."
-".!!!..!!...!!!!."
-".!!!!.......!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-".....!!!!!!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!.!!!!!!!."
-".!!!!..!..!!!!!."
-".!!!!..!..!!!!!."
-".!!!!!...!!!!!!."
-".!!!!....!!!!!!."
-".!!!..!....!!!!."
-".!!!..!!...!!!!."
-".!!!!.......!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-String=0x00,Mall
-[end]
-[_point]
-Type=0x2e07
-; Clothes — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"...!!!....!!!..."
-".!!!!!....!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-".!!!!!!!!!!!!.!."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"...!!!....!!!..."
-".!!!!!....!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-".!!!!!!!!!!!!.!."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"................"
-String=0x00,Clothes
-[end]
-[_point]
-Type=0x2e08
-; Garden centre — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-".........!!!!!.."
-"........!!!!!!!."
-".......!!....!!."
-".......!!.....!!"
-"..!!...!!.....!!"
-".!!!...!!.....!!"
-"!!!!...!!!!!!!!!"
-"!!!!!..!!!!!!!!!"
-"....!!!!!!!!!!!!"
-".....!!!!!!!!!!."
-".....!!!!!!!!!!."
-"......!!!!!!!!!."
-".......!!!!!!!!."
-"........!!!!!!!."
-".........!!!!!.."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-".........!!!!!.."
-"........!!!!!!!."
-".......!!....!!."
-".......!!.....!!"
-"..!!...!!.....!!"
-".!!!...!!.....!!"
-"!!!!...!!!!!!!!!"
-"!!!!!..!!!!!!!!!"
-"....!!!!!!!!!!!!"
-".....!!!!!!!!!!."
-".....!!!!!!!!!!."
-"......!!!!!!!!!."
-".......!!!!!!!!."
-"........!!!!!!!."
-".........!!!!!.."
-String=0x00,Garden centre
-[end]
-[_point]
-Type=0x2e09
-; Doityourself — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"...!!!.........."
-".!!!!!!!.!....!."
-"!!!!!!!!.!!..!!."
-".!!!!!!!.!!!!!!."
-".!!!!!!!.!!!!!!."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"....!!.....!!..."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"...!!!.........."
-".!!!!!!!.!....!."
-"!!!!!!!!.!!..!!."
-".!!!!!!!.!!!!!!."
-".!!!!!!!.!!!!!!."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"...!!!....!!!!.."
-"....!!.....!!..."
-String=0x00,Doityourself
-[end]
-[_point]
-Type=0x2e0b
-; Computer — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"...!!!!!!!!!!..."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!!!!!!!!!!!.."
-"................"
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"...!!!!!!!!!!..."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!........!!.."
-"..!!!!!!!!!!!!.."
-"................"
-"..!!!!!!!!!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!!!."
-String=0x00,Computer
-[end]
-[_point]
-Type=0x2e0c
-; Butcher — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"......!!........"
-"....!!..!......."
-"..!!..!.!......."
-"..!...!.!......."
-"...!.....!......"
-"...!.....!......"
-"....!.....!....."
-"....!.....!....."
-".....!...!!!...."
-"......!.!!!!!..."
-"......!!..!!!..."
-"...........!!!.."
-"...........!!!.."
-"............!!.."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"......!!........"
-"....!!..!......."
-"..!!..!.!......."
-"..!...!.!......."
-"...!.....!......"
-"...!.....!......"
-"....!.....!....."
-"....!.....!....."
-".....!...!!!...."
-"......!.!!!!!..."
-"......!!..!!!..."
-"...........!!!.."
-"...........!!!.."
-"............!!.."
-"................"
-String=0x00,Butcher
-[end]
-[_point]
-Type=0x2f01
-; Fuel — openstreetmap-carto symbol (CC0), 16 px
+; kmap: fuel with a shop is fuel to them (their 0x2f01), which their TYP does not draw, so it takes openstreetmap-carto's symbol.
+Type=0x2e06
+; Fuel with shop - openstreetmap-carto symbols/amenity/fuel.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
@@ -2482,11 +2093,232 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!..!!.."
 ".!!!!!!!!!......"
 ".!!!!!!!!!......"
-String=0x00,Fuel
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e07
+; Clothes shop - openstreetmap-carto symbols/shop/clothes.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+"...!!!....!!!..."
+".!!!!!....!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!!!!!!!!!.!."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"................"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+"...!!!....!!!..."
+".!!!!!....!!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!!!!!!!!!.!."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"................"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e08
+; Outdoor / garden shop - openstreetmap-carto symbols/shop/garden_centre.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+".........!!!!!.."
+"........!!!!!!!."
+".......!!....!!."
+".......!!.....!!"
+"..!!...!!.....!!"
+".!!!...!!.....!!"
+"!!!!...!!!!!!!!!"
+"!!!!!..!!!!!!!!!"
+"....!!!!!!!!!!!!"
+".....!!!!!!!!!!."
+".....!!!!!!!!!!."
+"......!!!!!!!!!."
+".......!!!!!!!!."
+"........!!!!!!!."
+".........!!!!!.."
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+".........!!!!!.."
+"........!!!!!!!."
+".......!!....!!."
+".......!!.....!!"
+"..!!...!!.....!!"
+".!!!...!!.....!!"
+"!!!!...!!!!!!!!!"
+"!!!!!..!!!!!!!!!"
+"....!!!!!!!!!!!!"
+".....!!!!!!!!!!."
+".....!!!!!!!!!!."
+"......!!!!!!!!!."
+".......!!!!!!!!."
+"........!!!!!!!."
+".........!!!!!.."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e09
+; Hardware shop - openstreetmap-carto symbols/shop/diy.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"...!!!.........."
+".!!!!!!!.!....!."
+"!!!!!!!!.!!..!!."
+".!!!!!!!.!!!!!!."
+".!!!!!!!.!!!!!!."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"....!!.....!!..."
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"...!!!.........."
+".!!!!!!!.!....!."
+"!!!!!!!!.!!..!!."
+".!!!!!!!.!!!!!!."
+".!!!!!!!.!!!!!!."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"...!!!....!!!!.."
+"....!!.....!!..."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2e0b
+; Computer shop - openstreetmap-carto symbols/shop/computer.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+"...!!!!!!!!!!..."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!!!!!!!!!!!.."
+"................"
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+"...!!!!!!!!!!..."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!........!!.."
+"..!!!!!!!!!!!!.."
+"................"
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f01
+; Fuel - openstreetmap-carto symbols/amenity/fuel.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"............!..."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!...!!."
+".!!!!!!!!!...!!."
+".!.......!!..!!."
+".!.......!!!..!."
+".!!......!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!..!!!."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!......"
+".!!!!!!!!!......"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"............!..."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!...!!."
+".!!!!!!!!!...!!."
+".!.......!!..!!."
+".!.......!!!..!."
+".!!......!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!.!!.!."
+".!!!!!!!!!..!!!."
+".!!!!!!!!!..!!.."
+".!!!!!!!!!......"
+".!!!!!!!!!......"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f03
-; Car repair — openstreetmap-carto symbol (CC0), 16 px
+; Car repair - openstreetmap-carto symbols/shop/car_repair.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -2525,11 +2357,12 @@ NightXpm="16 16 2 1"
 "..!!!!!!!!!!!!.."
 "..!!!!!!!!!!!!.."
 "....!!....!!...."
-String=0x00,Car repair
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f04
-; Aerodrome — openstreetmap-carto symbol (CC0), 16 px
+; Airport - openstreetmap-carto symbols/amenity/aerodrome.svg (CC0), 16 px, ink @airtransport
 DayXpm="16 16 2 1"
 "! c #8461C4"
 ". c none"
@@ -2568,11 +2401,12 @@ NightXpm="16 16 2 1"
 "......!!!!!....."
 "....!!!!!!!!...."
 "....!!....!!...."
-String=0x00,Aerodrome
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f05
-; Post office — openstreetmap-carto symbol (CC0), 16 px
+; Post office - openstreetmap-carto symbols/amenity/post_office.svg (CC0), 16 px, ink @public-service
 DayXpm="16 16 2 1"
 "! c #734A08"
 ". c none"
@@ -2611,11 +2445,12 @@ NightXpm="16 16 2 1"
 "!!!!!!!!!!!!!!!!"
 "................"
 "................"
-String=0x00,Post office
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f07
-; Car — openstreetmap-carto symbol (CC0), 16 px
+; Car dealer - openstreetmap-carto symbols/shop/car.svg (CC0), 16 px, ink @shop-icon
 DayXpm="16 16 2 1"
 "! c #AC39AC"
 ". c none"
@@ -2654,71 +2489,563 @@ NightXpm="16 16 2 1"
 ".!!!........!!!."
 ".!!..........!!."
 "................"
-String=0x00,Car
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x2f08
-; Bus station — openstreetmap-carto symbol (CC0), 16 px
+; Station - openstreetmap-carto symbols/amenity/bus_station.svg (CC0), 16 px, ink the SVG's own colours
+; Bus and railway stations land here; topoactive draws a bus. carto draws the
+; bus station in the SVG's own blue and white, so both are kept.
+DayXpm="16 16 3 1"
+"! c #0092DA"
+"- c #FFFFFF"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!--------!!!!"
+"!!!----------!!!"
+"!!--!!!!!!!!--!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!-!--------!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!------------!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 3 1"
+"! c #AAFFFF"
+"- c #FFFFFF"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!!!--------!!!!"
+"!!!----------!!!"
+"!!--!!!!!!!!--!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!-!!!!!!!!!!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!-!--------!-!!"
+"!!------------!!"
+"!!------------!!"
+"!!------------!!"
+"!!!--!!!!!!--!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f0e
+; Car wash - openstreetmap-carto symbols/amenity/car_wash.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"......!!!!......"
+"................"
+"....!..!!..!...."
+"....!..!!..!...."
+"...!...!!...!..."
+"...!...!!...!..."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"......!!!!......"
+"................"
+"....!..!!..!...."
+"....!..!!..!...."
+"...!...!!...!..."
+"...!...!!...!..."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f10
+; Hairdresser - openstreetmap-carto symbols/shop/hairdresser.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"....!!!..!!!!!!."
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!.......!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"..!!!!!!!!....!!"
+"!!!!!!!!!!!...!!"
+"!...!!!...!...!!"
+"!...!!!...!...!!"
+"!!..!.!!.!!...!!"
+".!!!!..!!!....!!"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"....!!!..!!!!!!."
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"....!!!..!!!!!!!"
+"....!!!.......!!"
+"....!!!..!!!!!!!"
+"....!!!......!!!"
+"..!!!!!!!!....!!"
+"!!!!!!!!!!!...!!"
+"!...!!!...!...!!"
+"!...!!!...!...!!"
+"!!..!.!!.!!...!!"
+".!!!!..!!!....!!"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f13
+; Bicycle shop - openstreetmap-carto symbols/shop/bicycle.svg (CC0), 16 px, ink @shop-icon
+DayXpm="16 16 2 1"
+"! c #AC39AC"
+". c none"
+"................"
+"................"
+".........!!....."
+"...!!!!...!!...."
+"....!!....!!...."
+"....!!!!!!!!...."
+"....!...!!.!...."
+".!!!!...!.!!!!!."
+"!!...!!!..!...!!"
+"!....!!..!!....!"
+"!.....!..!.....!"
+"!!...!!..!!...!!"
+".!!!!!....!!!!!."
+"..!!!......!!!.."
+"................"
+"................"
+NightXpm="16 16 2 1"
+"! c #FFAAFF"
+". c none"
+"................"
+"................"
+".........!!....."
+"...!!!!...!!...."
+"....!!....!!...."
+"....!!!!!!!!...."
+"....!...!!.!...."
+".!!!!...!.!!!!!."
+"!!...!!!..!...!!"
+"!....!!..!!....!"
+"!.....!..!.....!"
+"!!...!!..!!...!!"
+".!!!!!....!!!!!."
+"..!!!......!!!.."
+"................"
+"................"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f14
+; Nursing home - openstreetmap-carto symbols/amenity/social_facility.svg (CC0), 16 px, ink @public-service
+; carto draws social_facility=nursing_home so; a bare amenity=nursing_home is a dot.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!......."
+"......!!!!......"
+".!....!!!!....!."
+".!............!."
+".!............!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!!...!!!!...!!."
+".!!...!!!!...!!."
+".!!!........!!!."
+"..!!!!....!!!!.."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+"......!!!!......"
+".!....!!!!....!."
+".!............!."
+".!............!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!....!!!!....!."
+".!!...!!!!...!!."
+".!!...!!!!...!!."
+".!!!........!!!."
+"..!!!!....!!!!.."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+[end]
+
+[_point]
+; kmap: their rules have no post box (their 0x2f15 drawing is recycling), so it takes openstreetmap-carto's symbol.
+Type=0x2f15
+; Post box - openstreetmap-carto symbols/amenity/post_box.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!............!!"
+"!..............!"
+"!..!!!!!!!.!!..!"
+"...!!!!!!..!!..."
+"...!!!!!..!!!..."
+"...!!!!!..!!!..."
+"...!!!!..!!!!..."
+"...!!!!.!!!!!..."
+"...!!!..!!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!!..!!!..."
+"...!!!!!!.!!!..."
+"...!!!!!!..!!..."
+"...!!!!!!!..!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"!!!!!!!!!!!!!!!!"
+"!!............!!"
+"!..............!"
+"!..!!!!!!!.!!..!"
+"...!!!!!!..!!..."
+"...!!!!!..!!!..."
+"...!!!!!..!!!..."
+"...!!!!..!!!!..."
+"...!!!!.!!!!!..."
+"...!!!..!!!!!..."
+"...!!!!..!!!!..."
+"...!!!!..!!!!..."
+"...!!!!!..!!!..."
+"...!!!!!!.!!!..."
+"...!!!!!!..!!..."
+"...!!!!!!!..!..."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f1a
+; Charging station - openstreetmap-carto symbols/amenity/charging_station.svg (CC0), 16 px, ink @transportation-icon
 DayXpm="16 16 2 1"
 "! c #0092DA"
 ". c none"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
+"................"
+".!!!!!!........."
+"!!!!!!!!....!.!."
+"!!!!!!!!....!.!."
+"!!!...!!...!!!!."
+"!!!..!!!...!!!!."
+"!!...!!!!!.!!!!."
+"!!....!!.!..!!!."
+"!!!..!!!.!!.!!.."
+"!!!..!!!.!!.!!.."
+"!!!.!!!!.!!.!!.."
+"!!.!!!!!.!!.!!.."
+"!!!!!!!!.!!.!!.."
+"!!!!!!!!.!!!!!.."
+"!!!!!!!!..!!!..."
+"!!!!!!!!........"
 NightXpm="16 16 2 1"
 "! c #AAFFFF"
 ". c none"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-String=0x00,Bus station
+"................"
+".!!!!!!........."
+"!!!!!!!!....!.!."
+"!!!!!!!!....!.!."
+"!!!...!!...!!!!."
+"!!!..!!!...!!!!."
+"!!...!!!!!.!!!!."
+"!!....!!.!..!!!."
+"!!!..!!!.!!.!!.."
+"!!!..!!!.!!.!!.."
+"!!!.!!!!.!!.!!.."
+"!!.!!!!!.!!.!!.."
+"!!!!!!!!.!!.!!.."
+"!!!!!!!!.!!!!!.."
+"!!!!!!!!..!!!..."
+"!!!!!!!!........"
 [end]
+
 [_point]
-Type=0x2f09
-; Slipway — openstreetmap-carto symbol (CC0), 16 px
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3001
+; Police - openstreetmap-carto symbols/amenity/police.svg (CC0), 16 px, ink @public-service
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".....!!!!!!....."
+"....!!!!!!!!...."
+"................"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"................"
+"...!!!!!!!.!!..."
+"...!!!!!!..!!!.."
+"..!!!!!!..!!!!.."
+"..!!!!!!.!!!!!.."
+"..!!!!!.!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!..!!!!!!!.."
+"..!!!.!!!!!!!!.."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".....!!!!!!....."
+"....!!!!!!!!...."
+"................"
+".....!!!!!!....."
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"................"
+"...!!!!!!!.!!..."
+"...!!!!!!..!!!.."
+"..!!!!!!..!!!!.."
+"..!!!!!!.!!!!!.."
+"..!!!!!.!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!..!!!!!!!.."
+"..!!!.!!!!!!!!.."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3003
+; Town hall / embassy - openstreetmap-carto symbols/amenity/town_hall.svg (CC0), 16 px, ink @public-service
+; Town halls, embassies and government offices: carto's town hall.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!!!!!..."
+".......!!!!!...."
+".......!!!!!!..."
+".......!!.!!!..."
+".......!!......."
+"......!!!!......"
+"....!!!!!!!!...."
+"..!!!!!!!!!!!!.."
+"................"
+".!!!!!!!!!!!!!!."
+"..!!!!!!!!!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+".!!!!!!!!!!!!!!."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!!!!!..."
+".......!!!!!...."
+".......!!!!!!..."
+".......!!.!!!..."
+".......!!......."
+"......!!!!......"
+"....!!!!!!!!...."
+"..!!!!!!!!!!!!.."
+"................"
+".!!!!!!!!!!!!!!."
+"..!!!!!!!!!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+"..!!!!....!!!!.."
+".!!!!!!!!!!!!!!."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3004
+; Courthouse - openstreetmap-carto symbols/amenity/courthouse.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!...!!...!!.."
+"..!!...!!...!!.."
+".!..!..!!..!..!."
+".!..!..!!..!..!."
+"!...!!.!!.!!...!"
+"!!!!!!.!!.!!!!!!"
+"!!!!!..!!..!!!!!"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"..!!!!!!!!!!!!.."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!!......."
+".....!!!!!!....."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!...!!...!!.."
+"..!!...!!...!!.."
+".!..!..!!..!..!."
+".!..!..!!..!..!."
+"!...!!.!!.!!...!"
+"!!!!!!.!!.!!!!!!"
+"!!!!!..!!..!!!!!"
+".......!!......."
+".......!!......."
+".......!!......."
+".......!!......."
+"..!!!!!!!!!!!!.."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3005
+; Community centre - openstreetmap-carto symbols/amenity/community_centre.svg (CC0), 16 px, ink @amenity-brown
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+"................"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"....!......!...."
+"................"
+"!!!!!!!!!!!!!!!!"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!.!....!.!..."
+"..!!..!..!..!!.."
+"..!...!..!...!.."
+".!!....!!....!!."
+"................"
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+"................"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"....!......!...."
+"................"
+"!!!!!!!!!!!!!!!!"
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!!!....!!!..."
+"...!.!....!.!..."
+"..!!..!..!..!!.."
+"..!...!..!...!.."
+".!!....!!....!!."
+"................"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x3008
+; Fire station - openstreetmap-carto symbols/amenity/firestation.svg (CC0), 16 px, ink @public-service
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".......!........"
+".....!!!........"
+"....!!!!........"
+"....!!!!..!!...."
+"...!!!!!.!!!...."
+"...!!!!!!!!!...."
+"..!!!!!!!!!!!..."
+"..!!!!!.!!!!!..."
+"..!!!!..!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!...!!!!!!.."
+"...!!...!!.!!!.."
+"...!!!.....!!..."
+"...!!!.....!!..."
+"....!!.....!...."
+"......!........."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".......!........"
+".....!!!........"
+"....!!!!........"
+"....!!!!..!!...."
+"...!!!!!.!!!...."
+"...!!!!!!!!!...."
+"..!!!!!!!!!!!..."
+"..!!!!!.!!!!!..."
+"..!!!!..!!!!!!.."
+"..!!!!..!!!!!!.."
+"..!!!...!!!!!!.."
+"...!!...!!.!!!.."
+"...!!!.....!!..."
+"...!!!.....!!..."
+"....!!.....!...."
+"......!........."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x4a00
+; Picnic site - openstreetmap-carto symbols/tourism/picnic.svg (CC0), 16 px, ink @leisure-green
 DayXpm="16 16 2 1"
 "! c #0D7813"
 ". c none"
 "................"
 "................"
-".......!!......."
-".......!!!!....."
-".!!!!..!!!!....."
-"..!!!!!!!!!....."
-"..!!!!!!!!!!...."
-".....!!!!!!!!!!!"
-"!!......!!!!!!!."
-"!!!!!!......!!.."
-"!!!!!!!!!......."
-"!!!!!!!!!!!!!..."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".....!....!....."
+"....!!....!!...."
+"....!!....!!...."
+"....!!....!!...."
 "!!!!!!!!!!!!!!!!"
 "!!!!!!!!!!!!!!!!"
+"...!!......!!..."
+"...!!......!!..."
+"..!!........!!.."
+"..!!........!!.."
 "................"
 "................"
 NightXpm="16 16 2 1"
@@ -2726,589 +3053,6 @@ NightXpm="16 16 2 1"
 ". c none"
 "................"
 "................"
-".......!!......."
-".......!!!!....."
-".!!!!..!!!!....."
-"..!!!!!!!!!....."
-"..!!!!!!!!!!...."
-".....!!!!!!!!!!!"
-"!!......!!!!!!!."
-"!!!!!!......!!.."
-"!!!!!!!!!......."
-"!!!!!!!!!!!!!..."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"................"
-"................"
-String=0x00,Slipway
-[end]
-[_point]
-Type=0x2f0e
-; Car wash — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"......!!!!......"
-"................"
-"....!..!!..!...."
-"....!..!!..!...."
-"...!...!!...!..."
-"...!...!!...!..."
-"................"
-"....!!!!!!!!...."
-"....!!....!!...."
-"....!......!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!.!!!!!!.!!.."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"....!!....!!...."
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"......!!!!......"
-"................"
-"....!..!!..!...."
-"....!..!!..!...."
-"...!...!!...!..."
-"...!...!!...!..."
-"................"
-"....!!!!!!!!...."
-"....!!....!!...."
-"....!......!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!.!!!!!!.!!.."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"....!!....!!...."
-String=0x00,Car wash
-[end]
-[_point]
-Type=0x2f10
-; Beauty — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"....!!!!!......."
-"...!!!!!!!!....."
-"..!!!!!..!!!!..."
-".!!!!.......!!.."
-"!!!!!.........!."
-".!!............."
-".............!.."
-"..!.......!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!.!!"
-"!!.!!!!!!..!!..."
-"...!!..!!..!!..."
-"...!...!!......."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"....!!!!!......."
-"...!!!!!!!!....."
-"..!!!!!..!!!!..."
-".!!!!.......!!.."
-"!!!!!.........!."
-".!!............."
-".............!.."
-"..!.......!!!!.."
-".!!!!!!!!!!!!!!."
-".!!!!!!!!!!!!.!!"
-"!!.!!!!!!..!!..."
-"...!!..!!..!!..."
-"...!...!!......."
-"................"
-"................"
-String=0x00,Beauty
-[end]
-[_point]
-Type=0x2f13
-; Bicycle — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #AC39AC"
-". c none"
-"................"
-"................"
-".........!!....."
-"...!!!!...!!...."
-"....!!....!!...."
-"....!!!!!!!!...."
-"....!...!!.!...."
-".!!!!...!.!!!!!."
-"!!...!!!..!...!!"
-"!....!!..!!....!"
-"!.....!..!.....!"
-"!!...!!..!!...!!"
-".!!!!!....!!!!!."
-"..!!!......!!!.."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAFF"
-". c none"
-"................"
-"................"
-".........!!....."
-"...!!!!...!!...."
-"....!!....!!...."
-"....!!!!!!!!...."
-"....!...!!.!...."
-".!!!!...!.!!!!!."
-"!!...!!!..!...!!"
-"!....!!..!!....!"
-"!.....!..!.....!"
-"!!...!!..!!...!!"
-".!!!!!....!!!!!."
-"..!!!......!!!.."
-"................"
-"................"
-String=0x00,Bicycle
-[end]
-[_point]
-Type=0x2f14
-; Nursing home — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #BF0000"
-". c none"
-".......!!......."
-"......!!!!......"
-".!....!!!!....!."
-".!............!."
-".!............!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!!...!!!!...!!."
-".!!...!!!!...!!."
-".!!!........!!!."
-"..!!!!....!!!!.."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-NightXpm="16 16 2 1"
-"! c #FFAAAA"
-". c none"
-".......!!......."
-"......!!!!......"
-".!....!!!!....!."
-".!............!."
-".!............!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!....!!!!....!."
-".!!...!!!!...!!."
-".!!...!!!!...!!."
-".!!!........!!!."
-"..!!!!....!!!!.."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-"...!!!!..!!!!..."
-String=0x00,Nursing home
-[end]
-[_point]
-Type=0x2f16
-; Emergency phone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #BF0000"
-". c none"
-"................"
-".!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!......!!!!!"
-"!!!!........!!!!"
-"!!!!........!!!!"
-"................"
-"................"
-".!!!..!!!!..!!!."
-"!!....!..!.!!..."
-"!!!!..!..!.!!!!."
-".!!!!.!..!..!!!!"
-"...!!.!..!....!!"
-".!!!..!!!!..!!!."
-"................"
-NightXpm="16 16 2 1"
-"! c #FFAAAA"
-". c none"
-"................"
-".!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!......!!!!!"
-"!!!!........!!!!"
-"!!!!........!!!!"
-"................"
-"................"
-".!!!..!!!!..!!!."
-"!!....!..!.!!..."
-"!!!!..!..!.!!!!."
-".!!!!.!..!..!!!!"
-"...!!.!..!....!!"
-".!!!..!!!!..!!!."
-"................"
-String=0x00,Emergency phone
-[end]
-[_point]
-Type=0x2f18
-; Telephone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"..........!!!!.."
-".........!!!!!!."
-"........!!!!!!.!"
-".......!!!!!!.!!"
-"......!!!!!!.!!."
-".....!!!!...!!.."
-"....!!!!....!..."
-"...!!!!........."
-"..!!!!.........."
-".!!!!..........."
-"!!!!!..........."
-"!!!!!..........."
-"!!!!.!!........."
-"!!!.!!.........."
-".!.!!..........."
-"..!!............"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"..........!!!!.."
-".........!!!!!!."
-"........!!!!!!.!"
-".......!!!!!!.!!"
-"......!!!!!!.!!."
-".....!!!!...!!.."
-"....!!!!....!..."
-"...!!!!........."
-"..!!!!.........."
-".!!!!..........."
-"!!!!!..........."
-"!!!!!..........."
-"!!!!.!!........."
-"!!!.!!.........."
-".!.!!..........."
-"..!!............"
-String=0x00,Telephone
-[end]
-[_point]
-Type=0x2f19
-; Taxi — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"......!!!!......"
-"......!..!......"
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!.!!!!!!!!.!!!"
-"!!..!!!!!!!!..!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"..!!!......!!!.."
-"..!!........!!.."
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"......!!!!......"
-"......!..!......"
-"...!!!!!!!!!!..."
-"...!!!!!!!!!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!!.!!!!!!!!.!!!"
-"!!..!!!!!!!!..!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"..!!!......!!!.."
-"..!!........!!.."
-String=0x00,Taxi
-[end]
-[_point]
-Type=0x2f1a
-; Charging station — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #0092DA"
-". c none"
-"................"
-".!!!!!!........."
-"!!!!!!!!....!.!."
-"!!!!!!!!....!.!."
-"!!!...!!...!!!!."
-"!!!..!!!...!!!!."
-"!!...!!!!!.!!!!."
-"!!....!!.!..!!!."
-"!!!..!!!.!!.!!.."
-"!!!..!!!.!!.!!.."
-"!!!.!!!!.!!.!!.."
-"!!.!!!!!.!!.!!.."
-"!!!!!!!!.!!.!!.."
-"!!!!!!!!.!!!!!.."
-"!!!!!!!!..!!!..."
-"!!!!!!!!........"
-NightXpm="16 16 2 1"
-"! c #AAFFFF"
-". c none"
-"................"
-".!!!!!!........."
-"!!!!!!!!....!.!."
-"!!!!!!!!....!.!."
-"!!!...!!...!!!!."
-"!!!..!!!...!!!!."
-"!!...!!!!!.!!!!."
-"!!....!!.!..!!!."
-"!!!..!!!.!!.!!.."
-"!!!..!!!.!!.!!.."
-"!!!.!!!!.!!.!!.."
-"!!.!!!!!.!!.!!.."
-"!!!!!!!!.!!.!!.."
-"!!!!!!!!.!!!!!.."
-"!!!!!!!!..!!!..."
-"!!!!!!!!........"
-String=0x00,Charging station
-[end]
-[_point]
-Type=0x3001
-; Police — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".....!!!!!!....."
-"....!!!!!!!!...."
-"................"
-".....!!!!!!....."
-".....!!!!!!....."
-".....!!!!!!....."
-"......!!!!......"
-"................"
-"...!!!!!!!.!!..."
-"...!!!!!!..!!!.."
-"..!!!!!!..!!!!.."
-"..!!!!!!.!!!!!.."
-"..!!!!!.!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!..!!!!!!!.."
-"..!!!.!!!!!!!!.."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".....!!!!!!....."
-"....!!!!!!!!...."
-"................"
-".....!!!!!!....."
-".....!!!!!!....."
-".....!!!!!!....."
-"......!!!!......"
-"................"
-"...!!!!!!!.!!..."
-"...!!!!!!..!!!.."
-"..!!!!!!..!!!!.."
-"..!!!!!!.!!!!!.."
-"..!!!!!.!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!..!!!!!!!.."
-"..!!!.!!!!!!!!.."
-String=0x00,Police
-[end]
-[_point]
-Type=0x3003
-; Embassy — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #4863A0"
-". c none"
-".!........!!!!.."
-".!......!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!..!!."
-".!..!!!!!......."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-NightXpm="16 16 2 1"
-"! c #AAAAFF"
-". c none"
-".!........!!!!.."
-".!......!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!!!!!."
-".!.!!!!!!!!..!!."
-".!..!!!!!......."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-".!.............."
-String=0x00,Embassy
-[end]
-[_point]
-Type=0x3004
-; Courthouse — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!...!!...!!.."
-"..!!...!!...!!.."
-".!..!..!!..!..!."
-".!..!..!!..!..!."
-"!...!!.!!.!!...!"
-"!!!!!!.!!.!!!!!!"
-"!!!!!..!!..!!!!!"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"..!!!!!!!!!!!!.."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!!......."
-".....!!!!!!....."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!...!!...!!.."
-"..!!...!!...!!.."
-".!..!..!!..!..!."
-".!..!..!!..!..!."
-"!...!!.!!.!!...!"
-"!!!!!!.!!.!!!!!!"
-"!!!!!..!!..!!!!!"
-".......!!......."
-".......!!......."
-".......!!......."
-".......!!......."
-"..!!!!!!!!!!!!.."
-String=0x00,Courthouse
-[end]
-[_point]
-Type=0x3005
-; Community centre — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"....!......!...."
-"................"
-"!!!!!!!!!!!!!!!!"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!.!....!.!..."
-"..!!..!..!..!!.."
-"..!...!..!...!.."
-".!!....!!....!!."
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"....!......!...."
-"................"
-"!!!!!!!!!!!!!!!!"
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!!!....!!!..."
-"...!.!....!.!..."
-"..!!..!..!..!!.."
-"..!...!..!...!.."
-".!!....!!....!!."
-"................"
-String=0x00,Community centre
-[end]
-[_point]
-Type=0x3008
-; Fire station — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!........"
-".....!!!........"
-"....!!!!........"
-"....!!!!..!!...."
-"...!!!!!.!!!...."
-"...!!!!!!!!!...."
-"..!!!!!!!!!!!..."
-"..!!!!!.!!!!!..."
-"..!!!!..!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!...!!!!!!.."
-"...!!...!!.!!!.."
-"...!!!.....!!..."
-"...!!!.....!!..."
-"....!!.....!...."
-"......!........."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!........"
-".....!!!........"
-"....!!!!........"
-"....!!!!..!!...."
-"...!!!!!.!!!...."
-"...!!!!!!!!!...."
-"..!!!!!!!!!!!..."
-"..!!!!!.!!!!!..."
-"..!!!!..!!!!!!.."
-"..!!!!..!!!!!!.."
-"..!!!...!!!!!!.."
-"...!!...!!.!!!.."
-"...!!!.....!!..."
-"...!!!.....!!..."
-"....!!.....!...."
-"......!........."
-String=0x00,Fire station
-[end]
-[_point]
-Type=0x4a00
-; Picnic site — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
 "...!!!!!!!!!!..."
 "..!!!!!!!!!!!!.."
 ".....!....!....."
@@ -3323,73 +3067,12 @@ DayXpm="16 16 2 1"
 "..!!........!!.."
 "................"
 "................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-".....!....!....."
-"....!!....!!...."
-"....!!....!!...."
-"....!!....!!...."
-"!!!!!!!!!!!!!!!!"
-"!!!!!!!!!!!!!!!!"
-"...!!......!!..."
-"...!!......!!..."
-"..!!........!!.."
-"..!!........!!.."
-"................"
-"................"
-String=0x00,Picnic site
 [end]
+
 [_point]
-Type=0x5000
-; Drinking water — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-".......!!!!!...."
-".........!!....."
-"......!!!!!!!!!."
-".....!!!!!!!!!!."
-".....!!........."
-".....!.........."
-"................"
-".!!!!!!!!!......"
-".!!......!......"
-"..!......!......"
-"..!!!!!!!!......"
-"..!!!!!!!!......"
-"..!!!!!!!......."
-"..!!!!!!!......."
-"..!!!!!!!......."
-"...!!!!!!......."
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-".......!!!!!...."
-".........!!....."
-"......!!!!!!!!!."
-".....!!!!!!!!!!."
-".....!!........."
-".....!.........."
-"................"
-".!!!!!!!!!......"
-".!!......!......"
-"..!......!......"
-"..!!!!!!!!......"
-"..!!!!!!!!......"
-"..!!!!!!!......."
-"..!!!!!!!......."
-"..!!!!!!!......."
-"...!!!!!!......."
-String=0x00,Drinking water
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x5904
-; Helipad — openstreetmap-carto symbol (CC0), 16 px
+; Helipad - openstreetmap-carto symbols/amenity/helipad.svg (CC0), 16 px, ink @airtransport
 DayXpm="16 16 2 1"
 "! c #8461C4"
 ". c none"
@@ -3428,13 +3111,14 @@ NightXpm="16 16 2 1"
 "...!!......!!..."
 "....!!!!!!!!...."
 ".......!!......."
-String=0x00,Helipad
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6508
-; Waterfall — openstreetmap-carto symbol (CC0), 16 px
+; Waterfall - openstreetmap-carto symbols/natural/waterfall.svg (CC0), 16 px, ink @water-text
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #4D80B3"
 ". c none"
 "................"
 "!!!!!!!!!!......"
@@ -3453,7 +3137,7 @@ DayXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 "..!!!...!!!..!!."
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "!!!!!!!!!!......"
@@ -3471,56 +3155,14 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!.!!!!.."
 ".!!!!!!!!!!!!!!."
 "..!!!...!!!..!!."
-String=0x00,Waterfall
 [end]
+
 [_point]
-Type=0x6509
-; Geyser — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #576DDF"
-". c none"
-"................"
-"......!!!!......"
-"....!!!!!!!!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-".!!!!!!..!!!!!!."
-".!!!!!....!!!!!."
-".!!!!!....!!!!!."
-".!!!!!!..!!!!!!."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-"......!!!!......"
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAFF"
-". c none"
-"................"
-"......!!!!......"
-"....!!!!!!!!...."
-"...!!!!!!!!!!..."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-".!!!!!!..!!!!!!."
-".!!!!!....!!!!!."
-".!!!!!....!!!!!."
-".!!!!!!..!!!!!!."
-"..!!!!!!!!!!!!.."
-"..!!!!!!!!!!!!.."
-"...!!!!!!!!!!..."
-"....!!!!!!!!...."
-"......!!!!......"
-"................"
-String=0x00,Geyser
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6511
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -3539,7 +3181,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -3557,13 +3199,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6515
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (seasonal) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -3582,7 +3225,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -3600,13 +3243,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6516
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (intermittent) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -3625,7 +3269,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -3643,13 +3287,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6517
-; Spring — openstreetmap-carto symbol (CC0), 16 px
+; Spring (non-potable) - openstreetmap-carto symbols/natural/spring.svg (CC0), 16 px, ink natural_spring, #7abcec
 DayXpm="16 16 2 1"
-"! c #576DDF"
+"! c #7ABCEC"
 ". c none"
 "................"
 "......!!!!......"
@@ -3668,7 +3313,7 @@ DayXpm="16 16 2 1"
 "......!!!!......"
 "................"
 NightXpm="16 16 2 1"
-"! c #AAAAFF"
+"! c #AAFFFF"
 ". c none"
 "................"
 "......!!!!......"
@@ -3686,13 +3331,14 @@ NightXpm="16 16 2 1"
 "....!!!!!!!!...."
 "......!!!!......"
 "................"
-String=0x00,Spring
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6605
-; Bench — openstreetmap-carto symbol (CC0), 16 px
+; Bench - openstreetmap-carto symbols/amenity/bench.svg (CC0), 16 px, ink @man-made-icon
 DayXpm="16 16 2 1"
-"! c #734A08"
+"! c #666666"
 ". c none"
 "................"
 "................"
@@ -3729,13 +3375,15 @@ NightXpm="16 16 2 1"
 "................"
 "................"
 "................"
-String=0x00,Bench
 [end]
+
 [_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6607
-; Cliff — openstreetmap-carto symbol (CC0), 16 px
+; Cliff - openstreetmap-carto symbols/cliff.svg (CC0), 16 px, ink the SVG's own colour
+; carto draws a cliff only as a line; this is the tile of that line, in its own grey.
 DayXpm="16 16 2 1"
-"! c #D08F55"
+"! c #999999"
 ". c none"
 "................"
 "................"
@@ -3754,7 +3402,7 @@ DayXpm="16 16 2 1"
 ".......!!......."
 ".......!!......."
 NightXpm="16 16 2 1"
-"! c #FFFFAA"
+"! c #FFFFFF"
 ". c none"
 "................"
 "................"
@@ -3772,54 +3420,12 @@ NightXpm="16 16 2 1"
 ".......!!......."
 ".......!!......."
 ".......!!......."
-String=0x00,Cliff
 [end]
+
 [_point]
-Type=0x6614
-; Stone — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"................"
-"................"
-"....!!!!!......."
-"..!!!!!!!!!....."
-".!!!!!!!!!!!!..."
-"!!!!!!!...!!!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!..........!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!.....!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-".....!!!!!!....."
-"................"
-"................"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"................"
-"................"
-"....!!!!!......."
-"..!!!!!!!!!....."
-".!!!!!!!!!!!!..."
-"!!!!!!!...!!!!.."
-"!!!!!!!!!!!!!!!."
-"!!!!!!!!!!!!!!!!"
-"!!..........!!!!"
-"!!!!!!!!!!!!!!!!"
-"!!!!!.....!!!!!!"
-".!!!!!!!!!!!!!!."
-"..!!!!!!!!!!!!.."
-".....!!!!!!....."
-"................"
-"................"
-String=0x00,Stone
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6616
-; Summit — openstreetmap-carto symbol (CC0), 16 px
+; Peak - openstreetmap-carto symbols/natural/peak.svg (CC0), 16 px, ink @landform-color
 DayXpm="16 16 2 1"
 "! c #D08F55"
 ". c none"
@@ -3858,54 +3464,12 @@ NightXpm="16 16 2 1"
 ".!!!!!!!!!!!!!!."
 ".!!!!!!!!!!!!!!."
 "!!!!!!!!!!!!!!!!"
-String=0x00,Summit
 [end]
+
 [_point]
-Type=0x661a
-; Prison — openstreetmap-carto symbol (CC0), 16 px
-DayXpm="16 16 2 1"
-"! c #734A08"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!...!!....!!...!"
-"!...!!....!!...!"
-"!...!!.!!.!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!.!!.!!...!"
-"!...!!....!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!!!!!!!!!!!!!!!!"
-NightXpm="16 16 2 1"
-"! c #AAAAAA"
-". c none"
-"!!!!!!!!!!!!!!!!"
-"!...!!....!!...!"
-"!...!!....!!...!"
-"!...!!.!!.!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!...!!.!!.!!...!"
-"!...!!....!!...!"
-"!...!!!!!!!!...!"
-"!...!!!!!!!!...!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!..!!!!!!!!!!..!"
-"!!!!!!!!!!!!!!!!"
-String=0x00,Prison
-[end]
-[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
 Type=0x6415
-; Lighthouse - openstreetmap-carto symbol (CC0), 16 px
+; Lighthouse - openstreetmap-carto symbols/man_made/lighthouse.svg (CC0), 16 px, ink @man-made-icon
 DayXpm="16 16 2 1"
 "! c #666666"
 ". c none"
@@ -3944,39 +3508,935 @@ NightXpm="16 16 2 1"
 ".....!!!!!!....."
 ".....!!!!!!....."
 ".....!!!!!!....."
-String=0x00,Lighthouse
 [end]
+
 [_point]
-; kmap: their barrier drawing, this number.
+; kmap: their barrier rules leave lift gates out, so it takes openstreetmap-carto's symbol.
 Type=0x3201
-String=0x02,Pfosten/Barriere
-String=0x04,barrier
-DayXpm="7 7 3 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"   .   "
-"  .+.  "
-" .+++. "
-".++.++."
-" .+++. "
-"  .+.  "
-"   .   "
+; Lift gate - openstreetmap-carto symbols/barrier/lift_gate.svg (CC0), 6 x 5 at 16/14, ink @barrier-icon
+DayXpm="7 6 2 1"
+"! c #3F3F3F"
+". c none"
+"!!....."
+"!!!!!!!"
+"!!!...."
+"!!....."
+"!!....."
+"!!....."
+NightXpm="7 6 2 1"
+"! c #AAAAAA"
+". c none"
+"!!....."
+"!!!!!!!"
+"!!!...."
+"!!....."
+"!!....."
+"!!....."
 [end]
+
 [_point]
-; kmap: their barrier drawing, this number.
-Type=0x3202
-String=0x02,Pfosten/Barriere
-String=0x04,barrier
-DayXpm="7 7 3 1"
-" 	c None"
-".	c #FFFFFF"
-"+	c #000000"
-"   .   "
-"  .+.  "
-" .+++. "
-".++.++."
-" .+++. "
-"  .+.  "
-"   .   "
+Type=0x2000
+; kmap: Junction - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x230f
+; kmap: Services - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c01
+; kmap: Theme park - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c05
+; kmap: School - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c06
+; kmap: Park - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c07
+; kmap: Zoo - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c08
+; kmap: Sports ground - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2c0a
+; kmap: Wine cellar - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2c0c
+; Volcano - openstreetmap-carto symbols/natural/peak.svg (CC0), 16 px, ink natural_volcano #d40000
+; carto draws a volcano as its peak in red; drawn at 16 px as the peak 0x6616 is.
+DayXpm="16 16 2 1"
+"! c #D40000"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+"....!!!!!!!!...."
+"....!!!!!!!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 2 1"
+"! c #FFAAAA"
+". c none"
+"................"
+"................"
+"................"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".....!!!!!!....."
+".....!!!!!!....."
+"....!!!!!!!!...."
+"....!!!!!!!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!!."
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2c0d
+; Tourist site - openstreetmap-carto symbols/tourism/artwork.svg (CC0), 16 px, ink @memorials
+; Attractions have no symbol in carto; artworks, which land here too, have this one.
+DayXpm="16 16 2 1"
+"! c #734A08"
+". c none"
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+"................"
+"...!!!!!!!!!!..."
+NightXpm="16 16 2 1"
+"! c #AAAAAA"
+". c none"
+".....!!!!!!....."
+".....!!!!!!....."
+"......!!!!......"
+"......!!!!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!!!!......"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+"................"
+"...!!!!!!!!!!..."
+[end]
+
+[_point]
+Type=0x2c0e
+; kmap: Rock climbing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d06
+; kmap: Skiing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d08
+; kmap: Ice rink - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2d0a
+; kmap: Sports centre - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2e04
+; kmap: Shopping mall - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x2e0c
+; kmap: Shop - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f02
+; Car rental - openstreetmap-carto symbols/amenity/rental_car.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"..!!!!.........."
+".!!!!!!!!!!!!..."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!.."
+"..!!!!!........."
+"...!!..........."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"..!!!!.........."
+".!!!!!!!!!!!!..."
+".!!!!!!!!!!!!!!."
+".!!!!!!!!!!!!!.."
+"..!!!!!........."
+"...!!..........."
+"................"
+"....!!!!!!!!...."
+"....!!....!!...."
+"....!......!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+"..!!.!!!!!!.!!.."
+"..!!!!!!!!!!!!.."
+"..!!!!!!!!!!!!.."
+"....!!....!!...."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f09
+; Marina - openstreetmap-carto symbols/amenity/ferry.svg (CC0), 16 px, ink @airtransport
+; Marinas have no symbol in carto; ferry terminals, which land here too, have this one.
+DayXpm="16 16 2 1"
+"! c #8461C4"
+". c none"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".......!!......."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".......!!......."
+".......!!......."
+".......!!......."
+".!!....!!....!!."
+".!!!...!!...!!!."
+".!!!...!!...!!!."
+"..!!!..!!..!!!.."
+"...!!!!!!!!!!..."
+".....!!!!!!....."
+".......!!......."
+NightXpm="16 16 2 1"
+"! c #DDAAFF"
+". c none"
+".......!!......."
+"......!!!!......"
+"......!!!!......"
+".......!!......."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".......!!......."
+".......!!......."
+".......!!......."
+".!!....!!....!!."
+".!!!...!!...!!!."
+".!!!...!!...!!!."
+"..!!!..!!..!!!.."
+"...!!!!!!!!!!..."
+".....!!!!!!....."
+".......!!......."
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x2f1b
+; Lift station - openstreetmap-carto symbols/square.svg (CC0), 7 px, ink @station-color
+; carto marks an aerialway station with this square, 6 px at z15, drawn at 16/14.
+DayXpm="7 7 2 1"
+"! c #7981B0"
+". c none"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+NightXpm="7 7 2 1"
+"! c #AAFFFF"
+". c none"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+"!!!!!!!"
+[end]
+
+[_point]
+Type=0x3006
+; kmap: Border crossing - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6403
+; kmap: Cemetery - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x640b
+; kmap: Military area - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6414
+; kmap: Well - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6503
+; kmap: Bay - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6505
+; kmap: Canal - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6509
+; kmap: Geyser - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650a
+; kmap: Glacier - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650c
+; kmap: Island - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650d
+; kmap: Lake - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x650f
+; kmap: Reservoir - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6512
+; kmap: Stream - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6513
+; kmap: Wetland - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x6514
+; Ford - openstreetmap-carto symbols/highway/ford.svg (CC0), 16 px, ink @transportation-icon
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"................"
+".....!....!....."
+"....!!....!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+"...!!!!!!!!!!..."
+"....!!....!!...."
+".....!....!....."
+"................"
+"!.....!.....!..."
+"!!...!!!...!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!..!!!!!..!!"
+"..!!.....!!....!"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"................"
+".....!....!....."
+"....!!....!!...."
+"...!!!!!!!!!!..."
+"..!!!!!!!!!!!!.."
+".!!!!!!!!!!!!!!."
+"...!!!!!!!!!!..."
+"....!!....!!...."
+".....!....!....."
+"................"
+"!.....!.....!..."
+"!!...!!!...!!!!."
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+".!!!!..!!!!!..!!"
+"..!!.....!!....!"
+[end]
+
+[_point]
+Type=0x6603
+; kmap: Water - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6604
+; kmap: Beach - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6606
+; kmap: Cape - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6612
+; kmap: Nature reserve - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+; kmap: their TYP draws nothing for this meaning, so it takes openstreetmap-carto's symbol.
+Type=0x6613
+; Mountain pass - openstreetmap-carto symbols/natural/saddle.svg (CC0), 16 px, ink @transportation-icon (mountain_pass)
+; natural=saddle takes it in @landform-color; drawn at 16 px as the peak 0x6616 is.
+DayXpm="16 16 2 1"
+"! c #0092DA"
+". c none"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............!"
+"!!!..........!!!"
+"!!!!!......!!!!!"
+"!!!!!!!..!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+NightXpm="16 16 2 1"
+"! c #AAFFFF"
+". c none"
+"................"
+"................"
+"................"
+"................"
+"................"
+"................"
+"!..............!"
+"!!!..........!!!"
+"!!!!!......!!!!!"
+"!!!!!!!..!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+"!!!!!!!!!!!!!!!!"
+[end]
+
+[_point]
+Type=0x6614
+; kmap: Rock - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x6618
+; kmap: Forest - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
+[end]
+
+[_point]
+Type=0x661a
+; kmap: Facility - the original has no symbol for it; the plain anchor square of the
+; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+DayXpm="9 9 2 1"
+"a c #F8FCF8"
+"b c #6E6A66"
+"aaaaaaaaa"
+"abbbbbbba"
+"abbbbbbba"
+"abbaaabba"
+"abbaaabba"
+"abbaaabba"
+"abbbbbbba"
+"abbbbbbba"
+"aaaaaaaaa"
 [end]
