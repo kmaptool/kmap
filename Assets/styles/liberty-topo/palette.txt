@@ -41,15 +41,15 @@ poly 0x1b 5 #efefef  Vineyard  # not drawn by Liberty Topo: landcover farmland h
 poly 0x5a 5 #dce7d5  Allotments  # landcover_grass: rgb(176,213,154) at 0.3
 poly 0x1f 5 #dce7d5  Mountain meadow  # landcover_grass (fell): rgb(176,213,154) at 0.3
 poly 0x55 5 #dce7d5  Grassland  # landcover_grass: rgb(176,213,154) at 0.3
-poly 0x15 5 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3
+poly 0x15 6 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3; over the woods in a build, as in topoactive
 poly 0x1d 5 #efefef  Common  # not drawn by Liberty Topo: not in its schema
 poly 0x4f 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
-poly 0x5b 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
+poly 0x5b 4 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3; a level under its pattern, so it never covers it
 poly 0x1e 5 #dce7d5  Heath  # landcover_grass (heath): rgb(176,213,154) at 0.3
 poly 0x50 5 #dcecd3  Forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
 poly 0x57 5 #dcecd3  Coniferous forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
 poly 0x58 5 #dcecd3  Broadleaved forest  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
-poly 0x59 5 #dcecd3  Woodland  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28
+poly 0x59 4 #dcecd3  Woodland  # landcover_wood: hsla(98,61%,72%,0.7) at 0.4, so 0.28; a level under its pattern, so it never covers it
 poly 0x53 5 #f7efc3  Sand  # landcover_sand: rgba(247,239,195,1)
 poly 0x54 5 #efefef  Scree  # not drawn by Liberty Topo: landcover rock has no layer
 poly 0x56 5 #efefef  Bare rock  # not drawn by Liberty Topo: landcover rock has no layer

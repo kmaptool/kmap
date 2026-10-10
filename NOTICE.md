@@ -5,9 +5,8 @@ kmap's own code is MIT (see `LICENSE`). Two kinds of things in this repository a
 quote rule lines from mkgmap's default style and are GPL v2, because a substitution has to
 name the line it replaces exactly; and the built-in styles in `Assets/styles/` carry their
 sources' terms — `osm-carto` from openstreetmap-carto (CC0), `opentopomap` from
-OpenTopoMap's TYP source (CC-BY-SA per that project's own LICENCE file, though its README
-calls the Garmin maps CC-BY-NC-SA — `Assets/styles/opentopomap/LICENSE.md` quotes both and
-says which reading kmap ships on), `cyclosm` from CyclOSM (BSD-3-Clause,
+OpenTopoMap's web style, its Mapnik stylesheet and symbols (CC-BY-SA; its icons drawn from
+openstreetmap-carto, Maki and Temaki vectors, CC0), `cyclosm` from CyclOSM (BSD-3-Clause,
 its ground colours from the Hydda style under Apache 2.0) and `liberty-topo`
 from OSM Liberty Topo (BSD, look and feel CC-BY 3.0, schema © OpenMapTiles
 CC-BY 4.0, Maki icons CC0). Each style folder carries a

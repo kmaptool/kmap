@@ -31,25 +31,25 @@ poly 0x4b 1 #f2efe9  Background  # @land-color style.mss:6, the Map background s
 poly 0x27 3 #f2efe9  Land  # @land-color style.mss:6
 poly 0x16 4 #f2efe9  Nature Reserve  # not drawn by carto: protected areas are outlined only (admin.mss:495-551); land
 poly 0x1c 5 #eef0d5  Grassland  # kmap puts landuse=farmland here (and greenfield, which carto does not draw): @farmland landcover.mss:24, landuse_farmland landcover.mss:340-343
-poly 0x29 5 #eef0d5  Greenhouses  # @farmland landcover.mss:24, landuse_greenhouse_horticulture landcover.mss:340-343
+poly 0x29 6 #eef0d5  Greenhouses  # @farmland landcover.mss:24, landuse_greenhouse_horticulture landcover.mss:340-343; over the woods in a build: carto draws its landcover largest first, so a small one shows on a wood
 poly 0x26 5 #f5dcba  Farm  # kmap puts landuse=farmyard here (and farm, which carto does not draw): @farmyard landcover.mss:26, landuse_farmyard landcover.mss:330-338
 poly 0x4e 5 #aedfa3  Orchard  # @orchard landcover.mss:9,140-142; pattern in graphics.txt
 poly 0x1b 5 #aedfa3  Vineyard  # @orchard landcover.mss:9,126-128; pattern in graphics.txt
 poly 0x5a 5 #c9e1bf  Allotments  # @allotments landcover.mss:8,303-305; pattern in graphics.txt
 poly 0x1f 5 #f2efe9  Mountain meadow  # not drawn by carto: no layer selects natural=fell (project.mml); land
 poly 0x55 5 #cdebb0  Grassland  # @grass landcover.mss:3,353-357
-poly 0x15 5 #cdebb0  Village Green  # @grass landcover.mss:3, landuse_village_green landcover.mss:356-357
+poly 0x15 6 #cdebb0  Village Green  # @grass landcover.mss:3, landuse_village_green landcover.mss:356-357; over the woods in a build, as in topoactive
 poly 0x1d 5 #f2efe9  Common  # not drawn by carto: leisure=common is in no layer's list (project.mml landcover); land
 poly 0x4f 5 #c8d7ab  Scrub  # @scrub landcover.mss:4,506-507; pattern in graphics.txt
-poly 0x5b 5 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub landcover.mss:4
+poly 0x5b 4 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub landcover.mss:4; a level under its pattern, so it never covers it
 poly 0x1e 5 #d6d99f  Heath  # @heath landcover.mss:51,500-501
 poly 0x50 5 #add19e  Forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
 poly 0x57 5 #add19e  Coniferous forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
 poly 0x58 5 #add19e  Broadleaved forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
-poly 0x59 5 #add19e  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @forest landcover.mss:5
+poly 0x59 4 #add19e  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @forest landcover.mss:5; a level under its pattern, so it never covers it
 poly 0x53 5 #f5e9c6  Sand  # @sand landcover.mss:58, natural_sand landcover.mss:494-495
-poly 0x54 5 #eee5dc  Scree  # @bare_ground landcover.mss:47,480-483; pattern in graphics.txt
-poly 0x56 5 #eee5dc  Bare rock  # @bare_ground landcover.mss:47,469-470; pattern in graphics.txt
+poly 0x54 6 #eee5dc  Scree  # @bare_ground landcover.mss:47,480-483; pattern in graphics.txt; over the woods in a build, as in topoactive
+poly 0x56 6 #eee5dc  Bare rock  # @bare_ground landcover.mss:47,469-470; pattern in graphics.txt; over the woods in a build, as in topoactive
 poly 0x52 5 #f2efe9  Bare Ground  # not drawn by carto: kmap puts natural=tundra here, in no layer's list (project.mml); land
 poly 0x4d 5 #ddecec  Glacier  # @glacier water.mss:2,34-38
 poly 0x02 6 #f2efe9  Suburb  # not drawn by carto: place areas are only labelled (placenames.mss); land
@@ -66,7 +66,7 @@ poly 0x1a 6 #aacbaf  Cemetery  # @cemetery landcover.mss:49,203-206; pattern in 
 poly 0x08 6 #ffd6d1  Shopping  # @retail landcover.mss:18, shop_mall landcover.mss:362-368
 poly 0x0a 6 #ffffe5  School  # @societal_amenities landcover.mss:59, amenity_school landcover.mss:556-574
 poly 0x0b 6 #ffffe5  Hospital  # @societal_amenities landcover.mss:59, amenity_hospital landcover.mss:556-574
-poly 0x04 6 #f3e3dd  Military  # #ff5555 at polygon-opacity 0.08 over land, landcover.mss:787-791; hatch in graphics.txt
+poly 0x04 10 #f3e3dd  Military  # #ff5555 at polygon-opacity 0.08 over land, landcover.mss:787-791; hatch in graphics.txt; with the danger area over the landcover, as carto draws it in landuse-overlay (project.mml:542)
 poly 0x12 6 #ffd6d1  Retail  # @retail landcover.mss:18, landuse_retail landcover.mss:362-368
 poly 0x21 6 #f2efe9  Tourism  # not drawn by carto: tourism=* areas past camp, caravan and picnic sites (project.mml landcover); land
 poly 0x22 6 #f2efe9  Historic  # not drawn by carto: historic=* areas are in no fill layer (project.mml); land
@@ -104,7 +104,7 @@ line 0x10803 7 #f7fabf #707d05  Roundabout  # carto draws a roundabout as its ro
 line 0x10804 6 #ffffff #8f8f8f  Roundabout  # carto draws a roundabout as its road: @tertiary-fill, @tertiary-casing roads.mss:3,33
 line 0x07 3 #ffffff #bbbbbb  Service Road  # @service-fill roads.mss:5, @service-casing roads.mss:36; @service-width-z16 3.5 - 2 x 0.6 = 2.3 -> 2, roads.mss:166,251,2123
 # Paths, tracks, steps and railway: dashed in graphics.txt; this is the fallback.
-line 0x16 1 #fa8072 #f7f5f2  Path  # @footway-fill salmon roads.mss:10, 1.3 -> 1; halo white @0.4 -> #f7f5f2, roads.mss:2358-2406
+line 0x16 2 #fa8072 #f7f5f2  Path  # @footway-fill salmon roads.mss:10, 1.3 -> 2, wider than topoactive's 1 to be seen on a device; halo white @0.4 -> #f7f5f2, roads.mss:2358-2406
 line 0x11 2 #0000ff #f7f5f2  Cycleway  # @cycleway-fill blue roads.mss:14, 0.9 -> 1; halo as a path, roads.mss:2435-2486
 line 0x0a 2 #ab812f #f7f5f2  Track  # @track-fill #996600 at 0.8 -> #ab812f roads.mss:18,2535-2540; 1.5 -> 2, roads.mss:155,2562
 line 0x30 2 #88e0be  Track  # kmap puts leisure=track here (and raceway, gallop): #leisure-track @pitch landcover.mss:71, amenity-points.mss:2987-2997; project.mml:528-541

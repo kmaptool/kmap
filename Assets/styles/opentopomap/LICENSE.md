@@ -1,58 +1,43 @@
-# OpenTopoMap style — licence
+# OpenTopoMap web style: licence
 
-The drawings `graphics.txt` copies from their TYP are OpenTopoMap's own,
-copied from `garmin/style/typ/opentopomap.txt` in <https://github.com/der-stefan/OpenTopoMap>
-with their pixels and day colours as they are; kmap adds night colours and moves some onto
-another type number of its own, and adds clear sections for what their map does not draw.
-Their icons in `points.txt` are copied the same way, some onto another number of kmap's,
-where they take kmap's names in place of their own. The colours in `palette.txt` were read
-from the same file and from `typ/contours.txt`. The other icons in `points.txt`,
-for meanings their file draws nothing for, are openstreetmap-carto's symbols, CC0 (see
-`../osm-carto/LICENSE.md`), and each says so in its own comment; where neither draws a
-meaning, the icon is the plain anchor square of kmap's own reference TYP. See `PROVENANCE.md` for
-exactly what was taken and what was changed.
+The colours in `palette.txt`, the dashes and patterns in `graphics.txt` and the icons in
+`points.txt` come from **OpenTopoMap's raster style**, the Mapnik stylesheet in the folder
+`mapnik/` of <https://github.com/der-stefan/OpenTopoMap>, and from the images in its
+`mapnik/symbols-otm/`. The images are adapted into TYP bitmaps: a pixel is kept or left
+out by its opacity, a translucent ink is composited into one opaque colour, a forest tile
+becomes one mask in one colour, a line pattern is cut to its rows and a larger tile to a
+32 x 32 window; kmap adds night colours and moves each drawing onto the type code whose
+meaning it has, and keeps their 2 SVG symbols. Their pixel-art symbols are too small to
+enlarge: the icons in `points.txt` are openstreetmap-carto's vectors (CC0) in their
+colours, else carto's symbols, else Maki (Mapbox) or Temaki (Rapid) icons (both CC0), else
+the plain anchor square of kmap's own reference TYP; none of those is theirs. See
+`PROVENANCE.md` for exactly what was taken and how.
 
     https://github.com/der-stefan/OpenTopoMap
-    CC-BY-SA — © OpenTopoMap, https://opentopomap.org
-    But see below: upstream also calls its Garmin maps CC-BY-NC-SA.
+    CC-BY-SA, (c) OpenTopoMap, https://opentopomap.org
 
-## What upstream states, and where
+## What upstream states
 
-The project says two different things, and they are quoted here rather than summarised,
-because which one governs the TYP source is not obvious. Both were read on 2026-09-08.
-
-The repository's own `LICENCE` file, at the root of `der-stefan/OpenTopoMap`, contains one
-line and no version number:
+The repository's `LICENCE` file, at commit 60c50cb8329d67c8556cd9f25b4a8e50bfc19c91,
+contains one line and no version number:
 
     CC-BY-SA
 
-The repository's `README.md` distinguishes the rendered maps from the online one. Of the
-online raster map it says the licence is CC-BY-SA. Of the Garmin edition it says:
+Its `README.md` says of the online raster map, the one this style transcribes, that its
+licence is CC-BY-SA. The CC-BY-NC-SA it names applies to the Garmin maps from
+garmin.opentopomap.org, which this style is not made from.
 
-> The license of the Garmin maps is CC-BY-NC-SA and therefore reselling is not allowed.
+## What that means for you
 
-Neither `garmin/README.md` nor the TYP source itself carries a licence header, so the
-repository cannot settle the question from the inside.
+CC-BY-SA asks for attribution and that adaptations be shared under the same licence. Every
+map built with this style carries the attribution `Style: OpenTopoMap, CC-BY-SA` beside the
+OSM one; the file headers name the source too. The style files here are an adaptation and
+stay under CC-BY-SA.
 
-## How kmap reads it, and what that means for you
-
-The narrow reading is that "the Garmin maps" are the finished `.img` products distributed
-from garmin.opentopomap.org — which carry map data as well as a look — and that the style
-source inside the repository falls under the repository's own `LICENCE`, CC-BY-SA. That is
-the reading kmap ships on.
-
-The wider reading is that the whole Garmin edition, its style included, is
-CC-BY-NC-SA. **If that reading is the right one, a map you build with this style may not be
-sold.** kmap cannot resolve this for you, and nothing here is legal advice. If you intend
-to sell maps, either ask OpenTopoMap directly or build with a different style: `osm-carto`
-is CC0 and carries no such question.
-
-Under either reading the attribution is the same and is not optional. kmap writes
-`Style: OpenTopoMap, CC-BY-SA` into every map built with this style, the file headers name
-the source, and this folder records where each piece came from.
+This covers the *style* only. Map data is OpenStreetMap and stays under the ODbL whatever
+style is drawn over it; see the repository's `NOTICE.md`.
 
 ## The licence text
 
 Upstream names no version, so none is assumed here. The Creative Commons texts are at
-<https://creativecommons.org/licenses/>: BY-SA at `/by-sa/4.0/` and its earlier versions,
-BY-NC-SA at `/by-nc-sa/4.0/`.
+<https://creativecommons.org/licenses/>: BY-SA at `/by-sa/4.0/` and its earlier versions.

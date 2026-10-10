@@ -89,7 +89,8 @@ once at the seam of the 32-pixel line bitmap.
 ## Line widths are topoactive's
 
 The widths are not carto's. A line takes the whole width kmap's topoactive gives
-the same code, casing included: a path 1 pixel, a track and a cycleway 2, a
+the same code, casing included: a path 2 pixels (topoactive's 1 left carto's salmon
+too faint on a device), a track and a cycleway 2, a
 service road 3, a roundabout 6 to 8, a river 2, a stream 1, a railway 3, a cliff
 4. A line topoactive leaves to the device (the roads 0x01 to 0x06 and their
 links, 0x0e path, 0x0f steps, 0x10, 0x31 to 0x35) has no entry in this style

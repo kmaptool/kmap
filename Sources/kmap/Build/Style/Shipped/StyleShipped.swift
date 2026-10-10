@@ -32,8 +32,8 @@ extension StyleCatalog {
         ShippedPalette(
             id: "opentopomap",
             name: "OpenTopoMap",
-            summary: "the OpenTopoMap look — its own Garmin colours where the maps share"
-                + " a meaning (© OpenTopoMap, CC-BY-SA)",
+            summary: "the opentopomap.org look — its own web style's colours and symbols"
+                + " (© OpenTopoMap, CC-BY-SA)",
             fid: 6326,
             palette: StyleAssets.otmPalette,
             points: StyleAssets.otmPoints,

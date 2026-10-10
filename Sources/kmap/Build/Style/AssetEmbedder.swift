@@ -55,30 +55,29 @@ enum AssetEmbedder {
         Asset(
             property: "otmPalette",
             doc: [
-                "/// The OpenTopoMap look as a palette table: colours read out of its own Garmin",
-                "/// TYP source (CC-BY-SA, attribution in the table's header) for every code whose",
-                "/// meaning both maps share. See Assets/styles/opentopomap/PROVENANCE.md."
+                "/// The OpenTopoMap look as a palette table: colours read from its own web (raster)",
+                "/// style ((c) OpenTopoMap, CC-BY-SA) at z16, against the type codes kmap's rules",
+                "/// emit. See Assets/styles/opentopomap/PROVENANCE.md."
             ],
             path: "styles/opentopomap/palette.txt"
         ),
         Asset(
-            property: "otmPoints",
-            doc: [
-                "/// POI icon sections for the OpenTopoMap style: its own Garmin TYP drawings",
-                "/// ((c) OpenTopoMap, CC-BY-SA) where it draws a meaning, openstreetmap-carto's",
-                "/// symbols (CC0) where it does not. See Assets/styles/opentopomap/points.txt."
-            ],
-            path: "styles/opentopomap/points.txt"
-        ),
-        Asset(
             property: "otmGraphics",
             doc: [
-                "/// Polygon and line pattern sections for the OpenTopoMap style: its forest",
-                "/// and scrub hatches, dashed borders and rail line, taken from its TYP",
-                "/// ((c) OpenTopoMap, CC-BY-SA), night colours added by kmap.",
+                "/// Bitmap sections for the OpenTopoMap style: its dashes, cliff teeth and",
+                "/// fill patterns, drawn from its own values and images.",
                 "/// See Assets/styles/opentopomap/PROVENANCE.md."
             ],
             path: "styles/opentopomap/graphics.txt"
+        ),
+        Asset(
+            property: "otmPoints",
+            doc: [
+                "/// POI icon sections for the OpenTopoMap style: its own symbols, else",
+                "/// openstreetmap-carto's, Maki or Temaki (CC0), drawn at 20 px with a soft",
+                "/// edge in its colours. See Assets/styles/opentopomap/points.txt."
+            ],
+            path: "styles/opentopomap/points.txt"
         ),
         Asset(
             property: "cyclosmPalette",

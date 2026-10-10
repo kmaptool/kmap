@@ -1,149 +1,140 @@
-# The OpenTopoMap look, on the type codes kmap's rules emit.
+# The OpenTopoMap web look, on the type codes kmap's rules emit.
 #
-# Every colour, width and draw order here is OpenTopoMap's own, read from its Garmin
-# style: github.com/der-stefan/OpenTopoMap, garmin/style/ at commit
-# 60c50cb8329d67c8556cd9f25b4a8e50bfc19c91 (CC-BY-SA). A note names the source as a
-# path under garmin/style/ and its lines: typ/opentopomap.txt (their TYP),
-# typ/contours.txt, and their rules under opentopomap/.
+# Every colour, dash and pattern is OpenTopoMap's own raster style (CC-BY-SA):
+# github.com/der-stefan/OpenTopoMap, mapnik/ at commit
+# 60c50cb8329d67c8556cd9f25b4a8e50bfc19c91, the rule that applies at z16. A note names the
+# file under mapnik/styles-otm/ (or mapnik/) and the lines of that rule. The codes are
+# kmap's; each is drawn as OpenTopoMap draws the OSM features kmap's rules put on it, and
+# named as Assets/styles/type-names.txt names it. PROVENANCE.md has the rules.
 #
-# Each code is drawn the way they draw the OSM features kmap's rules put on it, named as
-# Assets/styles/type-names.txt names it, and the drawing moves to kmap's number
-# where theirs differs. Where their map shows nothing for a meaning, graphics.txt draws
-# the code clear; the polygon's row here keeps their background colour as a fallback.
-#
-#   poly <code> <level> <day> <name>      level = draw order, 1 lowest
+#   poly <code> <level> <day> <name>        level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
-# Draw order is their [_drawOrder], typ/opentopomap.txt:10-47: their background (0)
-# is level 1 here and their levels 1-6 are 3-8. Level 2 holds what their order does
-# not list: kmap's land and every polygon in their background colour, so none of
-# those covers anything they draw.
+# A translucent colour is composited over their land colour #e0e0e0. Night colours are
+# derived by kmap.
 #
-# Their TYP is day only. Night colours are kmap's, derived from the day ones.
-# Codes drawn by a pattern or bitmap in graphics.txt keep a row here for the draw
-# order (polygons) and carry the pattern's ink. Attribution: (c) OpenTopoMap (CC-BY-SA).
+# Widths are not the original's: a line takes the whole width kmap's topoactive gives the
+# same code, casing included, and a line topoactive leaves to the device has no row here
+# or in graphics.txt. The original's width in a note is for the record.
+#
+# graphics.txt draws the dashes, line patterns and fill patterns, and clear sections for
+# what OpenTopoMap does not draw. Its sections replace the flat colours here, which stay
+# as a fallback. Attribution: (c) OpenTopoMap (CC-BY-SA).
 
-name OpenTopoMap
-summary the OpenTopoMap look, drawn from its own Garmin style
+name    OpenTopoMap
+summary the opentopomap.org look, in its own raster style's colours
 
-# Below everything: a fenix draws the background where the land polygon has not
-# arrived yet, and shows black without it.
-poly 0x4b 1 #ffffff  Background  # their 0x4b, typ/opentopomap.txt:2636-2640; order :11
+# --- polygons, bottom of the stack upward ------------------------------------
+# The device's own background, on a level below everything: a fenix draws it where the
+# land polygon has not arrived yet, and shows black without it.
+poly 0x4b 1 #e0e0e0  Background  # Map background-color, opentopomap.xml:93
+poly 0x27 2 #e0e0e0  Land  # opentopomap.xml:93; no rule for natural=land
+# Level 2 also holds every area OpenTopoMap does not draw: clear in graphics.txt.
+poly 0x02 2 #e0e0e0  Suburb  # not drawn: place areas are only labelled (text-villages.xml)
+poly 0x03 2 #e0e0e0  Village  # not drawn: place areas are only labelled (text-villages.xml)
+poly 0x05 2 #e0e0e0  Parking  # not drawn: no fill rule for amenity=parking
+poly 0x06 2 #e0e0e0  Parking  # not drawn: no fill rule for amenity=parking
+poly 0x07 2 #e0e0e0  Airport  # not drawn: no fill rule for aeroway=aerodrome
+poly 0x08 2 #e0e0e0  Shopping  # not drawn: no fill rule for shops and food
+poly 0x09 2 #e0e0e0  Water Park  # not drawn: no fill rule for leisure=water_park
+poly 0x0f 2 #e0e0e0  Commercial  # not drawn: not in the built-up tint, landuse-over-hillshade.xml:88-93
+poly 0x11 2 #e0e0e0  Danger Area  # not drawn: areas.xml:23-29 takes landuse=military only
+poly 0x12 2 #e0e0e0  Retail  # not drawn: not in the built-up tint, landuse-over-hillshade.xml:88-93
+poly 0x15 2 #e0e0e0  Village Green  # not drawn: no fill rule for landuse=village_green
+poly 0x16 2 #e0e0e0  Nature Reserve  # not drawn: outlined only, areas.xml:43-48
+poly 0x18 2 #e0e0e0  Golf Course  # not drawn: only its symbol, symbols-poly.xml:16-22
+poly 0x1c 2 #e0e0e0  Grassland  # kmap puts landuse=farmland here (and greenfield): no fill rule for either
+poly 0x1d 2 #e0e0e0  Common  # not drawn: no fill rule for leisure=common
+poly 0x1e 2 #e0e0e0  Heath  # not drawn: no fill rule for natural=heath
+poly 0x20 2 #e0e0e0  Garden  # not drawn: no fill rule for leisure=garden
+poly 0x21 2 #e0e0e0  Tourism  # not drawn: no fill rule for tourism=*
+poly 0x22 2 #e0e0e0  Historic  # not drawn: no fill rule for historic=*
+poly 0x23 2 #e0e0e0  Amenity  # not drawn: amenity=* past school, university, hospital, grave yard
+poly 0x24 2 #e0e0e0  Structure  # not drawn: man_made=* areas; kmap puts piers on 0x25
+poly 0x28 2 #e0e0e0  Salt pond  # not drawn: no fill rule for landuse=salt_pond
+poly 0x29 2 #e0e0e0  Greenhouses  # not drawn: no fill rule for landuse=greenhouse_horticulture
+poly 0x3b 2 #e0e0e0  Water  # not drawn: waterway=* areas; water-areas.xml:25-31 fills natural=water, basin, reservoir
+poly 0x3d 2 #e0e0e0  Bay  # not drawn: natural=bay is not filled; the sea or lake under it is
+poly 0x47 2 #e0e0e0  Waterfall  # not drawn: no rule for waterfall areas
+poly 0x52 2 #e0e0e0  Bare Ground  # kmap puts natural=tundra here: no fill rule
+# Translucent fills the original lays over the ground. Opaque in a TYP, so under the
+# patterned landcover they would only tint (PROVENANCE.md).
+poly 0x10 3 #dbdbdb  Residential  # #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
+poly 0x0c 3 #dbdbdb  Industrial  # landuse=industrial: #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
+poly 0x0a 3 #dbdbdb  School  # amenity=school, university: #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
+poly 0x0b 3 #dbdbdb  Hospital  # amenity=hospital: #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
+poly 0x26 3 #dbdbdb  Farm  # kmap puts landuse=farmyard here (and farm, not drawn): #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
+poly 0x17 8 #d1e0c6  Park  # #c1dfac at 0.5, landuse.xml:126-131; over the woods in a build, as in topoactive
+poly 0x19 8 #cbdfc2  Sports Ground  # leisure=pitch: #b6dea4 at 0.5, landuse.xml:140-146; over the woods in a build, as in topoactive
+# The landuse layer, forests first (opentopomap.xml:183-190, ORDER BY landuse=forest).
+poly 0x50 6 #c8e090  Forest  # forest.png ground with its overlays, landuse.xml:40-45; pattern in graphics.txt
+poly 0x57 6 #c8e090  Coniferous forest  # forest-coniferous.png, landuse.xml:28-33; pattern in graphics.txt
+poly 0x58 6 #c8e090  Broadleaved forest  # forest-deciduous.png, landuse.xml:34-39; pattern in graphics.txt
+poly 0x59 5 #c8e090  Woodland  # the floor kmap lays under every wood, flat as topoactive's: the forest's ground; a level under its pattern, so it never covers it
+poly 0x4f 7 #d9ded5  Scrub  # #bfd4a9 at 0.2, landuse.xml:52-58; pattern in graphics.txt
+poly 0x5b 6 #d9ded5  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: #bfd4a9 at 0.2; a level under its pattern, so it never covers it
+poly 0x55 7 #25b733  Grassland  # meadow.png, landuse.xml:46-51; pattern in graphics.txt
+poly 0x4e 7 #25b733  Orchard  # orchard.png, landuse.xml:77-82; pattern in graphics.txt
+poly 0x1b 7 #25b733  Vineyard  # vineyard.png, landuse.xml:65-70; pattern in graphics.txt
+poly 0x5a 7 #75c97d  Allotments  # allotments.png, landuse.xml:120-125; pattern in graphics.txt
+poly 0x1a 8 #4c4c4c  Cemetery  # grave_yard.png, landuse.xml:59-64; pattern in graphics.txt
+poly 0x1f 7 #a1bf27  Mountain meadow  # fell.png, landuse.xml:96-101; pattern in graphics.txt
+poly 0x0d 8 #9d9d9d  Quarry  # quarry.png, landuse.xml:108-113; pattern in graphics.txt
+poly 0x56 8 #b0aead  Bare rock  # bare_rock.png, landuse.xml:114-119; pattern in graphics.txt
+# The layer over the hillshade (opentopomap.xml:194-201).
+poly 0x54 8 #b8b8b8  Scree  # scree.png, landuse-over-hillshade.xml:9-14; pattern in graphics.txt
+poly 0x4d 7 #d8ecf0  Glacier  # #d0f8ff at 0.5, landuse-over-hillshade.xml:67-72
+# Water over the landcover: the sea (opentopomap.xml:203), then the water areas.
+poly 0x32 9 #a3dde8  Sea  # basemap-sea.xml:16-20
+poly 0x3c 10 #a3dde8  Water  # natural=water, water-areas.xml:25-31
+poly 0x41 10 #a3dde8  Water  # natural=water, water-areas.xml:25-31
+poly 0x3f 10 #a3dde8  Reservoir  # landuse=reservoir, basin, water-areas.xml:25-31
+poly 0x48 10 #a3dde8  Canal  # natural=water, water-areas.xml:25-31
+poly 0x4c 10 #a3dde8  Dock  # natural=water (a lock), water-areas.xml:25-31
+poly 0x46 10 #a3dde8  River  # waterway=riverbank, waterway-polygons-fill.xml:9-15
+# Over the water (opentopomap.xml:244-251).
+poly 0x51 11 #ced1e3  Wetland  # #304eff at 0.1, landuse-over-water.xml:22-28; pattern over a clear ground in graphics.txt
+poly 0x53 5 #fff4a9  Sand  # sand.png, landuse.xml:89-94 and at 0.7 landuse-over-water.xml:42-47; pattern in graphics.txt; under the woods, as topoactive's, since an opaque TYP fill would hide a wood on a beach or a small island
+# Piers (cliffs.xml:104-110) and pedestrian areas (road-areas.xml:2-7), both white; at the
+# piers' layer, over the water they stand on.
+poly 0x25 12 #ffffff  Pedestrian Area  # white, road-areas.xml:2-7, cliffs.xml:104-110
+poly 0x13 13 #555555  Building  # buildings.xml:14-19, over their black 1.5 outline
+poly 0x04 14 #ef8d8d  Military  # military_area_z12.png, areas.xml:23-29; hatch in graphics.txt
+poly 0x0e 15 #dddddd  Runway  # runway, taxiway, apron, helipad: airports-poly.xml:10-16
 
-# Level 2: their background colour, #ffffff (typ/opentopomap.txt:2636-2640), the land and
-# what their map does not draw; graphics.txt draws the latter clear.
-poly 0x27 2 #ffffff  Land  # no rule for natural=land; the ground
-poly 0x02 2 #ffffff  Suburb  # no rule for place=suburb
-poly 0x03 2 #ffffff  Village  # opentopomap/polygons:56 emits 0x03; no section in their TYP, nor in its draw order
-poly 0x05 2 #ffffff  Parking  # opentopomap/polygons:27-28,69 emit 0x05; no section
-poly 0x06 2 #ffffff  Parking  # opentopomap/polygons:26 emits 0x06; no section
-poly 0x07 2 #ffffff  Airport  # opentopomap/polygons:19-20 emit 0x07; no section
-poly 0x08 2 #ffffff  Shopping  # opentopomap/polygons:24,32 emit 0x08; no section
-poly 0x09 2 #ffffff  Water Park  # opentopomap/polygons:52 emits 0x09; no section
-poly 0x0a 2 #ffffff  School  # opentopomap/polygons:23,25,30,33 emit 0x0a; no section
-poly 0x0b 2 #ffffff  Hospital  # opentopomap/polygons:35-38 emit 0x0b; no section
-poly 0x0e 2 #ffffff  Runway  # opentopomap/polygons:21 emits 0x0e (helipad); no section
-poly 0x4d 2 #ffffff  Glacier  # opentopomap/inc/water_polygons:3 emits 0x4d; no section
-poly 0x51 2 #ffffff  Wetland  # opentopomap/inc/water_polygons:4-6 emit 0x51; no section
-poly 0x0d 2 #ffffff  Quarry  # rule commented out, opentopomap/inc/landuse_polygons:8
-poly 0x11 2 #ffffff  Danger Area  # rule commented out, opentopomap/inc/landuse_polygons:17
-poly 0x12 2 #ffffff  Retail  # rule commented out, opentopomap/inc/landuse_polygons:12
-poly 0x15 2 #ffffff  Village Green  # rule commented out, opentopomap/inc/landuse_polygons:13
-poly 0x16 2 #ffffff  Nature Reserve  # rule commented out, opentopomap/polygons:44
-poly 0x18 2 #ffffff  Golf Course  # rule commented out, opentopomap/polygons:42
-poly 0x1d 2 #ffffff  Common  # rule commented out, opentopomap/polygons:40
-poly 0x1e 2 #ffffff  Heath  # no rule for natural=heath
-poly 0x1f 2 #ffffff  Mountain meadow  # no rule for natural=fell
-poly 0x21 2 #ffffff  Tourism  # rule commented out, opentopomap/polygons:79
-poly 0x22 2 #ffffff  Historic  # opentopomap/polygons:71-72 emit 0x1e; no section
-poly 0x23 2 #ffffff  Amenity  # no rule for other amenities
-poly 0x24 2 #ffffff  Structure  # rules commented out, opentopomap/polygons:81-87
-poly 0x25 2 #ffffff  Pedestrian Area  # opentopomap/polygons:69 emits 0x05; no section
-poly 0x26 2 #ffffff  Farm  # rules commented out, opentopomap/inc/landuse_polygons:4-5
-poly 0x28 2 #ffffff  Salt pond  # no rule for landuse=salt_pond
-poly 0x29 2 #ffffff  Greenhouses  # no rule for landuse=greenhouse_horticulture
-poly 0x4e 2 #ffffff  Orchard  # no rule for landuse=orchard
-poly 0x52 2 #ffffff  Bare Ground  # no rule for natural=tundra
-poly 0x54 2 #ffffff  Scree  # no rule for natural=scree
-poly 0x56 2 #ffffff  Bare rock  # no rule for natural=bare_rock
-poly 0x5a 2 #ffffff  Allotments  # rule commented out, opentopomap/inc/landuse_polygons:1
-
-# Their built-up area, 0x10, typ/opentopomap.txt:2387-2395; order :13 (1).
-# Rule: opentopomap/inc/landuse_polygons:27.
-poly 0x10 3 #ebebeb  Residential
-poly 0x0c 3 #ebebeb  Industrial
-poly 0x0f 3 #ebebeb  Commercial
-
-# Their forests, order typ/opentopomap.txt:15-19 (2). Patterns in graphics.txt.
-poly 0x50 4 #77cc77  Forest  # their 0x50, typ/opentopomap.txt:2724-2765
-poly 0x59 4 #77cc77  Woodland  # the floor kmap lays under every wood, flat as topoactive's: their 0x50's ground, typ/opentopomap.txt:2724-2765
-poly 0x57 4 #77cc77  Coniferous forest  # their 0x38, typ/opentopomap.txt:2495-2536
-poly 0x58 4 #77cc77  Broadleaved forest  # their 0x39, typ/opentopomap.txt:2538-2579
-
-# Order typ/opentopomap.txt:21-29 (3).
-poly 0x53 5 #f5f500  Sand  # their 0x55 pattern, typ/opentopomap.txt:2767-2806
-poly 0x17 5 #00c000  Park  # their meadow 0x17 pattern, typ/opentopomap.txt:2405-2444; rule opentopomap/polygons:45
-poly 0x20 5 #00c000  Garden  # their meadow 0x17 pattern; rule opentopomap/polygons:41
-poly 0x1c 2 #ffffff  Grassland  # kmap puts landuse=farmland here: no rule for it in opentopomap (greenfield, the rest, is their meadow, inc/landuse_polygons:32)
-poly 0x55 5 #00c000  Grassland  # their meadow 0x17 pattern; rule opentopomap/inc/landuse_polygons:31-32
-poly 0x19 5 #beffba  Sports Ground  # their 0x19, typ/opentopomap.txt:2446-2452
-poly 0x1b 5 #00c000  Vineyard  # their 0x4e pattern, typ/opentopomap.txt:2642-2681
-poly 0x4f 5 #00c000  Scrub  # their 0x4f pattern, typ/opentopomap.txt:2683-2722
-poly 0x5b 5 #ffffff  Scrub  # the floor kmap lays under every scrub: their scrub has no ground, so clear (graphics.txt)
-
-# Their water, #72ceff, order typ/opentopomap.txt:31-39 (4).
-poly 0x32 6 #72ceff  Sea  # their 0x32, typ/opentopomap.txt:2581-2587
-poly 0x3c 6 #72ceff  Water  # their 0x3c, typ/opentopomap.txt:2590-2600
-poly 0x41 6 #72ceff  Water  # their 0x3c and 0x3d, typ/opentopomap.txt:2590-2611; rule opentopomap/inc/water_polygons:16-17
-poly 0x3b 6 #72ceff  Water  # their 0x3c, typ/opentopomap.txt:2590-2600
-poly 0x3d 6 #72ceff  Bay  # a bay is water in their rules, opentopomap/inc/water_polygons:1; their 0x3d, typ/opentopomap.txt:2603-2611
-poly 0x3f 6 #72ceff  Reservoir  # a basin and a reservoir are water in their rules, opentopomap/inc/water_polygons:1
-poly 0x48 6 #72ceff  Canal  # natural=water, their 0x3c, typ/opentopomap.txt:2590-2600
-poly 0x4c 6 #72ceff  Dock  # natural=water (a lock), their 0x3c, typ/opentopomap.txt:2590-2600
-poly 0x46 6 #72ceff  River  # their 0x46, typ/opentopomap.txt:2614-2624
-poly 0x47 6 #72ceff  Waterfall  # their 0x47, typ/opentopomap.txt:2626-2634
-
-# Order typ/opentopomap.txt:41-45 (5 and 6).
-poly 0x13 7 #404040  Building  # their 0x13, typ/opentopomap.txt:2397-2403
-poly 0x1a 7 #000000  Cemetery  # their 0x1a pattern, typ/opentopomap.txt:2454-2493
-poly 0x04 8 #ff4040  Military  # their 0x04 pattern, typ/opentopomap.txt:2344-2385
-
-# Roads. Width is the whole stroke: their LineWidth and a 1-pixel border either side.
-line 0x02 5 #fdb548 #000000  Trunk  # their 0x02, typ/opentopomap.txt:2003-2014; rule opentopomap/lines:126
-line 0x03 4 #fdb548 #000000  Primary  # their 0x03, typ/opentopomap.txt:2016-2027; rule opentopomap/lines:133
-line 0x04 4 #fdfd4f #000000  Secondary  # their 0x04, typ/opentopomap.txt:2029-2038; rule opentopomap/lines:138
-line 0x05 4 #ffffff #000000  Tertiary  # their 0x05, typ/opentopomap.txt:2040-2049; rule opentopomap/lines:143
-line 0x06 3 #ffffff #000000  Minor road  # their 0x06, typ/opentopomap.txt:2051-2060; rule opentopomap/lines:147,158
-line 0x10 3 #ffffff #000000  Living street  # their 0x06, typ/opentopomap.txt:2051-2060; rule opentopomap/lines:157
-line 0x08 3 #fdfd4f #000000  Primary link  # their 0x08, typ/opentopomap.txt:2072-2081; rule opentopomap/lines:134,140,145
-line 0x09 3 #fdb548 #000000  Motorway link  # their 0x09, typ/opentopomap.txt:2083-2092; rule opentopomap/lines:122
-line 0x0b 3 #ffffff #000000  Motorway exit  # their 0x06, typ/opentopomap.txt:2051-2060; rule opentopomap/lines:121,128
-line 0x0c 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:99-104
-line 0x10801 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:99
-line 0x10802 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:100
-line 0x10803 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:101
-line 0x10804 4 #ffffff #000000  Roundabout  # their 0x0c, typ/opentopomap.txt:2114-2123; rule opentopomap/lines:102
-line 0x07 2 #000000  Service Road  # their 0x07, typ/opentopomap.txt:2062-2070; rule opentopomap/lines:167
-line 0x11 2 #000000  Cycleway  # their 0x07, typ/opentopomap.txt:2062-2070; rule opentopomap/lines:170
-line 0x0a 1 #000000  Track  # their 0x0a, typ/opentopomap.txt:2094-2101; rule opentopomap/lines:178
-line 0x27 2 #a0a0a0  Runway  # their 0x27, typ/opentopomap.txt:2246-2253; rule opentopomap/lines:11-12
-
-# Water.
-line 0x1f 3 #1d4dff  River  # their 0x1f, typ/opentopomap.txt:2233-2244; rule opentopomap/inc/water_lines:7
-line 0x33 3 #1d4dff  Canal  # their 0x1f, typ/opentopomap.txt:2233-2244; rule opentopomap/inc/water_lines:8
-line 0x18 1 #1d4dff  Stream  # their 0x18, typ/opentopomap.txt:2177-2184; rule opentopomap/inc/water_lines:11
-line 0x26 1 #1d4dff  Intermittent Stream  # their 0x18, typ/opentopomap.txt:2177-2184
-line 0x34 1 #1d4dff  Drain  # their 0x18, typ/opentopomap.txt:2177-2184; rule opentopomap/inc/water_lines:9
-line 0x35 1 #1d4dff  Ditch  # their 0x18, typ/opentopomap.txt:2177-2184; rule opentopomap/inc/water_lines:9
-
-# Contour lines, from their contour TYP: one brown, a pixel wide.
-line 0x20 1 #c08040  Contour  # typ/contours.txt:13-19 (a 32x1 bitmap of one colour)
-line 0x21 1 #c08040  Contour  # typ/contours.txt:21-27
-line 0x22 1 #c08040  Contour  # typ/contours.txt:29-35
-
-# Drawn in graphics.txt, so not here: from their bitmaps 0x01 Motorway, 0x0e and
-# 0x16 Path, 0x0f Steps, 0x14 Railway, 0x17 Barrier, 0x1a and 0x1b Ferry, 0x1c-0x1e
-# Boundary, 0x29 Power Line, 0x2b Cliff; drawn by nothing 0x12, 0x19, 0x23, 0x24,
-# 0x25, 0x28, 0x2d, 0x31, 0x32.
-# 0x0d, the link this build puts in across a kerb or a bank, is left out on purpose:
-# a flat colour here would replace kmap's red dashes with a plain stripe.
+# --- lines --------------------------------------------------------------------
+# Roads at z16: ink = their fill, casing = their casing, both colours theirs.
+line 0x10801 8 #f59729 #000000  Roundabout  # trunk: color_roads_1 inc/entities.xml.inc:46 at 6, roads-fill.xml:365-370; black 8, roads-casing.xml:500-505
+line 0x10802 7 #f59729 #000000  Roundabout  # primary: as trunk
+line 0x10803 7 #f7e761 #000000  Roundabout  # secondary: color_roads_2 inc/entities.xml.inc:47 at 6, roads-fill.xml:371-376; black 8, roads-casing.xml:500-505
+line 0x10804 6 #f7e761 #000000  Roundabout  # tertiary: as secondary
+line 0x07 3 #ffffff #000000  Service Road  # white 4, roads-fill.xml:395-400; black 6, roads-casing.xml:506-511
+line 0x0a 2 #000000  Track  # no tracktype: black 1.5, roads-casing.xml:384-389
+line 0x11 2 #000000  Cycleway  # black 1.5, roads-casing.xml:384-389
+line 0x16 2 #000000  Path  # black 1 -> 2, wider than topoactive's 1 to be seen on a device, dash 1.1,2, roads-casing.xml:416-421; dashed in graphics.txt
+line 0x30 2 #8eb961  Track  # kmap puts leisure=track here (and raceway, gallop): the #8eb961 outline of a closed track, landuse.xml:140-146 (leisure is a polygon key, opentopomap.style:126); an open track way they do not draw at z16, a raceway is a road
+line 0x14 3 #ffffff #000000  Railway  # rail_z15.png, railways.xml:32-37; pattern in graphics.txt
+line 0x27 6 #dddddd #000000  Runway  # #dddddd 8, airports-fill.xml:32-37; black 9.5, airports-casing.xml:32-37
+# Water at z16.
+line 0x1f 2 #a3dde8 #1d4dff  River  # #1d4dff 7 under #a3dde8 6, waterway-lines.xml:22-28; 2 px: the casing alone
+line 0x18 1 #1d4dff  Stream  # #1d4dff 1, waterway-lines.xml:51-56
+line 0x26 1 #1d4dff  Intermittent Stream  # #1d4dff 1, dash 1.5,2, waterway-lines.xml:78-83; dashed in graphics.txt
+line 0x1a 1 #0000ff  Ferry  # #0000ff 0.5, dash 7,7, ferry-routes.xml:8-13; dashed in graphics.txt
+line 0x1b 1 #0000ff  Ferry  # as 0x1a
+# The rest.
+line 0x17 1 #000000  Barrier  # fence and wall: fence.png with a black 0.5 line over it, barriers.xml:9-15
+line 0x29 1 #000000  Power Line  # powerline.png with a black 0.5 line over it, powerlines.xml:2-8
+line 0x25 3 #000000  Aerial way  # black 0.5 under aerialway_gondola.png, aerialways.xml:2-8; pattern in graphics.txt
+line 0x2b 4 #000000  Cliff  # cliff_z15.png, cliffs.xml:14-19; pattern in graphics.txt
+line 0x19 3 #85c243  Protected area  # leisure=nature_reserve: #85c243 5 at 0.5, areas.xml:43-48; their colour without the opacity, which left the band too faint to see on a device
+line 0x1c 1 #c82fe5  Boundary  # admin_level 6: #c82fe5 0.4 over a band at 0.1, borders.xml:31-37
+line 0x1d 2 #952aba  Boundary  # admin_level 4: #8301b1 0.5 at 0.8 over #cb82d9 4 at 0.2, borders.xml:13-19
+line 0x1e 2 #8c15b6  Boundary  # admin_level 2: #8301b1 0.8 at 0.9 over #cb82d9 10 at 0.2, borders.xml:4-10
+line 0x2d 1 #f08d8d  Military area  # landuse=military: #ff3939 3 at 0.5, areas.xml:23-29
+# Contours: 1 colour at every interval, #c45700.
+line 0x22 1 #c45700  Contour  # 100 m: stroke-width 0.6, contours.xml:21-26
+line 0x21 1 #c45700  Contour  # 50 m: stroke-width 0.4, contours.xml:47-52
+line 0x20 1 #c45700  Contour  # 10 m: stroke-width 0.2, contours.xml:69-74
+# Not here: 0x12, 0x23, 0x24 and 0x28, which OpenTopoMap does not draw (clear,
+# graphics.txt; the valley keeps its name, which they write); 0x0d, the link this build
+# puts in across a kerb or a bank, left to kmap's own red dashes.

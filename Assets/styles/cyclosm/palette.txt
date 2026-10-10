@@ -35,25 +35,25 @@ poly 0x16 4 #eee5dc  Nature Reserve  # not drawn by CyclOSM at z16: its fill sto
 poly 0x04 10 #f0d6ce  Military  # graphics.txt: danger_red_hatch.png over @land (base.mss:249-257); no field of its own; above landcover, as the overlay is one of CyclOSM's last layers (project.mml:1906)
 poly 0x11 10 #f0d6ce  Danger Area  # graphics.txt: the same overlay for military=danger_area (base.mss:251)
 poly 0x1c 5 #fbf0e3  Grassland  # kmap puts landuse=farmland here (and greenfield, not drawn by CyclOSM): @farmland palette.mss:41, landuse_farmland base.mss:125-128
-poly 0x29 5 #fbf0e3  Greenhouses  # @farmland palette.mss:41, landuse_greenhouse_horticulture base.mss:125-128
+poly 0x29 6 #fbf0e3  Greenhouses  # @farmland palette.mss:41, landuse_greenhouse_horticulture base.mss:125-128; over the woods in a build: CyclOSM draws its landuse largest first, so a small one shows on a wood
 poly 0x26 5 #eee5dc  Farm  # not drawn by CyclOSM: landuse=farm and farmyard are not in its landuse layer (project.mml:139-168)
 poly 0x4e 5 #e2eecb  Orchard  # @meadow palette.mss:35, base.mss:96-102; graphics.txt adds orchard.png
 poly 0x1b 5 #e2eecb  Vineyard  # @meadow palette.mss:35, base.mss:86-92; graphics.txt adds vineyard.png
 poly 0x5a 5 #c2debd  Allotments  # @grass palette.mss:34, base.mss:103-109; graphics.txt adds allotments.png
 poly 0x1f 5 #eee5dc  Mountain meadow  # not drawn by CyclOSM: kmap puts only natural=fell here, which is not in its landuse layer (project.mml:139-168)
 poly 0x55 5 #c2debd  Grassland  # @grass palette.mss:34, landuse_grass and natural_grassland base.mss:41-45
-poly 0x15 5 #c2debd  Village Green  # @park palette.mss:36, landuse_village_green base.mss:120-123
-poly 0x1d 5 #c2debd  Common  # @park palette.mss:36, leisure_common base.mss:32
+poly 0x15 6 #c2debd  Village Green  # @park palette.mss:36, landuse_village_green base.mss:120-123; over the woods in a build, as in topoactive
+poly 0x1d 6 #c2debd  Common  # @park palette.mss:36, leisure_common base.mss:32; over the woods in a build, as in topoactive
 poly 0x4f 5 #c8d7ab  Scrub  # @scrub palette.mss:40, base.mss:77-81; graphics.txt adds scrub.png
-poly 0x5b 5 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub palette.mss:40
+poly 0x5b 4 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub palette.mss:40; a level under its pattern, so it never covers it
 poly 0x1e 5 #b2c068  Heath  # @heath palette.mss:39, base.mss:83
 poly 0x50 5 #95bd84  Forest  # @wooded palette.mss:38, base.mss:33, 169; graphics.txt adds leaftype_unknown.svg
 poly 0x57 5 #95bd84  Coniferous forest  # @wooded; graphics.txt adds leaftype_needleleaved.svg
 poly 0x58 5 #95bd84  Broadleaved forest  # @wooded; graphics.txt adds leaftype_broadleaved.svg
-poly 0x59 5 #95bd84  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @wooded palette.mss:38
+poly 0x59 4 #95bd84  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @wooded palette.mss:38; a level under its pattern, so it never covers it
 poly 0x53 5 #f5e9c6  Sand  # @sand palette.mss:47, base.mss:62-66
-poly 0x54 5 #eee5dc  Scree  # @bare_ground palette.mss:48, base.mss:71-75; graphics.txt adds scree_overlay.png
-poly 0x56 5 #eee5dc  Bare rock  # @bare_ground palette.mss:48, base.mss:67-70; graphics.txt adds rock_overlay.png
+poly 0x54 6 #eee5dc  Scree  # @bare_ground palette.mss:48, base.mss:71-75; graphics.txt adds scree_overlay.png; over the woods in a build, as in topoactive
+poly 0x56 6 #eee5dc  Bare rock  # @bare_ground palette.mss:48, base.mss:67-70; graphics.txt adds rock_overlay.png; over the woods in a build, as in topoactive
 poly 0x52 5 #eee5dc  Bare Ground  # not drawn by CyclOSM: natural=tundra, kmap's only rule here, is not in its landuse layer
 poly 0x4d 5 #ddecec  Glacier  # @glacier palette.mss:43, base.mss:54-56
 poly 0x02 6 #eee5dc  Suburb  # not drawn by CyclOSM: place areas are not in its landuse layer
