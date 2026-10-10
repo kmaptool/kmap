@@ -4,7 +4,7 @@ kmap's own code is MIT (see `LICENSE`). Two kinds of things in this repository a
 `Assets/hideable.txt`, `Assets/mkgmap/redirects.txt` and `Assets/mkgmap/contour_lines`
 quote rule lines from mkgmap's default style and are GPL v2, because a substitution has to
 name the line it replaces exactly; and the built-in styles in `Assets/styles/` carry their
-sources' terms — `osm-carto` from openstreetmap-carto (CC0), `opentopomap` from
+sources' terms — `osm-carto` from openstreetmap-carto (CC0; icons it lacks from Maki and Temaki, CC0), `opentopomap` from
 OpenTopoMap's web style, its Mapnik stylesheet and symbols (CC-BY-SA; its icons drawn from
 openstreetmap-carto, Maki and Temaki vectors, CC0), `cyclosm` from CyclOSM (BSD-3-Clause,
 its ground colours from the Hydda style under Apache 2.0) and `liberty-topo`

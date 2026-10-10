@@ -106,8 +106,9 @@ tile; a pixel more opaque than the cut (half, unless the note in `palette.txt`
 says otherwise) is ink. The floors kmap lays under every wood and scrub, 0x59 and
 0x5b, are flat, as topoactive's are.
 
-The POI icons are openstreetmap-carto's symbols (CC0), the same set the carto
-style here uses; CyclOSM draws POIs with those icons too, among others.
+The POI icons are the carto style's file (see its PROVENANCE): openstreetmap-carto's
+symbols, which CyclOSM draws POIs with too, and Maki or Temaki icons (CC0) where carto
+has none.
 
 ## Licences
 

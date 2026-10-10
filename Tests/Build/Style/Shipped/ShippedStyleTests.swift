@@ -437,6 +437,23 @@ final class ShippedStyleTests: XCTestCase {
         }
     }
 
+    /// Every look's night land is one grey: an icon whose night ink is that grey is not
+    /// there at night.
+    func testNoIconVanishesIntoTheNightLand() throws {
+        for shipped in StyleCatalog.shippedPalettes {
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            let land = try XCTUnwrap(typ.section(.polygon, 0x27)?.xpm?.colours.last ?? nil, shipped.id)
+            for section in typ.sections where section.kind == .point {
+                guard let ink = section.nightXpm?.dominantColour else { continue }
+                XCTAssertNotEqual(
+                    ink.uppercased(),
+                    land.uppercased(),
+                    "\(shipped.id) point 0x\(String(section.code, radix: 16)) is drawn in the night land's colour"
+                )
+            }
+        }
+    }
+
     /// The cache hands out the same text for the same inputs, and other inputs under the
     /// same id are made afresh, never answered from it.
     func testTheShippedTypCacheAnswersOnlyTheSameInputs() throws {

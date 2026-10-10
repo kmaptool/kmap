@@ -122,48 +122,25 @@ bitmaps alike.
 
 ## Icons
 
-`points.txt` holds openstreetmap-carto's own symbols (`symbols/` in the
-repository, CC0, the commit above), one per code: the symbol carto draws for the
-code's meaning, the one `type-names.txt` gives it. CyclOSM ships the same file.
-Each SVG is rendered at 16 px with rsvg-convert, and a pixel whose alpha is 96
-or more is ink (the lighthouse at more than 127). The ink is the
-`marker-fill` carto gives that symbol in `style/amenity-points.mss`: gastronomy
-#C77400, amenity brown #734A08, health #BF0000, transportation and accommodation
-#0092DA, shop #AC39AC, religion #000000, landform #D08F55, air transport
-#8461C4, leisure green #0D7813, man-made #666666, spring #7ABCEC, water text
-#4D80B3. The bus station keeps its SVG's own blue and white, the cliff its line
-tile's grey #999999. Night ink is the day ink lifted towards white and snapped
-to the 0/85/170/255 steps a MIP display can show. Each section's comment names
-its SVG and its ink.
+Every icon is drawn from a vector at 20 pixels with a soft edge: a partly covered pixel
+is its ink blended over the land. CyclOSM ships the same file.
 
-Where a code holds several kinds of object, the symbol is the one for its main
-meaning: 0x2f08 Station is carto's bus station (topoactive draws a bus there
-too), 0x3003 the town hall, 0x2b02 the guest house, 0x2d01 the theatre, 0x2f10
-the hairdresser, every restaurant code 0x2a00 to 0x2a13 (fast food 0x2a07 and the
-cafe 0x2a0e aside) the restaurant whatever its cuisine (carto draws a food court
-so too), 0x3200 the gate (gates, stiles, kissing gates and cycle barriers land
-there), 0x6608 the generic tower, 0x6619 the cave entrance, 0x6613 the mountain
-pass in transport blue (a saddle takes it in landform brown). Where the main
-meaning has no symbol, another object on the code that fits it does: 0x2f09
-Marina is carto's ferry terminal (marinas carry none), 0x2c0d Tourist site
-its artwork (attractions carry none; an artwork is a sight, and kmap puts
-artworks there). 0x2c0c Volcano is carto's peak in red, 0x2f02 the car rental,
-0x2f1b the aerialway station's square in station colour, 0x6514 the ford. The
-gates and the aerialway square are not 14 px symbols and are drawn at the same
-16/14 scale as the rest; the peak, saddle and volcano, 8 px, at 16 px.
+- carto's own symbol (`symbols/`, CC0, the commit above) for the code's meaning, in the
+  `marker-fill` carto gives it in `style/amenity-points.mss`: gastronomy #C77400, amenity
+  brown #734A08, health #BF0000, transport and accommodation #0092DA, shop #AC39AC,
+  leisure #0D7813, landform #D08F55, air transport #8461C4, man-made #666666, water
+  #4D80B3. Its barrier marks, a fraction of its 14 px grid, are scaled as the grid is.
+- Where carto draws no symbol, a Maki (v8.0.0) or Temaki (v5.13.0) icon, CC0, in the
+  carto ink of its category; the same icons opentopomap uses, each checked against
+  topoactive's meaning for the code.
+- A code topoactive marks with its plain label anchor (water and land names, the
+  junction, Wi-Fi, geyser, military, cemetery, nature reserve, 0x661a) gets that anchor
+  square, with its label. The rock 0x6614 is topoactive's own small ring.
 
-Every point code kmap's rules emit has a section, but the settlement points
-0x0100 to 0x0d00, whose dot and name the device draws: a code with no section is
-not left blank, the device draws its own built-in icon for that number, often
-one with another meaning. A code for which carto draws no symbol fitting any
-object on it gets the plain anchor square of the reference TYP, topoactive's
-0x661a, copied byte for byte, day and night, with its label; it can be edited in
-kmap's type editor. Never a symbol of another meaning: no fishing on a stadium,
-no butcher on every shop. 36 codes: 0x2c08 sports ground and 0x2d0a sports
-centre (carto names pitches, stadiums and sports centres but marks none), 0x2e04
-mall, 0x2e0c shop and 0x3202 bollard (a plain dot in carto), 0x2f12 Wi-Fi, 0x6414
-well, 0x6509 geyser, 0x6614 rock and stone, 0x6618 a wood's name, 0x661a (the
-anchor itself in topoactive), and the codes carto only labels or leaves out:
-0x2000, 0x230f, 0x2c01, 0x2c05, 0x2c06, 0x2c07, 0x2c0a, 0x2c0e, 0x2d06, 0x2d08,
-0x3006, 0x6403, 0x640b, 0x6503, 0x6505, 0x650a, 0x650c, 0x650d, 0x650f, 0x6512,
-0x6513, 0x6603, 0x6604, 0x6606, 0x6612. The repair mark 0x660b is kmap's own, added by the build, and has no section here.
+Where a code holds several kinds of object, the symbol is the main meaning's: 0x2f08 the
+bus station, 0x3003 the town hall, 0x2b02 the guest house, 0x2c0b the neutral place of
+worship, every restaurant code the restaurant, 0x3200 the gate, 0x6613 the mountain pass
+in transport blue, 0x2f09 the ferry terminal, 0x2c0d the artwork, 0x2c0c the peak in
+red. Night lifts each ink towards white; an ink the grey night land would swallow keeps
+its darkness. The counts are in the header of `points.txt`; each section names its
+source and ink. The repair mark 0x660b is kmap's own and has no section here.

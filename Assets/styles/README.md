@@ -16,7 +16,8 @@ A style whose licence asks to be credited says so in one line, and that line is
 written into every map built with it, beside the OSM attribution.
 
 Residents:
-  osm-carto/     the look of openstreetmap.org  (openstreetmap-carto, CC0)
+  osm-carto/     the look of openstreetmap.org  (openstreetmap-carto, CC0; icons it
+                 lacks from Maki and Temaki, CC0)
   opentopomap/   the opentopomap.org look       (der-stefan/OpenTopoMap, its web style,
                  CC-BY-SA; icons from openstreetmap-carto, Maki and Temaki, CC0)
   cyclosm/       an outdoor palette             (CyclOSM, BSD-3-Clause; ground

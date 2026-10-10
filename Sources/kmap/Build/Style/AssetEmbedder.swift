@@ -127,8 +127,9 @@ enum AssetEmbedder {
         Asset(
             property: "cartoPoints",
             doc: [
-                "/// POI icon sections for the carto style: openstreetmap-carto's symbols (CC0)",
-                "/// rendered to 16 px TYP bitmaps, appended verbatim to the generated TYP.",
+                "/// POI icon sections for the carto and CyclOSM styles: openstreetmap-carto's",
+                "/// symbols, else Maki or Temaki (all CC0), drawn at 20 px with a soft edge,",
+                "/// appended verbatim to the generated TYP.",
                 "/// See Assets/styles/osm-carto/points.txt for how they were made."
             ],
             path: "styles/osm-carto/points.txt"
