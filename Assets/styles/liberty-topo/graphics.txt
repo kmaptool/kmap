@@ -3,11 +3,12 @@
 
 [_line]
 Type=0x16
-Xpm="32 1 4 1"
+Xpm="32 2 4 1"
 "a c #ffffff"
 "b c #ceac34"
 "A c #AAAAAA"
 "B c #AA5500"
+"aaaaabbaaaaabbaaaaabbaaaaabbaaaa"
 "aaaaabbaaaaabbaaaaabbaaaaabbaaaa"
 [end]
 

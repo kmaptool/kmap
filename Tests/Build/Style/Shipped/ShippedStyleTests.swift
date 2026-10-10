@@ -360,7 +360,8 @@ final class ShippedStyleTests: XCTestCase {
     }
 
     /// The line widths of the transcribed looks are topoactive's, casing included; the path
-    /// of carto and OpenTopoMap is 2 px, as 1 px of their ink was too faint on a device.
+    /// of carto, OpenTopoMap and Liberty Topo is 2 px, as 1 px of their ink was too faint
+    /// on a device.
     func testTheTranscribedLooksDrawTopoactivesLineWidths() throws {
         let widths: [Int: Int] = [
             0x07: 3, 0x0a: 2, 0x11: 2, 0x16: 1, 0x18: 1, 0x1f: 2, 0x27: 6,
@@ -370,7 +371,7 @@ final class ShippedStyleTests: XCTestCase {
             let shipped = try XCTUnwrap(StyleCatalog.shippedPalette(id: id))
             let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
             for (code, topoactive) in widths {
-                let width = code == 0x16 && ["osm-carto", "opentopomap"].contains(id) ? 2 : topoactive
+                let width = code == 0x16 && ["osm-carto", "opentopomap", "liberty-topo"].contains(id) ? 2 : topoactive
                 let section = try XCTUnwrap(typ.sections.first { $0.kind == .line && $0.code == code })
                 let lines = section.lines.map { typ.lines[$0] }
                 func value(_ key: String) -> Int? {

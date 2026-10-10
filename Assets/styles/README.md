@@ -24,6 +24,7 @@ Residents:
                  colours from Hydda, Apache 2.0 — its LICENSE.md is kept in the
                  folder beside PROVENANCE.md)
   liberty-topo/  a minimal topographic look     (nst-guide/osm-liberty-topo, BSD
-                 and CC-BY 3.0; schema © OpenMapTiles, CC-BY 4.0; Maki icons,
-                 CC0 — its licences are kept in the folder)
+                 and CC-BY 3.0; schema © OpenMapTiles, CC-BY 4.0; OSM Liberty's
+                 Maki icons, CC0, glyphs it lacks from Maki, Temaki and
+                 openstreetmap-carto, CC0 — its licences are kept in the folder)
   kmap/          kmap's own look, one day

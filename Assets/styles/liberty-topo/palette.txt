@@ -104,7 +104,7 @@ line 0x10803 7 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_seco
 line 0x10804 6 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_secondary_tertiary_casing
 line 0x07 3 #ffffff #cfcdca     Service Road  # road_service_track, road_service_track_casing
 line 0x0a 2 #ffffff #cfcdca     Track  # road_service_track, road_service_track_casing
-line 0x16 1 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt
+line 0x16 2 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt; 2 px, not topoactive's 1, to be seen on a device
 line 0x11 2 #ffffff             Cycleway  # road_path_pedestrian; dashed in graphics.txt
 line 0x14 3 #bbbbbb             Railway  # road_major_rail; its ties in graphics.txt
 line 0x27 6 #f0ede9             Runway  # aeroway_runway

@@ -118,8 +118,9 @@ enum AssetEmbedder {
         Asset(
             property: "libertyTopoPoints",
             doc: [
-                "/// POI icon sections for the OSM Liberty Topo style: its own Maki markers",
-                "/// (CC0) rendered to 16 px TYP bitmaps, disc and glyph turned over at night.",
+                "/// POI icon sections for the OSM Liberty Topo style: OSM Liberty's Maki markers,",
+                "/// and its ring around a Maki, Temaki or carto glyph (all CC0) where it has none,",
+                "/// rendered to 16 px TYP bitmaps, disc and glyph turned over at night.",
                 "/// See Assets/styles/liberty-topo/points.txt."
             ],
             path: "styles/liberty-topo/points.txt"

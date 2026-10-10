@@ -62,8 +62,8 @@ is kmap's: where the style draws nothing, nothing is drawn.
 ## Line widths are topoactive's
 
 The widths are not Liberty Topo's. A line takes the whole width kmap's
-topoactive gives the same code, casing included: a path 1 pixel, a track and a
-cycleway 2, a service road 3, a roundabout 6 to 8, a river 2, a stream 1, a
+topoactive gives the same code, casing included: a path 2 pixels (topoactive's 1
+left its white dashes too faint on a device), a track and a cycleway 2, a service road 3, a roundabout 6 to 8, a river 2, a stream 1, a
 railway 3, a cliff 4 (where the style draws them). A line topoactive leaves to
 the device (the roads 0x01 to 0x06 and their links, 0x0e path, 0x0f steps, 0x10,
 0x31 to 0x35) has no entry in this style either, so the device draws it at its
@@ -104,48 +104,27 @@ pixels (alpha 73 of 255) fall to clear with the rest.
 
 ## The icons
 
-The POI icons are the style's own: the Maki set it draws with (CC0), the `_15`
-markers in `svgs/svgs_iconset` of the commit above. The style draws a point as
-`{class}_11`, the class being the one the schema's `layers/poi/poi.yaml` files
-the OSM tag under, so a code takes the marker of the class its meaning falls in
-(the meaning `type-names.txt` gives it): a viewpoint is an `attraction`, a
-department store `grocery`, a food court `fast_food`, a garden centre or any
-other shop `shop`, a pitch `pitch`. Each is rendered at 16 px with rsvg-convert
-and read back 3 ways: a pixel under alpha 112 is clear; of the rest, R+G+B under
-600 is ink #333333 (the ring, a square badge, a coloured glyph), the rest white
-(the disc, a white glyph). That rule gives back every icon rendered on
-2026-09-08 and 2026-09-10 pixel for pixel. Night turns the marker over: a light
-glyph on a dark disc.
+The style draws a point as `{class}_11` from the sprite of OSM Liberty, the class
+being the one the schema's `layers/poi/poi.yaml` files the OSM tag under, so a code
+takes the marker of the class its meaning (the one `type-names.txt` gives it) falls
+in: a viewpoint is an `attraction`, a department store `grocery`, every restaurant
+code `restaurant` whatever its cuisine. The markers come from OSM Liberty's current
+icon set (maputnik/osm-liberty `svgs/svgs_iconset`, commit da161553f7d2, Maki glyphs,
+CC0), which redrew some of the 2020 markers and added ones for meanings the 2020 set
+lacked: services, wine shop, casino, bowling, sports centre, car rental and repair,
+emergency phone, charging station, gate, lift gate, barrier, mast, waterfall, beach,
+tower. Each is rendered at 16 px with rsvg-convert and read back 3 ways: a pixel
+under alpha 112 is clear; of the rest, R+G+B under 600 is ink #333333, the rest white.
+Night turns the marker over: a light glyph on a dark disc.
 
-Every point code kmap's rules emit has a section, but the settlement points
-0x0100 to 0x0d00, whose dot and name the device draws: a code with no section is
-not left blank, the device draws its own built-in icon for that number, often
-one with another meaning. 99 of the 133 have the style's icon: every restaurant
-code 0x2a00 to 0x2a12 (fast food 0x2a07 and the cafe 0x2a0e aside) the
-restaurant whatever its cuisine, the tourist site 0x2c0d an `attraction`, the
-nursing home 0x2f14 a `hospital`, the school 0x2c05 `school`, the park 0x2c06,
-the zoo 0x2c07, the volcano 0x2c0c, skiing 0x2d06, the lift station 0x2f1b
-`aerialway`, the cemetery 0x6403, and the mountain pass 0x6613 the `viewpoint`
-the style draws a saddle with. The town hall and the fire station are the set's
-own though the style cannot show them: it asks for `town_hall_11` and
-`fire_station_11` where its sprite holds `town-hall_11` and `fire-station_11`.
-The set's own icon for a meaning the schema does not keep is used too: the
-lighthouse, the heliport, the amusement park for the theme park 0x2c01, the
-wetland 0x6513, the telephone for the emergency phone 0x2f16, the shelter (the
-schema's class for basic huts) for the wilderness hut 0x2b07, and the car the
-style draws every car place with for the car wash 0x2f0e and car rental 0x2f02,
-and the roadblock for the barriers 0x3200 to 0x3202 and the border crossing
-0x3006, barrier=* points the schema imports but the style has no icon for.
-
-The other 34 get the plain anchor square of the reference TYP, topoactive's
-0x661a, copied byte for byte, day and night, with its label; it can be edited in
-kmap's type editor. Never an icon of another meaning. Each says so in its
-comment: the casino, bowling, ice rink, sports centre, Wi-Fi, charging station,
-mast, tower, well, waterfall, geyser, bench, cliff, rock, cave, ford, wine
-cellar, rock climbing, junction, services, military area, the water and land
-names (bay, canal, glacier, island, lake, reservoir, stream, water, beach, cape,
-nature reserve, a wood's name), and 0x661a, the anchor itself in topoactive. The
-repair mark 0x660b is kmap's own, added by the build, and has no section here.
+Where OSM Liberty still has no marker (rock climbing, ice rink, well, glacier, ford,
+bench, cliff, cave), the style's ring holds a Maki v8.0.0, Temaki v5.13.0 or
+openstreetmap-carto glyph, all CC0, the same meanings as the carto style draws. The
+rock 0x6614 is topoactive's own small ring. The last 15 are codes topoactive marks with
+its plain label anchor (junction, Wi-Fi, geyser, military area, the water and land
+names, 0x661a): that square, copied byte for byte, with its label. Each section names
+its source. The settlement points 0x0100 to 0x0d00 the device draws; the repair mark
+0x660b is kmap's own, added by the build, and has no section here.
 
 The night colours are kmap's, as for every shipped style, derived from the day
 ones and snapped to the steps a MIP watch screen can show.

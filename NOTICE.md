@@ -9,7 +9,8 @@ OpenTopoMap's web style, its Mapnik stylesheet and symbols (CC-BY-SA; its icons 
 openstreetmap-carto, Maki and Temaki vectors, CC0), `cyclosm` from CyclOSM (BSD-3-Clause,
 its ground colours from the Hydda style under Apache 2.0) and `liberty-topo`
 from OSM Liberty Topo (BSD, look and feel CC-BY 3.0, schema © OpenMapTiles
-CC-BY 4.0, Maki icons CC0). Each style folder carries a
+CC-BY 4.0, icons from OSM Liberty, Maki CC0; glyphs it lacks from Maki, Temaki and
+openstreetmap-carto, CC0). Each style folder carries a
 LICENSE.md — upstream's own where the project publishes one, otherwise one that quotes what
 it does say — beside a PROVENANCE.md recording what was taken and what was changed. The
 attribution also rides in each file's header and — where the licence asks to be credited —
