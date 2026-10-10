@@ -438,4 +438,25 @@ final class ShippedStyleTests: XCTestCase {
             }
         }
     }
+
+    /// The cache hands out the same text for the same inputs, and other inputs under the
+    /// same id are made afresh, never answered from it.
+    func testTheShippedTypCacheAnswersOnlyTheSameInputs() throws {
+        let carto = try XCTUnwrap(StyleCatalog.shippedPalette(id: "osm-carto"))
+        let first = try StyleCatalog.shippedTypText(of: carto)
+        XCTAssertEqual(try StyleCatalog.shippedTypText(of: carto), first)
+
+        let other = StyleCatalog.ShippedPalette(
+            id: carto.id,
+            name: carto.name,
+            summary: carto.summary,
+            fid: carto.fid,
+            palette: "name Other\npoly 0x4b 1 #000000  Background",
+            points: "",
+            graphics: ""
+        )
+        let changed = try StyleCatalog.shippedTypText(of: other)
+        XCTAssertNotEqual(changed, first)
+        XCTAssertEqual(try StyleCatalog.shippedTypText(of: carto), first, "the real one is made again")
+    }
 }

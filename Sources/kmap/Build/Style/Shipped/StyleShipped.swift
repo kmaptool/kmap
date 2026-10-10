@@ -72,13 +72,22 @@ extension StyleCatalog {
         Paths.styles.appendingPathComponent("\(shipped.id).typ.txt")
     }
 
-    /// The TYP source a shipped palette stands for, icons included.
+    /// The TYP source a shipped palette stands for, icons included. Made once per palette:
+    /// the style list asks for it on every redraw, and the binary's palettes do not change.
     static func shippedTypText(of shipped: ShippedPalette) throws -> String {
-        TypGenerator.text(
+        let inputs = [shipped.palette, shipped.points, shipped.graphics, String(shipped.fid)]
+        if let made = shippedTypTexts.withLock({ $0[shipped.id] }), made.inputs == inputs {
+            return made.text
+        }
+        let text = TypGenerator.text(
             from: try StylePalette.read(shipped.palette),
             fid: shipped.fid,
             points: shipped.points,
             graphics: shipped.graphics
         )
+        shippedTypTexts.withLock { $0[shipped.id] = (inputs, text) }
+        return text
     }
+
+    private static let shippedTypTexts = Locked<[String: (inputs: [String], text: String)]>([:])
 }
