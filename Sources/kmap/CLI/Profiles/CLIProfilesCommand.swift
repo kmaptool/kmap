@@ -49,6 +49,7 @@ extension CLI {
             )
         }
         var choices = BuildChoices()
+        choices.styleID = store.settings.defaultStyleID
         let refused = apply(Flags(Array(arguments.dropFirst()), valued: buildValuedOptions), to: &choices, store: store)
         guard refused.isEmpty else { return CLIOutput.refuse(refused) }
         let made = store.addProfile(named: name, choices: choices)

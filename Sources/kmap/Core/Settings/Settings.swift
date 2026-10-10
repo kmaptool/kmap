@@ -51,9 +51,8 @@ struct Settings: Codable {
     /// by a write to this file.
     var zoomPlans: [ZoomPlan] = []
 
-    /// The style a new profile starts with. A fresh install carries rule sets only, see
-    /// `StyleCatalog.builtinStyles`, so the default leaves drawing to the receiver.
-    var defaultStyleID: String = "plain"
+    /// The style a new profile starts with: the shipped openstreetmap.org look.
+    var defaultStyleID: String = "osm-carto"
 
     /// The family id allocated to each map, so a rebuild keeps its id and no two maps
     /// share one. Tile numbers are `family × 10000 + n`, so maps sharing a family id

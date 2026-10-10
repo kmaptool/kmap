@@ -454,6 +454,12 @@ final class ShippedStyleTests: XCTestCase {
         }
     }
 
+    /// A new profile starts with the shipped carto look, not the device's own drawing.
+    func testANewProfileStartsWithCarto() {
+        XCTAssertEqual(Settings.default.defaultStyleID, "osm-carto")
+        XCTAssertNotNil(StyleCatalog.shippedPalette(id: Settings.default.defaultStyleID))
+    }
+
     /// The cache hands out the same text for the same inputs, and other inputs under the
     /// same id are made afresh, never answered from it.
     func testTheShippedTypCacheAnswersOnlyTheSameInputs() throws {
