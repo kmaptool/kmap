@@ -199,10 +199,17 @@ extension BuildRecipe {
         return copy
     }
 
+    /// The lines shown under Map Info, with the elevation sources the recipe names.
+    var copyrightLines: [String] { copyrightLines(demSourcesUsed: []) }
+
     /// The lines shown under Map Info; mkgmap shows the first in BaseCamp only.
     /// Plain ASCII, no punctuation past a comma: Garmin's six-bit label alphabet drops a
     /// line from the first character it cannot hold. OSM attribution is licence-required.
-    var copyrightLines: [String] {
+    /// - Parameter used: the elevation sources the map's cells came from, best first;
+    ///   empty names those of the recipe instead.
+    func copyrightLines(demSourcesUsed used: [String]) -> [String] {
+        let sources =
+            used.isEmpty ? CopernicusDEM.canonicalSourceList(demSources).split(separator: ",").map(String.init) : used
         // kmap's own date rather than mkgmap's $LONGDATE$, which is written in the Java
         // locale and can contain characters the label alphabet does not hold.
         var lines = [
@@ -212,13 +219,13 @@ extension BuildRecipe {
         ]
         if contours || demLayer {
             lines.append(
-                "Elevation: \(demSources.replacingOccurrences(of: ",", with: " "))"
+                "Elevation: \(sources.joined(separator: " "))"
                     + (contours ? ", contours \(contourInterval) m" : "")
             )
         }
         // Elevation sources whose licence requires credit.
         if contours || demLayer {
-            let listed = Set(CopernicusDEM.canonicalSourceList(demSources).split(separator: ",").map(String.init))
+            let listed = Set(sources)
             for source in DEMSources.all where listed.contains(source.sourceID) {
                 for line in source.credits where !lines.contains(line) { lines.append(line) }
             }

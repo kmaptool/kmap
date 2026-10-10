@@ -55,7 +55,8 @@ extension BuildPipeline {
     /// file cannot be written, so the build continues without the credit line.
     func copyrightOption() -> [String] {
         let url = workDirectory.appendingPathComponent("copyright.txt")
-        let text = recipe.copyrightLines.joined(separator: "\n") + "\n"
+        let used = recipe.contours || recipe.demLayer ? demSourcesUsed() : []
+        let text = recipe.copyrightLines(demSourcesUsed: used).joined(separator: "\n") + "\n"
         guard (try? FileTools.write(text, to: url)) != nil else {
             log.warn("could not write the attribution file — the map will carry mkgmap's own")
             return []

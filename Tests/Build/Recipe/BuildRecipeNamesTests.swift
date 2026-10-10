@@ -129,6 +129,25 @@ final class BuildRecipeNamesTests: RecipeTestCase {
         }
     }
 
+    /// Credit follows the cells the map carries, not the sources the recipe names.
+    func testTheCreditNamesTheSourcesTheCellsCameFrom() {
+        var made = dated(recipe([region("a", "A")]))
+        made.demLayer = true
+        made.contours = false
+        made.demSources = "gedtm1,copernicus1,copernicus3"
+        let covered = made.copyrightLines(demSourcesUsed: ["gedtm1"])
+        XCTAssertTrue(covered.contains { $0.hasPrefix("GEDTM30:") })
+        XCTAssertFalse(covered.contains { $0.hasPrefix("Copernicus DEM:") }, "named, but no cell came from it")
+        XCTAssertTrue(covered.contains("Elevation: gedtm1"))
+
+        let filled = made.copyrightLines(demSourcesUsed: ["gedtm1", "view3"])
+        XCTAssertTrue(filled.contains("Elevation: gedtm1 view3"), "a source not named still served cells")
+
+        let none = made.copyrightLines(demSourcesUsed: [])
+        XCTAssertTrue(none.contains("Elevation: gedtm1 copernicus1 copernicus3"), "no cells: the recipe's names")
+        XCTAssertTrue(none.contains { $0.hasPrefix("Copernicus DEM:") })
+    }
+
     func testFABDEMIsCreditedOnlyWhenTheMapUsesIt() {
         var made = dated(recipe([region("a", "A")]))
         made.demLayer = true

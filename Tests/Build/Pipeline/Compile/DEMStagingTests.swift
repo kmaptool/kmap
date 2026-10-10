@@ -57,6 +57,19 @@ final class DEMStagingTests: XCTestCase {
         try? FileManager.default.removeItem(at: Paths.hgtCache)
     }
 
+    /// The credit lines name where the cells came from: the chosen source where it has
+    /// them, the fallback where it fills holes, and nothing that served no cell.
+    func testTheSourcesUsedAreTheOnesTheCellsCameFrom() throws {
+        try plant("COP1", ["N44E034", "N44E035", "N45E034"])
+        try plant("VIEW3", ["N44E034", "N45E035", "N50E040"])
+        try plant("GED1", ["N50E040"])
+        XCTAssertEqual(pipeline.demSourcesUsed(), ["copernicus1", "view3"])
+    }
+
+    func testNoCellsMeansNoSourcesUsed() {
+        XCTAssertEqual(pipeline.demSourcesUsed(), [])
+    }
+
     func testOnlyCoverageCellsAreStaged() throws {
         // The chosen source has the region's cells; the fallback also has one outside.
         try plant("COP1", ["N44E034", "N44E035", "N45E034"])

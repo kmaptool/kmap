@@ -66,6 +66,32 @@ extension BuildPipeline {
         return [staged]
     }
 
+    /// The elevation sources the map's cells come from, best first: for each cell the
+    /// first `demSearchPaths()` directory holding it, as the staging and the contours take
+    /// it. A burned copy counts as its original.
+    func demSourcesUsed() -> [String] {
+        let ranked = demSearchPaths()
+        var serving = Set<Int>()
+        for cell in elevationCells() {
+            let name = HGTName.of(lat: cell.lat, lon: cell.lon) + ".hgt"
+            if let index = ranked.firstIndex(where: { FileTools.exists($0.appendingPathComponent(name)) }) {
+                serving.insert(index)
+            }
+        }
+        var used: [String] = []
+        for index in serving.sorted() {
+            let id = Self.demSourceID(directory: ranked[index].lastPathComponent)
+            if !used.contains(id) { used.append(id) }
+        }
+        return used
+    }
+
+    /// The source id of a cache directory: COP1 is copernicus1, VIEW3 is view3.
+    static func demSourceID(directory: String) -> String {
+        let name = directory.lowercased()
+        return DEMSources.all.first { $0.directoryName.lowercased() == name }?.sourceID ?? name
+    }
+
     /// Whether a file opens for reading, through whatever link leads to it.
     static func reads(_ url: URL) -> Bool {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
