@@ -12,11 +12,11 @@ code, and named after `Assets/styles/type-names.txt`.
 
 ## What kmap changed
 
-- Line widths are topoactive's (kmap's reference TYP), but the path is 2 pixels (1 left its
-  dots too faint on a device) and the track 1 (a solid black 2 was too heavy). Lines topoactive leaves to the device have no row. Translucent colours are composited over their land #e0e0e0; the nature reserve band
+- Line widths are the reference TYP's (kmap's reference TYP), but the path is 2 pixels (1 left its
+  dots too faint on a device) and the track 1 (a solid black 2 was too heavy). Lines the reference TYP leaves to the device have no row. Translucent colours are composited over their land #e0e0e0; the nature reserve band
   keeps its #85c243 without the 0.5 opacity, which left it too faint on a device.
 - Draw order follows their layers, except: the built-up tint goes under the woods; park,
-  pitch, quarry, cemetery, bare rock and scree go over them, as topoactive draws them; sand
+  pitch, quarry, cemetery, bare rock and scree go over them, as the reference TYP draws them; sand
   goes under the woods; the wood and scrub floors kmap adds sit a level under their
   patterns. A build lays the woods over the open cover.
 - What they do not draw is clear and unlabelled; the valley line is clear but keeps its
@@ -33,6 +33,6 @@ art too small to enlarge, so for those meanings the openstreetmap-carto vector (
 in their colour (black; water #1200FF; parking and transport #0024FF; health #DF091D; bus
 #18A736); their saddle and viewpoint SVGs are used as they are. Meanings they do not draw take
 carto's symbol in carto's colours, then a Maki or Temaki icon (CC0) in their colours. A code
-topoactive marks with its plain label anchor, or none of these draws, gets that anchor square;
-the rock 0x6614 is topoactive's own small ring.
+The reference TYP marks with its plain label anchor, or none of these draws, gets that anchor square;
+the rock 0x6614 is the reference TYP's own small ring.
 The counts are in the header of `points.txt`.

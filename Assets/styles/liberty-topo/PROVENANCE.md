@@ -40,7 +40,7 @@ is kmap's: where the style draws nothing, nothing is drawn.
   reserve is the `park` layer.
 - **Zoom 16.** A width or an opacity that changes with zoom is taken at zoom
   16, by the style's own interpolation (its `base`), at 1 CSS pixel to 1
-  device pixel. Line widths are not the style's but topoactive's (below).
+  device pixel. Line widths are not the style's but the reference TYP's (below).
 - **Opacity.** A colour drawn with opacity is composited over the style's
   background, rgb(239,239,239), and the result is what the table carries. A
   wood is hsla(98,61%,72%,0.7) at fill-opacity 0.4, so 0.28 of that green; a
@@ -59,16 +59,16 @@ is kmap's: where the style draws nothing, nothing is drawn.
   and it draws no cliffs, ferries, aerial ways, power lines, barriers, military
   areas or boundaries below admin level 4.
 
-## Line widths are topoactive's
+## Line widths are the reference TYP's
 
 The widths are not Liberty Topo's. A line takes the whole width kmap's
-topoactive gives the same code, casing included: a path 2 pixels (topoactive's 1
+The reference TYP gives the same code, casing included: a path 2 pixels (the reference TYP's 1
 left its white dashes too faint on a device), a track and a cycleway 2, a service road 3, a roundabout 6 to 8, a river 2, a stream 1, a
-railway 3, a cliff 4 (where the style draws them). A line topoactive leaves to
+railway 3, a cliff 4 (where the style draws them). A line the reference TYP leaves to
 the device (the roads 0x01 to 0x06 and their links, 0x0e path, 0x0f steps, 0x10,
 0x31 to 0x35) has no entry in this style either, so the device draws it at its
 own width, and a code kmap widened falls back to the one it widened, as with
-topoactive (0x0e and 0x0f to 0x16). Colours and dashes stay Liberty Topo's; the
+The reference TYP (0x0e and 0x0f to 0x16). Colours and dashes stay Liberty Topo's; the
 original's width in a note is for the record. A cased line narrower than 3
 pixels has no room for a casing either side: its dash gaps show the casing, or,
 undashed, it is drawn in its casing alone.
@@ -120,7 +120,7 @@ Night turns the marker over: a light glyph on a dark disc.
 Where OSM Liberty still has no marker (rock climbing, ice rink, well, glacier, ford,
 bench, cliff, cave), the style's ring holds a Maki v8.0.0, Temaki v5.13.0 or
 openstreetmap-carto glyph, all CC0, the same meanings as the carto style draws. The
-rock 0x6614 is topoactive's own small ring. The last 15 are codes topoactive marks with
+rock 0x6614 is the reference TYP's own small ring. The last 15 are codes the reference TYP marks with
 its plain label anchor (junction, Wi-Fi, geyser, military area, the water and land
 names, 0x661a): that square, copied byte for byte, with its label. Each section names
 its source. The settlement points 0x0100 to 0x0d00 the device draws; the repair mark

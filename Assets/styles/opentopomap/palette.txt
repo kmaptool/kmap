@@ -13,8 +13,8 @@
 # A translucent colour is composited over their land colour #e0e0e0. Night colours are
 # derived by kmap.
 #
-# Widths are not the original's: a line takes the whole width kmap's topoactive gives the
-# same code, casing included, and a line topoactive leaves to the device has no row here
+# Widths are not the original's: a line takes the whole width kmap's reference TYP gives the
+# same code, casing included, and a line the reference TYP leaves to the device has no row here
 # or in graphics.txt. The original's width in a note is for the record.
 #
 # graphics.txt draws the dashes, line patterns and fill patterns, and clear sections for
@@ -64,15 +64,15 @@ poly 0x0c 3 #dbdbdb  Industrial  # landuse=industrial: #aaaaaa at 0.1, landuse-o
 poly 0x0a 3 #dbdbdb  School  # amenity=school, university: #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
 poly 0x0b 3 #dbdbdb  Hospital  # amenity=hospital: #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
 poly 0x26 3 #dbdbdb  Farm  # kmap puts landuse=farmyard here (and farm, not drawn): #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
-poly 0x17 8 #d1e0c6  Park  # #c1dfac at 0.5, landuse.xml:126-131; over the woods in a build, as in topoactive
-poly 0x19 8 #cbdfc2  Sports Ground  # leisure=pitch: #b6dea4 at 0.5, landuse.xml:140-146; over the woods in a build, as in topoactive
+poly 0x17 8 #d1e0c6  Park  # #c1dfac at 0.5, landuse.xml:126-131; over the woods in a build, as in the reference TYP
+poly 0x19 8 #cbdfc2  Sports Ground  # leisure=pitch: #b6dea4 at 0.5, landuse.xml:140-146; over the woods in a build, as in the reference TYP
 # The landuse layer, forests first (opentopomap.xml:183-190, ORDER BY landuse=forest).
 poly 0x50 6 #c8e090  Forest  # forest.png ground with its overlays, landuse.xml:40-45; pattern in graphics.txt
 poly 0x57 6 #c8e090  Coniferous forest  # forest-coniferous.png, landuse.xml:28-33; pattern in graphics.txt
 poly 0x58 6 #c8e090  Broadleaved forest  # forest-deciduous.png, landuse.xml:34-39; pattern in graphics.txt
-poly 0x59 5 #c8e090  Woodland  # the floor kmap lays under every wood, flat as topoactive's: the forest's ground; a level under its pattern, so it never covers it
+poly 0x59 5 #c8e090  Woodland  # the floor kmap lays under every wood, flat as the reference TYP's: the forest's ground; a level under its pattern, so it never covers it
 poly 0x4f 7 #d9ded5  Scrub  # #bfd4a9 at 0.2, landuse.xml:52-58; pattern in graphics.txt
-poly 0x5b 6 #d9ded5  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: #bfd4a9 at 0.2; a level under its pattern, so it never covers it
+poly 0x5b 6 #d9ded5  Scrub  # the floor kmap lays under every scrub, flat as the reference TYP's: #bfd4a9 at 0.2; a level under its pattern, so it never covers it
 poly 0x55 7 #25b733  Grassland  # meadow.png, landuse.xml:46-51; pattern in graphics.txt
 poly 0x4e 7 #25b733  Orchard  # orchard.png, landuse.xml:77-82; pattern in graphics.txt
 poly 0x1b 7 #25b733  Vineyard  # vineyard.png, landuse.xml:65-70; pattern in graphics.txt
@@ -94,7 +94,7 @@ poly 0x4c 10 #a3dde8  Dock  # natural=water (a lock), water-areas.xml:25-31
 poly 0x46 10 #a3dde8  River  # waterway=riverbank, waterway-polygons-fill.xml:9-15
 # Over the water (opentopomap.xml:244-251).
 poly 0x51 11 #ced1e3  Wetland  # #304eff at 0.1, landuse-over-water.xml:22-28; pattern over a clear ground in graphics.txt
-poly 0x53 5 #fff4a9  Sand  # sand.png, landuse.xml:89-94 and at 0.7 landuse-over-water.xml:42-47; pattern in graphics.txt; under the woods, as topoactive's, since an opaque TYP fill would hide a wood on a beach or a small island
+poly 0x53 5 #fff4a9  Sand  # sand.png, landuse.xml:89-94 and at 0.7 landuse-over-water.xml:42-47; pattern in graphics.txt; under the woods, as the reference TYP's, since an opaque TYP fill would hide a wood on a beach or a small island
 # Piers (cliffs.xml:104-110) and pedestrian areas (road-areas.xml:2-7), both white; at the
 # piers' layer, over the water they stand on.
 poly 0x25 12 #ffffff  Pedestrian Area  # white, road-areas.xml:2-7, cliffs.xml:104-110
@@ -109,9 +109,9 @@ line 0x10802 7 #f59729 #000000  Roundabout  # primary: as trunk
 line 0x10803 7 #f7e761 #000000  Roundabout  # secondary: color_roads_2 inc/entities.xml.inc:47 at 6, roads-fill.xml:371-376; black 8, roads-casing.xml:500-505
 line 0x10804 6 #f7e761 #000000  Roundabout  # tertiary: as secondary
 line 0x07 3 #ffffff #000000  Service Road  # white 4, roads-fill.xml:395-400; black 6, roads-casing.xml:506-511
-line 0x0a 1 #000000  Track  # no tracktype: black 1.5, roads-casing.xml:384-389; 1 px, not topoactive's 2: solid black 2 px was too heavy on a device
+line 0x0a 1 #000000  Track  # no tracktype: black 1.5, roads-casing.xml:384-389; 1 px, not the reference TYP's 2: solid black 2 px was too heavy on a device
 line 0x11 2 #000000  Cycleway  # black 1.5, roads-casing.xml:384-389
-line 0x16 2 #000000  Path  # black 1 -> 2, wider than topoactive's 1 to be seen on a device, dash 1.1,2, roads-casing.xml:416-421; dashed in graphics.txt
+line 0x16 2 #000000  Path  # black 1 -> 2, wider than the reference TYP's 1 to be seen on a device, dash 1.1,2, roads-casing.xml:416-421; dashed in graphics.txt
 line 0x30 2 #8eb961  Track  # kmap puts leisure=track here (and raceway, gallop): the #8eb961 outline of a closed track, landuse.xml:140-146 (leisure is a polygon key, opentopomap.style:126); an open track way they do not draw at z16, a raceway is a road
 line 0x14 3 #ffffff #000000  Railway  # rail_z15.png, railways.xml:32-37; pattern in graphics.txt
 line 0x27 6 #dddddd #000000  Runway  # #dddddd 8, airports-fill.xml:32-37; black 9.5, airports-casing.xml:32-37

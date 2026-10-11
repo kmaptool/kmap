@@ -274,8 +274,8 @@ how the map looks on the device.
 # A translucent colour is composited over carto's land colour #f2efe9. Night colours
 # are derived by kmap.
 #
-# Widths are not the original's: a line takes the whole width kmap's topoactive gives
-# the same code, casing included, and a line topoactive leaves to the device has no row
+# Widths are not the original's: a line takes the whole width kmap's reference TYP gives
+# the same code, casing included, and a line the reference TYP leaves to the device has no row
 # here or in graphics.txt, so the device draws it at its own width. The original's
 # width in a note is for the record.
 #
@@ -300,18 +300,18 @@ poly 0x1b 5 #aedfa3  Vineyard  # @orchard landcover.mss:9,126-128; pattern in gr
 poly 0x5a 5 #c9e1bf  Allotments  # @allotments landcover.mss:8,303-305; pattern in graphics.txt
 poly 0x1f 5 #f2efe9  Mountain meadow  # not drawn by carto: no layer selects natural=fell (project.mml); land
 poly 0x55 5 #cdebb0  Grassland  # @grass landcover.mss:3,353-357
-poly 0x15 6 #cdebb0  Village Green  # @grass landcover.mss:3, landuse_village_green landcover.mss:356-357; over the woods in a build, as in topoactive
+poly 0x15 6 #cdebb0  Village Green  # @grass landcover.mss:3, landuse_village_green landcover.mss:356-357; over the woods in a build, as in the reference TYP
 poly 0x1d 5 #f2efe9  Common  # not drawn by carto: leisure=common is in no layer's list (project.mml landcover); land
 poly 0x4f 5 #c8d7ab  Scrub  # @scrub landcover.mss:4,506-507; pattern in graphics.txt
-poly 0x5b 4 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub landcover.mss:4; a level under its pattern, so it never covers it
+poly 0x5b 4 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as the reference TYP's: @scrub landcover.mss:4; a level under its pattern, so it never covers it
 poly 0x1e 5 #d6d99f  Heath  # @heath landcover.mss:51,500-501
 poly 0x50 5 #add19e  Forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
 poly 0x57 5 #add19e  Coniferous forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
 poly 0x58 5 #add19e  Broadleaved forest  # @forest landcover.mss:5,321-324; pattern in graphics.txt
-poly 0x59 4 #add19e  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @forest landcover.mss:5; a level under its pattern, so it never covers it
+poly 0x59 4 #add19e  Woodland  # the floor kmap lays under every wood, flat as the reference TYP's: @forest landcover.mss:5; a level under its pattern, so it never covers it
 poly 0x53 5 #f5e9c6  Sand  # @sand landcover.mss:58, natural_sand landcover.mss:494-495
-poly 0x54 6 #eee5dc  Scree  # @bare_ground landcover.mss:47,480-483; pattern in graphics.txt; over the woods in a build, as in topoactive
-poly 0x56 6 #eee5dc  Bare rock  # @bare_ground landcover.mss:47,469-470; pattern in graphics.txt; over the woods in a build, as in topoactive
+poly 0x54 6 #eee5dc  Scree  # @bare_ground landcover.mss:47,480-483; pattern in graphics.txt; over the woods in a build, as in the reference TYP
+poly 0x56 6 #eee5dc  Bare rock  # @bare_ground landcover.mss:47,469-470; pattern in graphics.txt; over the woods in a build, as in the reference TYP
 poly 0x52 5 #f2efe9  Bare Ground  # not drawn by carto: kmap puts natural=tundra here, in no layer's list (project.mml); land
 poly 0x4d 5 #ddecec  Glacier  # @glacier water.mss:2,34-38
 poly 0x02 6 #f2efe9  Suburb  # not drawn by carto: place areas are only labelled (placenames.mss); land
@@ -366,7 +366,7 @@ line 0x10803 7 #f7fabf #707d05  Roundabout  # carto draws a roundabout as its ro
 line 0x10804 6 #ffffff #8f8f8f  Roundabout  # carto draws a roundabout as its road: @tertiary-fill, @tertiary-casing roads.mss:3,33
 line 0x07 3 #ffffff #bbbbbb  Service Road  # @service-fill roads.mss:5, @service-casing roads.mss:36; @service-width-z16 3.5 - 2 x 0.6 = 2.3 -> 2, roads.mss:166,251,2123
 # Paths, tracks, steps and railway: dashed in graphics.txt; this is the fallback.
-line 0x16 2 #fa8072 #f7f5f2  Path  # @footway-fill salmon roads.mss:10, 1.3 -> 2, wider than topoactive's 1 to be seen on a device; halo white @0.4 -> #f7f5f2, roads.mss:2358-2406
+line 0x16 2 #fa8072 #f7f5f2  Path  # @footway-fill salmon roads.mss:10, 1.3 -> 2, wider than the reference TYP's 1 to be seen on a device; halo white @0.4 -> #f7f5f2, roads.mss:2358-2406
 line 0x11 2 #0000ff #f7f5f2  Cycleway  # @cycleway-fill blue roads.mss:14, 0.9 -> 1; halo as a path, roads.mss:2435-2486
 line 0x0a 2 #ab812f #f7f5f2  Track  # @track-fill #996600 at 0.8 -> #ab812f roads.mss:18,2535-2540; 1.5 -> 2, roads.mss:155,2562
 line 0x30 2 #88e0be  Track  # kmap puts leisure=track here (and raceway, gallop): #leisure-track @pitch landcover.mss:71, amenity-points.mss:2987-2997; project.mml:528-541
@@ -1686,8 +1686,8 @@ Xpm="32 32 4 1"
 # A translucent colour is composited over their land colour #e0e0e0. Night colours are
 # derived by kmap.
 #
-# Widths are not the original's: a line takes the whole width kmap's topoactive gives the
-# same code, casing included, and a line topoactive leaves to the device has no row here
+# Widths are not the original's: a line takes the whole width kmap's reference TYP gives the
+# same code, casing included, and a line the reference TYP leaves to the device has no row here
 # or in graphics.txt. The original's width in a note is for the record.
 #
 # graphics.txt draws the dashes, line patterns and fill patterns, and clear sections for
@@ -1737,15 +1737,15 @@ poly 0x0c 3 #dbdbdb  Industrial  # landuse=industrial: #aaaaaa at 0.1, landuse-o
 poly 0x0a 3 #dbdbdb  School  # amenity=school, university: #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
 poly 0x0b 3 #dbdbdb  Hospital  # amenity=hospital: #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
 poly 0x26 3 #dbdbdb  Farm  # kmap puts landuse=farmyard here (and farm, not drawn): #aaaaaa at 0.1, landuse-over-hillshade.xml:88-93
-poly 0x17 8 #d1e0c6  Park  # #c1dfac at 0.5, landuse.xml:126-131; over the woods in a build, as in topoactive
-poly 0x19 8 #cbdfc2  Sports Ground  # leisure=pitch: #b6dea4 at 0.5, landuse.xml:140-146; over the woods in a build, as in topoactive
+poly 0x17 8 #d1e0c6  Park  # #c1dfac at 0.5, landuse.xml:126-131; over the woods in a build, as in the reference TYP
+poly 0x19 8 #cbdfc2  Sports Ground  # leisure=pitch: #b6dea4 at 0.5, landuse.xml:140-146; over the woods in a build, as in the reference TYP
 # The landuse layer, forests first (opentopomap.xml:183-190, ORDER BY landuse=forest).
 poly 0x50 6 #c8e090  Forest  # forest.png ground with its overlays, landuse.xml:40-45; pattern in graphics.txt
 poly 0x57 6 #c8e090  Coniferous forest  # forest-coniferous.png, landuse.xml:28-33; pattern in graphics.txt
 poly 0x58 6 #c8e090  Broadleaved forest  # forest-deciduous.png, landuse.xml:34-39; pattern in graphics.txt
-poly 0x59 5 #c8e090  Woodland  # the floor kmap lays under every wood, flat as topoactive's: the forest's ground; a level under its pattern, so it never covers it
+poly 0x59 5 #c8e090  Woodland  # the floor kmap lays under every wood, flat as the reference TYP's: the forest's ground; a level under its pattern, so it never covers it
 poly 0x4f 7 #d9ded5  Scrub  # #bfd4a9 at 0.2, landuse.xml:52-58; pattern in graphics.txt
-poly 0x5b 6 #d9ded5  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: #bfd4a9 at 0.2; a level under its pattern, so it never covers it
+poly 0x5b 6 #d9ded5  Scrub  # the floor kmap lays under every scrub, flat as the reference TYP's: #bfd4a9 at 0.2; a level under its pattern, so it never covers it
 poly 0x55 7 #25b733  Grassland  # meadow.png, landuse.xml:46-51; pattern in graphics.txt
 poly 0x4e 7 #25b733  Orchard  # orchard.png, landuse.xml:77-82; pattern in graphics.txt
 poly 0x1b 7 #25b733  Vineyard  # vineyard.png, landuse.xml:65-70; pattern in graphics.txt
@@ -1767,7 +1767,7 @@ poly 0x4c 10 #a3dde8  Dock  # natural=water (a lock), water-areas.xml:25-31
 poly 0x46 10 #a3dde8  River  # waterway=riverbank, waterway-polygons-fill.xml:9-15
 # Over the water (opentopomap.xml:244-251).
 poly 0x51 11 #ced1e3  Wetland  # #304eff at 0.1, landuse-over-water.xml:22-28; pattern over a clear ground in graphics.txt
-poly 0x53 5 #fff4a9  Sand  # sand.png, landuse.xml:89-94 and at 0.7 landuse-over-water.xml:42-47; pattern in graphics.txt; under the woods, as topoactive's, since an opaque TYP fill would hide a wood on a beach or a small island
+poly 0x53 5 #fff4a9  Sand  # sand.png, landuse.xml:89-94 and at 0.7 landuse-over-water.xml:42-47; pattern in graphics.txt; under the woods, as the reference TYP's, since an opaque TYP fill would hide a wood on a beach or a small island
 # Piers (cliffs.xml:104-110) and pedestrian areas (road-areas.xml:2-7), both white; at the
 # piers' layer, over the water they stand on.
 poly 0x25 12 #ffffff  Pedestrian Area  # white, road-areas.xml:2-7, cliffs.xml:104-110
@@ -1782,9 +1782,9 @@ line 0x10802 7 #f59729 #000000  Roundabout  # primary: as trunk
 line 0x10803 7 #f7e761 #000000  Roundabout  # secondary: color_roads_2 inc/entities.xml.inc:47 at 6, roads-fill.xml:371-376; black 8, roads-casing.xml:500-505
 line 0x10804 6 #f7e761 #000000  Roundabout  # tertiary: as secondary
 line 0x07 3 #ffffff #000000  Service Road  # white 4, roads-fill.xml:395-400; black 6, roads-casing.xml:506-511
-line 0x0a 1 #000000  Track  # no tracktype: black 1.5, roads-casing.xml:384-389; 1 px, not topoactive's 2: solid black 2 px was too heavy on a device
+line 0x0a 1 #000000  Track  # no tracktype: black 1.5, roads-casing.xml:384-389; 1 px, not the reference TYP's 2: solid black 2 px was too heavy on a device
 line 0x11 2 #000000  Cycleway  # black 1.5, roads-casing.xml:384-389
-line 0x16 2 #000000  Path  # black 1 -> 2, wider than topoactive's 1 to be seen on a device, dash 1.1,2, roads-casing.xml:416-421; dashed in graphics.txt
+line 0x16 2 #000000  Path  # black 1 -> 2, wider than the reference TYP's 1 to be seen on a device, dash 1.1,2, roads-casing.xml:416-421; dashed in graphics.txt
 line 0x30 2 #8eb961  Track  # kmap puts leisure=track here (and raceway, gallop): the #8eb961 outline of a closed track, landuse.xml:140-146 (leisure is a polygon key, opentopomap.style:126); an open track way they do not draw at z16, a raceway is a road
 line 0x14 3 #ffffff #000000  Railway  # rail_z15.png, railways.xml:32-37; pattern in graphics.txt
 line 0x27 6 #dddddd #000000  Runway  # #dddddd 8, airports-fill.xml:32-37; black 9.5, airports-casing.xml:32-37
@@ -3751,17 +3751,17 @@ Xpm="32 32 4 1"
 ; (20); for a meaning they do not draw, openstreetmap-carto's symbol (CC0) in carto's colours
 ; (73); for a meaning neither draws, the Maki or Temaki
 ; icon (CC0) in their colour scheme: black, water #1200FF, transport #0024FF, health
-; #DF091D (20). A code topoactive marks with its plain label anchor, or no source draws, gets
-; that anchor square (topoactive 0x661a), with its label (17). Every point code kmap's rules
+; #DF091D (20). A code the reference TYP marks with its plain label anchor, or no source draws, gets
+; that anchor square (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules
 ; emit has a section but the settlement points 0x0100-0x0d00, which the device draws, and
-; kmap's repair mark 0x660b, which the build adds. The rock 0x6614 is topoactive's own small
+; kmap's repair mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small
 ; ring, copied. Night lifts each colour towards white.
 ; Any icon can be edited in kmap's type editor. Names are added from type-names.txt.
 
 [_point]
 Type=0x2000
-; kmap: Junction - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Junction - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -7989,8 +7989,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x2f12
-; kmap: Wi-Fi - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Wi-Fi - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9255,8 +9255,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6403
-; kmap: Cemetery - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Cemetery - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9285,8 +9285,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x640b
-; kmap: Military area - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Military area - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9483,8 +9483,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6503
-; kmap: Bay - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Bay - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9513,8 +9513,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6505
-; kmap: Canal - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Canal - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9599,8 +9599,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6509
-; kmap: Geyser - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Geyser - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9685,8 +9685,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x650c
-; kmap: Island - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Island - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9715,8 +9715,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x650d
-; kmap: Lake - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Lake - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9745,8 +9745,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x650f
-; kmap: Reservoir - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Reservoir - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9831,8 +9831,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6512
-; kmap: Stream - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Stream - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -9861,8 +9861,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6513
-; kmap: Wetland - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Wetland - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -10115,8 +10115,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6603
-; kmap: Water - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Water - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -10257,8 +10257,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6606
-; kmap: Cape - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Cape - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -10399,8 +10399,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6612
-; kmap: Nature reserve - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Nature reserve - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -10484,7 +10484,7 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6614
-; Rock - topoactive's own rock, copied: a small grey stone in a black ring.
+; Rock - the reference TYP's own rock, copied: a small grey stone in a black ring.
 DayXpm="6 6 4 1"
 "a c none"
 "b c #F8FCF8"
@@ -10567,8 +10567,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6618
-; kmap: Forest - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Forest - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -10653,8 +10653,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x661a
-; kmap: Facility - no source draws it, or topoactive marks it with its plain
-; label anchor: that square (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Facility - no source draws it, or the reference TYP marks it with its plain
+; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -10703,8 +10703,8 @@ NightXpm="9 9 2 1"
 # Where CyclOSM draws nothing, graphics.txt draws the code clear; the note here says
 # "not drawn by CyclOSM".
 #
-# Widths are not the original's: a line takes the whole width kmap's topoactive gives
-# the same code, casing included, and a line topoactive leaves to the device has no row
+# Widths are not the original's: a line takes the whole width kmap's reference TYP gives
+# the same code, casing included, and a line the reference TYP leaves to the device has no row
 # here or in graphics.txt, so the device draws it at its own width. The original's
 # width in a note is for the record.
 #
@@ -10732,18 +10732,18 @@ poly 0x1b 5 #e2eecb  Vineyard  # @meadow palette.mss:35, base.mss:86-92; graphic
 poly 0x5a 5 #c2debd  Allotments  # @grass palette.mss:34, base.mss:103-109; graphics.txt adds allotments.png
 poly 0x1f 5 #eee5dc  Mountain meadow  # not drawn by CyclOSM: kmap puts only natural=fell here, which is not in its landuse layer (project.mml:139-168)
 poly 0x55 5 #c2debd  Grassland  # @grass palette.mss:34, landuse_grass and natural_grassland base.mss:41-45
-poly 0x15 6 #c2debd  Village Green  # @park palette.mss:36, landuse_village_green base.mss:120-123; over the woods in a build, as in topoactive
-poly 0x1d 6 #c2debd  Common  # @park palette.mss:36, leisure_common base.mss:32; over the woods in a build, as in topoactive
+poly 0x15 6 #c2debd  Village Green  # @park palette.mss:36, landuse_village_green base.mss:120-123; over the woods in a build, as in the reference TYP
+poly 0x1d 6 #c2debd  Common  # @park palette.mss:36, leisure_common base.mss:32; over the woods in a build, as in the reference TYP
 poly 0x4f 5 #c8d7ab  Scrub  # @scrub palette.mss:40, base.mss:77-81; graphics.txt adds scrub.png
-poly 0x5b 4 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as topoactive's: @scrub palette.mss:40; a level under its pattern, so it never covers it
+poly 0x5b 4 #c8d7ab  Scrub  # the floor kmap lays under every scrub, flat as the reference TYP's: @scrub palette.mss:40; a level under its pattern, so it never covers it
 poly 0x1e 5 #b2c068  Heath  # @heath palette.mss:39, base.mss:83
 poly 0x50 5 #95bd84  Forest  # @wooded palette.mss:38, base.mss:33, 169; graphics.txt adds leaftype_unknown.svg
 poly 0x57 5 #95bd84  Coniferous forest  # @wooded; graphics.txt adds leaftype_needleleaved.svg
 poly 0x58 5 #95bd84  Broadleaved forest  # @wooded; graphics.txt adds leaftype_broadleaved.svg
-poly 0x59 4 #95bd84  Woodland  # the floor kmap lays under every wood, flat as topoactive's: @wooded palette.mss:38; a level under its pattern, so it never covers it
+poly 0x59 4 #95bd84  Woodland  # the floor kmap lays under every wood, flat as the reference TYP's: @wooded palette.mss:38; a level under its pattern, so it never covers it
 poly 0x53 5 #f5e9c6  Sand  # @sand palette.mss:47, base.mss:62-66
-poly 0x54 6 #eee5dc  Scree  # @bare_ground palette.mss:48, base.mss:71-75; graphics.txt adds scree_overlay.png; over the woods in a build, as in topoactive
-poly 0x56 6 #eee5dc  Bare rock  # @bare_ground palette.mss:48, base.mss:67-70; graphics.txt adds rock_overlay.png; over the woods in a build, as in topoactive
+poly 0x54 6 #eee5dc  Scree  # @bare_ground palette.mss:48, base.mss:71-75; graphics.txt adds scree_overlay.png; over the woods in a build, as in the reference TYP
+poly 0x56 6 #eee5dc  Bare rock  # @bare_ground palette.mss:48, base.mss:67-70; graphics.txt adds rock_overlay.png; over the woods in a build, as in the reference TYP
 poly 0x52 5 #eee5dc  Bare Ground  # not drawn by CyclOSM: natural=tundra, kmap's only rule here, is not in its landuse layer
 poly 0x4d 5 #ddecec  Glacier  # @glacier palette.mss:43, base.mss:54-56
 poly 0x02 6 #eee5dc  Suburb  # not drawn by CyclOSM: place areas are not in its landuse layer
@@ -12308,8 +12308,8 @@ Xpm="32 32 4 1"
 #   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
-# Widths are not the original's: a line takes the whole width kmap's topoactive gives
-# the same code, casing included, and a line topoactive leaves to the device has no row
+# Widths are not the original's: a line takes the whole width kmap's reference TYP gives
+# the same code, casing included, and a line the reference TYP leaves to the device has no row
 # here or in graphics.txt, so the device draws it at its own width. The original's
 # width in a note is for the record.
 #
@@ -12333,7 +12333,7 @@ poly 0x1b 5 #efefef  Vineyard  # not drawn by Liberty Topo: landcover farmland h
 poly 0x5a 5 #dce7d5  Allotments  # landcover_grass: rgb(176,213,154) at 0.3
 poly 0x1f 5 #dce7d5  Mountain meadow  # landcover_grass (fell): rgb(176,213,154) at 0.3
 poly 0x55 5 #dce7d5  Grassland  # landcover_grass: rgb(176,213,154) at 0.3
-poly 0x15 6 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3; over the woods in a build, as in topoactive
+poly 0x15 6 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3; over the woods in a build, as in the reference TYP
 poly 0x1d 5 #efefef  Common  # not drawn by Liberty Topo: not in its schema
 poly 0x4f 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
 poly 0x5b 4 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3; a level under its pattern, so it never covers it
@@ -12396,7 +12396,7 @@ line 0x10803 7 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_seco
 line 0x10804 6 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_secondary_tertiary_casing
 line 0x07 3 #ffffff #cfcdca     Service Road  # road_service_track, road_service_track_casing
 line 0x0a 2 #ffffff #cfcdca     Track  # road_service_track, road_service_track_casing
-line 0x16 2 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt; 2 px, not topoactive's 1, to be seen on a device
+line 0x16 2 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt; 2 px, not the reference TYP's 1, to be seen on a device
 line 0x11 2 #ffffff             Cycleway  # road_path_pedestrian; dashed in graphics.txt
 line 0x14 3 #bbbbbb             Railway  # road_major_rail; its ties in graphics.txt
 line 0x27 6 #f0ede9             Runway  # aeroway_runway
@@ -13911,8 +13911,8 @@ Xpm="32 32 4 1"
 ; (maputnik/osm-liberty svgs/svgs_iconset, commit da161553f7d2; Maki glyphs, CC0), which
 ; also has markers for meanings the 2020 set lacked (109). Where it still has
 ; none, the style's ring holds a Maki, Temaki or openstreetmap-carto glyph (CC0), and the
-; rock is topoactive's own (9). A code topoactive marks with its plain label
-; anchor gets that square (topoactive 0x661a), day and night, with its label (15).
+; rock is the reference TYP's own (9). A code the reference TYP marks with its plain label
+; anchor gets that square (the reference TYP's 0x661a), day and night, with its label (15).
 ; Rendered at 16 px with rsvg-convert and read back 3 ways: a pixel under alpha 112 is
 ; clear; of the rest, R+G+B under 600 is ink #333333, the rest white. Night turns the
 ; marker over: a light glyph on a dark disc. Every point code kmap's rules emit has a
@@ -16090,7 +16090,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x2f08
 ; Station - OSM Liberty bus.svg (Maki, CC0), 16 px
-; Bus and railway stations land here; topoactive draws a bus.
+; Bus and railway stations land here; the reference TYP draws a bus.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -17596,7 +17596,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x2000
 ; kmap: Junction - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -18358,7 +18358,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x2f12
 ; kmap: Wi-Fi - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -18754,7 +18754,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x640b
 ; kmap: Military area - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -18876,7 +18876,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6503
 ; kmap: Bay - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -18906,7 +18906,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x6505
 ; kmap: Canal - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -18982,7 +18982,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6509
 ; kmap: Geyser - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19058,7 +19058,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x650c
 ; kmap: Island - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19088,7 +19088,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x650d
 ; kmap: Lake - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19118,7 +19118,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x650f
 ; kmap: Reservoir - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19148,7 +19148,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x6512
 ; kmap: Stream - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19270,7 +19270,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6603
 ; kmap: Water - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19392,7 +19392,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6606
 ; kmap: Cape - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19514,7 +19514,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6612
 ; kmap: Nature reserve - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19589,7 +19589,7 @@ NightXpm="16 16 3 1"
 
 [_point]
 Type=0x6614
-; Rock - topoactive's own rock, copied: a small grey stone in a black ring.
+; Rock - the reference TYP's own rock, copied: a small grey stone in a black ring.
 DayXpm="6 6 4 1"
 "a c none"
 "b c #F8FCF8"
@@ -19617,7 +19617,7 @@ NightXpm="6 6 4 1"
 [_point]
 Type=0x6618
 ; kmap: Forest - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19693,7 +19693,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x661a
 ; kmap: Facility - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -19734,17 +19734,17 @@ NightXpm="9 9 2 1"
 ; symbol (openstreetmap-carto symbols/**, CC0, commit 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2)
 ; in the marker-fill carto gives it in style/amenity-points.mss (95); for a meaning
 ; carto draws no symbol for, a Maki or Temaki icon (CC0) in the carto ink of its category
-; (20). A code topoactive marks with its plain label anchor gets that anchor square
-; (topoactive 0x661a), with its label (17). Every point code kmap's rules emit has a
+; (20). A code the reference TYP marks with its plain label anchor gets that anchor square
+; (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules emit has a
 ; section but the settlement points 0x0100-0x0d00, which the device draws, and kmap's repair
-; mark 0x660b, which the build adds. The rock 0x6614 is topoactive's own small ring, copied.
+; mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small ring, copied.
 ; Night lifts each ink towards white. Any icon can be edited in kmap's type editor. Names
 ; are added from type-names.txt.
 
 [_point]
 Type=0x2000
-; kmap: Junction - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Junction - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -23911,8 +23911,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x2f12
-; kmap: Wi-Fi - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Wi-Fi - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25157,8 +25157,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6403
-; kmap: Cemetery - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Cemetery - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25187,8 +25187,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x640b
-; kmap: Military area - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Military area - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25383,8 +25383,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6503
-; kmap: Bay - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Bay - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25413,8 +25413,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6505
-; kmap: Canal - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Canal - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25498,8 +25498,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6509
-; kmap: Geyser - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Geyser - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25584,8 +25584,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x650c
-; kmap: Island - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Island - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25614,8 +25614,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x650d
-; kmap: Lake - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Lake - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25644,8 +25644,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x650f
-; kmap: Reservoir - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Reservoir - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25729,8 +25729,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6512
-; kmap: Stream - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Stream - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -25759,8 +25759,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6513
-; kmap: Wetland - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Wetland - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -26009,8 +26009,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6603
-; kmap: Water - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Water - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -26150,8 +26150,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6606
-; kmap: Cape - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Cape - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -26291,8 +26291,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6612
-; kmap: Nature reserve - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Nature reserve - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -26374,7 +26374,7 @@ NightXpm="20 20 3 1"
 
 [_point]
 Type=0x6614
-; Rock - topoactive's own rock, copied: a small grey stone in a black ring.
+; Rock - the reference TYP's own rock, copied: a small grey stone in a black ring.
 DayXpm="6 6 4 1"
 "a c none"
 "b c #F8FCF8"
@@ -26456,8 +26456,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6618
-; kmap: Forest - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Forest - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -26541,8 +26541,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x661a
-; kmap: Facility - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Facility - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -28256,12 +28256,12 @@ A|58|Лиственный лес|Broadleaved forest
 #
 # Every shipped TYP takes its names from here, English (String=0x00) and Russian
 # (String=0x19), so a device shows them in its own language. The codes are kmap's;
-# the meaning of each is the one the owner's topoactive TYP gives it. Where a row's
-# English is not topoactive's, it is the name the styles' palettes gave the code.
+# the meaning of each is the one the owner's the reference TYP gives it. Where a row's
+# English is not the reference TYP's, it is the name the styles' palettes gave the code.
 #
 #   <kind> <code>|<English>|<Russian>      kind: polygon, line or point
 
-# From the owner's topoactive TYP: the same code and meaning, both names.
+# From the owner's the reference TYP: the same code and meaning, both names.
 line 0x7|Service Road|Подъездная дорога
 line 0xa|Track|Грунтовая дорога
 line 0x11|Cycleway|Велодорожка
@@ -28489,13 +28489,13 @@ polygon 0x58|Broadleaved forest|Лиственный лес
 polygon 0x59|Woodland|Лес
 polygon 0x5b|Scrub|Кустарник
 
-# Russian: topoactive's word for its roundabout types (0x10801-0x10804).
+# Russian: the reference TYP's word for its roundabout types (0x10801-0x10804).
 line 0xc|Roundabout|Круговое движение
 
-# Russian: topoactive's word for a path (its 0x16).
+# Russian: the reference TYP's word for a path (its 0x16).
 line 0xe|Path|Тропа
 
-# Not in topoactive. Russian from the owner's travel-map-russia TYP, where the
+# Not in the reference TYP. Russian from the owner's travel-map-russia TYP, where the
 # meaning is the same.
 line 0x1|Motorway|Автомагистраль
 line 0x2|Trunk|Федеральная трасса (автомагистраль)

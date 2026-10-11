@@ -2,12 +2,12 @@
 #
 # Every shipped TYP takes its names from here, English (String=0x00) and Russian
 # (String=0x19), so a device shows them in its own language. The codes are kmap's;
-# the meaning of each is the one the owner's topoactive TYP gives it. Where a row's
-# English is not topoactive's, it is the name the styles' palettes gave the code.
+# the meaning of each is the one the owner's the reference TYP gives it. Where a row's
+# English is not the reference TYP's, it is the name the styles' palettes gave the code.
 #
 #   <kind> <code>|<English>|<Russian>      kind: polygon, line or point
 
-# From the owner's topoactive TYP: the same code and meaning, both names.
+# From the owner's the reference TYP: the same code and meaning, both names.
 line 0x7|Service Road|Подъездная дорога
 line 0xa|Track|Грунтовая дорога
 line 0x11|Cycleway|Велодорожка
@@ -235,13 +235,13 @@ polygon 0x58|Broadleaved forest|Лиственный лес
 polygon 0x59|Woodland|Лес
 polygon 0x5b|Scrub|Кустарник
 
-# Russian: topoactive's word for its roundabout types (0x10801-0x10804).
+# Russian: the reference TYP's word for its roundabout types (0x10801-0x10804).
 line 0xc|Roundabout|Круговое движение
 
-# Russian: topoactive's word for a path (its 0x16).
+# Russian: the reference TYP's word for a path (its 0x16).
 line 0xe|Path|Тропа
 
-# Not in topoactive. Russian from the owner's travel-map-russia TYP, where the
+# Not in the reference TYP. Russian from the owner's travel-map-russia TYP, where the
 # meaning is the same.
 line 0x1|Motorway|Автомагистраль
 line 0x2|Trunk|Федеральная трасса (автомагистраль)

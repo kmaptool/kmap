@@ -30,9 +30,9 @@ code's meaning, the one `Assets/styles/type-names.txt` gives it (from the owner'
 reference TYP), and the OSM features kmap's rules put on it decide what it
 looks like. So line 0x16 is a footway, 0x07 a service road (kmap's bridleways
 land there too), 0x2b a cliff (via ferrata, aretes and ridges too), 0x30 a
-sports track (raceways and gallops too; topoactive's label for it is "Track");
+sports track (raceways and gallops too; the reference TYP's label for it is "Track");
 polygon 0x0c is industrial (construction and landfill too), 0x1c farmland
-(topoactive labels it Grassland; kmap puts greenfield there too), 0x26 a
+(the reference TYP labels it Grassland; kmap puts greenfield there too), 0x26 a
 farmyard, 0x19 a pitch (sports centres, stadiums and recreation grounds too).
 The catch-all areas 0x21 Tourism, 0x23 Amenity and 0x24 Structure take every
 tourism=*, amenity=* and man_made=* area no earlier rule took; carto fills some
@@ -86,16 +86,16 @@ The tile then repeats every 32 pixels, so carto's scattered symbols (trees,
 scrub) come out on a regular grid. A dash whose period does not divide 32 breaks
 once at the seam of the 32-pixel line bitmap.
 
-## Line widths are topoactive's
+## Line widths are the reference TYP's
 
-The widths are not carto's. A line takes the whole width kmap's topoactive gives
-the same code, casing included: a path 2 pixels (topoactive's 1 left carto's salmon
+The widths are not carto's. A line takes the whole width kmap's reference TYP gives
+the same code, casing included: a path 2 pixels (the reference TYP's 1 left carto's salmon
 too faint on a device), a track and a cycleway 2, a
 service road 3, a roundabout 6 to 8, a river 2, a stream 1, a railway 3, a cliff
-4. A line topoactive leaves to the device (the roads 0x01 to 0x06 and their
+4. A line the reference TYP leaves to the device (the roads 0x01 to 0x06 and their
 links, 0x0e path, 0x0f steps, 0x10, 0x31 to 0x35) has no entry in this style
 either, so the device draws it at its own width, and a code kmap widened falls
-back to the one it widened, as with topoactive (0x0e and 0x0f to 0x16). Colours
+back to the one it widened, as with the reference TYP (0x0e and 0x0f to 0x16). Colours
 and dashes stay carto's; the original's width in a note is for the record. A
 cased line narrower than 3 pixels has no room for a casing either side: its dash
 gaps show the casing, or, undashed, it is drawn in its casing alone.
@@ -132,10 +132,10 @@ is its ink blended over the land. CyclOSM ships the same file.
   #4D80B3. Its barrier marks, a fraction of its 14 px grid, are scaled as the grid is.
 - Where carto draws no symbol, a Maki (v8.0.0) or Temaki (v5.13.0) icon, CC0, in the
   carto ink of its category; the same icons opentopomap uses, each checked against
-  topoactive's meaning for the code.
-- A code topoactive marks with its plain label anchor (water and land names, the
+  the reference TYP's meaning for the code.
+- A code the reference TYP marks with its plain label anchor (water and land names, the
   junction, Wi-Fi, geyser, military, cemetery, nature reserve, 0x661a) gets that anchor
-  square, with its label. The rock 0x6614 is topoactive's own small ring.
+  square, with its label. The rock 0x6614 is the reference TYP's own small ring.
 
 Where a code holds several kinds of object, the symbol is the main meaning's: 0x2f08 the
 bus station, 0x3003 the town hall, 0x2b02 the guest house, 0x2c0b the neutral place of

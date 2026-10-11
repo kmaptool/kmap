@@ -4,17 +4,17 @@
 ; symbol (openstreetmap-carto symbols/**, CC0, commit 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2)
 ; in the marker-fill carto gives it in style/amenity-points.mss (95); for a meaning
 ; carto draws no symbol for, a Maki or Temaki icon (CC0) in the carto ink of its category
-; (20). A code topoactive marks with its plain label anchor gets that anchor square
-; (topoactive 0x661a), with its label (17). Every point code kmap's rules emit has a
+; (20). A code the reference TYP marks with its plain label anchor gets that anchor square
+; (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules emit has a
 ; section but the settlement points 0x0100-0x0d00, which the device draws, and kmap's repair
-; mark 0x660b, which the build adds. The rock 0x6614 is topoactive's own small ring, copied.
+; mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small ring, copied.
 ; Night lifts each ink towards white. Any icon can be edited in kmap's type editor. Names
 ; are added from type-names.txt.
 
 [_point]
 Type=0x2000
-; kmap: Junction - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Junction - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -4181,8 +4181,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x2f12
-; kmap: Wi-Fi - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Wi-Fi - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5427,8 +5427,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6403
-; kmap: Cemetery - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Cemetery - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5457,8 +5457,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x640b
-; kmap: Military area - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Military area - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5653,8 +5653,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6503
-; kmap: Bay - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Bay - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5683,8 +5683,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6505
-; kmap: Canal - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Canal - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5768,8 +5768,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6509
-; kmap: Geyser - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Geyser - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5854,8 +5854,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x650c
-; kmap: Island - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Island - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5884,8 +5884,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x650d
-; kmap: Lake - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Lake - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5914,8 +5914,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x650f
-; kmap: Reservoir - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Reservoir - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5999,8 +5999,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6512
-; kmap: Stream - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Stream - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -6029,8 +6029,8 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6513
-; kmap: Wetland - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Wetland - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -6279,8 +6279,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6603
-; kmap: Water - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Water - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -6420,8 +6420,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6606
-; kmap: Cape - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Cape - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -6561,8 +6561,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6612
-; kmap: Nature reserve - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Nature reserve - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -6644,7 +6644,7 @@ NightXpm="20 20 3 1"
 
 [_point]
 Type=0x6614
-; Rock - topoactive's own rock, copied: a small grey stone in a black ring.
+; Rock - the reference TYP's own rock, copied: a small grey stone in a black ring.
 DayXpm="6 6 4 1"
 "a c none"
 "b c #F8FCF8"
@@ -6726,8 +6726,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x6618
-; kmap: Forest - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Forest - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -6811,8 +6811,8 @@ NightXpm="20 20 4 1"
 
 [_point]
 Type=0x661a
-; kmap: Facility - topoactive marks it with its plain label anchor: that square
-; (topoactive 0x661a), so no device icon of another meaning shows.
+; kmap: Facility - the reference TYP marks it with its plain label anchor: that square
+; (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"

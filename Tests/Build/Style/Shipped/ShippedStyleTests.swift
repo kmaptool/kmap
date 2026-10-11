@@ -325,9 +325,9 @@ final class ShippedStyleTests: XCTestCase {
         }
     }
 
-    /// Each transcribed look leaves the lines topoactive leaves to the device: the
+    /// Each transcribed look leaves the lines the reference TYP leaves to the device: the
     /// roads, their links and the widened numbers, which then fall back to the ones
-    /// topoactive draws.
+    /// the reference TYP draws.
     func testTheTranscribedLooksLeaveTheDevicesLinesToTheDevice() throws {
         let deviceDrawn =
             [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0b, 0x0c, 0x0e, 0x0f, 0x10]
@@ -359,10 +359,10 @@ final class ShippedStyleTests: XCTestCase {
         }
     }
 
-    /// The line widths of the transcribed looks are topoactive's, casing included; the path
+    /// The line widths of the transcribed looks are the reference TYP's, casing included; the path
     /// of carto, OpenTopoMap and Liberty Topo is 2 px, as 1 px of their ink was too faint
     /// on a device, and OpenTopoMap's solid black track 1 px, as 2 was too heavy.
-    func testTheTranscribedLooksDrawTopoactivesLineWidths() throws {
+    func testTheTranscribedLooksDrawTheReferenceLineWidths() throws {
         let widths: [Int: Int] = [
             0x07: 3, 0x0a: 2, 0x11: 2, 0x16: 1, 0x18: 1, 0x1f: 2, 0x27: 6,
             0x10801: 8, 0x10802: 7, 0x10803: 7, 0x10804: 6
@@ -370,9 +370,9 @@ final class ShippedStyleTests: XCTestCase {
         for id in ["osm-carto", "cyclosm", "liberty-topo", "opentopomap"] {
             let shipped = try XCTUnwrap(StyleCatalog.shippedPalette(id: id))
             let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
-            for (code, topoactive) in widths {
+            for (code, reference) in widths {
                 let path = code == 0x16 && ["osm-carto", "opentopomap", "liberty-topo"].contains(id)
-                let width = path ? 2 : code == 0x0a && id == "opentopomap" ? 1 : topoactive
+                let width = path ? 2 : code == 0x0a && id == "opentopomap" ? 1 : reference
                 let section = try XCTUnwrap(typ.sections.first { $0.kind == .line && $0.code == code })
                 let lines = section.lines.map { typ.lines[$0] }
                 func value(_ key: String) -> Int? {
@@ -485,7 +485,7 @@ final class ShippedStyleTests: XCTestCase {
 
     /// kmap lays a floor under every wood (0x59) and scrub (0x5b), with the same outline.
     /// Of 2 shapes with the same outline on 1 level, which lands on top is chance, and a
-    /// floor on top hides its pattern: each floor sits a level under, as in topoactive.
+    /// floor on top hides its pattern: each floor sits a level under, as in the reference TYP.
     func testEveryFloorSitsUnderItsPatterns() throws {
         let floors: [(floor: Int, over: [Int])] = [(0x59, [0x50, 0x57, 0x58]), (0x5b, [0x4f])]
         for shipped in StyleCatalog.shippedPalettes {
@@ -542,10 +542,10 @@ final class ShippedStyleTests: XCTestCase {
     }
 
     /// What is drawn over the woods stays over them in a build in every look that draws
-    /// it, whatever level it shares with the woods in the palette: what topoactive draws
+    /// it, whatever level it shares with the woods in the palette: what the reference TYP draws
     /// over its woods (rock, scree, a cemetery, a village green, a common, a park, a pitch),
     /// and a quarry and greenhouses, small patches the originals draw over a wood.
-    func testWhatTopoactiveDrawsOverWoodsStaysOverThemInABuild() throws {
+    func testWhatTheReferenceDrawsOverWoodsStaysOverThemInABuild() throws {
         let over = [0x54, 0x56, 0x0d, 0x1a, 0x15, 0x1d, 0x29, 0x17, 0x19]
         for shipped in StyleCatalog.shippedPalettes {
             let text = try StyleCatalog.shippedTypText(of: shipped)

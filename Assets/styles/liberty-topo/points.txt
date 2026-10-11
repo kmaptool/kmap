@@ -5,8 +5,8 @@
 ; (maputnik/osm-liberty svgs/svgs_iconset, commit da161553f7d2; Maki glyphs, CC0), which
 ; also has markers for meanings the 2020 set lacked (109). Where it still has
 ; none, the style's ring holds a Maki, Temaki or openstreetmap-carto glyph (CC0), and the
-; rock is topoactive's own (9). A code topoactive marks with its plain label
-; anchor gets that square (topoactive 0x661a), day and night, with its label (15).
+; rock is the reference TYP's own (9). A code the reference TYP marks with its plain label
+; anchor gets that square (the reference TYP's 0x661a), day and night, with its label (15).
 ; Rendered at 16 px with rsvg-convert and read back 3 ways: a pixel under alpha 112 is
 ; clear; of the rest, R+G+B under 600 is ink #333333, the rest white. Night turns the
 ; marker over: a light glyph on a dark disc. Every point code kmap's rules emit has a
@@ -2184,7 +2184,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x2f08
 ; Station - OSM Liberty bus.svg (Maki, CC0), 16 px
-; Bus and railway stations land here; topoactive draws a bus.
+; Bus and railway stations land here; the reference TYP draws a bus.
 DayXpm="16 16 3 1"
 "! c #333333"
 "- c #FFFFFF"
@@ -3690,7 +3690,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x2000
 ; kmap: Junction - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -4452,7 +4452,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x2f12
 ; kmap: Wi-Fi - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -4848,7 +4848,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x640b
 ; kmap: Military area - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -4970,7 +4970,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6503
 ; kmap: Bay - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5000,7 +5000,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x6505
 ; kmap: Canal - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5076,7 +5076,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6509
 ; kmap: Geyser - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5152,7 +5152,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x650c
 ; kmap: Island - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5182,7 +5182,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x650d
 ; kmap: Lake - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5212,7 +5212,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x650f
 ; kmap: Reservoir - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5242,7 +5242,7 @@ NightXpm="9 9 2 1"
 [_point]
 Type=0x6512
 ; kmap: Stream - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5364,7 +5364,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6603
 ; kmap: Water - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5486,7 +5486,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6606
 ; kmap: Cape - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5608,7 +5608,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x6612
 ; kmap: Nature reserve - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5683,7 +5683,7 @@ NightXpm="16 16 3 1"
 
 [_point]
 Type=0x6614
-; Rock - topoactive's own rock, copied: a small grey stone in a black ring.
+; Rock - the reference TYP's own rock, copied: a small grey stone in a black ring.
 DayXpm="6 6 4 1"
 "a c none"
 "b c #F8FCF8"
@@ -5711,7 +5711,7 @@ NightXpm="6 6 4 1"
 [_point]
 Type=0x6618
 ; kmap: Forest - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"
@@ -5787,7 +5787,7 @@ NightXpm="16 16 3 1"
 [_point]
 Type=0x661a
 ; kmap: Facility - the original has no symbol for it; the plain anchor square of the
-; reference TYP (topoactive 0x661a), so no device icon of another meaning shows.
+; reference TYP (the reference TYP's 0x661a), so no device icon of another meaning shows.
 DayXpm="9 9 2 1"
 "a c #F8FCF8"
 "b c #6E6A66"

@@ -5,7 +5,7 @@ import Foundation
 extension StylePort {
     /// The ground where their style paints none: kmap's own paper and sea, so the land
     /// is drawn at all. A polygon missing from the draw order is not drawn, and on a
-    /// fenix an undrawn land goes black. The night pair is the one topoactive settled
+    /// fenix an undrawn land goes black. The night pair is the one the reference TYP settled
     /// on a fenix: a grey that is unmistakably not water.
     static let paper = "#F4F4F0"
     static let paperAtNight = "#40403D"

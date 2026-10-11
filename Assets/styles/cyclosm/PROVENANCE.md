@@ -33,15 +33,15 @@ attribution stays.
   name of each code is the one `Assets/styles/type-names.txt` gives it, and the
   code is drawn as CyclOSM draws the OSM features kmap's rules put on it: line
   0x16 a path (footways and pedestrian streets too), 0x07 a service road, 0x2b
-  a cliff, 0x30 a sports track (raceways and gallops too; topoactive labels it
+  a cliff, 0x30 a sports track (raceways and gallops too; the reference TYP labels it
   "Track"), polygon 0x0c industrial, 0x19 a sports ground, 0x1c farmland
-  (topoactive labels it Grassland). The catch-all areas 0x21 Tourism, 0x23
+  (the reference TYP labels it Grassland). The catch-all areas 0x21 Tourism, 0x23
   Amenity and 0x24 Structure take every tourism=*, amenity=* and man_made=* area
   no earlier rule took; CyclOSM fills a few of those, each in its own colour,
   and the rest not at all, so they are clear. The names in `palette.txt` are
   that file's English.
 - **Zoom.** The reference is CyclOSM at z16: 1 CartoCSS pixel is 1 device
-  pixel. Line widths are not CyclOSM's but topoactive's (below).
+  pixel. Line widths are not CyclOSM's but the reference TYP's (below).
 - **Opacity.** Where CyclOSM draws with opacity (admin boundaries, the
   protected-area band, the military edge, the cemetery and leaf patterns),
   the colour is composited over CyclOSM's land colour `@land #eee5dc`, or over
@@ -60,15 +60,15 @@ attribution stays.
 - **Night.** CyclOSM has no night design. kmap derives the night colours, as
   for every shipped style, snapped to the steps a MIP watch screen can show.
 
-## Line widths are topoactive's
+## Line widths are the reference TYP's
 
-The widths are not CyclOSM's. A line takes the whole width kmap's topoactive
+The widths are not CyclOSM's. A line takes the whole width kmap's reference TYP
 gives the same code, casing included: a path 1 pixel, a track and a cycleway 2,
 a service road 3, a roundabout 6 to 8, a river 2, a stream 1, a railway 3, a
-cliff 4. A line topoactive leaves to the device (the roads 0x01 to 0x06 and
+cliff 4. A line the reference TYP leaves to the device (the roads 0x01 to 0x06 and
 their links, 0x0e path, 0x0f steps, 0x10, 0x31 to 0x35) has no entry in this
 style either, so the device draws it at its own width, and a code kmap widened
-falls back to the one it widened, as with topoactive (0x0e and 0x0f to 0x16).
+falls back to the one it widened, as with the reference TYP (0x0e and 0x0f to 0x16).
 Colours and dashes stay CyclOSM's; the original's width in a note is for the
 record. A cased line narrower than 3 pixels has no room for a casing either
 side: its dash gaps show the casing, or, undashed, it is drawn in its casing
@@ -104,7 +104,7 @@ that carto commit and come from CyclOSM only.
 Each image is drawn at its own size and repeated within, or cut to, the 32 x 32
 tile; a pixel more opaque than the cut (half, unless the note in `palette.txt`
 says otherwise) is ink. The floors kmap lays under every wood and scrub, 0x59 and
-0x5b, are flat, as topoactive's are.
+0x5b, are flat, as the reference TYP's are.
 
 The POI icons are the carto style's file (see its PROVENANCE): openstreetmap-carto's
 symbols, which CyclOSM draws POIs with too, and Maki or Temaki icons (CC0) where carto

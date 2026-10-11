@@ -16,8 +16,8 @@
 #   poly <code> <level> <day> [night] <name>      level = draw order, 1 lowest
 #   line <code> <width> <day> [casing] <name>
 #
-# Widths are not the original's: a line takes the whole width kmap's topoactive gives
-# the same code, casing included, and a line topoactive leaves to the device has no row
+# Widths are not the original's: a line takes the whole width kmap's reference TYP gives
+# the same code, casing included, and a line the reference TYP leaves to the device has no row
 # here or in graphics.txt, so the device draws it at its own width. The original's
 # width in a note is for the record.
 #
@@ -41,7 +41,7 @@ poly 0x1b 5 #efefef  Vineyard  # not drawn by Liberty Topo: landcover farmland h
 poly 0x5a 5 #dce7d5  Allotments  # landcover_grass: rgb(176,213,154) at 0.3
 poly 0x1f 5 #dce7d5  Mountain meadow  # landcover_grass (fell): rgb(176,213,154) at 0.3
 poly 0x55 5 #dce7d5  Grassland  # landcover_grass: rgb(176,213,154) at 0.3
-poly 0x15 6 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3; over the woods in a build, as in topoactive
+poly 0x15 6 #dce7d5  Village Green  # landcover_grass: rgb(176,213,154) at 0.3; over the woods in a build, as in the reference TYP
 poly 0x1d 5 #efefef  Common  # not drawn by Liberty Topo: not in its schema
 poly 0x4f 5 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3
 poly 0x5b 4 #dce7d5  Scrub  # landcover_grass (scrub): rgb(176,213,154) at 0.3; a level under its pattern, so it never covers it
@@ -104,7 +104,7 @@ line 0x10803 7 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_seco
 line 0x10804 6 #ffeeaa #e9ac77  Roundabout  # road_secondary_tertiary, road_secondary_tertiary_casing
 line 0x07 3 #ffffff #cfcdca     Service Road  # road_service_track, road_service_track_casing
 line 0x0a 2 #ffffff #cfcdca     Track  # road_service_track, road_service_track_casing
-line 0x16 2 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt; 2 px, not topoactive's 1, to be seen on a device
+line 0x16 2 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing; dashed in graphics.txt; 2 px, not the reference TYP's 1, to be seen on a device
 line 0x11 2 #ffffff             Cycleway  # road_path_pedestrian; dashed in graphics.txt
 line 0x14 3 #bbbbbb             Railway  # road_major_rail; its ties in graphics.txt
 line 0x27 6 #f0ede9             Runway  # aeroway_runway
