@@ -1782,7 +1782,7 @@ line 0x10802 7 #f59729 #000000  Roundabout  # primary: as trunk
 line 0x10803 7 #f7e761 #000000  Roundabout  # secondary: color_roads_2 inc/entities.xml.inc:47 at 6, roads-fill.xml:371-376; black 8, roads-casing.xml:500-505
 line 0x10804 6 #f7e761 #000000  Roundabout  # tertiary: as secondary
 line 0x07 3 #ffffff #000000  Service Road  # white 4, roads-fill.xml:395-400; black 6, roads-casing.xml:506-511
-line 0x0a 2 #000000  Track  # no tracktype: black 1.5, roads-casing.xml:384-389
+line 0x0a 1 #000000  Track  # no tracktype: black 1.5, roads-casing.xml:384-389; 1 px, not topoactive's 2: solid black 2 px was too heavy on a device
 line 0x11 2 #000000  Cycleway  # black 1.5, roads-casing.xml:384-389
 line 0x16 2 #000000  Path  # black 1 -> 2, wider than topoactive's 1 to be seen on a device, dash 1.1,2, roads-casing.xml:416-421; dashed in graphics.txt
 line 0x30 2 #8eb961  Track  # kmap puts leisure=track here (and raceway, gallop): the #8eb961 outline of a closed track, landuse.xml:140-146 (leisure is a polygon key, opentopomap.style:126); an open track way they do not draw at z16, a raceway is a road

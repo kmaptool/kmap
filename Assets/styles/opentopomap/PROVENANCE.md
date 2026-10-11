@@ -12,8 +12,8 @@ code, and named after `Assets/styles/type-names.txt`.
 
 ## What kmap changed
 
-- Line widths are topoactive's (kmap's reference TYP), but the path is 2 pixels: 1 left its
-  dots too faint on a device. Lines topoactive leaves to the device have no row. Translucent colours are composited over their land #e0e0e0; the nature reserve band
+- Line widths are topoactive's (kmap's reference TYP), but the path is 2 pixels (1 left its
+  dots too faint on a device) and the track 1 (a solid black 2 was too heavy). Lines topoactive leaves to the device have no row. Translucent colours are composited over their land #e0e0e0; the nature reserve band
   keeps its #85c243 without the 0.5 opacity, which left it too faint on a device.
 - Draw order follows their layers, except: the built-up tint goes under the woods; park,
   pitch, quarry, cemetery, bare rock and scree go over them, as topoactive draws them; sand
