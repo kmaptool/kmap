@@ -39,6 +39,14 @@ struct LevelsProfile: Equatable {
 
     var levelCount: Int { levels.split(separator: ",").count }
 
+    /// The resolution roads are routed on.
+    var finest: Int {
+        levels.split(separator: ",").compactMap {
+            $0.split(separator: ":").last.flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        }
+        .max() ?? 24
+    }
+
     /// DEM spacings for the coarse end of the ladder, one per zoom level, finest first.
     /// Valid only together with `--overview-dem-dist` in StageCompile: the coarsest entry
     /// sets the farthest zoom that still gets hillshading.

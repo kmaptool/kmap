@@ -114,11 +114,11 @@ enum TypAugment {
         }
 
         // Handed through as it is only where mkgmap reads it as kmap does: pure ASCII, or
-        // saying how it is written.
+        // saying how it is written. A build always gets a copy.
         let readsAlike =
             (!original.unicodeScalars.contains { !$0.isASCII } || TypSource.declaringUTF8(original) == original
                 || byteForByte) && !trips
-        guard !wanted.isEmpty || text != original || !readsAlike else {
+        guard !wanted.isEmpty || text != original || !readsAlike || destination != nil else {
             return Result(
                 url: typURL,
                 added: [],

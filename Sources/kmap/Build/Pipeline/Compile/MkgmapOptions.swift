@@ -93,6 +93,17 @@ extension BuildPipeline {
         return TypSource.parse(TypDecompiler.source(binary))
     }
 
+    /// Twins only the roads the build's TYP copy draws.
+    func roadTwins(in rules: URL, typ: URL?) throws -> Int {
+        let ours = recipe.workDirectory.standardizedFileURL.path + "/"
+        guard let typ, typ.pathExtension.lowercased() == "txt", typ.standardizedFileURL.path.hasPrefix(ours),
+            typ.standardizedFileURL != recipe.style.typURL?.standardizedFileURL
+        else { return 0 }
+        return try StyleCatalog.addRoadTwins(finest: recipe.levels.finest, in: rules) { roads, taken in
+            TypAugment.twinRoads(in: typ, roads: roads, taken: taken)
+        }
+    }
+
     /// The polygon types the TYP draws as a hatch on a transparent ground: a block carrying
     /// a bitmap in which any colour is `none`. Only a text TYP can be read this way; a
     /// compiled one yields nothing.
@@ -177,6 +188,8 @@ extension BuildPipeline {
                         )
                     }
                 }
+                let twinned = try roadTwins(in: mine, typ: typ)
+                if twinned > 0 { log.append("\(twinned) road rule(s) drawn by a plain twin the cursor picks") }
                 options.append("--style-file=\(mine.path)")
                 styleUsed = mine
             } else {

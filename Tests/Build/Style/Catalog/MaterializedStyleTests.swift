@@ -132,4 +132,38 @@ final class MaterializedStyleTests: XCTestCase {
             }
         }
     }
+
+    /// The stock rules with every road twinned still read in mkgmap: a twin that joined
+    /// the rule above it, or a type mkgmap refuses, would stop every build.
+    func testMkgmapReadsTheStockRulesWithTwinnedRoads() async throws {
+        let it = try prepared()
+        let java = try XCTUnwrap(Toolchain(settings: SettingsStore()).findJava(), "no Java")
+        let jar = try XCTUnwrap(Toolchain(settings: SettingsStore()).findMkgmap()?.url)
+        try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner)
+        let source = try XCTUnwrap(it.plain.styleDirectory)
+        let style = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("twinned-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.copyItem(at: source, to: style)
+        addTeardownBlock { try? FileManager.default.removeItem(at: style) }
+
+        let split = try StyleCatalog.addRoadTwins(finest: 24, in: style) { roads, _ in
+            Dictionary(uniqueKeysWithValues: roads.filter { $0 <= 0x1f }.map { ($0, 0x11f00 | $0) })
+        }
+        XCTAssertGreaterThan(split, 0)
+        let rules = try String(contentsOf: style.appendingPathComponent("lines"), encoding: .utf8)
+        let steps = "\nhighway=steps [0x11f0f resolution 24]\n"
+        XCTAssertTrue(rules.contains(steps), "the twin's condition is its own rule's")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: java.path)
+        process.arguments = java.options + ["-jar", jar.path, "--style-file=\(style.path)", "--check-styles"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        try process.run()
+        let said = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        process.waitUntilExit()
+        XCTAssertFalse(said.contains("Error in style"), said)
+        XCTAssertFalse(said.contains("invalid type"), said)
+        XCTAssertTrue(said.contains("finished check-styles"), said)
+    }
 }
