@@ -3,9 +3,9 @@
 ; the sprite of OSM Liberty; each code takes the marker of the class its meaning (named
 ; in Assets/styles/type-names.txt) falls in, from OSM Liberty's current icon set
 ; (maputnik/osm-liberty svgs/svgs_iconset, commit da161553f7d2; Maki glyphs, CC0), which
-; also has markers for meanings the 2020 set lacked (109). Where it still has
+; also has markers for meanings the 2020 set lacked (110). Where it still has
 ; none, the style's ring holds a Maki, Temaki or openstreetmap-carto glyph (CC0), and the
-; rock is the reference TYP's own (9). A code the reference TYP marks with its plain label
+; rock is the reference TYP's own (10). A code the reference TYP marks with its plain label
 ; anchor gets that square (the reference TYP's 0x661a), day and night, with its label (15).
 ; Rendered at 16 px with rsvg-convert and read back 3 ways: a pixel under alpha 112 is
 ; clear; of the rest, R+G+B under 600 is ink #333333, the rest white. Night turns the
@@ -4129,6 +4129,52 @@ NightXpm="16 16 3 1"
 [end]
 
 [_point]
+Type=0x660a
+; Rock climbing - Temaki v5.13.0 climbing (CC0) in the style's ring, 16 px
+; OSM Liberty has no marker for the meaning.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!------!.."
+".!----!!----!!!."
+".--!!!!-----!!-."
+"!--!!!!!---!!!-!"
+"!-!!!!!!!-!!!!-!"
+"---!!!--!!!!!!--"
+"---!!!!---!!!!--"
+"!--!!-!!--!!!!-!"
+"!--!!-!!--!!!!-!"
+".--!!--!-!!!!!-."
+".!!!--!!!!!!!!!."
+"..!!--------!!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!------!.."
+".!----!!----!!!."
+".--!!!!-----!!-."
+"!--!!!!!---!!!-!"
+"!-!!!!!!!-!!!!-!"
+"---!!!--!!!!!!--"
+"---!!!!---!!!!--"
+"!--!!-!!--!!!!-!"
+"!--!!-!!--!!!!-!"
+".--!!--!-!!!!!-."
+".!!!--!!!!!!!!!."
+"..!!--------!!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
 Type=0x2d04
 ; Casino - OSM Liberty casino.svg (Maki, CC0), 16 px
 ; OSM Liberty now has a marker for the meaning.
@@ -4877,6 +4923,52 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6411
+; Tower / mast - OSM Liberty communications_tower.svg (Maki, CC0), 16 px
+; OSM Liberty now has a marker for the meaning.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+"................"
+"................"
+"................"
+"................"
+".......!!......."
+"........!......."
+"................"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"................"
+"................"
+"................"
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+"................"
+"................"
+"................"
+"................"
+".......!!......."
+"........!......."
+"................"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"................"
+"................"
+"................"
+[end]
+
+[_point]
+Type=0x6609
 ; Tower / mast - OSM Liberty communications_tower.svg (Maki, CC0), 16 px
 ; OSM Liberty now has a marker for the meaning.
 DayXpm="16 16 3 1"

@@ -2,10 +2,10 @@
 ; icon is drawn from a vector at 20 pixels on its longer side, with a soft edge: a pixel
 ; partly covered is its colour blended over the land. Their own SVGs (2); for a meaning
 ; they draw only as pixel art too small to enlarge, carto's vector of it in their colour
-; (20); for a meaning they do not draw, openstreetmap-carto's symbol (CC0) in carto's colours
+; (21); for a meaning they do not draw, openstreetmap-carto's symbol (CC0) in carto's colours
 ; (73); for a meaning neither draws, the Maki or Temaki
 ; icon (CC0) in their colour scheme: black, water #1200FF, transport #0024FF, health
-; #DF091D (20). A code the reference TYP marks with its plain label anchor, or no source draws, gets
+; #DF091D (21). A code the reference TYP marks with its plain label anchor, or no source draws, gets
 ; that anchor square (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules
 ; emit has a section but the settlement points 0x0100-0x0d00, which the device draws, and
 ; kmap's repair mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small
@@ -6649,6 +6649,118 @@ NightXpm="20 20 4 1"
 "....BAAAAAAAAAAB...."
 "....AAAAAAAAAAAA...."
 "....AAAAAAAAAAAA...."
+[end]
+
+[_point]
+Type=0x6609
+; Mast - their communications_mast.png, symbols-2.xml:90-95 is pixel art too small to enlarge: carto's
+; symbols/man_made/mast.svg (CC0) at 20 x 20 px in their colour #000000
+DayXpm="20 20 4 1"
+"! c #868686"
+"A c #000000"
+"B c #434343"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+NightXpm="20 20 4 1"
+"! c #666666"
+"A c #000000"
+"B c #333333"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+[end]
+
+[_point]
+Type=0x660a
+; Via ferrata - Temaki v5.13.0 climbing.svg (CC0) at 20 x 20 px in their scheme's #000000:
+; neither they nor carto draw a symbol for it.
+DayXpm="20 20 4 1"
+"! c #434343"
+"A c #868686"
+"B c #000000"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
+NightXpm="20 20 4 1"
+"! c #333333"
+"A c #666666"
+"B c #000000"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
 [end]
 
 [_point]

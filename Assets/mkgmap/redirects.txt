@@ -104,11 +104,10 @@
 # --- a via ferrata was deleted from the map outright. mkgmap's reasoning is sound for a
 # general-purpose style — it must not appear as something a router will send you along —
 # but the result is that the one line you must not wander onto is drawn as nothing at all.
-# 0x2b is the tick line this style already uses for cliffs: not a road type, so routing
-# never touches it, while the way itself becomes visible. The label added by the trail
-# warning rules says what it is.
+# 0x37 is its own plain line; kmap puts a path's road under it (splitFerrataGrades), so it
+# routes as a path. The label added by the trail warning rules says what it is.
 - highway=via_ferrata {delete highway}  # this shouldn't show as routable on default map: path only for specialists
-+ highway=via_ferrata [0x2b resolution 22]  # kmap: was deleted outright; 0x2b is unroutable, so it shows without being offered as a route
++ highway=via_ferrata [0x37 resolution 22]  # kmap: mkgmap deleted it outright; drawn on 0x37, routed by the path's road above it
 
 @@ points
 # --- the stock basic_hut rule sits above kmap's shelter rules and so wins, naming the

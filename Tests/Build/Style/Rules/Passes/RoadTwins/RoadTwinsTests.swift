@@ -146,6 +146,53 @@ final class RoadTwinsTests: XCTestCase {
         XCTAssertEqual(try lines(in: dir).last, "highway=path { set a=b; } [0x11f16 resolution 22]")
     }
 
+    /// A meaning drawn as another road takes that road's twin; the road keeps its number.
+    func testABorrowingMeaningTakesTheOtherRoadsTwin() throws {
+        let dir = try directory(
+            """
+            highway=secondary_link [0x08 road_class=2 road_speed=3 resolution 21]
+            highway=primary_link | highway=trunk_link [0x08 road_class=3 road_speed=3 resolution 21]
+            highway=tertiary_link & highway!=secondary_link [0x08 road_class=1 road_speed=3 resolution 21]
+            highway=unclassified & !(highway=secondary_link) [0x08 road_class=1 road_speed=3 resolution 21]
+            highway=secondary [0x04 road_class=2 road_speed=4 resolution 19]
+            """
+        )
+        try StyleCatalog.addRoadTwins(finest: 24, in: dir, borrowing: [0x08: [("highway=secondary_link", 0x04)]]) {
+            _,
+            _ in [0x08: 0x11f08, 0x04: 0x11f04]
+        }
+        let out = try lines(in: dir)
+        XCTAssertEqual(out[1], "highway=secondary_link [0x11f04 resolution 21]")
+        XCTAssertEqual(out[3], "highway=primary_link | highway=trunk_link [0x11f08 resolution 21]")
+        XCTAssertEqual(
+            out[5],
+            "highway=tertiary_link & highway!=secondary_link [0x11f08 resolution 21]",
+            "a negation is no mention"
+        )
+        XCTAssertEqual(out[7], "highway=unclassified & !(highway=secondary_link) [0x11f08 resolution 21]")
+        XCTAssertTrue(out[0].hasPrefix("highway=secondary_link [0x08 road_class=2"))
+    }
+
+    /// A road that brings its own plain line is left alone, and does not keep its number
+    /// from being twinned.
+    func testARoadWithItsOwnLineIsLeftAlone() throws {
+        let dir = try directory(
+            """
+            highway=via_ferrata & kmap:own_twin!=yes [0x16 road_class=0 road_speed=0 resolution 22 continue]
+            highway=via_ferrata [0x37 resolution 22]
+            highway=path [0x16 road_class=0 road_speed=0 resolution 22]
+            """
+        )
+        XCTAssertEqual(try offered(dir)?.roads, [0x16])
+        try StyleCatalog.addRoadTwins(finest: 24, in: dir) { _, _ in [0x16: 0x11f16] }
+        let out = try lines(in: dir)
+        XCTAssertEqual(
+            out[0],
+            "highway=via_ferrata & kmap:own_twin!=yes [0x16 road_class=0 road_speed=0 resolution 22 continue]"
+        )
+        XCTAssertEqual(out[3], "highway=path [0x11f16 resolution 22]")
+    }
+
     /// `level` gives way to the finest resolution on the road and stays on the twin, with
     /// the default name on both.
     func testLevelsAndTheDefaultNameStayWithTheTwin() throws {

@@ -122,7 +122,7 @@ final class AnnotatePassTests: XCTestCase {
         }
         XCTAssertThrowsError(try pass.run { _ in }) { XCTAssertTrue($0 is CancellationError, "\($0)") }
         XCTAssertGreaterThanOrEqual(asked.withLock { $0 }, 4, "each of the 3 scans asked as well")
-        XCTAssertThrowsError(try BarrierScan.classify(source, shouldStop: { true })) {
+        XCTAssertThrowsError(try BarrierScan.scan(source, shouldStop: { true })) {
             XCTAssertTrue($0 is CancellationError)
         }
         XCTAssertThrowsError(try VenueScan.duplicates(in: source, shouldStop: { true })) {

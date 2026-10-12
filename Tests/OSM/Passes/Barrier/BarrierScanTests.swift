@@ -38,10 +38,28 @@ final class BarrierScanTests: XCTestCase {
             writer.ways(ways.map { PBFWriter.Way(id: $0.id, refs: $0.refs, tags: $0.tags) })
         }
         try writer.finish()
-        return try BarrierScan.classify(url)
+        return try BarrierScan.scan(url).barriers
     }
 
     private let gate: [(String, String)] = [("barrier", "gate")]
+
+    /// A via ferrata route's own ends are found, not the joint between its 2 pieces.
+    func testTheEndsOfAViaFerrataRouteAreFound() throws {
+        let url = directory.appendingPathComponent("ferrata.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        writer.nodes((1...6).map { PBFWriter.Node(id: $0, lat: 44.5, lon: 33.5, tags: []) })
+        let ferrata = [("highway", "via_ferrata")]
+        writer.ways([
+            PBFWriter.Way(id: 1, refs: [1, 2, 3], tags: ferrata),
+            PBFWriter.Way(id: 2, refs: [3, 4], tags: ferrata),
+            PBFWriter.Way(id: 3, refs: [5, 6], tags: [("highway", "path")]),
+            // A branch leaving the route midway: its start is no end of the route.
+            PBFWriter.Way(id: 4, refs: [2, 5], tags: ferrata)
+        ])
+        try writer.finish()
+        XCTAssertEqual(try BarrierScan.scan(url).ferrataEnds, [1, 4, 5])
+    }
 
     func testAGateOnAPathIsAPathGate() throws {
         let result = try classify(

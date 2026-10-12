@@ -4,8 +4,8 @@ import Foundation
 /// warnings, gates and access, parking, cableways, and the link a road under repair keeps
 /// to its neighbours. These shape the routing graph as much as what is drawn.
 extension StyleCatalog {
-    /// Aerialways, which the stock style leaves undrawn: one line type, 0x25, for the
-    /// whole family, and not routable. Written in the map's own language.
+    /// Aerialways, which the stock style leaves undrawn: cable cars on 0x38, lifts on
+    /// 0x25, not routable. Written in the map's own language.
     static func aerialwayLineRules(cyrillic: Bool) -> String {
         let words = StyleWords(cyrillic: cyrillic)
         let cableCar = words("aerialway.cable-car")
@@ -16,16 +16,16 @@ extension StyleCatalog {
 
 
             # --- kmap: aerialways ---------------------------------------------
-            # One line type for the whole family, 0x25: dark cable with crossbars,
-            # oriented along the line (see the TYP). Not routable, on purpose: nobody
-            # walks a cableway. Values with a hyphen are OSM's own spellings.
+            # Cable cars on 0x38, chair and drag lifts on 0x25. Not routable, on purpose:
+            # nobody walks a cableway. Values with a hyphen are OSM's own spellings.
 
             (aerialway=cable_car | aerialway=gondola | aerialway=mixed_lift | aerialway=funicular) & name!=* { name '\(cableCar)' }
             aerialway=chair_lift & name!=* { name '\(chairLift)' }
             (aerialway=drag_lift | aerialway=t-bar | aerialway=j-bar | aerialway=platter | aerialway=rope_tow | aerialway=magic_carpet) & name!=* { name '\(dragLift)' }
             aerialway=zip_line & name!=* { name '\(zipLine)' }
 
-            (aerialway=cable_car | aerialway=gondola | aerialway=mixed_lift | aerialway=funicular | aerialway=chair_lift) [0x25 resolution 20]
+            (aerialway=cable_car | aerialway=gondola | aerialway=mixed_lift | aerialway=funicular) [0x38 resolution 20]  # kmap: not the lift's number
+            aerialway=chair_lift [0x25 resolution 20]
             (aerialway=drag_lift | aerialway=t-bar | aerialway=j-bar | aerialway=platter | aerialway=rope_tow | aerialway=magic_carpet | aerialway=zip_line) [0x25 resolution 21]
             aerialway=goods [0x25 resolution 23]
             """
@@ -45,7 +45,7 @@ extension StyleCatalog {
             "highway=unsurfaced [0x0a road_class=0 road_speed=1 resolution 22]",
             "highway=bridleway [0x07 road_class=0 road_speed=0 resolution 23]",
             "highway=cycleway [0x11 road_class=0 road_speed=1 resolution 23]",
-            "highway=via_ferrata [0x2b resolution 22]",
+            "highway=via_ferrata [0x37 resolution 22]",
             "natural=cliff {name '${name}'} [0x2b resolution 22]",
             "man_made=cutline [0x23 resolution 21]",
             "(kmap:fell_edge=yes | (natural=fell & name=*)) & highway!=* {name '${name}'} "
@@ -93,6 +93,8 @@ extension StyleCatalog {
         let alpine = words("trail.alpine")
         let hard = words("trail.hard")
         let ferrata = words("trail.ferrata")
+        let grade = words("trail.ferrata-grade")
+        let gear = words("trail.ferrata-gear")
         let fordPlain = words("trail.ford")
         let fordStones = words("trail.ford-stones")
 
@@ -109,10 +111,13 @@ extension StyleCatalog {
 
             \(pair("(trail_visibility=no | trail_visibility=horrible)", lost))
             \(pair("trail_visibility=bad", faint))
+            # A via ferrata says so before its sac_scale does: mkgmap names by the first
+            # rule that matches.
+            \(pair("\(Self.viaFerrata) & via_ferrata_scale=* & via_ferrata_scale!=0", "\(grade) \(Self.ferrataLetter), \(gear)"))
+            \(pair("\(Self.viaFerrata) & (via_ferrata_scale!=* | via_ferrata_scale=0)", ferrata))
             \(pair("(sac_scale=alpine_hiking | sac_scale=demanding_alpine_hiking"
                 + " | sac_scale=difficult_alpine_hiking)", alpine))
             \(pair("sac_scale=demanding_mountain_hiking", hard))
-            \(pair("(highway=via_ferrata | sport=via_ferrata | via_ferrata_scale=*)", ferrata))
 
             # 57 fords in the extract are tagged on the way rather than on a node, so the point
             # rules never see them. The way keeps whatever type its highway tag earns; this only
@@ -128,6 +133,12 @@ extension StyleCatalog {
         else { return }
         log.append("trail visibility, difficulty and via ferrata warnings added")
     }
+
+    /// A via ferrata, however it is tagged.
+    static let viaFerrata = "(highway=via_ferrata | sport=via_ferrata | via_ferrata_scale=*)"
+    /// The grade as the Alps write it, A to F for OSM's 1 to 6; a `+` or `-` kept.
+    static let ferrataLetter =
+        "${via_ferrata_scale|subst:1=>A|subst:2=>B|subst:3=>C|subst:4=>D|subst:5=>E|subst:6=>F}"
 
     /// The line the barrier split writes over its block. The access rules anchor on it,
     /// so the two share one text: a reworded comment once left them unanchored.

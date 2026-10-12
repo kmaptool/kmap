@@ -256,12 +256,22 @@ line 0xf|Steps|Ступеньки
 line 0x10|Living street|Улица в жилой зоне
 line 0x31|Tree row|Ряд деревьев (аллея)
 line 0x35|Ditch|Канава/ров
+line 0x36|Tram|Трамвай
+line 0x37|Via ferrata|Виа феррата
+line 0x39|Via ferrata|Виа феррата
+line 0x3a|Via ferrata|Виа феррата
+line 0x3b|Via ferrata|Виа феррата
+line 0x3c|Via ferrata|Виа феррата
+line 0x3d|Via ferrata|Виа феррата
+line 0x38|Cable car|Канатная дорога
 polygon 0xd|Quarry|Карьер
 polygon 0x5a|Allotments|Загородный дом с садом
 
 # Not in either TYP. Russian from kmap's own labels (Assets/labels-ru.txt).
 line 0x32|City wall|Городская стена
 point 0x6608|Tower|Башня
+point 0x6609|Mast|Мачта
+point 0x660a|Via ferrata|Виа феррата
 
 # Not in any source. Russian chosen by the owner.
 line 0x34|Drain|Сток

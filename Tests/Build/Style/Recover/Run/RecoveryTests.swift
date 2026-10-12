@@ -7,7 +7,7 @@ final class RecoveryTests: XCTestCase {
     // MARK: The grid
 
     func testTheGridIsTheFormatsOwn() {
-        // 360° over 24 bits, the constant the format is built on.
+        // 360 degrees over 24 bits, the constant the format is built on.
         XCTAssertEqual(GarminGrid.unit(0), 0)
         XCTAssertEqual(GarminGrid.unit(180), 1 << 23)
         XCTAssertEqual(GarminGrid.unit(-180), -(1 << 23))
@@ -61,7 +61,7 @@ final class RecoveryTests: XCTestCase {
             ["landuse=forest", "landuse=wood"]
         )
         // Narrowing terms after & are not meanings; negations never are. A bare
-        // `key=*` is a family rule — every value of the key — and is indexed as one.
+        // `key=*` is a family rule (every value of the key) and is indexed as one.
         XCTAssertEqual(
             DefaultRuleBook.leadingPairs(of: "highway=* & bicycle=yes"),
             ["highway=*"]

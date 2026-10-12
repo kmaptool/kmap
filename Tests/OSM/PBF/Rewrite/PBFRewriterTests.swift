@@ -135,6 +135,22 @@ final class PBFRewriterTests: XCTestCase {
         XCTAssertEqual(after.nodes.count, 100)
     }
 
+    func testTheEndsOfAViaFerrataAreMarkedForTheIcon() throws {
+        let source = try makeExtract(path("in.osm.pbf"))
+        let out = path("out.osm.pbf")
+        var pass = rewriter(source)
+        pass.ferrataEnds = [7, 9]
+        let tally = try pass.write(to: out)
+
+        let after = try read(out)
+        for id in [7, 9] as [Int64] {
+            XCTAssertEqual(after.nodes.first { $0.id == id }?.tags.first { $0.0 == "kmap:ferrata_end" }?.1, "yes")
+        }
+        XCTAssertNil(after.nodes.first { $0.id == 8 }?.tags.first { $0.0 == "kmap:ferrata_end" })
+        XCTAssertEqual(tally.ferrataEnds, 2)
+        XCTAssertEqual(tally.tagged, 0, "not counted as barriers")
+    }
+
     func testAnAreaThatRepeatsAVenueIsMarkedForTheStyle() throws {
         let source = try makeExtract(path("in.osm.pbf"))
         let out = path("out.osm.pbf")

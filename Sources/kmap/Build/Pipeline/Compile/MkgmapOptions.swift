@@ -86,7 +86,7 @@ extension BuildPipeline {
 
     /// The palette this build paints with, read as source; a compiled TYP is
     /// decompiled first, and a style with no TYP is left alone.
-    private func paletteSource() -> TypSource? {
+    func paletteSource() -> TypSource? {
         guard let url = recipe.style.typURL else { return nil }
         if url.pathExtension.lowercased() == "txt" { return TypSource.read(url) }
         guard let binary = try? TypBinary.read(url) else { return nil }
@@ -94,14 +94,23 @@ extension BuildPipeline {
     }
 
     /// Twins only the roads the build's TYP copy draws.
-    func roadTwins(in rules: URL, typ: URL?) throws -> Int {
+    /// - Returns: the rules split, and the road numbers the TYP copy now leaves to a twin.
+    func roadTwins(in rules: URL, typ: URL?) throws -> (rules: Int, roads: Set<Int>) {
         let ours = recipe.workDirectory.standardizedFileURL.path + "/"
         guard let typ, typ.pathExtension.lowercased() == "txt", typ.standardizedFileURL.path.hasPrefix(ours),
             typ.standardizedFileURL != recipe.style.typURL?.standardizedFileURL
-        else { return 0 }
-        return try StyleCatalog.addRoadTwins(finest: recipe.levels.finest, in: rules) { roads, taken in
-            TypAugment.twinRoads(in: typ, roads: roads, taken: taken)
+        else { return (0, []) }
+        var roads: Set<Int> = []
+        let split = try StyleCatalog.addRoadTwins(
+            finest: recipe.levels.finest,
+            in: rules,
+            borrowing: StylePort.twinBorrowing(in: typ)
+        ) { found, taken in
+            let twins = TypAugment.twinRoads(in: typ, roads: found, taken: taken)
+            roads = Set(twins.keys)
+            return twins
         }
+        return (split, split > 0 ? roads : [])
     }
 
     /// The polygon types the TYP draws as a hatch on a transparent ground: a block carrying
@@ -154,49 +163,8 @@ extension BuildPipeline {
         var options: [String] = []
         /// The rule files this build compiles from, once the snapshot is decided: the
         /// drawing order is read from the same rules mkgmap is given.
-        var styleUsed: URL?
-
-        if let styleDir = recipe.style.styleDirectory, FileTools.exists(styleDir) {
-            // mkgmap reads the style while it runs and the materialized style is shared,
-            // so each build compiles from a snapshot of its own.
-            let mine = workDirectory.appendingPathComponent("style", isDirectory: true)
-            // Taken and checked when the style was prepared; taken here only where not.
-            if FileTools.exists(mine) || (try? styles.snapshot(styleDir, to: mine)) != nil {
-                // A repair mark that had to move off a number the borrowed style draws
-                // takes its rules with it, here in the snapshot.
-                let moved = try StyleCatalog.moveRepairRules(repairMoves, in: mine)
-                if moved > 0 { log.append("\(moved) repair rule(s) moved with their mark") }
-                if let source = paletteSource() {
-                    // The fallback first, then the silencing: what neither the new
-                    // number nor the old one can paint goes quiet.
-                    _ = try StyleCatalog.keepTheOldNumberWherePaletteIsSilent(
-                        in: mine,
-                        palette: source,
-                        log: log
-                    )
-                    // Only a palette written for kmap's numbers. Every other kind leaves
-                    // what it does not paint to the receiver on purpose, and always has.
-                    if source.lines.contains(where: {
-                        $0.trimmingCharacters(in: .whitespaces)
-                            .hasSuffix(StylePort.forOurNumbers)
-                    }) {
-                        _ = try StyleCatalog.keepOnlyWhatThePaletteDraws(
-                            in: mine,
-                            palette: source,
-                            chosen: BuildPipeline.handPicked(),
-                            log: log
-                        )
-                    }
-                }
-                let twinned = try roadTwins(in: mine, typ: typ)
-                if twinned > 0 { log.append("\(twinned) road rule(s) drawn by a plain twin the cursor picks") }
-                options.append("--style-file=\(mine.path)")
-                styleUsed = mine
-            } else {
-                options.append("--style-file=\(styleDir.path)")
-                styleUsed = styleDir
-            }
-        }
+        let styleUsed = try compiledStyle(typ: typ)
+        if let styleUsed { options.append("--style-file=\(styleUsed.path)") }
 
         options += identityOptions(areaName: name)
         options += [
@@ -249,39 +217,7 @@ extension BuildPipeline {
         // The x- options below exist only in a patched mkgmap (see Toolchain.patchMkgmap)
         // and are guarded, since an unknown x- option is ignored silently.
         if toolchain.mkgmapIsPatched {
-            // The same width the splitter widens delivery by; the two must not drift apart.
-            // A narrower band leaves the seam visible, a wider one paints over a neighbour.
-            options.append("--x-shape-clip-overlap=\(recipe.shapeOverlap)")
-            // Hatched fills are handed over whole: a receiver anchors a pattern to the
-            // polygon's bounding box, so clipped copies differ in phase and read doubled.
-            let whole = hatchedPolygonTypes(in: typ)
-            if !whole.isEmpty {
-                options.append("--x-shape-clip-whole=" + whole.joined(separator: ","))
-            }
-            // A glade drawn across a wood larger than itself takes a number the TYP this
-            // build compiles draws over the woods.
-            if let shapeLift { options.append(shapeLift) }
-            // Land is opaque and tile-sized, so it gets a narrower band: enough to cover a
-            // receiver clipping a tile to its frame, never past the delivery overlap.
-            let landBand = min(recipe.landOverlap, recipe.shapeOverlap)
-            options.append("--x-shape-clip-exact=\(StyleCatalog.landPolygonType):\(landBand)")
-            // Contours travel with the shapes; every other line stops at the frame because
-            // routing is joined there. Otherwise the band carries landcover but no contours.
-            options.append(
-                "--x-line-clip-overlap="
-                    + StyleCatalog.contourLineTypes.joined(separator: ",")
-            )
-            // What covers what is decided by the order the lines are stored in, and left
-            // to itself that is the order they arrived in: a river could cover the road it
-            // passes under. The style's own road rules give every road type a rank.
-            if let styleDir = styleUsed, let index = RuleSetIndex.read(styleDirectory: styleDir),
-                let order = LineDrawOrder.option(
-                    in: index,
-                    overContours: recipe.contours ? StyleCatalog.contourLineCodes : []
-                )
-            {
-                options.append(order)
-            }
+            options += patchedOptions(typ: typ, shapeLift: shapeLift, styleUsed: styleUsed)
         }
 
         // --min-size-polygon is measured in the level's own units, so one threshold drops far
@@ -298,6 +234,110 @@ extension BuildPipeline {
             }
         }
 
+        return options
+    }
+
+    /// The rule files mkgmap compiles from: a snapshot of the materialized style, fitted
+    /// to the TYP this build compiles, or the style itself where no snapshot could be taken.
+    private func compiledStyle(typ: URL?) throws -> URL? {
+        if let styleDir = recipe.style.styleDirectory, FileTools.exists(styleDir) {
+            // mkgmap reads the style while it runs and the materialized style is shared,
+            // so each build compiles from a snapshot of its own.
+            let mine = workDirectory.appendingPathComponent("style", isDirectory: true)
+            // Taken and checked when the style was prepared; taken here only where not.
+            if FileTools.exists(mine) || (try? styles.snapshot(styleDir, to: mine)) != nil {
+                // A repair mark that had to move off a number the borrowed style draws
+                // takes its rules with it, here in the snapshot.
+                let moved = try StyleCatalog.moveRepairRules(repairMoves, in: mine)
+                if moved > 0 { log.append("\(moved) repair rule(s) moved with their mark") }
+                try fit(mine, typ: typ)
+                return mine
+            } else {
+                return styleDir
+            }
+        }
+        return nil
+    }
+
+    /// The snapshot fitted to the TYP: what it cannot paint falls back or goes quiet, a
+    /// via ferrata it has no line for is drawn as a path, and roads get their twins.
+    private func fit(_ mine: URL, typ: URL?) throws {
+        let source = paletteSource()
+        // An icon at each end of a via ferrata only where the TYP has one: unpainted,
+        // the receiver would draw its own marker there.
+        if source?.section(.point, StyleCatalog.ferrataEndCode) == nil {
+            try StyleCatalog.dropFerrataEnds(in: mine)
+        }
+        if let source {
+            // The fallback first, then the silencing: what neither the new
+            // number nor the old one can paint goes quiet.
+            _ = try StyleCatalog.keepTheOldNumberWherePaletteIsSilent(
+                in: mine,
+                palette: source,
+                log: log
+            )
+            // Only a palette written for kmap's numbers. Every other kind leaves
+            // what it does not paint to the receiver on purpose, and always has.
+            if source.lines.contains(where: {
+                $0.trimmingCharacters(in: .whitespaces)
+                    .hasSuffix(StylePort.forOurNumbers)
+            }) {
+                _ = try StyleCatalog.keepOnlyWhatThePaletteDraws(
+                    in: mine,
+                    palette: source,
+                    chosen: BuildPipeline.handPicked(),
+                    log: log
+                )
+            }
+        }
+        // A via ferrata the TYP has no picture for is drawn as a path.
+        try StyleCatalog.drawFerrataAsPath(
+            in: mine,
+            painted: (source?.codes(.line) ?? []).union(source?.deliberatelyUnstyled[.line] ?? [])
+        )
+        let twinned = try roadTwins(in: mine, typ: typ)
+        if twinned.rules > 0 { log.append("\(twinned.rules) road rule(s) drawn by a plain twin the cursor picks") }
+        // A road left untwinned keeps its picture, which would show under a via ferrata's
+        // line: the via ferrata is drawn as a path then.
+        try StyleCatalog.drawFerrataAsPath(in: mine, painted: [], twinned: twinned.roads)
+    }
+
+    /// The options only a patched mkgmap knows.
+    private func patchedOptions(typ: URL?, shapeLift: String?, styleUsed: URL?) -> [String] {
+        var options: [String] = []
+        // The same width the splitter widens delivery by; the two must not drift apart.
+        // A narrower band leaves the seam visible, a wider one paints over a neighbour.
+        options.append("--x-shape-clip-overlap=\(recipe.shapeOverlap)")
+        // Hatched fills are handed over whole: a receiver anchors a pattern to the
+        // polygon's bounding box, so clipped copies differ in phase and read doubled.
+        let whole = hatchedPolygonTypes(in: typ)
+        if !whole.isEmpty {
+            options.append("--x-shape-clip-whole=" + whole.joined(separator: ","))
+        }
+        // A glade drawn across a wood larger than itself takes a number the TYP this
+        // build compiles draws over the woods.
+        if let shapeLift { options.append(shapeLift) }
+        // Land is opaque and tile-sized, so it gets a narrower band: enough to cover a
+        // receiver clipping a tile to its frame, never past the delivery overlap.
+        let landBand = min(recipe.landOverlap, recipe.shapeOverlap)
+        options.append("--x-shape-clip-exact=\(StyleCatalog.landPolygonType):\(landBand)")
+        // Contours travel with the shapes; every other line stops at the frame because
+        // routing is joined there. Otherwise the band carries landcover but no contours.
+        options.append(
+            "--x-line-clip-overlap="
+                + StyleCatalog.contourLineTypes.joined(separator: ",")
+        )
+        // What covers what is decided by the order the lines are stored in, and left
+        // to itself that is the order they arrived in: a river could cover the road it
+        // passes under. The style's own road rules give every road type a rank.
+        if let styleDir = styleUsed, let index = RuleSetIndex.read(styleDirectory: styleDir),
+            let order = LineDrawOrder.option(
+                in: index,
+                overContours: recipe.contours ? StyleCatalog.contourLineCodes : []
+            )
+        {
+            options.append(order)
+        }
         return options
     }
 

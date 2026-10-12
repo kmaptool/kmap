@@ -4,34 +4,11 @@ import Foundation
 /// decoded, altered and written again; every other block is copied over as the compressed
 /// bytes it already is.
 struct PBFRewriter {
-    enum Trouble: Error, CustomStringConvertible, LocalizedError {
-        case mixedBlock
-        case writesOverItsInput(String)
-
-        var description: String {
-            switch self {
-            case .mixedBlock:
-                "a block holds relations as well as nodes or ways, which this writer"
-                    + " does not rebuild -- report the extract, it is not the usual layout"
-            case .writesOverItsInput(let path):
-                "\(path) is read while it is written: name another file for the output"
-            }
-        }
-
-        /// Throws where `destination` is `source` or one of `others`, by any spelling: the
-        /// output takes the input's place when it is done, and a file still being read
-        /// will not move on Windows.
-        static func refuseOverwriting(_ source: URL, _ others: [URL] = [], with destination: URL) throws {
-            if ([source] + others).contains(where: destination.sameFile) {
-                throw Trouble.writesOverItsInput(destination.nativePath)
-            }
-        }
-    }
-
     /// The tags this pass writes, for the style rules to match on.
     static let barrierTag = "kmap:on"
     static let duplicateVenueTag = "kmap:dup_venue"
     static let repairTag = "kmap:repair"
+    static let ferrataEndTag = "kmap:ferrata_end"
 
     let url: URL
     let plan: RepairPlan
@@ -40,6 +17,8 @@ struct PBFRewriter {
     /// Barrier node to the class of way it stands on; a node does not itself record which
     /// way contains it.
     var barriers: [Int64: String] = [:]
+    /// The nodes a via ferrata route starts and ends at, for an icon there.
+    var ferrataEnds: Set<Int64> = []
     /// Whether to drop a description that only repeats the name beside it.
     var tidyDescriptions = false
     /// Strips from names and descriptions what no code page draws: see `cleaned`.
@@ -62,42 +41,12 @@ struct PBFRewriter {
     /// task's cancellation is not seen.
     var shouldStop: @Sendable () -> Bool = { false }
 
-    /// Blocks copied, blocks rebuilt, and objects added.
-    struct Tally {
-        var copied = 0
-        var rebuilt = 0
-        var addedNodes = 0
-        var addedWays = 0
-        var tagged = 0
-        var dropped = 0
-        var marked = 0
-        var contourBlocks = 0
-        var renamed = 0
-    }
-
     /// What each contour file's data blobs hold, recorded on the first walk: bit 0 nodes,
     /// bit 1 ways. The files are walked twice, nodes before ways.
     var contourKinds: [[UInt8]] = []
 
     mutating func write(to destination: URL) throws -> Tally {
-        // A cheap rejection test in front of the tables. Nodes and ways are filtered
-        // separately: a node id and a way id may be the same number.
-        let nodeFilter = IDFilter(Array(plan.moves.keys) + Array(barriers.keys))
-        let wayFilter = IDFilter(
-            Array(plan.inserts.keys.map { network.wayID[Int($0)] })
-                + Array(duplicateVenues)
-        )
-        let mergeFilter = IDFilter(Array(plan.merges.keys))
-        let moveFilter = IDFilter(Array(plan.moves.keys))
-        let moved: [Int64: (lat: Double, lon: Double)] = plan.moves
-        var inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]] = [:]
-        for (way, list) in plan.inserts {
-            // Furthest along a segment first: each goes in right after the segment's
-            // start, so the way keeps its direction.
-            inserts[network.wayID[Int(way)]] = list.sorted {
-                ($0.after, $0.along) > ($1.after, $1.along)
-            }
-        }
+        let (nodeFilter, wayFilter, mergeFilter, moveFilter, moved, inserts) = lookups()
 
         try Trouble.refuseOverwriting(url, contours, with: destination)
         let writer = try PBFWriter(to: destination)
@@ -206,6 +155,33 @@ struct PBFRewriter {
         return tally
     }
 
+    /// The plan's tables keyed for the blocks, each behind a cheap rejection test.
+    private func lookups() -> (
+        nodes: IDFilter, ways: IDFilter, merges: IDFilter, moves: IDFilter,
+        moved: [Int64: (lat: Double, lon: Double)],
+        inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]]
+    ) {
+        // A cheap rejection test in front of the tables. Nodes and ways are filtered
+        // separately: a node id and a way id may be the same number.
+        let nodeFilter = IDFilter(Array(plan.moves.keys) + Array(barriers.keys) + Array(ferrataEnds))
+        let wayFilter = IDFilter(
+            Array(plan.inserts.keys.map { network.wayID[Int($0)] })
+                + Array(duplicateVenues)
+        )
+        let mergeFilter = IDFilter(Array(plan.merges.keys))
+        let moveFilter = IDFilter(Array(plan.moves.keys))
+        let moved: [Int64: (lat: Double, lon: Double)] = plan.moves
+        var inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]] = [:]
+        for (way, list) in plan.inserts {
+            // Furthest along a segment first: each goes in right after the segment's
+            // start, so the way keeps its direction.
+            inserts[network.wayID[Int(way)]] = list.sorted {
+                ($0.after, $0.along) > ($1.after, $1.along)
+            }
+        }
+        return (nodeFilter, wayFilter, mergeFilter, moveFilter, moved, inserts)
+    }
+
     /// A block prepared but not yet written. Touches neither the writer nor any running
     /// total, so it can be built on any thread.
     private struct Rebuilt {
@@ -214,6 +190,7 @@ struct PBFRewriter {
         var ways: [PBFWriter.Way]?
         var relations: [PBFWriter.Relation]?
         var tagged = 0
+        var ferrataEnds = 0
         var dropped = 0
         var marked = 0
         var renamed = 0
@@ -233,20 +210,16 @@ struct PBFRewriter {
         moveFilter: IDFilter
     ) throws -> Rebuilt {
         var out = Rebuilt()
-        let touched =
-            block.nodeIDs.contains {
-                nodeFilter.mayContain($0) && (moved[$0] != nil || barriers[$0] != nil)
-            }
-            || block.wayIDs.contains {
-                wayFilter.mayContain($0)
-                    && (inserts[$0] != nil || duplicateVenues.contains($0))
-            }
-            || block.usesAny(of: plan.merges, filter: mergeFilter)
-            || (tidyDescriptions && block.hasRedundantDescription)
-            || (cleanLabels && block.hasUnprintable
-                && (!block.hasRelations || !(block.hasNodes || block.hasWays) || block.nodesOrWaysUnprintable))
-            || block.needsRenaming
-        guard touched else { return out }
+        guard
+            needsRebuild(
+                block,
+                moved: moved,
+                inserts: inserts,
+                nodeFilter: nodeFilter,
+                wayFilter: wayFilter,
+                mergeFilter: mergeFilter
+            )
+        else { return out }
         if block.hasRelations && (block.hasWays || block.hasNodes) { throw Trouble.mixedBlock }
         let cleaning = block.hasUnprintable
         let renaming = block.needsRenaming
@@ -258,6 +231,10 @@ struct PBFRewriter {
                 if nodeFilter.mayContain(batch[i].id), let kind = barriers[batch[i].id] {
                     batch[i].tags.append((Self.barrierTag, kind))
                     out.tagged += 1
+                }
+                if nodeFilter.mayContain(batch[i].id), ferrataEnds.contains(batch[i].id) {
+                    batch[i].tags.append((Self.ferrataEndTag, "yes"))
+                    out.ferrataEnds += 1
                 }
                 if tidyDescriptions { out.dropped += Self.tidy(&batch[i].tags) }
                 if cleanLabels { out.renamed += relabel(&batch[i].tags, cleaning: cleaning, renaming: renaming) }
@@ -295,6 +272,30 @@ struct PBFRewriter {
             out.relations = batch
         }
         return out
+    }
+
+    /// Whether the block holds anything this pass changes.
+    private func needsRebuild(
+        _ block: RewriteBlock,
+        moved: [Int64: (lat: Double, lon: Double)],
+        inserts: [Int64: [(after: Int64, segment: Int32, along: Double, node: Int64)]],
+        nodeFilter: IDFilter,
+        wayFilter: IDFilter,
+        mergeFilter: IDFilter
+    ) -> Bool {
+        return block.nodeIDs.contains {
+            nodeFilter.mayContain($0)
+                && (moved[$0] != nil || barriers[$0] != nil || ferrataEnds.contains($0))
+        }
+            || block.wayIDs.contains {
+                wayFilter.mayContain($0)
+                    && (inserts[$0] != nil || duplicateVenues.contains($0))
+            }
+            || block.usesAny(of: plan.merges, filter: mergeFilter)
+            || (tidyDescriptions && block.hasRedundantDescription)
+            || (cleanLabels && block.hasUnprintable
+                && (!block.hasRelations || !(block.hasNodes || block.hasWays) || block.nodesOrWaysUnprintable))
+            || block.needsRenaming
     }
 
     /// Writes one prepared block. Runs in file order: it inserts this pass's own objects
@@ -370,6 +371,7 @@ struct PBFRewriter {
     private func count(_ ready: Rebuilt?, in tally: inout Tally) {
         guard let ready else { return }
         tally.tagged += ready.tagged
+        tally.ferrataEnds += ready.ferrataEnds
         tally.dropped += ready.dropped
         tally.marked += ready.marked
         tally.renamed += ready.renamed

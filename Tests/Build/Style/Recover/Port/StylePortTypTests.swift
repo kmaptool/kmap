@@ -154,4 +154,37 @@ final class StylePortTypTests: XCTestCase {
         XCTAssertTrue(text.contains("#123456"))
         XCTAssertFalse(text.contains(StylePort.paper), "their paper, not ours")
     }
+
+    /// Without a picture of theirs for the ends of a via ferrata, the anchor square marks
+    /// them; with one, theirs does.
+    func testTheViaFerrataEndsGetTheAnchorSquareWhenTheirsHasNone() {
+        let none = StylePort.typ(from: TypSource.parse(""), ported: [], familyID: nil, productID: nil, codePage: nil)
+        XCTAssertTrue(none.contains("Type=0x66\nSubType=0x0a\nDayXpm=\"9 9 2 1\""), none)
+        let climber = StylePort.Ported(
+            ours: 0x660a,
+            theirs: 0x2c0e,
+            kind: .point,
+            meaning: "sport=climbing",
+            witnesses: 9
+        )
+        let theirs = StylePort.typ(
+            from: TypSource.parse(
+                "[_point]\nType=0x2c\nSubType=0x0e\nDayXpm=\"1 1 1 1\"\n\"a c #000000\"\n\"a\"\n[end]\n"
+            ),
+            ported: [climber],
+            familyID: nil,
+            productID: nil,
+            codePage: nil
+        )
+        XCTAssertFalse(theirs.contains("9 9 2 1"), theirs)
+        // A climber of theirs that is not in their TYP draws nothing, so the square stays.
+        let missing = StylePort.typ(
+            from: TypSource.parse(""),
+            ported: [climber],
+            familyID: nil,
+            productID: nil,
+            codePage: nil
+        )
+        XCTAssertTrue(missing.contains("9 9 2 1"), missing)
+    }
 }

@@ -506,7 +506,7 @@ tag: man_made=lighthouse
 points: man_made=lighthouse [0x6415 resolution 24]
 [man_made-mast] Mast
 tag: man_made=mast
-points: man_made=mast | landmark=chimney [0x6411 resolution 24]
+points: man_made=mast | landmark=chimney [0x6609 resolution 24]  # kmap: not the pylon's number
 [man_made-survey_point] Survey point
 tag: man_made=survey_point
 points: man_made=survey_point [0x6411 resolution 24]

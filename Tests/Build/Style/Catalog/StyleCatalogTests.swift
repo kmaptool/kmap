@@ -338,6 +338,13 @@ final class StyleCatalogTests: XCTestCase {
         XCTAssertTrue(out.text.contains("aerialway=station"), "the lift stations ride in with the repairs")
     }
 
+    /// A note on a rule the redirects add never reads as the mark of a rule aimed by hand.
+    func testNoRedirectReadsAsAimedByHand() {
+        for line in StyleAssets.iconRedirects.components(separatedBy: "\n") where line.hasPrefix("+ ") {
+            XCTAssertFalse(line.contains(RuleReassignment.mark), line)
+        }
+    }
+
     func testTheRedirectBornRulesCarryTheAnchorAtTheirSource() {
         // These rules come from redirects.txt and are applied after the repair pass, so the
         // corrected code has to be written at their source.

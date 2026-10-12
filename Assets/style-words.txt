@@ -11,6 +11,8 @@ trail.faint|faint path|тропа плохо видна
 trail.alpine|alpine terrain|альпинистский участок
 trail.hard|demanding, T3|сложная тропа, T3
 trail.ferrata|via ferrata, gear required|виа феррата, нужна страховка
+trail.ferrata-grade|via ferrata, grade|виа феррата, уровень
+trail.ferrata-gear|gear required|нужна страховка
 trail.ford|ford|брод
 trail.ford-stones|ford, stepping stones|брод по камням
 

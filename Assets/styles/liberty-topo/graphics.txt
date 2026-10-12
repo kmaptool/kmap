@@ -37,6 +37,19 @@ Xpm="32 3 4 1"
 [end]
 
 [_line]
+Type=0x36
+UseOrientation=Y
+Xpm="32 3 4 1"
+"a c none"
+"b c #bbbbbb"
+"A c none"
+"B c #555555"
+"baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
 Type=0x26
 Xpm="32 1 4 1"
 "a c none"
@@ -122,6 +135,72 @@ Xpm="32 1 4 1"
 [end]
 
 [_line]
+Type=0x37
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x39
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3a
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3b
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3c
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
 Type=0x1a
 FontStyle=NoLabel
 Xpm="32 1 4 1"
@@ -145,6 +224,17 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x25
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x38
 FontStyle=NoLabel
 Xpm="32 1 4 1"
 "a c none"

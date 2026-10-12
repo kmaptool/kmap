@@ -52,8 +52,73 @@ extension StylePort {
         familyID: Int?,
         productID: Int?,
         codePage: Int?,
-        unstyled: [MapElementKind: Set<Int>] = [:]
+        unstyled: [MapElementKind: Set<Int>] = [:],
+        twinsAs: [(ours: Int, meaning: String, as: Int)] = []
     ) -> String {
+        let markedEnds = ported.contains {
+            $0.kind == .point && $0.ours == StyleCatalog.ferrataEndCode && theirs.section(.point, $0.theirs) != nil
+        }
+        var out = header(
+            familyID: familyID,
+            productID: productID,
+            codePage: codePage,
+            unstyled: unstyled,
+            twinsAs: twinsAs
+        )
+        let ground = ground(from: theirs)
+        out += ground.lines
+        var drawOrder = ground.drawOrder
+        let theirOrder = Dictionary(
+            theirs.drawOrder.map { ($0.code, $0.level) },
+            uniquingKeysWith: { a, _ in a }
+        )
+
+        // The ground's numbers are written above; a second section for one would leave
+        // which picture the device takes to chance.
+        for port in ported where !Self.landsOnGround(port) {
+            guard let section = theirs.section(port.kind, port.theirs) else { continue }
+            out.append(
+                "; \(port.meaning) - kmap 0x\(String(port.ours, radix: 16))"
+                    + " drawn as their 0x\(String(port.theirs, radix: 16))"
+                    + " (\(port.witnesses) seen)"
+            )
+            out.append(
+                contentsOf: narrowed(
+                    renumbered(
+                        theirs.lines[section.lines],
+                        to: port.ours,
+                        kind: port.kind
+                    ),
+                    to: port.width
+                )
+            )
+            out.append("")
+            // Above the ground: their own level, moved up by the two the background and
+            // the land keep to themselves.
+            if port.kind == .polygon, let level = theirOrder[port.theirs] {
+                drawOrder.append((port.ours, level + 3))
+            }
+        }
+        if !markedEnds { out += ferrataEndSquare(cyrillic: !TypSource.keptByteForByte(codePage: codePage)) }
+        if !drawOrder.isEmpty {
+            out.append("[_drawOrder]")
+            for entry in drawOrder.sorted(by: { ($0.level, $0.code) < ($1.level, $1.code) }) {
+                out.append(String(format: "Type=0x%02x,%d", entry.code, entry.level))
+            }
+            out.append("[end]")
+        }
+        return out.joined(separator: "\n") + "\n"
+    }
+
+    /// The id block, and the notes the build reads: what is left to the receiver and
+    /// which roads are drawn as another number's road.
+    private static func header(
+        familyID: Int?,
+        productID: Int?,
+        codePage: Int?,
+        unstyled: [MapElementKind: Set<Int>],
+        twinsAs: [(ours: Int, meaning: String, as: Int)]
+    ) -> [String] {
         var out: [String] = []
         // First, or the compiler reads the file in the platform's charset and gives up
         // on the first Cyrillic label. Not for labels kept in their page's bytes.
@@ -79,13 +144,18 @@ extension StylePort {
             )
         }
         if !unstyled.isEmpty { out.append("") }
+        // Read by the build's road twins: a road meaning drawn as another number's road.
+        for twin in twinsAs {
+            out.append("; \(Self.twinAs) \(TypeMeaning.hex(twin.ours)) \(twin.meaning) \(TypeMeaning.hex(twin.as))")
+        }
+        if !twinsAs.isEmpty { out.append("") }
+        return out
+    }
 
+    /// The ground the map stands on, theirs where they paint one, and its draw order.
+    private static func ground(from theirs: TypSource) -> (lines: [String], drawOrder: [(code: Int, level: Int)]) {
+        var out: [String] = []
         var drawOrder: [(code: Int, level: Int)] = []
-        let theirOrder = Dictionary(
-            theirs.drawOrder.map { ($0.code, $0.level) },
-            uniquingKeysWith: { a, _ in a }
-        )
-
         // The ground the map stands on. No OSM way is its source, so no evidence pairs
         // it; both sides get it from mkgmap, and the number is the shared name.
         for (kind, ours, theirsCode) in Self.generatedTypes {
@@ -133,40 +203,7 @@ extension StylePort {
                 drawOrder.append((ours, level))
             }
         }
-        // The ground's numbers are written above; a second section for one would leave
-        // which picture the device takes to chance.
-        for port in ported where !Self.landsOnGround(port) {
-            guard let section = theirs.section(port.kind, port.theirs) else { continue }
-            out.append(
-                "; \(port.meaning) - kmap 0x\(String(port.ours, radix: 16))"
-                    + " drawn as their 0x\(String(port.theirs, radix: 16))"
-                    + " (\(port.witnesses) seen)"
-            )
-            out.append(
-                contentsOf: narrowed(
-                    renumbered(
-                        theirs.lines[section.lines],
-                        to: port.ours,
-                        kind: port.kind
-                    ),
-                    to: port.width
-                )
-            )
-            out.append("")
-            // Above the ground: their own level, moved up by the two the background and
-            // the land keep to themselves.
-            if port.kind == .polygon, let level = theirOrder[port.theirs] {
-                drawOrder.append((port.ours, level + 3))
-            }
-        }
-        if !drawOrder.isEmpty {
-            out.append("[_drawOrder]")
-            for entry in drawOrder.sorted(by: { ($0.level, $0.code) < ($1.level, $1.code) }) {
-                out.append(String(format: "Type=0x%02x,%d", entry.code, entry.level))
-            }
-            out.append("[end]")
-        }
-        return out.joined(separator: "\n") + "\n"
+        return (out, drawOrder)
     }
 
     /// The block drawn at a width of its own: only `LineWidth=` changes, and only
@@ -209,6 +246,22 @@ extension StylePort {
         {
             out.insert(String(format: "SubType=0x%02x", subtype), at: at + 1)
         }
+        return out
+    }
+
+    /// The ends of a via ferrata where their map has no picture for them, not even a
+    /// climber: the reference TYP's anchor square, so the place is there to tap.
+    private static func ferrataEndSquare(cyrillic: Bool) -> [String] {
+        let square = [
+            "aaaaaaaaa", "abbbbbbba", "abbbbbbba", "abbaaabba", "abbaaabba", "abbaaabba",
+            "abbbbbbba", "abbbbbbba", "aaaaaaaaa"
+        ].map { "\"" + $0 + "\"" }
+        let code = StyleCatalog.ferrataEndCode
+        var out = ["[_point]", String(format: "Type=0x%02x", code >> 8), String(format: "SubType=0x%02x", code & 0xff)]
+        out += ["DayXpm=\"9 9 2 1\"", "\"a c #F8FCF8\"", "\"b c #6E6A66\""] + square
+        out.append("String=0x00,Via ferrata")
+        if cyrillic { out.append("String=0x19,Виа феррата") }
+        out += ["[end]", ""]
         return out
     }
 }

@@ -124,21 +124,7 @@ struct AnnotatePass {
         let contourFiles: [URL]
         if let contoursReady { contourFiles = try contoursReady() } else { contourFiles = contours }
 
-        var rewriter = PBFRewriter(
-            url: source,
-            plan: scanned.plan,
-            network: scanned.network,
-            language: language
-        )
-        rewriter.barriers = scanned.barriers
-        rewriter.tidyDescriptions = dropDuplicateDescriptions
-        rewriter.cleanLabels = cleanLabels
-        rewriter.keepsJoiners = keepsJoiners
-        rewriter.nameOrder = nameOrder
-        rewriter.codePage = codePage
-        rewriter.contours = contourFiles
-        rewriter.duplicateVenues = scanned.venues
-        rewriter.shouldStop = shouldStop
+        var rewriter = rewriter(for: scanned, contours: contourFiles)
         let tally = try rewriter.write(to: destination)
         took("wrote the extract")
 
@@ -146,7 +132,7 @@ struct AnnotatePass {
         return tally
     }
 
-    /// What the three scans of the extract brought back. Each scan writes only its own
+    /// What the 3 scans of the extract brought back. Each scan writes only its own
     /// fields, so the struct is filled from three threads without contention.
     private struct ScanResults {
         var plan = RepairPlan()
@@ -154,6 +140,7 @@ struct AnnotatePass {
         var repairLines: [String] = []
         var repairFailure: Error?
         var barriers: [Int64: String] = [:]
+        var ferrataEnds: Set<Int64> = []
         var barrierFailure: Error?
         var venues: Set<Int64> = []
         var venueFailure: Error?
@@ -169,7 +156,9 @@ struct AnnotatePass {
         let timings = ScanTimings()
 
         let repair = Locked<Result<(RoadNetwork, RepairPlan, [String]), Error>?>(nil)
-        let barriers = Locked<Result<[Int64: String], Error>>(.success([:]))
+        let barriers = Locked<Result<(barriers: [Int64: String], ferrataEnds: Set<Int64>), Error>>(
+            .success(([:], []))
+        )
         let venues = Locked<Result<Set<Int64>, Error>>(.success([]))
 
         let scans = DispatchGroup()
@@ -188,7 +177,7 @@ struct AnnotatePass {
         pool.async(group: scans) {
             defer { idleness.finished() }
             timings.timed("classifying barriers") {
-                let found = Result { try BarrierScan.classify(self.source, shouldStop: self.shouldStop) }
+                let found = Result { try BarrierScan.scan(self.source, shouldStop: self.shouldStop) }
                 barriers.withLock { $0 = found }
             }
         }
@@ -203,27 +192,7 @@ struct AnnotatePass {
         }
         scans.wait()
 
-        var results = ScanResults()
-        results.timings = timings
-        switch repair.withLock({ $0 }) {
-        case .success(let (network, plan, lines)):
-            results.network = network
-            results.plan = plan
-            results.repairLines = lines
-        case .failure(let error):
-            results.repairFailure = error
-        case nil:
-            break
-        }
-        switch barriers.withLock({ $0 }) {
-        case .success(let tagged): results.barriers = tagged
-        case .failure(let error): results.barrierFailure = error
-        }
-        switch venues.withLock({ $0 }) {
-        case .success(let marked): results.venues = marked
-        case .failure(let error): results.venueFailure = error
-        }
-        return results
+        return collected(repair: repair, barriers: barriers, venues: venues, timings: timings)
     }
 
     /// The repair scan: load the road network, find the loose ends, plan the repairs.
@@ -263,13 +232,71 @@ struct AnnotatePass {
         .plan(found, loose: loose)
         part("planned the repairs")
 
+        return (loaded, made, Self.summary(of: made, found: found.count, radius: repairRadius))
+    }
+
+    /// The rewriter that applies what the scans found, with this pass's choices.
+    private func rewriter(for scanned: ScanResults, contours contourFiles: [URL]) -> PBFRewriter {
+        var rewriter = PBFRewriter(
+            url: source,
+            plan: scanned.plan,
+            network: scanned.network,
+            language: language
+        )
+        rewriter.barriers = scanned.barriers
+        rewriter.ferrataEnds = scanned.ferrataEnds
+        rewriter.tidyDescriptions = dropDuplicateDescriptions
+        rewriter.cleanLabels = cleanLabels
+        rewriter.keepsJoiners = keepsJoiners
+        rewriter.nameOrder = nameOrder
+        rewriter.codePage = codePage
+        rewriter.contours = contourFiles
+        rewriter.duplicateVenues = scanned.venues
+        rewriter.shouldStop = shouldStop
+        return rewriter
+    }
+
+    /// The 3 scans' boxes read into one result.
+    private func collected(
+        repair: Locked<Result<(RoadNetwork, RepairPlan, [String]), Error>?>,
+        barriers: Locked<Result<(barriers: [Int64: String], ferrataEnds: Set<Int64>), Error>>,
+        venues: Locked<Result<Set<Int64>, Error>>,
+        timings: ScanTimings
+    ) -> ScanResults {
+        var results = ScanResults()
+        results.timings = timings
+        switch repair.withLock({ $0 }) {
+        case .success(let (network, plan, lines)):
+            results.network = network
+            results.plan = plan
+            results.repairLines = lines
+        case .failure(let error):
+            results.repairFailure = error
+        case nil:
+            break
+        }
+        switch barriers.withLock({ $0 }) {
+        case .success(let tagged):
+            results.barriers = tagged.barriers
+            results.ferrataEnds = tagged.ferrataEnds
+        case .failure(let error): results.barrierFailure = error
+        }
+        switch venues.withLock({ $0 }) {
+        case .success(let marked): results.venues = marked
+        case .failure(let error): results.venueFailure = error
+        }
+        return results
+    }
+
+    /// The repair plan's log lines: what was joined, then why the rest stayed.
+    private static func summary(of made: RepairPlan, found: Int, radius: Double) -> [String] {
         let joined =
             (made.counts[RepairPlanner.Verdict.joined] ?? 0)
             + made.counts.filter { $0.key.hasPrefix("bridged") || $0.key.hasPrefix("extended") }.values
             .reduce(0, +)
         var lines = [
             "joined \(joined) road end(s) no route could get through,"
-                + " of \(found.count)" + String(format: " within %.1f m", repairRadius)
+                + " of \(found)" + String(format: " within %.1f m", radius)
         ]
         // Commonest first, and by name where two are equally common: a
         // dictionary has no order of its own, and this list is compared.
@@ -281,7 +308,7 @@ struct AnnotatePass {
                 ? reason : "left as mapped, " + reason
             lines.append("  \(label): \(count)")
         }
-        return (loaded, made, lines)
+        return lines
     }
 
     /// The pass's closing summary: what was tagged, folded in, dropped and marked.
@@ -298,6 +325,7 @@ struct AnnotatePass {
                 + kinds.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }
                 .joined(separator: ", ")
         )
+        if tally.ferrataEnds > 0 { log("marked \(tally.ferrataEnds) via ferrata end(s)") }
         if tally.contourBlocks > 0 {
             log("folded \(contourFiles.count) contour file(s) in, \(tally.contourBlocks) block(s)")
         }

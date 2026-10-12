@@ -15,7 +15,8 @@ extension StyleCatalog {
     /// and the land beneath. They are the ground the map stands on and answer to the
     /// build, not to a palette. And the settlements, which the receiver draws itself.
     private static let paletteExempt: [MapElementKind: Set<Int>] = [
-        .line: [0x20, 0x21, 0x22],
+        // A via ferrata the palette does not paint is drawn as a path after the road twins.
+        .line: [0x20, 0x21, 0x22, 0x37],
         .polygon: [0x27, 0x32, 0x4a, 0x4b],
         .point: GarminStandard.cityTypes
     ]

@@ -30,39 +30,4 @@ extension StyleRecovery {
         /// the ground never carries is not reported as a map's omission.
         var groundTags: [String: Int] = [:]
     }
-
-    struct Outcome {
-        let kind: ElementDumper.Kind
-        let type: Int
-        var witnesses: Int
-        var elements: Int
-        var unmatched: Int
-        var ambiguous: Int
-        /// The dominant tag pair, in readable form.
-        var meaning: String
-        var status: Status
-        /// The resolutions this code was seen drawn at, coarsest to finest. A style
-        /// with a second vocabulary for the zoomed-out levels shows here.
-        var resolutions: [Int: Int] = [:]
-
-        /// `16-18`, or nil where nothing was recorded.
-        var zooms: String? {
-            guard let low = resolutions.keys.min(), let high = resolutions.keys.max()
-            else { return nil }
-            return low == high ? "res \(low)" : "res \(low)–\(high)"
-        }
-    }
-
-    enum Status: String {
-        /// Two or more agreeing identifications, and a rule line found: in the sheet.
-        case resolved
-        /// One clean identification: in the sheet, flagged for review.
-        case singleWitness = "single-witness"
-        /// Witnesses agree but no default rule emits this meaning; decided by hand.
-        case noRule = "no-rule"
-        /// Witnesses disagree beyond the threshold; decided by hand.
-        case mixed
-        /// Nothing identified on the ground that was searched.
-        case noEvidence = "no-evidence"
-    }
 }

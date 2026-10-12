@@ -138,7 +138,9 @@ extension CLI {
                                         look back out as a style of kmap's own — its pictures
                                         on kmap's numbers. --out writes the style, --attach
                                         puts it in the TYP library, --sheet writes the
-                                        reassignment list
+                                        reassignment list. Without --extract it reads the
+                                        cached extracts, and downloads regions 1 at a
+                                        time while they hold too little of the map
           kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…
                                         compares two maps tag by tag — the full test of a
                                         recovery, every meaning before and after

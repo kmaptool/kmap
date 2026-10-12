@@ -317,6 +317,115 @@ final class StylePortTests: XCTestCase {
         XCTAssertEqual(ported.first(where: { $0.ours == 0x2c02 })?.theirs, 0x2c02)
     }
 
+    /// Their number equal to ours settles nothing where their number mostly draws a
+    /// meaning ours does not carry: their 0x2f08 is a bus stop, our 0x2f08 a station.
+    func testTheirNumberAgreesOnlyWhereItMeansTheSame() throws {
+        let rules = try index(
+            points: """
+                highway=bus_stop [0x2f17 resolution 24]
+                railway=station [0x2f08 resolution 22]
+                railway=halt [0x2f08 resolution 23]
+                amenity=bus_station [0x2f08 resolution 24]
+                """
+        )
+        let evidence = [
+            "highway=bus_stop": ["P2f08": 20_000],
+            "amenity=bus_station": ["P2f08": 280],
+            "railway=station": ["P2f17": 640],
+            "railway=halt": ["P2f17": 620]
+        ]
+        let ported = StylePort.map(codesByTag: evidence, rules: rules)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x2f08 })?.theirs, 0x2f17)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x2f17 })?.theirs, 0x2f08)
+    }
+
+    /// 2 meanings drawn with 1 picture are counted together: rail and disused rail
+    /// outweigh the tram that shares our number.
+    func testOnePictureForSeveralMeaningsCountsThemAll() throws {
+        let rules = try index(lines: "(railway=rail | railway=disused | railway=tram) [0x14 resolution 22]\n")
+        let evidence = [
+            "railway=disused": ["L12113": 400],
+            "railway=rail": ["L12113": 12_000],
+            "railway=tram": ["L10": 500]
+        ]
+        let ported = StylePort.map(codesByTag: evidence, rules: rules)
+        let rail = try XCTUnwrap(ported.first { $0.ours == 0x14 })
+        XCTAssertEqual(rail.theirs, 0x12113)
+        XCTAssertEqual(rail.witnesses, 12_400)
+    }
+
+    /// The meanings drawn with 1 picture are summed before the contest, whatever their
+    /// order: rail and subway outweigh light rail though light rail comes first.
+    func testThePictureSeenMostWinsWhateverTheTagOrder() throws {
+        let rules = try index(lines: "(railway=light_rail | railway=rail | railway=subway) [0x14 resolution 22]\n")
+        let evidence = [
+            "railway=light_rail": ["L12106": 6000],
+            "railway=rail": ["L12103": 5000],
+            "railway=subway": ["L12103": 3000]
+        ]
+        let rail = try XCTUnwrap(StylePort.map(codesByTag: evidence, rules: rules).first { $0.ours == 0x14 })
+        XCTAssertEqual(rail.theirs, 0x12103)
+        XCTAssertEqual(rail.witnesses, 8000)
+        XCTAssertEqual(rail.meaning, "railway=rail")
+    }
+
+    /// Their number drawn mostly for a value only our `key=*` fallback catches still
+    /// agrees with our number for that fallback.
+    func testTheirNumberAgreesWithOurFallback() throws {
+        let rules = try index(
+            points: """
+                tourism=attraction [0x2c0d resolution 24]
+                tourism=* & tourism!=no [0x2c0d resolution 24]
+                """
+        )
+        let evidence = [
+            "tourism=attraction": ["P6600": 400],
+            "tourism=yes": ["P2c0d": 120]
+        ]
+        let ported = StylePort.map(codesByTag: evidence, rules: rules)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x2c0d })?.theirs, 0x2c0d)
+    }
+
+    /// A grade split off the via ferrata wears the via ferrata's picture, not a further
+    /// rung of their ladder.
+    func testAGradeWearsItsParentsPicture() throws {
+        let rules = try index(
+            lines: """
+                highway=via_ferrata & via_ferrata_scale ~ '3[+-]?' [0x3a resolution 22]
+                highway=via_ferrata [0x37 resolution 22]
+                """
+        )
+        let evidence = ["highway=via_ferrata": ["L1210c": 40, "L1210b": 30]]
+        let ported = StylePort.map(
+            codesByTag: evidence,
+            rules: rules,
+            theirZooms: ["L1210c": [24: 40], "L1210b": [22: 30]]
+        )
+        let parent = try XCTUnwrap(ported.first { $0.ours == 0x37 })
+        XCTAssertEqual(ported.first { $0.ours == 0x3a }?.theirs, parent.theirs)
+    }
+
+    /// Their climber marks the ends of a via ferrata where their map marks none.
+    func testTheirClimberMarksTheViaFerrataEnds() throws {
+        let rules = try index(
+            points: "sport=climbing [0x2c0e resolution 24]\nkmap:ferrata_end=yes [0x660a resolution 22 continue]\n"
+        )
+        let ported = StylePort.map(codesByTag: ["sport=climbing": ["P2c0e": 40]], rules: rules)
+        XCTAssertEqual(ported.first { $0.ours == 0x660a }?.theirs, 0x2c0e)
+    }
+
+    /// A sports centre's picture that won our climbing number is no climber.
+    func testASportsCentreIsNoClimberForTheEnds() throws {
+        let rules = try index(
+            points: """
+                sport=climbing & leisure=sports_centre [0x2c0e resolution 24]
+                kmap:ferrata_end=yes [0x660a resolution 22 continue]
+                """
+        )
+        let ported = StylePort.map(codesByTag: ["leisure=sports_centre": ["P2d0a": 300]], rules: rules)
+        XCTAssertNil(ported.first { $0.ours == 0x660a })
+    }
+
     /// A point icon that shows nothing is their look for it: the name alone. It is
     /// ported, so the rule is not silenced for want of a picture.
     func testABlankPointIconIsStillTheirLook() throws {

@@ -71,6 +71,18 @@ final class MaterializedStyleTests: XCTestCase {
         }
     }
 
+    /// The mark of a rule aimed by hand is the user's alone: a rule of kmap's own carrying
+    /// it would be passed over by every pass that spares the user's choices.
+    func testNoRuleOfKmapsOwnReadsAsAimedByHand() async throws {
+        let it = try prepared()
+        try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner)
+        for (name, text) in try ruleFiles() {
+            for line in text.components(separatedBy: "\n") where line.contains(RuleReassignment.mark) {
+                XCTFail("\(name): \(line)")
+            }
+        }
+    }
+
     func testPreparingAgainWithTheSameChoicesChangesNothing() async throws {
         let it = try prepared()
         try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner)

@@ -184,11 +184,10 @@ how the map looks on the device.
 # --- a via ferrata was deleted from the map outright. mkgmap's reasoning is sound for a
 # general-purpose style — it must not appear as something a router will send you along —
 # but the result is that the one line you must not wander onto is drawn as nothing at all.
-# 0x2b is the tick line this style already uses for cliffs: not a road type, so routing
-# never touches it, while the way itself becomes visible. The label added by the trail
-# warning rules says what it is.
+# 0x37 is its own plain line; kmap puts a path's road under it (splitFerrataGrades), so it
+# routes as a path. The label added by the trail warning rules says what it is.
 - highway=via_ferrata {delete highway}  # this shouldn't show as routable on default map: path only for specialists
-+ highway=via_ferrata [0x2b resolution 22]  # kmap: was deleted outright; 0x2b is unroutable, so it shows without being offered as a route
++ highway=via_ferrata [0x37 resolution 22]  # kmap: mkgmap deleted it outright; drawn on 0x37, routed by the path's road above it
 
 @@ points
 # --- the stock basic_hut rule sits above kmap's shelter rules and so wins, naming the
@@ -449,6 +448,17 @@ Xpm="32 3 4 1"
 [end]
 
 [_line]
+Type=0x36
+Xpm="32 2 4 1"
+"a c none"
+"b c #6e6e6e"
+"A c none"
+"B c #555555"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+[end]
+
+[_line]
 Type=0x26
 Xpm="32 1 4 1"
 "a c none"
@@ -507,6 +517,84 @@ Xpm="32 3 4 1"
 "B c #555555"
 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x38
+Xpm="32 3 4 1"
+"a c none"
+"b c #808080"
+"A c none"
+"B c #555555"
+"baaaaaaaaaaaaaaabaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"baaaaaaaaaaaaaaabaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x37
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x39
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3a
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3b
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3c
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
 
@@ -1834,6 +1922,72 @@ Xpm="32 2 4 1"
 [end]
 
 [_line]
+Type=0x37
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x39
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3a
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3b
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3c
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3d
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
 Type=0x14
 UseOrientation=Y
 Xpm="32 3 4 1"
@@ -1844,6 +1998,17 @@ Xpm="32 3 4 1"
 "aaaaaaaaaaaaaaaaaaabbbbbbbbbbbbb"
 "aaaaaaaaaaaaaaaaaaabbbbbbbbbbbbb"
 "aaaaaaaaaaaaaaaaaaabbbbbbbbbbbbb"
+[end]
+
+[_line]
+Type=0x36
+Xpm="32 2 4 1"
+"a c none"
+"b c #3f3f3f"
+"A c none"
+"B c #000000"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 [end]
 
 [_line]
@@ -1878,6 +2043,19 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x25
+UseOrientation=Y
+Xpm="32 3 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaabaaaaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaaaaaaaaaaabaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x38
 UseOrientation=Y
 Xpm="32 3 4 1"
 "a c none"
@@ -3748,10 +3926,10 @@ Xpm="32 32 4 1"
 ; icon is drawn from a vector at 20 pixels on its longer side, with a soft edge: a pixel
 ; partly covered is its colour blended over the land. Their own SVGs (2); for a meaning
 ; they draw only as pixel art too small to enlarge, carto's vector of it in their colour
-; (20); for a meaning they do not draw, openstreetmap-carto's symbol (CC0) in carto's colours
+; (21); for a meaning they do not draw, openstreetmap-carto's symbol (CC0) in carto's colours
 ; (73); for a meaning neither draws, the Maki or Temaki
 ; icon (CC0) in their colour scheme: black, water #1200FF, transport #0024FF, health
-; #DF091D (20). A code the reference TYP marks with its plain label anchor, or no source draws, gets
+; #DF091D (21). A code the reference TYP marks with its plain label anchor, or no source draws, gets
 ; that anchor square (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules
 ; emit has a section but the settlement points 0x0100-0x0d00, which the device draws, and
 ; kmap's repair mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small
@@ -10398,6 +10576,118 @@ NightXpm="20 20 4 1"
 [end]
 
 [_point]
+Type=0x6609
+; Mast - their communications_mast.png, symbols-2.xml:90-95 is pixel art too small to enlarge: carto's
+; symbols/man_made/mast.svg (CC0) at 20 x 20 px in their colour #000000
+DayXpm="20 20 4 1"
+"! c #868686"
+"A c #000000"
+"B c #434343"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+NightXpm="20 20 4 1"
+"! c #666666"
+"A c #000000"
+"B c #333333"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+[end]
+
+[_point]
+Type=0x660a
+; Via ferrata - Temaki v5.13.0 climbing.svg (CC0) at 20 x 20 px in their scheme's #000000:
+; neither they nor carto draw a symbol for it.
+DayXpm="20 20 4 1"
+"! c #434343"
+"A c #868686"
+"B c #000000"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
+NightXpm="20 20 4 1"
+"! c #333333"
+"A c #666666"
+"B c #000000"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
+[end]
+
+[_point]
 Type=0x6612
 ; kmap: Nature reserve - no source draws it, or the reference TYP marks it with its plain
 ; label anchor: that square (the reference TYP's 0x661a), so no device icon of another meaning shows.
@@ -10926,6 +11216,18 @@ Xpm="32 3 4 1"
 [end]
 
 [_line]
+Type=0x36
+Xpm="32 3 4 1"
+"a c none"
+"b c #888888"
+"A c none"
+"B c #555555"
+"aaaabaaaaaaaabaaaaaaaabaaaaaaaab"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaabaaaaaaaabaaaaaaaabaaaaaaaab"
+[end]
+
+[_line]
 Type=0x25
 Xpm="32 3 4 1"
 "a c none"
@@ -10934,6 +11236,84 @@ Xpm="32 3 4 1"
 "B c #555555"
 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x38
+Xpm="32 3 4 1"
+"a c none"
+"b c #808080"
+"A c none"
+"B c #555555"
+"baaaaaaaaaaaaaaabaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"baaaaaaaaaaaaaaabaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x37
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x39
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3a
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3b
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3c
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 [end]
 
@@ -12462,6 +12842,19 @@ Xpm="32 3 4 1"
 [end]
 
 [_line]
+Type=0x36
+UseOrientation=Y
+Xpm="32 3 4 1"
+"a c none"
+"b c #bbbbbb"
+"A c none"
+"B c #555555"
+"baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
 Type=0x26
 Xpm="32 1 4 1"
 "a c none"
@@ -12547,6 +12940,72 @@ Xpm="32 1 4 1"
 [end]
 
 [_line]
+Type=0x37
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x39
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3a
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3b
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3c
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
 Type=0x1a
 FontStyle=NoLabel
 Xpm="32 1 4 1"
@@ -12570,6 +13029,17 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x25
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x38
 FontStyle=NoLabel
 Xpm="32 1 4 1"
 "a c none"
@@ -13909,9 +14379,9 @@ Xpm="32 32 4 1"
 ; the sprite of OSM Liberty; each code takes the marker of the class its meaning (named
 ; in Assets/styles/type-names.txt) falls in, from OSM Liberty's current icon set
 ; (maputnik/osm-liberty svgs/svgs_iconset, commit da161553f7d2; Maki glyphs, CC0), which
-; also has markers for meanings the 2020 set lacked (109). Where it still has
+; also has markers for meanings the 2020 set lacked (110). Where it still has
 ; none, the style's ring holds a Maki, Temaki or openstreetmap-carto glyph (CC0), and the
-; rock is the reference TYP's own (9). A code the reference TYP marks with its plain label
+; rock is the reference TYP's own (10). A code the reference TYP marks with its plain label
 ; anchor gets that square (the reference TYP's 0x661a), day and night, with its label (15).
 ; Rendered at 16 px with rsvg-convert and read back 3 ways: a pixel under alpha 112 is
 ; clear; of the rest, R+G+B under 600 is ink #333333, the rest white. Night turns the
@@ -18035,6 +18505,52 @@ NightXpm="16 16 3 1"
 [end]
 
 [_point]
+Type=0x660a
+; Rock climbing - Temaki v5.13.0 climbing (CC0) in the style's ring, 16 px
+; OSM Liberty has no marker for the meaning.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!------!.."
+".!----!!----!!!."
+".--!!!!-----!!-."
+"!--!!!!!---!!!-!"
+"!-!!!!!!!-!!!!-!"
+"---!!!--!!!!!!--"
+"---!!!!---!!!!--"
+"!--!!-!!--!!!!-!"
+"!--!!-!!--!!!!-!"
+".--!!--!-!!!!!-."
+".!!!--!!!!!!!!!."
+"..!!--------!!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!------!.."
+".!----!!----!!!."
+".--!!!!-----!!-."
+"!--!!!!!---!!!-!"
+"!-!!!!!!!-!!!!-!"
+"---!!!--!!!!!!--"
+"---!!!!---!!!!--"
+"!--!!-!!--!!!!-!"
+"!--!!-!!--!!!!-!"
+".--!!--!-!!!!!-."
+".!!!--!!!!!!!!!."
+"..!!--------!!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
 Type=0x2d04
 ; Casino - OSM Liberty casino.svg (Maki, CC0), 16 px
 ; OSM Liberty now has a marker for the meaning.
@@ -18783,6 +19299,52 @@ NightXpm="9 9 2 1"
 
 [_point]
 Type=0x6411
+; Tower / mast - OSM Liberty communications_tower.svg (Maki, CC0), 16 px
+; OSM Liberty now has a marker for the meaning.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+"................"
+"................"
+"................"
+"................"
+".......!!......."
+"........!......."
+"................"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"................"
+"................"
+"................"
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+"................"
+"................"
+"................"
+"................"
+".......!!......."
+"........!......."
+"................"
+".......!!......."
+"......!!!!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"......!..!......"
+"................"
+"................"
+"................"
+[end]
+
+[_point]
+Type=0x6609
 ; Tower / mast - OSM Liberty communications_tower.svg (Maki, CC0), 16 px
 ; OSM Liberty now has a marker for the meaning.
 DayXpm="16 16 3 1"
@@ -19732,9 +20294,9 @@ NightXpm="9 9 2 1"
 ; maintainer's tool. Every icon is drawn from a vector at 20 pixels on its longer side,
 ; with a soft edge: a pixel partly covered is its colour blended over the land. Carto's own
 ; symbol (openstreetmap-carto symbols/**, CC0, commit 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2)
-; in the marker-fill carto gives it in style/amenity-points.mss (95); for a meaning
+; in the marker-fill carto gives it in style/amenity-points.mss (96); for a meaning
 ; carto draws no symbol for, a Maki or Temaki icon (CC0) in the carto ink of its category
-; (20). A code the reference TYP marks with its plain label anchor gets that anchor square
+; (21). A code the reference TYP marks with its plain label anchor gets that anchor square
 ; (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules emit has a
 ; section but the settlement points 0x0100-0x0d00, which the device draws, and kmap's repair
 ; mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small ring, copied.
@@ -26290,6 +26852,117 @@ NightXpm="20 20 4 1"
 [end]
 
 [_point]
+Type=0x6609
+; Mast - openstreetmap-carto symbols/man_made/mast.svg (CC0) at 20 x 20 px, ink @man-made-icon
+DayXpm="20 20 4 1"
+"! c #BAB8B5"
+"A c #666666"
+"B c #908F8D"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+NightXpm="20 20 4 1"
+"! c #888888"
+"A c #555555"
+"B c #6E6E6E"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+[end]
+
+[_point]
+Type=0x660a
+; Via ferrata - Temaki v5.13.0 climbing.svg (CC0) at 20 x 20 px, ink @leisure-green:
+; carto draws no symbol for it.
+DayXpm="20 20 4 1"
+"! c #529C53"
+"A c #96BF93"
+"B c #0D7813"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
+NightXpm="20 20 4 1"
+"! c #AAE6AA"
+"A c #AACCAA"
+"B c #AAFFAA"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
+[end]
+
+[_point]
 Type=0x6612
 ; kmap: Nature reserve - the reference TYP marks it with its plain label anchor: that square
 ; (the reference TYP's 0x661a), so no device icon of another meaning shows.
@@ -27083,7 +27756,7 @@ tag: man_made=lighthouse
 points: man_made=lighthouse [0x6415 resolution 24]
 [man_made-mast] Mast
 tag: man_made=mast
-points: man_made=mast | landmark=chimney [0x6411 resolution 24]
+points: man_made=mast | landmark=chimney [0x6609 resolution 24]  # kmap: not the pylon's number
 [man_made-survey_point] Survey point
 tag: man_made=survey_point
 points: man_made=survey_point [0x6411 resolution 24]
@@ -27196,6 +27869,8 @@ trail.faint|faint path|тропа плохо видна
 trail.alpine|alpine terrain|альпинистский участок
 trail.hard|demanding, T3|сложная тропа, T3
 trail.ferrata|via ferrata, gear required|виа феррата, нужна страховка
+trail.ferrata-grade|via ferrata, grade|виа феррата, уровень
+trail.ferrata-gear|gear required|нужна страховка
 trail.ford|ford|брод
 trail.ford-stones|ford, stepping stones|брод по камням
 
@@ -28510,12 +29185,22 @@ line 0xf|Steps|Ступеньки
 line 0x10|Living street|Улица в жилой зоне
 line 0x31|Tree row|Ряд деревьев (аллея)
 line 0x35|Ditch|Канава/ров
+line 0x36|Tram|Трамвай
+line 0x37|Via ferrata|Виа феррата
+line 0x39|Via ferrata|Виа феррата
+line 0x3a|Via ferrata|Виа феррата
+line 0x3b|Via ferrata|Виа феррата
+line 0x3c|Via ferrata|Виа феррата
+line 0x3d|Via ferrata|Виа феррата
+line 0x38|Cable car|Канатная дорога
 polygon 0xd|Quarry|Карьер
 polygon 0x5a|Allotments|Загородный дом с садом
 
 # Not in either TYP. Russian from kmap's own labels (Assets/labels-ru.txt).
 line 0x32|City wall|Городская стена
 point 0x6608|Tower|Башня
+point 0x6609|Mast|Мачта
+point 0x660a|Via ferrata|Виа феррата
 
 # Not in any source. Russian chosen by the owner.
 line 0x34|Drain|Сток

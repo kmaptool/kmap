@@ -13,6 +13,72 @@ Xpm="32 2 4 1"
 [end]
 
 [_line]
+Type=0x37
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x39
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3a
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3b
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3c
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
+Type=0x3d
+Xpm="32 2 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+"baabaaaaaaaabaabaaaaaaaabaabaaaa"
+[end]
+
+[_line]
 Type=0x14
 UseOrientation=Y
 Xpm="32 3 4 1"
@@ -23,6 +89,17 @@ Xpm="32 3 4 1"
 "aaaaaaaaaaaaaaaaaaabbbbbbbbbbbbb"
 "aaaaaaaaaaaaaaaaaaabbbbbbbbbbbbb"
 "aaaaaaaaaaaaaaaaaaabbbbbbbbbbbbb"
+[end]
+
+[_line]
+Type=0x36
+Xpm="32 2 4 1"
+"a c none"
+"b c #3f3f3f"
+"A c none"
+"B c #000000"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 [end]
 
 [_line]
@@ -57,6 +134,19 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x25
+UseOrientation=Y
+Xpm="32 3 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaabaaaaaaaaaaaaaaaaaa"
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+"aaaaaaaaaaaaabaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x38
 UseOrientation=Y
 Xpm="32 3 4 1"
 "a c none"

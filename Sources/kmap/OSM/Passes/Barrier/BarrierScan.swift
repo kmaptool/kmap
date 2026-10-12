@@ -9,7 +9,9 @@ struct BarrierScan: OSMSink {
         "gate", "lift_gate", "swing_gate", "kissing_gate", "bollard",
         "block", "cycle_barrier", "stile", "bus_trap", "chain", "gate_lock"
     ]
-    private static let pathLike: Set<String> = ["path", "footway", "track", "bridleway", "cycleway", "steps"]
+    private static let pathLike: Set<String> = [
+        "path", "footway", "track", "bridleway", "cycleway", "steps", "via_ferrata"
+    ]
     private static let minorLike: Set<String> = [
         "service", "residential", "living_street",
         "unclassified", "pedestrian"
@@ -21,30 +23,12 @@ struct BarrierScan: OSMSink {
         "city_wall", "guard_rail"
     ]
 
-    /// What a barrier stands on. Ordered by which wins where a node belongs to several
-    /// ways: `fence` sits just above `none`, so any road or path the gate also stands on
-    /// takes precedence.
-    enum Kind: Int, Comparable {
-        case none = 0, fence, major, minor, path
-
-        var word: String {
-            switch self {
-            case .none: return "none"
-            case .fence: return "fence"
-            case .major: return "major"
-            case .minor: return "minor"
-            case .path: return "path"
-            }
-        }
-
-        static func < (a: Kind, b: Kind) -> Bool { a.rawValue < b.rawValue }
-    }
-
     /// One block's worth: the barrier nodes it holds, and its ways as a flat run of refs
     /// with the class each way belongs to.
     private(set) var foundBarriers: [Int64] = []
     private(set) var wayRefs: [Int64] = []
     private(set) var wayKinds: [(from: Int32, to: Int32, kind: Kind)] = []
+    private(set) var ferrataEnds = FerrataEnds()
 
     /// What each entry of this block's string table is as a key: 1 highway, 2 barrier, 0
     /// any other. Found once per block.
@@ -69,6 +53,7 @@ struct BarrierScan: OSMSink {
         foundBarriers.removeAll(keepingCapacity: true)
         wayRefs.removeAll(keepingCapacity: true)
         wayKinds.removeAll(keepingCapacity: true)
+        ferrataEnds.clear()
     }
 
     mutating func node(
@@ -108,6 +93,7 @@ struct BarrierScan: OSMSink {
             }
         }
 
+        ferrataEnds.note(highway: highway, refs: refs)
         let kind: Kind
         if let highway {
             kind =
@@ -127,13 +113,19 @@ struct BarrierScan: OSMSink {
 }
 
 extension BarrierScan {
-    /// Reads a whole extract: barrier nodes, then which way each stands on.
+    /// Reads a whole extract: barrier nodes, then which way each stands on, and the ends
+    /// of each via ferrata route in the same read.
     /// - Returns: every barrier node, those on no way at all included, with kind `none`.
-    static func classify(_ url: URL, shouldStop: @escaping () -> Bool = { false }) throws -> [Int64: String] {
+    static func scan(
+        _ url: URL,
+        shouldStop: @escaping () -> Bool = { false }
+    ) throws -> (barriers: [Int64: String], ferrataEnds: Set<Int64>) {
         var index = BarrierIndex()
         var on: [Int64: Kind] = [:]
+        var ends = FerrataEndsTally()
 
         try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { BarrierScan() }) { block in
+            ends.add(block.ferrataEnds)
             index.add(barriers: block.foundBarriers)
             for (from, to, kind) in block.wayKinds {
                 for at in Int(from)..<Int(to) {
@@ -148,6 +140,6 @@ extension BarrierScan {
         var out: [Int64: String] = [:]
         out.reserveCapacity(index.count)
         for id in index.all { out[id] = (on[id] ?? .none).word }
-        return out
+        return (out, ends.routeEnds)
     }
 }

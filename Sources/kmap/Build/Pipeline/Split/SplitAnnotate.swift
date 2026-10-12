@@ -88,6 +88,18 @@ extension BuildPipeline {
         return results.withLock { $0 }.flatMap { $0 }
     }
 
+    /// Whether the build draws an icon at the ends of a via ferrata, which only the
+    /// annotate pass finds: the TYP has one, or the end rule was aimed at another by hand.
+    private var drawsFerrataEnds: Bool {
+        if paletteSource()?.section(.point, StyleCatalog.ferrataEndCode) != nil { return true }
+        guard let points = recipe.style.styleDirectory?.appendingPathComponent("points"),
+            let text = try? String(contentsOf: points, encoding: .utf8)
+        else { return false }
+        return text.components(separatedBy: "\n").contains {
+            $0.hasPrefix(StyleCatalog.ferrataEndHead) && $0.contains(RuleReassignment.mark)
+        }
+    }
+
     /// What the annotate step says it does; nil where it has nothing to do.
     private func annotateStep(foldsContours: Bool) -> String? {
         if recipe.healRoadEnds && recipe.routable {
@@ -100,7 +112,8 @@ extension BuildPipeline {
             return "removing descriptions that only repeat the name"
         }
         if foldsContours { return "folding the contours in" }
-        return recipe.codePage != CodePage.utf8 ? "taking out of labels what the code page lacks" : nil
+        if recipe.codePage != CodePage.utf8 { return "taking out of labels what the code page lacks" }
+        return drawsFerrataEnds ? "marking the ends of via ferratas" : nil
     }
 
     /// Rewrites one extract with what mkgmap's rule language cannot express: barriers
@@ -118,12 +131,14 @@ extension BuildPipeline {
         let features = recipe.needsBarrierContext || dropDuplicates || heal
         // A Unicode map draws what a code page cannot.
         let cleans = recipe.codePage != CodePage.utf8
-        // With no feature switched on the pass only folds the contours in and cleans the
-        // labels, so there is no scan to overlap with the tracer.
+        // With no feature switched on the pass only folds the contours in, cleans the
+        // labels and marks the via ferrata ends, so there is no scan to overlap with the tracer.
         var contours: [URL] = []
         if !features {
             contours = try await contoursReady?() ?? []
-            guard !contours.isEmpty || cleans else { return [extract.path] }
+            // The ends of a via ferrata are found only here.
+            guard !contours.isEmpty || cleans || drawsFerrataEnds
+            else { return [extract.path] }
         }
 
         let annotated = workDirectory.appendingPathComponent("annotated\(suffix).osm.pbf")

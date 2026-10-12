@@ -42,7 +42,9 @@ final class RoadTwinOptionsTests: XCTestCase {
         let typ = work.appendingPathComponent("typ/style.txt")
         try write(Self.typ, to: typ)
 
-        XCTAssertEqual(try pipeline.roadTwins(in: rules, typ: typ), 1)
+        let twinned = try pipeline.roadTwins(in: rules, typ: typ)
+        XCTAssertEqual(twinned.rules, 1)
+        XCTAssertEqual(twinned.roads, [0x16])
         let lines = try String(contentsOf: rules.appendingPathComponent("lines"), encoding: .utf8)
         XCTAssertTrue(lines.contains("[0x16 road_class=0 road_speed=0 resolution 24 continue]"), lines)
         XCTAssertTrue(lines.contains("highway=path [0x11f16 resolution 22]"), lines)
@@ -58,7 +60,7 @@ final class RoadTwinOptionsTests: XCTestCase {
         let users = try root().appendingPathComponent("mine.txt")
         try write(Self.typ, to: users)
 
-        XCTAssertEqual(try pipeline.roadTwins(in: rules, typ: users), 0)
+        XCTAssertEqual(try pipeline.roadTwins(in: rules, typ: users).rules, 0)
         XCTAssertEqual(try String(contentsOf: users, encoding: .utf8), Self.typ)
         XCTAssertEqual(try String(contentsOf: rules.appendingPathComponent("lines"), encoding: .utf8), Self.rules)
     }
@@ -68,6 +70,6 @@ final class RoadTwinOptionsTests: XCTestCase {
         let pipeline = PipelineFixture.pipeline(workRoot: try root())
         let rules = pipeline.recipe.workDirectory.appendingPathComponent("style", isDirectory: true)
         try write(Self.rules, to: rules.appendingPathComponent("lines"))
-        XCTAssertEqual(try pipeline.roadTwins(in: rules, typ: nil), 0)
+        XCTAssertEqual(try pipeline.roadTwins(in: rules, typ: nil).rules, 0)
     }
 }

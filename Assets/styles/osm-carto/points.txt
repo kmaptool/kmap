@@ -2,9 +2,9 @@
 ; maintainer's tool. Every icon is drawn from a vector at 20 pixels on its longer side,
 ; with a soft edge: a pixel partly covered is its colour blended over the land. Carto's own
 ; symbol (openstreetmap-carto symbols/**, CC0, commit 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2)
-; in the marker-fill carto gives it in style/amenity-points.mss (95); for a meaning
+; in the marker-fill carto gives it in style/amenity-points.mss (96); for a meaning
 ; carto draws no symbol for, a Maki or Temaki icon (CC0) in the carto ink of its category
-; (20). A code the reference TYP marks with its plain label anchor gets that anchor square
+; (21). A code the reference TYP marks with its plain label anchor gets that anchor square
 ; (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules emit has a
 ; section but the settlement points 0x0100-0x0d00, which the device draws, and kmap's repair
 ; mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small ring, copied.
@@ -6557,6 +6557,117 @@ NightXpm="20 20 4 1"
 "....BAAAAAAAAAAB...."
 "....AAAAAAAAAAAA...."
 "....AAAAAAAAAAAA...."
+[end]
+
+[_point]
+Type=0x6609
+; Mast - openstreetmap-carto symbols/man_made/mast.svg (CC0) at 20 x 20 px, ink @man-made-icon
+DayXpm="20 20 4 1"
+"! c #BAB8B5"
+"A c #666666"
+"B c #908F8D"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+NightXpm="20 20 4 1"
+"! c #888888"
+"A c #555555"
+"B c #6E6E6E"
+". c none"
+"...................."
+".........!!........."
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........!AA!........"
+"........AAAA........"
+".......!AAAA!......."
+".......AAAAAA......."
+"......BABAABAB......"
+"......AB!AA!BA......"
+".....AA.!AA!.AA....."
+"....!A!.!AA!.!A!...."
+[end]
+
+[_point]
+Type=0x660a
+; Via ferrata - Temaki v5.13.0 climbing.svg (CC0) at 20 x 20 px, ink @leisure-green:
+; carto draws no symbol for it.
+DayXpm="20 20 4 1"
+"! c #529C53"
+"A c #96BF93"
+"B c #0D7813"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
+NightXpm="20 20 4 1"
+"! c #AAE6AA"
+"A c #AACCAA"
+"B c #AAFFAA"
+". c none"
+".......!A..........."
+"......BBBA.......AB!"
+"......BBBA.......!B!"
+"..ABA..!A........BB!"
+"..BBABBB.........BB!"
+".!B!!BBBB.......BBB!"
+".BBABBBBBB.....BBBB!"
+"!BABBBBBBBBBA.ABBBB!"
+"..ABBBB..!BBB.BBBBB!"
+"..!BBBB.......BBBBB!"
+"..!BBBB!......BBBBB!"
+"..!BBBBBBA....BBBBB!"
+"..!B!.!BB!....ABBBB!"
+"..!BB..!BB.....BBBB!"
+"..BB!..ABB....!BBBB!"
+"..BBA...BB.ABBBBBBB!"
+".!BB....!!.BBBBBBBB!"
+".BBA....A!BBBBBBBBB!"
+"ABB...BBBBBBBBBBBBB!"
+".!.................."
 [end]
 
 [_point]
