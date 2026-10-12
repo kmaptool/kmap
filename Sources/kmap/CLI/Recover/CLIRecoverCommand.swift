@@ -38,8 +38,11 @@ extension CLI {
         // events under --json; on a failure too, whose warnings say why.
         var printer = LogPrinter()
         // Without --extract the cached extracts are read. Where they fall short, the region
-        // the screen would offer is downloaded and the run goes again, as on the screen,
-        // until the ground is enough or no region is left to download.
+        // holding most of the map's data is downloaded and the run goes again, until the
+        // ground is enough; with no region left to download, it goes on with what there is.
+        var extraTaken = false
+        // Set once no more ground can be had: the run goes on with what there is.
+        var anyGround = false
         while true {
             do {
                 let neutral = try await neutralRules(log: log)
@@ -48,9 +51,30 @@ extension CLI {
                     img: Paths.expand(path),
                     extracts: named,
                     log: log,
-                    rulesDirectory: neutral
+                    rulesDirectory: neutral,
+                    anyGround: anyGround
                 )
                 printer.drain(log)
+                // Once: ground leaving much of the map out, and codes resting on 1 sighting.
+                if named.isEmpty && !extraTaken && !anyGround && report.wantsMoreGround {
+                    extraTaken = true
+                    CLILog.line(
+                        String(
+                            format: "%.0f%% of their codes were seen once or never, on %.0f%% of the map:"
+                                + " reading 1 more region",
+                            report.weakEvidence * 100,
+                            report.share * 100
+                        )
+                    )
+                    do {
+                        if try await downloadRegion(for: Paths.expand(path), log: log) { continue }
+                    } catch  where Task.isCancelled {
+                        return CLIOutput.cancelled()
+                    } catch {
+                        log.warn("the extra region could not be downloaded: \(CLIOutput.said(error))")
+                        printer.drain(log)
+                    }
+                }
                 return try finish(report, flags: flags, path: path, attachTo: attachTo)
             } catch let trouble as StyleRecovery.Trouble
                 where named.isEmpty && (trouble.isNoExtracts || trouble.isTooLittleGround)
@@ -58,17 +82,23 @@ extension CLI {
                 printer.drain(log)
                 do {
                     if try await downloadRegion(for: Paths.expand(path), log: log) { continue }
-                    // Every region under the map is cached and tried: no download helps.
-                    printer.drain(log)
-                    return CLIOutput.failure(
-                        "recover: the extracts kmap holds around this map do not cover what it draws"
-                            + " (\(trouble)) - pass the extract of the region the map shows with --extract"
-                    )
+                    if trouble.isNoExtracts {
+                        printer.drain(log)
+                        return CLIOutput.failure(
+                            "recover: the extracts kmap holds around this map do not cover what it draws"
+                                + " - pass the extract of the region the map shows with --extract"
+                        )
+                    }
                 } catch  where Task.isCancelled {
                     return CLIOutput.cancelled()
                 } catch {
                     log.warn("the region could not be downloaded: \(CLIOutput.said(error))")
                     printer.drain(log)
+                }
+                // No more ground to be had: what the cache holds is read, however little.
+                if trouble.isTooLittleGround && !anyGround {
+                    anyGround = true
+                    continue
                 }
                 let frame = RegionSuggestion.drawnGround(of: Paths.expand(path)).frame
                 return await suggestExtracts(for: frame, path: path, why: trouble.isNoExtracts ? nil : "\(trouble)")

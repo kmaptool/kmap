@@ -54,6 +54,16 @@ final class SuggestedRegionsTests: XCTestCase {
         return RegionSuggestion.DrawnGround(spots: spots, frame: frame)
     }
 
+    /// The ground recover reads more of: a leaf the map covers only in part counts too,
+    /// the biggest share of the map's data first.
+    func testEveryLeafTheMapDrawsOnIsGroundToRead() throws {
+        let ground = drawn([[33, 44.3, 36.6, 46.2], [40, 45, 44, 48]])
+        let leaves = RegionSuggestion.drawnOnLeaves(on: ground, index: try index()).map(\.region.id)
+        XCTAssertEqual(leaves.first, "south")
+        XCTAssertTrue(leaves.contains("coastal"), "\(leaves)")
+        XCTAssertFalse(leaves.contains("continent"), "a region with children is no leaf")
+    }
+
     func testAMapTheSizeOfOneRegionGetsThatRegion() throws {
         let ground = drawn([[33, 44.3, 36.6, 46.2]])
         let offered = RegionSuggestion.suggestedRegions(on: ground, index: try index())

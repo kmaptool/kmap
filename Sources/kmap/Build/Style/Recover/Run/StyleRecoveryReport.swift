@@ -5,6 +5,8 @@ extension StyleRecovery {
         var frame = BBox.empty
         var extracts: [URL] = []
         var elements = 0
+        /// The share of the map's data lying under the extracts read.
+        var share = 0.0
         /// key -> outcome, sorted for printing by the caller.
         var outcomes: [String: Outcome] = [:]
         /// The recovered style: their pictures on kmap's numbers. A TYP that builds,

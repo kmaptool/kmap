@@ -26,6 +26,10 @@ enum StyleRecovery {
     /// its style: rules it was never seen using would be judged on a few stray elements.
     /// A count of elements is no measure: a small region of a large map holds plenty.
     static let leastShare = 0.25
+    /// Above this share of the map's data the ground counts as the whole map.
+    static let wholeEnough = 0.9
+    /// From this share of codes seen once or never, 1 more region is read.
+    static let weakEnough = 0.03
 
     /// What can be refused before any reading: no map, no tiles in it, an extract named
     /// that is not there or whose header puts it beside the map. Returns the map's ground.
@@ -49,13 +53,15 @@ enum StyleRecovery {
     /// The whole pipeline: dump, index, match, aggregate, derive.
     ///
     /// Cancellation is the task's: it kills the reader process, and the matching loop
-    /// checks between elements.
+    /// checks between elements. `anyGround` goes on below `leastShare`, for when no more
+    /// ground can be had.
     static func run(
         img: URL,
         extracts explicit: [URL],
         log: Log,
         rulesDirectory: URL? = nil,
-        progress: RecoverProgress? = nil
+        progress: RecoverProgress? = nil,
+        anyGround: Bool = false
     ) async throws -> Report {
         var report = Report()
         let drawn = try checkInputs(img: img, extracts: explicit)
@@ -80,7 +86,14 @@ enum StyleRecovery {
             : ImgElements.dataShare(of: img, within: grounds)
                 ?? RegionSuggestion.share(of: drawn, within: grounds)
         // Before the map is read: a refusal costs seconds, not minutes of a large map.
-        if share < leastShare { throw Trouble.tooLittleGround(share: share) }
+        if share < leastShare {
+            guard anyGround else { throw Trouble.tooLittleGround(share: share) }
+            log.warn(
+                "the extracts hold \(Int((share * 100).rounded()))% of the map's data and no more can be had:"
+                    + " the style is recovered from what they show"
+            )
+        }
+        report.share = share
 
         log.step("reading the map's elements")
         progress?.move(to: .reading)
