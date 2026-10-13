@@ -63,6 +63,32 @@ enum StyleRecovery {
         progress: RecoverProgress? = nil,
         anyGround: Bool = false
     ) async throws -> Report {
+        // The steps on GCD threads cannot see the task's cancellation: a flag carries it.
+        let stop = StopFlag()
+        return try await withTaskCancellationHandler {
+            try await running(
+                img: img,
+                extracts: explicit,
+                log: log,
+                rulesDirectory: rulesDirectory,
+                progress: progress,
+                anyGround: anyGround,
+                stop: stop
+            )
+        } onCancel: {
+            stop.raise()
+        }
+    }
+
+    private static func running(
+        img: URL,
+        extracts explicit: [URL],
+        log: Log,
+        rulesDirectory: URL?,
+        progress: RecoverProgress?,
+        anyGround: Bool,
+        stop: StopFlag
+    ) async throws -> Report {
         var report = Report()
         let drawn = try checkInputs(img: img, extracts: explicit)
         let frame = drawn.frame
@@ -126,24 +152,26 @@ enum StyleRecovery {
             coarse: coarse,
             frame: frame,
             several: extracts.count > 1,
+            stop: stop,
             log: log,
             progress: progress
         )
         for extract in extracts { try await matcher.read(extract) }
         let evidence = matcher.finish()
         report.groundTags = matcher.groundTags
-        ledger(evidence, into: &report)
+        try ledger(evidence, into: &report, stop: stop)
         let typDefined = typDefined(in: img)
 
         try Task.checkCancellation()
         progress?.move(to: .deriving)
         let rules = rulesDirectory.map { DefaultRuleBook.load(from: $0) } ?? DefaultRuleBook.load()
-        derive(
+        try derive(
             evidence,
             into: &report,
             rules: rules,
             typDefined: typDefined,
-            ground: report.groundTags
+            ground: report.groundTags,
+            stop: stop
         )
         try Task.checkCancellation()
         recoverStyle(from: img, into: &report, log: log, rulesDirectory: rulesDirectory)

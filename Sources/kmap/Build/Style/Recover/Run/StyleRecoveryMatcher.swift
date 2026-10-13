@@ -13,6 +13,8 @@ extension StyleRecovery {
         /// Extracts overlap where one lies inside another, so with several an object is
         /// counted once.
         let several: Bool
+        /// Raised when the task is cancelled, for the work on GCD threads.
+        let stop: StopFlag
         /// 1 byte per element, shared by every extract: the best match any of them
         /// managed. A raw buffer, not an array: cores write disjoint index ranges at once.
         private let matches: UnsafeMutableBufferPointer<UInt8>
@@ -32,6 +34,7 @@ extension StyleRecovery {
             coarse: ElementDumper.Dump,
             frame: BBox,
             several: Bool,
+            stop: StopFlag = StopFlag(),
             log: Log,
             progress: RecoverProgress?
         ) {
@@ -39,6 +42,7 @@ extension StyleRecovery {
             self.coarse = coarse
             self.frame = frame
             self.several = several
+            self.stop = stop
             self.log = log
             self.progress = progress
             matches = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: dump.count)
@@ -59,7 +63,7 @@ extension StyleRecovery {
             progress?.move(to: .indexing(extract.lastPathComponent))
             let index: GroundIndex
             do {
-                index = try GroundIndex(extract: extract, frame: frame)
+                index = try GroundIndex(extract: extract, frame: frame, stop: stop)
             } catch let error as PBFError {
                 // Several extracts may be read: the one that failed is named.
                 throw Trouble.unreadableExtract(extract, error)

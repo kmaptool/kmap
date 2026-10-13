@@ -85,13 +85,18 @@ final class DeriveTests: XCTestCase {
         typDefined: [ElementDumper.Kind: Set<Int>] = [:]
     ) -> StyleRecovery.Report {
         var report = StyleRecovery.Report()
-        StyleRecovery.derive(
-            Evidence(codes: codes),
-            into: &report,
-            rules: rules,
-            typDefined: typDefined,
-            ground: ground
-        )
+        // Thrown only on a stop: an error here is a failure, never an empty report.
+        do {
+            try StyleRecovery.derive(
+                Evidence(codes: codes),
+                into: &report,
+                rules: rules,
+                typDefined: typDefined,
+                ground: ground
+            )
+        } catch {
+            XCTFail("derive threw \(error)")
+        }
         return report
     }
 
@@ -933,12 +938,16 @@ extension DeriveTests {
         typDefined: [ElementDumper.Kind: Set<Int>]
     ) -> StyleRecovery.Report {
         var report = StyleRecovery.Report()
-        StyleRecovery.derive(
-            Evidence(codes: codes),
-            into: &report,
-            rules: DefaultRuleBook.load(from: folder),
-            typDefined: typDefined
-        )
+        do {
+            try StyleRecovery.derive(
+                Evidence(codes: codes),
+                into: &report,
+                rules: DefaultRuleBook.load(from: folder),
+                typDefined: typDefined
+            )
+        } catch {
+            XCTFail("derive threw \(error)")
+        }
         return report
     }
 
@@ -1142,7 +1151,7 @@ extension DeriveTests {
         )
         var report = StyleRecovery.Report()
         let read = try XCTUnwrap(
-            StyleRecovery.readCodes(Evidence(codes: ["L1F": code]), into: &report, rules: rules).first
+            try StyleRecovery.readCodes(Evidence(codes: ["L1F": code]), into: &report, rules: rules).first
         )
         func texts(_ entry: StyleRecovery.CodeReading) -> [String] {
             entry.buckets.values.first?.lines.map(\.text) ?? []

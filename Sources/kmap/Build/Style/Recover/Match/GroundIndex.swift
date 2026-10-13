@@ -38,9 +38,12 @@ struct GroundIndex {
     static let outerRole = "outer"
     static let innerRole = "inner"
 
-    init(extract: URL, frame: BBox) throws {
+    /// - Parameter stop: asked before each blob, besides the task's own cancellation.
+    init(extract: URL, frame: BBox, stop: StopFlag = StopFlag()) throws {
         var sink = Builder(frame: frame)
-        try PBFReader(url: extract).read(into: &sink)
+        var reader = PBFReader(url: extract)
+        reader.shouldStop = { stop.isRaised }
+        try reader.read(into: &sink)
         // The relation lift: a bare outer way is indexed under its relation's tags.
         // Shared by several relations, as a border between two districts or two
         // woods is, it is lifted only where they all mean one thing, with the tags of

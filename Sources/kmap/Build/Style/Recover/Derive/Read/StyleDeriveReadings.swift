@@ -8,8 +8,9 @@ extension StyleRecovery {
     static func readCodes(
         _ evidence: Evidence,
         into report: inout Report,
-        rules: DefaultRuleBook
-    ) -> [CodeReading] {
+        rules: DefaultRuleBook,
+        stop: StopFlag = StopFlag()
+    ) throws -> [CodeReading] {
         // In key order: what follows breaks ties by who came first, and a dictionary
         // hands its keys over differently in every process.
         let codes = evidence.codes.sorted(by: { $0.key < $1.key })
@@ -26,8 +27,10 @@ extension StyleRecovery {
         // Each iteration writes only its own slot: nothing is shared.
         nonisolated(unsafe) let slots = results
         DispatchQueue.concurrentPerform(iterations: codes.count) { at in
-            slots[at] = reading(codes[at].key, codes[at].value, rules: rules)
+            slots[at] = reading(codes[at].key, codes[at].value, rules: rules, stop: stop)
         }
+        // A code left part-read on a stop is thrown away with the rest.
+        if stop.isRaised { throw CancellationError() }
         var read: [CodeReading] = []
         for (at, (key, _)) in codes.enumerated() {
             if let outcome = results[at].outcome { report.outcomes[key] = outcome }
@@ -37,10 +40,11 @@ extension StyleRecovery {
     }
 
     /// 1 code read: its outcome where already settled, and what its witnesses meant.
-    private static func reading(
+    static func reading(
         _ key: String,
         _ code: Evidence.ForCode,
-        rules: DefaultRuleBook
+        rules: DefaultRuleBook,
+        stop: StopFlag
     ) -> (outcome: Outcome?, reading: CodeReading?) {
         var outcome = Outcome(
             kind: code.kind,
@@ -71,7 +75,10 @@ extension StyleRecovery {
 
         var buckets: [String: MeaningBucket] = [:]
         var meant = 0
+        var read = 0
         for (id, tags) in code.sources {
+            read += 1
+            if read % StyleRecovery.progressStride == 0, stop.isRaised { return (nil, nil) }
             // An area matching coastline ways witnesses nothing: a land ring is cut from
             // them, and so are the beaches, bays and reserves along the shore. Taken for
             // either, the land layer would be silenced or repainted as sand.

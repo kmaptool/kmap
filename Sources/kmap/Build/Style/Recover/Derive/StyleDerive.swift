@@ -69,9 +69,10 @@ extension StyleRecovery {
         into report: inout Report,
         rules: DefaultRuleBook = .load(),
         typDefined: [ElementDumper.Kind: Set<Int>] = [:],
-        ground: [String: Int] = [:]
-    ) {
-        let readings = readCodes(evidence, into: &report, rules: rules)
+        ground: [String: Int] = [:],
+        stop: StopFlag = StopFlag()
+    ) throws {
+        let readings = try readCodes(evidence, into: &report, rules: rules, stop: stop)
 
         // Every witnessed code resolves - a foreign number and a colliding one alike. A
         // number the default set also uses is no promise the foreign style means the
