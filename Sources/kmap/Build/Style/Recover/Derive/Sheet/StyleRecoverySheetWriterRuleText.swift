@@ -1,8 +1,8 @@
 import Foundation
 
-/// Rule lines re-aimed: split by claimant, pinned to the zooms a code owns, closed
-/// and banded.
-extension StyleRecovery {
+/// Rule lines rewritten: split by claimant, pinned to the zooms a code owns, closed and
+/// banded.
+extension StyleRecovery.SheetWriter {
     /// Splits one rule into one rule per claiming code, each taking exactly the
     /// alternatives its code was seen drawing; alternatives no code was seen on stay
     /// with the strongest claimant. Only for a condition of the safe shape - a leading
@@ -11,10 +11,7 @@ extension StyleRecovery {
     /// whole, as before.
     static func splitRule(
         _ line: DefaultRuleBook.Line,
-        ranked: [(
-            type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int],
-            resolutions: [Int: Int]
-        )]
+        ranked: [StyleRecovery.CodeClaim]
     ) -> [String]? {
         if line.leadingGroup() == nil, line.wildcardHead() != nil {
             return splitFamilyRule(line, ranked: ranked)
@@ -24,7 +21,7 @@ extension StyleRecovery {
         var owner: [String: Int] = [:]
         for pair in pairs {
             var bestType: Int?
-            var bestCount = fewestWitnesses - 1
+            var bestCount = StyleRecovery.fewestWitnesses - 1
             for claim in ranked {
                 if let count = claim.tags[pair], count > bestCount {
                     bestCount = count
@@ -62,17 +59,14 @@ extension StyleRecovery {
     /// down, so the dedicated rules win exactly their own tags.
     private static func splitFamilyRule(
         _ line: DefaultRuleBook.Line,
-        ranked: [(
-            type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int],
-            resolutions: [Int: Int]
-        )]
+        ranked: [StyleRecovery.CodeClaim]
     ) -> [String]? {
         guard let base = ranked.first else { return nil }
         var dedicated: [(pair: String, type: Int)] = []
         for claim in ranked.dropFirst() {
             // The tags this code owns outright within the family's claims.
             for (tag, count) in claim.tags.sorted(by: { $0.key < $1.key })
-            where count >= fewestOutright
+            where count >= StyleRecovery.fewestOutright
                 && !ranked.contains(where: {
                     $0.type != claim.type
                         && ($0.tags[tag] ?? 0) > count
@@ -133,7 +127,7 @@ extension StyleRecovery {
             let kept = claim.resolutions.filter { zoom, _ in
                 guard owner[zoom] != type else { return true }
                 guard let over = owner[zoom], let held = byType[over] else { return false }
-                return paintsTheSame(claim.ids, held.ids)
+                return StyleRecovery.paintsTheSame(claim.ids, held.ids)
             }
             guard !kept.isEmpty else { continue }
             out[type] = (claim.type, claim.weight, claim.ids, claim.tags, kept)

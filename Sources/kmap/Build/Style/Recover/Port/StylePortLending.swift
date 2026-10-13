@@ -1,8 +1,9 @@
 import Foundation
 
-extension StylePort {
+extension StylePort.Mapping {
     /// Pictures no rung of theirs was won for, lent from a number that has one.
-    static func lendPictures(to claimed: inout [MapElementKind: [Int: Ported]], rules: RuleSetIndex) {
+    func lent(_ won: [MapElementKind: [Int: StylePort.Ported]]) -> [MapElementKind: [Int: StylePort.Ported]] {
+        var claimed = won
         // A number split off another for 1 meaning, a grade of it, wears the other's
         // picture: no rung of their ladder is the grade's.
         for (kind, now, was) in StyleCatalog.widenedNumbers {
@@ -10,7 +11,7 @@ extension StylePort {
                 let tags = rules.meaning(kind, now)?.tags, !tags.isEmpty,
                 tags == rules.meaning(kind, was)?.tags
             else { continue }
-            claimed[kind, default: [:]][now] = Ported(
+            claimed[kind, default: [:]][now] = StylePort.Ported(
                 ours: now,
                 theirs: parent.theirs,
                 kind: kind,
@@ -25,7 +26,7 @@ extension StylePort {
         if claimed[.point]?[StyleCatalog.ferrataEndCode] == nil,
             let climber = claimed[.point]?[StyleCatalog.climbingCode], climber.meaning.contains("climbing")
         {
-            claimed[.point, default: [:]][StyleCatalog.ferrataEndCode] = Ported(
+            claimed[.point, default: [:]][StyleCatalog.ferrataEndCode] = StylePort.Ported(
                 ours: StyleCatalog.ferrataEndCode,
                 theirs: climber.theirs,
                 kind: .point,
@@ -35,5 +36,7 @@ extension StylePort {
                 weight: climber.weight
             )
         }
+
+        return claimed
     }
 }

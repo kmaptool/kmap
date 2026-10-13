@@ -73,101 +73,12 @@ extension StyleRecovery {
     ) {
         let readings = readCodes(evidence, into: &report, rules: rules)
 
-        // A meaning belongs to the code that mostly draws it, so every claim on it is
-        // measured against the strongest claim made on it.
-        var leader: [String: Int] = [:]
-        // And per tag: a code drawing few of a chain's many tags is a stray on the
-        // chain, yet the rightful owner of its own tag - bollards under the gates.
-        var tagLeader: [String: Int] = [:]
-        // The finest zoom each meaning is drawn at, over every code: a stroke that
-        // stops short of it is the same meaning at another zoom, not a stray.
-        var bucketFinest: [String: Int] = [:]
-        // And per class, buildings apart from open ground: a yard is no stray of the
-        // buildings standing in it.
-        var classLeader: [String: Int] = [:]
-        var builtMost: [String: Int] = [:], openMost: [String: Int] = [:]
-        for entry in readings {
-            for (bucket, meaning) in entry.buckets {
-                leader[bucket] = max(leader[bucket] ?? 0, meaning.count)
-                let classed = classKey(bucket, meaning)
-                classLeader[classed] = max(classLeader[classed] ?? 0, meaning.count)
-                if let finest = entry.code.resolutions.keys.max() {
-                    bucketFinest[bucket] = max(bucketFinest[bucket] ?? 0, finest)
-                }
-                for (tag, count) in meaning.tags {
-                    tagLeader["\(entry.code.kind.rawValue)@\(tag)"] = max(
-                        tagLeader["\(entry.code.kind.rawValue)@\(tag)"] ?? 0,
-                        count
-                    )
-                    guard entry.code.kind == .area else { continue }
-                    let key = "\(entry.code.kind.rawValue)@\(tag)"
-                    if meaning.isBuilt {
-                        builtMost[key] = max(builtMost[key] ?? 0, count)
-                    } else {
-                        openMost[key] = max(openMost[key] ?? 0, count)
-                    }
-                }
-            }
-        }
-        // A tag is drawn on buildings, or on open ground, only where that class is
-        // a real share of it: three mistagged houses do not make the woods built.
-        func real(_ mine: Int?, against other: Int?) -> Bool {
-            let mine = mine ?? 0
-            return mine >= fewestStroke && Double(mine) >= stray * Double(other ?? 0)
-        }
-        let read = readings.map { widened($0, rules: rules, tagLeader: tagLeader) }
-        let builtTags = Set(builtMost.keys.filter { real(builtMost[$0], against: openMost[$0]) })
-        let openTags = Set(openMost.keys.filter { real(openMost[$0], against: builtMost[$0]) })
-
-        var claimed: [String: ClaimedRule] = [:]
-        var additions: [ElementDumper.Kind: [RuleAddition]] = [:]
-        // Rules their map draws on buildings as buildings, and on open ground its
-        // own way: narrowed to the ground, so the buildings fall through.
-        var narrowed: [String: DefaultRuleBook.Line] = [:]
-
-        // A default code claims the lines it already emits: a foreign code painted over
-        // the same elements then becomes a layer above it, not a replacement or a stray.
-        for entry in read where !entry.foreign {
-            for (_, meaning) in entry.buckets where meaning.count >= entry.floor {
-                for line in meaning.lines where line.emits(entry.code.type) {
-                    let slot = line.file + ":" + line.text
-                    var claim = claimed[slot] ?? ClaimedRule(lines: [line])
-                    claim.codes.append(
-                        (
-                            entry.code.type, meaning.count, meaning.ids,
-                            meaning.tags, meaning.resolutions
-                        )
-                    )
-                    claimed[slot] = claim
-                }
-            }
-        }
-
         // Every witnessed code resolves - a foreign number and a colliding one alike. A
         // number the default set also uses is no promise the foreign style means the
         // same thing by it: this map drew barracks as 0x1c, which is kmap's farmland.
-        // The same evidence, reachable by code: a claim asks whether a line's own
-        // code was itself seen drawing the meaning before re-aiming the line away.
-        var readByCode: [String: CodeReading] = [:]
-        for entry in read { readByCode[codeKey(entry.code.kind, entry.code.type)] = entry }
-
-        var verdicts: [String: CodeVerdict] = [:]
-        for entry in read {
-            var outcome = resolve(
-                entry,
-                leader: leader,
-                classLeader: classLeader,
-                tagLeader: tagLeader,
-                builtTags: builtTags,
-                openTags: openTags,
-                bucketFinest: bucketFinest,
-                ground: ground,
-                claimed: &claimed,
-                narrowed: &narrowed,
-                additions: &additions,
-                readByCode: readByCode,
-                verdicts: &verdicts
-            )
+        var resolver = Resolver(readings: readings, rules: rules, ground: ground)
+        for entry in resolver.readings {
+            var outcome = resolver.resolve(entry)
             if !entry.foreign {
                 outcome.meaning =
                     outcome.meaning.isEmpty
@@ -176,56 +87,13 @@ extension StyleRecovery {
             report.outcomes[entry.key] = outcome
         }
 
-        // Rule chains the foreign map was seen drawing, per kind: a rule of a drawn
-        // chain is never silenced - the claims have already said what happens to it.
-        var witnessedSlots = Set<String>()
-        for entry in read {
-            for (_, bucket) in entry.buckets where bucket.count >= fewestWitnesses {
-                for line in bucket.lines {
-                    witnessedSlots.insert(
-                        "\(entry.code.kind.rawValue):\(line.file):\(line.text)"
-                    )
-                }
-            }
-        }
-
-        // Twice: the first pass only learns how each code came out painted, so the
-        // second can paint a rule the evidence left bare the way its code is painted
-        // elsewhere - whichever order the rules happen to be in.
-        var ladders: [String: [(type: Int, resolutions: [Int: Int])]] = [:]
-        _ = claimedRuleSheet(claimed, ladders: &ladders)
-        let learned = ladders
-        var sheet = claimedRuleSheet(claimed, ladders: &ladders, known: learned)
-        for (slot, line) in narrowed.sorted(by: { $0.key < $1.key })
-        where claimed[slot] == nil {
-            guard let open = line.narrowedToOpenGround() else { continue }
-            sheet.append("@@ \(line.file)")
-            sheet.append("- \(line.text)")
-            if let second = line.continuation { sheet.append("- \(second)") }
-            sheet.append(contentsOf: open.map { "+ " + $0 })
-            claimed[slot] = ClaimedRule(lines: [line])
-        }
-        sheet.append(contentsOf: additionSheet(additions, claimed: claimed, rules: rules))
-        sheet.append(
-            contentsOf: silencedRuleSheet(
-                verdicts: verdicts,
-                witnessedSlots: witnessedSlots,
-                typDefined: typDefined,
-                claimed: claimed,
-                rules: rules
-            )
+        var writer = SheetWriter(
+            claims: resolver.claims,
+            witnessedSlots: resolver.witnessedSlots,
+            typDefined: typDefined,
+            rules: rules
         )
-        // Every anchor already spoken for: a rule is rewritten once, or the second
-        // substitution finds nothing to stand on.
-        let already = Set(sheet.filter { $0.hasPrefix("- ") }.map { String($0.dropFirst(2)) })
-        sheet.append(
-            contentsOf: siblingRuleSheet(
-                ladders: ladders,
-                already: already,
-                rules: rules
-            )
-        )
-        report.sheet = sheet.joined(separator: "\n")
+        report.sheet = writer.write().joined(separator: "\n")
     }
 
     static func codeKey(_ kind: ElementDumper.Kind, _ type: Int) -> String {

@@ -3,9 +3,9 @@ import XCTest
 @testable import kmap
 
 /// How many workers a machine runs at once when each of them holds something large.
-final class LanesTests: XCTestCase {
+final class MachineLanesTests: XCTestCase {
     func testTheCoresDecideWhenThereIsRoomForAllOfThem() {
-        // Half the memory is spendable: 24 GB over 0.7 apiece exceeds the ten asked for.
+        // Half the memory is spendable: 24 GB over 0.7 apiece exceeds the 10 asked for.
         XCTAssertEqual(Machine.lanes(10, holdingEach: 0.7, memoryGB: 48), 10)
     }
 

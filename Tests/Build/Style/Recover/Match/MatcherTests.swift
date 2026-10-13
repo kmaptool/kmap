@@ -193,7 +193,7 @@ final class MatcherTests: XCTestCase {
 
     /// A village drawn only when zoomed out sits on that level's lattice; the node
     /// standing in the cell names it.
-    func testAPointOnAZoomedOutLevelIsNamedByItsCell() throws {
+    func testAPointOnAZoomedOutLevelIsNamedByItsCell() async throws {
         let url = folder.appendingPathComponent("places.osm.pbf")
         let writer = try PBFWriter(to: url)
         writer.header()
@@ -217,16 +217,18 @@ final class MatcherTests: XCTestCase {
         dump.elements = [ElementDumper.Element(kind: .point, type: 0x0900, from: 0, count: 1)]
         dump.resolutions = [22]
         var evidence = Evidence()
-        CoarseEvidence.match(dump, index: index, into: &evidence)
+        await CoarseEvidence.match(dump, index: index, into: &evidence)
         let code = evidence.codes["P900"]
         XCTAssertEqual(code?.sources[70]?["place"], "village")
         XCTAssertEqual(code?.resolutions[22], 1)
 
         // A second extract holding the same village does not see it again.
         var again = Evidence()
-        var answered = [Bool](repeating: false, count: dump.count)
-        CoarseEvidence.match(dump, index: index, answered: &answered, into: &again)
-        CoarseEvidence.match(dump, index: index, answered: &answered, into: &again)
+        let answered = UnsafeMutableBufferPointer<Bool>.allocate(capacity: dump.count)
+        answered.initialize(repeating: false)
+        defer { answered.deallocate() }
+        await CoarseEvidence.match(dump, index: index, answered: answered, into: &again)
+        await CoarseEvidence.match(dump, index: index, answered: answered, into: &again)
         XCTAssertEqual(again.codes["P900"]?.resolutions[22], 1)
     }
 

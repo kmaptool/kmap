@@ -40,7 +40,6 @@ extension CLI {
             if let out = flags.value("out") { settings.outputDirectory = out }
             if let work = flags.value("work") { settings.workDirectory = work }
         }
-        let settings = store.settings
         let toolchain = Toolchain(settings: store)
         let catalog = StyleCatalog(settings: store, toolchain: toolchain)
 
@@ -52,32 +51,9 @@ extension CLI {
         for name in unknownBuildOptions(in: flags) {
             asked.refused.append("--\(name) is not an option of `kmap build` — see `kmap help`")
         }
-        if let sources = flags.value("sources") {
-            let unknown = unknownSources(in: sources)
-            if !unknown.isEmpty || CopernicusDEM.canonicalSourceList(sources).isEmpty {
-                asked.refused.append(
-                    "--sources: "
-                        + (unknown.isEmpty
-                            ? "the list is empty" : "no source called \(unknown.joined(separator: ", "))")
-                        + " — copernicus1, copernicus3, fabdem1, gedtm1, view1, view3, srtm1, srtm3 or alos1"
-                )
-            }
+        guard let request = BuildRequest(&asked, choices: choices, store: store, catalog: catalog) else {
+            return CLIOutput.refuse(asked.refused)
         }
-        let heap = asked.number("heap", in: BuildOptions.heapGB)
-        let connections = asked.number("connections", in: BuildOptions.connections)
-        if let memory = asked.number("memory", in: BuildOptions.memoryGB) { Machine.told(memory) }
-        let repairRadius = asked.repairRadius()
-        let style = chosenStyle(&asked, choices: choices, catalog: catalog)
-        let hidden = asked.hidden() ?? choices.hiddenFeatures
-        let drawn = RenderingChoices(&asked, choices: choices, settings: settings)
-        let parts = asked.number("parts", in: BuildOptions.parts)
-        let interval = asked.number("interval", in: BuildOptions.contourInterval) ?? choices.contourInterval
-        let maxNodes = asked.number("max-nodes", in: BuildOptions.nodesPerTile) ?? settings.maxNodesPerTile
-        let familyID = asked.number("family-id", in: BuildOptions.familyID)
-        let split = splitMode(&asked, choices: choices, parts: parts)
-        let format = outputFormat(&asked, choices: choices)
-        let overlap = overlaps(&asked, choices: choices)
-        guard asked.refused.isEmpty, let style, let split else { return CLIOutput.refuse(asked.refused) }
 
         // The network is reached only after every flag has been accepted.
         let index = RegionIndex()
@@ -91,46 +67,7 @@ extension CLI {
         case .success(let found): chosen = found
         case .failure(let refusal): return CLIOutput.refuse(refusal.why)
         }
-        let region = chosen[0]
-
-        var recipe = BuildRecipe(
-            region: region,
-            extraRegions: Array(chosen.dropFirst()),
-            style: style,
-            contours: asked.switched("contours", choices.contours),
-            contourInterval: interval,
-            demLayer: asked.switched("dem", choices.demLayer),
-            fixSummits: asked.switched("summits", choices.fixSummits),
-            demSources: CopernicusDEM.canonicalSourceList(flags.value("sources") ?? choices.demSources),
-            routable: asked.switched("route", choices.routable),
-            searchIndex: asked.switched("index", choices.searchIndex),
-            houseNumbers: asked.switched("house-numbers", choices.houseNumbers),
-            generateSea: asked.switched("sea", choices.generateSea),
-            // 0 leaves the code page to the region.
-            codePage: drawn.codePage != 0 ? drawn.codePage : BuildRecipe.suggestedCodePage(for: region, in: index),
-            levels: drawn.levels,
-            nameTagList: drawn.labels.tagList,
-            descriptions: drawn.descriptions,
-            zoomPlan: drawn.zoomPlan,
-            customPOIs: asked.switched("custom-pois", choices.customPOIs),
-            splitNameIndex: asked.wordIndex(choices.splitNameIndex),
-            healRoadEnds: asked.switched("repair-ends", choices.healRoadEnds),
-            hidden: Set(hidden),
-            familyID: familyID ?? store.familyID(for: BuildRecipe.identityKey(chosen)),
-            splitMode: split,
-            countryOf: countries(of: chosen, in: index),
-            outputDirectory: store.settings.outputURL,
-            workRoot: store.settings.workURL,
-            maxNodesPerTile: maxNodes,
-            heapGB: heap ?? settings.resolvedHeapGB,
-            downloadConnections: connections ?? settings.downloadConnections
-        )
-        recipe.healRadius = repairRadius ?? recipe.healRadius
-        recipe.startedOn = Date()
-        recipe.theme = drawn.theme
-        recipe.format = format
-        recipe.shapeOverlap = overlap.shape
-        recipe.landOverlap = overlap.land
+        let recipe = request.recipe(for: chosen, in: index)
 
         // Said before any work starts, naming the one command that fixes it.
         guard toolchain.canBuild else {
@@ -151,63 +88,5 @@ extension CLI {
         defer { interrupts.stop() }
         pipeline.start()
         return await follow(pipeline, landingIn: recipe.destinationDirectory)
-    }
-
-    /// The style the build was asked for, or the profile's own. An unknown style is
-    /// refused rather than swapped for whichever comes first.
-    private static func chosenStyle(
-        _ asked: inout BuildOptions,
-        choices: BuildChoices,
-        catalog: StyleCatalog
-    ) -> MapStyle? {
-        if asked.flags.has("style") { return asked.style(in: catalog) }
-        if let found = StyleCatalog.find(choices.styleID, in: catalog.availableStyles()) { return found }
-        let named = asked.flags.has("profile") ? "the profile's style" : "the style"
-        asked.refused.append("\(named) \"\(choices.styleID)\" is not a style kmap can find — see `kmap styles`")
-        return nil
-    }
-
-    /// `--split=` if given, else `--parts=`, else the profile's own mode.
-    private static func splitMode(
-        _ asked: inout BuildOptions,
-        choices: BuildChoices,
-        parts: Int?
-    ) -> SplitMode? {
-        if asked.flags.has("split") {
-            guard let word = asked.word("split", among: BuildOptions.splitModes) else { return nil }
-            return SplitMode(settingsID: word, count: parts ?? choices.parts)
-        }
-        if let parts { return .count(parts) }
-        return SplitMode(settingsID: choices.splitMode, count: choices.parts)
-    }
-
-    /// `--format=` if given, else the profile's own; a profile from an older file writes
-    /// card files.
-    static func outputFormat(_ asked: inout BuildOptions, choices: BuildChoices) -> OutputFormat {
-        asked.word("format", among: OutputFormat.allCases.map { ($0.rawValue, $0) })
-            ?? OutputFormat(rawValue: choices.format) ?? .img
-    }
-
-    /// `--overlap` and `--land-overlap`, each stepped to the grid. Land may never exceed
-    /// shape: refused rather than clamped, whichever of the two the profile supplied.
-    private static func overlaps(
-        _ asked: inout BuildOptions,
-        choices: BuildChoices
-    ) -> (shape: Int, land: Int) {
-        let shapeAsked = asked.number("overlap", in: BuildOptions.overlap)
-        let landAsked = asked.number("land-overlap", in: BuildOptions.overlap)
-        for (name, value) in [("overlap", shapeAsked), ("land-overlap", landAsked)] {
-            if let refusal = value.flatMap({ BuildChoices.offStep(name, $0) }) { asked.refused.append(refusal) }
-        }
-        let shape = BuildChoices.sane(shapeAsked ?? choices.shapeOverlap)
-        // A land overlap nobody gave follows a lower shape one down, as for a profile.
-        let land = landAsked.map(BuildChoices.sane) ?? min(BuildChoices.sane(choices.landOverlap), shape)
-        if land > shape {
-            asked.refused.append(
-                "--land-overlap=\(land) is past --overlap=\(shape)"
-                    + " — land would be painted onto ground the tile holds no cover for"
-            )
-        }
-        return (shape, land)
     }
 }

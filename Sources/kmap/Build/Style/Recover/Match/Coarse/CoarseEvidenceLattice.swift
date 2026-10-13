@@ -17,22 +17,23 @@ extension CoarseEvidence {
             ringsOnly: Bool = false
         ) {
             self.shift = shift
-            wayCells.reserveCapacity(index.ways.count)
-            closed.reserveCapacity(index.ways.count)
-            for (slot, way) in index.ways.enumerated() {
-                var seen = Set<UInt64>()
+            // Each way's cells over every core, 1 set of seen cells per core; the cells go
+            // into the lattice in slot order, so each list keeps its order.
+            let read = Lanes.map(index.ways.count, scratch: { Set<UInt64>() }) { seen, slot in
+                let way = index.ways[slot]
+                seen.removeAll(keepingCapacity: true)
                 var cells: [UInt64] = []
                 for cell in way.cells {
                     let q = quantize(cell, shift: shift)
                     if seen.insert(q).inserted { cells.append(q) }
                 }
-                let ring =
-                    way.cells.count >= GarminGrid.ringVertices
-                    && way.cells.first == way.cells.last
-                closed.append(ring)
-                wayCells.append(cells)
-                guard !ringsOnly || ring else { continue }
-                for q in cells { byCell[q, default: []].append(Int32(slot)) }
+                let ring = way.cells.count >= GarminGrid.ringVertices && way.cells.first == way.cells.last
+                return (cells: cells, ring: ring)
+            }
+            wayCells = read.map(\.cells)
+            closed = read.map(\.ring)
+            for (slot, way) in read.enumerated() where !ringsOnly || way.ring {
+                for q in way.cells { byCell[q, default: []].append(Int32(slot)) }
             }
             // A cell half the town passes through names nobody.
             byCell = byCell.filter { $0.value.count <= tooBusyCell }

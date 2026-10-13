@@ -25,31 +25,13 @@ enum StylePort {
         theirTyp: TypSource? = nil,
         theirAreas: [String: [String: Double]] = [:]
     ) -> [Ported] {
-        let ourCodes = ourNumbers(in: rules)
-        let theirs = theirLadders(
+        Mapping(
             codesByTag: codesByTag,
-            ourCodes: ourCodes,
+            rules: rules,
             theirZooms: theirZooms,
             theirTyp: theirTyp,
             theirAreas: theirAreas
-        )
-        var seen: [String: Int] = [:]
-        for drawn in codesByTag.values {
-            for (key, count) in drawn { seen[key, default: 0] += count }
-        }
-        let offered = offers(
-            theirs: theirs,
-            ourCodes: ourCodes,
-            ourFinest: ourReach(in: rules),
-            theirTyp: theirTyp,
-            seen: seen
-        )
-        var claimed = claim(offered, agreement: Agreement(codesByTag: codesByTag, ourCodes: ourCodes), seen: seen)
-        lendPictures(to: &claimed, rules: rules)
-        let ported = claimed.values.flatMap(\.values).sorted {
-            ($0.kind.rawValue, $0.ours) < ($1.kind.rawValue, $1.ours)
-        }
-        return ordered(ported, ranks: LineDrawOrder.ranks(in: rules), theirs: theirTyp)
+        ).ported()
     }
 
     /// What mkgmap manufactures rather than reads, and the number of theirs each takes

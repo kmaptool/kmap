@@ -10,6 +10,11 @@ extension DefaultRuleBook {
         let continuation: String?
         var isSplit: Bool { continuation != nil }
         private let typeRange: Range<String.Index>
+        /// The code as a number, read once: `emits` is asked for every claim.
+        private let number: Int?
+        /// The condition's terms in the order they are written, read once; nil for a
+        /// condition with alternatives, groups or a regular expression.
+        private let terms: [Term]?
 
         init?(file: String, text: String, continuation: String? = nil) {
             // The type is read out of whichever line carries it.
@@ -25,6 +30,11 @@ extension DefaultRuleBook {
             self.text = text
             self.continuation = continuation
             self.typeRange = found.lowerBound..<end
+            number = Int(carrier[found.lowerBound..<end].dropFirst(2), radix: 16)
+            let condition = DefaultRuleBook.withoutActions(String(text.prefix { $0 != "[" }))
+            terms =
+                condition.contains(where: { "|()~".contains($0) })
+                ? nil : condition.split(separator: "&").map { Term($0.trimmingCharacters(in: .whitespaces)) }
         }
 
         /// The line the type is written on: the rule itself, or its second line.
@@ -36,7 +46,7 @@ extension DefaultRuleBook {
             return String(Int(raw, radix: 16) ?? -1, radix: 16)
         }
 
-        func emits(_ type: Int) -> Bool { code == String(type, radix: 16) }
+        func emits(_ type: Int) -> Bool { (number ?? -1) == type }
 
         /// Rewritten keeping the original token's width, so 0x0b00 does not come back
         /// as 0xb00. mkgmap reads either; the sheet is compared as text.
@@ -164,49 +174,17 @@ extension DefaultRuleBook {
         /// Whether the rule's condition holds for these tags; nil where it is more than
         /// plain terms joined by `&`, or names a tag mkgmap makes itself.
         func holds(for tags: [String: String]) -> Bool? {
-            let condition = DefaultRuleBook.withoutActions(String(text.prefix { $0 != "[" }))
-            guard !condition.contains(where: { "|()~".contains($0) }) else { return nil }
-            for raw in condition.split(separator: "&") {
-                let term = raw.trimmingCharacters(in: .whitespaces)
-                guard let held = Self.holds(term, for: tags) else { return nil }
+            guard let terms else { return nil }
+            for term in terms {
+                guard let held = term.holds(for: tags) else { return nil }
                 if !held { return false }
             }
             return true
         }
 
-        /// One term: `k=v`, `k=*`, `k!=v`, `k!=*`, or a number compared with `<`, `<=`,
-        /// `>` or `>=` by the first number in the value; a value with none fails, as in
-        /// mkgmap.
-        private static func holds(_ term: String, for tags: [String: String]) -> Bool? {
-            for op in ["!=", ">=", "<=", "=", ">", "<"] {
-                guard let at = term.range(of: op) else { continue }
-                let key = term[..<at.lowerBound].trimmingCharacters(in: .whitespaces)
-                var value = term[at.upperBound...].trimmingCharacters(in: .whitespaces)
-                if value.count >= 2, let first = value.first, "'\"".contains(first), value.last == first {
-                    value = String(value.dropFirst().dropLast())
-                }
-                guard !key.isEmpty, !key.hasPrefix("mkgmap:") else { return nil }
-                let have = tags[key]
-                switch op {
-                case "=": return value == "*" ? have != nil : have == value
-                case "!=": return value == "*" ? have == nil : have != value
-                default:
-                    guard let limit = Double(value) else { return nil }
-                    guard let number = have.flatMap(Self.leadingNumber) else { return false }
-                    switch op {
-                    case ">": return number > limit
-                    case ">=": return number >= limit
-                    case "<": return number < limit
-                    default: return number <= limit
-                    }
-                }
-            }
-            return nil
-        }
-
         /// The first number in a value, as mkgmap finds one: `75000 (2010)` and `~75000`
         /// are 75000; a run of digits and dots that is no number, as in `c. 75000`, is none.
-        private static func leadingNumber(_ value: String) -> Double? {
+        static func leadingNumber(_ value: String) -> Double? {
             let chars = Array(value)
             func part(_ c: Character) -> Bool { c.isASCII && (c.isNumber || c == ".") }
             guard

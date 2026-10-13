@@ -3,14 +3,23 @@ import Foundation
 extension StyleRecovery {
     /// Which codes this map was seen drawing each meaning with, and over how much ground.
     static func ledger(_ evidence: Evidence, into report: inout Report) {
-        for (key, code) in evidence.codes {
+        // Each code tallied on its own, over every core: a code's areas add up in its own
+        // order, as they always have, so the sums come out the same.
+        let codes = Array(evidence.codes)
+        let tallies = Lanes.map(codes.count, lanes: codes.count) { at in
+            var counts: [String: Int] = [:]
+            var areas: [String: Double] = [:]
+            let code = codes[at].value
             for (id, tags) in code.sources {
                 guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
-                report.codesByTag[tag, default: [:]][key, default: 0] += 1
-                if let area = code.extent[id] {
-                    report.areaByTag[tag, default: [:]][key, default: 0] += area
-                }
+                counts[tag, default: 0] += 1
+                if let area = code.extent[id] { areas[tag, default: 0] += area }
             }
+            return (counts, areas)
+        }
+        for (at, (key, _)) in codes.enumerated() {
+            for (tag, count) in tallies[at].0 { report.codesByTag[tag, default: [:]][key] = count }
+            for (tag, area) in tallies[at].1 { report.areaByTag[tag, default: [:]][key] = area }
         }
     }
 

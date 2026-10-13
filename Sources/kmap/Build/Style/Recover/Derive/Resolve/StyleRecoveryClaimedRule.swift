@@ -6,10 +6,10 @@ extension StyleRecovery {
     /// all 3 belong in the sheet as layers.
     struct ClaimedRule {
         let lines: [DefaultRuleBook.Line]
-        var codes:
-            [(
-                type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int],
-                resolutions: [Int: Int]
-            )] = []
+        var codes: [CodeClaim] = []
     }
+
+    /// 1 code's claim on a rule: how much it drew there, on which elements, under which
+    /// tags and at which zooms.
+    typealias CodeClaim = (type: Int, weight: Int, ids: Set<Int64>, tags: [String: Int], resolutions: [Int: Int])
 }

@@ -447,7 +447,7 @@ final class PixelEditorScreen: Screen {
         let value = text.trimmingCharacters(in: .whitespaces)
         if meansNone(value) { return String?.none as String?? }
         guard Color.hex(value) != nil else { return nil }
-        return TypSource.withAlpha(nil, on: "#" + value.replacingOccurrences(of: "#", with: "").uppercased())
+        return XpmBlock.withAlpha(nil, on: "#" + value.replacingOccurrences(of: "#", with: "").uppercased())
     }
 
     private static let alphabet = XpmBlock.keyAlphabet

@@ -33,125 +33,176 @@ enum CoarseEvidence {
 
     /// Reads every coarse-level element against one extract, adding witnesses for
     /// what qualifies.
-    static func match(
-        _ dump: ElementDumper.Dump,
-        index: GroundIndex,
-        into evidence: inout Evidence
-    ) {
-        var answered = [Bool](repeating: false, count: dump.count)
-        match(dump, index: index, answered: &answered, into: &evidence)
+    static func match(_ dump: ElementDumper.Dump, index: GroundIndex, into evidence: inout Evidence) async {
+        let answered = UnsafeMutableBufferPointer<Bool>.allocate(capacity: dump.count)
+        answered.initialize(repeating: false)
+        defer { answered.deallocate() }
+        await match(dump, index: index, answered: answered, into: &evidence)
     }
 
     /// As above, over several extracts in turn: `answered` marks the elements an
     /// earlier extract already witnessed, which an overlapping one would count again.
+    ///
+    /// Spread over the cores: the lattices are built once and only read, each core keeps
+    /// the witnesses of its own span, and the parts are merged in core order.
     static func match(
         _ dump: ElementDumper.Dump,
         index: GroundIndex,
-        answered: inout [Bool],
+        answered: UnsafeMutableBufferPointer<Bool>,
         into evidence: inout Evidence
-    ) {
+    ) async {
         guard !dump.elements.isEmpty else { return }
         let lattice = Lattice(index)
-        var points: [Int: PointLattice] = [:]
-        for at in 0..<dump.count where !answered[at] {
-            // Left part-done: the caller checks the cancellation and throws.
-            if at % StyleRecovery.progressStride == 0, Task.isCancelled { return }
-            let element = dump.elements[at]
-            if element.kind == .point {
-                // A point sits on its level's lattice; the nodes standing in that
-                // cell name it when they all mean one thing.
-                guard let resolution = dump.resolution(at),
-                    let cell = dump.chain(at).first
-                else { continue }
-                let shift = GarminGrid.fullResolution - resolution
-                if points[shift] == nil { points[shift] = PointLattice(index, shift: shift) }
-                guard let slots = points[shift]?.byCell[cell], !slots.isEmpty else { continue }
-                var meaning: String?
-                var winner: Int32 = -1
-                for slot in slots {
-                    guard let tag = DefaultRuleBook.meaning(of: index.nodes[Int(slot)].tags)
-                    else { continue }
-                    if meaning == nil { meaning = tag; winner = slot } else if meaning != tag { winner = -1; break }
-                }
-                guard winner >= 0 else { continue }
-                let node = index.nodes[Int(winner)]
-                evidence.witness(
-                    kind: .point,
-                    type: element.type,
-                    way: node.id,
-                    tags: node.tags,
-                    resolution: resolution
-                )
-                answered[at] = true
-                continue
-            }
-            var seen = Set<UInt64>()
-            var corners: [UInt64] = []
-            for cell in dump.chain(at) {
-                let q = quantize(cell)
-                if seen.insert(q).inserted { corners.append(q) }
-            }
-            guard corners.count >= fewestShared else { continue }
-
-            var held: [Int32: Int] = [:]
-            for corner in corners {
-                for slot in lattice.byCell[corner] ?? [] { held[slot, default: 0] += 1 }
-            }
-            let wanted = max(fewestShared, corners.count / cornerShare)
-            // A shape and a line are answered differently. A fill covers ground, so
-            // everything under it must agree or it names nothing. A zoomed-out line
-            // runs the length of one way and brushes past dozens - every road it
-            // crosses, every river it follows - so unanimity would name nothing at
-            // all; instead the way it shares most of its length with wins, and only
-            // by a clear margin over the next meaning.
-            var winner: Int32 = -1
-            if element.kind == .area {
-                // Ordered, as the line branch is: which way of the several agreeing
-                // ones is recorded decides an id in the ledger, and a dictionary's own
-                // order is not the same from one run to the next.
-                let ranked = held.sorted { ($0.value, $0.key) > ($1.value, $1.key) }
-                    .filter { $0.value >= wanted }
-                // The holes are asked last: a fill cut through a lake traces the lake's
-                // ring too, and the lake is not what the fill means.
-                if let one = unanimous(ranked, in: index) {
-                    winner = one
-                } else if let one = unanimous(
-                    ranked.filter { !index.isInner($0.key) },
-                    in: index
-                ) {
-                    winner = one
-                }
-                guard winner >= 0 else { continue }
-            } else {
-                var best = (slot: Int32(-1), count: 0, tag: "")
-                var runnerUp = 0
-                for (slot, count) in held.sorted(by: {
-                    ($0.value, $0.key)
-                        > ($1.value, $1.key)
-                }) {
-                    let tags = index.tags(ofWay: slot)
-                    guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
-                    if best.slot < 0 {
-                        best = (slot, count, tag)
-                    } else if tag != best.tag {
-                        runnerUp = count
-                        break
-                    }
-                }
-                guard best.slot >= 0, best.count >= wanted,
-                    best.count >= runnerUp * 2
-                else { continue }
-                winner = best.slot
-            }
-            evidence.witness(
-                kind: element.kind,
-                type: element.type,
-                way: index.ways[Int(winner)].id,
-                tags: index.tags(ofWay: winner),
-                resolution: dump.resolution(at)
-            )
-            answered[at] = true
+        // A point sits on its level's lattice: 1 lattice per level the points are drawn at.
+        var shifts = Set<Int>()
+        for at in 0..<dump.count where dump.elements[at].kind == .point && !answered[at] {
+            if let resolution = dump.resolution(at) { shifts.insert(GarminGrid.fullResolution - resolution) }
         }
+        let points = Dictionary(uniqueKeysWithValues: shifts.map { ($0, PointLattice(index, shift: $0)) })
+        let cores = max(1, min(ProcessInfo.processInfo.activeProcessorCount, StyleRecovery.mostCores))
+        let span = (dump.count + cores - 1) / cores
+        // Each core's part goes to its own place, not back through the group: see
+        // `ExtractLocator.newestAnswering`.
+        let parts = Locked([Evidence?](repeating: nil, count: cores))
+        // Each core marks only the elements of its own span: nothing is shared.
+        nonisolated(unsafe) let answered = answered
+        await withTaskGroup(of: Void.self) { group in
+            for core in 0..<cores {
+                let from = core * span
+                let upTo = min(dump.count, from + span)
+                guard from < upTo else { continue }
+                group.addTask {
+                    var mine = Evidence()
+                    var scratch = Scratch()
+                    for at in from..<upTo where !answered[at] {
+                        // Left part-done: the caller checks the cancellation and throws.
+                        if at % StyleRecovery.progressStride == 0, Task.isCancelled { break }
+                        if identify(
+                            at,
+                            in: dump,
+                            index: index,
+                            lattice: lattice,
+                            points: points,
+                            scratch: &scratch,
+                            into: &mine
+                        ) {
+                            answered[at] = true
+                        }
+                    }
+                    let part = mine
+                    parts.withLock { $0[core] = part }
+                }
+            }
+        }
+        for part in parts.withLock({ $0 }) { if let part { evidence.merge(part) } }
+    }
+
+    /// 1 coarse element against the ground, witnessed where it qualifies. True where it
+    /// was.
+    private static func identify(
+        _ at: Int,
+        in dump: ElementDumper.Dump,
+        index: GroundIndex,
+        lattice: Lattice,
+        points: [Int: PointLattice],
+        scratch: inout Scratch,
+        into evidence: inout Evidence
+    ) -> Bool {
+        let element = dump.elements[at]
+        if element.kind == .point {
+            // A point sits on its level's lattice; the nodes standing in that
+            // cell name it when they all mean one thing.
+            guard let resolution = dump.resolution(at),
+                let cell = dump.chain(at).first
+            else { return false }
+            let shift = GarminGrid.fullResolution - resolution
+            guard let slots = points[shift]?.byCell[cell], !slots.isEmpty else { return false }
+            var meaning: String?
+            var winner: Int32 = -1
+            for slot in slots {
+                guard let tag = DefaultRuleBook.meaning(of: index.nodes[Int(slot)].tags)
+                else { continue }
+                if meaning == nil { meaning = tag; winner = slot } else if meaning != tag { winner = -1; break }
+            }
+            guard winner >= 0 else { return false }
+            let node = index.nodes[Int(winner)]
+            evidence.witness(
+                kind: .point,
+                type: element.type,
+                way: node.id,
+                tags: node.tags,
+                resolution: resolution
+            )
+            return true
+        }
+        scratch.seen.removeAll(keepingCapacity: true)
+        scratch.corners.removeAll(keepingCapacity: true)
+        for cell in dump.chain(at) {
+            let q = quantize(cell)
+            if scratch.seen.insert(q).inserted { scratch.corners.append(q) }
+        }
+        let corners = scratch.corners
+        guard corners.count >= fewestShared else { return false }
+
+        scratch.held.removeAll(keepingCapacity: true)
+        for corner in corners {
+            for slot in lattice.byCell[corner] ?? [] { scratch.held[slot, default: 0] += 1 }
+        }
+        let held = scratch.held
+        let wanted = max(fewestShared, corners.count / cornerShare)
+        // A shape and a line are answered differently. A fill covers ground, so
+        // everything under it must agree or it names nothing. A zoomed-out line
+        // runs the length of one way and brushes past dozens - every road it
+        // crosses, every river it follows - so unanimity would name nothing at
+        // all; instead the way it shares most of its length with wins, and only
+        // by a clear margin over the next meaning.
+        var winner: Int32 = -1
+        if element.kind == .area {
+            // Ordered, as the line branch is: which way of the several agreeing
+            // ones is recorded decides an id in the ledger, and a dictionary's own
+            // order is not the same from one run to the next.
+            let ranked = held.sorted { ($0.value, $0.key) > ($1.value, $1.key) }
+                .filter { $0.value >= wanted }
+            // The holes are asked last: a fill cut through a lake traces the lake's
+            // ring too, and the lake is not what the fill means.
+            if let one = unanimous(ranked, in: index) {
+                winner = one
+            } else if let one = unanimous(
+                ranked.filter { !index.isInner($0.key) },
+                in: index
+            ) {
+                winner = one
+            }
+            guard winner >= 0 else { return false }
+        } else {
+            var best = (slot: Int32(-1), count: 0, tag: "")
+            var runnerUp = 0
+            for (slot, count) in held.sorted(by: {
+                ($0.value, $0.key)
+                    > ($1.value, $1.key)
+            }) {
+                let tags = index.tags(ofWay: slot)
+                guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
+                if best.slot < 0 {
+                    best = (slot, count, tag)
+                } else if tag != best.tag {
+                    runnerUp = count
+                    break
+                }
+            }
+            guard best.slot >= 0, best.count >= wanted,
+                best.count >= runnerUp * 2
+            else { return false }
+            winner = best.slot
+        }
+        evidence.witness(
+            kind: element.kind,
+            type: element.type,
+            way: index.ways[Int(winner)].id,
+            tags: index.tags(ofWay: winner),
+            resolution: dump.resolution(at)
+        )
+        return true
     }
 
     /// The first of the candidates when all of them mean one thing, else nil.

@@ -113,12 +113,6 @@ enum StyleRecovery {
             )
         }
 
-        // One byte per element, shared by every extract: the best match any of them
-        // managed. A raw buffer, not an array: cores write disjoint index ranges at once.
-        let matches = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: dump.count)
-        matches.initialize(repeating: Evidence.Match.unmatched.rawValue)
-        defer { matches.deallocate() }
-
         // The zoomed-out drawings too: a reserve's hatch may exist only there.
         let coarse =
             (try? ElementDumper.dump(
@@ -127,16 +121,17 @@ enum StyleRecovery {
                 log: log,
                 coarserLevels: true
             )) ?? ElementDumper.Dump()
-        let evidence = try await evidence(
-            of: dump,
+        let matcher = Matcher(
+            dump: dump,
             coarse: coarse,
-            against: extracts,
             frame: frame,
-            matches: matches,
-            report: &report,
+            several: extracts.count > 1,
             log: log,
             progress: progress
         )
+        for extract in extracts { try await matcher.read(extract) }
+        let evidence = matcher.finish()
+        report.groundTags = matcher.groundTags
         ledger(evidence, into: &report)
         let typDefined = typDefined(in: img)
 

@@ -324,7 +324,7 @@ enum TypEdit {
             let line = source.lines[number].trimmingCharacters(in: .whitespaces)
             if line.isEmpty { continue }
             guard line.hasPrefix("\"") else { break }
-            if TypSource.isPaletteEntry(line, keyLength: width) { out.append(number) }
+            if XpmBlock.isPaletteEntry(line, keyLength: width) { out.append(number) }
         }
         return out
     }
@@ -417,7 +417,7 @@ enum TypEdit {
         if text.lowercased() == "none" { return "none" }
         guard Color.hex(text) != nil else { throw EditError.notAColour(text) }
         // As mkgmap holds it: an alpha of 00 shows nothing, and FF is no alpha at all.
-        return TypSource.withAlpha(nil, on: "#" + text.replacingOccurrences(of: "#", with: "").uppercased()) ?? "none"
+        return XpmBlock.withAlpha(nil, on: "#" + text.replacingOccurrences(of: "#", with: "").uppercased()) ?? "none"
     }
 
     /// A new colour for a palette entry: a see-through one stays so, the new colour taking
