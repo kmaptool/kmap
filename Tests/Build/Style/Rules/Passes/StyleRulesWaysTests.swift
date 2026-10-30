@@ -91,4 +91,36 @@ final class StyleRulesWaysTests: XCTestCase {
             "the log says the labels are missing"
         )
     }
+
+    // MARK: Trails
+
+    private func trailRules(cyrillic: Bool) throws -> [String] {
+        let url = directory.appendingPathComponent("lines")
+        try "highway=path [0x0e resolution 23]\n".write(to: url, atomically: true, encoding: .utf8)
+        try catalog.addTrailWarningRules(in: directory, cyrillic: cyrillic, log: Log())
+        return try String(contentsOf: url, encoding: .utf8).components(separatedBy: "\n")
+    }
+
+    /// A grade and a lost path share a label, above each alone.
+    func testAGradeAndItsVisibilityShareALabel() throws {
+        let lines = try trailRules(cyrillic: false)
+        func at(_ text: String) throws -> Int { try XCTUnwrap(lines.firstIndex { $0.contains(text) }, text) }
+        let both = try at("sac_scale=demanding_alpine_hiking & (trail_visibility=no")
+        XCTAssertTrue(lines[both].hasSuffix("{ name '${name} (demanding alpine terrain T5, path disappears)' }"))
+        let grade = try at("sac_scale=demanding_alpine_hiking & name!=* { name 'demanding alpine terrain T5' }")
+        let lost = try XCTUnwrap(lines.firstIndex { $0.hasPrefix("(trail_visibility=no") })
+        let ferrata = try at("via_ferrata_scale!=0 & name=*")
+        XCTAssertLessThan(ferrata, both, "a via ferrata says so first")
+        XCTAssertLessThan(both, grade)
+        XCTAssertLessThan(grade, lost)
+    }
+
+    /// T1 and T2 say nothing: every park path would carry a label.
+    func testAnEasyPathIsNotLabelled() throws {
+        let text = try trailRules(cyrillic: false).joined(separator: "\n")
+        XCTAssertFalse(text.contains("sac_scale=hiking"))
+        XCTAssertFalse(text.contains("sac_scale=mountain_hiking"))
+        let t6 = "sac_scale=difficult_alpine_hiking & name!=* { name 'difficult alpine terrain T6' }"
+        XCTAssertTrue(text.contains(t6))
+    }
 }

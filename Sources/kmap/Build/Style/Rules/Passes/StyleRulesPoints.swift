@@ -108,6 +108,85 @@ extension StyleCatalog {
         log.append("fords, shelters and mountain passes typed")
     }
 
+    /// Names a pass by its `rtsa_scale` category. Ahead of `inc/name`, whose `ref` rule would
+    /// name it first; action-only, so the pass rule still types it.
+    func addPassCategoryRules(in directory: URL, cyrillic: Bool, log: Log) throws {
+        let marker = "# --- kmap: pass categories"
+        let pass = StyleWords(cyrillic: cyrillic)("terrain.pass")
+        let rules = """
+            \(marker) --------------------------------------------
+            \(Self.passCategoryRules(pass: pass, cyrillic: cyrillic))
+
+
+            """
+        switch try insertRules(
+            rules,
+            marked: marker,
+            beforeLineWith: "include 'inc/name'",
+            intoFile: "points",
+            in: directory
+        ) {
+        case .added:
+            log.append("mountain passes labelled with their category")
+        case .missingAnchor:
+            log.warn("inc/name is not included here - passes left without their category")
+        case .leftAlone:
+            break
+        }
+    }
+
+    /// An `rtsa_scale` category, 1A to 3B or n/c, with `*` and a range, in either alphabet.
+    /// Also "nc", and a range joined by a dash of any length or a `/`, spaces allowed.
+    static let passCategory: String = {
+        let one = "(\(passNone)|[1-3]\(passLetters.a)|[1-3]\(passLetters.b))[*]?"
+        return "\(one)([ ]*[-\\u2013\\u2014/][ ]*\(one))?"
+    }()
+
+    /// n/c with its slash optional.
+    private static let passNone = passLetters.none.replacingOccurrences(of: "/", with: "/?")
+
+    /// A name that already carries a category, "Sovy 2 (1B)".
+    static let passNameCategory =
+        ".*(\(passLetters.none)|[1-3]\(passLetters.a)|[1-3]\(passLetters.b)).*"
+
+    /// n/c, A and B in both alphabets and cases as character classes, since a `|` ends a `subst`.
+    /// Cyrillic as `\u` escapes, which Java regex reads, so a Latin build stays ASCII.
+    private static let passLetters: (none: String, a: String, b: String) = {
+        let both = [StyleWords(cyrillic: false), StyleWords(cyrillic: true)]
+        func escaped(_ text: String) -> String {
+            text.unicodeScalars.map { $0.isASCII ? String($0) : String(format: "\\u%04X", $0.value) }
+                .joined()
+        }
+        func pattern(_ key: String) -> String {
+            let forms = both.map { Array($0(key)) }
+            return forms[0].indices.map { at in
+                let chars = forms.map { $0[at] }
+                guard chars.contains(where: \.isLetter) else { return String(chars[0]) }
+                return "[" + chars.map { escaped($0.uppercased() + $0.lowercased()) }.joined() + "]"
+            }.joined()
+        }
+        return (pattern("terrain.pass-none"), pattern("terrain.pass-a"), pattern("terrain.pass-b"))
+    }()
+
+    /// The category in the map's alphabet, a range joined by "-" or "/" without spaces.
+    static func passCategoryLabel(cyrillic: Bool) -> String {
+        let words = StyleWords(cyrillic: cyrillic)
+        return "${rtsa_scale|subst:[ ]*[-\\u2013\\u2014][ ]*~>-|subst:[ ]*/[ ]*~>/"
+            + "|subst:\(passNone)~>\(words("terrain.pass-none"))"
+            + "|subst:\(passLetters.a)~>\(words("terrain.pass-a"))"
+            + "|subst:\(passLetters.b)~>\(words("terrain.pass-b"))}"
+    }
+
+    /// A pass with a category: its name, or its kind, and the category; a `ref` where
+    /// `inc/name` would put it.
+    static func passCategoryRules(pass: String, cyrillic: Bool) -> String {
+        let condition = "(mountain_pass=yes | natural=saddle) & rtsa_scale ~ '\(passCategory)'"
+        let label = passCategoryLabel(cyrillic: cyrillic)
+        let named = "\(condition) & name=* & !(name ~ '\(passNameCategory)')"
+        return "\(named) { name '${ref} ${name} (\(label))' | '${name} (\(label))' }\n"
+            + "\(condition) & name!=* { name '\(pass) ${ref} \(label)' | '\(pass) \(label)' }"
+    }
+
     /// Makes address search work outside the countries `inc/address` hard-codes, by turning
     /// the `mkgmap:admin_level4...10` tags `--bounds` supplies into a city. Placed last, in
     /// the `<finalize>` section: actions are legal there and an explicit country still wins.

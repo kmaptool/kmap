@@ -19,7 +19,7 @@ final class StyleCatalog: Sendable {
 
     /// Bump when the materialized style layout changes, to force a refresh. kmap's own
     /// version is in the identity too, so a release that forgot to bump still refreshes.
-    private static let materializedVersion = "101"
+    private static let materializedVersion = "102"
 
     private let settings: SettingsStore
 
@@ -221,6 +221,7 @@ final class StyleCatalog: Sendable {
         try addLandformRules(in: dir, log: log)
         try addAerialwayRules(in: dir, cyrillic: cyrillicLabels, log: log)
         try addTerrainPOIRules(in: dir, cyrillic: cyrillicLabels, log: log)
+        try addPassCategoryRules(in: dir, cyrillic: cyrillicLabels, log: log)
         try addWaterSourceRules(in: dir, cyrillic: cyrillicLabels, log: log)
         try addSpringVariantRules(in: dir, cyrillic: cyrillicLabels, log: log)
         try splitBarrierRule(in: dir, log: log)

@@ -27866,8 +27866,11 @@ points: internet_access=yes {name 'Internet ${name}' | 'Internet'} [0x2f12 resol
 # Trail warnings, written along the way itself.
 trail.lost|path disappears|тропа теряется
 trail.faint|faint path|тропа плохо видна
-trail.alpine|alpine terrain|альпинистский участок
-trail.hard|demanding, T3|сложная тропа, T3
+# SAC grades T3 to T6, written before the grade.
+trail.t3|demanding path|сложная тропа
+trail.t4|alpine terrain|альпинистский участок
+trail.t5|demanding alpine terrain|сложный альпинистский участок
+trail.t6|difficult alpine terrain|оч. сложный альп. участок
 trail.ferrata|via ferrata, gear required|виа феррата, нужна страховка
 trail.ferrata-grade|via ferrata, grade|виа феррата, уровень
 trail.ferrata-gear|gear required|нужна страховка
@@ -27934,6 +27937,10 @@ spring.seasonal-stem|seasonal|сезонн
 terrain.ford|Ford|Брод
 terrain.stones|stepping stones|камни
 terrain.pass|Pass|Перевал
+# A pass category, rtsa_scale: "n/c", and the letters of 1A to 3B.
+terrain.pass-none|n/c|н/к
+terrain.pass-a|A|А
+terrain.pass-b|B|Б
 terrain.shelter|Shelter|Укрытие
 terrain.hut|Hut|Хижина
 terrain.rock-shelter|rock shelter|скальный навес

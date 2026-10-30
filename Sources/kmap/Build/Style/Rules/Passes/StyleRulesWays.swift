@@ -77,9 +77,9 @@ extension StyleCatalog {
         log.append("\(touched) trail rule(s) drawn from resolution 22")
     }
 
-    /// Warnings that belong on the trail itself: where a path stops being a path, where it
-    /// stops being walking, and where it is a via ferrata. Emitted as lines, so the warning
-    /// is drawn along the way; the stock style deletes `highway=via_ferrata` outright.
+    /// Warnings that belong on the trail itself: where it is a via ferrata, its SAC grade
+    /// from T3 up, and where a path stops being a path. Emitted as lines, so the warning is
+    /// drawn along the way; the stock style deletes `highway=via_ferrata` outright.
     func addTrailWarningRules(
         in directory: URL,
         cyrillic: Bool,
@@ -90,8 +90,6 @@ extension StyleCatalog {
         let words = StyleWords(cyrillic: cyrillic)
         let lost = words("trail.lost")
         let faint = words("trail.faint")
-        let alpine = words("trail.alpine")
-        let hard = words("trail.hard")
         let ferrata = words("trail.ferrata")
         let grade = words("trail.ferrata-grade")
         let gear = words("trail.ferrata-gear")
@@ -103,21 +101,29 @@ extension StyleCatalog {
                 + "\(condition) & name!=* { name '\(suffix)' }"
         }
 
+        // mkgmap names by the first match, so a grade with its visibility goes above each alone.
+        let visibility = [(Self.lostTrail, lost), (Self.faintTrail, faint)]
+        var graded: [String] = []
+        for (scale, grade) in Self.trailGrades {
+            let sac = "\(words("trail.\(grade.lowercased())")) \(grade)"
+            for (seen, word) in visibility {
+                graded.append(pair("sac_scale=\(scale) & \(seen)", "\(sac), \(word)"))
+            }
+            graded.append(pair("sac_scale=\(scale)", sac))
+        }
+
         let rules = """
 
 
             \(marker) ---------------------------------------------
             # Action-only and first in the file, so the highway rules below still draw the way.
 
-            \(pair("(trail_visibility=no | trail_visibility=horrible)", lost))
-            \(pair("trail_visibility=bad", faint))
-            # A via ferrata says so before its sac_scale does: mkgmap names by the first
-            # rule that matches.
+            # A via ferrata says so before its sac_scale or visibility does.
             \(pair("\(Self.viaFerrata) & via_ferrata_scale=* & via_ferrata_scale!=0", "\(grade) \(Self.ferrataLetter), \(gear)"))
             \(pair("\(Self.viaFerrata) & (via_ferrata_scale!=* | via_ferrata_scale=0)", ferrata))
-            \(pair("(sac_scale=alpine_hiking | sac_scale=demanding_alpine_hiking"
-                + " | sac_scale=difficult_alpine_hiking)", alpine))
-            \(pair("sac_scale=demanding_mountain_hiking", hard))
+            \(graded.joined(separator: "\n"))
+            \(pair(Self.lostTrail, lost))
+            \(pair(Self.faintTrail, faint))
 
             # 57 fords in the extract are tagged on the way rather than on a node, so the point
             # rules never see them. The way keeps whatever type its highway tag earns; this only
@@ -133,6 +139,16 @@ extension StyleCatalog {
         else { return }
         log.append("trail visibility, difficulty and via ferrata warnings added")
     }
+
+    /// SAC grades T3 to T6, by OSM's `sac_scale` value, each with its `trail.t3...t6` word.
+    /// T1 and T2 go unlabelled.
+    static let trailGrades = [
+        ("demanding_mountain_hiking", "T3"), ("alpine_hiking", "T4"),
+        ("demanding_alpine_hiking", "T5"), ("difficult_alpine_hiking", "T6")
+    ]
+    /// Where the path is gone, and where it is only hard to see.
+    static let lostTrail = "(trail_visibility=no | trail_visibility=horrible)"
+    static let faintTrail = "trail_visibility=bad"
 
     /// A via ferrata, however it is tagged.
     static let viaFerrata = "(highway=via_ferrata | sport=via_ferrata | via_ferrata_scale=*)"
