@@ -111,4 +111,20 @@ final class RegionOutlineGeometryTests: XCTestCase {
         // the tenth-of-a-degree margin the caller adds, the cell stays.
         XCTAssertTrue(touches(lon: 8.7, lat: 49.5, margin: 0.1))
     }
+
+    /// Each part gets a box; a hole adds none.
+    func testEachPartOfAnOutlineGetsABoxOfItsOwn() {
+        let rings = [
+            RegionOutline.Ring(subtract: false, points: [(-180, -14), (-176.3, -16), (-180, -24)]),
+            RegionOutline.Ring(subtract: false, points: [(180, -14), (172.8, -20), (174.9, -9.8)]),
+            RegionOutline.Ring(subtract: true, points: [(178, -17), (179, -17), (179, -18)])
+        ]
+        XCTAssertEqual(
+            RegionOutline.boxes(of: rings),
+            [
+                BBox(minLon: -180, minLat: -24, maxLon: -176.3, maxLat: -14),
+                BBox(minLon: 172.8, minLat: -20, maxLon: 180, maxLat: -9.8)
+            ]
+        )
+    }
 }

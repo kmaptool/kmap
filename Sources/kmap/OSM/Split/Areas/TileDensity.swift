@@ -160,6 +160,34 @@ extension TileSplitter {
             )
         }
 
+        /// Where cutting starts: the box round the nodes, or across 180 deg its 2 sides.
+        func ground() -> [Cells] {
+            let box = boundsCells()
+            let seam = TileSplitter.mapUnits(180) >> TileSplitter.gridShift
+            var widest = (start: Int32(0), run: Int32(0))
+            var run = Int32(0)
+            for line in box.minLon..<box.maxLon {
+                if columnCount(line, in: box) == 0 {
+                    run += 1
+                    if run > widest.run { widest = (line - run + 1, run) }
+                } else {
+                    run = 0
+                }
+            }
+            // The empty stretch through 180 deg, off both ends of the box.
+            let outside = (seam - box.maxLon) + (box.minLon + seam)
+            guard widest.run > outside else { return [box] }
+            var west = box, east = box
+            west.maxLon = widest.start
+            east.minLon = widest.start + widest.run
+            // Each side runs on to 180 deg unless the stretch there is a divide.
+            if outside < Self.gapCells {
+                west.minLon = -seam
+                east.maxLon = seam
+            }
+            return [west, east]
+        }
+
         /// Rows and columns of the table a rectangle covers, clipped to what was counted.
         private func window(_ rect: Cells) -> (top: Int, left: Int, bottom: Int, right: Int)? {
             guard rows > 0, cols > 0 else { return nil }

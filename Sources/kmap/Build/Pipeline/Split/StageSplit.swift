@@ -56,6 +56,7 @@ extension BuildPipeline {
                     + " · land \(min(recipe.landOverlap, recipe.shapeOverlap)) units"
             )
         }
+        let outlines = await outlinesForTheCircle(inputs.map { URL(fileURLWithPath: $0) })
         // Tile ids must be unique across every map on the receiver: two maps sharing tile
         // ids hide each other.
         let splitter = TileSplitter(
@@ -69,6 +70,7 @@ extension BuildPipeline {
                 // args and mkgmap puts it into the .img header, which holds 50 characters.
                 description: recipe.headerDescription,
                 areas: areas,
+                outlines: outlines,
                 // Only a patched mkgmap draws past the tile frame; without the patch the band
                 // would swell every tile with ground no compiler reads.
                 shapeOverlap: toolchain.mkgmapIsPatched ? Int32(recipe.shapeOverlap) : 0
@@ -108,6 +110,27 @@ extension BuildPipeline {
         log.ok("\(tiles.count) tile(s)")
         set(.split, .done, "\(tiles.count) tile(s)")
         return TileSet(directory: tileDir, tiles: tiles, nodeCap: maxNodes)
+    }
+
+    /// The regions' outline boxes, when an input header spans every longitude. Empty
+    /// otherwise, or when an outline is missing, since a partial set drops ground.
+    private func outlinesForTheCircle(_ inputs: [URL]) async -> [BBox] {
+        let spans = inputs.contains { input in
+            guard let box = (try? PBFReader(url: input).headerBBox()) ?? nil else { return false }
+            return TileSplitter.spansEveryLongitude(minLon: box.minLon, maxLon: box.maxLon)
+        }
+        guard spans else { return [] }
+        var boxes: [BBox] = []
+        for region in recipe.regions {
+            guard let rings = await RegionOutline.rings(for: region) else {
+                log.warn("no outline for \(region.name) - tiles may reach over open sea past it")
+                return []
+            }
+            boxes += RegionOutline.boxes(of: rings)
+        }
+        guard !boxes.isEmpty else { return [] }
+        log.append("the extract runs across 180 deg: tiles kept to the region outline")
+        return boxes
     }
 
     private func parseTiles(in directory: URL) throws -> [Tile] {

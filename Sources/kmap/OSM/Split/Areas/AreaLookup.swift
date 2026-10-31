@@ -84,6 +84,16 @@ extension TileSplitter {
             return grid[row * cols + column]
         }
 
+        /// The same, for a cell that may lie past 180 deg.
+        private func area(latCell: Int32, aroundLonCell lonCell: Int32) -> UInt16 {
+            let half = TileSplitter.halfCircleUnits >> TileSplitter.gridShift
+            let circle = TileSplitter.circleUnits >> TileSplitter.gridShift
+            return area(
+                latCell: latCell,
+                lonCell: lonCell >= half ? lonCell - circle : lonCell < -half ? lonCell + circle : lonCell
+            )
+        }
+
         /// Every area holding this point: one for an interior point, both neighbours for a
         /// point exactly on a shared edge, all four at a corner. A way ending exactly on the
         /// line therefore spans two tiles and is written whole to each.
@@ -99,15 +109,18 @@ extension TileSplitter {
             guard onLatEdge || onLonEdge else { return hits }
 
             if onLatEdge {
-                let below = area(latCell: latCell - 1, lonCell: lonCell)
+                let below = area(latCell: latCell - 1, aroundLonCell: lonCell)
                 if below != Self.none { hits.add(below) }
             }
             if onLonEdge {
-                let west = area(latCell: latCell, lonCell: lonCell - 1)
+                let west = area(latCell: latCell, aroundLonCell: lonCell - 1)
                 if west != Self.none { hits.add(west) }
+                // A point on 180 deg lies on both sides of the seam.
+                let across = area(latCell: latCell, aroundLonCell: lonCell)
+                if here == Self.none, across != Self.none { hits.add(across) }
             }
             if onLatEdge && onLonEdge {
-                let corner = area(latCell: latCell - 1, lonCell: lonCell - 1)
+                let corner = area(latCell: latCell - 1, aroundLonCell: lonCell - 1)
                 if corner != Self.none { hits.add(corner) }
             }
             return hits
@@ -135,11 +148,13 @@ extension TileSplitter {
             let margin = shapeOverlap
             for dLat in Int32(-1)...1 {
                 for dLon in Int32(-1)...1 {
-                    let near = area(latCell: latCell + dLat, lonCell: lonCell + dLon)
+                    let near = area(latCell: latCell + dLat, aroundLonCell: lonCell + dLon)
                     guard near != Self.none, !hits.contains(near) else { continue }
                     let rect = rects[Int(near)]
+                    // A tile at 180 deg reaches across the seam.
+                    let seen = TileSplitter.nearSide(lon, of: rect.minLon / 2 + rect.maxLon / 2)
                     guard lat >= rect.minLat - margin, lat < rect.maxLat + margin,
-                        lon >= rect.minLon - margin, lon < rect.maxLon + margin
+                        seen >= rect.minLon - margin, seen < rect.maxLon + margin
                     else { continue }
                     hits.add(near)
                 }

@@ -253,7 +253,9 @@ extension TileSplitter {
                 // Against the frame widened by the shape overlap: a multipolygon is a
                 // shape, and a tile paints shapes a little past its own edge.
                 for (index, area) in grown.enumerated() where !claimed.contains(UInt16(index)) {
-                    if rings.claims(area) { claimed.insert(UInt16(index)) }
+                    if rings.claims(area) || area.acrossTheSeam.map(rings.claims) == true {
+                        claimed.insert(UInt16(index))
+                    }
                 }
                 slots[at] = claimed
             }

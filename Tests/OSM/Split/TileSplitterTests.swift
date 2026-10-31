@@ -756,6 +756,44 @@ final class TileSplitterTests: XCTestCase {
         XCTAssertNil(d.splitAcrossGap(wide))
     }
 
+    func testTheGroundOfAnOrdinaryMapIsTheBoxRoundIt() {
+        var cells: [(lat: Int32, lon: Int32, count: Int)] = []
+        for lon in Int32(0)..<3 { cells.append((0, lon, 100)) }
+        for lon in Int32(23)..<26 { cells.append((4, lon, 100)) }
+        let d = density(cells)
+        let ground = d.ground()
+        XCTAssertEqual(ground.count, 1)
+        XCTAssertEqual(ground.first?.minLon, 0)
+        XCTAssertEqual(ground.first?.maxLon, 26)
+        XCTAssertEqual(ground.first?.maxLat, 5)
+    }
+
+    /// Fiji: the ground is the 2 sides of 180 deg, each reaching it.
+    func testTheGroundOfAMapAcross180IsTheTwoSidesOfIt() {
+        var cells: [(lat: Int32, lon: Int32, count: Int)] = []
+        for lon in Int32(-4094)..<(-4091) { cells.append((0, lon, 100)) }
+        for lon in Int32(4090)..<4094 { cells.append((5, lon, 100)) }
+        let d = density(cells)
+        let ground = d.ground()
+        XCTAssertEqual(ground.count, 2)
+        XCTAssertEqual(ground.map(\.minLon), [-4096, 4090])
+        XCTAssertEqual(ground.map(\.maxLon), [-4091, 4096])
+        XCTAssertEqual(ground.map(\.minLat), [0, 0], "both sides keep the map's rows")
+        XCTAssertEqual(ground.map(\.maxLat), [6, 6])
+        XCTAssertEqual(ground.map { d.count($0) }, [300, 400])
+    }
+
+    /// Hawaii and Japan: sides far from 180 deg end at their nodes.
+    func testSidesFarFrom180EndAtTheirNodes() {
+        var cells: [(lat: Int32, lon: Int32, count: Int)] = []
+        for lon in Int32(-3600)..<(-3500) { cells.append((0, lon, 100)) }
+        for lon in Int32(3000)..<3300 { cells.append((5, lon, 100)) }
+        let d = density(cells)
+        let ground = d.ground()
+        XCTAssertEqual(ground.map(\.minLon), [-3600, 3000])
+        XCTAssertEqual(ground.map(\.maxLon), [-3500, 3300])
+    }
+
     func testASplitByShareLandsWhereTheNodesAre() {
         // Ten cells with all the weight in the first two.
         var cells: [(lat: Int32, lon: Int32, count: Int)] = []
@@ -817,6 +855,7 @@ extension TileSplitterTests {
 
     private struct Tile {
         var nodes: Set<Int64> = []
+        var lons: [Int64: Double] = [:]
         var ways: [Int64: [Int64]] = [:]
         var relations: Set<Int64> = []
     }
@@ -831,6 +870,7 @@ extension TileSplitterTests {
             block: OSMBlock
         ) {
             tile.nodes.insert(id)
+            tile.lons[id] = lon
         }
         mutating func way(
             id: Int64,
@@ -1354,6 +1394,126 @@ extension TileSplitterTests {
 
         XCTAssertGreaterThan(areas.count, 2, "the split did not divide anything")
         XCTAssertEqual(gaps(areas), 0, "ground inside the map's box belongs to no tile")
+    }
+
+    /// Fiji's extract declares -180..180: no tile claims the planet between the sides.
+    func testAMapAcross180KeepsToEitherSideOfIt() throws {
+        let input = path("fiji.osm.pbf")
+        let writer = try PBFWriter(to: input)
+        writer.header(bbox: (minLat: -18, minLon: -180, maxLat: -16, maxLon: 180))
+        var nodes: [PBFWriter.Node] = []
+        for i in 0..<40 {
+            let lon = i < 20 ? -179.9 + Double(i) * 0.05 : 178.9 + Double(i - 20) * 0.05
+            nodes.append(PBFWriter.Node(id: Int64(i + 1), lat: -17, lon: lon, tags: []))
+        }
+        writer.nodes(nodes)
+        try writer.finish()
+        let out = directory.appendingPathComponent("fiji")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 5,
+                description: "a test map",
+                areas: nil
+            )
+        ) { _ in }
+        let tiles = try splitter.run().tiles
+        let areas = tiles.map(\.area)
+
+        let west = areas.filter { $0.maxLon <= TileSplitter.mapUnits(-178) }
+        let east = areas.filter { $0.minLon >= TileSplitter.mapUnits(178) }
+        XCTAssertEqual(west.count + east.count, areas.count, "a tile reaches round the planet")
+        XCTAssertEqual(west.map(\.minLon).min(), TileSplitter.mapUnits(-180))
+        XCTAssertEqual(east.map(\.maxLon).max(), TileSplitter.mapUnits(180))
+        XCTAssertEqual(gaps(west), 0)
+        XCTAssertEqual(gaps(east), 0)
+
+        // The tile on 180 deg declares an edge just short of it.
+        let seam = try XCTUnwrap(tiles.first { $0.area.maxLon == TileSplitter.mapUnits(180) })
+        let box = try XCTUnwrap(PBFReader(url: out.appendingPathComponent("\(seam.mapID).osm.pbf")).headerBBox())
+        XCTAssertEqual(TileSplitter.mapUnits(box.maxLon), TileSplitter.eastmostEdge)
+        XCTAssertLessThan(box.maxLon, 180)
+    }
+
+    /// A wood just past 180 deg reaches the tile at it, continued past 180; a node on
+    /// the seam lies on both sides.
+    func testATileAt180TakesTheGroundJustAcrossTheSeam() throws {
+        let half = TileSplitter.halfCircleUnits
+        let url = path("seam.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header(bbox: (minLat: -18, minLon: -180, maxLat: -16, maxLon: 180))
+        let west = TileSplitter.degrees(-half + 256), westFar = TileSplitter.degrees(-half + 768)
+        writer.nodes([
+            PBFWriter.Node(id: 1, lat: -17.00, lon: west, tags: []),
+            PBFWriter.Node(id: 2, lat: -17.00, lon: westFar, tags: []),
+            PBFWriter.Node(id: 3, lat: -17.01, lon: westFar, tags: []),
+            PBFWriter.Node(id: 4, lat: -17.01, lon: west, tags: []),
+            PBFWriter.Node(id: 5, lat: -17.02, lon: 180, tags: [("place", "islet")])
+        ])
+        writer.ways([PBFWriter.Way(id: 10, refs: [1, 2, 3, 4, 1], tags: [("natural", "wood")])])
+        try writer.finish()
+        let rows = (minLat: Int32(-410) << TileSplitter.gridShift, maxLat: Int32(-364) << TileSplitter.gridShift)
+        let tiles = try splitTiles(
+            inputs: [url],
+            areas: [
+                area(rows.minLat, half - 8192, rows.maxLat, half),
+                area(rows.minLat, -half, rows.maxLat, -half + 8192)
+            ]
+        )
+        let (east, westTile) = (tiles[0], tiles[1])
+
+        XCTAssertNotNil(east.ways[10], "the wood across the seam reaches the tile at 180 deg")
+        for id: Int64 in 1...4 { XCTAssertGreaterThan(east.lons[id] ?? 0, 180, "node \(id) continued past the seam") }
+        XCTAssertNotNil(westTile.ways[10])
+        for id: Int64 in 1...4 { XCTAssertLessThan(westTile.lons[id] ?? 0, -179.9) }
+        XCTAssertEqual(east.lons[5], 180)
+        XCTAssertEqual(westTile.lons[5], -180, "a node on the seam is on both sides of it")
+    }
+
+    /// The outline, not a header round every longitude, clips tails of ways kept whole.
+    func testTheOutlineKeepsAMapAcross180OffTheOpenSea() throws {
+        let input = path("fiji-tails.osm.pbf")
+        let writer = try PBFWriter(to: input)
+        writer.header(bbox: (minLat: -18, minLon: -180, maxLat: -16, maxLon: 180))
+        var nodes: [PBFWriter.Node] = []
+        for i in 0..<40 {
+            let lon = i < 20 ? -179.9 + Double(i) * 0.05 : 178.9 + Double(i - 20) * 0.05
+            nodes.append(PBFWriter.Node(id: Int64(i + 1), lat: -17, lon: lon, tags: []))
+        }
+        // A sea border's tail, 20 deg west of the islands.
+        for i in 0..<10 {
+            nodes.append(PBFWriter.Node(id: Int64(100 + i), lat: -17, lon: 158 + Double(i), tags: []))
+        }
+        writer.nodes(nodes)
+        try writer.finish()
+        let out = directory.appendingPathComponent("fiji-tails")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 5,
+                description: "a test map",
+                areas: nil,
+                outlines: [
+                    BBox(minLon: 178, minLat: -18, maxLon: 180, maxLat: -16),
+                    BBox(minLon: -180, minLat: -18, maxLon: -178, maxLat: -16)
+                ]
+            )
+        ) { _ in }
+        let areas = try splitter.run().tiles.map(\.area)
+
+        XCTAssertFalse(areas.isEmpty)
+        for area in areas {
+            XCTAssertTrue(
+                area.minLon >= TileSplitter.mapUnits(178) || area.maxLon <= TileSplitter.mapUnits(-178),
+                "a tile over the open sea west of the islands"
+            )
+        }
     }
 
     func testNeighbouringTilesMeetRatherThanOverlapOrPartCompany() throws {

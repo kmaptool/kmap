@@ -22,17 +22,21 @@ extension TileSplitter {
         private var gatheringNodes = false
         private var gatheringWays = false
         private(set) var nodeCount = 0
+        /// For a tile at 180 deg, its frame's middle: nodes across the seam are written
+        /// continued past it. Nil for other tiles.
+        private let seamCentre: Double?
 
         init(url: URL, area: Area) throws {
             self.url = url
             self.area = area
+            seamCentre = area.meetsTheSeam ? TileSplitter.degrees(area.minLon / 2 + area.maxLon / 2) : nil
             writer = try PBFWriter(to: url)
             writer.header(
                 bbox: (
                     minLat: TileSplitter.degrees(area.minLat),
                     minLon: TileSplitter.degrees(area.minLon),
                     maxLat: TileSplitter.degrees(area.maxLat),
-                    maxLon: TileSplitter.degrees(area.maxLon)
+                    maxLon: TileSplitter.degrees(min(area.maxLon, TileSplitter.eastmostEdge))
                 )
             )
         }
@@ -45,6 +49,8 @@ extension TileSplitter {
 
         func add(_ node: PBFWriter.Node) {
             assert(nodeRuns.isEmpty, "a build hands over single nodes or runs, never both")
+            var node = node
+            if let seamCentre { node.lon = TileSplitter.nearSide(node.lon, of: seamCentre) }
             nodes.append(node)
             nodeCount += 1
             if nodes.count >= Self.nodesPerBatch { writer.nodes(nodes); nodes.removeAll(keepingCapacity: true) }
@@ -54,6 +60,8 @@ extension TileSplitter {
         /// kept as it is, a batch holding the stretch of it that is its own.
         func add(nodes run: PBFWriter.NodeChunk) {
             assert(nodes.isEmpty, "a build hands over single nodes or runs, never both")
+            var run = run
+            if let seamCentre { run.lons = run.lons.map { TileSplitter.nearSide($0, of: seamCentre) } }
             nodeCount += run.count
             if run.count < Self.smallRun {
                 gather(nodes: run)

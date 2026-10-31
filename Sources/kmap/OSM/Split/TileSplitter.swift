@@ -20,6 +20,9 @@ final class TileSplitter {
         var description: String
         /// Areas to distribute into. Nil means compute them from the node density.
         var areas: [Area]?
+        /// Outline boxes counted in place of an input's header box when that spans every
+        /// longitude.
+        var outlines: [BBox] = []
         /// How far past its own frame a tile may paint a shape, and so how wide a band of
         /// neighbouring ground it is given. Zero on a stock mkgmap, which cannot be told to
         /// draw past the frame at all. See `shapeClipOverlap`.
@@ -78,6 +81,31 @@ final class TileSplitter {
     /// Garmin map units: 24 bits to the full circle.
     private static let unitsPerCircle = Double(1 << 24), degreesPerCircle = 360.0
     private static let halfCircle = Double(1 << 23)
+    /// The easternmost tile edge: 24 bits hold -180 deg but not +180, and the DEM rounds
+    /// edges out by 4 units.
+    static let eastmostEdge = Int32(1 << 23) - 4
+
+    /// Longitude is a circle of 2^24 map units.
+    static let circleUnits = Int32(1 << 24), halfCircleUnits = Int32(1 << 23)
+
+    /// A longitude as seen from `centre`, continued past 180 deg.
+    static func nearSide(_ lon: Int32, of centre: Int32) -> Int32 {
+        if lon - centre > halfCircleUnits { return lon - circleUnits }
+        if centre - lon > halfCircleUnits { return lon + circleUnits }
+        return lon
+    }
+
+    /// The same in degrees.
+    static func nearSide(_ lon: Double, of centre: Double) -> Double {
+        if lon - centre > 180 { return lon - 360 }
+        if centre - lon > 180 { return lon + 360 }
+        return lon
+    }
+
+    /// Whether a box runs round every longitude, as an extract header across 180 deg does.
+    static func spansEveryLongitude(minLon: Double, maxLon: Double) -> Bool {
+        maxLon - minLon >= degreesPerCircle
+    }
     /// The node table's slack for the fringe: a sixteenth more, and never fewer than this.
     private static let fringeShare = 16, fringeFloor = 1024
 

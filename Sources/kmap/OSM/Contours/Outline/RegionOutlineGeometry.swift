@@ -1,7 +1,16 @@
 import Foundation
 
-/// Whether ground meets an outline, for choosing the degree cells elevation is fetched for.
+/// Outline geometry: the box round each part, and whether ground meets the outline.
 extension RegionOutline {
+    /// The box round each ring that adds ground; holes add none.
+    static func boxes(of rings: [Ring]) -> [BBox] {
+        rings.filter { !$0.subtract }.map { ring in
+            var box = BBox.empty
+            for point in ring.points { box.extend(lon: point.lon, lat: point.lat) }
+            return box
+        }
+    }
+
     /// Whether a rectangle touches the region at all: any ring vertex inside it, any of its
     /// corners inside a ring, or any ring segment crossing one of its edges. The degree-cell
     /// filter for elevation, so it errs towards keeping and ignores subtract-rings.

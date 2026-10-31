@@ -144,28 +144,30 @@ extension TileSplitter {
         // beyond it is not counted. One window per input, and a node is kept if it falls
         // inside any of them.
         var unboxed = false
+        func clip(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double) {
+            density.clips.append(
+                (
+                    minLatCell: Self.mapUnits(minLat) >> TileSplitter.gridShift,
+                    minLonCell: Self.mapUnits(minLon) >> TileSplitter.gridShift,
+                    maxLatCell: (Self.mapUnits(maxLat) + TileSplitter.gridMask) >> TileSplitter.gridShift,
+                    maxLonCell: (Self.mapUnits(maxLon) + TileSplitter.gridMask) >> TileSplitter.gridShift
+                )
+            )
+            log(String(format: "covers %.4f..%.4f / %.4f..%.4f", minLat, maxLat, minLon, maxLon))
+        }
         for input in options.inputs {
             guard let bbox = try reader(input).headerBBox() else {
                 unboxed = true
                 continue
             }
-            density.clips.append(
-                (
-                    minLatCell: Self.mapUnits(bbox.minLat) >> TileSplitter.gridShift,
-                    minLonCell: Self.mapUnits(bbox.minLon) >> TileSplitter.gridShift,
-                    maxLatCell: (Self.mapUnits(bbox.maxLat) + TileSplitter.gridMask) >> TileSplitter.gridShift,
-                    maxLonCell: (Self.mapUnits(bbox.maxLon) + TileSplitter.gridMask) >> TileSplitter.gridShift
-                )
-            )
-            log(
-                String(
-                    format: "covers %.4f..%.4f / %.4f..%.4f",
-                    bbox.minLat,
-                    bbox.maxLat,
-                    bbox.minLon,
-                    bbox.maxLon
-                )
-            )
+            // A header round every longitude says nothing: the outline does.
+            if Self.spansEveryLongitude(minLon: bbox.minLon, maxLon: bbox.maxLon), !options.outlines.isEmpty {
+                for part in options.outlines {
+                    clip(minLat: part.minLat, minLon: part.minLon, maxLat: part.maxLat, maxLon: part.maxLon)
+                }
+                continue
+            }
+            clip(minLat: bbox.minLat, minLon: bbox.minLon, maxLat: bbox.maxLat, maxLon: bbox.maxLon)
         }
         // An input that declares no box would have its nodes clipped by another's: then
         // none is clipped, as with no box at all.
@@ -193,8 +195,9 @@ extension TileSplitter {
         // How many tiles a rectangle needs decides where it is cut: taking floor(needed/2)
         // shares at a time lands on the fewest tiles.
         var queue: [(Density.Cells, Int)] = []
-        let total = density.count(density.boundsCells())
-        queue.append((density.boundsCells(), max(1, (total + cap - 1) / cap)))
+        for rect in density.ground() {
+            queue.append((rect, max(1, (density.count(rect) + cap - 1) / cap)))
+        }
         while let (rect, needed) = queue.popLast() {
             let count = density.count(rect)
             if count == 0 { continue }
