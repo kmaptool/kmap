@@ -18,6 +18,9 @@ extension Toolchain {
         let heights = "uk/me/parabola/mkgmap/reader/hgt/HGTConverter.java"
         let heightFile = "uk/me/parabola/mkgmap/reader/hgt/HGTReader.java"
         let transliterator = "uk/me/parabola/imgfmt/app/labelenc/TableTransliterator.java"
+        let sea = "uk/me/parabola/mkgmap/reader/osm/SeaGenerator.java"
+        let overview = "uk/me/parabola/mkgmap/combiners/OverviewBuilder.java"
+        let demFile = "uk/me/parabola/imgfmt/app/dem/DEMFile.java"
 
         let edits: [(String, String, String)] = [
             // mkgmap tries a few bases for a line's deltas and writes the whole stream for
@@ -799,6 +802,197 @@ extension Toolchain {
                 \t\tfor (char c0 : s.toCharArray()) {
                 \t\t\tchar c = c0 >= mtavruli && c0 <= mtavruliLast ? (char) (c0 - mtavruli + mkhedruli) : c0;
                 \t\t\tif (c <= (useLatin? 0xff: 0x7f)) {
+                """
+            ),
+            // --x-overview-wrap: west of the given map unit the overview reads longitudes
+            // 360 deg further east, so it runs over 180 deg. The DEM outline stays as is.
+            (
+                overview,
+                "\tprivate Area bounds;\n",
+                "\tprivate Area bounds;\n\t/** kmap: map units, see --x-overview-wrap. */\n"
+                    + "\tprivate int kmapWrap = Integer.MIN_VALUE;\n"
+            ),
+            (
+                overview,
+                "\t\toverviewMapnumber = args.get(\"overview-mapnumber\", \"63240000\");\n",
+                "\t\toverviewMapnumber = args.get(\"overview-mapnumber\", \"63240000\");\n"
+                    + "\t\tString kmapW = args.get(\"overview-wrap\", null);\n"
+                    + "\t\tif (kmapW != null)\n\t\t\tkmapWrap = Integer.parseInt(kmapW);\n"
+            ),
+            (
+                overview,
+                "\tpublic Area getBounds() {\n\t\tif (bounds != null)",
+                """
+                \t/** kmap: a coordinate as the overview reads it. */
+                \tprivate Coord kmapEast(Coord c) {
+                \t\tif (c.getLongitude() >= kmapWrap)
+                \t\t\treturn c;
+                \t\treturn Coord.makeHighPrecCoord(c.getHighPrecLat(), c.getHighPrecLon() + ((1 << 24) << Coord.DELTA_SHIFT));
+                \t}
+
+                \tprivate List<Coord> kmapEast(List<Coord> points) {
+                \t\tif (kmapWrap == Integer.MIN_VALUE)
+                \t\t\treturn points;
+                \t\tList<Coord> out = new ArrayList<>(points.size());
+                \t\tfor (Coord c : points)
+                \t\t\tout.add(kmapEast(c));
+                \t\treturn out;
+                \t}
+
+                \tpublic Area getBounds() {
+                \t\tif (bounds != null)
+                """
+            ),
+            (
+                overview,
+                "\t\t\t\tif (!sourceBounds.contains(point.getLocation())){",
+                "\t\t\t\tCoord kmapAt = kmapEast(point.getLocation());\n"
+                    + "\t\t\t\tif (!sourceBounds.contains(kmapAt)){"
+            ),
+            (overview, "\t\t\t\tmp.setLocation(point.getLocation());", "\t\t\t\tmp.setLocation(kmapAt);"),
+            (overview, "\t\t\t\tml.setPoints(points);", "\t\t\t\tml.setPoints(kmapEast(points));"),
+            (overview, "\t\t\t\tms.setPoints(points);", "\t\t\t\tms.setPoints(kmapEast(points));"),
+            (
+                overview,
+                "\t\tList<Coord> points = bounds.toCoords();\n\t\tpoints.forEach(overviewSource::addToBounds);\n"
+                    + "\t\toverviewSource.addToTileAreaPath(points);\n",
+                "\t\tList<Coord> kmapPlain = bounds.toCoords();\n"
+                    + "\t\tList<Coord> points = kmapEast(kmapPlain);\n"
+                    + "\t\tpoints.forEach(overviewSource::addToBounds);\n"
+                    + "\t\toverviewSource.addToTileAreaPath(kmapPlain);\n"
+            ),
+            // A DEM frame past 180 deg wraps in 32 bits by itself; the clamp would cut it.
+            (
+                demFile,
+                "\t\ttreRight = Math.min(treRight, Utils.MAX_LON_MAP_UNITS);\n",
+                "\t\tif (area.getMaxLong() <= Utils.MAX_LON_MAP_UNITS)\n"
+                    + "\t\t\ttreRight = Math.min(treRight, Utils.MAX_LON_MAP_UNITS);\n"
+            ),
+            // Heights past 180 deg come from the files at the other end of the circle.
+            (
+                heights,
+                "\t\tif (minLon < -180) minLon = -180;\n\t\tif (maxLon > 180) maxLon = 180;\n",
+                ""
+            ),
+            (
+                heights,
+                "Area rdrBbox = new Area(lat, lon, lat+1.0, lon+1.0); \n",
+                "int kmapLon = lon >= 180 ? lon - 360 : lon < -180 ? lon + 360 : lon;\n"
+                    + "\t\t\t\tArea rdrBbox = new Area(lat, kmapLon, lat+1.0, kmapLon+1.0);\n"
+            ),
+            // The DEM outline too, copied round the circle for a frame past 180 deg.
+            (
+                heights,
+                "\t\tdemArea = demPolygonMapUnits;\n",
+                """
+                \t\tjava.awt.geom.Area kmapPoly = demPolygonMapUnits;
+                \t\tif (kmapPoly != null && (bbox.getMaxLong() > Utils.MAX_LON_MAP_UNITS
+                \t\t\t\t|| bbox.getMinLong() < -Utils.MAX_LON_MAP_UNITS)) {
+                \t\t\tkmapPoly = new java.awt.geom.Area(demPolygonMapUnits);
+                \t\t\tfor (int kmapShift : new int[] { 1 << 24, -(1 << 24) })
+                \t\t\t\tkmapPoly.add(demPolygonMapUnits.createTransformedArea(
+                \t\t\t\t\t\tjava.awt.geom.AffineTransform.getTranslateInstance(kmapShift, 0)));
+                \t\t}
+                \t\tdemArea = kmapPoly;
+
+                """
+            ),
+            // A point past 180 deg is tested unwrapped, like its DEM tile's rectangle.
+            (
+                heights,
+                "double xTest = px / 256.0;",
+                "double xTest = ((long) lon32 + (long) x * pointsDistanceLon) / 256.0;"
+            ),
+            (
+                heights,
+                "HGTReader rdr = new HGTReader(lat, lon, paths);",
+                "HGTReader rdr = new HGTReader(lat, kmapLon, paths);"
+            ),
+            (
+                heights,
+                "\t\t\t\t// check for 180\u{00B0} problems, they cause integer overflow \n\t\t\t\tif (lon32 > 0 && px <= 0)\n"
+                    + "\t\t\t\t\tneedHeight = false;\n",
+                ""
+            ),
+            // Precompiled sea for the overlap band too; past 180 deg a cell comes from the
+            // other end of the circle, shifted.
+            (
+                sea,
+                "\tprivate Area tileBounds;",
+                "\tprivate Area tileBounds;\n\t/** kmap: how far past its frame a tile paints a shape. */\n\tprivate int kmapOverlap;"
+            ),
+            (
+                sea,
+                "\t\tthis.saver = saver;\n",
+                "\t\tthis.saver = saver;\n\t\tkmapOverlap = props.getProperty(\"shape-clip-overlap\", 0);\n"
+            ),
+            (
+                sea,
+                "\tprivate List<String> getPrecompKeyNames() {\n\t\tArea bounds = saver.getBoundingBox();",
+                """
+                \tprivate List<String> getPrecompKeyNames() {
+                \t\tArea kmapTile = saver.getBoundingBox();
+                \t\tArea bounds = kmapOverlap <= 0 ? kmapTile : new Area(
+                \t\t\t\tMath.max(MIN_LAT, kmapTile.getMinLat() - kmapOverlap), kmapTile.getMinLong() - kmapOverlap,
+                \t\t\t\tMath.min(MAX_LAT, kmapTile.getMaxLat() + kmapOverlap), kmapTile.getMaxLong() + kmapOverlap);
+                """
+            ),
+            (
+                sea,
+                "\tprivate static String getTileName(String precompKey){\n",
+                """
+                \t/** kmap: a cell's longitude on the circle. */
+                \tprivate static int kmapOnCircle(int lon) {
+                \t\tif (lon >= MAX_LON)
+                \t\t\treturn lon - 2 * MAX_LON;
+                \t\tif (lon < MIN_LON)
+                \t\t\treturn lon + 2 * MAX_LON;
+                \t\treturn lon;
+                \t}
+
+                \t/** kmap: how far a key's cell lies from its stored cell. */
+                \tprivate static int kmapShift(String precompKey) {
+                \t\tint lon = Integer.parseInt(KEY_SPLITTER.split(precompKey)[1]);
+                \t\treturn lon - kmapOnCircle(lon);
+                \t}
+
+                \tprivate static String getTileName(String precompKey){
+
+                """
+            ),
+            (
+                sea,
+                "\t\tint lonIndex = (MAX_LON-lon) / PRECOMP_RASTER;\n",
+                "\t\tint lonIndex = (MAX_LON-kmapOnCircle(lon)) / PRECOMP_RASTER;\n"
+            ),
+            (
+                sea,
+                "\t\tcase MIXED_TILE: return pi.precompSeaPrefix + precompKey + pi.precompSeaExt; \n",
+                "\t\tcase MIXED_TILE: return pi.precompSeaPrefix + lat + \"_\" + kmapOnCircle(lon) + pi.precompSeaExt;\n"
+            ),
+            (
+                sea,
+                "loadMixedTile(pd, tileName, landWays, seaWays, commonCoordMap);",
+                "loadMixedTile(pd, tileName, landWays, seaWays, commonCoordMap, kmapShift(precompKey));"
+            ),
+            (
+                sea,
+                "\t\t\tLong2ObjectOpenHashMap<Coord> commonCoordMap) {\n\t\ttry {",
+                "\t\t\tLong2ObjectOpenHashMap<Coord> commonCoordMap, int kmapShift) {\n\t\ttry {"
+            ),
+            (
+                sea,
+                "Collection<Way> seaPrecompWays = loadPrecompTile(is, tileName);\n",
+                """
+                Collection<Way> seaPrecompWays = loadPrecompTile(is, tileName);
+                \t\t\t\tif (kmapShift != 0) {
+                \t\t\t\t\t// A shared point stays shared: a ring stays closed.
+                \t\t\t\t\tjava.util.Map<Coord, Coord> kmapMoved = new java.util.IdentityHashMap<>();
+                \t\t\t\t\tfor (Way w : seaPrecompWays)
+                \t\t\t\t\t\tw.getPoints().replaceAll(p -> kmapMoved.computeIfAbsent(p, q -> Coord.makeHighPrecCoord(
+                \t\t\t\t\t\t\t\tq.getHighPrecLat(), q.getHighPrecLon() + (kmapShift << Coord.DELTA_SHIFT))));
+                \t\t\t\t}
+
                 """
             )
         ]

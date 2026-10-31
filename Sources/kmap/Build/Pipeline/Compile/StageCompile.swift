@@ -74,7 +74,8 @@ extension BuildPipeline {
                 tileCount: tiles.tiles.count,
                 gmapsupp: false,
                 typ: typ?.url,
-                shapeLift: typ?.shapeLift
+                shapeLift: typ?.shapeLift,
+                tiles: tiles.tiles.map(\.bbox)
             ) + ["-c", argsFile.path]
         func command(_ warmOptions: [String]) -> [String] {
             java.command(warmOptions + ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path]) + rest

@@ -25,7 +25,7 @@ extension BuildPipeline {
             mode: "--gmapi",
             areaName: recipe.areaSlug,
             outputDir: outDir,
-            options: gmapOptions(),
+            options: gmapOptions(tiles: tiles.map(\.tile.bbox)),
             inputs: tiles.map(\.url),
             typ: typ
         )
@@ -53,7 +53,7 @@ extension BuildPipeline {
     /// What the gmapi run needs beyond the identity: the overview's name and number, the
     /// flag that lets BaseCamp draw an elevation profile, and relief for the overview
     /// alone, since the tiles carry theirs already.
-    func gmapOptions() -> [String] {
+    func gmapOptions(tiles: [BBox] = []) -> [String] {
         var options = [
             "--overview-mapname=\(recipe.overviewMapID)",
             "--overview-mapnumber=\(recipe.overviewMapID)",
@@ -66,6 +66,7 @@ extension BuildPipeline {
                 options.append("--overview-dem-dist=\(Self.overviewDEMDistance)")
             }
         }
+        if toolchain.mkgmapIsPatched { options += overviewWrapOption(tiles: tiles) }
         return options
     }
 

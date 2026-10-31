@@ -158,7 +158,8 @@ extension BuildPipeline {
         tileCount: Int,
         gmapsupp: Bool = true,
         typ: URL? = nil,
-        shapeLift: String? = nil
+        shapeLift: String? = nil,
+        tiles: [BBox] = []
     ) throws -> [String] {
         var options: [String] = []
         /// The rule files this build compiles from, once the snapshot is decided: the
@@ -218,6 +219,7 @@ extension BuildPipeline {
         // and are guarded, since an unknown x- option is ignored silently.
         if toolchain.mkgmapIsPatched {
             options += patchedOptions(typ: typ, shapeLift: shapeLift, styleUsed: styleUsed)
+            options += overviewWrapOption(tiles: tiles)
         }
 
         // --min-size-polygon is measured in the level's own units, so one threshold drops far
@@ -300,6 +302,13 @@ extension BuildPipeline {
         // A road left untwinned keeps its picture, which would show under a via ferrata's
         // line: the via ferrata is drawn as a path then.
         try StyleCatalog.drawFerrataAsPath(in: mine, painted: [], twinned: twinned.roads)
+    }
+
+    /// For a map across 180 deg, the middle of the gap between its sides: west of it the
+    /// overview reads longitudes 360 deg further east, so it runs over the seam.
+    func overviewWrapOption(tiles: [BBox]) -> [String] {
+        guard let gap = LongitudeCircle.gapInside(tiles.map { ($0.minLon, $0.maxLon) }) else { return [] }
+        return ["--x-overview-wrap=\(TileSplitter.mapUnits((gap.west + gap.east) / 2))"]
     }
 
     /// The options only a patched mkgmap knows.
