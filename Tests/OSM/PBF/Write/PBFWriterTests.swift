@@ -359,6 +359,20 @@ final class PBFWriterTests: XCTestCase {
         XCTAssertEqual(box?.maxLon ?? 0, 0.5, accuracy: 1e-9)
     }
 
+    /// A tile with edges on 0 deg, as in Africa, keeps all 4 corners on the wire: a reader
+    /// would take a missing one for 0 too, so only the bytes can tell.
+    func testABoundingBoxWithEdgesExactlyOnZeroKeepsEveryCorner() throws {
+        let url = path("bbox-edge0.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header(bbox: (minLat: 0, minLon: 0, maxLat: 2.8125, maxLon: 2.8125))
+        try writer.finish()
+        let corners: [Int: Int64] = [
+            PBFSchema.bboxLeft: 0, PBFSchema.bboxBottom: 0,
+            PBFSchema.bboxRight: 2_812_500_000, PBFSchema.bboxTop: 2_812_500_000
+        ]
+        XCTAssertEqual(try headerBBoxFields(of: url), corners)
+    }
+
     func testFinishCanBeCalledTwiceWithoutHarm() throws {
         let url = path("twice.osm.pbf")
         let writer = try PBFWriter(to: url)
@@ -399,6 +413,31 @@ final class PBFWriterTests: XCTestCase {
     // MARK: Reading the blob framing by hand
 
     /// The kinds of every blob in the file, straight off the four-byte lengths.
+    /// The header box's corner fields as they stand on the wire, by field number.
+    private func headerBBoxFields(of url: URL) throws -> [Int: Int64] {
+        let data = try Data(contentsOf: url)
+        var scratch: [UInt8] = []
+        var corners: [Int: Int64] = [:]
+        try data.withUnsafeBytes { file in
+            try PBFReader.forEachBlob(in: file) { _, kind, blob in
+                guard kind == PBFSchema.headerBlob else { return }
+                let size = try PBFReader.inflate(blob, into: &scratch)
+                scratch.withUnsafeBytes { payload in
+                    var block = ProtoReader(UnsafeRawBufferPointer(rebasing: payload[0..<size]))
+                    while let field = block.nextField() {
+                        guard field.number == PBFSchema.headerBBox else {
+                            block.skip(wire: field.wire)
+                            continue
+                        }
+                        var box = ProtoReader(block.lengthDelimited())
+                        while let corner = box.nextField() { corners[corner.number] = box.zigzag() }
+                    }
+                }
+            }
+        }
+        return corners
+    }
+
     private func blobKinds(of url: URL) throws -> [String] {
         let data = try Data(contentsOf: url)
         var kinds: [String] = []

@@ -2,7 +2,7 @@ import XCTest
 
 @testable import kmap
 
-/// The writer: fields, nesting, and the zero that protobuf leaves out.
+/// The writer: fields, nesting, and the zeros the PBF schema requires.
 final class ProtoWriterTests: XCTestCase {
     private func read<T>(_ bytes: [UInt8], _ body: (inout ProtoReader) -> T) -> T {
         var storage = bytes
@@ -18,9 +18,13 @@ final class ProtoWriterTests: XCTestCase {
         return writer.bytes
     }
 
-    func testVarintFieldLeavesOutZeroTheWayProtobufDoes() {
-        XCTAssertEqual(written { $0.varintField(1, 0) }, [])
-        XCTAssertEqual(written { $0.varintField(1, 1) }.isEmpty, false)
+    /// Zero goes on the wire: every field kmap writes is required.
+    func testVarintFieldWritesZero() {
+        XCTAssertEqual(written { $0.varintField(1, 0) }, [0x08, 0x00])
+    }
+
+    func testZigzagFieldWritesZero() {
+        XCTAssertEqual(written { $0.zigzagField(1, 0) }, [0x08, 0x00])
     }
 
     func testNegativeVarintFieldsUseTheFullTenBytes() {

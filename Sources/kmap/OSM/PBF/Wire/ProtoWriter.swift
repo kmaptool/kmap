@@ -26,16 +26,14 @@ struct ProtoWriter {
         varint(UInt64(field) << Wire.typeBits | UInt64(wire))
     }
 
-    /// An int64 field. Zero is omitted; a reader that sees no field reads zero.
+    /// An int64 field, zero included: the PBF fields written here are required.
     mutating func varintField(_ field: Int, _ value: Int64) {
-        guard value != 0 else { return }
         key(field, Wire.varint)
         varint(UInt64(bitPattern: value))
     }
 
-    /// A sint64 field, zigzag-encoded. Zero is omitted.
+    /// A sint64 field, zigzag-encoded, zero included: mkgmap refuses a header box missing a corner.
     mutating func zigzagField(_ field: Int, _ value: Int64) {
-        guard value != 0 else { return }
         key(field, Wire.varint)
         zigzag(value)
     }
