@@ -48,10 +48,12 @@ enum MapCoverage {
         let name = String(decoding: header[2..<12], as: UTF8.self)
         guard name == "GARMIN TRE" else { return nil }
         guard let maxLat = signed24(header, at: 0x15),
-            let maxLon = signed24(header, at: 0x18),
+            var maxLon = signed24(header, at: 0x18),
             let minLat = signed24(header, at: 0x1B),
             let minLon = signed24(header, at: 0x1E)
         else { return nil }
+        // An east edge not east of the west edge wraps past 180 deg.
+        if maxLon <= minLon { maxLon += 1 << 24 }
         return (degrees(minLat), degrees(minLon), degrees(maxLat), degrees(maxLon))
     }
 
@@ -88,9 +90,11 @@ enum MapCoverage {
         guard tiles.count > 1 else { return tiles }
         func holdsAll(_ outer: Tile) -> Bool {
             tiles.allSatisfy { other in
-                other.name == outer.name
+                // West of the outer box is past 180 deg for a box over the seam.
+                let shift = other.minLon < outer.minLon ? 360.0 : 0
+                return other.name == outer.name
                     || (other.minLat >= outer.minLat && other.maxLat <= outer.maxLat
-                        && other.minLon >= outer.minLon && other.maxLon <= outer.maxLon)
+                        && other.minLon + shift >= outer.minLon && other.maxLon + shift <= outer.maxLon)
             }
         }
         let kept = tiles.filter { !holdsAll($0) }
@@ -98,40 +102,57 @@ enum MapCoverage {
         return kept.isEmpty ? tiles : kept
     }
 
-    /// Samples the box around the tiles and reports every point no tile holds.
+    /// Samples the ground the tiles claim and reports every point no tile holds.
     ///
     /// The grid is offset by half a step so a sample never lands exactly on a shared
     /// edge, where both neighbours claim it and a gap of nothing would read as covered.
+    /// Across 180 deg the frame reported runs over the seam, as the overview's does.
     static func check(_ tiles: [Tile], step: Double = 0.25) -> Report? {
-        guard step > 0,
+        let sides = ground(of: tiles)
+        guard step > 0, let first = sides.first, let last = sides.last,
             let minLat = tiles.map(\.minLat).min(),
-            let minLon = tiles.map(\.minLon).min(),
-            let maxLat = tiles.map(\.maxLat).max(),
-            let maxLon = tiles.map(\.maxLon).max()
+            let maxLat = tiles.map(\.maxLat).max()
         else { return nil }
 
         var sampled = 0
         var holes: [(lat: Double, lon: Double)] = []
-        var lat = minLat + step / 2
-        while lat < maxLat {
-            var lon = minLon + step / 2
-            while lon < maxLon {
-                sampled += 1
-                if !tiles.contains(where: { $0.holds(lat: lat, lon: lon) }) {
-                    holes.append((lat, lon))
+        for box in sides {
+            var lat = box.minLat + step / 2
+            while lat < box.maxLat {
+                var lon = box.minLon + step / 2
+                while lon < box.maxLon {
+                    sampled += 1
+                    if !tiles.contains(where: { $0.holds(lat: lat, lon: lon) }) {
+                        holes.append((lat, lon))
+                    }
+                    lon += step
                 }
-                lon += step
+                lat += step
             }
-            lat += step
         }
         return Report(
             tiles: tiles,
             minLat: minLat,
-            minLon: minLon,
+            minLon: last.minLon,
             maxLat: maxLat,
-            maxLon: maxLon,
+            maxLon: first.maxLon,
             sampled: sampled,
             holes: holes
         )
+    }
+
+    /// The box round the tiles, or round each side of 180 deg for a map across it.
+    static func ground(
+        of tiles: [Tile]
+    ) -> [(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double)] {
+        func box(_ some: [Tile]) -> (Double, Double, Double, Double) {
+            (
+                some.map(\.minLat).min() ?? 0, some.map(\.minLon).min() ?? 0,
+                some.map(\.maxLat).max() ?? 0, some.map(\.maxLon).max() ?? 0
+            )
+        }
+        guard !tiles.isEmpty else { return [] }
+        guard let gap = LongitudeCircle.gapInside(tiles.map { ($0.minLon, $0.maxLon) }) else { return [box(tiles)] }
+        return [box(tiles.filter { $0.maxLon <= gap.west }), box(tiles.filter { $0.minLon >= gap.east })]
     }
 }

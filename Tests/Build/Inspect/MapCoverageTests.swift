@@ -63,6 +63,56 @@ final class MapCoverageTests: XCTestCase {
         XCTAssertEqual(box!.minLon, -45, accuracy: 1e-9)
     }
 
+    /// A TRE header with these corners, in map units.
+    private func treHeader(north: Int, east: Int, south: Int, west: Int) -> [UInt8] {
+        var header = [UInt8](repeating: 0, count: 0x30)
+        header[0] = 0x30
+        for (at, byte) in Array("GARMIN TRE".utf8).enumerated() { header[2 + at] = byte }
+        for (value, offset) in [(north, 0x15), (east, 0x18), (south, 0x1B), (west, 0x1E)] {
+            let raw = value & 0xFF_FFFF
+            header[offset] = UInt8(raw & 0xFF)
+            header[offset + 1] = UInt8((raw >> 8) & 0xFF)
+            header[offset + 2] = UInt8((raw >> 16) & 0xFF)
+        }
+        return header
+    }
+
+    /// mkgmap stores an east edge on 180 deg as -180.
+    func testAnEastEdgeOn180IsNotReadAsMinus180() {
+        let box = MapCoverage.bounds(
+            ofTRE: treHeader(north: -(1 << 19), east: 1 << 23, south: -(1 << 20), west: 8_294_400)
+        )
+        XCTAssertEqual(box?.maxLon ?? 0, 180, accuracy: 1e-9)
+        XCTAssertEqual(box?.minLon ?? 0, 177.978515625, accuracy: 1e-9)
+    }
+
+    /// An overview round the whole circle: both edges carry the same 24 bits.
+    func testAnOverviewFromMinus180To180IsTheWholeCircle() {
+        let box = MapCoverage.bounds(
+            ofTRE: treHeader(north: -(1 << 19), east: 1 << 23, south: -(1 << 20), west: -(1 << 23))
+        )
+        XCTAssertEqual(box?.minLon ?? 0, -180, accuracy: 1e-9)
+        XCTAssertEqual(box?.maxLon ?? 0, 180, accuracy: 1e-9)
+    }
+
+    /// An overview across 180 deg: its east edge is read past 180.
+    func testAnOverviewOverTheSeamRunsPast180() {
+        let box = MapCoverage.bounds(
+            ofTRE: treHeader(north: -(1 << 19), east: -(1 << 22), south: -(1 << 20), west: 1 << 22)
+        )
+        XCTAssertEqual(box?.minLon ?? 0, 90, accuracy: 1e-9)
+        XCTAssertEqual(box?.maxLon ?? 0, 270, accuracy: 1e-9)
+    }
+
+    /// Only the east edge flips: a west edge on -180 stays there.
+    func testAWestEdgeOnMinus180StaysThere() {
+        let box = MapCoverage.bounds(
+            ofTRE: treHeader(north: -(1 << 19), east: -(1 << 22), south: -(1 << 20), west: -(1 << 23))
+        )
+        XCTAssertEqual(box?.minLon ?? 0, -180, accuracy: 1e-9)
+        XCTAssertEqual(box?.maxLon ?? 0, -90, accuracy: 1e-9)
+    }
+
     func testSomethingThatIsNotATREIsRefused() {
         var header = [UInt8](repeating: 0, count: 0x30)
         for (at, byte) in Array("GARMIN RGN".utf8).enumerated() { header[2 + at] = byte }
@@ -97,6 +147,22 @@ final class MapCoverageTests: XCTestCase {
         )
         XCTAssertEqual(report!.holes.count, 16)
         XCTAssertTrue(report!.holes.allSatisfy { $0.lat > 1 && $0.lon > 1 })
+    }
+
+    /// Fiji: the planet between the sides is no hole, a missing tile is.
+    func testAMapAcross180IsCheckedOnEitherSideOfIt() {
+        let report = MapCoverage.check(
+            [
+                tile("a", 0, -180, 1, -179), tile("b", 0, 178, 1, 179), tile("c", 1, 178, 2, 179),
+                tile("d", 0, 179, 1, 180)
+            ],
+            step: 0.25
+        )
+        XCTAssertEqual(report!.sampled, 16 + 64)
+        XCTAssertEqual(report!.holes.count, 16)
+        XCTAssertTrue(report!.holes.allSatisfy { $0.lat > 1 && $0.lon > 179 })
+        XCTAssertEqual(report!.minLon, 178, "the frame runs from the east side over the seam")
+        XCTAssertEqual(report!.maxLon, -179)
     }
 
     /// The grid is offset by half a step so a sample never lands on a shared edge, where
@@ -143,5 +209,13 @@ final class MapCoverageTests: XCTestCase {
         // A 1-tile map: the tile and its overview share a box, and the tile stays.
         let alone = MapCoverage.Tile(name: "63240000", minLat: 44, minLon: 33, maxLat: 45, maxLon: 34)
         XCTAssertEqual(MapCoverage.withoutOverview([alone, west]).count, 2)
+    }
+
+    /// Fiji's overview runs over the seam and holds both sides.
+    func testAnOverviewOverTheSeamIsLeftOut() {
+        let west = MapCoverage.Tile(name: "63240001", minLat: -19, minLon: 177, maxLat: -16, maxLon: 180)
+        let east = MapCoverage.Tile(name: "63240002", minLat: -19, minLon: -180, maxLat: -16, maxLon: -178)
+        let overview = MapCoverage.Tile(name: "63240000", minLat: -19, minLon: 177, maxLat: -16, maxLon: 182)
+        XCTAssertEqual(MapCoverage.withoutOverview([overview, west, east]).map(\.name), ["63240001", "63240002"])
     }
 }
