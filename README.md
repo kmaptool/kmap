@@ -19,26 +19,9 @@ ready to use immediately.
 
 </div>
 
-```text
- kmap · new map · Europe                                       22:57:14
- ──────────────────────────────────────────────────────────────────────
- › Profile          GPSMap 67         │ REGION ────────────────────────
-                                      │ Europe   34.92 GB
-   Style            opentopomap       │
-   Contour lines    on                │ COST ──────────────────────────
-   Interval         20 m              │ about 62.51 GB to download
-   DEM layer        on                │
-   Zoom plan        Smooth (8 levels) │ OUTPUT FOLDER ─────────────────
-   Labels           Local             │ 2026-09-05_europe_20m_dem
-   Routable         on                │
-   Search index     on                │ PROFILE ───────────────────────
-   House numbers    on                │ GPSMap 67
-   Hide on map      Gates in fences…  │
-                                      │
-   Build map ⏎                        │
- ──────────────────────────────────────────────────────────────────────
-  ↑↓ field   ←→ change   ⏎ open · build   esc back           kmap 1.0.0
-```
+<p align="center">
+  <img src="Assets/readme/tui.png" width="820" alt="kmap: the new map screen">
+</p>
 
 ## The problem kmap solves
 
