@@ -27,6 +27,21 @@ final class ProtoWriterTests: XCTestCase {
         XCTAssertEqual(written { $0.zigzagField(1, 0) }, [0x08, 0x00])
     }
 
+    /// Zigzag puts -n next to n: small values of either sign take one byte.
+    func testZigzagFieldInterleavesTheSigns() {
+        XCTAssertEqual(written { $0.zigzagField(1, -1) }, [0x08, 0x01])
+        XCTAssertEqual(written { $0.zigzagField(1, 1) }, [0x08, 0x02])
+        XCTAssertEqual(written { $0.zigzagField(1, -64) }, [0x08, 0x7F])
+        XCTAssertEqual(written { $0.zigzagField(1, 64) }, [0x08, 0x80, 0x01])
+        for value: Int64 in [-2_812_500_000, 2_812_500_000, .min, .max] {
+            let back = read(written { $0.zigzagField(1, value) }) { reader -> Int64 in
+                _ = reader.nextField()
+                return reader.zigzag()
+            }
+            XCTAssertEqual(back, value)
+        }
+    }
+
     func testNegativeVarintFieldsUseTheFullTenBytes() {
         // A plain int64 field is not zigzagged, so -1 is every bit set.
         let bytes = written { $0.varintField(1, -1) }

@@ -412,7 +412,6 @@ final class PBFWriterTests: XCTestCase {
 
     // MARK: Reading the blob framing by hand
 
-    /// The kinds of every blob in the file, straight off the four-byte lengths.
     /// The header box's corner fields as they stand on the wire, by field number.
     private func headerBBoxFields(of url: URL) throws -> [Int: Int64] {
         let data = try Data(contentsOf: url)
@@ -438,6 +437,7 @@ final class PBFWriterTests: XCTestCase {
         return corners
     }
 
+    /// The kinds of every blob in the file, straight off the four-byte lengths.
     private func blobKinds(of url: URL) throws -> [String] {
         let data = try Data(contentsOf: url)
         var kinds: [String] = []
