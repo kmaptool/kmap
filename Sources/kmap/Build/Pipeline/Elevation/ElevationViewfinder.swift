@@ -8,7 +8,12 @@ extension BuildPipeline {
     /// A cell is tried at each resolution the recipe names until one answers: `view1,view3`
     /// takes the finer where it exists and the coarser where it does not. A cell no
     /// resolution carries is open sea, which is not a failure.
-    func fetchViewfinderTiles(_ resolutions: [Int], covering bbox: BBox, last: Bool) async throws {
+    func fetchViewfinderTiles(
+        _ resolutions: [Int],
+        covering bbox: BBox,
+        last: Bool,
+        progress: ProgressReport = .silent
+    ) async throws {
         // Cells a source listed before the first view entry already converted are
         // settled; Viewfinder fills what they left. view1 against view3 is chained
         // below, per cell.
@@ -38,6 +43,13 @@ extension BuildPipeline {
             indexes[resolution] = try await ViewfinderDEM.index(resolution) { self.log.append($0) }
         }
 
+        let indexed = indexes
+        let toFetch = cells.filter {
+            Self.viewfinderFetches($0, resolutions: resolutions) { indexed[$0] != nil }
+        }
+        .count
+        var tried = 0
+
         var have = 0, missing: [String] = []
         // Cells an archive should have held and did not come: a failure, not sea.
         var unreached: [String] = []
@@ -45,6 +57,7 @@ extension BuildPipeline {
         for (position, cell) in cells.enumerated() {
             var found = false
             var failed = false
+            var fetched = false
             for resolution in resolutions {
                 let cached = ViewfinderDEM.cachedTile(cell, resolution: resolution)
                 if ViewfinderDEM.isComplete(cached, resolution: resolution) {
@@ -57,6 +70,7 @@ extension BuildPipeline {
                 do {
                     try Task.checkCancellation()
                     elevationFetchBegins()
+                    fetched = true
                     _ = try await ViewfinderDEM.fetch(
                         cell,
                         resolution: resolution,
@@ -88,11 +102,9 @@ extension BuildPipeline {
             } else {
                 missing.append(cell)
             }
-            detail(
-                .elevation,
-                "Viewfinder \(position + 1)/\(cells.count) · \(cell)",
-                fraction: Double(position + 1) / Double(max(1, cells.count))
-            )
+            if fetched { tried += 1 }
+            detail(.elevation, "Viewfinder \(position + 1)/\(cells.count) · \(cell)")
+            if toFetch > 0 { progress(Double(tried) / Double(toFetch)) }
         }
         if last { elevationDownloadsFinished() }
         log.ok(

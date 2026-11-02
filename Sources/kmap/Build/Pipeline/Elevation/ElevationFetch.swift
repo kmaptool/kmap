@@ -37,19 +37,21 @@ extension BuildPipeline {
     /// Fills the `.hgt` cache from every source the recipe names, in its order.
     func fetchElevationTiles(covering bbox: BBox) async throws {
         let steps = fetchSteps
+        let course = ProgressCourse(weights: await fetchWeights(steps))
         for (index, step) in steps.enumerated() {
             let last = index == steps.count - 1
+            let progress = report(.elevation).part(index, of: course)
             switch step {
             case .direct(let source):
                 if let tiled = source as? any DEMTileSource {
-                    try await fetchDEMTiles(tiled, covering: bbox, last: last)
+                    try await fetchDEMTiles(tiled, covering: bbox, last: last, progress: progress)
                 } else if let gedtm = source as? GEDTM30 {
-                    try await fetchGEDTMTiles(gedtm, covering: bbox, last: last)
+                    try await fetchGEDTMTiles(gedtm, covering: bbox, last: last, progress: progress)
                 }
             case .viewfinder(let resolutions):
-                try await fetchViewfinderTiles(resolutions, covering: bbox, last: last)
+                try await fetchViewfinderTiles(resolutions, covering: bbox, last: last, progress: progress)
             case .credentialed(let sources):
-                try await fetchCredentialedTiles(sources, covering: bbox, last: last)
+                try await fetchCredentialedTiles(sources, covering: bbox, last: last, progress: progress)
             }
         }
     }
@@ -57,7 +59,12 @@ extension BuildPipeline {
     /// SRTM and ALOS, through pyhgtmap, then converted from the GeoTIFF they publish. Only
     /// the cells no earlier source holds are asked for, and a source with no working login,
     /// or a pyhgtmap that fails, leaves its cells to the sources listed after it.
-    private func fetchCredentialedTiles(_ sources: [String], covering bbox: BBox, last: Bool) async throws {
+    private func fetchCredentialedTiles(
+        _ sources: [String],
+        covering bbox: BBox,
+        last: Bool,
+        progress: ProgressReport
+    ) async throws {
         let reachable = Self.reachable(sources, usable: ElevationLogins.usable)
         if reachable.count < sources.count {
             let skipped = sources.filter { !reachable.contains($0) }.joined(separator: ", ")
@@ -84,6 +91,8 @@ extension BuildPipeline {
             if let clip = writeOpenCellsPolygon(open) {
                 scope = ["--polygon=\(clip.nativePath)"]
             }
+            let fetching = Self.pyhgtmapFetching(open, first: reachable[0])
+            let named = Locked<[String]>([])
             let ran = try await runner.run(
                 pyhgtmap.path,
                 scope + [
@@ -92,8 +101,19 @@ extension BuildPipeline {
                     "--download-only"
                 ],
                 cwd: workDirectory,
+                // Lines as printed, not buffered.
+                environment: ["PYTHONUNBUFFERED": "1"],
                 allowFailure: true
-            ) { self.log.append($0) }
+            ) { line in
+                self.log.append(line)
+                guard let cell = Self.pyhgtmapCell(line), !fetching.isEmpty else { return }
+                let done = named.withLock { named in
+                    if named.last != cell { named.append(cell) }
+                    return Self.pyhgtmapFetched(named, of: fetching)
+                }
+                self.detail(.elevation, "pyhgtmap \(done)/\(fetching.count) · \(cell)")
+                progress(Double(done) / Double(fetching.count))
+            }
             if Self.pyhgtmapFiles(reachable) != held { elevationFetchBegins() }
             try Task.checkCancellation()
             if ran.exitCode != 0 {
@@ -109,6 +129,19 @@ extension BuildPipeline {
         convertDownloadedGeoTIFF(covering: bbox, sources: sources)
         forgetDEMSearchPaths()
         if Self.endsWithNoTiles(last: last, onHand: mapHGTCount()) { throw BuildError.noElevationTiles }
+    }
+
+    /// The cell in a line like N45E034: trying srtm1.
+    static func pyhgtmapCell(_ line: String) -> String? {
+        guard line.contains(": trying "), let name = line.split(separator: ":").first,
+            name.count == HGTName.length
+        else { return nil }
+        return String(name)
+    }
+
+    /// The cells of `fetching` pyhgtmap has passed.
+    static func pyhgtmapFetched(_ named: [String], of fetching: Set<String>) -> Int {
+        Set(named.dropLast()).intersection(fetching).count
     }
 
     /// Cells as few rectangles, in whole degrees, each bound inclusive: runs along a row,

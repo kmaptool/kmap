@@ -5,7 +5,12 @@ import Foundation
 
 extension BuildPipeline {
     /// Fetches only the tiles under the wanted cells and writes each cell as `.hgt`.
-    func fetchGEDTMTiles(_ source: GEDTM30, covering bbox: BBox, last: Bool) async throws {
+    func fetchGEDTMTiles(
+        _ source: GEDTM30,
+        covering bbox: BBox,
+        last: Bool,
+        progress: ProgressReport = .silent
+    ) async throws {
         Paths.ensure(source.cacheDirectory)
         let all = elevationCells()
         let earlier = earlierSourceDirectories(before: source.sourceID)
@@ -57,7 +62,7 @@ extension BuildPipeline {
         let weight = missing.reduce(0) { $0 + $1.value.count }
         log.step("fetching \(missing.count) \(source.label) tile(s), \(Fmt.bytes(Int64(weight)))")
         if !missing.isEmpty { elevationFetchBegins() }
-        try await downloadGEDTMChunks(missing.map { ($0.key, $0.value) }, source: source)
+        try await downloadGEDTMChunks(missing.map { ($0.key, $0.value) }, source: source, progress: progress)
 
         if last { elevationDownloadsFinished() }
         elevationBuildStarted("converting")
@@ -78,7 +83,11 @@ extension BuildPipeline {
     }
 
     /// Downloads the chunks, several at a time, with a live progress line.
-    private func downloadGEDTMChunks(_ chunks: [(tile: Int, span: GEDTM30.Span)], source: GEDTM30) async throws {
+    private func downloadGEDTMChunks(
+        _ chunks: [(tile: Int, span: GEDTM30.Span)],
+        source: GEDTM30,
+        progress: ProgressReport
+    ) async throws {
         guard !chunks.isEmpty else { return }
         // Under the source's lock, taken by the caller.
         let lanes = max(2, min(6, Machine.workers))
@@ -99,7 +108,8 @@ extension BuildPipeline {
                     elapsed: Date().timeIntervalSince(started),
                     secondsLeft: pace.secondsLeft(total - done)
                 )
-                board.detail(.elevation, text, fraction: Double(done) / Double(max(1, total)))
+                board.detail(.elevation, text)
+                progress(Double(done) / Double(max(1, total)))
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
         }

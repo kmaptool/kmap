@@ -199,6 +199,76 @@ final class DEMStagingTests: XCTestCase {
         XCTAssertTrue(chained.hasOneArcSecondData, "most cells are 1 arc-second")
     }
 
+    func testEachFetchWeighsTheCellsItWillFetch() async throws {
+        var recipe = pipeline.recipe
+        recipe.demSources = "copernicus1,copernicus3"
+        let settings = SettingsStore()
+        let toolchain = Toolchain(settings: settings)
+        let chained = BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
+        let coverage = ElevationCost.tileCoverage
+        defer { ElevationCost.tileCoverage = coverage }
+        ElevationCost.tileCoverage = { flavor in
+            flavor.sourceID == "copernicus1"
+                ? ["N44E034", "N44E035", "N45E034"] : ["N44E034", "N44E035", "N45E034", "N45E035"]
+        }
+        try plant("COP1", ["N44E034"])
+        let weights = await chained.fetchWeights(chained.fetchSteps)
+        XCTAssertEqual(weights, [2, 1])
+    }
+
+    func testACachedBuildAsksForNoTileList() async throws {
+        var recipe = pipeline.recipe
+        recipe.demSources = "copernicus1,copernicus3"
+        let settings = SettingsStore()
+        let toolchain = Toolchain(settings: settings)
+        let chained = BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
+        let coverage = ElevationCost.tileCoverage
+        defer { ElevationCost.tileCoverage = coverage }
+        let asked = Locked(0)
+        ElevationCost.tileCoverage = { _ in
+            asked.withLock { $0 += 1 }
+            return []
+        }
+        try plant("COP1", ["N44E034", "N44E035", "N45E034", "N45E035"])
+        let weights = await chained.fetchWeights(chained.fetchSteps)
+        XCTAssertEqual(weights, [0, 0])
+        XCTAssertEqual(asked.withLock { $0 }, 0)
+    }
+
+    func testATileListIsAskedOnceABuild() async throws {
+        var recipe = pipeline.recipe
+        recipe.demSources = "copernicus1,copernicus3"
+        let settings = SettingsStore()
+        let toolchain = Toolchain(settings: settings)
+        let chained = BuildPipeline(
+            recipe: recipe,
+            settings: settings,
+            toolchain: toolchain,
+            styles: StyleCatalog(settings: settings, toolchain: toolchain)
+        )
+        let coverage = ElevationCost.tileCoverage
+        defer { ElevationCost.tileCoverage = coverage }
+        let asked = Locked(0)
+        ElevationCost.tileCoverage = { _ in
+            asked.withLock { $0 += 1 }
+            return nil
+        }
+        _ = await chained.fetchWeights(chained.fetchSteps)
+        _ = await chained.fetchWeights(chained.fetchSteps)
+        // With no list the first source takes every cell.
+        XCTAssertEqual(asked.withLock { $0 }, 1)
+    }
+
     /// With no working login a source is skipped, and the build goes on to what else is
     /// listed rather than ending in pyhgtmap's refusal.
     func testASourceWithNoLoginIsSkipped() {

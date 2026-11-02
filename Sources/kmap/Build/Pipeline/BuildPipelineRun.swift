@@ -38,6 +38,8 @@ extension BuildPipeline {
         var conversion = (cells: 0, done: 0)
         /// The extracts' bytes.
         var elevationExtractBytes: Int64 = 0
+        /// Each tiled source's tile list.
+        var tileLists: [String: Set<String>?] = [:]
         /// Where kmap's own marks ended up when the chosen TYP already drew their
         /// numbers. The rules emitting them are moved to match, in this build's style
         /// snapshot.

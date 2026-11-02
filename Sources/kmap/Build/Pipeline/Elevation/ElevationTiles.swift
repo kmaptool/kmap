@@ -11,7 +11,8 @@ extension BuildPipeline {
     func fetchDEMTiles<Source: DEMTileSource>(
         _ flavor: Source,
         covering bbox: BBox,
-        last: Bool
+        last: Bool,
+        progress: ProgressReport = .silent
     ) async throws {
         Paths.ensure(flavor.cacheDirectory)
 
@@ -35,25 +36,20 @@ extension BuildPipeline {
 
         // Three cell states: a finished .hgt needs nothing, a cached .tif skips straight
         // to conversion, and only the rest go over the network.
-        let unconverted = wanted.filter { !FileTools.exists(flavor.cachedTile(lat: $0.lat, lon: $0.lon)) }
+        let share = await demTileShare(flavor, of: wanted)
+        let (unconverted, asked, unpublished) = (share.unconverted, share.asked, share.unpublished)
         guard !unconverted.isEmpty else {
             log.debug("all \(wanted.count) \(flavor.label) tile(s) already converted")
             return
         }
         let scratch = flavor.tifCacheDirectory
         Paths.ensure(scratch)
-        let missing = unconverted.filter {
-            !FileTools.exists(flavor.downloadedTif(lat: $0.lat, lon: $0.lon))
-        }
-        if missing.count < unconverted.count {
+        if share.missing.count < unconverted.count {
             log.append(
-                "\(unconverted.count - missing.count) \(flavor.label) tile(s) already downloaded — kept from an interrupted run"
+                "\(unconverted.count - share.missing.count) \(flavor.label) tile(s) already downloaded — kept from an interrupted run"
             )
         }
-        // Cells the source's list lacks are sea and not asked for, so a cached build works
-        // offline.
-        let list = await ElevationCost.tileCoverage(flavor)
-        let (asked, unpublished) = Self.published(missing, in: list)
+        // Cells the source's list lacks are sea and not asked for.
         if unpublished > 0 {
             log.append("\(unpublished) cell(s) \(flavor.label) does not publish, sea or beyond it — not asked for")
         }
@@ -67,7 +63,15 @@ extension BuildPipeline {
         // every side, so its outer nodes need the neighbour's data to sample.
         let absent =
             unpublished
-            + (asked.isEmpty ? 0 : try await downloadDEMTifs(asked, flavor: flavor, into: scratch, listed: list != nil))
+            + (asked.isEmpty
+                ? 0
+                : try await downloadDEMTifs(
+                    asked,
+                    flavor: flavor,
+                    into: scratch,
+                    listed: share.listed,
+                    progress: progress
+                ))
 
         let downloaded = unconverted.filter {
             FileTools.exists(flavor.downloadedTif(lat: $0.lat, lon: $0.lon))
@@ -142,7 +146,8 @@ extension BuildPipeline {
         _ missing: [(lat: Int, lon: Int)],
         flavor: Source,
         into scratch: URL,
-        listed: Bool
+        listed: Bool,
+        progress: ProgressReport
     ) async throws -> Int {
         let lanes = max(2, min(6, Machine.workers))
         let absent = Counter()
@@ -169,11 +174,8 @@ extension BuildPipeline {
                     elapsed: Date().timeIntervalSince(started),
                     secondsLeft: pace.secondsLeft(total - done)
                 )
-                board.detail(
-                    .elevation,
-                    text,
-                    fraction: Double(done) / Double(max(1, total))
-                )
+                board.detail(.elevation, text)
+                progress(Double(done) / Double(max(1, total)))
                 try? await Task.sleep(nanoseconds: 300_000_000)
             }
         }
