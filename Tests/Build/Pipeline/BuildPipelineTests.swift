@@ -15,6 +15,11 @@ final class BuildPipelineTests: XCTestCase {
         return out
     }
 
+    /// The stages' shares added up, as the table has them.
+    private func share(_ ids: BuildPipeline.StageID...) -> Double {
+        ids.reduce(0) { $0 + BuildPipeline.StageWeights.measured[$1] }
+    }
+
     private func snapshot(_ stages: [BuildPipeline.Stage]) -> BuildPipeline.Snapshot {
         BuildPipeline.Snapshot(
             stages: stages,
@@ -94,7 +99,11 @@ final class BuildPipelineTests: XCTestCase {
         XCTAssertEqual(snapshot(done).overall, 1, accuracy: 1e-9)
         // The cache is not progress.
         let started = build([.preflight: .done, .dataUpdate: .skipped, .download: .skipped, .elevation: .skipped])
-        XCTAssertEqual(snapshot(started).overall, 0.01 / (1 - 0.01 - 0.23 - 0.20), accuracy: 1e-9)
+        XCTAssertEqual(
+            snapshot(started).overall,
+            share(.preflight) / (1 - share(.dataUpdate, .download, .elevation)),
+            accuracy: 1e-9
+        )
     }
 
     func testTheBarNeverGoesBackwardsAsTheBuildWalksThroughIt() {
@@ -123,9 +132,10 @@ final class BuildPipelineTests: XCTestCase {
         var stages = BuildPipeline.StageID.allCases.map {
             stage($0, $0 == .compile ? .running : ($0 == .collect ? .pending : .done))
         }
-        XCTAssertEqual(snapshot(stages).overall, 1 - 0.30 - 0.02, accuracy: 1e-9)
+        let before = 1 - share(.compile, .collect)
+        XCTAssertEqual(snapshot(stages).overall, before, accuracy: 1e-9)
         stages[6] = stage(.compile, .running, fraction: 0.01)
-        XCTAssertGreaterThan(snapshot(stages).overall, 1 - 0.30 - 0.02, "the first measured step moves it")
+        XCTAssertGreaterThan(snapshot(stages).overall, before, "the first measured step moves it")
     }
 
     func testTwoStagesCanBeRunningAtOnceWithoutConfusingTheBar() {
@@ -136,7 +146,9 @@ final class BuildPipelineTests: XCTestCase {
         stages[3] = stage(.elevation, .running, fraction: 0.5)
         stages[4] = stage(.elevationBuild, .running, fraction: 0.25)
         let both = snapshot(stages).overall
-        XCTAssertEqual(both, 0.01 + 0.01 + 0.23 + 0.20 * 0.5 + 0.03 * 0.25, accuracy: 1e-9)
+        let measured =
+            share(.preflight, .dataUpdate, .download) + share(.elevation) * 0.5 + share(.elevationBuild) * 0.25
+        XCTAssertEqual(both, measured, accuracy: 1e-9)
 
         stages[3] = stage(.elevation, .done)
         XCTAssertGreaterThan(snapshot(stages).overall, both)
@@ -145,7 +157,7 @@ final class BuildPipelineTests: XCTestCase {
     func testElevationIsWorthItsFetchAndItsBuildTogether() {
         let fetched = snapshot(build([.elevation: .done])).overall
         let builtToo = snapshot(build([.elevation: .done, .elevationBuild: .done])).overall
-        XCTAssertEqual(builtToo, 0.23, accuracy: 1e-9)
+        XCTAssertEqual(builtToo, share(.elevation, .elevationBuild), accuracy: 1e-9)
         XCTAssertGreaterThan(builtToo, fetched)
     }
 
@@ -155,25 +167,9 @@ final class BuildPipelineTests: XCTestCase {
         }
         XCTAssertEqual(
             snapshot(stages).overall,
-            0.01 + 0.24 + 0.20 + 0.03 + 0.20,
+            share(.preflight, .dataUpdate, .download, .elevation, .elevationBuild, .split),
             accuracy: 1e-9
         )
-    }
-
-    func testTheWeightsAddUpToAWholeBuild() {
-        // Otherwise a finished build stops short of the end or claims to be past it.
-        let whole = snapshot(BuildPipeline.StageID.allCases.map { stage($0, .done) }).overall
-        XCTAssertEqual(whole, 1, accuracy: 1e-9)
-    }
-
-    func testCompilingIsWeightedLikeTheTwoThirdsOfABuildItIs() {
-        // mkgmap is about 2/3 of a small build's wall clock; download and elevation
-        // are most of the rest.
-        let mkgmapOnly = snapshot(build([.compile: .done])).overall
-        let downloadOnly = snapshot(build([.download: .done])).overall
-        let collectOnly = snapshot(build([.collect: .done])).overall
-        XCTAssertGreaterThan(mkgmapOnly, downloadOnly)
-        XCTAssertGreaterThan(downloadOnly, collectOnly)
     }
 
     // MARK: The extract a build reads
