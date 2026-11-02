@@ -116,6 +116,7 @@ extension BuildPipeline {
             }
             if Self.pyhgtmapFiles(reachable) != held { elevationFetchBegins() }
             try Task.checkCancellation()
+            progress(1)
             if ran.exitCode != 0 {
                 log.warn(
                     "pyhgtmap ended with code \(ran.exitCode) — what it fetched is used, the other sources"
