@@ -18,6 +18,18 @@ struct RoadNetworkLoader {
     let url: URL
     /// Asked between blocks, from threads where a task's cancellation is not seen.
     var shouldStop: () -> Bool = { false }
+    var progress = ProgressReport.silent
+
+    /// Weighted by seconds on Germany.
+    private enum Step: Hashable, Sendable {
+        case shapes, nodes, place
+    }
+
+    private enum Placed: Hashable, Sendable {
+        case roads, obstacles
+    }
+
+    private static let course = ProgressCourse<Step>([(.shapes, 15.2), (.nodes, 4.6), (.place, 10.4)])
 
     /// Ways on different decks do not meet, whatever the map looks like from above.
     static func level(layer: String, bridge: String, tunnel: String) -> Int32 {
@@ -60,10 +72,17 @@ struct RoadNetworkLoader {
     }
 
     func load() throws -> RoadNetwork {
-        let shape = try collectShapes()
+        let course = Self.course
+        let shape = try collectShapes(progress: progress.part(.shapes, of: course))
         // Which node positions are actually wanted, once, in order.
         let unique = NodePlaces.wantedIDs(from: [shape.network.refs, shape.obstacleRefs])
-        let (places, noExit, gates) = try NodePlaces.gatherNotingNoExit(unique, from: url, shouldStop: shouldStop)
+        let (places, noExit, gates) = try NodePlaces.gatherNotingNoExit(
+            unique,
+            from: url,
+            shouldStop: shouldStop,
+            progress: progress.part(.nodes, of: course)
+        )
+        defer { progress(1) }
 
         // A way may name a node the extract does not contain, since the cut runs through
         // ways. Such points are dropped, and a way left too short goes with them.
@@ -72,16 +91,22 @@ struct RoadNetworkLoader {
         network.noExit = noExit
         network.gates = gates
         network.passages = shape.network.passages
-        Self.placeWays(of: shape, at: places, into: &network)
-        Self.placeObstacles(of: shape, at: places, into: &network)
+        let placing = ProgressCourse<Placed>([
+            (.roads, Double(shape.network.refs.count)), (.obstacles, Double(shape.obstacleRefs.count))
+        ])
+        let place = progress.part(.place, of: course)
+        Self.placeWays(of: shape, at: places, into: &network, progress: place.part(.roads, of: placing))
+        Self.placeObstacles(of: shape, at: places, into: &network, progress: place.part(.obstacles, of: placing))
         return network
     }
 
     /// The first pass: every road and obstacle, by node id, the blocks joined in order.
-    private func collectShapes() throws -> ShapeCollector {
+    private func collectShapes(progress: ProgressReport) throws -> ShapeCollector {
         var shape = ShapeCollector()
         var vocabulary: [String: UInt8] = [:]
-        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { ShapeCollector() }) { part in
+        var reader = PBFReader(url: url, shouldStop: shouldStop)
+        reader.progress = progress
+        try reader.readInOrder(make: { ShapeCollector() }) { part in
             try shape.absorb(part, vocabulary: &vocabulary)
             part.clear()
         }
@@ -89,7 +114,12 @@ struct RoadNetworkLoader {
     }
 
     /// The roads, with the points the extract carries.
-    private static func placeWays(of shape: ShapeCollector, at places: NodePlaces, into network: inout RoadNetwork) {
+    private static func placeWays(
+        of shape: ShapeCollector,
+        at places: NodePlaces,
+        into network: inout RoadNetwork,
+        progress: ProgressReport
+    ) {
         network.wayID.reserveCapacity(shape.network.wayCount)
         // Sized for every point and cut to the points kept.
         let count = shape.network.refs.count
@@ -100,7 +130,15 @@ struct RoadNetworkLoader {
             lat.withUnsafeMutableBufferPointer { lat in
                 lon.withUnsafeMutableBufferPointer { lon in
                     let into = Kept(lat: lat, lon: lon, refs: refs)
-                    return compact(shape.network.refs, runs: shape.network.start, in: places, into: into) { way, end in
+                    return compact(
+                        shape.network.refs,
+                        runs: shape.network.start,
+                        in: places,
+                        into: into,
+                        progress: progress
+                    ) {
+                        way,
+                        end in
                         network.wayID.append(shape.network.wayID[way])
                         network.level.append(shape.network.level[way])
                         network.start.append(Int32(end))
@@ -120,7 +158,8 @@ struct RoadNetworkLoader {
     private static func placeObstacles(
         of shape: ShapeCollector,
         at places: NodePlaces,
-        into network: inout RoadNetwork
+        into network: inout RoadNetwork,
+        progress: ProgressReport
     ) {
         let count = shape.obstacleRefs.count
         var lat = [Double](repeating: 0, count: count)
@@ -128,7 +167,13 @@ struct RoadNetworkLoader {
         let points = lat.withUnsafeMutableBufferPointer { lat in
             lon.withUnsafeMutableBufferPointer { lon in
                 let into = Kept(lat: lat, lon: lon, refs: nil)
-                return compact(shape.obstacleRefs, runs: shape.network.obstacleStart, in: places, into: into) {
+                return compact(
+                    shape.obstacleRefs,
+                    runs: shape.network.obstacleStart,
+                    in: places,
+                    into: into,
+                    progress: progress
+                ) {
                     obstacle,
                     end in
                     network.obstacleKind.append(shape.network.obstacleKind[obstacle])
@@ -168,6 +213,7 @@ struct RoadNetworkLoader {
         runs: [Int32],
         in places: NodePlaces,
         into out: Kept,
+        progress: ProgressReport,
         kept: (Int, Int) -> Void
     ) -> Int {
         var slots = [Int64](repeating: -1, count: min(refs.count, pointsPerStretch))
@@ -185,6 +231,7 @@ struct RoadNetworkLoader {
             }
             copyKept(Stretch(runs: runs, range: stretch, slots: slots, targets: targets), refs, places, into: out)
             run = stretch.upperBound
+            progress(Double(run) / Double(max(1, runs.count - 1)))
         }
         return total
     }

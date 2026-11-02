@@ -255,7 +255,6 @@ extension BuildPipeline {
         flavor: Source
     ) async throws -> Int {
         let converted = Counter()
-        let done = Counter()
         elevationConversionBegins(downloaded.count)
         try await withThrowingTaskGroup(of: Void.self) { group in
             var next = 0
@@ -271,12 +270,7 @@ extension BuildPipeline {
                     } catch {
                         self.log.warn("\(name): could not be converted — \(error)")
                     }
-                    done.increment()
-                    self.detail(
-                        .elevationBuild,
-                        "converting \(done.value)/\(downloaded.count)",
-                        fraction: Double(done.value) / Double(max(1, downloaded.count)) * 0.2
-                    )
+                    self.elevationCellConverted()
                 }
                 next += 1
                 running += 1

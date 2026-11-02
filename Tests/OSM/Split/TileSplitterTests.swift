@@ -1764,6 +1764,33 @@ extension TileSplitterTests {
         )
     }
 
+    func testTheSplitReportsAllAlongToTheEnd() throws {
+        let input = try extract(
+            "progress.osm.pbf",
+            nodes: [(id: 1, lon: 100), (id: 2, lon: 3000), (id: 3, lon: 3100)],
+            ways: [(id: 10, refs: [1, 2, 3])]
+        )
+        let out = directory.appendingPathComponent("tiles-progress")
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let splitter = TileSplitter(
+            options: .init(
+                inputs: [input],
+                outputDirectory: out,
+                mapID: 63410001,
+                maxNodes: 1_000_000,
+                description: "test",
+                areas: nil
+            )
+        ) { _ in }
+        let told = Locked<[Double]>([])
+        splitter.progress = ProgressReport { at in told.withLock { $0.append(at) } }
+        _ = try splitter.run()
+        let heard = told.withLock { $0 }
+        XCTAssertGreaterThan(heard.count, 8)
+        XCTAssertEqual(heard.last ?? 0, 1, accuracy: 1e-9)
+        XCTAssertTrue(heard.allSatisfy { $0 >= 0 && $0 <= 1 + 1e-9 })
+    }
+
     func testAStopAskedForLaterStillEndsTheSplit() throws {
         let input = try extract("stop-later.osm.pbf", nodes: [(id: 1, lon: 100), (id: 2, lon: 3000)])
         let out = directory.appendingPathComponent("tiles-stop-later")
@@ -1778,10 +1805,10 @@ extension TileSplitterTests {
                 areas: nil
             )
         ) { _ in }
-        // The areas are measured first; the stop lands once the first phase reported.
-        var reached = 0.0
-        splitter.progress = { reached = $0 }
-        splitter.shouldStop = { reached > 0 }
+        // The stop lands at the first block the measuring reads.
+        let reached = Locked(0.0)
+        splitter.progress = ProgressReport { at in reached.withLock { $0 = at } }
+        splitter.shouldStop = { reached.withLock { $0 } > 0 }
         XCTAssertThrowsError(try splitter.run()) { XCTAssertTrue($0 is CancellationError) }
         XCTAssertFalse(
             FileManager.default.fileExists(

@@ -31,18 +31,43 @@ struct VenueScan {
     }
 
     /// Which way ids repeat an enclosing venue, or one already marked by a node.
-    static func duplicates(in url: URL, shouldStop: @escaping () -> Bool = { false }) throws -> Set<Int64> {
+    static func duplicates(
+        in url: URL,
+        shouldStop: @escaping () -> Bool = { false },
+        progress: ProgressReport = .silent
+    ) throws -> Set<Int64> {
         // Both passes decode on every core; the joining stays in file order, which is what
         // lets the second one walk the wanted ids instead of searching for each.
-        let shape = try readVenueWays(in: url, shouldStop: shouldStop)
-        let (places, venues) = try readVenueNodes(in: url, wanted: shape.refs, shouldStop: shouldStop)
-        return mark(assemble(shape, places: places), nodes: venues)
+        let course = Self.course
+        let shape = try readVenueWays(in: url, shouldStop: shouldStop, progress: progress.part(.ways, of: course))
+        let (places, venues) = try readVenueNodes(
+            in: url,
+            wanted: shape.refs,
+            shouldStop: shouldStop,
+            progress: progress.part(.nodes, of: course)
+        )
+        let marked = mark(assemble(shape, places: places), nodes: venues)
+        progress(1)
+        return marked
     }
 
+    /// Weighted by seconds on Germany.
+    private enum Step: Hashable, Sendable {
+        case ways, nodes, mark
+    }
+
+    private static let course = ProgressCourse<Step>([(.ways, 13.2), (.nodes, 4.6), (.mark, 5.3)])
+
     /// First pass over the extract: every closed way carrying a venue tag.
-    private static func readVenueWays(in url: URL, shouldStop: @escaping () -> Bool) throws -> Shapes {
+    private static func readVenueWays(
+        in url: URL,
+        shouldStop: @escaping () -> Bool,
+        progress: ProgressReport
+    ) throws -> Shapes {
         var shape = Shapes()
-        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { Shapes() }) { part in
+        var reader = PBFReader(url: url, shouldStop: shouldStop)
+        reader.progress = progress
+        try reader.readInOrder(make: { Shapes() }) { part in
             shape.ids.append(contentsOf: part.ids)
             shape.tags.append(contentsOf: part.tags)
             shape.named.append(contentsOf: part.named)
@@ -60,11 +85,14 @@ struct VenueScan {
     private static func readVenueNodes(
         in url: URL,
         wanted refs: [Int64],
-        shouldStop: @escaping () -> Bool
+        shouldStop: @escaping () -> Bool,
+        progress: ProgressReport
     ) throws -> (NodePlaces, [(tag: String, x: Double, y: Double, name: String)]) {
         var places = NodePlaces(wanted: NodePlaces.wantedIDs(from: refs))
         var venues: [(tag: String, x: Double, y: Double, name: String)] = []
-        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { VenueNodes() }) { block in
+        var reader = PBFReader(url: url, shouldStop: shouldStop)
+        reader.progress = progress
+        try reader.readInOrder(make: { VenueNodes() }) { block in
             places.take(block.nodes)
             venues.append(contentsOf: block.venues)
             block.clear()

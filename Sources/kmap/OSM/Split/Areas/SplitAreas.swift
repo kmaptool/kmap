@@ -138,7 +138,7 @@ extension TileSplitter {
     /// Counts nodes on the alignment grid and cuts the map into grid-aligned areas, none
     /// over the node cap, together covering every node. Each cut runs along the longer
     /// axis at the weighted median.
-    func computeAreas() throws -> [Area] {
+    func computeAreas(report: ProgressReport = .silent) throws -> [Area] {
         var density = Density()
         // The header's bounding box is the map: areas are cut inside it and the fringe
         // beyond it is not counted. One window per input, and a node is kept if it falls
@@ -173,9 +173,9 @@ extension TileSplitter {
         // none is clipped, as with no box at all.
         if unboxed { density.clips = [] }
         density.prepare()
-        for input in options.inputs {
+        for index in options.inputs.indices {
             let clips = density.clips
-            for part in try reader(input).readConcurrently(make: {
+            for part in try reader(index, reporting: report).readConcurrently(make: {
                 var sink = Density()
                 sink.clips = clips
                 sink.prepare()

@@ -32,6 +32,12 @@ extension BuildPipeline {
     ) async throws -> TileSet {
         // Each extract is read first; the tiles are cut only after.
         set(.split, .running, annotated == nil ? t("reading the extract") : t("starting"))
+        let annotates = annotated == nil && annotateStep(foldsContours: recipe.contours) != nil
+        let course = SplitStep.course(
+            annotating: annotates
+                ? AnnotatePass.seconds(repairing: recipe.healRoadEnds && recipe.routable, markingVenues: true) : 0
+        )
+        func report(_ step: SplitStep) -> ProgressReport { self.report(.split).part(step, of: course) }
 
         let tileDir = workDirectory.appendingPathComponent("tiles", isDirectory: true)
         FileTools.removeIfPresent(tileDir)
@@ -42,7 +48,12 @@ extension BuildPipeline {
         var inputs: [String] = annotated ?? []
         if annotated == nil {
             try await measure(.split, "classify and repair") {
-                inputs = try await annotateExtracts(extracts, contoursTask: contoursTask, terrain: terrain)
+                inputs = try await annotateExtracts(
+                    extracts,
+                    contoursTask: contoursTask,
+                    terrain: terrain,
+                    report: report(.annotate)
+                )
             }
             annotated = inputs
         }
@@ -79,15 +90,7 @@ extension BuildPipeline {
             self?.log.output(line, stage: StageID.split.rawValue)
             self?.detail(.split, line)
         }
-        // The stage's bar: annotation took the first share, the splitter's phase
-        // boundaries walk the rest.
-        splitter.progress = { [weak self] fraction in
-            self?.advance(
-                .split,
-                fraction: Self.splitAnnotateShare
-                    + (1 - Self.splitAnnotateShare) * fraction
-            )
-        }
+        splitter.progress = report(.cut)
         // The splitter reads on its own threads, so ^C reaches it through this rather
         // than through the task; otherwise the cut runs to its end before stopping.
         splitter.shouldStop = stopAsked

@@ -6,6 +6,7 @@ struct PBFReader {
     /// `CancellationError`. A dispatch worker does not see `Task.isCancelled`, so a
     /// caller with a task of its own hands its flag in here.
     var shouldStop: () -> Bool = { false }
+    var progress = ProgressReport.silent
 
     /// On the reading thread the task's own cancellation counts as well.
     // Not private: the parallel readers are a file of their own.
@@ -129,6 +130,7 @@ struct PBFReader {
                 for i in range {
                     log?.note(i, holds: try batch.decode(i - first, into: &sink, fields: &fields))
                 }
+                progress(Double(range.upperBound) / Double(blobs.count))
             }
             log?.keep()
         }

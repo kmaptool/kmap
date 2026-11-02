@@ -47,14 +47,27 @@ struct RepairPlanner {
     let bridging: Bool
     let limit: Double
     var inventedIDBase: Int64 = 1 << 40
+    var progress = ProgressReport.silent
+
+    /// Weighted by seconds on Germany.
+    private enum Step: Hashable, Sendable {
+        case tables, decide
+    }
+
+    private static let course = ProgressCourse<Step>([(.tables, 9.9), (.decide, 2.1)])
+    private static let reportEvery = 4096
 
     /// Works out what to do about every candidate, in the order they were found.
     func plan(_ candidates: [RoadRepair.Candidate], loose: [Bool]) -> RepairPlan {
         let obstacles = obstacleGrid(near: candidates)
         var state = Planning(graph: LocalGraph(network: network, around: candidates))
-        for candidate in candidates {
+        let deciding = progress.part(.decide, of: Self.course)
+        for (at, candidate) in candidates.enumerated() {
             let verdict = decide(candidate, &state, obstacles: obstacles, loose: loose)
             note(&state.plan, verdict, candidate)
+            if at % Self.reportEvery == 0 {
+                deciding(Double(at) / Double(candidates.count))
+            }
         }
         // Flatten any chain, so 1 substitution in the writer is enough.
         for (gone, first) in state.plan.merges {

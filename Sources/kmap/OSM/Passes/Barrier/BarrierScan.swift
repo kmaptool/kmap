@@ -118,13 +118,16 @@ extension BarrierScan {
     /// - Returns: every barrier node, those on no way at all included, with kind `none`.
     static func scan(
         _ url: URL,
-        shouldStop: @escaping () -> Bool = { false }
+        shouldStop: @escaping () -> Bool = { false },
+        progress: ProgressReport = .silent
     ) throws -> (barriers: [Int64: String], ferrataEnds: Set<Int64>) {
         var index = BarrierIndex()
         var on: [Int64: Kind] = [:]
         var ends = FerrataEndsTally()
 
-        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { BarrierScan() }) { block in
+        var reader = PBFReader(url: url, shouldStop: shouldStop)
+        reader.progress = progress
+        try reader.readInOrder(make: { BarrierScan() }) { block in
             ends.add(block.ferrataEnds)
             index.add(barriers: block.foundBarriers)
             for (from, to, kind) in block.wayKinds {

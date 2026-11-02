@@ -7,6 +7,8 @@ extension BuildPipeline {
     /// How often a running download repaints its stage line. Fast enough to look live,
     /// slow enough not to fight the render loop.
     static let progressTick: UInt64 = 200_000_000
+    /// How often a watcher reads how far a stage's work is.
+    static let watchTick: UInt64 = 500_000_000
 
     func status(of id: StageID) -> StageStatus { board.status(of: id) }
 
@@ -66,6 +68,8 @@ extension BuildPipeline {
     func beginPhase(_ id: StageID, _ text: String) { board.beginPhase(id, text) }
 
     func advance(_ id: StageID, fraction: Double) { board.advance(id, fraction: fraction) }
+
+    func report(_ id: StageID) -> ProgressReport { board.report(id) }
 
     func detail(_ id: StageID, _ text: String, fraction: Double? = nil) {
         board.detail(id, text, fraction: fraction)

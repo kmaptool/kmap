@@ -24,6 +24,14 @@ struct RoadRepair {
 
     let network: RoadNetwork
     let limit: Double
+    var progress = ProgressReport.silent
+
+    /// Weighted by seconds on Germany.
+    private enum Step: Hashable, Sendable {
+        case file, probe
+    }
+
+    private static let course = ProgressCourse<Step>([(.file, 5.2), (.probe, 1.7)])
 
     /// Which of a way's 2 ends belong to no other routable way, and so may be loose.
     /// The node ids are already in a flat array, so they are sorted and counted rather
@@ -82,7 +90,9 @@ struct RoadRepair {
         let homeRows = ends.map { Self.row(point(of: $0).lat, Self.cellDegrees) }
         let cuts = Self.bandCuts(homeRows)
         let tables = bandTables(ends, homeRows: homeRows, cuts: cuts)
-        probeBands(&ends, cuts: cuts, tables: tables)
+        let probing = progress.part(.probe, of: Self.course)
+        probing(0)
+        probeBands(&ends, cuts: cuts, tables: tables, progress: probing)
         // An end that met no line keeps an infinite distance and no segment.
         return (ends.filter { $0.segment >= 0 && $0.distance <= limit }, loose)
     }
@@ -136,8 +146,14 @@ struct RoadRepair {
     }
 
     /// Every band offers every segment that can reach it to its own ends, side by side.
-    private func probeBands(_ ends: inout [Candidate], cuts: [Int64], tables: [CellTable]) {
+    private func probeBands(
+        _ ends: inout [Candidate],
+        cuts: [Int64],
+        tables: [CellTable],
+        progress: ProgressReport
+    ) {
         let (lowRow, highRow) = wayRows(Self.cellDegrees)
+        let probed = Counter()
         ends.withUnsafeMutableBufferPointer { ends in
             lowRow.withUnsafeBufferPointer { lowRow in
                 highRow.withUnsafeBufferPointer { highRow in
@@ -151,6 +167,7 @@ struct RoadRepair {
                         for way in 0..<network.wayCount where highRow[way] >= low && lowRow[way] <= high {
                             probe(way: way, grid: tables[band], ends: ends)
                         }
+                        progress(Double(probed.incremented()) / Double(tables.count))
                     }
                 }
             }

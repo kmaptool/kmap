@@ -37,7 +37,7 @@ extension BuildPipeline {
     ) -> [String] {
         // Reads the cache a compile left; this short run is not worth recording.
         let warm = JavaWarmStart.plan(java: java, jar: mkgmap, heapGB: recipe.heapGB, recording: false)
-        var launch: [String] = warm.options
+        var launch: [String] = warm.options + MkgmapFiles.option(in: workDirectory)
         launch += ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path, mode]
         launch += identityOptions(areaName: areaName)
         launch.append("--output-dir=\(outputDir.path)")
@@ -45,9 +45,13 @@ extension BuildPipeline {
         var arguments = java.command(launch)
         arguments += indexOptions()
         arguments += copyrightOption()
-        arguments += inputs.map(\.path)
-        if let typ, FileTools.exists(typ) { arguments.append(typ.path) }
+        arguments += combineInputs(inputs, typ: typ).map(\.path)
         return arguments
+    }
+
+    func combineInputs(_ inputs: [URL], typ: URL?) -> [URL] {
+        guard let typ, FileTools.exists(typ) else { return inputs }
+        return inputs + [typ]
     }
 
     /// Writes the map's attribution file and returns the `--copyright-file` option. Written

@@ -151,7 +151,6 @@ extension BuildPipeline {
     ) async throws -> (converted: Int, sea: Int, failed: [(cell: (lat: Int, lon: Int), tiles: [Int])]) {
         let converted = Counter()
         let sea = Counter()
-        let done = Counter()
         let failed = Locked<[Int]>([])
         elevationConversionBegins(needs.count)
         try await withThrowingTaskGroup(of: Void.self) { group in
@@ -188,12 +187,7 @@ extension BuildPipeline {
                         failed.withLock { $0.append(index) }
                         self.log.warn("\(name): could not be converted — \(error)")
                     }
-                    done.increment()
-                    self.detail(
-                        .elevationBuild,
-                        "converting \(done.value)/\(needs.count)",
-                        fraction: Double(done.value) / Double(max(1, needs.count)) * 0.2
-                    )
+                    self.elevationCellConverted()
                 }
                 next += 1
                 running += 1

@@ -589,4 +589,47 @@ final class PBFReaderTests: XCTestCase {
             XCTAssertTrue(error is CancellationError)
         }
     }
+
+    // MARK: How far a read is
+
+    /// 6 blocks of nodes, so each reader has blocks to count.
+    private func blocks() throws -> URL {
+        let url = path("blocks.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        for block in 0..<6 {
+            writer.nodes([PBFWriter.Node(id: Int64(block + 1), lat: 1, lon: 1, tags: [])])
+        }
+        try writer.finish()
+        return url
+    }
+
+    func testEveryReaderTellsHowFarThroughTheBlocksItIs() throws {
+        let url = try blocks()
+        func heard(_ read: (inout PBFReader) throws -> Void) rethrows -> [Double] {
+            let told = Locked<[Double]>([])
+            var reader = PBFReader(url: url)
+            reader.progress = ProgressReport { at in told.withLock { $0.append(at) } }
+            try read(&reader)
+            return told.withLock { $0 }
+        }
+        let plain = try heard { reader in
+            var sink = CollectedElements()
+            try reader.read(into: &sink)
+        }
+        let inOrder = try heard { reader in
+            try reader.readInOrder(make: { CollectedElements() }) { $0 = CollectedElements() }
+        }
+        let concurrent = try heard { reader in
+            _ = try reader.readConcurrently(make: { CollectedElements() })
+        }
+        for told in [plain, inOrder, concurrent] {
+            XCTAssertFalse(told.isEmpty)
+            XCTAssertTrue(told.allSatisfy { $0 > 0 && $0 <= 1 })
+            XCTAssertEqual(told.max(), 1)
+        }
+        // Applied in file order, so told in it too.
+        XCTAssertEqual(inOrder, inOrder.sorted())
+        XCTAssertEqual(inOrder.count, 6)
+    }
 }

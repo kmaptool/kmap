@@ -26,15 +26,61 @@ extension BuildPipeline {
         let total = weighed.reduce(Int64(0)) { $0 + $1.size }
         log.append("compiled \(Fmt.bytes(total)) of tiles")
 
+        let cards = recipe.format.writesCardFiles, gmap = recipe.format.writesGmap
+        let course = ProgressCourse<Bundled>([
+            (.cardFiles, cards ? Double(total) : 0), (.gmap, gmap ? Double(total) : 0)
+        ])
+        let files = self.report(.compile).part(CompileStep.files, of: CompileStep.course)
+        func report(_ part: Bundled) -> ProgressReport { files.part(part, of: course) }
+
         var written = 0
-        if recipe.format.writesCardFiles {
-            written += try await writeCardFiles(weighed, java: java, mkgmap: mkgmap, typ: typ)
+        if cards {
+            written += try await writeCardFiles(
+                weighed,
+                java: java,
+                mkgmap: mkgmap,
+                typ: typ,
+                report: report(.cardFiles)
+            )
         }
-        if recipe.format.writesGmap {
-            gmapBundle = try await writeGmap(weighed, java: java, mkgmap: mkgmap, typ: typ)
+        if gmap {
+            gmapBundle = try await writeGmap(weighed, java: java, mkgmap: mkgmap, typ: typ, report: report(.gmap))
             written += 1
         }
         return written
+    }
+
+    private enum Bundled: Sendable {
+        case cardFiles, gmap
+    }
+
+    /// Runs mkgmap, reporting inputs taken in and the output's growth.
+    func writingOutput(
+        _ java: JavaRuntime,
+        _ arguments: [String],
+        in directory: URL,
+        inputs: [URL],
+        growing output: @escaping @Sendable () -> Int64,
+        towards expected: Int64,
+        takingIn: ProgressReport,
+        writing: ProgressReport
+    ) async throws {
+        MkgmapFiles.clear(in: directory)
+        defer { MkgmapFiles.clear(in: directory) }
+        let mentions = Double(max(1, MkgmapFiles.mentions(of: inputs)))
+        let watcher = Task {
+            while !Task.isCancelled {
+                let named = MkgmapFiles.named(by: directory)
+                if named > 0 { takingIn(Double(named) / mentions) }
+                let written = Double(output()) / Double(max(1, expected))
+                if written > 0 { writing(written) }
+                try? await Task.sleep(nanoseconds: Self.watchTick)
+            }
+        }
+        defer { watcher.cancel() }
+        try await makeRunner().run(java.path, arguments, cwd: directory) { line in
+            self.log.output(line, stage: StageID.compile.rawValue)
+        }
     }
 
     /// The `.img` files, as few as the split mode allows.
@@ -42,7 +88,8 @@ extension BuildPipeline {
         _ weighed: [Weighed],
         java: JavaRuntime,
         mkgmap: URL,
-        typ: URL?
+        typ: URL?,
+        report: ProgressReport
     ) async throws -> Int {
         // The index and the container directory are written on top of the tiles, so groups
         // are filled short of the limit and the result checked; the margin widens on retry.
@@ -62,6 +109,11 @@ extension BuildPipeline {
                 upTo: Int64(Double(Self.fatFileLimit) * headroom)
             )
             var oversized: [String] = []
+            let course = ProgressCourse(
+                weights: groups.map { group in
+                    Double(group.members.reduce(Int64(0)) { $0 + weighed[$1].size })
+                }
+            )
             for (index, group) in groups.enumerated() {
                 try Task.checkCancellation()
                 let size = try await write(
@@ -70,7 +122,7 @@ extension BuildPipeline {
                     java: java,
                     mkgmap: mkgmap,
                     typ: typ,
-                    progress: (index, groups.count)
+                    report: report.part(index, of: course)
                 )
                 if size >= Self.fatFileLimit { oversized.append(group.name) }
             }
@@ -103,7 +155,7 @@ extension BuildPipeline {
         java: JavaRuntime,
         mkgmap: URL,
         typ: URL?,
-        progress: (index: Int, of: Int)
+        report: ProgressReport
     ) async throws -> Int64 {
         let outDir =
             workDirectory
@@ -116,6 +168,7 @@ extension BuildPipeline {
         // bundled in, so the far zooms read one small map instead of every tile's top level.
         let overview = tileDir(of: group)
             .appendingPathComponent("\(recipe.overviewMapID).img")
+        let inputs = group.map(\.url) + (try overviewIfAny(overview))
 
         let arguments = combineArguments(
             java: java,
@@ -123,22 +176,25 @@ extension BuildPipeline {
             mode: "--gmapsupp",
             areaName: name,
             outputDir: outDir,
-            inputs: group.map(\.url) + (try overviewIfAny(overview)),
+            inputs: inputs,
             typ: typ
         )
 
+        let course = OutputStep.course(indexing: recipe.searchIndex)
         log.step("writing \(name) — \(group.count) tile(s)")
-        let runner = makeRunner()
-        try await runner.run(java.path, arguments, cwd: outDir) { line in
-            self.log.output(line, stage: StageID.compile.rawValue)
-            self.detail(
-                .compile,
-                "\(name): writing",
-                fraction: 0.9 + 0.1 * Double(progress.index) / Double(max(1, progress.of))
-            )
-        }
-
+        detail(.compile, "\(name): writing")
         let produced = outDir.appendingPathComponent("gmapsupp.img")
+        try await writingOutput(
+            java,
+            arguments,
+            in: outDir,
+            inputs: combineInputs(inputs, typ: typ),
+            growing: { FileTools.size(of: produced) },
+            towards: group.reduce(Int64(0)) { $0 + $1.size },
+            takingIn: report.part(.takeIn, of: course),
+            writing: report.part(.write, of: course)
+        )
+
         guard FileTools.exists(produced) else { throw BuildError.noOutput(name) }
         guard ImgContainer.isWhole(produced) else { throw BuildError.cutShort(name) }
         let size = FileTools.size(of: produced)

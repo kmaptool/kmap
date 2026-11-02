@@ -40,6 +40,7 @@ struct PBFRewriter {
     /// Asked between batches of blocks: the rewrite runs on threads of its own, where a
     /// task's cancellation is not seen.
     var shouldStop: @Sendable () -> Bool = { false }
+    var progress = ProgressReport.silent
 
     /// What each contour file's data blobs hold, recorded on the first walk: bit 0 nodes,
     /// bit 1 ways. The files are walked twice, nodes before ways.
@@ -144,7 +145,10 @@ struct PBFRewriter {
 
             try PBFReader.forEachBlob(in: file) { header, kind, blob in
                 batch.append((header, blob, kind == PBFSchema.dataBlob))
-                if batch.count == width { try decodeBatch() }
+                if batch.count == width {
+                    try decodeBatch()
+                    progress(Self.share(of: file, through: blob))
+                }
             }
             try decodeBatch()
         }
@@ -152,7 +156,14 @@ struct PBFRewriter {
         if !addedNodes { try addNodes(into: writer, tally: &tally, scratch: &scratch) }
         if !addedWays { try addWays(into: writer, tally: &tally, scratch: &scratch) }
         try writer.finish()
+        progress(1)
         return tally
+    }
+
+    /// The share of `file` read through `blob`.
+    private static func share(of file: UnsafeRawBufferPointer, through blob: UnsafeRawBufferPointer) -> Double {
+        guard let start = file.baseAddress, let at = blob.baseAddress, !file.isEmpty else { return 0 }
+        return Double(at - start + blob.count) / Double(file.count)
     }
 
     /// The plan's tables keyed for the blocks, each behind a cheap rejection test.

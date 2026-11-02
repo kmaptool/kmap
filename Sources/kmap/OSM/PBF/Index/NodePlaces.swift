@@ -75,10 +75,13 @@ struct NodePlaces {
     static func gather(
         _ wanted: [Int64],
         from url: URL,
-        shouldStop: @escaping () -> Bool = { false }
+        shouldStop: @escaping () -> Bool = { false },
+        progress: ProgressReport = .silent
     ) throws -> NodePlaces {
         var places = NodePlaces(wanted: wanted)
-        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { BlockNodes() }) { block in
+        var reader = PBFReader(url: url, shouldStop: shouldStop)
+        reader.progress = progress
+        try reader.readInOrder(make: { BlockNodes() }) { block in
             places.take(block)
             block.clear()
         }
@@ -89,12 +92,15 @@ struct NodePlaces {
     static func gatherNotingNoExit(
         _ wanted: [Int64],
         from url: URL,
-        shouldStop: @escaping () -> Bool = { false }
+        shouldStop: @escaping () -> Bool = { false },
+        progress: ProgressReport = .silent
     ) throws -> (places: NodePlaces, noExit: Set<Int64>, gates: Set<Int64>) {
         var places = NodePlaces(wanted: wanted)
         var noExit = Set<Int64>()
         var gates = Set<Int64>()
-        try PBFReader(url: url, shouldStop: shouldStop).readInOrder(make: { NoExitNodes() }) { block in
+        var reader = PBFReader(url: url, shouldStop: shouldStop)
+        reader.progress = progress
+        try reader.readInOrder(make: { NoExitNodes() }) { block in
             places.take(block.nodes)
             noExit.formUnion(block.noExit)
             gates.formUnion(block.gates)

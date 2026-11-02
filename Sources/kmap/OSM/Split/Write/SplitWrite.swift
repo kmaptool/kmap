@@ -6,7 +6,7 @@ import Foundation
 /// the decoding on every core and the handing over on the one thread that has to stay in
 /// file order.
 extension TileSplitter {
-    func write(areas: [Area], assignment: Assignment, plan: Plan) throws -> [Int] {
+    func write(areas: [Area], assignment: Assignment, plan: Plan, report: ProgressReport) throws -> [Int] {
         // A file open per tile, beside the input and the console.
         Machine.allowOpenFiles(areas.count + 64)
         var writers: [TileWriter] = []
@@ -16,7 +16,7 @@ extension TileSplitter {
                     .appendingPathComponent("\(options.mapID + index).osm.pbf")
                 writers.append(try TileWriter(url: url, area: area))
             }
-            return try write(into: writers, assignment: assignment, plan: plan)
+            return try write(into: writers, assignment: assignment, plan: plan, report: report)
         } catch {
             // No tile of a split that failed stays: one finished goes, and one not lands
             // nowhere, its writer taking its partial file with it.
@@ -25,17 +25,23 @@ extension TileSplitter {
         }
     }
 
-    private func write(into writers: [TileWriter], assignment: Assignment, plan: Plan) throws -> [Int] {
+    private func write(
+        into writers: [TileWriter],
+        assignment: Assignment,
+        plan: Plan,
+        report: ProgressReport
+    ) throws -> [Int] {
+        func step(_ step: WriteStep) -> ProgressReport { report.part(step, of: WriteStep.course) }
         // 2 sweeps, so that with several inputs every tile still comes out nodes first,
         // then ways, then relations -- the order the format demands. Decoding a block and
         // choosing each object's tiles runs on every core; only the handing over stays in
         // file order, where the first copy of a repeat counts.
-        try writeNodes(into: writers, assignment: assignment, plan: plan)
+        try writeNodes(into: writers, assignment: assignment, plan: plan, report: step(.nodes))
         if Measured.reported {
             log(String(format: "  nodes written, up to %@", Fmt.bytes(Machine.memoryInUse())))
         }
-        try writeWaysAndRelations(into: writers, assignment: assignment, plan: plan)
-        try Self.finish(writers)
+        try writeWaysAndRelations(into: writers, assignment: assignment, plan: plan, report: step(.ways))
+        try Self.finish(writers, report: step(.finish))
         return writers.map(\.nodeCount)
     }
 
@@ -60,14 +66,19 @@ extension TileSplitter {
         }
     }
 
-    private func writeNodes(into writers: [TileWriter], assignment: Assignment, plan: Plan) throws {
+    private func writeNodes(
+        into writers: [TileWriter],
+        assignment: Assignment,
+        plan: Plan,
+        report: ProgressReport
+    ) throws {
         let overlapping = options.inputs.count > 1
         var repeats = NodeRepeats(assignment.nodes, inputs: options.inputs.count)
-        for (fileIndex, input) in options.inputs.enumerated() {
+        for fileIndex in options.inputs.indices {
             repeats.start(file: fileIndex)
             // Nodes ask nothing of the planned ways.
             let make = pass(.nodes, assignment: assignment, plan: plan, planned: IDFilter(), tiles: writers.count)
-            try reader(input).readInOrder(make: make) { pass in
+            try reader(fileIndex, reporting: report).readInOrder(make: make) { pass in
                 for i in 0..<pass.nodeBuckets.count {
                     writers[Int(pass.nodeBuckets.tiles[i])].add(nodes: pass.nodeBuckets.chunks[i])
                 }
@@ -84,14 +95,19 @@ extension TileSplitter {
         }
     }
 
-    private func writeWaysAndRelations(into writers: [TileWriter], assignment: Assignment, plan: Plan) throws {
+    private func writeWaysAndRelations(
+        into writers: [TileWriter],
+        assignment: Assignment,
+        plan: Plan,
+        report: ProgressReport
+    ) throws {
         let overlapping = options.inputs.count > 1
         var seenWays: Set<Int64> = []
         var seenRelations: Set<Int64> = []
         // Few ways are planned for, and every way asks: the filter answers most of them.
         // Made once, for every input.
         let planned = IDFilter(Array(plan.wayTiles.keys))
-        for input in options.inputs {
+        for index in options.inputs.indices {
             let make = pass(
                 .waysAndRelations,
                 assignment: assignment,
@@ -99,7 +115,7 @@ extension TileSplitter {
                 planned: planned,
                 tiles: writers.count
             )
-            try reader(input).readInOrder(make: make) { pass in
+            try reader(index, reporting: report).readInOrder(make: make) { pass in
                 for i in 0..<pass.wayBuckets.count {
                     writers[Int(pass.wayBuckets.tiles[i])].add(ways: pass.wayBuckets.chunks[i])
                 }
@@ -122,14 +138,16 @@ extension TileSplitter {
 
     /// Each writer finishes independently: the last batches compress and the file closes
     /// per tile.
-    private static func finish(_ writers: [TileWriter]) throws {
+    private static func finish(_ writers: [TileWriter], report: ProgressReport) throws {
         var failures = [Error?](repeating: nil, count: writers.count)
+        let finished = Counter()
         failures.withUnsafeMutableBufferPointer { slots in
             // Each lane finishes its own writer into its own slot: nothing is shared.
             nonisolated(unsafe) let slots = slots
             nonisolated(unsafe) let writers = writers
             DispatchQueue.concurrentPerform(iterations: writers.count) { index in
                 do { try writers[index].finish() } catch { slots[index] = error }
+                report(Double(finished.incremented()) / Double(writers.count))
             }
         }
         if let failure = failures.compactMap({ $0 }).first { throw failure }

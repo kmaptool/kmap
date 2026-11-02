@@ -40,6 +40,7 @@ extension BuildPipeline {
                 let cell = wanted[index]
                 let name = HGTName.of(lat: cell.lat, lon: cell.lon)
                 let destination = directory.appendingPathComponent("\(name).hgt")
+                defer { elevationCellConverted() }
                 do {
                     try landHGT(cell, from: mosaic, to: destination, nodes: nodes)
                     made.increment()

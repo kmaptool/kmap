@@ -13,7 +13,8 @@ extension BuildPipeline {
         _ tiles: [Weighed],
         java: JavaRuntime,
         mkgmap: URL,
-        typ: URL?
+        typ: URL?,
+        report: ProgressReport
     ) async throws -> URL {
         let outDir = gmapDirectory
         FileTools.removeIfPresent(outDir)
@@ -31,11 +32,18 @@ extension BuildPipeline {
         )
 
         log.step("writing the BaseCamp folder — \(tiles.count) tile(s)")
-        let runner = makeRunner()
-        try await runner.run(java.path, arguments, cwd: outDir) { line in
-            self.log.output(line, stage: StageID.compile.rawValue)
-            self.detail(.compile, "gmap: writing", fraction: 0.95)
-        }
+        detail(.compile, "gmap: writing")
+        // Progress is the folder's growth.
+        try await writingOutput(
+            java,
+            arguments,
+            in: outDir,
+            inputs: combineInputs(tiles.map(\.url), typ: typ),
+            growing: { self.directorySize(outDir) },
+            towards: tiles.reduce(Int64(0)) { $0 + $1.size },
+            takingIn: .silent,
+            writing: report
+        )
 
         guard let bundle = Self.gmapFolder(in: outDir) else { throw BuildError.noGmap }
         log.ok("gmap: \(Fmt.bytes(directorySize(bundle)))")

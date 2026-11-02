@@ -118,11 +118,18 @@ extension BuildPipeline {
 
     /// The lakes, reservoirs and river banks of every extract, for the contours to stop
     /// at. A scan that fails costs the cut and nothing else: the contours are still drawn.
-    func standingWater(in extracts: [URL]) -> WaterBodies {
+    func standingWater(in extracts: [URL], progress: ProgressReport) -> WaterBodies {
         var water = WaterBodies()
-        for extract in extracts {
+        let course = ProgressCourse(weights: extracts.map { Double(FileTools.size(of: $0)) })
+        for (index, extract) in extracts.enumerated() {
             do {
-                water.add(contentsOf: try WaterScan.bodies(in: extract, shouldStop: stopAsked))
+                water.add(
+                    contentsOf: try WaterScan.bodies(
+                        in: extract,
+                        shouldStop: stopAsked,
+                        progress: progress.part(index, of: course)
+                    )
+                )
             } catch is CancellationError {
                 break
             } catch {

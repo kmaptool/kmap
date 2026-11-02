@@ -53,9 +53,7 @@ final class TileSplitter {
     // is one file.
     let options: Options
     let log: (String) -> Void
-    /// Told how far the split has come, 0...1, at each phase boundary. Reporting only -
-    /// nothing inside the passes slows for it.
-    var progress: ((Double) -> Void)?
+    var progress = ProgressReport.silent
     /// Asked between blobs and between phases; true ends the split with a
     /// `CancellationError` and no tiles. The reads run on their own threads, where a
     /// task's cancellation is not seen, so the caller's flag is what reaches them.
@@ -71,9 +69,13 @@ final class TileSplitter {
     /// the areas were given and the measuring was skipped.
     var countedNodes = 0
 
+    /// The inputs, by their bytes.
+    let inputCourse: ProgressCourse<Int>
+
     init(options: Options, log: @escaping (String) -> Void) {
         self.options = options
         self.log = log
+        inputCourse = ProgressCourse(weights: options.inputs.map { Double(FileTools.size(of: $0)) })
     }
 
     // MARK: Units
@@ -150,9 +152,6 @@ final class TileSplitter {
     /// The two files written beside the tiles, which the compile stage reads.
     static let areasListName = "areas.list", templateArgsName = "template.args"
 
-    /// How far along the split each phase boundary is, for the progress bar.
-    private static let measured = 0.2, placed = 0.6, planned = 0.75
-
     // MARK: The run
 
     struct Result {
@@ -168,31 +167,30 @@ final class TileSplitter {
             mark = Date()
         }
 
+        let course = Phase.course(measuring: options.areas == nil)
+        func report(_ phase: Phase) -> ProgressReport { progress.part(phase, of: course) }
+
         let areas: [Area]
         if let given = options.areas {
             // A re-split's halves are cut on the grid, where a power of two can sit; the
             // nudge is idempotent elsewhere, so a given list takes it too.
             areas = TileSplitter.nudgedOffPowersOfTwo(given)
         } else {
-            areas = TileSplitter.nudgedOffPowersOfTwo(try computeAreas())
+            areas = TileSplitter.nudgedOffPowersOfTwo(try computeAreas(report: report(.measure)))
             took("measured where the nodes are")
         }
         log("\(areas.count) tile area(s)")
-        progress?(Self.measured)
         try stopIfAsked()
 
         let lookup = AreaLookup(areas: areas, shapeOverlap: options.shapeOverlap)
-        let assignment = try assignNodes(lookup: lookup)
+        let assignment = try assignNodes(lookup: lookup, report: report(.place))
         took("placed every node")
-        progress?(Self.placed)
         try stopIfAsked()
-        let plan = try planProblems(assignment: assignment, lookup: lookup, areas: areas)
+        let plan = try planProblems(assignment: assignment, lookup: lookup, areas: areas, report: report(.plan))
         took("worked out what spans tiles")
-        progress?(Self.planned)
         try stopIfAsked()
-        let counts = try write(areas: areas, assignment: assignment, plan: plan)
+        let counts = try write(areas: areas, assignment: assignment, plan: plan, report: report(.write))
         took("wrote the tiles")
-        progress?(1)
         return try listTiles(areas, counts: counts)
     }
 
@@ -222,12 +220,16 @@ final class TileSplitter {
         var total: Int
     }
 
-    private func assignNodes(lookup: AreaLookup) throws -> Assignment {
+    private func assignNodes(lookup: AreaLookup, report: ProgressReport) throws -> Assignment {
         var expected = countedNodes
-        if expected == 0 {
+        let counting = expected == 0
+        let reads = PlaceStep.course(counting: counting)
+        if counting {
             // Only when the areas came ready-made: nothing has read the file yet.
             var counter = NodeCounter()
-            for input in options.inputs { try reader(input).read(into: &counter) }
+            for index in options.inputs.indices {
+                try reader(index, reporting: report.part(.count, of: reads)).read(into: &counter)
+            }
             expected = counter.nodes
         } else {
             // Room for the fringe, which density did not count; growing the table later
@@ -237,8 +239,10 @@ final class TileSplitter {
         let nodes = NodeAreas(expecting: expected)
         // Which tiles a node belongs to is a grid lookup depending on nothing else; only
         // the appending has to stay in order.
-        for input in options.inputs {
-            try reader(input).readInOrder(make: { NodeAssign(lookup: lookup) }) {
+        for index in options.inputs.indices {
+            try reader(index, reporting: report.part(.assign, of: reads)).readInOrder(make: {
+                NodeAssign(lookup: lookup)
+            }) {
                 pass in
                 let base = nodes.count
                 nodes.append(ids: pass.ids, values: pass.values)

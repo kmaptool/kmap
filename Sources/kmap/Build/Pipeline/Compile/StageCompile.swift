@@ -77,8 +77,9 @@ extension BuildPipeline {
                 shapeLift: typ?.shapeLift,
                 tiles: tiles.tiles.map(\.bbox)
             ) + ["-c", argsFile.path]
+        let logging = MkgmapFiles.option(in: workDirectory)
         func command(_ warmOptions: [String]) -> [String] {
-            java.command(warmOptions + ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path]) + rest
+            java.command(warmOptions + logging + ["-Xmx\(recipe.heapGB)g", "-jar", mkgmap.path]) + rest
         }
         let arguments = command(warm.options)
 
@@ -264,8 +265,8 @@ extension BuildPipeline {
         log.append("mkgmap starts warm from now on (\(Fmt.bytes(FileTools.size(of: cache))) kept in the cache)")
     }
 
-    /// Polls for finished .img files, since mkgmap reports no per-tile progress. An
-    /// overflowing tile fails the stage with the ids to cut finer.
+    /// Polls for finished .img files and the overview. An overflowing tile fails the stage
+    /// with the ids to cut finer.
     /// - Returns: missing elevation cells: elevation covers the outline, mkgmap the whole
     ///   rectangle, so cells in between are counted, not logged.
     private func runMkgmapCompile(
@@ -276,8 +277,14 @@ extension BuildPipeline {
         nodeCap: Int,
         recording: Bool
     ) async throws -> (missingElevation: Set<String>, recordingFailed: Bool) {
-        // The last tenth of the bar is the bundling that follows.
         let board = board
+        let overview = report(.compile).part(CompileStep.overview, of: CompileStep.course)
+        let whole = Double(max(1, tileIDs.count))
+        let mentions = Double(
+            max(1, MkgmapFiles.mentions(of: tileIDs.map { tileDir.appendingPathComponent("\($0).img") }))
+        )
+        MkgmapFiles.clear(in: tileDir)
+        defer { MkgmapFiles.clear(in: tileDir) }
         let watcher = Task {
             while !Task.isCancelled {
                 let done = tileIDs.filter {
@@ -286,9 +293,12 @@ extension BuildPipeline {
                 board.detail(
                     .compile,
                     "\(done)/\(tileIDs.count) tile(s)",
-                    fraction: min(0.88, Double(done) / Double(max(1, tileIDs.count)) * 0.9)
+                    fraction: CompileStep.course.position(.tiles, at: Double(done) / whole)
                 )
-                try? await Task.sleep(nanoseconds: 500_000_000)
+                // The overview starts after the last tile.
+                let named = MkgmapFiles.named(by: tileDir)
+                if named > 0 { overview(Double(named) / mentions) }
+                try? await Task.sleep(nanoseconds: Self.watchTick)
             }
         }
         defer { watcher.cancel() }

@@ -23,9 +23,12 @@ extension PBFReader {
             let (blobs, log) = BlobParts.select(all, of: url, wanted: ring.sinks[0].wantedParts)
             guard !blobs.isEmpty else { return }
             if stopped() { throw CancellationError() }
+            var applied = 0
             try ring.decode(blobs, workers: min(width, blobs.count), log: log) { slot in
                 if stopped() { throw CancellationError() }
                 try apply(&ring.sinks[slot])
+                applied += 1
+                progress(Double(applied) / Double(blobs.count))
             }
             log?.keep()
         }
@@ -47,9 +50,12 @@ extension PBFReader {
             guard !blobs.isEmpty else { return }
             let ring = Ring(slots: Self.slotsPerReader * width, make: make)
             if stopped() { throw CancellationError() }
+            var applied = 0
             try ring.decode(blobs, workers: min(width, blobs.count), log: nil) { slot in
                 if stopped() { throw CancellationError() }
                 try apply(&ring.sinks[slot])
+                applied += 1
+                progress(Double(applied) / Double(blobs.count))
             }
         }
     }
@@ -101,6 +107,7 @@ extension PBFReader {
                             fields: &fields
                         )
                         log?.note(index, holds: held)
+                        progress(Double(index + 1) / Double(blobs.count))
                     }
                 } catch {
                     failed.withLock { $0 = true }

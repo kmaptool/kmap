@@ -152,6 +152,10 @@ final class StageBoard: Sendable {
         change(id) { $0.advance(to: fraction) }
     }
 
+    func report(_ id: StageID) -> ProgressReport {
+        ProgressReport { [self] in advance(id, fraction: $0) }
+    }
+
     func detail(_ id: StageID, _ text: String, fraction: Double? = nil) {
         change(id) {
             $0.detail = text

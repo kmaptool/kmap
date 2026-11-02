@@ -21,10 +21,12 @@ extension BuildPipeline {
         }
         set(.elevation, .running, t("preparing"))
         Paths.ensure(Paths.hgtCache)
+        let bytes = extracts.reduce(Int64(0)) { $0 + FileTools.size(of: $1) }
         // A damaged extract runs this again.
         state.withLock {
+            $0.elevationExtractBytes = bytes
             $0.elevationFetched = false
-            $0.convertingCells = 0
+            $0.conversion = (0, 0)
         }
 
         let bbox = recipe.coverage
@@ -55,11 +57,12 @@ extension BuildPipeline {
             let count = mapHGTCount()
             guard count > 0 else { throw BuildError.noElevationTiles }
             log.ok("\(count) elevation tile(s) cached for the DEM layer")
+            advance(.elevationBuild, fraction: elevationBuildCourse().position(.summits))
             await measure(.elevationBuild, "burn the summits in") {
                 await burnPeakElevations(extracts: extracts)
             }
             // Nothing converted and no summits: skipped.
-            let worked = state.withLock { $0.convertingCells > 0 } || (recipe.demLayer && recipe.fixSummits)
+            let worked = state.withLock { $0.conversion.cells > 0 } || (recipe.demLayer && recipe.fixSummits)
             set(.elevationBuild, worked ? .done : .skipped, "\(count) elevation tile(s)")
             return []
         }
@@ -116,6 +119,7 @@ extension BuildPipeline {
 
         // Summits go in after tracing: raising a cell would change the contours there,
         // while the DEM layer reads the tiles as they end up.
+        advance(.elevationBuild, fraction: elevationBuildCourse().position(.summits))
         await measure(.elevationBuild, "burn the summits in") {
             await burnPeakElevations(extracts: extracts)
         }
@@ -139,28 +143,31 @@ extension BuildPipeline {
     ) async throws {
         // The outline every cell's contours are cut to, fetched once for the build.
         let mask = await regionMask()
+        let (course, board) = (elevationBuildCourse(), board)
+        let finding = report(.elevationBuild).part(.water, of: course)
         // And the water they stop at: a contour is not drawn across a lake.
         // Read on a plain queue thread: the passes block on every core, and blocking the
         // cooperative pool would starve whatever else is awaiting.
         let water = await measure(.elevationBuild, "find the water") {
             await withCheckedContinuation { done in
                 DispatchQueue.global(qos: .userInitiated).async {
-                    done.resume(returning: self.standingWater(in: extracts))
+                    done.resume(
+                        returning: self.standingWater(in: extracts, progress: finding)
+                    )
                 }
             }
         }
         let completed = Counter()
-        let (total, board) = (cells.count, board)
+        let total = cells.count
         let monitor = Task {
             while !Task.isCancelled {
                 let done = completed.value
-                // The conversion is the first fifth of this stage and tracing the rest.
                 board.detail(
                     .elevationBuild,
                     "tracing \(done)/\(total) cell(s)",
-                    fraction: 0.2 + 0.8 * Double(done) / Double(max(1, total))
+                    fraction: course.position(.trace, at: Double(done) / Double(max(1, total)))
                 )
-                try? await Task.sleep(nanoseconds: 500_000_000)
+                try? await Task.sleep(nanoseconds: Self.watchTick)
             }
         }
         defer { monitor.cancel() }
@@ -213,11 +220,6 @@ extension BuildPipeline {
     /// Called by a source as it goes to the network.
     func elevationFetchBegins() {
         state.withLock { $0.elevationFetched = true }
-    }
-
-    /// Called by a source as it starts converting `cells` tiles.
-    func elevationConversionBegins(_ cells: Int) {
-        state.withLock { $0.convertingCells += cells }
     }
 
     /// Closes the download half. Guarded, because several sources reach it and only the

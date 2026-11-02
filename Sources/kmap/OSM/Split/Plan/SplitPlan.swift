@@ -6,13 +6,15 @@ extension TileSplitter {
     func planProblems(
         assignment: Assignment,
         lookup: AreaLookup,
-        areas: [Area]
+        areas: [Area],
+        report: ProgressReport
     ) throws -> Plan {
         var mark = Date()
         func took(_ what: String) {
             if let line = Measured.line("  " + what, since: mark, atLeast: 0.05) { log(line) }
             mark = Date()
         }
+        func step(_ step: PlanStep) -> ProgressReport { report.part(step, of: PlanStep.course) }
 
         var plan = Plan()
 
@@ -23,7 +25,7 @@ extension TileSplitter {
         let handoff: Unmanaged<ProblemScaffold> = try {
             let held = ProblemScaffold()
 
-            try sweep(held, assignment: assignment)
+            try sweep(held, assignment: assignment, report: step(.sweep))
             took("swept for spanning ways and relations")
             log(
                 "\(held.problemWays.count) way(s) span tiles, \(held.relations.count) relation(s) held,"
@@ -36,22 +38,24 @@ extension TileSplitter {
             chooseCarried(held)
             took("chose the carried relations")
 
-            try readRefs(held, plan: plan)
+            try readRefs(held, plan: plan, report: step(.refs))
             took("read the way refs")
 
-            try readRingCoordinates(held)
+            try readRingCoordinates(held, report: step(.rings))
             took("read the ring coordinates")
 
             fillRings(held, areas: areas)
             took("filled the rings")
 
             carryMembers(held, plan: &plan)
+            step(.fill)(1)
             took("carried the members")
 
-            spreadTilesOntoNodes(held, plan: &plan)
+            spreadTilesOntoNodes(held, plan: &plan, report: step(.spread))
             took("spread the tiles onto the nodes")
 
             placeRelations(held, plan: &plan, assignment: assignment, areas: areas)
+            step(.place)(1)
             took("placed the relations")
             return Unmanaged.passRetained(held)
         }()
@@ -82,12 +86,12 @@ extension TileSplitter {
     }
 
     /// First sweep over ways and relations: which areas does each touch.
-    private func sweep(_ s: ProblemScaffold, assignment: Assignment) throws {
-        for input in options.inputs {
+    private func sweep(_ s: ProblemScaffold, assignment: Assignment, report: ProgressReport) throws {
+        for index in options.inputs.indices {
             // Relations are gathered here and resolved in one batch below: a file's ways
             // all precede its relations, and the batch runs before the next file adds one.
             var pending: [(id: Int64, record: RelationRecord)] = []
-            try reader(input).readInOrder(make: {
+            try reader(index, reporting: report).readInOrder(make: {
                 ProblemScan(nodes: assignment.nodes)
             }) { scan in
                 for (id, tile, span) in scan.outWays {
@@ -160,7 +164,7 @@ extension TileSplitter {
 
     /// Node lists for every way that is either spanning or carried: their nodes follow
     /// them into the extra tiles, and their geometry closes the multipolygons' rings.
-    private func readRefs(_ s: ProblemScaffold, plan: Plan) throws {
+    private func readRefs(_ s: ProblemScaffold, plan: Plan, report: ProgressReport) throws {
         s.wanted = Set(plan.wayTiles.keys)
         for rel in s.carriedRelations {
             for way in s.relations[rel]?.memberWays ?? [] { s.wanted.insert(way) }
@@ -169,8 +173,8 @@ extension TileSplitter {
         s.wantedWays = WantedIDs(s.wanted)
         s.refs = WayRefs(wanted: s.wantedWays)
         let wantedWays = s.wantedWays
-        for input in options.inputs {
-            try reader(input).readInOrder(make: { WayRefs(wanted: wantedWays) }) {
+        for index in options.inputs.indices {
+            try reader(index, reporting: report).readInOrder(make: { WayRefs(wanted: wantedWays) }) {
                 part in
                 s.refs.refs.merge(part.refs) { first, _ in first }
                 part.refs.removeAll(keepingCapacity: true)
@@ -187,7 +191,7 @@ extension TileSplitter {
     }
 
     /// Coordinates for the ring nodes of the fill candidates.
-    private func readRingCoordinates(_ s: ProblemScaffold) throws {
+    private func readRingCoordinates(_ s: ProblemScaffold, report: ProgressReport) throws {
         // Every node of every member way, sorted and made unique across the cores.
         var runs: [[Int64]] = []
         for rel in s.fillRelations {
@@ -197,20 +201,20 @@ extension TileSplitter {
         }
         let wanted = IDSort.unique(of: runs)
         s.wantedNodes = WantedIDs(sorted: wanted)
-        s.coords = try ringCoordinates(wanted)
+        s.coords = try ringCoordinates(wanted, report: report)
     }
 
     /// Where every node of `wanted`, sorted and each once, is in the inputs. Every reader
     /// writes what it finds into the table itself. A node repeats between files, which are
     /// read 1 after another, so the first stands.
-    func ringCoordinates(_ wanted: [Int64]) throws -> RingCoords {
+    func ringCoordinates(_ wanted: [Int64], report: ProgressReport = .silent) throws -> RingCoords {
         let coords = RingCoords(ids: wanted)
         guard !wanted.isEmpty else { return coords }
         precondition(options.inputs.count <= RingCoords.fileLimit, "too many files to split at once")
         let wantedNodes = WantedIDs(sorted: wanted)
         let lastStands = options.inputs.count == 1
         for (file, input) in options.inputs.enumerated() {
-            _ = try reader(input).readConcurrently {
+            _ = try reader(file, reporting: report).readConcurrently {
                 NodeCoords(wanted: wantedNodes, coords: coords, file: file)
             }
             // A file holding a node twice at 2 places, read again in order: then the copy
@@ -293,7 +297,8 @@ extension TileSplitter {
     /// Spreads every carried or spanning way's tiles onto its nodes: interned once per
     /// way, appended per node, settled by one sort. Each worker takes a contiguous run of
     /// ways into pairs and a pool of its own; the order between workers does not matter.
-    private func spreadTilesOntoNodes(_ s: ProblemScaffold, plan: inout Plan) {
+    private func spreadTilesOntoNodes(_ s: ProblemScaffold, plan: inout Plan, report: ProgressReport) {
+        let course = SpreadStep.course
         s.spanning = Array(plan.wayTiles)
         let spanning = s.spanning
         let refs = s.refs.refs
@@ -335,12 +340,14 @@ extension TileSplitter {
                     slots[w] = (pool, pairs)
                 }
             }
+            report(course.position(.absorb))
             plan.extra.reserve(pairs: lanes.reduce(0) { $0 + $1.pairs.count })
             for at in lanes.indices {
                 plan.extra.absorb(pool: lanes[at].pool, pairs: lanes[at].pairs, sorted: true)
                 // Each lane is released as it is folded in; together they hold every pair
                 // a second time.
                 lanes[at] = ([], [])
+                report(course.position(.absorb, at: Double(at + 1) / Double(lanes.count)))
             }
         } else {
             for (way, tiles) in plan.wayTiles {
@@ -349,7 +356,9 @@ extension TileSplitter {
                 for node in nodes { plan.extra.note(node, set: index) }
             }
         }
+        report(course.position(.settle))
         plan.extra.settle()
+        report(1)
     }
 
     /// Places every relation. A carried type takes its computed tiles, or every tile when

@@ -46,4 +46,21 @@ final class WaterScanTests: XCTestCase {
         XCTAssertTrue(mask.isWater(lat: 44.2, lon: 34.5), "the lake")
         XCTAssertFalse(mask.isWater(lat: 44.5, lon: 34.5), "the island")
     }
+
+    /// An extract with no water still runs its part of the bar to the end.
+    func testAnExtractWithNoWaterFillsItsPart() throws {
+        let url = directory.appendingPathComponent("dry.osm.pbf")
+        let writer = try PBFWriter(to: url)
+        writer.header()
+        writer.nodes([PBFWriter.Node(id: 1, lat: 44.1, lon: 34.1, tags: [])])
+        try writer.finish()
+
+        let reached = Locked(0.0)
+        let bodies = try WaterScan.bodies(
+            in: url,
+            progress: ProgressReport { at in reached.withLock { $0 = max($0, at) } }
+        )
+        XCTAssertTrue(bodies.isEmpty)
+        XCTAssertEqual(reached.withLock { $0 }, 1, accuracy: 1e-12)
+    }
 }

@@ -34,8 +34,10 @@ extension BuildPipeline {
         var demPaths: [URL]?
         /// Whether any elevation source went to the network.
         var elevationFetched = false
-        /// Tiles set out to convert.
-        var convertingCells = 0
+        /// Tiles to convert, and how many are done.
+        var conversion = (cells: 0, done: 0)
+        /// The extracts' bytes.
+        var elevationExtractBytes: Int64 = 0
         /// Where kmap's own marks ended up when the chosen TYP already drew their
         /// numbers. The rules emitting them are moved to match, in this build's style
         /// snapshot.

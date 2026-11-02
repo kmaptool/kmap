@@ -44,6 +44,35 @@ struct AnnotatePass {
     /// Asked by every read and by the rewrite: the pass runs on threads of its own, where
     /// a task's cancellation is not seen.
     var shouldStop: @Sendable () -> Bool = { false }
+    var progress = ProgressReport.silent
+
+    private enum Step: Hashable, Sendable {
+        case scans, rewrite
+    }
+
+    private enum RepairStep: Hashable, Sendable {
+        case load, find, plan
+    }
+
+    /// Seconds on Germany; the scans run side by side.
+    private static let repairSeconds = 47.1, venueSeconds = 23.1, barrierSeconds = 14.1
+    private static let rewriteSeconds = 22.9
+    private static let repairCourse = ProgressCourse<RepairStep>([(.load, 28.8), (.find, 6.8), (.plan, 11.5)])
+
+    static func seconds(repairing: Bool, markingVenues: Bool) -> Double {
+        scanSeconds(repairing: repairing, markingVenues: markingVenues) + rewriteSeconds
+    }
+
+    private static func scanSeconds(repairing: Bool, markingVenues: Bool) -> Double {
+        max(barrierSeconds, repairing ? repairSeconds : 0, markingVenues ? venueSeconds : 0)
+    }
+
+    private var course: ProgressCourse<Step> {
+        ProgressCourse([
+            (.scans, Self.scanSeconds(repairing: repairRadius > 0, markingVenues: markDuplicateVenues)),
+            (.rewrite, Self.rewriteSeconds)
+        ])
+    }
 
     @discardableResult
     /// Runs the pass with the contours already at hand.
@@ -125,6 +154,7 @@ struct AnnotatePass {
         if let contoursReady { contourFiles = try contoursReady() } else { contourFiles = contours }
 
         var rewriter = rewriter(for: scanned, contours: contourFiles)
+        rewriter.progress = progress.part(.rewrite, of: course)
         let tally = try rewriter.write(to: destination)
         took("wrote the extract")
 
@@ -165,27 +195,38 @@ struct AnnotatePass {
         let pool = DispatchQueue.global(qos: .userInitiated)
         let count = 1 + (repairRadius > 0 ? 1 : 0) + (markDuplicateVenues ? 1 : 0)
         let idleness = Idleness(jobs: count) { [onHeld] in onHeld?($0) }
-        if repairRadius > 0 {
+        let reported = ParallelProgress(slowestOf: count, into: progress.part(.scans, of: course))
+        var lanes = (0..<count).makeIterator()
+        if repairRadius > 0, let lane = lanes.next() {
+            let report = reported.piece(lane)
             pool.async(group: scans) { [self] in
                 defer { idleness.finished() }
                 timings.timed("repairing road ends") {
-                    let found = Result { try repairScan(timings: timings, idleness: idleness) }
+                    let found = Result { try repairScan(timings: timings, idleness: idleness, progress: report) }
                     repair.withLock { $0 = found }
                 }
             }
         }
-        pool.async(group: scans) {
-            defer { idleness.finished() }
-            timings.timed("classifying barriers") {
-                let found = Result { try BarrierScan.scan(self.source, shouldStop: self.shouldStop) }
-                barriers.withLock { $0 = found }
+        if let lane = lanes.next() {
+            let report = reported.piece(lane)
+            pool.async(group: scans) {
+                defer { idleness.finished() }
+                timings.timed("classifying barriers") {
+                    let found = Result {
+                        try BarrierScan.scan(self.source, shouldStop: self.shouldStop, progress: report)
+                    }
+                    barriers.withLock { $0 = found }
+                }
             }
         }
-        if markDuplicateVenues {
+        if markDuplicateVenues, let lane = lanes.next() {
+            let report = reported.piece(lane)
             pool.async(group: scans) {
                 defer { idleness.finished() }
                 timings.timed("finding repeated venues") {
-                    let found = Result { try VenueScan.duplicates(in: self.source, shouldStop: self.shouldStop) }
+                    let found = Result {
+                        try VenueScan.duplicates(in: self.source, shouldStop: self.shouldStop, progress: report)
+                    }
                     venues.withLock { $0 = found }
                 }
             }
@@ -200,16 +241,18 @@ struct AnnotatePass {
     /// - Returns: the loaded network, the plan, and the log lines describing it.
     private func repairScan(
         timings: ScanTimings,
-        idleness: Idleness
+        idleness: Idleness,
+        progress: ProgressReport
     ) throws -> (RoadNetwork, RepairPlan, [String]) {
         var step = Date()
         func part(_ what: String) {
             timings.note("  " + what, seconds: Date().timeIntervalSince(step))
             step = Date()
         }
-        let loaded = try RoadNetworkLoader(url: source, shouldStop: shouldStop).load()
+        func report(_ step: RepairStep) -> ProgressReport { progress.part(step, of: Self.repairCourse) }
+        let loaded = try RoadNetworkLoader(url: source, shouldStop: shouldStop, progress: report(.load)).load()
         part("read the road network")
-        let (found, loose) = RoadRepair(network: loaded, limit: repairRadius)
+        let (found, loose) = RoadRepair(network: loaded, limit: repairRadius, progress: report(.find))
             .candidates()
         part("found the loose ends")
         // Awaited only now, with the network loaded and the ends found.
@@ -227,9 +270,11 @@ struct AnnotatePass {
             terrain: terrain,
             bridging: bridgeObstacles,
             limit: repairRadius,
-            inventedIDBase: inventedIDBase
+            inventedIDBase: inventedIDBase,
+            progress: report(.plan)
         )
         .plan(found, loose: loose)
+        progress(1)
         part("planned the repairs")
 
         return (loaded, made, Self.summary(of: made, found: found.count, radius: repairRadius))

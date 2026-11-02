@@ -17,4 +17,12 @@ final class Counter: @unchecked Sendable {
         count += 1
         lock.unlock()
     }
+
+    /// Counts 1 more and returns the count.
+    func incremented() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        count += 1
+        return count
+    }
 }

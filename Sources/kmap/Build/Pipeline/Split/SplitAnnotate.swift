@@ -4,16 +4,13 @@ import Foundation
 /// classified by the way they stand on, redundant descriptions dropped, road ends
 /// repaired, contours folded in.
 extension BuildPipeline {
-    /// The share of the split stage's bar the annotation pass takes; the splitter's own
-    /// phases walk the rest.
-    static let splitAnnotateShare = 0.45
-
     /// Annotates every extract at once, as many as memory allows, and returns the
     /// files the splitter should read. Only the first region folds the contours in.
     func annotateExtracts(
         _ extracts: [URL],
         contoursTask: Task<[URL], Error>,
-        terrain: Gate<[URL]>
+        terrain: Gate<[URL]>,
+        report: ProgressReport
     ) async throws -> [String] {
         // Announced once for the whole group; the per-region lines carry a prefix. A
         // single region announces itself.
@@ -33,6 +30,10 @@ extension BuildPipeline {
         // Each region's files go to its own place, not back through the group: see
         // `ExtractLocator.newestAnswering`.
         let results = Locked([[String]](repeating: [], count: extracts.count))
+        let reported = ParallelProgress(
+            weights: extracts.indices.map { annotates(region: $0) ? Double(FileTools.size(of: extracts[$0])) : 0 },
+            into: report
+        )
         try await withThrowingTaskGroup(of: Void.self) { group in
             var next = 0
             var running = 0
@@ -54,6 +55,7 @@ extension BuildPipeline {
                 // every region at work waits. Ended below, once the next region has taken
                 // the lane over, so the count never dips between 2 regions.
                 board.beginLane(.split)
+                let progress = reported.piece(index)
                 group.addTask { [weak self] in
                     guard let self else { return }
                     let files = try await self.annotateBarriersIfNeeded(
@@ -61,26 +63,21 @@ extension BuildPipeline {
                         contoursReady: contours,
                         terrain: terrain,
                         suffix: extracts.count > 1 ? "-\(index)" : "",
-                        regionIndex: index
+                        regionIndex: index,
+                        progress: progress
                     )
+                    progress(1)
                     results.withLock { $0[index] = files }
                 }
                 next += 1
                 running += 1
             }
             while next < extracts.count && running < atOnce { launch(next) }
-            var done = 0
             // A region that throws ends the split: the lanes still begun end with it.
             defer { for _ in 0..<running { board.endLane(.split) } }
             while running > 0 {
                 try await group.next()
                 running -= 1
-                done += 1
-                advance(
-                    .split,
-                    fraction: Double(done) / Double(extracts.count)
-                        * Self.splitAnnotateShare
-                )
                 if next < extracts.count { launch(next) }
                 board.endLane(.split)
             }
@@ -100,8 +97,17 @@ extension BuildPipeline {
         }
     }
 
+    /// Whether region `index` runs the pass.
+    func annotates(region index: Int) -> Bool {
+        annotatesFeatures || recipe.codePage != CodePage.utf8 || drawsFerrataEnds || (index == 0 && recipe.contours)
+    }
+
+    private var annotatesFeatures: Bool {
+        recipe.needsBarrierContext || recipe.descriptions != .off || (recipe.healRoadEnds && recipe.routable)
+    }
+
     /// What the annotate step says it does; nil where it has nothing to do.
-    private func annotateStep(foldsContours: Bool) -> String? {
+    func annotateStep(foldsContours: Bool) -> String? {
         if recipe.healRoadEnds && recipe.routable {
             return "classifying barriers, and repairing road ends OSM left short"
         }
@@ -124,11 +130,12 @@ extension BuildPipeline {
         contoursReady: (@Sendable () async throws -> [URL])? = nil,
         terrain: Gate<[URL]>,
         suffix: String = "",
-        regionIndex: Int = 0
+        regionIndex: Int = 0,
+        progress: ProgressReport
     ) async throws -> [String] {
         let dropDuplicates = recipe.descriptions != .off
         let heal = recipe.healRoadEnds && recipe.routable
-        let features = recipe.needsBarrierContext || dropDuplicates || heal
+        let features = annotatesFeatures
         // A Unicode map draws what a code page cannot.
         let cleans = recipe.codePage != CodePage.utf8
         // With no feature switched on the pass only folds the contours in, cleans the
@@ -150,6 +157,7 @@ extension BuildPipeline {
 
         var pass = AnnotatePass(source: extract, destination: annotated)
         pass.shouldStop = stopAsked
+        pass.progress = progress
         pass.contours = contours
         pass.markDuplicateVenues = true
         pass.dropDuplicateDescriptions = dropDuplicates
