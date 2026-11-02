@@ -32,6 +32,10 @@ extension BuildPipeline {
         var burnedElevationDirectories: [URL] = []
         /// The ranked .hgt directories, walked once and kept until tiles change.
         var demPaths: [URL]?
+        /// Whether any elevation source went to the network.
+        var elevationFetched = false
+        /// Tiles set out to convert.
+        var convertingCells = 0
         /// Where kmap's own marks ended up when the chosen TYP already drew their
         /// numbers. The rules emitting them are moved to match, in this build's style
         /// snapshot.

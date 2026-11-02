@@ -26,6 +26,19 @@ final class StageBoardTests: XCTestCase {
         XCTAssertNotNil(board.stages.first { $0.id == .split }?.startedAt)
     }
 
+    func testAStageSkippedOnceBegunKeepsItsTime() {
+        let board = StageBoard()
+        board.set(.download, .running, "checking for a newer extract")
+        board.set(.download, .skipped, "cached")
+        board.set(.dataUpdate, .skipped, "up to date")
+        let download = board.stages.first { $0.id == .download }
+        let update = board.stages.first { $0.id == .dataUpdate }
+        XCTAssertGreaterThan(download?.seconds ?? 0, 0)
+        XCTAssertGreaterThan(download?.peakBytes ?? 0, 0)
+        XCTAssertEqual(update?.seconds, 0, "never begun: no time")
+        XCTAssertEqual(update?.peakBytes, 0, "never begun: no memory")
+    }
+
     func testABarOnlyMovesForwardUntilANewPhaseClearsIt() {
         let board = StageBoard()
         board.set(.download, .running)

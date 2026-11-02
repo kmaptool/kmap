@@ -24,13 +24,16 @@ extension CLI {
 
     /// Whether the text heads a stage at this poll: when it is first seen at work, by its
     /// real status, and again when it runs anew after it ended or was put back, as a
-    /// re-split or a fresh download of a damaged extract does.
+    /// re-split or a fresh download of a damaged extract does. A skipped stage that `ran`
+    /// has ended.
     static func heads(
         _ status: BuildPipeline.StageStatus,
         seen last: BuildPipeline.StageStatus?,
-        before: Bool
+        before: Bool,
+        ran: Bool = false
     ) -> Bool {
-        guard status == .running || status == .done || status == .failed else { return false }
+        let ended = status == .done || status == .failed || (status == .skipped && ran)
+        guard status == .running || ended else { return false }
         return !before || (status == .running && last != .running)
     }
 
@@ -58,12 +61,17 @@ extension CLI {
             var marks: [(at: Date, mark: LogPrinter.Item)] = []
             for stage in stages {
                 let id = stage.id.rawValue
-                let heading = heads(stage.status, seen: lastSeen[id], before: headed.contains(id))
+                let heading = heads(
+                    stage.status,
+                    seen: lastSeen[id],
+                    before: headed.contains(id),
+                    ran: stage.startedAt != nil
+                )
                 let status = reported(stage.status, after: lastReported[id], ended: ended)
                 // Dated no earlier than the last poll: what came before it is printed.
                 let began = max(stage.startedAt ?? lastPoll, lastPoll)
                 var at = began
-                if stage.status == .done || stage.status == .failed, let started = stage.startedAt {
+                if [.done, .failed, .skipped].contains(stage.status), let started = stage.startedAt {
                     at = max(started.addingTimeInterval(stage.seconds), lastPoll)
                 }
                 lastSeen[id] = stage.status
@@ -74,7 +82,7 @@ extension CLI {
                 if let status {
                     // Begun and ended between 2 polls: its running goes out first, dated when
                     // it began, so a reader of the stream never sees a stage skip the step.
-                    if status == .done || status == .failed, lastReported[id] != .running,
+                    if status == .done || status == .failed || status == .skipped, lastReported[id] != .running,
                         let started = stage.startedAt
                     {
                         marks.append((max(started, lastPoll), .stage(stage.id, .running, detail: "")))

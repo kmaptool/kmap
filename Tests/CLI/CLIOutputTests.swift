@@ -126,6 +126,9 @@ final class CLIOptionsTests: XCTestCase {
         XCTAssertTrue(CLI.heads(.running, seen: .failed, before: true))
         // Put back while a damaged extract downloads again, then at work again.
         XCTAssertTrue(CLI.heads(.running, seen: .pending, before: true))
+        // A cached download ran; updates switched off never did.
+        XCTAssertTrue(CLI.heads(.skipped, seen: .pending, before: false, ran: true))
+        XCTAssertFalse(CLI.heads(.skipped, seen: .pending, before: false))
     }
 
     // MARK: A long log
@@ -197,6 +200,24 @@ final class CLIOptionsTests: XCTestCase {
         stage.startedAt = started
         stage.seconds = seconds
         return stage
+    }
+
+    func testAStageSkippedOnceBegunIsToldWhenItEnded() {
+        // Told running, then skipped at its end.
+        let start = Date(timeIntervalSince1970: 1000)
+        var news = CLI.StageNews()
+        let marks = news.marks(
+            [stage(.download, .skipped, from: start, for: 0.2)],
+            ended: false,
+            stopped: "failed",
+            polled: start.addingTimeInterval(1)
+        )
+        let told = marks.filter {
+            if case .stage = $0.mark { return true }
+            return false
+        }
+        XCTAssertEqual(told.map { Self.said($0.mark) }, ["download running", "download skipped"])
+        XCTAssertEqual(told.map(\.at), [start, start.addingTimeInterval(0.2)])
     }
 
     func testAStageThatEndsAndOneThatBeginsBetween2PollsAreToldInTheirOrder() {

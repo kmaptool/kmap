@@ -37,6 +37,7 @@ extension BuildPipeline {
         /// The cached copy found as the job began and not found damaged, by its size, date
         /// and stamp: the only one a failed fetch falls back on.
         var fallback: (size: Int64, modified: Date?, stamp: Data?)?
+        var verified = false
     }
 
     /// A cached copy as a fallback knows it: put aside and back meanwhile, its stamp differs.
@@ -56,16 +57,21 @@ extension BuildPipeline {
         let probes = await probeExtracts()
         // The server's size, or the cached copy's where the server did not answer.
         let sizes = regions.indices.map { probes[$0].source?.info.size ?? FileTools.size(of: cached[$0]) }
-        let slices = DownloadSlices(sizes: sizes)
-        // What each region will cost to fetch: nothing where the cached copy is current.
-        let toFetch = regions.indices.map {
-            let remote = probes[$0].source?.info
-            return cachedCopyIsCurrent(at: cached[$0], remote: remote)
-                || cachedCopyIsNewer(at: cached[$0], remote: remote) != nil ? 0 : sizes[$0]
-        }
+        let served = Set(
+            regions.indices.filter {
+                let remote = probes[$0].source?.info
+                return cachedCopyIsCurrent(at: cached[$0], remote: remote)
+                    || cachedCopyIsNewer(at: cached[$0], remote: remote) != nil
+            }
+        )
+        let slices = DownloadSlices(sizes: sizes, served: served)
+        let toFetch = regions.indices.map { served.contains($0) ? 0 : sizes[$0] }
 
         var out: [URL] = []
         var fetched = 0
+        // Nothing downloaded or hashed: skipped.
+        var worked = false
+        var unreached = 0
         for (index, region) in regions.enumerated() {
             // A cached region needs no network and would otherwise run past a cancel.
             try stopIfCancelled()
@@ -93,7 +99,10 @@ extension BuildPipeline {
             } else {
                 adopt(probes[index], into: &job)
             }
-            if try await !reuseCachedExtract(&job) {
+            let reused = try await reuseCachedExtract(&job)
+            if !reused || job.verified { worked = true }
+            if reused, job.remote == nil { unreached += 1 }
+            if !reused {
                 try Task.checkCancellation()
                 do {
                     if try await fetchFreshExtract(&job) { fetched += 1 }
@@ -114,7 +123,8 @@ extension BuildPipeline {
             }
             out.append(job.destination)
         }
-        set(.download, .done, summary(of: out, fetched: fetched))
+        let line = summary(of: out, fetched: fetched) + (unreached > 0 ? " · " + t("server not reached") : "")
+        set(.download, worked ? .done : .skipped, line)
         return out
     }
 
@@ -255,8 +265,10 @@ extension BuildPipeline {
         }
 
         log.step("found a cached extract — verifying it")
+        job.verified = true
         let hashed = Self.copy(at: job.destination)
         let recorded = CacheStamp.read(besides: job.destination)
+        // A stale copy leaves its slice to the download.
         let localMD5 = try checksum(of: job.destination, saying: t("verifying cached copy"))
         guard localMD5 == remoteMD5 else {
             // Not the published bytes: stale, or damaged where the stamp records them. Only

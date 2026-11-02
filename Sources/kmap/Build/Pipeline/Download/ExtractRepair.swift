@@ -33,11 +33,11 @@ extension BuildPipeline {
     /// - Returns: The extracts to build from, or nil where none of them was damaged and
     ///   the failure is somebody else's.
     func refetchDamagedExtracts(among extracts: [URL]) async throws -> [URL]? {
-        let closingLine = board.detail(of: .download)
+        let (closingStatus, closingLine) = (board.status(of: .download), board.detail(of: .download))
         set(.download, .running, t("verifying cached copy"))
         let damaged = damagedExtracts(among: extracts)
         guard !damaged.isEmpty else {
-            set(.download, .done, closingLine)
+            set(.download, closingStatus, closingLine)
             return nil
         }
         // Put aside rather than deleted: with no checksum on record a copy counts as

@@ -21,6 +21,11 @@ extension BuildPipeline {
         }
         set(.elevation, .running, t("preparing"))
         Paths.ensure(Paths.hgtCache)
+        // A damaged extract runs this again.
+        state.withLock {
+            $0.elevationFetched = false
+            $0.convertingCells = 0
+        }
 
         let bbox = recipe.coverage
         guard bbox.isValid else {
@@ -53,7 +58,9 @@ extension BuildPipeline {
             await measure(.elevationBuild, "burn the summits in") {
                 await burnPeakElevations(extracts: extracts)
             }
-            set(.elevationBuild, .done, "\(count) elevation tile(s)")
+            // Nothing converted and no summits: skipped.
+            let worked = state.withLock { $0.convertingCells > 0 } || (recipe.demLayer && recipe.fixSummits)
+            set(.elevationBuild, worked ? .done : .skipped, "\(count) elevation tile(s)")
             return []
         }
 
@@ -203,11 +210,26 @@ extension BuildPipeline {
         }
     }
 
+    /// Called by a source as it goes to the network.
+    func elevationFetchBegins() {
+        state.withLock { $0.elevationFetched = true }
+    }
+
+    /// Called by a source as it starts converting `cells` tiles.
+    func elevationConversionBegins(_ cells: Int) {
+        state.withLock { $0.convertingCells += cells }
+    }
+
     /// Closes the download half. Guarded, because several sources reach it and only the
     /// first arrival should stop that stage's clock.
     func elevationDownloadsFinished() {
         guard status(of: .elevation) == .running else { return }
-        set(.elevation, .done, "\(mapHGTCount()) elevation tile(s)")
+        let tiles = "\(mapHGTCount()) elevation tile(s)"
+        if state.withLock({ $0.elevationFetched }) {
+            set(.elevation, .done, tiles)
+        } else {
+            set(.elevation, .skipped, tiles + " · " + t("cached"))
+        }
     }
 
     /// Opens the processing half, whether or not anything is still downloading.

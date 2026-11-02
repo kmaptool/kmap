@@ -56,6 +56,7 @@ extension BuildPipeline {
                 defer { indexes[resolution] = index }
                 do {
                     try Task.checkCancellation()
+                    elevationFetchBegins()
                     _ = try await ViewfinderDEM.fetch(
                         cell,
                         resolution: resolution,

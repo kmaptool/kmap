@@ -454,6 +454,7 @@ enum Strings {
         "by region": "по региону",
         "cache": "кэш",
         "cached": "в кэше",
+        "server not reached": "сервер не ответил",
         "cancel": "отмена",
         "cancel build": "прервать сборку",
         "cancelled": "прервано",

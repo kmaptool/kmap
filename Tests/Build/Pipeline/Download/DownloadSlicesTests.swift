@@ -174,6 +174,20 @@ final class DownloadSlicesTests: XCTestCase {
         XCTAssertEqual(last, 1, accuracy: 1e-9)
     }
 
+    func testARegionTheCacheServesTakesNoSlice() {
+        // The middle region is cached: the other 2 share the bar by their bytes.
+        let slices = BuildPipeline.DownloadSlices(sizes: [100, 500, 300], served: [1])
+        XCTAssertEqual(slices.fraction(region: 0, at: 1), 0.25, accuracy: 1e-9)
+        XCTAssertEqual(slices.fraction(region: 1, at: 1), 0.25, accuracy: 1e-9)
+        XCTAssertEqual(slices.fraction(region: 2, at: 0), 0.25, accuracy: 1e-9)
+        XCTAssertEqual(slices.fraction(region: 2, at: 1), 1, accuracy: 1e-9)
+    }
+
+    func testAnUnknownSizeTheCacheServesLeavesTheOthersByTheirBytes() {
+        let slices = BuildPipeline.DownloadSlices(sizes: [0, 100, 300], served: [0])
+        XCTAssertEqual(slices.fraction(region: 1, at: 1), 0.25, accuracy: 1e-9)
+    }
+
     func testARegionOutsideThePlanIsNotACrash() {
         XCTAssertEqual(BuildPipeline.DownloadSlices(sizes: [1, 2]).fraction(region: 5, at: 1), 0)
     }

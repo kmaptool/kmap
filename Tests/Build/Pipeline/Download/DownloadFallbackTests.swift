@@ -104,6 +104,50 @@ final class DownloadFallbackTests: XCTestCase {
         return bytes
     }
 
+    func testACurrentCachedCopyLeavesTheStageWithNoWork() async throws {
+        let first = pipeline()
+        _ = try await first.downloadExtracts()
+        XCTAssertEqual(first.status(of: .download), .done)
+        let again = pipeline()
+        _ = try await again.downloadExtracts()
+        XCTAssertEqual(again.status(of: .download), .skipped)
+        XCTAssertEqual(again.board.detail(of: .download), t("cached") + " · " + Fmt.bytes(Int64(body.count)))
+    }
+
+    func testAnUnreachableServerSaysSoOnTheSkippedStage() async throws {
+        _ = try await pipeline().downloadExtracts()
+        let again = pipeline()
+        server.stop()
+        _ = try await again.downloadExtracts()
+        XCTAssertEqual(again.status(of: .download), .skipped)
+        XCTAssertEqual(
+            again.board.detail(of: .download),
+            t("cached") + " · " + Fmt.bytes(Int64(body.count)) + " · " + t("server not reached")
+        )
+    }
+
+    /// A copy hashed and found stale leaves the whole bar to the download that follows.
+    func testAStaleHashedCopyLeavesTheBarToTheDownload() async throws {
+        try await cached(damaged, stamp: CacheStamp(size: Int64(body.count), lastModified: nil, md5: nil))
+        let again = pipeline()
+        let atFetch = Locked<Double?>(nil)
+        meanwhile.withLock {
+            $0 = { atFetch.withLock { $0 = again.board.stages.first { $0.id == .download }?.fraction ?? 0 } }
+        }
+        let fetched = try await again.downloadExtracts()
+        XCTAssertEqual(try Data(contentsOf: fetched[0]), body)
+        XCTAssertEqual(atFetch.withLock { $0 } ?? 1, 0, accuracy: 1e-9)
+    }
+
+    /// The stamp cannot vouch for the copy: a hash that confirms it fills the stage.
+    func testACopyThatIsHashedFillsTheStage() async throws {
+        try await cached(body, stamp: CacheStamp(size: Int64(body.count), lastModified: nil, md5: nil))
+        let again = pipeline()
+        _ = try await again.downloadExtracts()
+        XCTAssertEqual(again.status(of: .download), .done)
+        XCTAssertEqual(again.board.stages.first { $0.id == .download }?.fraction ?? 0, 1, accuracy: 1e-9)
+    }
+
     func testADamagedCopyIsNeverTheFallback() async throws {
         let published = MD5.hex(of: body)
         try await cached(damaged, stamp: CacheStamp(size: Int64(body.count), lastModified: nil, md5: published))

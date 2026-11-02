@@ -82,12 +82,19 @@ final class BuildPipelineTests: XCTestCase {
         )
     }
 
-    func testASkippedStageCountsAsDoneAndNotAsMissing() {
-        // A skipped stage's weight is still claimed, or a finished build stops short.
-        let stages = BuildPipeline.StageID.allCases.map {
-            stage($0, $0 == .elevation ? .skipped : .done)
+    /// Every stage, pending unless `statuses` says otherwise.
+    private func build(_ statuses: [BuildPipeline.StageID: BuildPipeline.StageStatus]) -> [BuildPipeline.Stage] {
+        BuildPipeline.StageID.allCases.map { stage($0, statuses[$0] ?? .pending) }
+    }
+
+    func testASkippedStageHasNoShareOfTheBar() {
+        let done = BuildPipeline.StageID.allCases.map {
+            stage($0, $0 == .download || $0 == .elevation ? .skipped : .done)
         }
-        XCTAssertEqual(snapshot(stages).overall, 1, accuracy: 1e-9)
+        XCTAssertEqual(snapshot(done).overall, 1, accuracy: 1e-9)
+        // The cache is not progress.
+        let started = build([.preflight: .done, .dataUpdate: .skipped, .download: .skipped, .elevation: .skipped])
+        XCTAssertEqual(snapshot(started).overall, 0.01 / (1 - 0.01 - 0.23 - 0.20), accuracy: 1e-9)
     }
 
     func testTheBarNeverGoesBackwardsAsTheBuildWalksThroughIt() {
@@ -112,14 +119,13 @@ final class BuildPipelineTests: XCTestCase {
         XCTAssertEqual(last, 1, accuracy: 1e-9)
     }
 
-    func testARunningStageWithNothingToSayStillShowsSomeMovement() {
-        // Sitting where the last finished stage left it reads as stopped.
-        let stages = BuildPipeline.StageID.allCases.map {
+    func testARunningStageCountsOnlyWhatItHasMeasured() {
+        var stages = BuildPipeline.StageID.allCases.map {
             stage($0, $0 == .compile ? .running : ($0 == .collect ? .pending : .done))
         }
-        let overall = snapshot(stages).overall
-        XCTAssertGreaterThan(overall, 0.7)
-        XCTAssertLessThan(overall, 1)
+        XCTAssertEqual(snapshot(stages).overall, 1 - 0.30 - 0.02, accuracy: 1e-9)
+        stages[6] = stage(.compile, .running, fraction: 0.01)
+        XCTAssertGreaterThan(snapshot(stages).overall, 1 - 0.30 - 0.02, "the first measured step moves it")
     }
 
     func testTwoStagesCanBeRunningAtOnceWithoutConfusingTheBar() {
@@ -130,16 +136,16 @@ final class BuildPipelineTests: XCTestCase {
         stages[3] = stage(.elevation, .running, fraction: 0.5)
         stages[4] = stage(.elevationBuild, .running, fraction: 0.25)
         let both = snapshot(stages).overall
-        XCTAssertEqual(both, 0.01 + 0.01 + 0.23 + 0.20 * 0.5 + 0.10 * 0.25, accuracy: 1e-9)
+        XCTAssertEqual(both, 0.01 + 0.01 + 0.23 + 0.20 * 0.5 + 0.03 * 0.25, accuracy: 1e-9)
 
         stages[3] = stage(.elevation, .done)
         XCTAssertGreaterThan(snapshot(stages).overall, both)
     }
 
-    func testTheTwoHalvesOfElevationAddUpToWhatTheOneStageWasWorth() {
-        let fetched = snapshot([stage(.elevation, .done)]).overall
-        let builtToo = snapshot([stage(.elevation, .done), stage(.elevationBuild, .done)]).overall
-        XCTAssertEqual(builtToo, 0.30, accuracy: 1e-9)
+    func testElevationIsWorthItsFetchAndItsBuildTogether() {
+        let fetched = snapshot(build([.elevation: .done])).overall
+        let builtToo = snapshot(build([.elevation: .done, .elevationBuild: .done])).overall
+        XCTAssertEqual(builtToo, 0.23, accuracy: 1e-9)
         XCTAssertGreaterThan(builtToo, fetched)
     }
 
@@ -149,7 +155,7 @@ final class BuildPipelineTests: XCTestCase {
         }
         XCTAssertEqual(
             snapshot(stages).overall,
-            0.01 + 0.24 + 0.20 + 0.10 + 0.15,
+            0.01 + 0.24 + 0.20 + 0.03 + 0.20,
             accuracy: 1e-9
         )
     }
@@ -163,9 +169,9 @@ final class BuildPipelineTests: XCTestCase {
     func testCompilingIsWeightedLikeTheTwoThirdsOfABuildItIs() {
         // mkgmap is about 2/3 of a small build's wall clock; download and elevation
         // are most of the rest.
-        let mkgmapOnly = snapshot([stage(.compile, .done)]).overall
-        let downloadOnly = snapshot([stage(.download, .done)]).overall
-        let collectOnly = snapshot([stage(.collect, .done)]).overall
+        let mkgmapOnly = snapshot(build([.compile: .done])).overall
+        let downloadOnly = snapshot(build([.download: .done])).overall
+        let collectOnly = snapshot(build([.collect: .done])).overall
         XCTAssertGreaterThan(mkgmapOnly, downloadOnly)
         XCTAssertGreaterThan(downloadOnly, collectOnly)
     }
@@ -284,8 +290,7 @@ final class BuildPipelineTests: XCTestCase {
     }
 }
 
-/// A running stage without a fraction is guessed at 1/3 done, and the guess must not be
-/// taken back when the first real fraction arrives.
+/// The build's bar counts only what was measured, and never goes back.
 final class OverallProgressTests: XCTestCase {
     func testOverallNeverMovesBackwards() {
         let settings = SettingsStore()
@@ -326,19 +331,23 @@ final class OverallProgressTests: XCTestCase {
         pipeline.set(.download, .done)
         pipeline.set(.elevation, .skipped)
         pipeline.set(.elevationBuild, .skipped)
+        pipeline.set(.split, .running, "cutting")
+        pipeline.detail(.split, "cutting", fraction: 0.8)
+        let cut = pipeline.snapshot().overall
+        // A re-split starts the split's bar over.
+        pipeline.set(.split, .done)
+        pipeline.set(.split, .running, "starting")
+        let again = pipeline.snapshot()
+        XCTAssertLessThan(again.rawOverall, cut, "the dip this test is about")
+        XCTAssertGreaterThanOrEqual(again.overall, cut, "the bar must not move backwards")
+
         pipeline.set(.split, .done)
         pipeline.set(.compile, .running, "preparing style")
-        let guessed = pipeline.snapshot().overall
+        let preparing = pipeline.snapshot().overall
         pipeline.detail(.compile, "0/13 tile(s)", fraction: 0)
-        let measured = pipeline.snapshot()
-        XCTAssertLessThan(measured.rawOverall, guessed, "the dip this test is about")
-        XCTAssertGreaterThanOrEqual(
-            measured.overall,
-            guessed,
-            "the bar must not move backwards"
-        )
+        XCTAssertEqual(pipeline.snapshot().overall, preparing, "nothing measured, nothing counted")
         pipeline.detail(.compile, "13/13 tile(s)", fraction: 0.9)
-        XCTAssertGreaterThan(pipeline.snapshot().overall, guessed)
+        XCTAssertGreaterThan(pipeline.snapshot().overall, preparing)
     }
 
     /// Boxes overlap along a border; a shared degree is traced once, over both pieces.

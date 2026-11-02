@@ -56,6 +56,7 @@ extension BuildPipeline {
             .sorted { $0.key < $1.key }
         let weight = missing.reduce(0) { $0 + $1.value.count }
         log.step("fetching \(missing.count) \(source.label) tile(s), \(Fmt.bytes(Int64(weight)))")
+        if !missing.isEmpty { elevationFetchBegins() }
         try await downloadGEDTMChunks(missing.map { ($0.key, $0.value) }, source: source)
 
         if last { elevationDownloadsFinished() }
@@ -152,6 +153,7 @@ extension BuildPipeline {
         let sea = Counter()
         let done = Counter()
         let failed = Locked<[Int]>([])
+        elevationConversionBegins(needs.count)
         try await withThrowingTaskGroup(of: Void.self) { group in
             var next = 0
             var running = 0

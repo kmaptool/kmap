@@ -65,7 +65,7 @@ extension BuildPipeline {
             } else if cadence == .never {
                 set(.dataUpdate, .skipped, t("updates are off"))
             } else {
-                set(.dataUpdate, .done, t("up to date"))
+                set(.dataUpdate, .skipped, t("up to date"))
             }
             return
         }

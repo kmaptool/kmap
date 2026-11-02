@@ -57,7 +57,10 @@ extension BuildPipeline {
         if unpublished > 0 {
             log.append("\(unpublished) cell(s) \(flavor.label) does not publish, sea or beyond it — not asked for")
         }
-        if !asked.isEmpty { log.step("fetching \(asked.count) \(flavor.label) tile(s)") }
+        if !asked.isEmpty {
+            log.step("fetching \(asked.count) \(flavor.label) tile(s)")
+            elevationFetchBegins()
+        }
 
         // Two phases: downloads run several at a time, then conversion warps from a mosaic
         // of all the tiles. A `.hgt` grid is half a cell wider than the source square on
@@ -253,6 +256,7 @@ extension BuildPipeline {
     ) async throws -> Int {
         let converted = Counter()
         let done = Counter()
+        elevationConversionBegins(downloaded.count)
         try await withThrowingTaskGroup(of: Void.self) { group in
             var next = 0
             var running = 0

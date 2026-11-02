@@ -5,18 +5,20 @@ import Foundation
 extension BuildPipeline {
     /// Each region's slice of the one download bar, which advances monotonically across
     /// all regions of a build. A slice is as wide as the region is large, so the bar moves
-    /// at the pace of the bytes. When any size is unknown the slices are equal.
+    /// at the pace of the bytes. When any size is unknown the slices are equal. A cached
+    /// region has none.
     struct DownloadSlices {
         private let starts: [Double]
         private let widths: [Double]
 
-        init(sizes: [Int64]) {
-            let total = sizes.reduce(0, +)
-            let sized = total > 0 && !sizes.contains { $0 <= 0 }
-            widths =
-                sized
-                ? sizes.map { Double($0) / Double(total) }
-                : Array(repeating: 1 / Double(max(1, sizes.count)), count: sizes.count)
+        init(sizes: [Int64], served: Set<Int> = []) {
+            let fetched = sizes.indices.filter { !served.contains($0) }
+            let total = fetched.reduce(Int64(0)) { $0 + sizes[$1] }
+            let sized = total > 0 && !fetched.contains { sizes[$0] <= 0 }
+            widths = sizes.indices.map { index in
+                guard !served.contains(index) else { return 0 }
+                return sized ? Double(sizes[index]) / Double(total) : 1 / Double(max(1, fetched.count))
+            }
             var start = 0.0
             starts = widths.map { width in
                 defer { start += width }

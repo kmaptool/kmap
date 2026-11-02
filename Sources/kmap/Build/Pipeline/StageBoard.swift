@@ -63,7 +63,7 @@ final class StageBoard: Sendable {
 
     func set(_ id: StageID, _ status: StageStatus, _ detail: String? = nil, fraction: Double? = nil) {
         // Read outside the lock: it asks the system, and nothing here depends on it.
-        let ending = status == .done || status == .failed
+        let ending = status == .done || status == .failed || status == .skipped
         let peak = ending ? Machine.memoryInUse() : 0
         state.withLock {
             guard !$0.closed else { return }
@@ -73,7 +73,8 @@ final class StageBoard: Sendable {
                 if stage.startedAt == nil { stage.startedAt = Date() }
                 stage.fraction = nil
             }
-            if ending {
+            // A stage skipped before it began took no time and no memory.
+            if ending, status != .skipped || stage.startedAt != nil {
                 if let started = stage.startedAt { stage.seconds = Date().timeIntervalSince(started) }
                 stage.peakBytes = peak
             }

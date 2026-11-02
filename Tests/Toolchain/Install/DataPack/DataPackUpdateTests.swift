@@ -336,7 +336,11 @@ final class DataPackUpdateTests: XCTestCase {
         try blocking { try await build.updateDataPacks() }
 
         XCTAssertEqual(gets.withLock { $0 }, 0, "only news brings an installed pack down again")
-        XCTAssertEqual(build.snapshot().stages.first { $0.id == .dataUpdate }?.status, .done)
+        XCTAssertEqual(
+            build.snapshot().stages.first { $0.id == .dataUpdate }?.status,
+            .skipped,
+            "nothing to fetch: no share of the bar"
+        )
     }
     #endif
 

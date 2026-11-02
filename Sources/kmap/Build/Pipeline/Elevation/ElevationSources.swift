@@ -47,16 +47,20 @@ extension BuildPipeline {
             } else if id.hasPrefix("view"), let resolution = Int(id.dropFirst(4)) {
                 out.append(ViewfinderDEM.cacheDirectory(resolution))
             } else {
-                // pyhgtmap names its directories after the source, upper-cased.
-                out.append(
-                    Paths.hgtCache.appendingPathComponent(
-                        id.uppercased(),
-                        isDirectory: true
-                    )
-                )
+                out.append(Self.pyhgtmapDirectory(id))
             }
         }
         return out
+    }
+
+    /// pyhgtmap names its directories after the source, upper-cased.
+    static func pyhgtmapDirectory(_ id: String) -> URL {
+        Paths.hgtCache.appendingPathComponent(id.uppercased(), isDirectory: true)
+    }
+
+    /// How many files pyhgtmap holds for `sources`.
+    static func pyhgtmapFiles(_ sources: [String]) -> Int {
+        sources.reduce(0) { $0 + FileTools.allFiles(under: pyhgtmapDirectory($1)).count }
     }
 
     /// Whether a source listed before this one already holds the cell.

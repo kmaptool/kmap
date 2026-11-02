@@ -15,30 +15,31 @@ extension BuildPipeline {
         var outputs: [Output]
         var startedAt: Date
         var finishedAt: Date?
-        /// The furthest `overall` has already reached this run. A running stage without
-        /// a fraction is guessed at a third done, so the raw figure can dip when the
-        /// first real fraction arrives; the bar must not.
+        /// So a re-split does not take the bar back.
         var overallFloor: Double = 0
 
         var overall: Double { max(rawOverall, overallFloor) }
 
+        /// Shares of a build's time, from measured builds.
+        static let weights: [StageID: Double] = [
+            .preflight: 0.01, .dataUpdate: 0.01, .download: 0.23, .elevation: 0.20,
+            .elevationBuild: 0.03, .split: 0.20, .compile: 0.30, .collect: 0.02
+        ]
+
+        /// A skipped stage has no share.
         var rawOverall: Double {
-            let weights: [StageID: Double] = [
-                // Weights per stage; elevation is split in two because fetching a degree
-                // cell costs far more than tracing it.
-                .preflight: 0.01, .dataUpdate: 0.01, .download: 0.23, .elevation: 0.20,
-                .elevationBuild: 0.10, .split: 0.15, .compile: 0.28, .collect: 0.02
-            ]
-            var total = 0.0
-            for stage in stages {
-                let w = weights[stage.id] ?? 0
+            var done = 0.0
+            var whole = 0.0
+            for stage in stages where stage.status != .skipped {
+                let weight = Self.weights[stage.id] ?? 0
+                whole += weight
                 switch stage.status {
-                case .done, .skipped: total += w
-                case .running: total += w * (stage.fraction ?? 0.35)
-                default: break
+                case .done: done += weight
+                case .running: done += weight * (stage.fraction ?? 0)
+                case .pending, .skipped, .failed: break
                 }
             }
-            return min(1, total)
+            return whole > 0 ? min(1, done / whole) : 0
         }
     }
 }

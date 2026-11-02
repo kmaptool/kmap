@@ -76,6 +76,8 @@ extension BuildPipeline {
             log.warn("\(missing.localizedDescription) — the sources after it fill its cells")
         }
         if let pyhgtmap {
+            // The stage fetched only if pyhgtmap's cache grew.
+            let held = Self.pyhgtmapFiles(reachable)
             let runner = makeRunner()
             // --area is a rectangle; a .poly of the open cells asks for those tiles alone.
             var scope = ["--area=\(bbox.areaArgument)"]
@@ -92,6 +94,7 @@ extension BuildPipeline {
                 cwd: workDirectory,
                 allowFailure: true
             ) { self.log.append($0) }
+            if Self.pyhgtmapFiles(reachable) != held { elevationFetchBegins() }
             try Task.checkCancellation()
             if ran.exitCode != 0 {
                 log.warn(

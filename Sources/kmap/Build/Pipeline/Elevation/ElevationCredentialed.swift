@@ -33,6 +33,7 @@ extension BuildPipeline {
             }
             let made = Counter()
             let stop = stopAsked
+            elevationConversionBegins(wanted.count)
             DispatchQueue.concurrentPerform(iterations: wanted.count) { index in
                 // A stop lands between cells, as the task's cancellation does not reach here.
                 if stop() { return }
