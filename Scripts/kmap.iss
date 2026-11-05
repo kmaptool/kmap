@@ -36,6 +36,8 @@ SolidCompression=yes
 WizardStyle=modern
 ; Per-machine when possible, per-user without administrator rights.
 PrivilegesRequiredOverridesAllowed=dialog
+; Tells running programs that the PATH changed.
+ChangesEnvironment=yes
 #if defined(Hasarm64) && defined(Hasx64)
 ArchitecturesAllowed=arm64 x64compatible
 ArchitecturesInstallIn64BitMode=arm64 x64compatible
@@ -100,16 +102,61 @@ Name: "{autodesktop}\kmap"; Filename: "{app}\kmap.exe"; Tasks: desktopicon
 Filename: "{app}\kmap.exe"; Description: "{cm:LaunchProgram,kmap}"; Flags: nowait postinstall skipifsilent
 
 [Registry]
-Root: HKA; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; \
+Root: HKA; Subkey: "{code:EnvironmentKey}"; ValueType: expandsz; ValueName: "Path"; \
     ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NotAlreadyOnPath
 
 [Code]
+{ The machine's PATH for an install for all users, the user's own otherwise. }
+function EnvironmentKey(Param: string): string;
+begin
+  if IsAdminInstallMode then
+    Result := 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+  else
+    Result := 'Environment';
+end;
+
 { Adding a folder that is already there would grow the PATH by one copy per reinstall. }
 function NotAlreadyOnPath: Boolean;
 var
   Existing: string;
 begin
   Result := True;
-  if RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', Existing) then
+  if RegQueryStringValue(HKA, EnvironmentKey(''), 'Path', Existing) then
     Result := Pos(Lowercase(ExpandConstant('{app}')), Lowercase(Existing)) = 0;
+end;
+
+{ Uninstalling takes the folder out of the PATH; every other entry stays as it was. }
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  Rest, Entry, Kept, App: string;
+  At: Integer;
+  First, Removed: Boolean;
+begin
+  if CurUninstallStep <> usPostUninstall then Exit;
+  if not RegQueryStringValue(HKA, EnvironmentKey(''), 'Path', Rest) then Exit;
+  App := RemoveBackslash(ExpandConstant('{app}'));
+  Kept := '';
+  First := True;
+  Removed := False;
+  repeat
+    At := Pos(';', Rest);
+    if At = 0 then
+    begin
+      Entry := Rest;
+      Rest := '';
+    end else
+    begin
+      Entry := Copy(Rest, 1, At - 1);
+      Delete(Rest, 1, At);
+    end;
+    if (Entry <> '') and (CompareText(RemoveBackslash(Entry), App) = 0) then
+      Removed := True
+    else
+    begin
+      if not First then Kept := Kept + ';';
+      Kept := Kept + Entry;
+      First := False;
+    end;
+  until At = 0;
+  if Removed then RegWriteExpandStringValue(HKA, EnvironmentKey(''), 'Path', Kept);
 end;
