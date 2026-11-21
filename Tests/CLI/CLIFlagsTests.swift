@@ -81,6 +81,17 @@ final class CLIFlagsTests: XCTestCase {
         XCTAssertEqual(flags.positionals, ["-h", "--", "x"])
     }
 
+    /// Several extracts are 1 map to cut, not a stray argument: the run gets as far as
+    /// the files, which are not there.
+    func testSplitTakesSeveralExtracts() async {
+        let out = FileManager.default.temporaryDirectory.appendingPathComponent("kmap-split-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: out) }
+        let code = await CLI.run(["split", "no-a.osm.pbf", "no-b.osm.pbf", "--output-dir", out.path])
+        XCTAssertEqual(code, CLIOutput.Exit.failed)
+        let none = await CLI.run(["split", "--output-dir", out.path])
+        XCTAssertEqual(none, CLIOutput.Exit.refused)
+    }
+
     /// A typo or a stray argument stops the command with exit code 2 before any work.
     func testATypoOrAStrayArgumentIsRefused() async {
         for line in [

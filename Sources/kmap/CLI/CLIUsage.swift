@@ -151,8 +151,8 @@ extension CLI {
                                         whatever is drawn at that resolution
 
         Pipeline steps individually
-          kmap split <extract.osm.pbf> --output-dir <dir> [--mapid N]
-                                        cut an extract into map tiles
+          kmap split <extract.osm.pbf>... --output-dir <dir> [--mapid N]
+                                        cut an extract, or several as 1 map, into tiles
           kmap contours <tile.hgt> [--step 20] [--out <file.pbf>] [--clip S,W,N,E]
                                         trace one elevation tile; tracer diagnostics:
                                         --raw --no-split --flatness D --dump-paths F

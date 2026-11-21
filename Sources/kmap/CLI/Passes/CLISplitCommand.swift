@@ -5,6 +5,8 @@ import Foundation
 ///
 ///     kmap split extract.osm.pbf --output-dir tiles --mapid 63410001 \
 ///         --max-nodes 1600000 [--use-areas areas.list]
+///
+/// Several extracts are cut as 1 map, as a build of several regions cuts them.
 extension CLI {
     /// What the splitter is told when the flags say nothing: splitter.jar's own defaults,
     /// so the two can be compared on equal terms.
@@ -19,14 +21,13 @@ extension CLI {
         )
         if let refused = flags.refusal(
             "split",
-            knows: ["output-dir", "mapid", "max-nodes", "description", "use-areas"],
-            positionals: 1
+            knows: ["output-dir", "mapid", "max-nodes", "description", "use-areas"]
         ) {
             return refused
         }
-        guard let input = flags.positionals.first, let outputDir = flags.value("output-dir") else {
+        guard !flags.positionals.isEmpty, let outputDir = flags.value("output-dir") else {
             return CLIOutput.refuse(
-                "usage: kmap split <extract.osm.pbf> --output-dir <dir> [--mapid N]"
+                "usage: kmap split <extract.osm.pbf>... --output-dir <dir> [--mapid N]"
                     + " [--max-nodes N] [--description S] [--use-areas areas.list]"
             )
         }
@@ -56,7 +57,7 @@ extension CLI {
         Paths.ensure(outputURL)
         let splitter = TileSplitter(
             options: .init(
-                inputs: [URL(fileURLWithPath: input)],
+                inputs: flags.positionals.map { URL(fileURLWithPath: $0) },
                 outputDirectory: outputURL,
                 mapID: flags.int("mapid") ?? defaultMapID,
                 maxNodes: flags.int("max-nodes") ?? defaultMaxNodes,
