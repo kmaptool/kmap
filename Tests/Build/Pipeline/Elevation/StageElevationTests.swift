@@ -121,4 +121,14 @@ final class FlightTests: XCTestCase {
         }
         XCTAssertEqual(flight.received, 8 * 200 * 1_000)
     }
+
+    /// A cell's id range follows its number, and from 10000 on its name sorts elsewhere.
+    func testContourFilesGoInByCellNumber() {
+        let names = ["contour10000.osm.pbf", "contour0002.osm.pbf", "contour9999.osm.pbf", "contour1001.osm.pbf"]
+        let sorted = BuildPipeline.byCell(names.map { URL(fileURLWithPath: "/work/contours/" + $0) })
+        XCTAssertEqual(
+            sorted.map(\.lastPathComponent),
+            ["contour0002.osm.pbf", "contour1001.osm.pbf", "contour9999.osm.pbf", "contour10000.osm.pbf"]
+        )
+    }
 }

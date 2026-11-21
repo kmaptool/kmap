@@ -95,11 +95,12 @@ extension BuildPipeline {
         )
         try Task.checkCancellation()
 
-        // Sorted by name, which encodes the cell index, so the id ranges ascend.
-        let produced = FileTools.contents(of: contourDir).filter {
-            let name = $0.lastPathComponent
-            return name.hasPrefix("contour") && (name.hasSuffix(".pbf") || name.hasSuffix(".osm"))
-        }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let produced = Self.byCell(
+            FileTools.contents(of: contourDir).filter {
+                let name = $0.lastPathComponent
+                return name.hasPrefix("contour") && (name.hasSuffix(".pbf") || name.hasSuffix(".osm"))
+            }
+        )
 
         if recipe.contours {
             guard !produced.isEmpty else {
@@ -129,6 +130,17 @@ extension BuildPipeline {
             recipe.contours ? "\(produced.count) contour file(s)" : "\(mapHGTCount()) elevation tile(s)"
         )
         return produced
+    }
+
+    /// Contour files by cell number, the order their id ranges were handed out in. From
+    /// 10000 cells on the names no longer sort so.
+    static func byCell(_ files: [URL]) -> [URL] {
+        func cell(_ file: URL) -> Int {
+            Int(file.lastPathComponent.dropFirst("contour".count).prefix { $0.isASCII && $0.isNumber }) ?? .max
+        }
+        return files.map { (cell: cell($0), file: $0) }
+            .sorted { ($0.cell, $0.file.lastPathComponent) < ($1.cell, $1.file.lastPathComponent) }
+            .map(\.file)
     }
 
     /// Traces every cell's contours, `concurrency` at a time, with a live progress
