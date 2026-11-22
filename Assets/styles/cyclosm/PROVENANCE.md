@@ -40,7 +40,9 @@ attribution stays.
   taxiway (0x10900) in the runway's colour at a fifth of its width, the sports
   centre and the stadium (polygon 0x33) in `@stadium`, the building site (0x34)
   and the landfill (0x35) in `@industrial`; an abandoned railway (0x3f) it does
-  not draw. The catch-all areas 0x21 Tourism, 0x23
+  not draw. Polygon 0x36 is a layer of kmap's rules: a building another rule
+  claims first (a town hall is an amenity area, a bakery a shop) lies over that
+  rule's area, drawn as the building 0x13 is. The catch-all areas 0x21 Tourism, 0x23
   Amenity and 0x24 Structure take every tourism=*, amenity=* and man_made=* area
   no earlier rule took; CyclOSM fills a few of those, each in its own colour,
   and the rest not at all, so they are clear. The names in `palette.txt` are

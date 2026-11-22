@@ -42,6 +42,9 @@ A meaning kmap's rules give a number of its own is drawn as carto draws that mea
 the hedge (line 0x3e) in `@hedge`, the taxiway (0x10900) in the runway's colour at a
 third of its width, the sports centre and the stadium (polygon 0x33) in `@stadium`, the
 building site (0x34) in `@construction`, the landfill (0x35) in its own colour.
+Polygon 0x36 is a layer of kmap's rules, not a meaning of its own: a building another
+rule claims first (a town hall is an amenity area, a bakery a shop) lies over that
+rule's area, drawn as the building 0x13 is.
 
 ## Reference zoom and pixels
 

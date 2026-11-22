@@ -99,6 +99,7 @@ poly 0x4c 9 #8ecbeb  Dock  # @water palette.mss:42, waterway=dock in its water l
 poly 0x47 9 #eee5dc  Waterfall  # not drawn by CyclOSM: no waterfall area in its water layer (project.mml:385-389); the river under it shows
 poly 0x51 8 #c2debd  Wetland  # @grass palette.mss:34, natural_wetland base.mss:57-61; graphics.txt adds wetland.png; below water, as CyclOSM draws water over it
 poly 0x13 11 #e4dfdb  Building  # @building palette.mss:53, base.mss:522-523; its 0.3 px outline is not drawn
+poly 0x36 11 #e4dfdb  Building  # a building another rule claims, a town hall or a bakery: a layer over that rule's area, drawn as the building 0x13 is
 
 # --- lines --------------------------------------------------------------------
 # Roads: ink @rdz16_* (roads.mss:261-280), casing 1 pixel either side. CyclOSM draws a

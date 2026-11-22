@@ -37,7 +37,9 @@ is kmap's: where the style draws nothing, nothing is drawn.
   style's pitches, which it does not draw; no more does it draw a stadium
   (0x33), a building site (0x34), a landfill (0x35), a hedge (line 0x3e) or an
   abandoned railway (0x3f). The taxiway 0x10900 is `aeroway_taxiway`, at the
-  width it has against the runway. The fork of the schema
+  width it has against the runway. Polygon 0x36 is a layer of kmap's rules: a
+  building another rule claims first (a town hall is an amenity area, a bakery a
+  shop) lies over that rule's area, drawn as the building 0x13 is. The fork of the schema
   decides the class: there, a park, a garden, a golf course, allotments, scrub,
   heath and fell are all landcover `grass`, while a national park or a nature
   reserve is the `park` layer.

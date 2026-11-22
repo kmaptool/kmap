@@ -19,6 +19,7 @@ extension StyleCatalog {
         (.polygon, 0x5b, nil),  // the floor under scrub: new, and only where drawn
         (.polygon, 0x28, nil),  // a salt pond: new
         (.polygon, 0x29, nil),  // greenhouses: new
+        (.polygon, claimedBuildingCode, nil),  // a building another rule claims: only where drawn
         (.polygon, 0x33, 0x19),  // a sports centre or a stadium, drawn as a pitch before
         (.polygon, 0x34, 0x0c),  // a building site, drawn as industrial ground before
         (.polygon, 0x35, 0x0c),  // a landfill, drawn as industrial ground before

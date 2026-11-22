@@ -19,7 +19,7 @@ final class StyleCatalog: Sendable {
 
     /// Bump when the materialized style layout changes, to force a refresh. kmap's own
     /// version is in the identity too, so a release that forgot to bump still refreshes.
-    private static let materializedVersion = "104"
+    private static let materializedVersion = "105"
 
     private let settings: SettingsStore
 
@@ -238,6 +238,8 @@ final class StyleCatalog: Sendable {
         try addFoundPolygonRules(in: dir, log: log)
         // Last of all: it edits rules the passes above may have written.
         try widenDrawnVocabulary(in: dir, log: log)
+        // After every pass that puts a rule above the stock building rule.
+        try addClaimedBuildingLayer(in: dir, log: log)
     }
 
     /// Applies the build's own choices to a finished rule set: what to leave off, and how

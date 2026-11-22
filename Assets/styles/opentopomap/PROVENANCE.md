@@ -24,6 +24,9 @@ code, and named after `Assets/styles/type-names.txt`.
   sports centre and stadium 0x33, the building site 0x34, the landfill 0x35 and the
   abandoned railway 0x3f are clear, the hedge 0x3e is their green dots, the taxiway
   0x10900 their grey in black, at the width their taxiway has against their runway.
+- Polygon 0x36 is a layer of kmap's rules: a building another rule claims first (a town
+  hall is an amenity area, a bakery a shop) lies over that rule's area, drawn as the
+  building 0x13 is.
 - Their generic forest tile mixes 2 kinds of tree no 32 x 32 window holds: 1 broadleaf and
   1 conifer are moved onto the tile at their own size.
 - Their hillshade is left out: the device shades its own relief.

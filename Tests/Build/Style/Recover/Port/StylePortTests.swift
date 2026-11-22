@@ -392,6 +392,21 @@ final class StylePortTests: XCTestCase {
         XCTAssertEqual(StylePort.map(codesByTag: more, rules: rules).first(where: { $0.ours == 0x26 })?.theirs, 0x18)
     }
 
+    /// The layer over a building another rule claims is the build's own: their map has
+    /// no such thing, so no picture of theirs is ported onto it.
+    func testNoPictureOfTheirsIsPortedOntoTheClaimedBuildingLayer() throws {
+        let rules = try index(
+            polygons: """
+                building=* & building!=no & (amenity=*) [0x36 resolution 24 continue]
+                amenity=* & area!=no [0x23 resolution 22]
+                building=* & building!=no [0x13 resolution 24]
+                """
+        )
+        let ported = StylePort.map(codesByTag: ["building=*": ["A13": 500], "amenity=*": ["A23": 60]], rules: rules)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x13 })?.theirs, 0x13)
+        XCTAssertNil(ported.first { $0.ours == StyleCatalog.claimedBuildingCode })
+    }
+
     /// Their number equal to ours settles nothing where their number mostly draws a
     /// meaning ours does not carry: their 0x2f08 is a bus stop, our 0x2f08 a station.
     func testTheirNumberAgreesOnlyWhereItMeansTheSame() throws {

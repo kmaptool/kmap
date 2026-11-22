@@ -287,3 +287,6 @@ polygon 0x33|Sports centre|Спортивный комплекс
 polygon 0x34|Construction|Стройка
 polygon 0x35|Landfill|Свалка
 point 0x2c10|Historic site|Историческое место
+
+# The reference TYP's words for a building (its 0x13): a building another rule claims.
+polygon 0x36|Building|Здание

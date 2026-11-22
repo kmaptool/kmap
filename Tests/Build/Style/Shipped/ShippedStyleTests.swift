@@ -394,6 +394,25 @@ final class ShippedStyleTests: XCTestCase {
         XCTAssertTrue(residential.patternIsBlank)
     }
 
+    /// A town hall or a bakery is typed by its amenity or shop, an area the originals leave
+    /// clear or tint: its building lies over that as a layer, drawn in every look
+    /// exactly as the building is, on the building's level.
+    func testABuildingAnotherRuleClaimsIsDrawnAsTheBuildingInEveryLook() throws {
+        for shipped in StyleCatalog.shippedPalettes {
+            let typ = TypSource.parse(try StyleCatalog.shippedTypText(of: shipped))
+            func drawing(_ code: Int) throws -> [String] {
+                let section = try XCTUnwrap(typ.sections.first { $0.kind == .polygon && $0.code == code }, shipped.id)
+                return section.lines.map { typ.lines[$0] }.filter {
+                    !TypSource.sets("Type", $0) && !TypSource.sets("String", $0) && !$0.hasPrefix(";")
+                }
+            }
+            XCTAssertEqual(try drawing(StyleCatalog.claimedBuildingCode), try drawing(0x13), shipped.id)
+            let level = Dictionary(typ.drawOrder.map { ($0.code, $0.level) }, uniquingKeysWith: { a, _ in a })
+            XCTAssertNotNil(level[0x13], shipped.id)
+            XCTAssertEqual(level[StyleCatalog.claimedBuildingCode], level[0x13], shipped.id)
+        }
+    }
+
     /// What an original does not draw shows nothing at all: a clear area carries no label.
     /// A clear line says its font outright: none, or the name the original writes along a
     /// line it does not draw (a valley in the OpenTopoMap web look).

@@ -97,6 +97,7 @@ poly 0x47 9 #f2efe9  Waterfall  # not drawn by carto: waterfall areas are in no 
 poly 0x51 10 #f2efe9  Wetland  # natural=wetland with no type has no fill in carto (landcover.mss:512-554 fill types only); pattern over a clear ground in graphics.txt
 poly 0x11 10 #f3e0da  Danger Area  # #ff5555 at polygon-opacity 0.1 over land, landcover.mss:804-806; hatch in graphics.txt
 poly 0x13 11 #d9d0c9  Building  # @building-fill buildings.mss:1,17-18
+poly 0x36 11 #d9d0c9  Building  # a building another rule claims, a town hall or a bakery: a layer over that rule's area, drawn as the building 0x13 is
 
 # --- lines --------------------------------------------------------------------
 # Roads at z16: ink = carto's fill width (its line width less 2 casings), rounded;

@@ -358,6 +358,7 @@ poly 0x47 9 #f2efe9  Waterfall  # not drawn by carto: waterfall areas are in no 
 poly 0x51 10 #f2efe9  Wetland  # natural=wetland with no type has no fill in carto (landcover.mss:512-554 fill types only); pattern over a clear ground in graphics.txt
 poly 0x11 10 #f3e0da  Danger Area  # #ff5555 at polygon-opacity 0.1 over land, landcover.mss:804-806; hatch in graphics.txt
 poly 0x13 11 #d9d0c9  Building  # @building-fill buildings.mss:1,17-18
+poly 0x36 11 #d9d0c9  Building  # a building another rule claims, a town hall or a bakery: a layer over that rule's area, drawn as the building 0x13 is
 
 # --- lines --------------------------------------------------------------------
 # Roads at z16: ink = carto's fill width (its line width less 2 casings), rounded;
@@ -1879,6 +1880,7 @@ poly 0x53 5 #fff4a9  Sand  # sand.png, landuse.xml:89-94 and at 0.7 landuse-over
 # piers' layer, over the water they stand on.
 poly 0x25 12 #ffffff  Pedestrian Area  # white, road-areas.xml:2-7, cliffs.xml:104-110
 poly 0x13 13 #555555  Building  # buildings.xml:14-19, over their black 1.5 outline
+poly 0x36 13 #555555  Building  # a building another rule claims, a town hall or a bakery: a layer over that rule's area, drawn as the building 0x13 is
 poly 0x04 14 #ef8d8d  Military  # military_area_z12.png, areas.xml:23-29; hatch in graphics.txt
 poly 0x0e 15 #dddddd  Runway  # runway, taxiway, apron, helipad: airports-poly.xml:10-16
 
@@ -11303,6 +11305,7 @@ poly 0x4c 9 #8ecbeb  Dock  # @water palette.mss:42, waterway=dock in its water l
 poly 0x47 9 #eee5dc  Waterfall  # not drawn by CyclOSM: no waterfall area in its water layer (project.mml:385-389); the river under it shows
 poly 0x51 8 #c2debd  Wetland  # @grass palette.mss:34, natural_wetland base.mss:57-61; graphics.txt adds wetland.png; below water, as CyclOSM draws water over it
 poly 0x13 11 #e4dfdb  Building  # @building palette.mss:53, base.mss:522-523; its 0.3 px outline is not drawn
+poly 0x36 11 #e4dfdb  Building  # a building another rule claims, a town hall or a bakery: a layer over that rule's area, drawn as the building 0x13 is
 
 # --- lines --------------------------------------------------------------------
 # Roads: ink @rdz16_* (roads.mss:261-280), casing 1 pixel either side. CyclOSM draws a
@@ -13012,6 +13015,7 @@ poly 0x47 9 #efefef  Waterfall  # not drawn by Liberty Topo: not in its schema
 poly 0x51 10 #efefef  Wetland  # not drawn by Liberty Topo: landcover wetland has no layer
 poly 0x11 10 #efefef  Danger Area  # not drawn by Liberty Topo: not in its schema
 poly 0x13 11 #dcd9d6  Building  # building-3d: hsl(35,8%,85%), seen from above
+poly 0x36 11 #dcd9d6  Building  # a building another rule claims, a town hall or a bakery: a layer over that rule's area, drawn as the building 0x13 is
 # --- lines --------------------------------------------------------------------
 line 0x10801 8 #ffeeaa #e9ac77 Roundabout  # road_trunk_primary, road_trunk_primary_casing
 line 0x10802 7 #ffeeaa #e9ac77 Roundabout  # road_trunk_primary, road_trunk_primary_casing
@@ -29717,6 +29721,9 @@ polygon 0x33|Sports centre|Спортивный комплекс
 polygon 0x34|Construction|Стройка
 polygon 0x35|Landfill|Свалка
 point 0x2c10|Historic site|Историческое место
+
+# The reference TYP's words for a building (its 0x13): a building another rule claims.
+polygon 0x36|Building|Здание
 
 """#####
 

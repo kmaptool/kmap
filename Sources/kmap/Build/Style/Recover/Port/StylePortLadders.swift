@@ -10,6 +10,8 @@ extension StylePort {
         var out: [MapElementKind: [String: Set<Int>]] = [:]
         for kind in MapElementKind.allCases {
             for meaning in rules.byKind[kind]?.values ?? [:].values {
+                // The layer over a claimed building is the build's own: their map has no such thing.
+                if kind == .polygon, meaning.code == StyleCatalog.claimedBuildingCode { continue }
                 // A via ferrata's road lies under its own line: no meaning of the path's number.
                 let own = meaning.rules.filter { !$0.condition.contains(StyleCatalog.ownTwin) }
                 let tags =
@@ -30,6 +32,7 @@ extension StylePort {
         var out: [MapElementKind: [String: Set<Int>]] = [:]
         for kind in MapElementKind.allCases {
             for meaning in rules.byKind[kind]?.values ?? [:].values {
+                if kind == .polygon, meaning.code == StyleCatalog.claimedBuildingCode { continue }
                 for rule in meaning.rules where !rule.tail.contains("continue") {
                     for tag in RuleSetIndex.plainTags(of: rule.condition) {
                         out[kind, default: [:]][tag, default: []].insert(meaning.code)
