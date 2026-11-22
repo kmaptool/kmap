@@ -3,7 +3,7 @@
 ; the sprite of OSM Liberty; each code takes the marker of the class its meaning (named
 ; in Assets/styles/type-names.txt) falls in, from OSM Liberty's current icon set
 ; (maputnik/osm-liberty svgs/svgs_iconset, commit da161553f7d2; Maki glyphs, CC0), which
-; also has markers for meanings the 2020 set lacked (110). Where it still has
+; also has markers for meanings the 2020 set lacked (111). Where it still has
 ; none, the style's ring holds a Maki, Temaki or openstreetmap-carto glyph (CC0), and the
 ; rock is the reference TYP's own (10). A code the reference TYP marks with its plain label
 ; anchor gets that square (the reference TYP's 0x661a), day and night, with its label (15).
@@ -1544,6 +1544,52 @@ NightXpm="16 16 3 1"
 ".--!!!!!!!!!!--."
 ".!------------!."
 "..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2c10
+; Historic site - OSM Liberty castle.svg (Maki, CC0), 16 px
+; The schema files a ruin under class castle, and the style draws that.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!--!---!.."
+".!--!!!!!!!!--!."
+".---!!!!!!!!---."
+"!--------------!"
+"!----!!!!!!----!"
+"-----!!!!!!-----"
+"-----!!!!!!-----"
+"!----!!--!!----!"
+"!----!!--!!----!"
+".----!!--!!----."
+".!--!!!--!!!--!."
+"..!!!!!!!!!!!!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!--!---!.."
+".!--!!!!!!!!--!."
+".---!!!!!!!!---."
+"!--------------!"
+"!----!!!!!!----!"
+"-----!!!!!!-----"
+"-----!!!!!!-----"
+"!----!!--!!----!"
+"!----!!--!!----!"
+".----!!--!!----."
+".!--!!!--!!!--!."
+"..!!!!!!!!!!!!.."
 "...!--------!..."
 ".....!!--!!....."
 [end]

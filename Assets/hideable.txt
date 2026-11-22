@@ -303,7 +303,7 @@ tag: tourism=artwork
 points: tourism=artwork [0x2c0d resolution 24]  # kmap: with the attractions, off the viewpoint's number
 [tourism-attraction] Attraction
 tag: tourism=attraction
-points: tourism=attraction & historic=* [0x2c02 resolution 24]
+points: tourism=attraction & historic=* [0x2c10 resolution 24]  # kmap: not the museum's number
 points: tourism=attraction [0x2c0d resolution 24]  # kmap: the tourist site's number, so the viewpoint keeps 0x2c04 to itself
 [tourism-bed_and_breakfast] Bed and breakfast
 tag: tourism=bed_and_breakfast
@@ -464,13 +464,13 @@ tag: natural=rock
 points: natural=rock [0x6614 resolution 24]
 [natural-spring] Spring
 tag: natural=spring
-points: natural=spring & drinking_water=no & name ~ '(?iu).*not d.*' { name '${name}' } [0x6517 resolution 24]
+points: natural=spring & drinking_water=no & name ~ '(?iuU).*\bnot drinkable.*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=no { name '${name|def:Spring} (not drinkable)' } [0x6517 resolution 24]
-points: natural=spring & drinking_water=boil & name ~ '(?iu).*boil .*' { name '${name}' } [0x6517 resolution 24]
+points: natural=spring & drinking_water=boil & name ~ '(?iuU).*\bboil.*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=boil { name '${name|def:Spring} (boil first)' } [0x6517 resolution 24]
-points: natural=spring & intermittent=yes & name ~ '(?iu).*inter.*' { name '${name}' } [0x6516 resolution 24]
+points: natural=spring & intermittent=yes & name ~ '(?iuU).*\bintermittent.*' { name '${name}' } [0x6516 resolution 24]
 points: natural=spring & intermittent=yes { name '${name|def:Spring} (intermittent)' } [0x6516 resolution 24]
-points: natural=spring & seasonal=yes & name ~ '(?iu).*seaso.*' { name '${name}' } [0x6515 resolution 24]
+points: natural=spring & seasonal=yes & name ~ '(?iuU).*\bseasonal.*' { name '${name}' } [0x6515 resolution 24]
 points: natural=spring & seasonal=yes { name '${name|def:Spring} (seasonal)' } [0x6515 resolution 24]
 points: natural=spring [0x6511 resolution 24]
 [natural-stone] Stone
@@ -518,14 +518,14 @@ tag: man_made=water_tower
 points: man_made=water_tower [0x6411 resolution 24]
 [man_made-water_well] Water well
 tag: man_made=water_well
-points: man_made=water_well & name ~ '(?iu).*well.*' { name '${name}' } [0x6414 resolution 24]
+points: man_made=water_well & name ~ '(?iuU).*\bwell.*' { name '${name}' } [0x6414 resolution 24]
 points: man_made=water_well & name=* { name '${name} (well)' } [0x6414 resolution 24]
 points: man_made=water_well & name!=* { name 'Well' } [0x6414 resolution 24]
 
 @@ Historic
 [historic-archaeological_site] Archaeological site
 tag: historic=archaeological_site
-points: historic=archaeological_site | historic=ruins [0x2c02 resolution 24]
+points: historic=archaeological_site | historic=ruins [0x2c10 resolution 24]  # kmap: not the museum's number
 [historic-memorial] Memorial
 tag: historic=memorial
 points: historic=memorial [0x2c12 resolution 24]
@@ -541,7 +541,7 @@ points: emergency=phone [0x2f16 resolution 22 default_name 'Emergency Phone']
 @@ Military
 [military-bunker] Bunker
 tag: military=bunker
-points: military=bunker [0x2c02 resolution 24]
+points: military=bunker [0x2c10 resolution 24]  # kmap: not the museum's number
 
 @@ Power
 [power-generator] Generator

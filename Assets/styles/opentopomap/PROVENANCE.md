@@ -20,7 +20,10 @@ code, and named after `Assets/styles/type-names.txt`.
   goes under the woods; the wood and scrub floors kmap adds sit a level under their
   patterns. A build lays the woods over the open cover.
 - What they do not draw is clear and unlabelled; the valley line is clear but keeps its
-  name, which they write.
+  name, which they write. That holds for the meanings with a number of their own: the
+  sports centre and stadium 0x33, the building site 0x34, the landfill 0x35 and the
+  abandoned railway 0x3f are clear, the hedge 0x3e is their green dots, the taxiway
+  0x10900 their grey in black, at the width their taxiway has against their runway.
 - Their generic forest tile mixes 2 kinds of tree no 32 x 32 window holds: 1 broadleaf and
   1 conifer are moved onto the tile at their own size.
 - Their hillshade is left out: the device shades its own relief.
@@ -32,7 +35,9 @@ Every icon is drawn from a vector at 20 pixels with a soft edge. Their own symbo
 art too small to enlarge, so for those meanings the openstreetmap-carto vector (CC0) is drawn
 in their colour (black; water #1200FF; parking and transport #0024FF; health #DF091D; bus
 #18A736); their saddle and viewpoint SVGs are used as they are. Meanings they do not draw take
-carto's symbol in carto's colours, then a Maki or Temaki icon (CC0) in their colours. A code
+carto's symbol in carto's colours, then a Maki or Temaki icon (CC0) in their colours. The
+historic site 0x2c10 holds ruins, digs and bunkers: their castle ruin is pixel art and
+carto's amphora marks a dig alone, so the Temaki ruin stands for all of them. A code
 The reference TYP marks with its plain label anchor, or none of these draws, gets that anchor square;
 the rock 0x6614 is the reference TYP's own small ring.
 The counts are in the header of `points.txt`.

@@ -62,6 +62,8 @@ poly 0x10 6 #faf0e7  Residential  # @residential = @land * 1.05 palette.mss:62, 
 poly 0x0f 6 #ded8dd  Commercial  # @commercial palette.mss:63, base.mss:36-39
 poly 0x12 6 #ded8dd  Retail  # @commercial palette.mss:63, landuse_retail base.mss:36-39
 poly 0x0c 6 #e4dcd3  Industrial  # @industrial = @land * 0.96 palette.mss:64, base.mss:47-52
+poly 0x34 6 #e4dcd3  Construction  # @industrial = @land * 0.96 palette.mss:64, landuse_construction base.mss:47-52
+poly 0x35 6 #e4dcd3  Landfill  # @industrial = @land * 0.96 palette.mss:64, landuse_landfill base.mss:47-52
 poly 0x0d 6 #c5c3c3  Quarry  # @quarry palette.mss:46, base.mss:111-113; graphics.txt adds quarry.svg
 poly 0x07 6 #eee5dc  Airport  # not drawn by CyclOSM: aeroway areas are not in its landuse layer
 poly 0x0e 6 #eee5dc  Runway  # not drawn by CyclOSM as an area: its aeroway layer is lines (project.mml:444)
@@ -83,6 +85,7 @@ poly 0x17 8 #c2debd  Park  # @park palette.mss:36, leisure_park base.mss:120-123
 poly 0x20 8 #c2debd  Garden  # @grass palette.mss:34, leisure_garden base.mss:41-45
 poly 0x18 8 #c2debd  Golf Course  # @grass palette.mss:34, leisure_golf_course base.mss:34
 poly 0x19 8 #bcd7b7  Sports Ground  # @pitch = @park * 0.97 palette.mss:58, leisure_pitch at z>=13 base.mss:133-140
+poly 0x33 8 #e7ded5  Sports centre  # @stadium = @land * 0.97 palette.mss:57, leisure_sports_centre at z>=14 and leisure_stadium base.mss:143-149
 poly 0x09 8 #eee5dc  Water Park  # not drawn by CyclOSM
 poly 0x3c 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
 poly 0x41 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
@@ -114,6 +117,7 @@ line 0x30 2 #bad5b5  Track  # kmap puts leisure=track here (and raceway, gallop)
 line 0x16 1 #7a5b36  Path  # footway: @footway-fill road-colors.mss:19 (roads.mss:3440), @rdz16_footway 0.75 roads.mss:277
 line 0x14 3 #888888  Railway  # @rail-line road-colors.mss:36 (roads.mss:3790), @rdz16_railway 1 roads.mss:280, 3 px cross ties dash 0,4,1,4 (roads.mss:380-396) in graphics.txt
 line 0x27 6 #dddddd  Runway  # @aeroway road-colors.mss:59, runway width 15 at z16 (roads.mss:3853-3860)
+line 0x10900 1 #dddddd  Taxiway  # @aeroway road-colors.mss:59; 3 at z16 against the runway's 15, roads.mss:3864-3871: a fifth of the runway's 6
 
 # --- water --------------------------------------------------------------------
 line 0x1f 2 #8ecbeb  River  # @water palette.mss:42, river 3 at z16 (base.mss:323-330)
@@ -124,11 +128,12 @@ line 0x1b 1 #6666ff  Ferry  # as line 0x1a
 
 # --- barriers, landforms, utilities -------------------------------------------
 line 0x17 1 #444444  Barrier  # barriers_line #444 0.4 at z>=16 (base.mss:476-480)
+line 0x3e 2 #add19e  Hedge  # @hedge palette.mss:49; 1.5 at z16 -> 2, base.mss:481-483
 line 0x2b 4 #999999  Cliff  # cliff2.svg in graphics.txt (base.mss:464-469); the image's own #999999
 line 0x29 1 #888888  Power Line  # @power-line palette.mss:67, 0.7 at z16 (power.mss:1-10)
 line 0x25 3 #808080  Aerial way  # the 1 px #808080 cable (aerialways.mss:6-9, 45-48, 90-93); 1 px in a 3 px band in graphics.txt; the black dash/ marks are not drawn
 # Not drawn by CyclOSM, drawn clear by graphics.txt: 0x12 Plateau rim, 0x23 Cutline,
-# 0x24 Valley, 0x28 Pipeline. 0x0d, the link this build puts in across a kerb or a bank,
+# 0x24 Valley, 0x28 Pipeline, 0x3f Abandoned railway. 0x0d, the link this build puts in across a kerb or a bank,
 # is left out on purpose: a flat colour here would replace kmap's red dashes with a stripe.
 
 # --- boundaries ---------------------------------------------------------------

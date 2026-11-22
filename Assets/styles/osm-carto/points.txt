@@ -4,7 +4,7 @@
 ; symbol (openstreetmap-carto symbols/**, CC0, commit 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2)
 ; in the marker-fill carto gives it in style/amenity-points.mss (96); for a meaning
 ; carto draws no symbol for, a Maki or Temaki icon (CC0) in the carto ink of its category
-; (21). A code the reference TYP marks with its plain label anchor gets that anchor square
+; (22). A code the reference TYP marks with its plain label anchor gets that anchor square
 ; (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules emit has a
 ; section but the settlement points 0x0100-0x0d00, which the device draws, and kmap's repair
 ; mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small ring, copied.
@@ -2302,6 +2302,62 @@ NightXpm="20 20 4 1"
 "........AAAA....BAAA"
 ".......!AAAAB......B"
 ".......AAAAAA......."
+[end]
+
+[_point]
+Type=0x2c10
+; Historic site - Temaki v5.13.0 ruins.svg (CC0) at 20 x 20 px, ink @culture:
+; carto's amphora marks a dig alone, and it draws no ruin.
+DayXpm="20 20 4 1"
+"! c #734A08"
+"A c #997C4C"
+"B c #BFAD8F"
+". c none"
+"...................."
+"...................."
+".!!!!!!!A..........."
+".!!!!!!!!!!!........"
+".!!!!!!!!!!!A......."
+".!!!!!!!!!!!B......."
+"...................."
+".A!!!B..!!!!........"
+".!!!!B..!!!!........"
+".!!!!B..!!!!.A!!...."
+".!!!!B..!!!!.!!!!..."
+".!!!!B..!!!!.!!!!!.."
+".!!!!B..!!!!.B!!!!A."
+".!!!!B..!!!!..!!!!!."
+".!!!!B..!!!!...!!!!."
+".!!!!B..!!!!....!!!."
+".!!!!B..!!!!....B!!B"
+".B!!!...!!!!.....B!A"
+"...................."
+"...................."
+NightXpm="20 20 4 1"
+"! c #555500"
+"A c #6E6E33"
+"B c #888866"
+". c none"
+"...................."
+"...................."
+".!!!!!!!A..........."
+".!!!!!!!!!!!........"
+".!!!!!!!!!!!A......."
+".!!!!!!!!!!!B......."
+"...................."
+".A!!!B..!!!!........"
+".!!!!B..!!!!........"
+".!!!!B..!!!!.A!!...."
+".!!!!B..!!!!.!!!!..."
+".!!!!B..!!!!.!!!!!.."
+".!!!!B..!!!!.B!!!!A."
+".!!!!B..!!!!..!!!!!."
+".!!!!B..!!!!...!!!!."
+".!!!!B..!!!!....!!!."
+".!!!!B..!!!!....B!!B"
+".B!!!...!!!!.....B!A"
+"...................."
+"...................."
 [end]
 
 [_point]

@@ -31,12 +31,17 @@ reference TYP), and the OSM features kmap's rules put on it decide what it
 looks like. So line 0x16 is a footway, 0x07 a service road (kmap's bridleways
 land there too), 0x2b a cliff (via ferrata, aretes and ridges too), 0x30 a
 sports track (raceways and gallops too; the reference TYP's label for it is "Track");
-polygon 0x0c is industrial (construction and landfill too), 0x1c farmland
+polygon 0x0c is industrial, 0x1c farmland
 (the reference TYP labels it Grassland; kmap puts greenfield there too), 0x26 a
-farmyard, 0x19 a pitch (sports centres, stadiums and recreation grounds too).
+farmyard, 0x19 a pitch (recreation grounds too).
 The catch-all areas 0x21 Tourism, 0x23 Amenity and 0x24 Structure take every
 tourism=*, amenity=* and man_made=* area no earlier rule took; carto fills some
 of those, each in its own colour, and the rest not at all, so they are clear.
+
+A meaning kmap's rules give a number of its own is drawn as carto draws that meaning:
+the hedge (line 0x3e) in `@hedge`, the taxiway (0x10900) in the runway's colour at a
+third of its width, the sports centre and the stadium (polygon 0x33) in `@stadium`, the
+building site (0x34) in `@construction`, the landfill (0x35) in its own colour.
 
 ## Reference zoom and pixels
 
@@ -109,7 +114,8 @@ What carto does not draw at all is a clear section in `graphics.txt`
   Reserve (outlined only, by line 0x19), 0x1d Common, 0x1f Mountain meadow
   (natural=fell), 0x52 Bare Ground (kmap puts natural=tundra there), 0x21
   Tourism, 0x22 Historic, 0x23 Amenity, 0x24 Structure, 0x47 Waterfall;
-- lines 0x12 Plateau rim (natural=fell) and 0x24 Valley.
+- lines 0x12 Plateau rim (natural=fell), 0x24 Valley and 0x3f Abandoned railway
+  (carto draws a disused railway, and no abandoned, razed or dismantled one).
 
 0x3d Bay is not filled by carto either, but the sea under it is, so it takes the
 water colour. 0x51 Wetland (natural=wetland with no type) has no fill in carto,
@@ -141,6 +147,7 @@ Where a code holds several kinds of object, the symbol is the main meaning's: 0x
 bus station, 0x3003 the town hall, 0x2b02 the guest house, 0x2c0b the neutral place of
 worship, every restaurant code the restaurant, 0x3200 the gate, 0x6613 the mountain pass
 in transport blue, 0x2f09 the ferry terminal, 0x2c0d the artwork, 0x2c0c the peak in
-red. Night lifts each ink towards white; an ink the grey night land would swallow keeps
+red. The historic site 0x2c10 holds ruins, digs and bunkers: carto's amphora marks a dig
+alone and it draws no ruin, so the Temaki ruin stands for all of them, in `@culture`. Night lifts each ink towards white; an ink the grey night land would swallow keeps
 its darkness. The counts are in the header of `points.txt`; each section names its
 source and ink. The repair mark 0x660b is kmap's own and has no section here.

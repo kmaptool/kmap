@@ -318,6 +318,8 @@ poly 0x03 6 #f2efe9  Village  # not drawn by carto: place areas are only labelle
 poly 0x10 6 #e0dfdf  Residential  # @residential landcover.mss:16,246-249
 poly 0x0f 6 #f2dad9  Commercial  # @commercial landcover.mss:20,434-437
 poly 0x0c 6 #ebdbe8  Industrial  # @industrial landcover.mss:22,378-381
+poly 0x34 6 #c7c7b4  Construction  # @construction landcover.mss:50, landuse_construction landcover.mss:446-449
+poly 0x35 6 #b6b592  Landfill  # landuse_landfill landcover.mss:455-457
 poly 0x0d 6 #c5c3c3  Quarry  # @quarry landcover.mss:61,115-116; pattern in graphics.txt
 poly 0x07 6 #e9e7e2  Airport  # @transportation-area landcover.mss:36, aeroway_aerodrome landcover.mss:621-624
 poly 0x0e 6 #bbbbcc  Runway  # @runway-fill = @aeroway-fill #bbc roads.mss:21-22, aeroway_runway roads.mss:3422-3423
@@ -341,6 +343,7 @@ poly 0x17 8 #c8facc  Park  # @park landcover.mss:7, leisure_park landcover.mss:2
 poly 0x20 8 #cdebb0  Garden  # @grass landcover.mss:3, leisure_garden landcover.mss:154-156; pattern in graphics.txt
 poly 0x18 8 #def6c0  Golf Course  # @golf_course = @campsite landcover.mss:48,74,296-298
 poly 0x19 8 #88e0be  Sports Ground  # @pitch landcover.mss:71, leisure_pitch landcover.mss:675-676
+poly 0x33 8 #dffce2  Sports centre  # @stadium = @leisure = lighten(@park, 5%) landcover.mss:55,73, leisure_sports_centre and leisure_stadium landcover.mss:651-655
 poly 0x09 8 #dffce2  Water Park  # @stadium = @leisure = lighten(@park, 5%) landcover.mss:55,73,651-655
 poly 0x3c 9 #aad3df  Water  # @water-color style.mss:5, natural=water water.mss:46-52
 poly 0x41 9 #aad3df  Water  # @water-color style.mss:5, natural=water water.mss:46-52
@@ -378,7 +381,9 @@ line 0x1a 1 #6666ff  Ferry  # @ferry-route #66f, 0.8 -> 1, ferry-routes.mss:1,9-
 line 0x1b 1 #6666ff  Ferry  # @ferry-route #66f, 0.8 -> 1, ferry-routes.mss:1,9-14; dashed in graphics.txt
 # The rest.
 line 0x17 1 #444444  Barrier  # #barriers at z16: #444, 0.4 -> 1, landcover.mss:840-844
+line 0x3e 2 #add19e  Hedge  # @hedge = @forest landcover.mss:5,10; 1.5 at z16 -> 2, landcover.mss:845-847
 line 0x27 6 #bbbbcc  Runway  # @runway-fill roads.mss:21-22; 24 at z16, roads.mss:3705-3713
+line 0x10900 2 #bbbbcc  Taxiway  # @taxiway-fill = @aeroway-fill roads.mss:21,23; 8 at z16 against the runway's 24, roads.mss:3729-3746: a third of the runway's 6
 line 0x29 1 #888888  Power Line  # @power-line-color power.mss:1; 0.7 -> 1, power.mss:10-11
 line 0x25 3 #808080  Aerial way  # cable car line/ #808080 1 px, aerialways.mss:2-9; 1 px in a 3 px band in graphics.txt
 line 0x28 1 #909090  Pipeline  # line/ #909090 1.5 -> 2, aerialways.mss:76-93; dashed in graphics.txt
@@ -589,6 +594,17 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x3d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3f
 FontStyle=NoLabel
 Xpm="32 1 4 1"
 "a c none"
@@ -1814,6 +1830,9 @@ poly 0x23 2 #e0e0e0  Amenity  # not drawn: amenity=* past school, university, ho
 poly 0x24 2 #e0e0e0  Structure  # not drawn: man_made=* areas; kmap puts piers on 0x25
 poly 0x28 2 #e0e0e0  Salt pond  # not drawn: no fill rule for landuse=salt_pond
 poly 0x29 2 #e0e0e0  Greenhouses  # not drawn: no fill rule for landuse=greenhouse_horticulture
+poly 0x33 2 #e0e0e0  Sports centre  # not drawn: no fill rule for leisure=sports_centre or stadium
+poly 0x34 2 #e0e0e0  Construction  # not drawn: no fill rule for landuse=construction
+poly 0x35 2 #e0e0e0  Landfill  # not drawn: no fill rule for landuse=landfill
 poly 0x3b 2 #e0e0e0  Water  # not drawn: waterway=* areas; water-areas.xml:25-31 fills natural=water, basin, reservoir
 poly 0x3d 2 #e0e0e0  Bay  # not drawn: natural=bay is not filled; the sea or lake under it is
 poly 0x47 2 #e0e0e0  Waterfall  # not drawn: no rule for waterfall areas
@@ -1876,6 +1895,7 @@ line 0x16 2 #000000  Path  # black 1 -> 2, wider than the reference TYP's 1 to b
 line 0x30 2 #8eb961  Track  # kmap puts leisure=track here (and raceway, gallop): the #8eb961 outline of a closed track, landuse.xml:140-146 (leisure is a polygon key, opentopomap.style:126); an open track way they do not draw at z16, a raceway is a road
 line 0x14 3 #ffffff #000000  Railway  # rail_z15.png, railways.xml:32-37; pattern in graphics.txt
 line 0x27 6 #dddddd #000000  Runway  # #dddddd 8, airports-fill.xml:32-37; black 9.5, airports-casing.xml:32-37
+line 0x10900 3 #dddddd #000000  Taxiway  # #dddddd 3, airports-fill.xml:56-61; black 4, airports-casing.xml:50-55; against the runway's 8 in 9.5
 # Water at z16.
 line 0x1f 2 #a3dde8 #1d4dff  River  # #1d4dff 7 under #a3dde8 6, waterway-lines.xml:22-28; 2 px: the casing alone
 line 0x18 1 #1d4dff  Stream  # #1d4dff 1, waterway-lines.xml:51-56
@@ -1884,6 +1904,7 @@ line 0x1a 1 #0000ff  Ferry  # #0000ff 0.5, dash 7,7, ferry-routes.xml:8-13; dash
 line 0x1b 1 #0000ff  Ferry  # as 0x1a
 # The rest.
 line 0x17 1 #000000  Barrier  # fence and wall: fence.png with a black 0.5 line over it, barriers.xml:9-15
+line 0x3e 1 #31bd35  Hedge  # hedge.png, a green dot every 3 pixels, barriers.xml:24-28; drawn in graphics.txt
 line 0x29 1 #000000  Power Line  # powerline.png with a black 0.5 line over it, powerlines.xml:2-8
 line 0x25 3 #000000  Aerial way  # black 0.5 under aerialway_gondola.png, aerialways.xml:2-8; pattern in graphics.txt
 line 0x2b 4 #000000  Cliff  # cliff_z15.png, cliffs.xml:14-19; pattern in graphics.txt
@@ -1896,7 +1917,7 @@ line 0x2d 1 #f08d8d  Military area  # landuse=military: #ff3939 3 at 0.5, areas.
 line 0x22 1 #c45700  Contour  # 100 m: stroke-width 0.6, contours.xml:21-26
 line 0x21 1 #c45700  Contour  # 50 m: stroke-width 0.4, contours.xml:47-52
 line 0x20 1 #c45700  Contour  # 10 m: stroke-width 0.2, contours.xml:69-74
-# Not here: 0x12, 0x23, 0x24 and 0x28, which OpenTopoMap does not draw (clear,
+# Not here: 0x12, 0x23, 0x24, 0x28 and 0x3f, which OpenTopoMap does not draw (clear,
 # graphics.txt; the valley keeps its name, which they write); 0x0d, the link this build
 # puts in across a kerb or a bank, left to kmap's own red dashes.
 
@@ -2082,6 +2103,16 @@ Xpm="32 4 4 1"
 [end]
 
 [_line]
+Type=0x3e
+Xpm="32 1 4 1"
+"a c none"
+"b c #31bd35"
+"A c none"
+"B c #005500"
+"baabaabaabaabaabaabaabaabaabaaba"
+[end]
+
+[_line]
 Type=0x12
 FontStyle=NoLabel
 Xpm="32 1 4 1"
@@ -2116,6 +2147,17 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x28
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3f
 FontStyle=NoLabel
 Xpm="32 1 4 1"
 "a c none"
@@ -3748,6 +3790,132 @@ Xpm="32 32 4 1"
 [end]
 
 [_polygon]
+Type=0x33
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x34
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x35
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
 Type=0x3b
 FontStyle=NoLabel
 Xpm="32 32 4 1"
@@ -3929,7 +4097,7 @@ Xpm="32 32 4 1"
 ; (21); for a meaning they do not draw, openstreetmap-carto's symbol (CC0) in carto's colours
 ; (73); for a meaning neither draws, the Maki or Temaki
 ; icon (CC0) in their colour scheme: black, water #1200FF, transport #0024FF, health
-; #DF091D (21). A code the reference TYP marks with its plain label anchor, or no source draws, gets
+; #DF091D (22). A code the reference TYP marks with its plain label anchor, or no source draws, gets
 ; that anchor square (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules
 ; emit has a section but the settlement points 0x0100-0x0d00, which the device draws, and
 ; kmap's repair mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small
@@ -6259,6 +6427,62 @@ NightXpm="20 20 4 1"
 "........AAAA....BAAA"
 ".......!AAAAB......B"
 ".......AAAAAA......."
+[end]
+
+[_point]
+Type=0x2c10
+; Historic site - Temaki v5.13.0 ruins.svg (CC0) at 20 x 20 px in their scheme's #000000:
+; their castle_ruins.png (symbols-1.xml:44-49) is pixel art, carto's amphora a dig alone.
+DayXpm="20 20 4 1"
+"! c #000000"
+"A c #434343"
+"B c #868686"
+". c none"
+"...................."
+"...................."
+".!!!!!!!A..........."
+".!!!!!!!!!!!........"
+".!!!!!!!!!!!A......."
+".!!!!!!!!!!!B......."
+"...................."
+".A!!!B..!!!!........"
+".!!!!B..!!!!........"
+".!!!!B..!!!!.A!!...."
+".!!!!B..!!!!.!!!!..."
+".!!!!B..!!!!.!!!!!.."
+".!!!!B..!!!!.B!!!!A."
+".!!!!B..!!!!..!!!!!."
+".!!!!B..!!!!...!!!!."
+".!!!!B..!!!!....!!!."
+".!!!!B..!!!!....B!!B"
+".B!!!...!!!!.....B!A"
+"...................."
+"...................."
+NightXpm="20 20 4 1"
+"! c #000000"
+"A c #333333"
+"B c #666666"
+". c none"
+"...................."
+"...................."
+".!!!!!!!A..........."
+".!!!!!!!!!!!........"
+".!!!!!!!!!!!A......."
+".!!!!!!!!!!!B......."
+"...................."
+".A!!!B..!!!!........"
+".!!!!B..!!!!........"
+".!!!!B..!!!!.A!!...."
+".!!!!B..!!!!.!!!!..."
+".!!!!B..!!!!.!!!!!.."
+".!!!!B..!!!!.B!!!!A."
+".!!!!B..!!!!..!!!!!."
+".!!!!B..!!!!...!!!!."
+".!!!!B..!!!!....!!!."
+".!!!!B..!!!!....B!!B"
+".B!!!...!!!!.....B!A"
+"...................."
+"...................."
 [end]
 
 [_point]
@@ -11042,6 +11266,8 @@ poly 0x10 6 #faf0e7  Residential  # @residential = @land * 1.05 palette.mss:62, 
 poly 0x0f 6 #ded8dd  Commercial  # @commercial palette.mss:63, base.mss:36-39
 poly 0x12 6 #ded8dd  Retail  # @commercial palette.mss:63, landuse_retail base.mss:36-39
 poly 0x0c 6 #e4dcd3  Industrial  # @industrial = @land * 0.96 palette.mss:64, base.mss:47-52
+poly 0x34 6 #e4dcd3  Construction  # @industrial = @land * 0.96 palette.mss:64, landuse_construction base.mss:47-52
+poly 0x35 6 #e4dcd3  Landfill  # @industrial = @land * 0.96 palette.mss:64, landuse_landfill base.mss:47-52
 poly 0x0d 6 #c5c3c3  Quarry  # @quarry palette.mss:46, base.mss:111-113; graphics.txt adds quarry.svg
 poly 0x07 6 #eee5dc  Airport  # not drawn by CyclOSM: aeroway areas are not in its landuse layer
 poly 0x0e 6 #eee5dc  Runway  # not drawn by CyclOSM as an area: its aeroway layer is lines (project.mml:444)
@@ -11063,6 +11289,7 @@ poly 0x17 8 #c2debd  Park  # @park palette.mss:36, leisure_park base.mss:120-123
 poly 0x20 8 #c2debd  Garden  # @grass palette.mss:34, leisure_garden base.mss:41-45
 poly 0x18 8 #c2debd  Golf Course  # @grass palette.mss:34, leisure_golf_course base.mss:34
 poly 0x19 8 #bcd7b7  Sports Ground  # @pitch = @park * 0.97 palette.mss:58, leisure_pitch at z>=13 base.mss:133-140
+poly 0x33 8 #e7ded5  Sports centre  # @stadium = @land * 0.97 palette.mss:57, leisure_sports_centre at z>=14 and leisure_stadium base.mss:143-149
 poly 0x09 8 #eee5dc  Water Park  # not drawn by CyclOSM
 poly 0x3c 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
 poly 0x41 9 #8ecbeb  Water  # @water palette.mss:42, base.mss:284-293
@@ -11094,6 +11321,7 @@ line 0x30 2 #bad5b5  Track  # kmap puts leisure=track here (and raceway, gallop)
 line 0x16 1 #7a5b36  Path  # footway: @footway-fill road-colors.mss:19 (roads.mss:3440), @rdz16_footway 0.75 roads.mss:277
 line 0x14 3 #888888  Railway  # @rail-line road-colors.mss:36 (roads.mss:3790), @rdz16_railway 1 roads.mss:280, 3 px cross ties dash 0,4,1,4 (roads.mss:380-396) in graphics.txt
 line 0x27 6 #dddddd  Runway  # @aeroway road-colors.mss:59, runway width 15 at z16 (roads.mss:3853-3860)
+line 0x10900 1 #dddddd  Taxiway  # @aeroway road-colors.mss:59; 3 at z16 against the runway's 15, roads.mss:3864-3871: a fifth of the runway's 6
 
 # --- water --------------------------------------------------------------------
 line 0x1f 2 #8ecbeb  River  # @water palette.mss:42, river 3 at z16 (base.mss:323-330)
@@ -11104,11 +11332,12 @@ line 0x1b 1 #6666ff  Ferry  # as line 0x1a
 
 # --- barriers, landforms, utilities -------------------------------------------
 line 0x17 1 #444444  Barrier  # barriers_line #444 0.4 at z>=16 (base.mss:476-480)
+line 0x3e 2 #add19e  Hedge  # @hedge palette.mss:49; 1.5 at z16 -> 2, base.mss:481-483
 line 0x2b 4 #999999  Cliff  # cliff2.svg in graphics.txt (base.mss:464-469); the image's own #999999
 line 0x29 1 #888888  Power Line  # @power-line palette.mss:67, 0.7 at z16 (power.mss:1-10)
 line 0x25 3 #808080  Aerial way  # the 1 px #808080 cable (aerialways.mss:6-9, 45-48, 90-93); 1 px in a 3 px band in graphics.txt; the black dash/ marks are not drawn
 # Not drawn by CyclOSM, drawn clear by graphics.txt: 0x12 Plateau rim, 0x23 Cutline,
-# 0x24 Valley, 0x28 Pipeline. 0x0d, the link this build puts in across a kerb or a bank,
+# 0x24 Valley, 0x28 Pipeline, 0x3f Abandoned railway. 0x0d, the link this build puts in across a kerb or a bank,
 # is left out on purpose: a flat colour here would replace kmap's red dashes with a stripe.
 
 # --- boundaries ---------------------------------------------------------------
@@ -11308,6 +11537,17 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x3d
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3f
 FontStyle=NoLabel
 Xpm="32 1 4 1"
 "a c none"
@@ -12732,6 +12972,8 @@ poly 0x03 6 #efefef  Village  # not drawn by Liberty Topo: place=village areas a
 poly 0x10 6 #efefef  Residential  # not drawn by Liberty Topo at zoom 16: landuse_residential stops at 8
 poly 0x0f 6 #efefef  Commercial  # not drawn by Liberty Topo: landuse commercial has no layer
 poly 0x0c 6 #efefef  Industrial  # not drawn by Liberty Topo: landuse industrial has no layer
+poly 0x34 6 #efefef  Construction  # not drawn by Liberty Topo: landuse construction has no layer
+poly 0x35 6 #efefef  Landfill  # not drawn by Liberty Topo: landuse landfill has no layer
 poly 0x0d 6 #efefef  Quarry  # not drawn by Liberty Topo: not in its schema
 poly 0x07 6 #e8e7e4  Airport  # aeroway_fill: rgba(229,228,224,1) at 0.7
 poly 0x0e 6 #e8e7e4  Runway  # aeroway_fill: rgba(229,228,224,1) at 0.7
@@ -12755,6 +12997,7 @@ poly 0x17 8 #dce7d5  Park  # landcover_grass (park): rgb(176,213,154) at 0.3
 poly 0x20 8 #dce7d5  Garden  # landcover_grass (garden): rgb(176,213,154) at 0.3
 poly 0x18 8 #dce7d5  Golf Course  # landcover_grass (golf_course): rgb(176,213,154) at 0.3
 poly 0x19 8 #efefef  Sports Ground  # not drawn by Liberty Topo: landuse pitch and stadium have no layer
+poly 0x33 8 #efefef  Sports centre  # not drawn by Liberty Topo: landuse stadium has no layer
 poly 0x09 8 #efefef  Water Park  # not drawn by Liberty Topo: not in its schema
 poly 0x3c 9 #9ebdff  Water  # water: rgb(158,189,255)
 poly 0x41 9 #9ebdff  Water  # water: rgb(158,189,255)
@@ -12780,6 +13023,7 @@ line 0x16 2 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing;
 line 0x11 2 #ffffff             Cycleway  # road_path_pedestrian; dashed in graphics.txt
 line 0x14 3 #bbbbbb             Railway  # road_major_rail; its ties in graphics.txt
 line 0x27 6 #f0ede9             Runway  # aeroway_runway
+line 0x10900 2 #f0ede9             Taxiway  # aeroway_taxiway: 2.5 at z16 against the runway's 7.7
 line 0x1f 2 #a0c8f0             River  # waterway_river
 line 0x18 1 #a0c8f0             Stream  # waterway_other
 line 0x26 1 #a0c8f0             Intermittent Stream  # waterway_other_intermittent; dashed in graphics.txt
@@ -13051,6 +13295,28 @@ Xpm="32 1 4 1"
 
 [_line]
 Type=0x17
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3e
+FontStyle=NoLabel
+Xpm="32 1 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_line]
+Type=0x3f
 FontStyle=NoLabel
 Xpm="32 1 4 1"
 "a c none"
@@ -13653,6 +13919,90 @@ Xpm="32 32 4 1"
 [end]
 
 [_polygon]
+Type=0x34
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
+Type=0x35
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
 Type=0x0d
 FontStyle=NoLabel
 Xpm="32 32 4 1"
@@ -14115,6 +14465,48 @@ Xpm="32 32 4 1"
 [end]
 
 [_polygon]
+Type=0x33
+FontStyle=NoLabel
+Xpm="32 32 4 1"
+"a c none"
+"b c #000000"
+"A c none"
+"B c #000000"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+[end]
+
+[_polygon]
 Type=0x09
 FontStyle=NoLabel
 Xpm="32 32 4 1"
@@ -14379,7 +14771,7 @@ Xpm="32 32 4 1"
 ; the sprite of OSM Liberty; each code takes the marker of the class its meaning (named
 ; in Assets/styles/type-names.txt) falls in, from OSM Liberty's current icon set
 ; (maputnik/osm-liberty svgs/svgs_iconset, commit da161553f7d2; Maki glyphs, CC0), which
-; also has markers for meanings the 2020 set lacked (110). Where it still has
+; also has markers for meanings the 2020 set lacked (111). Where it still has
 ; none, the style's ring holds a Maki, Temaki or openstreetmap-carto glyph (CC0), and the
 ; rock is the reference TYP's own (10). A code the reference TYP marks with its plain label
 ; anchor gets that square (the reference TYP's 0x661a), day and night, with its label (15).
@@ -15920,6 +16312,52 @@ NightXpm="16 16 3 1"
 ".--!!!!!!!!!!--."
 ".!------------!."
 "..!----------!.."
+"...!--------!..."
+".....!!--!!....."
+[end]
+
+[_point]
+Type=0x2c10
+; Historic site - OSM Liberty castle.svg (Maki, CC0), 16 px
+; The schema files a ruin under class castle, and the style draws that.
+DayXpm="16 16 3 1"
+"! c #333333"
+"- c #FFFFFF"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!--!---!.."
+".!--!!!!!!!!--!."
+".---!!!!!!!!---."
+"!--------------!"
+"!----!!!!!!----!"
+"-----!!!!!!-----"
+"-----!!!!!!-----"
+"!----!!--!!----!"
+"!----!!--!!----!"
+".----!!--!!----."
+".!--!!!--!!!--!."
+"..!!!!!!!!!!!!.."
+"...!--------!..."
+".....!!--!!....."
+NightXpm="16 16 3 1"
+"! c #FFFFFF"
+"- c #555555"
+". c none"
+".....!!!!!!....."
+"...!--------!..."
+"..!---!--!---!.."
+".!--!!!!!!!!--!."
+".---!!!!!!!!---."
+"!--------------!"
+"!----!!!!!!----!"
+"-----!!!!!!-----"
+"-----!!!!!!-----"
+"!----!!--!!----!"
+"!----!!--!!----!"
+".----!!--!!----."
+".!--!!!--!!!--!."
+"..!!!!!!!!!!!!.."
 "...!--------!..."
 ".....!!--!!....."
 [end]
@@ -20296,7 +20734,7 @@ NightXpm="9 9 2 1"
 ; symbol (openstreetmap-carto symbols/**, CC0, commit 1cc4b89c48e4385b607d63156d6f8f1eea8b35a2)
 ; in the marker-fill carto gives it in style/amenity-points.mss (96); for a meaning
 ; carto draws no symbol for, a Maki or Temaki icon (CC0) in the carto ink of its category
-; (21). A code the reference TYP marks with its plain label anchor gets that anchor square
+; (22). A code the reference TYP marks with its plain label anchor gets that anchor square
 ; (the reference TYP's 0x661a), with its label (17). Every point code kmap's rules emit has a
 ; section but the settlement points 0x0100-0x0d00, which the device draws, and kmap's repair
 ; mark 0x660b, which the build adds. The rock 0x6614 is the reference TYP's own small ring, copied.
@@ -22594,6 +23032,62 @@ NightXpm="20 20 4 1"
 "........AAAA....BAAA"
 ".......!AAAAB......B"
 ".......AAAAAA......."
+[end]
+
+[_point]
+Type=0x2c10
+; Historic site - Temaki v5.13.0 ruins.svg (CC0) at 20 x 20 px, ink @culture:
+; carto's amphora marks a dig alone, and it draws no ruin.
+DayXpm="20 20 4 1"
+"! c #734A08"
+"A c #997C4C"
+"B c #BFAD8F"
+". c none"
+"...................."
+"...................."
+".!!!!!!!A..........."
+".!!!!!!!!!!!........"
+".!!!!!!!!!!!A......."
+".!!!!!!!!!!!B......."
+"...................."
+".A!!!B..!!!!........"
+".!!!!B..!!!!........"
+".!!!!B..!!!!.A!!...."
+".!!!!B..!!!!.!!!!..."
+".!!!!B..!!!!.!!!!!.."
+".!!!!B..!!!!.B!!!!A."
+".!!!!B..!!!!..!!!!!."
+".!!!!B..!!!!...!!!!."
+".!!!!B..!!!!....!!!."
+".!!!!B..!!!!....B!!B"
+".B!!!...!!!!.....B!A"
+"...................."
+"...................."
+NightXpm="20 20 4 1"
+"! c #555500"
+"A c #6E6E33"
+"B c #888866"
+". c none"
+"...................."
+"...................."
+".!!!!!!!A..........."
+".!!!!!!!!!!!........"
+".!!!!!!!!!!!A......."
+".!!!!!!!!!!!B......."
+"...................."
+".A!!!B..!!!!........"
+".!!!!B..!!!!........"
+".!!!!B..!!!!.A!!...."
+".!!!!B..!!!!.!!!!..."
+".!!!!B..!!!!.!!!!!.."
+".!!!!B..!!!!.B!!!!A."
+".!!!!B..!!!!..!!!!!."
+".!!!!B..!!!!...!!!!."
+".!!!!B..!!!!....!!!."
+".!!!!B..!!!!....B!!B"
+".B!!!...!!!!.....B!A"
+"...................."
+"...................."
 [end]
 
 [_point]
@@ -27553,7 +28047,7 @@ tag: tourism=artwork
 points: tourism=artwork [0x2c0d resolution 24]  # kmap: with the attractions, off the viewpoint's number
 [tourism-attraction] Attraction
 tag: tourism=attraction
-points: tourism=attraction & historic=* [0x2c02 resolution 24]
+points: tourism=attraction & historic=* [0x2c10 resolution 24]  # kmap: not the museum's number
 points: tourism=attraction [0x2c0d resolution 24]  # kmap: the tourist site's number, so the viewpoint keeps 0x2c04 to itself
 [tourism-bed_and_breakfast] Bed and breakfast
 tag: tourism=bed_and_breakfast
@@ -27714,13 +28208,13 @@ tag: natural=rock
 points: natural=rock [0x6614 resolution 24]
 [natural-spring] Spring
 tag: natural=spring
-points: natural=spring & drinking_water=no & name ~ '(?iu).*not d.*' { name '${name}' } [0x6517 resolution 24]
+points: natural=spring & drinking_water=no & name ~ '(?iuU).*\bnot drinkable.*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=no { name '${name|def:Spring} (not drinkable)' } [0x6517 resolution 24]
-points: natural=spring & drinking_water=boil & name ~ '(?iu).*boil .*' { name '${name}' } [0x6517 resolution 24]
+points: natural=spring & drinking_water=boil & name ~ '(?iuU).*\bboil.*' { name '${name}' } [0x6517 resolution 24]
 points: natural=spring & drinking_water=boil { name '${name|def:Spring} (boil first)' } [0x6517 resolution 24]
-points: natural=spring & intermittent=yes & name ~ '(?iu).*inter.*' { name '${name}' } [0x6516 resolution 24]
+points: natural=spring & intermittent=yes & name ~ '(?iuU).*\bintermittent.*' { name '${name}' } [0x6516 resolution 24]
 points: natural=spring & intermittent=yes { name '${name|def:Spring} (intermittent)' } [0x6516 resolution 24]
-points: natural=spring & seasonal=yes & name ~ '(?iu).*seaso.*' { name '${name}' } [0x6515 resolution 24]
+points: natural=spring & seasonal=yes & name ~ '(?iuU).*\bseasonal.*' { name '${name}' } [0x6515 resolution 24]
 points: natural=spring & seasonal=yes { name '${name|def:Spring} (seasonal)' } [0x6515 resolution 24]
 points: natural=spring [0x6511 resolution 24]
 [natural-stone] Stone
@@ -27768,14 +28262,14 @@ tag: man_made=water_tower
 points: man_made=water_tower [0x6411 resolution 24]
 [man_made-water_well] Water well
 tag: man_made=water_well
-points: man_made=water_well & name ~ '(?iu).*well.*' { name '${name}' } [0x6414 resolution 24]
+points: man_made=water_well & name ~ '(?iuU).*\bwell.*' { name '${name}' } [0x6414 resolution 24]
 points: man_made=water_well & name=* { name '${name} (well)' } [0x6414 resolution 24]
 points: man_made=water_well & name!=* { name 'Well' } [0x6414 resolution 24]
 
 @@ Historic
 [historic-archaeological_site] Archaeological site
 tag: historic=archaeological_site
-points: historic=archaeological_site | historic=ruins [0x2c02 resolution 24]
+points: historic=archaeological_site | historic=ruins [0x2c10 resolution 24]  # kmap: not the museum's number
 [historic-memorial] Memorial
 tag: historic=memorial
 points: historic=memorial [0x2c12 resolution 24]
@@ -27791,7 +28285,7 @@ points: emergency=phone [0x2f16 resolution 22 default_name 'Emergency Phone']
 @@ Military
 [military-bunker] Bunker
 tag: military=bunker
-points: military=bunker [0x2c02 resolution 24]
+points: military=bunker [0x2c10 resolution 24]  # kmap: not the museum's number
 
 @@ Power
 [power-generator] Generator
@@ -29208,12 +29702,21 @@ line 0x32|City wall|Городская стена
 point 0x6608|Tower|Башня
 point 0x6609|Mast|Мачта
 point 0x660a|Via ferrata|Виа феррата
+line 0x3e|Hedge|Живая изгородь
 
 # Not in any source. Russian chosen by the owner.
 line 0x34|Drain|Сток
 polygon 0x1b|Vineyard|Виноградник
 polygon 0x28|Salt pond|Солончак
 polygon 0x29|Greenhouses|Теплицы
+
+# Not in any source: a meaning with a number of its own, apart from the one it shared.
+line 0x3f|Abandoned railway|Заброшенная железная дорога
+line 0x10900|Taxiway|Рулёжная дорожка
+polygon 0x33|Sports centre|Спортивный комплекс
+polygon 0x34|Construction|Стройка
+polygon 0x35|Landfill|Свалка
+point 0x2c10|Historic site|Историческое место
 
 """#####
 

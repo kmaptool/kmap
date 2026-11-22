@@ -60,6 +60,8 @@ poly 0x03 6 #efefef  Village  # not drawn by Liberty Topo: place=village areas a
 poly 0x10 6 #efefef  Residential  # not drawn by Liberty Topo at zoom 16: landuse_residential stops at 8
 poly 0x0f 6 #efefef  Commercial  # not drawn by Liberty Topo: landuse commercial has no layer
 poly 0x0c 6 #efefef  Industrial  # not drawn by Liberty Topo: landuse industrial has no layer
+poly 0x34 6 #efefef  Construction  # not drawn by Liberty Topo: landuse construction has no layer
+poly 0x35 6 #efefef  Landfill  # not drawn by Liberty Topo: landuse landfill has no layer
 poly 0x0d 6 #efefef  Quarry  # not drawn by Liberty Topo: not in its schema
 poly 0x07 6 #e8e7e4  Airport  # aeroway_fill: rgba(229,228,224,1) at 0.7
 poly 0x0e 6 #e8e7e4  Runway  # aeroway_fill: rgba(229,228,224,1) at 0.7
@@ -83,6 +85,7 @@ poly 0x17 8 #dce7d5  Park  # landcover_grass (park): rgb(176,213,154) at 0.3
 poly 0x20 8 #dce7d5  Garden  # landcover_grass (garden): rgb(176,213,154) at 0.3
 poly 0x18 8 #dce7d5  Golf Course  # landcover_grass (golf_course): rgb(176,213,154) at 0.3
 poly 0x19 8 #efefef  Sports Ground  # not drawn by Liberty Topo: landuse pitch and stadium have no layer
+poly 0x33 8 #efefef  Sports centre  # not drawn by Liberty Topo: landuse stadium has no layer
 poly 0x09 8 #efefef  Water Park  # not drawn by Liberty Topo: not in its schema
 poly 0x3c 9 #9ebdff  Water  # water: rgb(158,189,255)
 poly 0x41 9 #9ebdff  Water  # water: rgb(158,189,255)
@@ -108,6 +111,7 @@ line 0x16 2 #ffffff #ceac34     Path  # road_path_pedestrian_trail, its _casing;
 line 0x11 2 #ffffff             Cycleway  # road_path_pedestrian; dashed in graphics.txt
 line 0x14 3 #bbbbbb             Railway  # road_major_rail; its ties in graphics.txt
 line 0x27 6 #f0ede9             Runway  # aeroway_runway
+line 0x10900 2 #f0ede9             Taxiway  # aeroway_taxiway: 2.5 at z16 against the runway's 7.7
 line 0x1f 2 #a0c8f0             River  # waterway_river
 line 0x18 1 #a0c8f0             Stream  # waterway_other
 line 0x26 1 #a0c8f0             Intermittent Stream  # waterway_other_intermittent; dashed in graphics.txt

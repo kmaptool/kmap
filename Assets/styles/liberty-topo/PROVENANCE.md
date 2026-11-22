@@ -34,7 +34,10 @@ is kmap's: where the style draws nothing, nothing is drawn.
   reference TYP), and the code is drawn as the style draws that meaning: line
   0x07 (Service Road) as `road_service_track`, line 0x16 (Path) as the trail
   layers `road_path_pedestrian_trail`, polygon 0x19 (Sports Ground) as the
-  style's pitches and stadiums, which it does not draw. The fork of the schema
+  style's pitches, which it does not draw; no more does it draw a stadium
+  (0x33), a building site (0x34), a landfill (0x35), a hedge (line 0x3e) or an
+  abandoned railway (0x3f). The taxiway 0x10900 is `aeroway_taxiway`, at the
+  width it has against the runway. The fork of the schema
   decides the class: there, a park, a garden, a golf course, allotments, scrub,
   heath and fell are all landcover `grass`, while a national park or a nature
   reserve is the `park` layer.
@@ -107,8 +110,8 @@ pixels (alpha 73 of 255) fall to clear with the rest.
 The style draws a point as `{class}_11` from the sprite of OSM Liberty, the class
 being the one the schema's `layers/poi/poi.yaml` files the OSM tag under, so a code
 takes the marker of the class its meaning (the one `type-names.txt` gives it) falls
-in: a viewpoint is an `attraction`, a department store `grocery`, every restaurant
-code `restaurant` whatever its cuisine. The markers come from OSM Liberty's current
+in: a viewpoint is an `attraction`, a department store `grocery`, a ruin a `castle`,
+every restaurant code `restaurant` whatever its cuisine. The markers come from OSM Liberty's current
 icon set (maputnik/osm-liberty `svgs/svgs_iconset`, commit da161553f7d2, Maki glyphs,
 CC0), which redrew some of the 2020 markers and added ones for meanings the 2020 set
 lacked: services, wine shop, casino, bowling, sports centre, car rental and repair,

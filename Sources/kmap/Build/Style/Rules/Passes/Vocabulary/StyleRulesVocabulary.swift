@@ -19,6 +19,9 @@ extension StyleCatalog {
         (.polygon, 0x5b, nil),  // the floor under scrub: new, and only where drawn
         (.polygon, 0x28, nil),  // a salt pond: new
         (.polygon, 0x29, nil),  // greenhouses: new
+        (.polygon, 0x33, 0x19),  // a sports centre or a stadium, drawn as a pitch before
+        (.polygon, 0x34, 0x0c),  // a building site, drawn as industrial ground before
+        (.polygon, 0x35, 0x0c),  // a landfill, drawn as industrial ground before
         (.line, 0x0e, 0x16),  // a path, drawn as a footway before
         (.line, 0x0f, 0x16),  // steps, retagged into a footway before
         (.line, 0x10, 0x06),  // a living street, drawn as a minor road before
@@ -37,9 +40,13 @@ extension StyleCatalog {
         (.line, 0x3c, 0x37),
         (.line, 0x3d, 0x37),
         (.line, 0x38, 0x25),  // a cable car, drawn as a lift before
+        (.line, 0x3e, 0x17),  // a hedge, drawn as a fence before
+        (.line, 0x3f, 0x17),  // an abandoned railway, drawn as a fence before
+        (.line, 0x10900, 0x27),  // a taxiway, drawn as a runway before
         (.point, 0x0d00, 0x0b00),  // a hamlet, drawn as a locality before
         (.point, 0x6608, 0x6411),  // a tower, drawn as a mast before
         (.point, 0x6609, 0x6411),  // a mast, drawn as a pylon before
+        (.point, 0x2c10, 0x2c02),  // a ruin, a dig, a bunker, drawn as a museum before
         (.point, 0x660a, nil)  // the ends of a via ferrata: new, and only where drawn
     ]
 

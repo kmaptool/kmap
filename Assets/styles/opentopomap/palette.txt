@@ -53,6 +53,9 @@ poly 0x23 2 #e0e0e0  Amenity  # not drawn: amenity=* past school, university, ho
 poly 0x24 2 #e0e0e0  Structure  # not drawn: man_made=* areas; kmap puts piers on 0x25
 poly 0x28 2 #e0e0e0  Salt pond  # not drawn: no fill rule for landuse=salt_pond
 poly 0x29 2 #e0e0e0  Greenhouses  # not drawn: no fill rule for landuse=greenhouse_horticulture
+poly 0x33 2 #e0e0e0  Sports centre  # not drawn: no fill rule for leisure=sports_centre or stadium
+poly 0x34 2 #e0e0e0  Construction  # not drawn: no fill rule for landuse=construction
+poly 0x35 2 #e0e0e0  Landfill  # not drawn: no fill rule for landuse=landfill
 poly 0x3b 2 #e0e0e0  Water  # not drawn: waterway=* areas; water-areas.xml:25-31 fills natural=water, basin, reservoir
 poly 0x3d 2 #e0e0e0  Bay  # not drawn: natural=bay is not filled; the sea or lake under it is
 poly 0x47 2 #e0e0e0  Waterfall  # not drawn: no rule for waterfall areas
@@ -115,6 +118,7 @@ line 0x16 2 #000000  Path  # black 1 -> 2, wider than the reference TYP's 1 to b
 line 0x30 2 #8eb961  Track  # kmap puts leisure=track here (and raceway, gallop): the #8eb961 outline of a closed track, landuse.xml:140-146 (leisure is a polygon key, opentopomap.style:126); an open track way they do not draw at z16, a raceway is a road
 line 0x14 3 #ffffff #000000  Railway  # rail_z15.png, railways.xml:32-37; pattern in graphics.txt
 line 0x27 6 #dddddd #000000  Runway  # #dddddd 8, airports-fill.xml:32-37; black 9.5, airports-casing.xml:32-37
+line 0x10900 3 #dddddd #000000  Taxiway  # #dddddd 3, airports-fill.xml:56-61; black 4, airports-casing.xml:50-55; against the runway's 8 in 9.5
 # Water at z16.
 line 0x1f 2 #a3dde8 #1d4dff  River  # #1d4dff 7 under #a3dde8 6, waterway-lines.xml:22-28; 2 px: the casing alone
 line 0x18 1 #1d4dff  Stream  # #1d4dff 1, waterway-lines.xml:51-56
@@ -123,6 +127,7 @@ line 0x1a 1 #0000ff  Ferry  # #0000ff 0.5, dash 7,7, ferry-routes.xml:8-13; dash
 line 0x1b 1 #0000ff  Ferry  # as 0x1a
 # The rest.
 line 0x17 1 #000000  Barrier  # fence and wall: fence.png with a black 0.5 line over it, barriers.xml:9-15
+line 0x3e 1 #31bd35  Hedge  # hedge.png, a green dot every 3 pixels, barriers.xml:24-28; drawn in graphics.txt
 line 0x29 1 #000000  Power Line  # powerline.png with a black 0.5 line over it, powerlines.xml:2-8
 line 0x25 3 #000000  Aerial way  # black 0.5 under aerialway_gondola.png, aerialways.xml:2-8; pattern in graphics.txt
 line 0x2b 4 #000000  Cliff  # cliff_z15.png, cliffs.xml:14-19; pattern in graphics.txt
@@ -135,6 +140,6 @@ line 0x2d 1 #f08d8d  Military area  # landuse=military: #ff3939 3 at 0.5, areas.
 line 0x22 1 #c45700  Contour  # 100 m: stroke-width 0.6, contours.xml:21-26
 line 0x21 1 #c45700  Contour  # 50 m: stroke-width 0.4, contours.xml:47-52
 line 0x20 1 #c45700  Contour  # 10 m: stroke-width 0.2, contours.xml:69-74
-# Not here: 0x12, 0x23, 0x24 and 0x28, which OpenTopoMap does not draw (clear,
+# Not here: 0x12, 0x23, 0x24, 0x28 and 0x3f, which OpenTopoMap does not draw (clear,
 # graphics.txt; the valley keeps its name, which they write); 0x0d, the link this build
 # puts in across a kerb or a bank, left to kmap's own red dashes.

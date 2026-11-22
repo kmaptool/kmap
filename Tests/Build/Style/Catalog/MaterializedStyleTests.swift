@@ -106,6 +106,22 @@ final class MaterializedStyleTests: XCTestCase {
         }
     }
 
+    /// A renumbering is an exact-text edit of a stock rule: where the text has moved in
+    /// this mkgmap the edit does nothing and says nothing.
+    func testEveryRenumberedStockRuleIsFoundInTheRealStyle() async throws {
+        let it = try prepared()
+        try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner)
+        let files = try ruleFiles()
+        for (name, file, _, new) in StyleCatalog.renumberedStockRules {
+            // Up to the resolution, which a later pass may move.
+            let typed = new.components(separatedBy: "\n").filter { $0.contains("[0x") }
+                .compactMap { $0.components(separatedBy: " resolution").first }
+            for rule in typed {
+                XCTAssertTrue(files[file]?.contains(rule) == true, "\(name) was not renumbered: \(rule)")
+            }
+        }
+    }
+
     func testPreparingAgainWithTheSameChoicesChangesNothing() async throws {
         let it = try prepared()
         try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner)

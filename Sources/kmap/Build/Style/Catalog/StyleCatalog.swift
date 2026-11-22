@@ -19,7 +19,7 @@ final class StyleCatalog: Sendable {
 
     /// Bump when the materialized style layout changes, to force a refresh. kmap's own
     /// version is in the identity too, so a release that forgot to bump still refreshes.
-    private static let materializedVersion = "103"
+    private static let materializedVersion = "104"
 
     private let settings: SettingsStore
 

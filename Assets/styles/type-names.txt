@@ -272,9 +272,18 @@ line 0x32|City wall|Городская стена
 point 0x6608|Tower|Башня
 point 0x6609|Mast|Мачта
 point 0x660a|Via ferrata|Виа феррата
+line 0x3e|Hedge|Живая изгородь
 
 # Not in any source. Russian chosen by the owner.
 line 0x34|Drain|Сток
 polygon 0x1b|Vineyard|Виноградник
 polygon 0x28|Salt pond|Солончак
 polygon 0x29|Greenhouses|Теплицы
+
+# Not in any source: a meaning with a number of its own, apart from the one it shared.
+line 0x3f|Abandoned railway|Заброшенная железная дорога
+line 0x10900|Taxiway|Рулёжная дорожка
+polygon 0x33|Sports centre|Спортивный комплекс
+polygon 0x34|Construction|Стройка
+polygon 0x35|Landfill|Свалка
+point 0x2c10|Historic site|Историческое место

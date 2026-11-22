@@ -87,6 +87,60 @@ extension StyleCatalog {
             "man_made=tower [0x6608 resolution 24]  # kmap: not the mast's number\n"
                 + "man_made=mast | landmark=chimney [0x6609 resolution 24]  # kmap: not the pylon's number"
         ),
+        // A hedge is planted and an abandoned railway was one: neither is the fence.
+        (
+            "hedge", "lines",
+            "barrier=wall | barrier=fence | barrier=hedge | barrier=ditch"
+                + " {add name='${barrier|subst:\"_=> \"}'} [0x17 resolution 24]",
+            "barrier=hedge {add name='${barrier|subst:\"_=> \"}'} [0x3e resolution 24]"
+                + "  # kmap: not the fence's number\n"
+                + "barrier=wall | barrier=fence | barrier=ditch"
+                + " {add name='${barrier|subst:\"_=> \"}'} [0x17 resolution 24]"
+        ),
+        (
+            "abandoned railway", "lines",
+            "railway=abandoned | railway=razed | railway=dismantled [0x17 resolution 23]",
+            "railway=abandoned | railway=razed | railway=dismantled [0x3f resolution 23]"
+                + "  # kmap: not the fence's number"
+        ),
+        // A taxiway is narrower than the runway it leads to.
+        (
+            "taxiway", "lines",
+            "(aeroway=taxiway | aeroway=taxilane) & area!=yes {name '${ref}'} [0x27 resolution 24 continue]",
+            "(aeroway=taxiway | aeroway=taxilane) & area!=yes {name '${ref}'} [0x10900 resolution 24 continue]"
+                + "  # kmap: not the runway's number"
+        ),
+        // The grounds of a sports centre or a stadium hold the pitches, and are not one.
+        (
+            "sports centre", "polygons", "leisure=sports_center | leisure=sports_centre [0x19 resolution 20]",
+            "leisure=sports_center | leisure=sports_centre [0x33 resolution 20]  # kmap: not the pitch's number"
+        ),
+        (
+            "stadium", "polygons", "leisure=stadium [0x19 resolution 20]",
+            "leisure=stadium [0x33 resolution 20]  # kmap: not the pitch's number"
+        ),
+        // A building site and a landfill are not an industrial estate.
+        (
+            "construction", "polygons", "landuse=construction [0x0c resolution 21]",
+            "landuse=construction [0x34 resolution 21]  # kmap: not the industrial estate's number"
+        ),
+        (
+            "landfill", "polygons", "landuse=landfill [0x0c resolution 20]",
+            "landuse=landfill [0x35 resolution 20]  # kmap: not the industrial estate's number"
+        ),
+        // A ruin, a dig, a bunker and a historic sight are places to see, not a museum.
+        (
+            "ruins", "points", "historic=archaeological_site | historic=ruins [0x2c02 resolution 24]",
+            "historic=archaeological_site | historic=ruins [0x2c10 resolution 24]  # kmap: not the museum's number"
+        ),
+        (
+            "historic sight", "points", "tourism=attraction & historic=* [0x2c02 resolution 24]",
+            "tourism=attraction & historic=* [0x2c10 resolution 24]  # kmap: not the museum's number"
+        ),
+        (
+            "bunker", "points", "military=bunker [0x2c02 resolution 24]",
+            "military=bunker [0x2c10 resolution 24]  # kmap: not the museum's number"
+        ),
         // A hamlet is not a locality: one is a place people live in, the other a name on
         // empty ground, and a borrowed style draws them apart.
         (

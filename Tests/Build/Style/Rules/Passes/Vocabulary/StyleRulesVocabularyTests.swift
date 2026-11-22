@@ -55,6 +55,59 @@ final class StyleRulesVocabularyTests: XCTestCase {
         XCTAssertTrue(try read(dir, "polygons").contains("landuse=allotments [0x4e resolution 21]"))
     }
 
+    /// A meaning given a number of its own has a way back to the one it left: without
+    /// it a palette older than the split would lose the meaning.
+    func testEveryRenumberedRuleCanGoBackToTheNumberItLeft() {
+        func codes(_ text: String) -> Set<Int> {
+            Set(text.allMatches("\\[0x[0-9a-f]+").compactMap { Int($0.dropFirst(3), radix: 16) })
+        }
+        let kinds = ["lines": MapElementKind.line, "polygons": .polygon, "points": .point]
+        for (name, file, old, new) in StyleCatalog.renumberedStockRules {
+            let left = codes(old)
+            for code in codes(new).subtracting(left) {
+                let entry = StyleCatalog.widenedNumbers.first { $0.kind == kinds[file] && $0.now == code }
+                XCTAssertNotNil(entry, "\(name): 0x\(String(code, radix: 16)) has no number to go back to")
+                guard !left.isEmpty else { continue }
+                XCTAssertTrue(entry?.was.map(left.contains) == true, "\(name): goes back to no number it drew on")
+            }
+        }
+    }
+
+    /// A hedge and a fence shared 0x17: a palette with no picture for the hedge's
+    /// number draws it as the fence, as before the split.
+    func testASplitMeaningIsDrawnAsBeforeByAPaletteOlderThanTheSplit() throws {
+        let dir = try directory(
+            lines: """
+                barrier=hedge {add name='${barrier}'} [0x3e resolution 24]
+                barrier=wall | barrier=fence | barrier=ditch {add name='${barrier}'} [0x17 resolution 24]
+                (aeroway=taxiway | aeroway=taxilane) & area!=yes {name '${ref}'} [0x10900 resolution 24 continue]
+                """,
+            polygons: "leisure=stadium [0x33 resolution 20]\nlanduse=landfill [0x35 resolution 20]\n"
+        )
+        let older = TypSource.parse(
+            """
+            ; -*- coding: UTF-8 -*-
+            [_line]
+            Type=0x17
+            Xpm="0 0 1 0"
+            "! c #303030"
+            [end]
+            [_polygon]
+            Type=0x19
+            Xpm="0 0 1 0"
+            "! c #60B020"
+            [end]
+            """
+        )
+        try StyleCatalog.keepTheOldNumberWherePaletteIsSilent(in: dir, palette: older, log: Log())
+        let lines = try read(dir, "lines")
+        XCTAssertTrue(lines.contains("barrier=hedge {add name='${barrier}'} [0x17 resolution 24]"))
+        XCTAssertTrue(lines.contains("[0x27 resolution 24 continue]"))
+        let polygons = try read(dir, "polygons")
+        XCTAssertTrue(polygons.contains("leisure=stadium [0x19 resolution 20]"))
+        XCTAssertTrue(polygons.contains("landuse=landfill [0x0c resolution 20]"))
+    }
+
     /// A grade a palette does not paint goes to the via ferrata's number, and stays there
     /// where that is unpainted too: the build draws it as a path, never as a cliff.
     func testAGradeFallsBackAlongTheChain() throws {

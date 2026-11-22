@@ -35,7 +35,12 @@ attribution stays.
   0x16 a path (footways and pedestrian streets too), 0x07 a service road, 0x2b
   a cliff, 0x30 a sports track (raceways and gallops too; the reference TYP labels it
   "Track"), polygon 0x0c industrial, 0x19 a sports ground, 0x1c farmland
-  (the reference TYP labels it Grassland). The catch-all areas 0x21 Tourism, 0x23
+  (the reference TYP labels it Grassland). A meaning with a number of its own is
+  drawn as CyclOSM draws that meaning: the hedge (line 0x3e) in `@hedge`, the
+  taxiway (0x10900) in the runway's colour at a fifth of its width, the sports
+  centre and the stadium (polygon 0x33) in `@stadium`, the building site (0x34)
+  and the landfill (0x35) in `@industrial`; an abandoned railway (0x3f) it does
+  not draw. The catch-all areas 0x21 Tourism, 0x23
   Amenity and 0x24 Structure take every tourism=*, amenity=* and man_made=* area
   no earlier rule took; CyclOSM fills a few of those, each in its own colour,
   and the rest not at all, so they are clear. The names in `palette.txt` are
