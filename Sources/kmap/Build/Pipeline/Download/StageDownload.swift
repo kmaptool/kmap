@@ -250,10 +250,19 @@ extension BuildPipeline {
                 settleOnCachedCopy(job)
                 return true
             }
-            log.append(
-                "no checksum to be had and the server is offering something"
-                    + " different — downloading a fresh copy"
-            )
+            if let cached = CacheStamp.read(besides: job.destination)?.lastModified,
+                let offered = job.remote?.lastModified
+            {
+                log.append(
+                    "the server offers an extract published \(offered), the cached one is from"
+                        + " \(cached), and no checksum could be had — downloading it"
+                )
+            } else {
+                log.append(
+                    "no checksum to be had and the server is offering something"
+                        + " different — downloading a fresh copy"
+                )
+            }
             return false
         }
 

@@ -11,6 +11,7 @@ final class DownloadFallbackTests: XCTestCase {
     private let body = Data((0..<200_000).map { UInt8(truncatingIfNeeded: $0 &* 31 &+ 7) })
     private let failing = Locked(false)
     private let headFails = Locked(false)
+    private let md5Fails = Locked(false)
     /// Run once as the first extract request arrives: what another kmap does meanwhile.
     private let meanwhile = Locked<(@Sendable () -> Void)?>(nil)
     private let region = "test/fallback-\(UUID().uuidString.prefix(8))"
@@ -20,8 +21,11 @@ final class DownloadFallbackTests: XCTestCase {
     override func setUpWithError() throws {
         let body = body
         let md5 = Data(MD5.hex(of: body).utf8 + Array("  extract.osm.pbf\n".utf8))
-        let (failing, meanwhile, headFails) = (failing, meanwhile, headFails)
+        let (failing, meanwhile, headFails, md5Fails) = (failing, meanwhile, headFails, md5Fails)
         server = try LoopbackServer { request in
+            if request.path.hasSuffix(".md5"), md5Fails.withLock({ $0 }) {
+                return .init(status: 404, headers: [("Content-Length", "0")])
+            }
             let file = request.path.hasSuffix(".md5") ? md5 : body
             var headers = [
                 ("Content-Length", "\(file.count)"), ("Last-Modified", Self.modified), ("Accept-Ranges", "bytes")
@@ -123,6 +127,20 @@ final class DownloadFallbackTests: XCTestCase {
         XCTAssertEqual(
             again.board.detail(of: .download),
             t("cached") + " · " + Fmt.bytes(Int64(body.count)) + " · " + t("server not reached")
+        )
+    }
+
+    func testANewerExtractWithNoChecksumIsDownloadedWithBothDatesSaid() async throws {
+        let older = "Mon, 05 Oct 2026 20:00:00 GMT"
+        try await cached(damaged, stamp: CacheStamp(size: Int64(body.count), lastModified: older, md5: nil))
+        md5Fails.withLock { $0 = true }
+        let again = pipeline()
+        let fetched = try await again.downloadExtracts()
+        XCTAssertEqual(try Data(contentsOf: fetched[0]), body)
+        let said = again.log.snapshot().map(\.text)
+        XCTAssertTrue(
+            said.contains { $0.contains("published \(Self.modified), the cached one is from \(older)") },
+            "\(said)"
         )
     }
 
