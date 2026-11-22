@@ -1,6 +1,6 @@
 import Foundation
 
-/// How every kmap rule block lands in a materialized rule file. Three placements cover
+/// How every kmap rule block lands in a materialized rule file. 4 placements cover
 /// them all, and each is guarded by the block's marker line so a directory is amended
 /// once and only once.
 extension StyleCatalog {
@@ -47,6 +47,71 @@ extension StyleCatalog {
             return true
         }
         return added
+    }
+
+    /// Splices a marked block ahead of the stock rule that answers for every value of
+    /// `key`: that rule would claim these first, and the first match wins. Ahead of
+    /// `<finalize>` where the style has no such rule.
+    @discardableResult
+    func spliceRules(
+        _ rules: String,
+        marked marker: String,
+        aheadOfEvery key: String,
+        intoFile name: String,
+        in directory: URL
+    ) throws -> Bool {
+        var added = false
+        try amendRuleFile(name, in: directory, unlessMarked: marker) { text in
+            if let at = Self.catchAll(for: key, in: text) {
+                // Set apart from a rule standing right above.
+                let apart = at == text.startIndex || text[..<at].hasSuffix("\n\n") ? "" : "\n"
+                text.insert(contentsOf: apart + rules.trimmingCharacters(in: .newlines) + "\n\n", at: at)
+            } else {
+                splice("\n\n" + rules.trimmingCharacters(in: .newlines) + "\n", into: &text)
+            }
+            added = true
+            return true
+        }
+        return added
+    }
+
+    /// Where the stock rule for every value of `key` starts, the comment above it
+    /// included: `key=* & ...` or `key=* | ...` drawn with a type and no `continue`,
+    /// narrowed by nothing but negations of a value and the shape of the way. nil
+    /// where the file has none.
+    static func catchAll(for key: String, in text: String) -> String.Index? {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        for (number, line) in lines.enumerated() where line.hasPrefix(key + "=*") {
+            // mkgmap writes a long rule over several lines, the later ones indented.
+            var rule = String(line)
+            var next = number + 1
+            while !rule.contains("[0x"), next < lines.count, lines[next].first?.isWhitespace == true,
+                !lines[next].trimmingCharacters(in: .whitespaces).isEmpty
+            {
+                rule += " " + lines[next]
+                next += 1
+            }
+            guard let type = rule.range(of: "[0x"), let close = rule[type.lowerBound...].firstIndex(of: "]"),
+                !rule[type.lowerBound..<close].contains(" continue")
+            else { continue }
+            // The action block ends where the type begins, whatever braces it holds.
+            var condition = String(rule[..<type.lowerBound])
+            if let open = condition.firstIndex(of: "{") { condition = String(condition[..<open]) }
+            let rest = condition.dropFirst(key.count + 2).trimmingCharacters(in: .whitespaces)
+            // An alternative only widens it: every value of the key is still answered.
+            if !rest.hasPrefix("|") {
+                let narrowed = rest.replacingOccurrences(of: "[a-z_:]+!=[^ )]+", with: "", options: .regularExpression)
+                guard !narrowed.contains("~"), !narrowed.contains("<"), !narrowed.contains(">"),
+                    !narrowed.contains("!(")
+                else { continue }
+                let tested = narrowed.allMatches("[a-z_:]+=").map { String($0.dropLast()) }
+                guard tested.allSatisfy({ $0 == key || $0 == "area" || $0 == "mkgmap:mp_created" }) else { continue }
+            }
+            var first = number
+            while first > 0, lines[first - 1].hasPrefix("#") { first -= 1 }
+            return lines[first].startIndex
+        }
+        return nil
     }
 
     /// Puts a marked block at the very top of the file: for action-only rules that must

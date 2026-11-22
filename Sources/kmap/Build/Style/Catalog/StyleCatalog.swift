@@ -19,7 +19,7 @@ final class StyleCatalog: Sendable {
 
     /// Bump when the materialized style layout changes, to force a refresh. kmap's own
     /// version is in the identity too, so a release that forgot to bump still refreshes.
-    private static let materializedVersion = "102"
+    private static let materializedVersion = "103"
 
     private let settings: SettingsStore
 
@@ -158,7 +158,7 @@ final class StyleCatalog: Sendable {
     ///
     /// The additions run in a fixed order, each constraint noted where it binds: the
     /// barrier-access rules anchor on the block the barrier split writes, the found rules are
-    /// fallbacks and go last, and the redirects match the text every earlier call has shaped.
+    /// fallbacks and go in after every rule they stand behind, and the redirects match the text every earlier call has shaped.
     func materializeRules(
         into dir: URL,
         descriptions: BuildRecipe.DescriptionCarrier,
@@ -231,7 +231,8 @@ final class StyleCatalog: Sendable {
         try addFerrataEndRule(in: dir, log: log)
         try addGenericAddressRules(in: dir, log: log)
         // Last of the rule additions: these are fallbacks for meanings no earlier rule
-        // claims, and must not fire before those rules.
+        // claims. Each goes after the stock rules, or ahead of the one that answers
+        // for every value of its key.
         try addFoundPointRules(in: dir, log: log)
         try addFoundLineRules(in: dir, log: log)
         try addFoundPolygonRules(in: dir, log: log)

@@ -83,6 +83,29 @@ final class MaterializedStyleTests: XCTestCase {
         }
     }
 
+    /// The first match wins: a rule for 1 value written below the rule for every value
+    /// of its key never fires.
+    func testNoRuleStandsBehindTheRuleForEveryValueOfItsKey() async throws {
+        let it = try prepared()
+        try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner)
+        for (name, text) in try ruleFiles() {
+            var at = text.startIndex
+            for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+                defer { at = text.index(at, offsetBy: line.count + 1, limitedBy: text.endIndex) ?? text.endIndex }
+                guard !line.hasPrefix("#"), let type = line.range(of: "[0x") else { continue }
+                let condition = line[..<type.lowerBound]
+                    .replacingOccurrences(of: "\\{[^}]*\\}", with: "", options: .regularExpression)
+                for term in condition.allMatches("[a-z_:]+=[a-z_0-9]+") {
+                    let parts = term.split(separator: "=")
+                    guard let every = StyleCatalog.catchAll(for: String(parts[0]), in: text), every < at,
+                        !text[every..<at].contains("\(parts[0])!=\(parts[1])")
+                    else { continue }
+                    XCTFail("\(name): `\(line)` never fires, the rule for every \(parts[0]) answers first")
+                }
+            }
+        }
+    }
+
     func testPreparingAgainWithTheSameChoicesChangesNothing() async throws {
         let it = try prepared()
         try await it.catalog.prepare(it.plain, log: it.log, runner: it.runner)

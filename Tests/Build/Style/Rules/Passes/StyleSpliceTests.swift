@@ -101,6 +101,9 @@ final class StyleSpliceTests: XCTestCase {
         let once = try read()
         XCTAssertFalse(try styles.spliceRules(block, marked: marker, intoFile: "points", in: directory))
         XCTAssertFalse(try styles.prependRules(block, marked: marker, toFile: "points", in: directory))
+        XCTAssertFalse(
+            try styles.spliceRules(block, marked: marker, aheadOfEvery: "anchor", intoFile: "points", in: directory)
+        )
         let again = try styles.insertRules(
             block,
             marked: marker,
@@ -134,5 +137,29 @@ final class StyleSpliceTests: XCTestCase {
             )[.modificationDate] as? Date,
             before
         )
+    }
+
+    func testTheRuleForEveryValueIsOneThatDrawsAndIsNarrowedByNothingElse() {
+        let mopUp = """
+            waterway=stream [0x18 resolution 22]
+
+            # mop up any remaining water lines
+            waterway=* & waterway!=no & (area=no | (is_closed()=false & mkgmap:mp_created!=true))
+                {add name='${waterway|subst:"_=> "}'} [0x26 resolution 24]
+            """
+        let found = StyleCatalog.catchAll(for: "waterway", in: mopUp)
+        XCTAssertEqual(found.map { String(mopUp[$0...].prefix(9)) }, "# mop up ")
+        // Narrowed by another tag, drawn under what follows, or drawing nothing: not it.
+        XCTAssertNil(StyleCatalog.catchAll(for: "highway", in: "highway=* & motorroad=yes [0x02 resolution 18]"))
+        XCTAssertNil(StyleCatalog.catchAll(for: "highway", in: "highway=* [0x11f06 resolution 22 continue]"))
+        XCTAssertNil(StyleCatalog.catchAll(for: "highway", in: "highway=* & name=* {set mkgmap:street='${name}'}"))
+        XCTAssertNil(StyleCatalog.catchAll(for: "amenity", in: "tourism=* & area!=no [0x21 resolution 24]"))
+        XCTAssertNil(StyleCatalog.catchAll(for: "place", in: "place=* & population>1000 [0x0800 resolution 20]"))
+        XCTAssertNil(StyleCatalog.catchAll(for: "name", in: "name=* & name~'.*x.*' [0x2c resolution 20]"))
+        XCTAssertNil(StyleCatalog.catchAll(for: "highway", in: "highway=* & !(tunnel=yes) [0x06 resolution 22]"))
+        // An alternative widens it, and a comment or an action says nothing of the type.
+        let widened =
+            "healthcare=* | amenity=dentist {add name='${healthcare}'; set kmap:x=yes} [0x0b resolution 22]  # may continue"
+        XCTAssertEqual(StyleCatalog.catchAll(for: "healthcare", in: widened), widened.startIndex)
     }
 }
