@@ -64,6 +64,46 @@ final class RealMapReaderTests: XCTestCase {
         try XCTSkipUnless(seen > 0, "none of the listed maps is on this machine")
     }
 
+    /// The census is what a reading of the same ground leaves out: code by code, the 2
+    /// add up to the whole map, lines and areas with the points.
+    func testTheCensusAndTheReadingMakeUpTheMap() throws {
+        let expectations = LocalTestMaps.load()?.reader ?? []
+        try XCTSkipUnless(!expectations.isEmpty, "no local map expectations")
+        guard let map = expectations.first(where: { FileTools.exists(URL(fileURLWithPath: $0.path)) }),
+            map.ground.count == 4
+        else { throw XCTSkip("none of the listed maps is on this machine") }
+        let url = URL(fileURLWithPath: map.path)
+        // Half of the listed ground, so that elements lie either side of its edge.
+        let ground = BBox(
+            minLon: map.ground[1],
+            minLat: map.ground[0],
+            maxLon: (map.ground[1] + map.ground[3]) / 2,
+            maxLat: map.ground[2]
+        )
+        func sum(_ tallies: [ImgElements.Tally]) -> [Int: Int] {
+            var out: [Int: Int] = [:]
+            for tally in tallies {
+                for (slot, count) in tally.codes { out[slot, default: 0] += count }
+            }
+            return out
+        }
+        let whole = sum(try ImgElements.census(of: url, off: [], stop: StopFlag()))
+        var read = sum(try ImgElements.census(of: url, off: [ImgElements.Ground(ground)], stop: StopFlag()))
+        var onGround = 0
+        try ImgElements.read(
+            img: url,
+            grounds: [ImgElements.Ground(ground)],
+            extendedAreasAndPoints: true,
+            tick: {}
+        ) { (kind: ElementDumper.Kind, type: Int, _: [ImgElements.Coord]) in
+            read[Evidence.slot(kind, type), default: 0] += 1
+            onGround += 1
+        }
+        XCTAssertGreaterThan(onGround, 0, "nothing of the map lies on the ground")
+        XCTAssertGreaterThan(whole.values.reduce(0, +), onGround, "nothing of the map lies off the ground")
+        XCTAssertEqual(read, whole)
+    }
+
     func testRandomDamageToARealMapIsRefusedOrReadNeverFatal() throws {
         // Every offset in TRE and RGN comes from the file. The smallest local map, with
         // bytes replaced and stretches cut, must throw or read short, never trap.

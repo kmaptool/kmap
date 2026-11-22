@@ -2,8 +2,8 @@ import Foundation
 
 /// Recovers a foreign map's look as a style of kmap's own: its elements are matched
 /// against cached OSM data by geometry, and every picture that names a meaning is
-/// written onto the number kmap draws that meaning with. Where nothing cached matches,
-/// the smallest useful region is offered; nothing is fetched unasked.
+/// written onto the number kmap draws that meaning with. Where the cached data falls
+/// short, the region holding most of the map is offered; nothing is fetched unasked.
 final class RecoverScreen: Screen {
     var page: Page { Page(t("recover the style"), keys: keys) }
 
@@ -41,6 +41,8 @@ final class RecoverScreen: Screen {
     private(set) var messageIsError = false
     /// The download offer, about the regions it would fetch.
     var offering: Question<[Region]>?
+    /// Set once no more ground can be had: the run goes on with what there is.
+    var anyGround = false
     /// Saving over the style, or leaving the recovery unsaved: the route a yes takes, nil
     /// for the save.
     var asking: Question<Route?>?
@@ -62,7 +64,7 @@ final class RecoverScreen: Screen {
             switch answer {
             case .confirmed: download(regions, ctx)
             case .cancelled:
-                phase = .cancelled
+                stopped()
                 message = nil
             case .none: break
             }
@@ -146,12 +148,22 @@ final class RecoverScreen: Screen {
         }
     }
 
+    /// A run cut short leaves an earlier one's result up.
+    func stopped() {
+        phase = report == nil ? .cancelled : .done
+    }
+
     func start(_ ctx: AppContext) {
         phase = .running
         startedAt = Date()
+        // A run after one that went through starts its stages over.
+        progress.move(to: .preparing)
         let log = self.log
         let progress = self.progress
         let img = self.img
+        let index = ctx.index
+        let anyGround = anyGround
+        let leftBefore = report?.remainder
         // Esc cancels the task, the runner and any download.
         let runner = ProcessRunner()
         self.runner = runner
@@ -168,24 +180,35 @@ final class RecoverScreen: Screen {
                     extracts: [],
                     log: log,
                     rulesDirectory: neutral,
-                    progress: progress
+                    progress: progress,
+                    anyGround: anyGround,
+                    lookingForMore: !anyGround
                 )
+                // A region read for the codes it might settle that settled none: no more is
+                // offered. Found before the result shows, so the question does not come up
+                // under a key.
+                let gained = leftBefore.map { report.settled(of: $0) > 0 } ?? true
+                let more = gained ? await Self.groundToAdd(after: report, index: index) : nil
                 await MainActor.run {
                     self.report = report
                     self.phase = .done
+                    // Asked here, where Esc is handled: one pressed meanwhile gets no question.
+                    if let more, self.work?.isCancelled != true, let left = report.remainder {
+                        self.present(more.region, size: more.size, settling: more.codes, of: left)
+                    }
                 }
             } catch is CancellationError {
-                await MainActor.run { self.phase = .cancelled }
+                await MainActor.run { self.stopped() }
             } catch StyleRecovery.Trouble.noExtracts(let frame) {
-                await MainActor.run { self.offer(ctx, frame: frame) }
+                await MainActor.run { self.offer(ctx, frame: frame, short: false) }
             } catch let trouble as StyleRecovery.Trouble where trouble.isTooLittleGround {
                 // The cached extracts graze the map: the right one is offered for download.
                 log.warn("\(trouble)")
-                let frame = RegionSuggestion.drawnGround(of: img).frame
-                await MainActor.run { self.offer(ctx, frame: frame) }
+                let frame = RegionSuggestion.frame(of: img)
+                await MainActor.run { self.offer(ctx, frame: frame, short: true) }
             } catch  where Task.isCancelled {
                 // A killed reader or unpacker fails in words of its own.
-                await MainActor.run { self.phase = .cancelled }
+                await MainActor.run { self.stopped() }
             } catch {
                 await MainActor.run { self.fail(error) }
             }
@@ -200,7 +223,18 @@ final class RecoverScreen: Screen {
     }
 
     func fail(_ error: Error) {
-        failure = explain(error)
+        fail(saying: explain(error))
+    }
+
+    /// What an earlier run read stays up, with the trouble said beside it.
+    func fail(saying trouble: String) {
+        guard report == nil else {
+            message = trouble
+            messageIsError = true
+            phase = .done
+            return
+        }
+        failure = trouble
         phase = .failed
     }
 

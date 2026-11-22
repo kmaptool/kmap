@@ -40,6 +40,12 @@ final class CLIRefusalsTests: XCTestCase {
         XCTAssertEqual(code, 1)
     }
 
+    /// `--more` reads the cache and downloads into it; a run on named extracts reads neither.
+    func testRecoverDoesNotTakeMoreWithNamedExtracts() async {
+        let code = await CLI.run(["recover", "a.img", "--more", "--extract=b.osm.pbf"])
+        XCTAssertEqual(code, 2)
+    }
+
     /// A second map would be ignored.
     func testRecoverTakesOneMap() async {
         let code = await CLI.run(["recover", "a.img", "b.img"])

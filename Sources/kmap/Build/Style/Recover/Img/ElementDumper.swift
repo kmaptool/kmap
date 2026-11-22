@@ -15,13 +15,13 @@ enum ElementDumper {
     }
 
     /// Dumps every element of every tile that reaches the ground being searched.
-    /// - Parameter grounds: one rectangle per extract, not the box around them all;
-    ///   elements outside every rectangle are skipped.
+    /// - Parameter grounds: the ground of each extract, not the box around them all;
+    ///   elements outside every ground are skipped.
     /// - Parameter coarserLevels: read the zoomed-out levels instead of the detailed
     ///   one - where a style may keep what it never draws up close.
     static func dump(
         img: URL,
-        grounds: [BBox],
+        grounds: [ImgElements.Ground],
         log: Log,
         coarserLevels: Bool = false,
         progress: RecoverProgress? = nil
@@ -33,7 +33,7 @@ enum ElementDumper {
         // classes of feature on an extended code.
         try ImgElements.read(
             img: img,
-            grounds: grounds.map(ImgElements.Ground.init),
+            grounds: grounds,
             extendedAreasAndPoints: true,
             coarserLevels: coarserLevels,
             tick: {

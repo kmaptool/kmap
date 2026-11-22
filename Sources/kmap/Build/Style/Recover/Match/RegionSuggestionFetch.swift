@@ -69,23 +69,39 @@ extension RegionSuggestion {
         return true
     }
 
-    /// The download size of every candidate, probed concurrently: extract size does not
-    /// follow area, so the choice is made on bytes.
-    static func weighed(_ regions: [Candidate]) async -> [(Candidate, Int64)] {
-        await withTaskGroup(of: (Candidate, Int64)?.self) { group in
-            for candidate in regions {
-                group.addTask {
-                    guard let url = candidate.region.pbfURL, let info = try? await Downloader.probe(url) else {
-                        return nil
-                    }
-                    return (candidate, info.size)
-                }
-            }
-            var out: [(Candidate, Int64)] = []
-            for await answer in group {
-                if let answer { out.append(answer) }
-            }
-            return out
+    /// The regions recover fetches next, each with its size where the server says:
+    /// `groundToFetch`. With `asking` and none of those, the first of `groundToName` not in
+    /// the cache: a region to ask about, not one to fetch unasked. `reached` is whether
+    /// any region holds any of the map at all.
+    static func nextGround(
+        for img: URL,
+        index: RegionIndex,
+        asking: Bool
+    ) async -> (picks: [(region: Region, size: Int64?)], reached: Bool) {
+        let drawn = drawnGround(of: img)
+        let named = groundToName(for: drawn, index: index)
+        var regions = groundToFetch(for: drawn, index: index).map(\.region)
+        // A cached one was read already: picked again, it would be offered in a loop.
+        if regions.isEmpty, asking, let other = named.first(where: { !isCached($0.region) }) {
+            regions = [other.region]
         }
+        var picks: [(region: Region, size: Int64?)] = []
+        for region in regions { picks.append((region, await size(of: region))) }
+        return (picks, !named.isEmpty)
+    }
+
+    /// After a run: among the regions that are ground to read and not in the cache, the
+    /// one that may settle the most of the codes the run left unsettled, and how many.
+    /// Nil where none may settle any.
+    static func bestGround(after report: StyleRecovery.Report, index: RegionIndex) -> (region: Region, codes: Int)? {
+        guard let left = report.remainder, !left.drawn.isEmpty, let drawn = report.drawn else { return nil }
+        let candidates = groundToRead(for: drawn, index: index).map(\.region).filter { !isCached($0) }
+        return left.bestRegion(among: Set(candidates.map(\.id)), owners: owners(in: index))
+    }
+
+    /// The size of a region's extract, where the server says.
+    static func size(of region: Region) async -> Int64? {
+        guard let url = region.pbfURL else { return nil }
+        return try? await Downloader.probe(url).size
     }
 }

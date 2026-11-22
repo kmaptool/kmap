@@ -14,6 +14,8 @@ extension StyleRecovery {
         /// The resolutions this code was seen drawn at, coarsest to finest. A style
         /// with a second vocabulary for the zoomed-out levels shows here.
         var resolutions: [Int: Int] = [:]
+        /// The witnesses that meant anything at all.
+        var meant = 0
 
         /// `16-18`, or nil where nothing was recorded.
         var zooms: String? {

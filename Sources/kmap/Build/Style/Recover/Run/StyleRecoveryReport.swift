@@ -7,6 +7,11 @@ extension StyleRecovery {
         var elements = 0
         /// The share of the map's data lying under the extracts read.
         var share = 0.0
+        /// Where the map draws, as the run measured it.
+        var drawn: RegionSuggestion.DrawnGround?
+        /// What the run left unsure and where the rest of the map draws it: set where
+        /// more ground was asked about and the map was not read whole.
+        var remainder: Remainder?
         /// key -> outcome, sorted for printing by the caller.
         var outcomes: [String: Outcome] = [:]
         /// The recovered style: their pictures on kmap's numbers. A TYP that builds,
@@ -31,5 +36,14 @@ extension StyleRecovery {
         /// How many objects of each meaning the searched ground holds at all - so a tag
         /// the ground never carries is not reported as a map's omission.
         var groundTags: [String: Int] = [:]
+
+        /// How many of the codes an earlier run left unsettled this one settled: a meaning
+        /// found for them, whether or not a rule of ours draws it.
+        func settled(of left: Remainder) -> Int {
+            outcomes.values.filter {
+                ($0.status == .resolved || $0.status == .noRule)
+                    && left.seen[Evidence.slot($0.kind, $0.type)] != nil
+            }.count
+        }
     }
 }

@@ -61,6 +61,16 @@ final class RegionIndex: Sendable {
         }
     }
 
+    /// The index as the cache keeps it, however old, with no word to the server. Nil
+    /// where none is kept or it does not read.
+    static func kept() -> RegionIndex? {
+        guard let data = try? Data(contentsOf: Paths.indexCache), let tables = try? tables(from: data)
+        else { return nil }
+        let index = RegionIndex()
+        index.install(tables)
+        return index
+    }
+
     /// - Returns: whether the server answered, rather than the copy kept from before.
     @discardableResult
     func load(forceRefresh: Bool = false) async throws -> Bool {

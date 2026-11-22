@@ -132,15 +132,17 @@ extension CLI {
                                         writes out the TYP source of a built-in palette
           kmap extract-typ <img> [--out=DIR] [--force]
                                         pulls the TYP out of a map so you can reuse or edit it
-          kmap recover <map.img> [--extract=FILE.pbf]… [--out=STYLE.txt] [--attach]
-                       [--sheet=FILE]
+          kmap recover <map.img> [--extract=FILE.pbf]… [--more] [--out=STYLE.txt]
+                       [--attach] [--sheet=FILE]
                                         reads a third-party map against OSM data and writes its
                                         look back out as a style of kmap's own — its pictures
                                         on kmap's numbers. --out writes the style, --attach
                                         puts it in the TYP library, --sheet writes the
                                         reassignment list. Without --extract it reads the
-                                        cached extracts, and downloads regions 1 at a
-                                        time while they hold too little of the map
+                                        cached extracts, and downloads regions while they
+                                        hold too little of the map. --more goes on to
+                                        download the regions that may settle the codes
+                                        still unsettled: a better style, a longer run
           kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…
                                         compares two maps tag by tag — the full test of a
                                         recovery, every meaning before and after

@@ -3,7 +3,7 @@ import Foundation
 /// What to do when no downloaded OSM data matches the map: name the candidate downloads
 /// rather than fetching them.
 extension CLI {
-    /// Most regions suggested; any one of them is ground enough.
+    /// Most regions suggested, the one holding most of the map's data first.
     private static let mostSuggested = 6
     private static let bytesPerMB = 1_048_576.0
 
@@ -17,10 +17,14 @@ extension CLI {
             CLILog.line("pass an extract of the map's region with --extract=<file.osm.pbf>")
             return CLIOutput.failure("the list of downloadable regions did not load: \(CLIOutput.said(error))")
         }
-        let wanted = RegionSuggestion.suggestedRegions(
-            on: RegionSuggestion.drawnGround(of: Paths.expand(path)),
-            index: index
-        ).prefix(mostSuggested)
+        let drawn = RegionSuggestion.drawnGround(of: Paths.expand(path))
+        // The regions recover would read, then any other holding some of the map.
+        var listed: Set<String> = []
+        let wanted =
+            (RegionSuggestion.groundToRead(for: drawn, index: index)
+            + RegionSuggestion.groundToName(for: drawn, index: index))
+            .filter { !RegionSuggestion.isCached($0.region) && listed.insert($0.region.id).inserted }
+            .prefix(mostSuggested)
         guard !wanted.isEmpty else {
             return CLIOutput.failure("and no region kmap can download overlaps it either")
         }
@@ -38,16 +42,17 @@ extension CLI {
                 }
             )
         ])
-        CLILog.line("\nAny one of these regions is ground enough — download with:")
+        CLILog.line(
+            "\nRegions holding a quarter of the map's data between them are ground enough,"
+                + " the one holding the most first - download with:"
+        )
         for candidate in wanted {
             CLILog.line(
                 String(
-                    format: "  kmap build %@  (holds %.0f%% of the map's data,"
-                        + " %.1f MB of it; %.0f%% of the region is under the map)",
+                    format: "  kmap build %@  (holds %.0f%% of the map's data, %.1f MB of it)",
                     candidate.region.id,
                     candidate.share * 100,
-                    candidate.drawn / bytesPerMB,
-                    candidate.inside * 100
+                    candidate.drawn / bytesPerMB
                 )
             )
         }

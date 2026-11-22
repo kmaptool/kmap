@@ -58,7 +58,8 @@ extension StyleRecovery {
                 ambiguous: code.ambiguous,
                 meaning: "",
                 status: .mixed,
-                resolutions: code.resolutions
+                resolutions: code.resolutions,
+                meant: entry.meant
             )
 
             let ranked = entry.buckets.sorted {

@@ -35,6 +35,12 @@ struct PBFReader {
         }
     }
 
+    /// Whether the file opens as an extract does: with a header blob, and a whole one.
+    func opensAsAnExtract() -> Bool {
+        guard let data = try? Data(contentsOf: url, options: .alwaysMapped) else { return false }
+        return data.withUnsafeBytes { Self.headerBlob(in: $0) != nil }
+    }
+
     /// The file's first blob, when it is the header blob and whole.
     private static func headerBlob(in file: UnsafeRawBufferPointer) -> UnsafeRawBufferPointer? {
         var at = 0

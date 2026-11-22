@@ -76,6 +76,20 @@ struct BBox: Codable, Equatable {
         return box.isValid ? box : .empty
     }
 
+    /// The box as it lies within -180...180: 1 box, or its 2 sides where it runs across
+    /// 180 deg.
+    var sidesOf180: [BBox] {
+        guard isValid, maxLon - minLon < 360 else { return [self] }
+        // Brought round until its west edge is within -180..<180.
+        let turn = ((minLon + 180) / 360).rounded(.down) * 360
+        let box = BBox(minLon: minLon - turn, minLat: minLat, maxLon: maxLon - turn, maxLat: maxLat)
+        guard box.maxLon > 180 else { return [box] }
+        return [
+            BBox(minLon: box.minLon, minLat: minLat, maxLon: 180, maxLat: maxLat),
+            BBox(minLon: -180, minLat: minLat, maxLon: box.maxLon - 360, maxLat: maxLat)
+        ]
+    }
+
     /// Degrees from the point to the nearest edge, zero inside. Uncorrected for the
     /// latitude squeeze, so it is comparable only with another such distance.
     func distance(toLat lat: Double, lon: Double) -> Double {

@@ -2,7 +2,9 @@ import Foundation
 
 extension GroundIndex {
     struct Builder: OSMSink {
+        /// The map's frame within -180...180, and its far side where it runs across 180 deg.
         let frame: BBox
+        let farSide: BBox?
         var wantedParts: OSMParts { .all }
 
         // Node ids arrive ascending in a PBF, so parallel arrays + binary search
@@ -22,7 +24,11 @@ extension GroundIndex {
         var bareCells: [Int64: [UInt64]] = [:]
         var inner: Set<Int64> = []
 
-        init(frame: BBox) { self.frame = frame }
+        init(frame: BBox) {
+            let sides = frame.sidesOf180
+            self.frame = sides[0]
+            farSide = sides.count > 1 ? sides[1] : nil
+        }
 
         private func cell(of ref: Int64) -> UInt64? {
             var low = 0, high = coordIDs.count
@@ -41,7 +47,7 @@ extension GroundIndex {
             tags: ArraySlice<Int32>,
             block: OSMBlock
         ) {
-            guard frame.contains(lat: lat, lon: lon) else { return }
+            guard frame.contains(lat: lat, lon: lon) || farSide?.contains(lat: lat, lon: lon) == true else { return }
             let cell = GarminGrid.cell(lat: lat, lon: lon)
             if let last = coordIDs.last, id <= last { ascending = false }
             coordIDs.append(id)

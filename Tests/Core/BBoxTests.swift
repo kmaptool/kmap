@@ -109,4 +109,42 @@ final class BBoxTests: XCTestCase {
         let data = try JSONEncoder().encode(box)
         XCTAssertEqual(try JSONDecoder().decode(BBox.self, from: data), box)
     }
+
+    func testABoxWithin180IsItsOnlySide() {
+        let box = BBox(minLon: -10, minLat: 1, maxLon: 20, maxLat: 2)
+        XCTAssertEqual(box.sidesOf180, [box])
+        XCTAssertEqual(BBox.empty.sidesOf180.count, 1)
+        let edge = BBox(minLon: 170, minLat: 1, maxLon: 180, maxLat: 2)
+        XCTAssertEqual(edge.sidesOf180, [edge])
+    }
+
+    func testABoxAround0IsItsOnlySide() {
+        let box = BBox(minLon: -3, minLat: -4, maxLon: 14, maxLat: 11)
+        XCTAssertEqual(box.sidesOf180, [box])
+        let point = BBox(minLon: 0, minLat: 0, maxLon: 0, maxLat: 0)
+        XCTAssertEqual(point.sidesOf180, [point])
+    }
+
+    func testABoxAcross180IsItsTwoSides() {
+        let east = BBox(minLon: 170, minLat: 1, maxLon: 180, maxLat: 2)
+        let west = BBox(minLon: -180, minLat: 1, maxLon: -170, maxLat: 2)
+        XCTAssertEqual(BBox(minLon: 170, minLat: 1, maxLon: 190, maxLat: 2).sidesOf180, [east, west])
+        XCTAssertEqual(BBox(minLon: -190, minLat: 1, maxLon: -170, maxLat: 2).sidesOf180, [east, west])
+    }
+
+    func testABoxWhollyPast180IsBroughtRound() {
+        XCTAssertEqual(
+            BBox(minLon: 185, minLat: 1, maxLon: 190, maxLat: 2).sidesOf180,
+            [BBox(minLon: -175, minLat: 1, maxLon: -170, maxLat: 2)]
+        )
+        XCTAssertEqual(
+            BBox(minLon: -190, minLat: 1, maxLon: -185, maxLat: 2).sidesOf180,
+            [BBox(minLon: 170, minLat: 1, maxLon: 175, maxLat: 2)]
+        )
+    }
+
+    func testABoxRoundTheWorldStaysWhole() {
+        let world = BBox(minLon: -180, minLat: -90, maxLon: 180, maxLat: 90)
+        XCTAssertEqual(world.sidesOf180, [world])
+    }
 }

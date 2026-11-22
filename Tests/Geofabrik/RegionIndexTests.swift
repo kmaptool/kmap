@@ -137,6 +137,27 @@ final class RegionIndexTests: XCTestCase {
         XCTAssertGreaterThan(region.demTileCount, 0)
     }
 
+    /// The index as the cache keeps it is read with no word to the server; a cache that
+    /// holds none, or a page in its place, gives none.
+    func testTheKeptIndexIsReadFromTheCacheAlone() throws {
+        let before = try? Data(contentsOf: Paths.indexCache)
+        addTeardownBlock {
+            if let before {
+                try? FileTools.write(before, to: Paths.indexCache)
+            } else {
+                FileTools.removeIfPresent(Paths.indexCache)
+            }
+        }
+        Paths.ensure(Paths.indexCache.deletingLastPathComponent())
+        let kept = try JSONSerialization.data(withJSONObject: ["features": [feature(id: "andorra", name: "Andorra")]])
+        try FileTools.write(kept, to: Paths.indexCache)
+        XCTAssertNotNil(RegionIndex.kept()?.region("andorra"))
+        try FileTools.write(Data("<html>Sign in to the Wi-Fi</html>".utf8), to: Paths.indexCache)
+        XCTAssertNil(RegionIndex.kept())
+        FileTools.removeIfPresent(Paths.indexCache)
+        XCTAssertNil(RegionIndex.kept())
+    }
+
     /// A page answering 200 in the index's place, a captive portal's: the copy kept from
     /// before serves, and the page is not taken for an index.
     func testAPageInTheIndexsPlaceFallsBackOnTheKeptCopy() throws {

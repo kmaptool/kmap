@@ -1,12 +1,11 @@
 import Foundation
 
-/// The download offer: which region would cover the map, what it weighs, and fetching
+/// The download offer: which region recover would read next, what it weighs, and fetching
 /// it into the cache a build reads.
 extension RecoverScreen {
-    private static let mostAlternatives = 2
-
-    /// Weighs the regions that would cover the map and offers the lightest worth having.
-    func offer(_ ctx: AppContext, frame: BBox) {
+    /// Offers the region to download after a run that was refused. `short` is a run that
+    /// had ground, and too little: with no region left it goes on with what there is.
+    func offer(_ ctx: AppContext, frame: BBox, short: Bool) {
         let index = ctx.index
         let img = img
 
@@ -14,76 +13,100 @@ extension RecoverScreen {
             guard let self else { return }
             do {
                 if index.regions.isEmpty { try await index.load() }
-                // Against the map's own tiles, not its frame, which spans ground a
-                // non-rectangular map never draws.
-                let drawn = RegionSuggestion.drawnGround(of: img)
-                let suggested = RegionSuggestion.suggestedRegions(on: drawn, index: index)
-                // A cached one was already found off the map: offered again, it would be
-                // downloaded and refused in a loop.
-                let regions = suggested.filter { !FileTools.exists(RegionSuggestion.cacheDestination(for: $0.region)) }
-                guard !regions.isEmpty else {
-                    await MainActor.run {
-                        self.failure =
-                            suggested.isEmpty
-                            ? t("no region kmap can download overlaps this map (%@)", frame.display)
-                            : t(
-                                "the extracts kmap holds around this map do not cover what it draws (%@)",
-                                frame.display
-                            )
-                        self.phase = .failed
+                let next = await RegionSuggestion.nextGround(for: img, index: index, asking: true)
+                await MainActor.run {
+                    // Esc while the size was asked: no dialog, and a screen Esc can leave.
+                    guard self.work?.isCancelled != true else { return self.stopped() }
+                    if !next.picks.isEmpty {
+                        self.present(next.picks)
+                    } else if short {
+                        self.anyGround = true
+                        self.start(ctx)
+                    } else {
+                        self.fail(
+                            saying: next.reached
+                                ? t(
+                                    "the extracts kmap holds around this map do not cover what it draws (%@)",
+                                    frame.display
+                                )
+                                : t("no region kmap can download overlaps this map (%@)", frame.display)
+                        )
                     }
-                    return
                 }
-                let weighed = await RegionSuggestion.weighed(regions)
-                guard let pick = RegionSuggestion.worthDownloading(weighed) ?? regions.first else { return }
-                // Esc while the sizes were asked: no dialog, and a screen Esc can leave.
-                guard !Task.isCancelled else {
-                    await MainActor.run { self.phase = .cancelled }
-                    return
-                }
-                await MainActor.run { self.present(pick, among: weighed) }
             } catch is CancellationError {
-                await MainActor.run { self.phase = .cancelled }
+                await MainActor.run { self.stopped() }
             } catch {
                 await MainActor.run { self.fail(error) }
             }
         }
     }
 
-    /// The pick with its size, and the runners-up standing on the same ground under it.
-    private func present(_ pick: RegionSuggestion.Candidate, among weighed: [(RegionSuggestion.Candidate, Int64)]) {
-        let size = weighed.first { $0.0.region.id == pick.region.id }?.1
-        var detail = [(pick.region.name, size.map { "≈ \(Fmt.bytes($0))" } ?? "…")]
-        let alternatives =
-            weighed
-            .filter { $0.0.region.id != pick.region.id && $0.0.isInside == pick.isInside }
-            .sorted { $0.1 < $1.1 }
-            .prefix(Self.mostAlternatives)
-        for (other, bytes) in alternatives {
-            detail.append((other.region.name, "≈ \(Fmt.bytes(bytes))"))
-        }
+    /// The region to offer after a run that went through: the one that may settle the
+    /// most of the codes it left unsettled, nil where none may settle enough of them.
+    nonisolated static func groundToAdd(
+        after report: StyleRecovery.Report,
+        index: RegionIndex
+    ) async -> (region: Region, codes: Int, size: Int64?)? {
+        guard let left = report.remainder else { return nil }
+        // Without the list of regions there is nothing to offer: the result stands.
+        if index.regions.isEmpty { _ = try? await index.load() }
+        guard let best = RegionSuggestion.bestGround(after: report, index: index), left.isWorth(best.codes)
+        else { return nil }
+        return (best.region, best.codes, await RegionSuggestion.size(of: best.region))
+    }
 
+    /// Asks about the regions a refused run needs, each with its size.
+    func present(_ picks: [(region: Region, size: Int64?)]) {
+        let several = picks.count > 1
+        ask(
+            title: several ? tn("Download %d region(s)?", picks.count) : t("Download a region?"),
+            body: [
+                t(
+                    "Recovering a style needs OSM data for at least a quarter of the map's area."
+                        + " This computer has less."
+                ),
+                several
+                    ? t("The regions offered cover the largest part of the map.")
+                    : t("The region offered covers the largest part of the map.")
+            ],
+            picks
+        )
+    }
+
+    /// Asks about 1 more region after a run that went through: `codes` is how many of the
+    /// codes it left unsettled the region may settle.
+    func present(_ region: Region, size: Int64?, settling codes: Int, of left: StyleRecovery.Remainder) {
+        ask(
+            title: t("Download 1 more region?"),
+            body: [
+                t(
+                    "The meaning of %1$d of the map's %2$d codes is not determined: the data read"
+                        + " has too few of them or none. This region may determine %3$d of them. After"
+                        + " the download the map is read again.",
+                    left.unsettled,
+                    left.codes,
+                    codes
+                )
+            ],
+            [(region, size)]
+        )
+    }
+
+    private func ask(title: String, body: [String], _ picks: [(region: Region, size: Int64?)]) {
         offering = Question(
             dialog: Dialog(
-                title: t("Download a region?"),
-                body: [
-                    t(
-                        "No OSM data on this machine matches this map. Recovering the style"
-                            + " does not need the whole map covered — the codes a style uses are"
-                            + " used everywhere it draws, so one region inside the map is enough"
-                            + " to read them."
-                    ),
-                    t(
-                        "The first is what kmap would take; it lands in the same cache a"
-                            + " build reads, so the next build has it too."
-                    )
+                title: title,
+                body: body + [
+                    picks.count > 1
+                        ? t("The files are kept in the cache and used when building maps.")
+                        : t("The file is kept in the cache and used when building maps.")
                 ],
-                detail: detail,
+                detail: picks.map { ($0.region.name, $0.size.map { "≈ \(Fmt.bytes($0))" } ?? "…") },
                 confirm: t("download"),
                 cancel: t("not now"),
                 tone: .plain
             ),
-            subject: [pick.region]
+            subject: picks.map(\.region)
         )
     }
 
@@ -107,14 +130,14 @@ extension RecoverScreen {
                 ) { region in
                     await MainActor.run { self.fetching = region.name }
                 }
-                guard fetched else { return await MainActor.run { self.phase = .cancelled } }
+                guard fetched else { return await MainActor.run { self.stopped() } }
                 await MainActor.run { self.start(ctx) }
             } catch is CancellationError {
-                await MainActor.run { self.phase = .cancelled }
+                await MainActor.run { self.stopped() }
             } catch {
                 await MainActor.run {
                     if self.work?.isCancelled == true {
-                        self.phase = .cancelled
+                        self.stopped()
                     } else {
                         self.fail(error)
                     }

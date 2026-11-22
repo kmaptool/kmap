@@ -78,7 +78,8 @@ extension CLI {
         _ report: StyleRecovery.Report,
         ordered: [StyleRecovery.Outcome],
         path: String,
-        out: String?
+        out: String?,
+        more: (region: Region, codes: Int)? = nil
     ) {
         CLIOutput.result([
             "map": .string(Paths.expand(path).path),
@@ -130,7 +131,9 @@ extension CLI {
                     ]
                 }
             ),
-            "out": .of(out)
+            "out": .of(out),
+            // The region --more would read, and how many unsettled codes it may settle.
+            "more": more.map { ["region": .string($0.region.id), "codes": .int($0.codes)] } ?? .null
         ])
     }
 

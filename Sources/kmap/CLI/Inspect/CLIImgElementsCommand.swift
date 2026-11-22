@@ -39,7 +39,7 @@ extension CLI {
             let started = Date()
             try ImgElements.read(
                 img: Paths.expand(path),
-                grounds: grounds.map(ImgElements.Ground.init),
+                grounds: grounds.map { ImgElements.Ground($0) },
                 extendedAreasAndPoints: flags.has("extended"),
                 coarserLevels: flags.has("coarse"),
                 resolution: flags.int("res"),

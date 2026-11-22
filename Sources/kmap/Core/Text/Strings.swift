@@ -681,16 +681,25 @@ enum Strings {
         "matching against OSM data": "сопоставление с данными OSM",
         "working out what the codes mean": "разбор кодов",
         "Download a region?": "Скачать регион?",
-        "No OSM data on this machine matches this map. Recovering the style does not need"
-            + " the whole map covered — the codes a style uses are used everywhere it"
-            + " draws, so one region inside the map is enough to read them.":
-            "Данных OSM под эту карту на машине нет. Восстановлению не нужна вся площадь"
-            + " карты: коды стиля используются везде, где он рисует, поэтому одного"
-            + " региона внутри карты достаточно, чтобы их прочитать.",
-        "The first is what kmap would take; it lands in the same cache a build reads, so"
-            + " the next build has it too.":
-            "Первый — тот, что kmap возьмёт; он ложится в тот же кэш, которым пользуется"
-            + " сборка, так что следующей сборке достанется тоже.",
+        "Recovering a style needs OSM data for at least a quarter of the map's area."
+            + " This computer has less.":
+            "Для восстановления стиля нужны данные OSM не менее чем на четверть территории"
+            + " карты. На этом компьютере их меньше.",
+        "The region offered covers the largest part of the map.":
+            "Предлагается регион, покрывающий наибольшую часть карты.",
+        "The file is kept in the cache and used when building maps.":
+            "Файл сохраняется в кэше и используется при сборке карт.",
+        "The regions offered cover the largest part of the map.":
+            "Предлагаются регионы, покрывающие наибольшую часть карты.",
+        "The files are kept in the cache and used when building maps.":
+            "Файлы сохраняются в кэше и используются при сборке карт.",
+        "Download 1 more region?": "Скачать ещё 1 регион?",
+        "The meaning of %1$d of the map's %2$d codes is not determined: the data read"
+            + " has too few of them or none. This region may determine %3$d of them. After"
+            + " the download the map is read again.":
+            "Значение %1$d из %2$d кодов карты не определено: в прочитанных данных они"
+            + " встречаются редко или отсутствуют. Этот регион может определить %3$d из них."
+            + " После скачивания карта читается повторно.",
         "download": "скачать",
         "downloading %@": "скачивание %@",
         "no region kmap can download overlaps this map (%@)":
@@ -1289,6 +1298,11 @@ enum Strings {
             "few": "%d элемента",
             "many": "%d элементов"
         ],
+        "Download %d region(s)?": [
+            "one": "Скачать %d регион?",
+            "few": "Скачать %d региона?",
+            "many": "Скачать %d регионов?"
+        ],
         "%d code(s) in this map": [
             "one": "%d код в этой карте",
             "few": "%d кода в этой карте",
@@ -1450,6 +1464,10 @@ enum Strings {
         "%d element(s)": [
             "one": "%d element",
             "other": "%d elements"
+        ],
+        "Download %d region(s)?": [
+            "one": "Download %d region?",
+            "other": "Download %d regions?"
         ],
         "%d code(s) in this map": [
             "one": "%d code in this map",

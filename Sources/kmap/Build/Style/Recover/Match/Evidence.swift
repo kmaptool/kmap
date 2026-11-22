@@ -49,8 +49,15 @@ struct Evidence: Sendable {
         "\(kind.rawValue)\(String(type, radix: 16))"
     }
 
-    private static func slot(_ kind: ElementDumper.Kind, _ type: Int) -> Int {
+    static func slot(_ kind: ElementDumper.Kind, _ type: Int) -> Int {
         (kind.slot << 32) | type
+    }
+
+    /// The kind and type a slot stands for, nil for a number that is no slot.
+    static func code(ofSlot slot: Int) -> (kind: ElementDumper.Kind, type: Int)? {
+        let kinds: [ElementDumper.Kind] = [.point, .line, .area]
+        guard let kind = kinds.first(where: { $0.slot == slot >> 32 }) else { return nil }
+        return (kind, slot & 0xFFFF_FFFF)
     }
 
     /// Folds one worker's tally into this one. Counts add; sources are keyed by OSM id,

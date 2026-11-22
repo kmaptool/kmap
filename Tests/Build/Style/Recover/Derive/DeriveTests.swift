@@ -698,6 +698,7 @@ final class DeriveTests: XCTestCase {
             )
         ])
         XCTAssertEqual(report.outcomes["Lf"]?.status, .mixed)
+        XCTAssertEqual(report.outcomes["Lf"]?.meant, 10, "how many witnesses meant anything is kept")
         XCTAssertEqual(report.sheet, "")
     }
 
@@ -717,6 +718,7 @@ final class DeriveTests: XCTestCase {
             )
         ])
         XCTAssertEqual(report.outcomes["Lf"]?.status, .singleWitness)
+        XCTAssertEqual(report.outcomes["Lf"]?.meant, 3)
         XCTAssertEqual(report.sheet, "")
     }
 

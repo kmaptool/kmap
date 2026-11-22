@@ -28,40 +28,43 @@ enum StyleRecovery {
     static let leastShare = 0.25
     /// Above this share of the map's data the ground counts as the whole map.
     static let wholeEnough = 0.9
-    /// From this share of codes seen once or never, 1 more region is read.
-    static let weakEnough = 0.03
+    /// A region is read for the codes it may settle from this many: the forecast was off
+    /// by up to 2 either way on the regions it was measured on.
+    static let worthARegion = 3
 
     /// What can be refused before any reading: no map, no tiles in it, an extract named
-    /// that is not there or whose header puts it beside the map. Returns the map's ground.
+    /// that is not there or whose header puts it beside the map. Returns the map's frame.
     @discardableResult
-    static func checkInputs(img: URL, extracts: [URL]) throws -> RegionSuggestion.DrawnGround {
+    static func checkInputs(img: URL, extracts: [URL]) throws -> BBox {
         guard FileTools.exists(img) else { throw Trouble.noSuchMap(img) }
-        let drawn = RegionSuggestion.drawnGround(of: img)
-        guard drawn.frame.isValid else { throw Trouble.noTiles }
+        let frame = RegionSuggestion.frame(of: img)
+        guard frame.isValid else { throw Trouble.noTiles }
         for extract in extracts {
             guard FileTools.exists(extract) else { throw Trouble.noSuchExtract(extract) }
             if let box = (try? PBFReader(url: extract).headerBBox()) ?? nil {
                 let bbox = BBox(minLon: box.minLon, minLat: box.minLat, maxLon: box.maxLon, maxLat: box.maxLat)
-                if !bbox.intersection(drawn.frame).isValid {
-                    throw Trouble.extractMissesMap(extract, drawn.frame)
+                if !frame.sidesOf180.contains(where: { bbox.intersection($0).isValid }) {
+                    throw Trouble.extractMissesMap(extract, frame)
                 }
             }
         }
-        return drawn
+        return frame
     }
 
     /// The whole pipeline: dump, index, match, aggregate, derive.
     ///
     /// Cancellation is the task's: it kills the reader process, and the matching loop
     /// checks between elements. `anyGround` goes on below `leastShare`, for when no more
-    /// ground can be had.
+    /// ground can be had. `lookingForMore` reads the rest of the map too, for the codes
+    /// the ground left unsure: what a caller that can fetch more ground decides by.
     static func run(
         img: URL,
         extracts explicit: [URL],
         log: Log,
         rulesDirectory: URL? = nil,
         progress: RecoverProgress? = nil,
-        anyGround: Bool = false
+        anyGround: Bool = false,
+        lookingForMore: Bool = false
     ) async throws -> Report {
         // The steps on GCD threads cannot see the task's cancellation: a flag carries it.
         let stop = StopFlag()
@@ -73,6 +76,7 @@ enum StyleRecovery {
                 rulesDirectory: rulesDirectory,
                 progress: progress,
                 anyGround: anyGround,
+                lookingForMore: lookingForMore,
                 stop: stop
             )
         } onCancel: {
@@ -87,30 +91,28 @@ enum StyleRecovery {
         rulesDirectory: URL?,
         progress: RecoverProgress?,
         anyGround: Bool,
+        lookingForMore: Bool,
         stop: StopFlag
     ) async throws -> Report {
         var report = Report()
-        let drawn = try checkInputs(img: img, extracts: explicit)
-        let frame = drawn.frame
+        let frame = try checkInputs(img: img, extracts: explicit)
         report.frame = frame
 
-        // Ground truth: the extracts handed in, or every cached extract touching a tile.
-        // Tiles rather than the frame: the frame spans ground a non-rectangular map
-        // never draws.
-        let extracts =
-            explicit.isEmpty
-            ? RegionSuggestion.cachedExtracts(drawnOn: drawn) : explicit
-        guard !extracts.isEmpty else { throw Trouble.noExtracts(frame) }
-        report.extracts = extracts
-
-        let (grounds, wholeFrame) = try grounds(of: extracts, frame: frame, named: !explicit.isEmpty, log: log)
         // Where the map's data lies, not the ground its tiles span: a map of 2 distant
         // regions has tiles stretched over the land between them.
-        let share =
-            wholeFrame
-            ? 1
-            : ImgElements.dataShare(of: img, within: grounds)
-                ?? RegionSuggestion.share(of: drawn, within: grounds)
+        let drawn = RegionSuggestion.drawnGround(of: img)
+        report.drawn = drawn
+        // Ground truth: the extracts handed in, or every cached extract the map draws on,
+        // each with its region's outline where the index knows it.
+        let extracts =
+            explicit.isEmpty
+            ? RegionSuggestion.cachedExtracts(drawnOn: drawn, index: RegionIndex.kept())
+            : explicit.map { (file: $0, outline: nil) }
+        guard !extracts.isEmpty else { throw Trouble.noExtracts(frame) }
+        report.extracts = extracts.map(\.file)
+
+        let (grounds, holders, wholeFrame) = try grounds(of: extracts, frame: frame, named: !explicit.isEmpty, log: log)
+        let share = wholeFrame ? 1 : RegionSuggestion.share(of: drawn, on: holders)
         // Before the map is read: a refusal costs seconds, not minutes of a large map.
         if share < leastShare {
             guard anyGround else { throw Trouble.tooLittleGround(share: share) }
@@ -156,7 +158,7 @@ enum StyleRecovery {
             log: log,
             progress: progress
         )
-        for extract in extracts { try await matcher.read(extract) }
+        for extract in extracts { try await matcher.read(extract.file) }
         let evidence = matcher.finish()
         report.groundTags = matcher.groundTags
         try ledger(evidence, into: &report, stop: stop)
@@ -174,6 +176,16 @@ enum StyleRecovery {
             stop: stop
         )
         try Task.checkCancellation()
+        // A map read whole is left alone, however rare its objects are.
+        if lookingForMore, !wholeFrame, share < wholeEnough {
+            log.step("looking over the rest of the map for the codes not settled")
+            let left = try remainder(of: img, off: grounds, outcomes: report.outcomes, rules: rules, stop: stop)
+            log.append(
+                "\(left.unsettled) of the map's \(left.codes) code(s) are not settled: \(left.tooFew) seen too little,"
+                    + " \(left.never) never, \(left.mixed) with witnesses that disagree"
+            )
+            report.remainder = left
+        }
         recoverStyle(from: img, into: &report, log: log, rulesDirectory: rulesDirectory)
         // Asked last too: a caller writes what is returned.
         try Task.checkCancellation()

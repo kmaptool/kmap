@@ -2,7 +2,7 @@ import XCTest
 
 @testable import kmap
 
-/// The region suggestion against real maps and the cached Geofabrik index.
+/// The ground recover reads, against real maps and the cached Geofabrik index.
 ///
 /// The synthetic tests hold the rules; this holds the world. Each entry is a map that
 /// once produced a wrong suggestion — a neighbour the map merely touches, or a region
@@ -25,7 +25,7 @@ final class RealMapSuggestionTests: XCTestCase {
         return fresh
     }
 
-    func testEveryMapIsOfferedTheGroundItIsMadeOf() throws {
+    func testEveryMapReadsTheGroundItIsMadeOf() throws {
         let expectations = LocalTestMaps.load()?.suggestion ?? []
         try XCTSkipUnless(!expectations.isEmpty, "no local map expectations")
         let index = try loadedIndex()
@@ -36,28 +36,25 @@ final class RealMapSuggestionTests: XCTestCase {
             seen += 1
 
             let drawn = RegionSuggestion.drawnGround(of: url)
-            let offered = RegionSuggestion.suggestedRegions(on: drawn, index: index)
-            let listed = offered.map {
-                String(
-                    format: "%@ (share %.0f%%, inside %.0f%%)",
-                    $0.region.id,
-                    $0.share * 100,
-                    $0.inside * 100
-                )
+            let ground = RegionSuggestion.groundToRead(for: drawn, index: index)
+            // What recover fetches before its first run: the regions holding the most of
+            // the map, until they hold enough of it between them.
+            var fetched: [RegionSuggestion.Candidate] = []
+            for candidate in ground where fetched.reduce(0, { $0 + $1.share }) < StyleRecovery.leastShare {
+                fetched.append(candidate)
+            }
+            let listed = ground.map {
+                String(format: "%@ (share %.0f%%, inside %.0f%%)", $0.region.id, $0.share * 100, $0.inside * 100)
             }.joined(separator: ", ")
 
-            XCTAssertFalse(offered.isEmpty, "\(url.lastPathComponent): nothing offered")
+            XCTAssertFalse(fetched.isEmpty, "\(url.lastPathComponent): nothing to read")
             if !expectation.first.isEmpty {
-                XCTAssertEqual(
-                    offered.first?.region.id,
-                    expectation.first,
-                    "\(url.lastPathComponent): \(listed)"
-                )
+                XCTAssertEqual(fetched.first?.region.id, expectation.first, "\(url.lastPathComponent): \(listed)")
             }
             for banned in expectation.never {
                 XCTAssertFalse(
-                    offered.contains { $0.region.id == banned },
-                    "\(url.lastPathComponent) offered \(banned): \(listed)"
+                    fetched.contains { $0.region.id == banned },
+                    "\(url.lastPathComponent) fetched \(banned): \(listed)"
                 )
             }
         }

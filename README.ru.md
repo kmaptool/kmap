@@ -420,13 +420,15 @@ kmap typgen <palette.txt> [--fid=N] [--out=FILE]
                               выписать исходник TYP встроенной палитры
 kmap extract-typ <img> [--out=DIR] [--force]
                               достать TYP из карты, чтобы использовать или править
-kmap recover <map.img> [--extract=FILE.pbf]… [--out=STYLE.txt] [--attach]
-             [--sheet=FILE]
+kmap recover <map.img> [--extract=FILE.pbf]… [--more] [--out=STYLE.txt]
+             [--attach] [--sheet=FILE]
                               прочитать другую карту и восстановить стили по данным.
                               --out пишет стиль, --attach кладёт его в библиотеку TYP,
                               --sheet пишет список переназначений. Без --extract
                               читаются выписки из кэша, а если в них мало данных
-                              карты, регионы докачиваются по одному
+                              карты, регионы докачиваются. С --more докачиваются и
+                              регионы, которые могут опознать оставшиеся коды: стиль
+                              точнее, ждать дольше
 kmap recover-check <original.img> <rebuilt.img> [--extract=FILE.pbf]…
                               сверить две карты тег за тегом — полный тест
                               восстановления, каждый смысл до и после
