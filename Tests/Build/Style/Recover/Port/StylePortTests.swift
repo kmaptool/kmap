@@ -527,6 +527,60 @@ final class StylePortTests: XCTestCase {
         XCTAssertEqual(ported.first(where: { $0.ours == 0x6503 })?.theirs, 0x6503)
     }
 
+    /// Their map draws a building site as nothing. Ours stands on a number of its own
+    /// that goes back to the industrial ground's where unpainted: the blank picture is
+    /// ported, so the site is not drawn as an estate. A blank number beside a drawn one
+    /// is a routing number, and no look.
+    func testAMeaningTheirMapDrawsBlankIsDrawnBlank() throws {
+        let rules = try index(
+            lines: "highway=track [0x0a resolution 22]\n",
+            polygons: """
+                landuse=construction [0x34 resolution 21]
+                landuse=industrial [0x0c resolution 20]
+                """
+        )
+        let theirs = TypSource.parse(
+            """
+            [_polygon]
+            Type=0x34
+            Xpm="2 1 2 1"
+            "a c none"
+            "b c none"
+            "ab"
+            [end]
+            [_polygon]
+            Type=0x0c
+            Xpm="0 0 1 0"
+            "1 c #DBDBDB"
+            [end]
+            [_line]
+            Type=0x0a
+            Xpm="2 1 2 1"
+            "a c none"
+            "b c none"
+            "ab"
+            [end]
+            [_line]
+            Type=0x10e0a
+            Xpm="0 0 1 0"
+            "1 c #996600"
+            LineWidth=2
+            [end]
+            """
+        )
+        let ported = StylePort.map(
+            codesByTag: [
+                "landuse=construction": ["A34": 40], "landuse=industrial": ["Ac": 90],
+                "highway=track": ["La": 300, "L10e0a": 300]
+            ],
+            rules: rules,
+            theirTyp: theirs
+        )
+        XCTAssertEqual(ported.first(where: { $0.kind == .polygon && $0.ours == 0x34 })?.theirs, 0x34)
+        XCTAssertEqual(ported.first(where: { $0.kind == .polygon && $0.ours == 0x0c })?.theirs, 0x0c)
+        XCTAssertEqual(ported.first(where: { $0.kind == .line && $0.ours == 0x0a })?.theirs, 0x10e0a)
+    }
+
     /// The receiver draws by number. A living street their map leaves to it on the
     /// minor road's number is declared on that number, so the build sends our rule back.
     func testAMeaningLeftToTheReceiverKeepsTheNumberItIsDrawnBy() throws {

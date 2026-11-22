@@ -41,30 +41,43 @@ extension StylePort.Mapping {
         theirAreas: [String: [String: Double]]
     ) -> [MapElementKind: [String: [StylePort.TheirRung]]] {
         var theirs: [MapElementKind: [String: [StylePort.TheirRung]]] = [:]
+        // What their style draws blank, apart: a look only where nothing else is.
+        var blank: [MapElementKind: [String: [StylePort.TheirRung]]] = [:]
         for (tag, drawn) in codesByTag {
             let family = tag.split(separator: "=").first.map { $0 + "=*" }
             for (key, count) in drawn where count >= StylePort.fewestToPort {
                 guard let (kind, code) = StylePort.read(key) else { continue }
-                // A number their style leaves blank carries no look: it must not take a
-                // rung of the ladder and leave the picture below it homeless. A point
-                // is no rung, and a blank icon is a look of its own: the name alone.
+                // A number their style leaves blank must not take a rung of the ladder
+                // and leave the picture below it homeless. A point is no rung, and a
+                // blank icon is a look of its own: the name alone.
+                var shows = true
                 if let theirTyp {
-                    let section = theirTyp.section(kind, code)
-                    if section == nil || (kind != .point && !StylePort.draws(section)) { continue }
+                    guard let section = theirTyp.section(kind, code) else { continue }
+                    shows = kind == .point || StylePort.draws(section)
                 }
                 let finest = theirZooms[key]?.keys.max() ?? GarminGrid.fullResolution
                 let area = theirAreas[tag]?[key] ?? 0
-                theirs[kind, default: [:]][tag, default: []].append((code, count, finest, area))
-                if let family, ourCodes[kind]?[tag] == nil {
-                    var held = theirs[kind, default: [:]][String(family), default: []]
+                func add(_ name: String, to rungs: inout [MapElementKind: [String: [StylePort.TheirRung]]]) {
+                    var held = rungs[kind, default: [:]][name, default: []]
                     if let at = held.firstIndex(where: { $0.code == code }) {
                         held[at].count += count
                         held[at].area += area
                     } else {
                         held.append((code, count, finest, area))
                     }
-                    theirs[kind, default: [:]][String(family)] = held
+                    rungs[kind, default: [:]][name] = held
                 }
+                if shows { add(tag, to: &theirs) } else { add(tag, to: &blank) }
+                if let family, ourCodes[kind]?[tag] == nil {
+                    if shows { add(String(family), to: &theirs) } else { add(String(family), to: &blank) }
+                }
+            }
+        }
+        // A meaning their map draws blank and nothing else is drawn as nothing: that is
+        // its look, and without it the build would give the meaning another number's.
+        for (kind, tags) in blank {
+            for (tag, rungs) in tags where theirs[kind]?[tag] == nil {
+                theirs[kind, default: [:]][tag] = rungs
             }
         }
         return theirs
