@@ -13,8 +13,23 @@ extension CLI {
         private(set) var different: [(tag: String, theirs: String, ours: String)] = []
         private(set) var missing: [(tag: String, theirs: String, count: Int)] = []
 
-        /// Where both maps carry a TYP the tags are compared by picture, not by number: a
-        /// recovered style puts their pictures on our numbers.
+        /// What a code shows on a map: a picture of the style's, nothing at all, or
+        /// whatever the receiver draws a number the style has no section for.
+        private enum Look: Equatable {
+            case picture(XpmBlock)
+            case clear
+            case device
+
+            var picture: XpmBlock? {
+                if case .picture(let block) = self { return block }
+                return nil
+            }
+        }
+
+        /// Where both maps carry a TYP the tags are compared by what is seen, not by
+        /// number: a recovered style puts their pictures on our numbers. A tag neither
+        /// map shows agrees, whatever the numbers; one the receiver draws on both agrees
+        /// where it draws the same number.
         init(
             original: StyleRecovery.Report,
             rebuilt: StyleRecovery.Report,
@@ -25,16 +40,10 @@ extension CLI {
                 let witnesses = theirCodes.values.reduce(0, +)
                 guard witnesses >= Self.fewestCompared else { continue }
                 let theirTop = Self.top(theirCodes)
-                let ourCodes = rebuilt.codesByTag[tag] ?? [:]
-                guard !ourCodes.isEmpty else {
-                    // An omission only where the rebuilt map's ground carries the tag at
-                    // all: two maps over two grounds share styles, not dachas.
-                    if (rebuilt.groundTags[tag] ?? 0) >= Self.fewestCompared {
-                        missing.append((tag, theirTop.map(\.0).joined(separator: ","), witnesses))
-                    }
-                    continue
-                }
-                let ourTop = Self.top(ourCodes)
+                let ourTop = Self.top(rebuilt.codesByTag[tag] ?? [:])
+                // Compared only where the rebuilt map's ground carries the tag at all:
+                // 2 maps over 2 grounds share styles, not dachas.
+                if ourTop.isEmpty, (rebuilt.groundTags[tag] ?? 0) < Self.fewestCompared { continue }
                 let theirs = theirTop.map(\.0).joined(separator: ",")
                 let ours = ourTop.map(\.0).joined(separator: ",")
                 // A settlement is drawn by the receiver itself on both maps, whatever
@@ -44,27 +53,46 @@ extension CLI {
                     continue
                 }
                 let shareACode = ourTop.contains { mine in theirTop.contains { $0.0 == mine.0 } }
-                if let theirTyp, let ourTyp {
-                    let wanted = theirTop.compactMap { Self.picture(of: $0.0, in: theirTyp) }
-                    let got = ourTop.compactMap { Self.picture(of: $0.0, in: ourTyp) }
-                    // Nothing painted on either side: the numbers say what agrees.
-                    if wanted.isEmpty, got.isEmpty {
-                        if shareACode { same += 1 } else { different.append((tag, theirs, ours)) }
-                    } else if got.contains(where: { wanted.contains($0) }) {
+                guard let theirTyp, let ourTyp else {
+                    // Agreement: our commonest code for the tag is one the original uses.
+                    if ourTop.isEmpty {
+                        missing.append((tag, theirs, witnesses))
+                    } else if shareACode {
                         same += 1
                     } else {
-                        different.append(
-                            (
-                                tag, theirs + (wanted.isEmpty ? " (unpainted)" : ""),
-                                ours + (got.isEmpty ? " (unpainted)" : "")
-                            )
-                        )
+                        different.append((tag, theirs, ours))
                     }
                     continue
                 }
-                // Agreement: our commonest code for the tag is one the original uses.
-                if shareACode { same += 1 } else { different.append((tag, theirs, ours)) }
+                let wanted = theirTop.map { (code: $0.0, look: Self.look(of: $0.0, in: theirTyp)) }
+                let got = ourTop.map { (code: $0.0, look: Self.look(of: $0.0, in: ourTyp)) }
+                if Self.agree(wanted, got) {
+                    same += 1
+                } else if ourTop.isEmpty {
+                    missing.append((tag, theirs, witnesses))
+                } else {
+                    different.append((tag, theirs + Self.note(wanted), ours + Self.note(got)))
+                }
             }
+        }
+
+        /// A picture both sides draw settles it. With no picture on either side, both
+        /// show nothing, or the receiver draws a number they share. A tag the rebuilt
+        /// map leaves out shows nothing.
+        private static func agree(_ wanted: [(code: String, look: Look)], _ got: [(code: String, look: Look)]) -> Bool {
+            let theirs = wanted.compactMap(\.look.picture)
+            let ours = got.compactMap(\.look.picture)
+            guard theirs.isEmpty, ours.isEmpty else { return ours.contains { theirs.contains($0) } }
+            let theirDevice = wanted.filter { $0.look == .device }.map(\.code)
+            let ourDevice = got.filter { $0.look == .device }.map(\.code)
+            if theirDevice.isEmpty || ourDevice.isEmpty { return theirDevice.isEmpty && ourDevice.isEmpty }
+            return ourDevice.contains { theirDevice.contains($0) }
+        }
+
+        /// What a side with no picture is printed with.
+        private static func note(_ side: [(code: String, look: Look)]) -> String {
+            if side.contains(where: { $0.look.picture != nil }) { return "" }
+            return side.contains { $0.look == .device } ? " (unpainted)" : " (clear)"
         }
 
         /// The codes carrying a tag, commonest first, the strays dropped.
@@ -87,19 +115,23 @@ extension CLI {
 
         /// Whether an evidence key names a settlement point, `P600` and its kin.
         private static func isCity(_ key: String) -> Bool {
-            guard key.first == ElementDumper.Kind.point.rawValue,
-                let code = Int(key.dropFirst(), radix: 16)
-            else { return false }
+            guard let (kind, code) = StylePort.read(key), kind == .point else { return false }
             return GarminStandard.cityTypes.contains(code)
         }
 
-        /// What a code draws in a TYP, keyed as the evidence keys codes: `A50`, `L11f14`.
-        /// The drawing itself, a plain fill included.
-        private static func picture(of key: String, in typ: TypSource) -> XpmBlock? {
-            guard let first = key.first, let kind = ElementDumper.Kind(rawValue: first),
-                let code = Int(key.dropFirst(), radix: 16)
-            else { return nil }
-            return typ.section(kind.styleKind, code).flatMap { $0.dayXpm ?? $0.xpm }
+        /// What a code shows under a TYP, keyed as the evidence keys codes: `A50`,
+        /// `L11f14`. A line or an area whose section draws nothing is clear, and so is
+        /// an area the draw order leaves out; a blank icon is a look of its own, the
+        /// name alone.
+        private static func look(of key: String, in typ: TypSource) -> Look {
+            guard let (kind, code) = StylePort.read(key) else { return .device }
+            // An area missing from the draw order is not drawn, section or none.
+            if kind == .polygon, !typ.drawOrder.isEmpty, !typ.drawOrder.contains(where: { $0.code == code }) {
+                return .clear
+            }
+            guard let section = typ.section(kind, code) else { return .device }
+            guard kind == .point || StylePort.draws(section) else { return .clear }
+            return (section.dayXpm ?? section.xpm).map { .picture($0) } ?? .device
         }
     }
 }
