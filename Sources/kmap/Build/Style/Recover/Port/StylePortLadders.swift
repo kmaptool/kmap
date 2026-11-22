@@ -23,6 +23,23 @@ extension StylePort {
         return out
     }
 
+    /// Meaning -> the numbers that take it whole: by a rule that names the tag alone
+    /// and closes the chain. A stream has 0x18; the number of the one that runs dry
+    /// takes it only with `intermittent=yes`, and is no home of the stream's.
+    static func plainHomes(in rules: RuleSetIndex) -> [MapElementKind: [String: Set<Int>]] {
+        var out: [MapElementKind: [String: Set<Int>]] = [:]
+        for kind in MapElementKind.allCases {
+            for meaning in rules.byKind[kind]?.values ?? [:].values {
+                for rule in meaning.rules where !rule.tail.contains("continue") {
+                    for tag in RuleSetIndex.plainTags(of: rule.condition) {
+                        out[kind, default: [:]][tag, default: []].insert(meaning.code)
+                    }
+                }
+            }
+        }
+        return out
+    }
+
     /// Where a rule sits on its ladder: `resolution 22-23` is a rung reaching 23, a
     /// bare `resolution 22` the rule itself, drawn at every zoom from there in.
     static func rung(of tail: String) -> (banded: Bool, finest: Int) {

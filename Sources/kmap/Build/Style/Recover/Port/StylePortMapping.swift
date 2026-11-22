@@ -8,6 +8,8 @@ extension StylePort {
         let theirTyp: TypSource?
         /// Meaning -> the numbers kmap draws it with, per kind.
         let ourCodes: [MapElementKind: [String: Set<Int>]]
+        /// Meaning -> the numbers that take it whole, per kind.
+        let plainHomes: [MapElementKind: [String: Set<Int>]]
         /// The closest zoom each of our numbers is drawn at.
         let ourFinest: [MapElementKind: [Int: Int]]
         /// Meaning -> every number of theirs that drew it, with how much and at which zooms.
@@ -27,6 +29,7 @@ extension StylePort {
             self.rules = rules
             self.theirTyp = theirTyp
             ourCodes = StylePort.ourNumbers(in: rules)
+            plainHomes = StylePort.plainHomes(in: rules)
             ourFinest = Self.ourReach(in: rules)
             theirs = Self.theirLadders(
                 codesByTag: codesByTag,

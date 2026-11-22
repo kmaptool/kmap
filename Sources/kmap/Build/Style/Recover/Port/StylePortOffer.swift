@@ -4,7 +4,7 @@ extension StylePort {
     /// 1 picture of theirs offered for 1 number of ours, summed over the meanings it was
     /// seen drawing there.
     struct Offer {
-        private(set) var meanings: [(tag: String, count: Int)] = []
+        private(set) var meanings: [(tag: String, count: Int, weight: Double)] = []
         private(set) var witnesses = 0
         private(set) var weight = 0.0
         /// The width the strongest meaning asked for.
@@ -15,7 +15,7 @@ extension StylePort {
 
         mutating func add(_ tag: String, count: Int, weight: Double, width: Int?) {
             if count > (meanings.map(\.count).max() ?? 0) { self.width = width }
-            meanings.append((tag, count))
+            meanings.append((tag, count, weight))
             witnesses += count
             self.weight += weight
         }

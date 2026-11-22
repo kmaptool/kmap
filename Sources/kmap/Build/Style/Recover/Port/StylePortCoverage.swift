@@ -16,12 +16,24 @@ extension StylePort {
         for port in ported { painted[port.kind, default: []].insert(port.ours) }
         var out: [MapElementKind: Set<Int>] = [:]
         for (tag, drawn) in codesByTag {
+            // The number of theirs with no section that drew the meaning most, per kind.
+            var most: [MapElementKind: (code: Int, count: Int)] = [:]
             for (key, count) in drawn where count >= fewestToPort {
-                guard let (kind, code) = read(key), theirTyp.section(kind, code) == nil,
-                    let ours = ourCodes[kind]?[tag]
-                else { continue }
-                for number in ours where painted[kind]?.contains(number) != true {
-                    out[kind, default: []].insert(number)
+                guard let (kind, code) = read(key), theirTyp.section(kind, code) == nil else { continue }
+                if let held = most[kind], (held.count, code) >= (count, held.code) { continue }
+                most[kind] = (code, count)
+            }
+            for (kind, drawer) in most {
+                for number in ourCodes[kind]?[tag] ?? [] where painted[kind]?.contains(number) != true {
+                    // The receiver draws by number: ours given off the number theirs is
+                    // drawn by goes back to it, as the build sends an unpainted one. Where
+                    // a port paints that number, the meaning wears its picture.
+                    let was = StyleCatalog.widenedNumbers.first { $0.kind == kind && $0.now == number }?.was
+                    guard was == drawer.code else {
+                        out[kind, default: []].insert(number)
+                        continue
+                    }
+                    if painted[kind]?.contains(drawer.code) != true { out[kind, default: []].insert(drawer.code) }
                 }
             }
         }

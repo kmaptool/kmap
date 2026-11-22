@@ -264,6 +264,43 @@ struct RuleSetIndex {
         return out
     }
 
+    /// The tags a condition takes unqualified: each alternative that names 1 tag and
+    /// narrows it by nothing but negations and the keys that describe no meaning.
+    /// `a=x | b=y` takes both; `a=x & b=y` and `a=x & (b=y | b=z)` take neither.
+    static func plainTags(of condition: String) -> [String] {
+        var alternatives: [String] = []
+        var current = ""
+        var depth = 0
+        var braces = 0
+        for ch in condition {
+            switch ch {
+            case "{": braces += 1
+            case "}": braces = max(0, braces - 1)
+            case "(" where braces == 0:
+                depth += 1
+                current.append(ch)
+            case ")" where braces == 0:
+                depth -= 1
+                current.append(ch)
+            case "|" where braces == 0 && depth == 0:
+                alternatives.append(current)
+                current = ""
+            default: if braces == 0 { current.append(ch) }
+            }
+        }
+        alternatives.append(current)
+        return alternatives.compactMap { alternative in
+            let named = tokens(in: alternative).filter { token in
+                guard let eq = token.firstIndex(of: "="), eq != token.startIndex,
+                    token[token.index(before: eq)] != "!", !token.contains("~")
+                else { return false }
+                let key = String(token[..<eq])
+                return !syntheticPrefixes.contains(where: { key.hasPrefix($0) }) && !qualifyingKeys.contains(key)
+            }
+            return named.count == 1 ? named[0].replacingOccurrences(of: " ", with: "") : nil
+        }
+    }
+
     /// Splits a condition into `key=value` candidates on the boolean operators, ignoring
     /// anything inside an action block or a quoted string.
     private static func tokens(in condition: String) -> [String] {

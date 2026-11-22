@@ -57,23 +57,33 @@ extension StylePort.Mapping {
         return offers
     }
 
-    /// 2 meanings on 1 number of ours: where their code IS our number and means what
-    /// ours does, the vocabularies agree and that settles it; then the fill covering
-    /// more ground, and elsewhere the picture seen more often.
+    /// 2 meanings on 1 number of ours. Where their code IS our number and means what
+    /// ours does, the vocabularies agree and that settles it, unless a picture seen
+    /// often enough to be believed has more at stake than the namesake weighs: that
+    /// picture goes first. Then the fill covering more ground, and elsewhere the
+    /// picture seen more often.
     func claim(_ offers: [MapElementKind: [Int: [Int: StylePort.Offer]]]) -> [MapElementKind: [Int: StylePort.Ported]] {
-        func agrees(_ theirs: Int, _ ours: Int, _ kind: MapElementKind) -> Bool {
-            agreement.holds(theirs: theirs, ours: ours, kind: kind)
-        }
         var claimed: [MapElementKind: [Int: StylePort.Ported]] = [:]
         for (kind, byOurs) in offers {
             for (ours, byTheirs) in byOurs {
+                // Their code equals our number for 1 picture at most.
+                let namesake = byTheirs[ours].flatMap {
+                    agreement.holds(theirs: ours, ours: ours, kind: kind) ? $0 : nil
+                }
+                // A government office seen 90 times has no other number of ours; the
+                // town hall seen 4 times does not keep it for bearing our number.
+                func outweighs(_ theirs: Int, _ offer: StylePort.Offer) -> Bool {
+                    guard let namesake, theirs != ours, !isStray(theirs, kind, offer.witnesses) else { return false }
+                    return atStake(offer, kind, on: ours) > namesake.weight
+                }
+                let overruled = byTheirs.contains { outweighs($0.key, $0.value) }
+                func rank(_ theirs: Int, _ offer: StylePort.Offer) -> Int {
+                    if namesake != nil, theirs == ours, !overruled { return 2 }
+                    return outweighs(theirs, offer) ? 1 : 0
+                }
                 let ranked = byTheirs.sorted { a, b in
-                    let x = (
-                        agrees(a.key, ours, kind) ? 1 : 0, isStray(a.key, kind, a.value.witnesses) ? 0 : 1
-                    )
-                    let y = (
-                        agrees(b.key, ours, kind) ? 1 : 0, isStray(b.key, kind, b.value.witnesses) ? 0 : 1
-                    )
+                    let x = (rank(a.key, a.value), isStray(a.key, kind, a.value.witnesses) ? 0 : 1)
+                    let y = (rank(b.key, b.value), isStray(b.key, kind, b.value.witnesses) ? 0 : 1)
                     return (x.0, x.1, a.value.weight, b.key) > (y.0, y.1, b.value.weight, a.key)
                 }
                 guard let (code, winner) = ranked.first else { continue }
@@ -95,6 +105,13 @@ extension StylePort.Mapping {
             }
         }
         return claimed
+    }
+
+    /// What a picture loses with a number: the weight of its meanings that no other
+    /// number of ours takes whole.
+    func atStake(_ offer: StylePort.Offer, _ kind: MapElementKind, on ours: Int) -> Double {
+        offer.meanings.filter { (plainHomes[kind]?[$0.tag] ?? []).subtracting([ours]).isEmpty }
+            .reduce(0) { $0 + $1.weight }
     }
 
     /// How much of what their number drew is this meaning: a reserve lies on forest,

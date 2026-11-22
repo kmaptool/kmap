@@ -301,12 +301,14 @@ final class StylePortTests: XCTestCase {
     }
 
     /// Where their code for one of the meanings is our number, the vocabularies agree
-    /// on it, and that settles the number whatever the counts say.
+    /// on it, and that settles the number whatever the counts say: the other meaning
+    /// has a number of its own to wear its picture on.
     func testTheirOwnUseOfOurNumberSettlesIt() throws {
         let rules = try index(
             points: """
                 tourism=museum [0x2c02 resolution 24]
                 tourism=attraction & historic=* [0x2c02 resolution 24]
+                tourism=attraction [0x2c0d resolution 24]
                 """
         )
         let evidence = [
@@ -315,6 +317,79 @@ final class StylePortTests: XCTestCase {
         ]
         let ported = StylePort.map(codesByTag: evidence, rules: rules)
         XCTAssertEqual(ported.first(where: { $0.ours == 0x2c02 })?.theirs, 0x2c02)
+    }
+
+    /// A meaning our number alone draws has nowhere else to go: their 445 pitches are
+    /// not painted as the 13 sports centres whose number happens to be ours.
+    func testANamesakeDoesNotOutvoteAMeaningWithNoOtherNumber() throws {
+        let rules = try index(
+            polygons: """
+                leisure=pitch [0x19 resolution 21]
+                leisure=sports_centre [0x19 resolution 20]
+                """
+        )
+        let evidence = [
+            "leisure=sports_centre": ["A19": 13],
+            "leisure=pitch": ["A41": 445]
+        ]
+        let ported = StylePort.map(codesByTag: evidence, rules: rules)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x19 })?.theirs, 0x41)
+        // With a number of its own to wear its picture on, the pitch leaves ours to the namesake.
+        let housed = try index(
+            polygons: """
+                leisure=pitch [0x41 resolution 21]
+                leisure=pitch & sport=* [0x19 resolution 21]
+                leisure=sports_centre [0x19 resolution 20]
+                """
+        )
+        XCTAssertEqual(
+            StylePort.map(codesByTag: evidence, rules: housed).first(where: { $0.ours == 0x19 })?.theirs,
+            0x19
+        )
+    }
+
+    /// The picture that overrules the namesake takes the number, not a heavier one
+    /// with nothing at stake: their marker for attractions has a number of ours.
+    func testThePictureWithMostAtStakeTakesTheNumberFromTheNamesake() throws {
+        let rules = try index(
+            points: """
+                tourism=museum [0x2c02 resolution 24]
+                historic=ruins [0x2c02 resolution 24]
+                tourism=attraction & historic=* [0x2c02 resolution 24]
+                tourism=attraction [0x2c0d resolution 24]
+                """
+        )
+        let evidence = [
+            "tourism=museum": ["P2c02": 27],
+            "historic=ruins": ["P661e": 31],
+            "tourism=attraction": ["P6600": 240]
+        ]
+        let ported = StylePort.map(codesByTag: evidence, rules: rules)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x2c02 })?.theirs, 0x661e)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x2c0d })?.theirs, 0x6600)
+    }
+
+    /// Only what a rival alone stands to lose is weighed against the namesake: 400
+    /// streams with a number of their own do not count, 10 weirs with none do not
+    /// outweigh 30.
+    func testOnlyTheMeaningsWithNoOtherNumberAreAtStake() throws {
+        let rules = try index(
+            lines: """
+                waterway=stream [0x18 resolution 22]
+                waterway=stream & intermittent=yes [0x26 resolution 22]
+                waterway=weir [0x26 resolution 22]
+                waterway=canal [0x26 resolution 22]
+                """
+        )
+        let evidence = [
+            "waterway=canal": ["L26": 30],
+            "waterway=stream": ["L18": 400],
+            "waterway=weir": ["L18": 10]
+        ]
+        let ported = StylePort.map(codesByTag: evidence, rules: rules)
+        XCTAssertEqual(ported.first(where: { $0.ours == 0x26 })?.theirs, 0x26)
+        let more = evidence.merging(["waterway=weir": ["L18": 31]]) { $1 }
+        XCTAssertEqual(StylePort.map(codesByTag: more, rules: rules).first(where: { $0.ours == 0x26 })?.theirs, 0x18)
     }
 
     /// Their number equal to ours settles nothing where their number mostly draws a
@@ -370,16 +445,18 @@ final class StylePortTests: XCTestCase {
     }
 
     /// Their number drawn mostly for a value only our `key=*` fallback catches still
-    /// agrees with our number for that fallback.
+    /// agrees with our number for that fallback, against a picture seen more whose
+    /// meaning another number of ours takes whole.
     func testTheirNumberAgreesWithOurFallback() throws {
         let rules = try index(
             points: """
-                tourism=attraction [0x2c0d resolution 24]
+                tourism=viewpoint [0x2c04 resolution 24]
+                tourism=viewpoint & historic=* [0x2c0d resolution 24]
                 tourism=* & tourism!=no [0x2c0d resolution 24]
                 """
         )
         let evidence = [
-            "tourism=attraction": ["P6600": 400],
+            "tourism=viewpoint": ["P6600": 400],
             "tourism=yes": ["P2c0d": 120]
         ]
         let ported = StylePort.map(codesByTag: evidence, rules: rules)
@@ -448,6 +525,26 @@ final class StylePortTests: XCTestCase {
             theirTyp: theirs
         )
         XCTAssertEqual(ported.first(where: { $0.ours == 0x6503 })?.theirs, 0x6503)
+    }
+
+    /// The receiver draws by number. A living street their map leaves to it on the
+    /// minor road's number is declared on that number, so the build sends our rule back.
+    func testAMeaningLeftToTheReceiverKeepsTheNumberItIsDrawnBy() throws {
+        let rules = try index(
+            lines: """
+                highway=living_street [0x10 road_class=0 road_speed=1 resolution 22]
+                highway=residential [0x06 road_class=0 road_speed=2 resolution 22]
+                """
+        )
+        let theirs = TypSource.parse(ladder)
+        func unstyled(_ evidence: [String: [String: Int]]) -> Set<Int>? {
+            StylePort.leftToTheDevice(codesByTag: evidence, rules: rules, theirTyp: theirs, ported: [])[.line]
+        }
+        XCTAssertEqual(unstyled(["highway=living_street": ["L6": 8]]), [0x06])
+        // The number that drew it most decides, not a few sightings on another.
+        XCTAssertEqual(unstyled(["highway=living_street": ["L6": 800, "L8": 3]]), [0x06])
+        // Drawn by another number of the receiver's, ours is the nearest there is.
+        XCTAssertEqual(unstyled(["highway=living_street": ["L7": 8]]), [0x10])
     }
 
     /// A bay their map draws with a number their TYP never paints is the receiver's
