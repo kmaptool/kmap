@@ -3,6 +3,37 @@ import XCTest
 @testable import kmap
 
 final class SubstitutionApplyTests: XCTestCase {
+    // MARK: applySubstitutions
+
+    /// A rule whose type is on its own line is not the rule the sheet names, whatever
+    /// the line below it carries: that line is another rule's.
+    func testARuleIsNeverRetypedOnTheLineOfTheRuleBelowIt() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kmap-apply-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let rules = "a=b {name 'x'} [0x10 resolution 24]\nc=d [0x11 resolution 24]\n"
+        try FileTools.write(rules, to: dir.appendingPathComponent("points"))
+        let sheet = "@@ points\n- a=b [0x11 resolution 24]\n+ a=b [0x12 resolution 24]\n"
+        let result = try StyleCatalog.applySubstitutions(sheet, in: dir)
+        XCTAssertEqual(result.applied, 0)
+        XCTAssertEqual(result.missed.count, 1)
+        XCTAssertEqual(try String(contentsOf: dir.appendingPathComponent("points"), encoding: .utf8), rules)
+    }
+
+    /// The type of a rule written over 2 lines is found on the second.
+    func testARuleWrittenOverTwoLinesIsRetypedOnItsSecond() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kmap-apply-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileTools.write("a=b {name 'x'}\n    [0x11 resolution 24]\n", to: dir.appendingPathComponent("points"))
+        let sheet = "@@ points\n- a=b [0x11 resolution 24]\n+ a=b [0x12 resolution 24]\n"
+        XCTAssertEqual(try StyleCatalog.applySubstitutions(sheet, in: dir).applied, 1)
+        XCTAssertEqual(
+            try String(contentsOf: dir.appendingPathComponent("points"), encoding: .utf8),
+            "a=b {name 'x'}\n    [0x12 resolution 24]\n"
+        )
+    }
+
     // MARK: ruleToken
 
     func testTheTypeTokenIsTheNumberWithoutTheRest() {

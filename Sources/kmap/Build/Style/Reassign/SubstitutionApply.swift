@@ -107,11 +107,10 @@ extension StyleCatalog {
                         .trimmingCharacters(in: .whitespaces)
                 ) == condition
             else { continue }
-            // The type may sit on this line or, for a 2-line rule, on the next.
-            guard
-                let target = [at, at + 1].first(where: {
-                    $0 < lines.count && lines[$0].contains(oldToken)
-                })
+            // The type sits on this line or, for a rule written over 2, on the next:
+            // never on the next rule's line.
+            let spans = lines[at].contains("[0x") ? [at] : [at, at + 1]
+            guard let target = spans.first(where: { $0 < lines.count && lines[$0].contains(oldToken) })
             else { continue }
 
             // An unbanded stroke takes the rule's resolution, so the stack shows as one.
