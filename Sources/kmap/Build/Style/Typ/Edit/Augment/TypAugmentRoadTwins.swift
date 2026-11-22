@@ -56,7 +56,7 @@ extension TypAugment {
     }
 
     /// Labels kept for the receiver's lists, hidden on the map.
-    private static func nothing(code: Int, labels: [String]) -> [String] {
+    static func nothing(code: Int, labels: [String]) -> [String] {
         var out = ["[_line]", "Type=" + TypeMeaning.hex(code)]
         out.append("Xpm=\"32 1 2 1\"")
         out.append("\"! c #000000\"")

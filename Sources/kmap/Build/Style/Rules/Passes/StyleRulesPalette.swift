@@ -26,14 +26,20 @@ extension StyleCatalog {
     ///
     /// - Parameter chosen: numbers a person aimed a rule at by hand. Never silenced -
     ///   an unpainted number is exactly where someone goes on to draw one.
+    /// - Returns: the rules silenced, and the unpainted numbers of the rules that
+    ///   could not be: the receiver would draw those itself.
     @discardableResult
     static func keepOnlyWhatThePaletteDraws(
         in directory: URL,
         palette: TypSource,
         chosen: [MapElementKind: Set<Int>] = [:],
         log: Log
-    ) throws -> Int {
+    ) throws -> (quieted: Int, left: [MapElementKind: Set<Int>]) {
         var quieted = 0
+        var left: [MapElementKind: Set<Int>] = [:]
+        // A road or a repair mark is drawn by the receiver or the build, whatever
+        // another rule on its number could not do.
+        var kept: [MapElementKind: Set<Int>] = [:]
         for kind in MapElementKind.allCases {
             let url = directory.appendingPathComponent(kind.ruleFile)
             guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
@@ -68,6 +74,7 @@ extension StyleCatalog {
                     || rule.contains(where: { $0.contains(TypAugment.repairTag) })
                 {
                     out.append(contentsOf: rule)
+                    kept[kind, default: []].insert(code)
                     continue
                 }
                 if line.contains(" continue") {
@@ -86,6 +93,7 @@ extension StyleCatalog {
                 }
                 guard let quiet = quietened(rule, routable: kind == .line) else {
                     out.append(contentsOf: rule)
+                    left[kind, default: []].insert(code)
                     continue
                 }
                 out.append(contentsOf: quiet)
@@ -100,7 +108,7 @@ extension StyleCatalog {
                     + " for the number they emit"
             )
         }
-        return quieted
+        return (quieted, left.reduce(into: [:]) { $0[$1.key] = $1.value.subtracting(kept[$1.key] ?? []) })
     }
 
     /// The number a rule line emits, in the form a TYP names it: a point's subtype is

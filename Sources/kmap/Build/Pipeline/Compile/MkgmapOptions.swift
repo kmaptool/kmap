@@ -97,13 +97,19 @@ extension BuildPipeline {
         return TypSource.parse(TypDecompiler.source(binary))
     }
 
-    /// Twins only the roads the build's TYP copy draws.
-    /// - Returns: the rules split, and the road numbers the TYP copy now leaves to a twin.
-    func roadTwins(in rules: URL, typ: URL?) throws -> (rules: Int, roads: Set<Int>) {
+    /// The build's own text copy of the TYP, which it may write to: never the style's file.
+    func ownCopy(_ typ: URL?) -> URL? {
         let ours = recipe.workDirectory.standardizedFileURL.path + "/"
         guard let typ, typ.pathExtension.lowercased() == "txt", typ.standardizedFileURL.path.hasPrefix(ours),
             typ.standardizedFileURL != recipe.style.typURL?.standardizedFileURL
-        else { return (0, []) }
+        else { return nil }
+        return typ
+    }
+
+    /// Twins only the roads the build's TYP copy draws.
+    /// - Returns: the rules split, and the road numbers the TYP copy now leaves to a twin.
+    func roadTwins(in rules: URL, typ: URL?) throws -> (rules: Int, roads: Set<Int>) {
+        guard let typ = ownCopy(typ) else { return (0, []) }
         var roads: Set<Int> = []
         let split = try StyleCatalog.addRoadTwins(
             finest: recipe.levels.finest,
@@ -266,7 +272,8 @@ extension BuildPipeline {
     }
 
     /// The snapshot fitted to the TYP: what it cannot paint falls back or goes quiet, a
-    /// via ferrata it has no line for is drawn as a path, and roads get their twins.
+    /// line that cannot go quiet is painted clear in the TYP copy, a via ferrata it has
+    /// no line for is drawn as a path, and roads get their twins.
     private func fit(_ mine: URL, typ: URL?) throws {
         let source = paletteSource()
         // An icon at each end of a via ferrata only where the TYP has one: unpainted,
@@ -288,12 +295,25 @@ extension BuildPipeline {
                 $0.trimmingCharacters(in: .whitespaces)
                     .hasSuffix(StylePort.forOurNumbers)
             }) {
-                _ = try StyleCatalog.keepOnlyWhatThePaletteDraws(
+                let quiet = try StyleCatalog.keepOnlyWhatThePaletteDraws(
                     in: mine,
                     palette: source,
                     chosen: BuildPipeline.handPicked(),
                     log: log
                 )
+                // A line whose rule could not be silenced still draws: clear, not as
+                // the receiver pleases. An area missing from the draw order is not drawn.
+                if let copy = ownCopy(typ), let lines = quiet.left[.line], !lines.isEmpty {
+                    if let cleared = TypAugment.paintClear(lines: lines, in: copy) {
+                        if cleared > 0 {
+                            log.append("\(cleared) line(s) painted clear: this palette draws nothing there")
+                        }
+                    } else {
+                        log.warn(
+                            "the TYP copy could not be written: the receiver draws \(lines.count) line(s) its own way"
+                        )
+                    }
+                }
             }
         }
         // A via ferrata the TYP has no picture for is drawn as a path.

@@ -65,6 +65,45 @@ final class StyleRulesPaletteTests: XCTestCase {
         XCTAssertFalse(out.contains("[0x0c"))
     }
 
+    /// A rule that cannot be silenced safely still draws: its number is handed back,
+    /// for the build to paint a line clear.
+    func testTheNumberOfARuleThatCouldNotBeSilencedIsHandedBack() throws {
+        let dir = try directory(
+            polygons: """
+                landuse=quarry [0x0c resolution 20]
+                amenity=* & area!=no & amenity!=grave_yard {add name='${amenity}'} [0x23 resolution 24]
+                landuse=forest [0x50 resolution 20]
+                """
+        )
+        let quiet = try StyleCatalog.keepOnlyWhatThePaletteDraws(in: dir, palette: palette, log: Log())
+        XCTAssertEqual(quiet.left, [MapElementKind.polygon: Set([0x23])])
+        XCTAssertTrue(try read(dir, "polygons").contains("[0x23 resolution 24]"))
+    }
+
+    /// A road is drawn by the receiver whatever another rule on its number could not
+    /// do: that number is not handed back.
+    func testANumberARoadKeepsIsNotHandedBack() throws {
+        let lined = TypSource.parse(
+            """
+            ; -*- coding: UTF-8 -*-
+            [_line]
+            Type=0x18
+            Xpm="0 0 1 0"
+            "! c #0000ff"
+            [end]
+            """
+        )
+        let dir = try directory(
+            lines: """
+                highway=track [0x0a road_class=0 road_speed=1 resolution 22]
+                leisure=track & area!=yes [0x0a resolution 22]
+                highway=raceway | highway=gallop [0x30 resolution 23]
+                """
+        )
+        let quiet = try StyleCatalog.keepOnlyWhatThePaletteDraws(in: dir, palette: lined, log: Log())
+        XCTAssertEqual(quiet.left, [MapElementKind.line: Set([0x30])])
+    }
+
     /// A layer that does nothing but draw goes: the rule below still matches, and a
     /// `delete` there would take the object with it.
     func testAnUnpaintedContinueLayerIsRemovedOutright() throws {
