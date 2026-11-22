@@ -109,13 +109,6 @@ extension CLI {
                 printer.drain(log)
                 do {
                     if try await downloadRegion(for: Paths.expand(path), log: log) { continue }
-                    if trouble.isNoExtracts {
-                        printer.drain(log)
-                        return CLIOutput.failure(
-                            "recover: the extracts kmap holds around this map do not cover what it draws"
-                                + " - pass the extract of the region the map shows with --extract"
-                        )
-                    }
                 } catch  where Task.isCancelled {
                     return CLIOutput.cancelled()
                 } catch {

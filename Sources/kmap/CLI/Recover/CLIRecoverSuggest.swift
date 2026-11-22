@@ -7,6 +7,15 @@ extension CLI {
     private static let mostSuggested = 6
     private static let bytesPerMB = 1_048_576.0
 
+    /// What is said where no region is left to suggest. `held`: the regions holding some
+    /// of the map are all in the cache, and were read to no avail.
+    static func nothingToSuggest(held: Bool) -> String {
+        held
+            ? "and the extracts kmap holds around this map do not cover what it draws"
+                + " - pass the extract of the region the map shows with --extract"
+            : "and no region kmap can download overlaps it either"
+    }
+
     static func suggestExtracts(for frame: BBox, path: String, why: String? = nil) async -> Int32 {
         CLILog.error("recover: \(why ?? "no downloaded OSM data matches \(frame.display)")")
         let index = RegionIndex()
@@ -20,14 +29,14 @@ extension CLI {
         let drawn = RegionSuggestion.drawnGround(of: Paths.expand(path))
         // The regions recover would read, then any other holding some of the map.
         var listed: Set<String> = []
+        let holding =
+            RegionSuggestion.groundToRead(for: drawn, index: index)
+            + RegionSuggestion.groundToName(for: drawn, index: index)
         let wanted =
-            (RegionSuggestion.groundToRead(for: drawn, index: index)
-            + RegionSuggestion.groundToName(for: drawn, index: index))
+            holding
             .filter { !RegionSuggestion.isCached($0.region) && listed.insert($0.region.id).inserted }
             .prefix(mostSuggested)
-        guard !wanted.isEmpty else {
-            return CLIOutput.failure("and no region kmap can download overlaps it either")
-        }
+        guard !wanted.isEmpty else { return CLIOutput.failure(nothingToSuggest(held: !holding.isEmpty)) }
         CLIOutput.result([
             "needsExtract": .bool(true),
             "frame": frameAsData(frame),
