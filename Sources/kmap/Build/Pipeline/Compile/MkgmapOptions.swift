@@ -282,10 +282,10 @@ extension BuildPipeline {
             try StyleCatalog.dropFerrataEnds(in: mine)
         }
         // The fallback first, then the silencing: what neither the new number nor
-        // the old one can paint goes quiet. With no TYP every number goes back. A
-        // folder of the user's own is compiled as it is: its numbers are its own.
+        // the old one can paint goes quiet. With no TYP every number goes back, but
+        // not in a folder of the user's own: its numbers are its own to keep.
         let ownFolder = if case .customDirectory = recipe.style.origin { true } else { false }
-        if !ownFolder {
+        if !ownFolder || source != nil {
             _ = try StyleCatalog.keepTheOldNumberWherePaletteIsSilent(in: mine, palette: source, log: log)
         }
         if let source {

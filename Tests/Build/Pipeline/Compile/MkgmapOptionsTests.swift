@@ -50,24 +50,56 @@ final class MkgmapOptionsTests: XCTestCase {
         XCTAssertTrue(polygons.contains("building=* & building!=no [0x13 resolution 24]"), polygons)
     }
 
-    /// A rule folder of the user's own is compiled as written: its numbers are its own.
-    func testAFolderOfTheUsersOwnIsCompiledAsItIs() throws {
+    /// A build from a rule folder of the user's own, with the TYP it stands beside.
+    private func ownFolder(typ: URL? = nil) throws -> BuildPipeline {
         let folder = try root()
-        let pipeline = PipelineFixture.pipeline(workRoot: try root()) { recipe in
+        return PipelineFixture.pipeline(workRoot: try root()) { recipe in
             recipe.style = MapStyle(
                 id: "mine",
                 name: "Mine",
                 summary: "",
                 origin: .customDirectory(folder),
                 styleDirectory: folder,
-                typURL: nil,
+                typURL: typ,
                 familyID: 6300,
                 productID: 1
             )
         }
+    }
+
+    /// A rule folder of the user's own with no TYP is compiled as written: its numbers
+    /// are its own.
+    func testAFolderOfTheUsersOwnWithNoTypIsCompiledAsItIs() throws {
+        let pipeline = try ownFolder()
         let rules = try snapshot(of: pipeline)
         try pipeline.fit(rules, typ: nil)
         XCTAssertEqual(try read(rules, "lines"), Self.lines)
         XCTAssertEqual(try read(rules, "polygons"), Self.polygons)
+    }
+
+    /// The same folder beside a TYP written for kmap's numbers: a meaning on a number
+    /// that TYP does not paint goes back to the number it does, and is not silenced.
+    func testAFolderOfTheUsersOwnFollowsItsTyp() throws {
+        let typ = try root().appendingPathComponent("ported.txt")
+        try """
+        ; \(StylePort.forOurNumbers)
+        [_line]
+        Type=0x17
+        Xpm="0 0 1 0"
+        "1 c #303030"
+        [end]
+        [_polygon]
+        Type=0x13
+        Xpm="0 0 1 0"
+        "1 c #606060"
+        [end]
+        """.write(to: typ, atomically: true, encoding: .utf8)
+        let pipeline = try ownFolder(typ: typ)
+        let rules = try snapshot(of: pipeline)
+        try pipeline.fit(rules, typ: nil)
+        let lines = try read(rules, "lines")
+        XCTAssertTrue(lines.contains("barrier=hedge [0x17 resolution 24]"), lines)
+        XCTAssertTrue(lines.contains("barrier=fence [0x17 resolution 24]"), lines)
+        XCTAssertFalse(try read(rules, "polygons").contains("[0x36"))
     }
 }
