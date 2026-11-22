@@ -274,21 +274,21 @@ extension BuildPipeline {
     /// The snapshot fitted to the TYP: what it cannot paint falls back or goes quiet, a
     /// line that cannot go quiet is painted clear in the TYP copy, a via ferrata it has
     /// no line for is drawn as a path, and roads get their twins.
-    private func fit(_ mine: URL, typ: URL?) throws {
+    func fit(_ mine: URL, typ: URL?) throws {
         let source = paletteSource()
         // An icon at each end of a via ferrata only where the TYP has one: unpainted,
         // the receiver would draw its own marker there.
         if source?.section(.point, StyleCatalog.ferrataEndCode) == nil {
             try StyleCatalog.dropFerrataEnds(in: mine)
         }
+        // The fallback first, then the silencing: what neither the new number nor
+        // the old one can paint goes quiet. With no TYP every number goes back. A
+        // folder of the user's own is compiled as it is: its numbers are its own.
+        let ownFolder = if case .customDirectory = recipe.style.origin { true } else { false }
+        if !ownFolder {
+            _ = try StyleCatalog.keepTheOldNumberWherePaletteIsSilent(in: mine, palette: source, log: log)
+        }
         if let source {
-            // The fallback first, then the silencing: what neither the new
-            // number nor the old one can paint goes quiet.
-            _ = try StyleCatalog.keepTheOldNumberWherePaletteIsSilent(
-                in: mine,
-                palette: source,
-                log: log
-            )
             // Only a palette written for kmap's numbers. Every other kind leaves
             // what it does not paint to the receiver on purpose, and always has.
             if source.lines.contains(where: {

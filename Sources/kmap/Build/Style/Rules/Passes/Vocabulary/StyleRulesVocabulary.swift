@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Two meanings on one number share a look: allotments and an orchard both sat on 0x4e.
 /// Each gets a number of kmap's own, and a palette that paints no picture for the new
-/// number keeps the old one (below), so no map changes until a palette says otherwise.
+/// number keeps the old one (below), and so does a build with no palette at all, so no map
+/// changes until a palette says otherwise.
 extension StyleCatalog {
     /// A meaning moved onto a number of its own, and the number it drew on before: an
     /// unpainted new number sends the rule back to the old one, so a style written
@@ -53,18 +54,21 @@ extension StyleCatalog {
 
     /// Puts a widened rule back on the number it drew on before. Runs before the
     /// palette filter, which would otherwise silence it and lose the meaning.
+    ///
+    /// - Parameter palette: nil for a build with no TYP, which paints nothing: the
+    ///   receiver knows mkgmap's numbers and none of kmap's own, and draws a stadium on
+    ///   0x33 as it pleases.
     @discardableResult
     static func keepTheOldNumberWherePaletteIsSilent(
         in directory: URL,
-        palette: TypSource,
+        palette: TypSource?,
         log: Log
     ) throws -> Int {
         var moved = 0
         for kind in MapElementKind.allCases {
             let wanted = widenedNumbers.filter { $0.kind == kind }
             guard !wanted.isEmpty else { continue }
-            let painted = palette.codes(kind).union(palette.deliberatelyUnstyled[kind] ?? [])
-            guard !painted.isEmpty else { continue }
+            let painted = palette.map { $0.codes(kind).union($0.deliberatelyUnstyled[kind] ?? []) } ?? []
             let url = directory.appendingPathComponent(kind.ruleFile)
             guard var text = try? String(contentsOf: url, encoding: .utf8) else { continue }
             var touched = false
