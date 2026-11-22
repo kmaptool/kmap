@@ -15,7 +15,9 @@ extension StylePort {
         var painted: [MapElementKind: Set<Int>] = [:]
         for port in ported { painted[port.kind, default: []].insert(port.ours) }
         var out: [MapElementKind: Set<Int>] = [:]
-        for (tag, drawn) in codesByTag {
+        // A claimed building their map leaves to the receiver falls to the building's
+        // own number, as on theirs: the layer over it is drawn only where painted.
+        for (tag, drawn) in codesByTag where tag != claimedBuilding {
             // The number of theirs with no section that drew the meaning most, per kind.
             var most: [MapElementKind: (code: Int, count: Int)] = [:]
             for (key, count) in drawn where count >= fewestToPort {

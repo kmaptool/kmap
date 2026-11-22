@@ -2,19 +2,36 @@ import Foundation
 
 extension StyleRecovery {
     /// Which codes this map was seen drawing each meaning with, and over how much ground.
-    static func ledger(_ evidence: Evidence, into report: inout Report, stop: StopFlag = StopFlag()) throws {
+    /// A building a rule of ours claims by 1 of `claimants` is a meaning of its own,
+    /// `StylePort.claimedBuilding`, under the code that draws such buildings.
+    /// - Returns: that code's key where their map has one, how many claimed buildings it
+    ///   draws, and how many were identified in all.
+    @discardableResult
+    static func ledger(
+        _ evidence: Evidence,
+        into report: inout Report,
+        claimedBy claimants: Set<String> = [],
+        stop: StopFlag = StopFlag()
+    ) throws -> (code: String?, drawn: Int, buildings: Int) {
         // Each code tallied on its own, over every core: a code's areas add up in its own
         // order, as they always have, so the sums come out the same.
         let codes = Array(evidence.codes)
+        let layer = claimedBuildingCode(in: codes, claimedBy: claimants, stop: stop)
+        let order = claimOrder(claimants)
         let tallies = Lanes.map(codes.count, lanes: codes.count) { at in
             var counts: [String: Int] = [:]
             var areas: [String: Double] = [:]
             let code = codes[at].value
+            let draws = codes[at].key == layer.code
             var read = 0
             for (id, tags) in code.sources {
                 read += 1
                 if read % StyleRecovery.progressStride == 0, stop.isRaised { break }
-                guard let tag = DefaultRuleBook.meaning(of: tags) else { continue }
+                // The building's picture is no part of what claims the building.
+                let claimed = draws && claimant(of: tags, among: order) != nil
+                guard let tag = claimed ? StylePort.claimedBuilding : DefaultRuleBook.meaning(of: tags) else {
+                    continue
+                }
                 counts[tag, default: 0] += 1
                 if let area = code.extent[id] { areas[tag, default: 0] += area }
             }
@@ -26,6 +43,8 @@ extension StyleRecovery {
             for (tag, count) in tallies[at].0 { report.codesByTag[tag, default: [:]][key] = count }
             for (tag, area) in tallies[at].1 { report.areaByTag[tag, default: [:]][key] = area }
         }
+        if layer.buildings > 0 { report.groundTags[StylePort.claimedBuilding] = layer.buildings }
+        return layer
     }
 
     /// The TYP the map carries, for the silencing gate: only a code their TYP

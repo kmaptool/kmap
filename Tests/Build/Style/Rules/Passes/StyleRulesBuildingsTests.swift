@@ -39,6 +39,19 @@ final class StyleRulesBuildingsTests: XCTestCase {
         )
     }
 
+    /// What claims a building is read back from the rule set the layer stands in.
+    func testTheClaimingKeysAreReadFromTheRuleSet() throws {
+        let dir = try directory(polygons: Self.polygons)
+        XCTAssertEqual(StyleCatalog.claimingKeys(inRules: dir), [], "no layer yet")
+        try catalog.addClaimedBuildingLayer(in: dir, log: Log())
+        XCTAssertEqual(StyleCatalog.claimingKeys(inRules: dir), ["amenity", "historic", "landuse", "shop", "tourism"])
+        let single = try directory(
+            polygons: "amenity=* [0x23 resolution 22]\nbuilding=* & building!=no [0x13 resolution 24]\n"
+        )
+        try catalog.addClaimedBuildingLayer(in: single, log: Log())
+        XCTAssertEqual(StyleCatalog.claimingKeys(inRules: single), ["amenity"])
+    }
+
     func testAFileWithoutTheStockBuildingRuleGetsNoLayer() {
         XCTAssertNil(StyleCatalog.claimedBuildingRule(for: "amenity=parking [0x05 resolution 22]\n"))
     }

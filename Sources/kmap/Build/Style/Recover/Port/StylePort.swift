@@ -69,6 +69,9 @@ enum StylePort {
     /// Below this a picture is a coincidence, not a look their style keeps.
     static let fewestToPort = 3
 
+    /// The meaning of a building another rule claims, among the tags of the evidence.
+    static let claimedBuilding = "building=* (claimed)"
+
     /// What a rung must hold against the meaning's best-attested picture to count as one
     /// of its zooms rather than as a stray identification.
     static let rungShare = 0.1

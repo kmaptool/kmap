@@ -15,9 +15,12 @@ extension StylePort.Mapping {
                 // and enough of what their number drew to be a picture for it. Their
                 // plain marker covers 5 fords among 6000 places, and a marker
                 // is no ford icon - so the ford stays unpainted, as in the original.
+                // The buildings another rule claims are told from the sources 1 by 1:
+                // few among all their code draws, and no stray.
+                let told = tag == StylePort.claimedBuilding
                 let real = drawn.filter {
                     Double($0.count) >= StylePort.rungShare * Double(best)
-                        && (!isStray($0.code, kind, $0.count) || $0.count >= StylePort.fewestIfStray)
+                        && (told || !isStray($0.code, kind, $0.count) || $0.count >= StylePort.fewestIfStray)
                 }
                 // The meaning's own ladder, closest zoom first; their code last, so
                 // rungs attested alike keep one order between runs.

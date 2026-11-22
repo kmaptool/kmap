@@ -10,8 +10,12 @@ extension StylePort {
         var out: [MapElementKind: [String: Set<Int>]] = [:]
         for kind in MapElementKind.allCases {
             for meaning in rules.byKind[kind]?.values ?? [:].values {
-                // The layer over a claimed building is the build's own: their map has no such thing.
-                if kind == .polygon, meaning.code == StyleCatalog.claimedBuildingCode { continue }
+                // The layer over a claimed building answers for such buildings alone, which
+                // the evidence keeps apart from what claims them.
+                if kind == .polygon, meaning.code == StyleCatalog.claimedBuildingCode {
+                    out[kind, default: [:]][claimedBuilding, default: []].insert(meaning.code)
+                    continue
+                }
                 // A via ferrata's road lies under its own line: no meaning of the path's number.
                 let own = meaning.rules.filter { !$0.condition.contains(StyleCatalog.ownTwin) }
                 let tags =

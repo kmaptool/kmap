@@ -161,7 +161,14 @@ enum StyleRecovery {
         for extract in extracts { try await matcher.read(extract.file) }
         let evidence = matcher.finish()
         report.groundTags = matcher.groundTags
-        try ledger(evidence, into: &report, stop: stop)
+        let claimants = StyleCatalog.claimingKeys(inRules: rulesDirectory ?? StyleCatalog.baseStyleDirectory)
+        let layer = try ledger(evidence, into: &report, claimedBy: claimants, stop: stop)
+        if let code = layer.code {
+            log.append(
+                "their 0x\(code.dropFirst()) draws the buildings another rule claims:"
+                    + " \(layer.drawn) of \(layer.buildings) identified"
+            )
+        }
         let typDefined = typDefined(in: img)
 
         try Task.checkCancellation()

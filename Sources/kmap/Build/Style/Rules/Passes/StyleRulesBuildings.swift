@@ -34,6 +34,17 @@ extension StyleCatalog {
         }
     }
 
+    /// The keys the layer's rule of a rule set names: what claims a building there.
+    /// Empty for a rule set without the layer.
+    static func claimingKeys(inRules directory: URL) -> Set<String> {
+        guard let text = try? String(contentsOf: directory.appendingPathComponent("polygons"), encoding: .utf8),
+            let rule = text.split(separator: "\n").first(where: {
+                $0.hasPrefix("building=*") && $0.contains("[\(TypeMeaning.hex(claimedBuildingCode)) ")
+            }), let open = rule.firstIndex(of: "(")
+        else { return [] }
+        return Set(String(rule[open...]).allMatches("[a-z_:]+=\\*").map { String($0.dropLast(2)) })
+    }
+
     /// The layer's rule for a polygons file: a building carrying a key that a rule
     /// above the stock building rule draws by. nil where the file has no such rule.
     static func claimedBuildingRule(for polygons: String) -> String? {

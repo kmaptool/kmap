@@ -392,9 +392,10 @@ final class StylePortTests: XCTestCase {
         XCTAssertEqual(StylePort.map(codesByTag: more, rules: rules).first(where: { $0.ours == 0x26 })?.theirs, 0x18)
     }
 
-    /// The layer over a building another rule claims is the build's own: their map has
-    /// no such thing, so no picture of theirs is ported onto it.
-    func testNoPictureOfTheirsIsPortedOntoTheClaimedBuildingLayer() throws {
+    /// The layer over a building another rule claims takes the picture their map draws
+    /// such buildings with, and none where the evidence found no such picture: neither
+    /// their building's nor their amenity's lands on it by its tags.
+    func testTheClaimedBuildingLayerTakesOnlyThePictureOfClaimedBuildings() throws {
         let rules = try index(
             polygons: """
                 building=* & building!=no & (amenity=*) [0x36 resolution 24 continue]
@@ -402,9 +403,72 @@ final class StylePortTests: XCTestCase {
                 building=* & building!=no [0x13 resolution 24]
                 """
         )
-        let ported = StylePort.map(codesByTag: ["building=*": ["A13": 500], "amenity=*": ["A23": 60]], rules: rules)
-        XCTAssertEqual(ported.first(where: { $0.ours == 0x13 })?.theirs, 0x13)
-        XCTAssertNil(ported.first { $0.ours == StyleCatalog.claimedBuildingCode })
+        let plain = ["building=*": ["A13": 500], "amenity=*": ["A23": 60]]
+        let without = StylePort.map(codesByTag: plain, rules: rules)
+        XCTAssertEqual(without.first(where: { $0.ours == 0x13 })?.theirs, 0x13)
+        XCTAssertNil(without.first { $0.ours == StyleCatalog.claimedBuildingCode })
+
+        let theirLayer = StylePort.map(
+            codesByTag: plain.merging([StylePort.claimedBuilding: ["A36": 40]]) { $1 },
+            rules: rules
+        )
+        XCTAssertEqual(theirLayer.first(where: { $0.ours == StyleCatalog.claimedBuildingCode })?.theirs, 0x36)
+        XCTAssertEqual(theirLayer.first(where: { $0.ours == 0x23 })?.theirs, 0x23)
+
+        // Their map draws the building first: its picture is the layer's too.
+        let buildingFirst = StylePort.map(
+            codesByTag: plain.merging([StylePort.claimedBuilding: ["A13": 40]]) { $1 },
+            rules: rules
+        )
+        XCTAssertEqual(buildingFirst.first(where: { $0.ours == StyleCatalog.claimedBuildingCode })?.theirs, 0x13)
+        XCTAssertEqual(buildingFirst.first(where: { $0.ours == 0x13 })?.theirs, 0x13)
+    }
+
+    /// Claimed buildings are few among all their building code draws, and told from
+    /// the sources: not the stray a few sightings of another meaning would be.
+    func testAFewClaimedBuildingsAmongManyAreNoStray() throws {
+        let rules = try index(
+            polygons: """
+                building=* & building!=no & (amenity=*) [0x36 resolution 24 continue]
+                amenity=* & area!=no [0x23 resolution 22]
+                building=* & building!=no [0x13 resolution 24]
+                """
+        )
+        let theirs = TypSource.parse(
+            """
+            [_polygon]
+            Type=0x13
+            Xpm="0 0 1 0"
+            "1 c #8B8BA0"
+            [end]
+            """
+        )
+        let ported = StylePort.map(
+            codesByTag: ["building=*": ["A13": 5000], StylePort.claimedBuilding: ["A13": 40]],
+            rules: rules,
+            theirTyp: theirs
+        )
+        XCTAssertEqual(ported.first(where: { $0.ours == StyleCatalog.claimedBuildingCode })?.theirs, 0x13)
+    }
+
+    /// A building their map leaves to the receiver: the layer is not declared left to
+    /// it, so the build takes the layer away and the building falls to its own number.
+    func testALayerIsNeverLeftToTheReceiver() throws {
+        let rules = try index(
+            polygons: """
+                building=* & building!=no & (amenity=*) [0x36 resolution 24 continue]
+                amenity=* & area!=no [0x23 resolution 22]
+                building=* & building!=no [0x13 resolution 24]
+                """
+        )
+        let evidence = ["building=*": ["A13": 5000], StylePort.claimedBuilding: ["A13": 40]]
+        let unstyled = StylePort.leftToTheDevice(
+            codesByTag: evidence,
+            rules: rules,
+            theirTyp: TypSource.parse(ladder),
+            ported: []
+        )
+        XCTAssertEqual(unstyled[.polygon], [0x13])
     }
 
     /// Their number equal to ours settles nothing where their number mostly draws a
